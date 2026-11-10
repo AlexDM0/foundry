@@ -1,6 +1,7 @@
 /**
  * The Assistant view: the live session as a chat thread with a composer under it, and beside it a rail of its open incidents and the
- * handled ones with the moves and escalations made under them, each applied default in the warning state. While no session is up the
+ * handled ones with the trail of steps made under them, a delivery linking its Assistant and an escalation its decision, each applied
+ * default in the warning state. While no session is up the
  * thread says a fresh one is booting; there is no off switch.
  */
 import type { ConversationBoardDocument } from '../../@types/ConversationDocuments.ts';
@@ -10,6 +11,7 @@ import { ChatThreadModelUtil }            from '../../conversation/ChatThreadMod
 import { Composer }                       from '../../conversation/Composer.tsx';
 import {
   CardHead,
+  IncidentStepText,
   JobLink,
   MetaLine,
   TicketLinks
@@ -42,8 +44,8 @@ function IncidentItem({ incident }: { readonly incident: IncidentEntry }) {
             incident.defaultMove === null ? null : `default ${incident.defaultMove}`,
           ]} />
         )}
-      {incident.facts.map(([name, value]) => <p key={name} className="bridge-note">{`${name}: ${value}`}</p>)}
-      {incident.steps.map((step) => <p key={`${step.at}-${step.text}`} className="bridge-note">{step.text}</p>)}
+      {/* Two steps may share a stamp and words, such as two equal notes, so a step is known by its place. */}
+      {incident.steps.map((step, i) => <p key={i} className="bridge-note"><IncidentStepText step={step} /></p>)}
     </li>
   );
 }

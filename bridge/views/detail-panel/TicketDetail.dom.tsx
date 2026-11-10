@@ -5,7 +5,10 @@
  * the Overview's state card names the live job and its calls, and leads with Watch, a link no stream outage disables, else with Ready,
  * Unhold or Accept by state, Accept disabled unless the prediction is clean; Park… and Hold… open their reason row before anything is sent,
  * Cancel sending nothing; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
- * forecast; the Facts grid carries its second lines; and a refusal shows verbatim beside the control that drew it.
+ * forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live job's controls
+ * sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind down, Stop and
+ * Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until confirmed, Cancel and Esc
+ * handing the focus back; a stopping job shows Stopping. alone, a watched one Stop alone.
  */
 import {
   act,
@@ -29,6 +32,7 @@ import type { DetailItem }            from '../../shell/DetailRoute.ts';
 import {
   EXAMPLE_DETAIL_FORMAT,
   exampleDetailBoard,
+  exampleDetailIncident,
   exampleDetailJob,
   exampleDetailRow,
   exampleDetailTicket,
@@ -53,8 +57,9 @@ const BOARD = exampleDetailBoard({
   rows: [exampleDetailRow(4, {
     ticket: '004', status: 'in-progress', start: exampleStampAt('12:41'), history: [{ status: 'in-progress', at: exampleStampAt('12:41') }]
   })],
-  jobs: [exampleDetailJob('J4', '004')],
-  log:  [
+  jobs:      [exampleDetailJob('J4', '004')],
+  incidents: [exampleDetailIncident('I6', '004')],
+  log:       [
     {
       at: exampleStampAt('12:41'), text: 'Task #4 started', taskIds: [4], ticketIds: ['004']
     },
@@ -292,6 +297,120 @@ describe('the Overview', () => {
     expect(valueOf('integration')).toBe('group-accountlands together, no release ticket yet');
     expect(valueOf('started')).toBe('12:41attempt 1');
     expect(valueOf('task')).toBe('#004row of this ticket');
+  });
+});
+
+describe('the live job\'s controls', () => {
+  function moreButton(): HTMLElement {
+    return screen.getByRole('button', { name: 'More controls for J4 and #004' });
+  }
+
+  function stopMenu(): HTMLElement | null {
+    return screen.queryByRole('dialog', { name: 'Controls that stop work' });
+  }
+
+  function withJob(job: unknown): DetailBoardState {
+    return { ...BOARD, jobs: [job] };
+  }
+
+  test('a building ticket names its open incident, then under Watch J4 the message box and More, and no Hold or Park among them', () => {
+    renderTicket(BUILDING);
+    expect(screen.getByText(/^Open incident/u).textContent).toBe('Open incident I6 on this ticket: sandbox-unavailable, default gate-retry.');
+    const group = screen.getByRole('group', { name: 'Builder J4 controls' });
+    expect(within(group).getAllByRole('textbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Message J4']);
+    expect(within(group).getAllByRole('button').map((button) => button.textContent)).toEqual(['Send message', 'More ···']);
+    const lead = document.querySelector('.bridge-detail-lead');
+    expect(lead?.compareDocumentPosition(group)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.queryByText('job')).toBeNull();
+  });
+
+  test('Send message posts job-message with the typed text and clears the box', async () => {
+    const panel = renderTicket(BUILDING);
+    const box = screen.getByRole<HTMLInputElement>('textbox', { name: 'Message J4' });
+    act(() => {
+      fireEvent.change(box, { target: { value: 'Rebase onto main first' } });
+    });
+    await clicked(screen.getByRole('button', { name: 'Send message' }));
+    expect(panel.sent).toEqual([{ kind: 'job-message', jobId: 'J4', text: 'Rebase onto main first' }]);
+    expect(box.value).toBe('');
+  });
+
+  test('More lists Wind down, Stop and Fresh agent; Stop J4 is confirmed in place, naming the ticket, its branch and its hold, before it posts', async () => {
+    const panel = renderTicket(BUILDING);
+    await clicked(moreButton());
+    expect(within(stopMenu() as HTMLElement).getAllByRole('button').map((item) => item.firstChild?.textContent)).toEqual(['Wind down J4', 'Stop J4', 'Fresh agent']);
+    await clicked(screen.getByRole('button', { name: 'Stop J4' }));
+    const confirmation = screen.getByRole('group', { name: 'Confirm stopping J4' });
+    expect(confirmation.textContent).toContain('Stop J4 now?');
+    expect(confirmation.textContent).toContain('Ends J4\'s session on #004 Example account pages in the middle of its turn.');
+    expect(confirmation.textContent).toContain('Branch ticket-004 and its worktree stay as they are.');
+    expect(confirmation.textContent).toContain('#004 is held stopped by User (J4) until User unholds it.');
+    expect(panel.sent).toEqual([]);
+    await clicked(within(confirmation).getByRole('button', { name: 'Stop J4' }));
+    expect(panel.sent).toEqual([{ kind: 'job-stop', jobId: 'J4', mode: 'stop' }]);
+    expect(stopMenu()).toBeNull();
+  });
+
+  test('Wind down and Fresh agent post their own commands once confirmed', async () => {
+    const panel = renderTicket(BUILDING);
+    await clicked(moreButton());
+    await clicked(screen.getByRole('button', { name: 'Wind down J4' }));
+    await clicked(within(screen.getByRole('group', { name: 'Confirm winding down J4' })).getByRole('button', { name: 'Wind down J4' }));
+    await clicked(moreButton());
+    await clicked(screen.getByRole('button', { name: 'Fresh agent' }));
+    await clicked(within(screen.getByRole('group', { name: 'Confirm a fresh agent for J4' })).getByRole('button', { name: 'Start fresh agent' }));
+    expect(panel.sent).toEqual([{ kind: 'job-stop', jobId: 'J4', mode: 'wind-down' }, { kind: 'job-fresh', jobId: 'J4' }]);
+  });
+
+  test('Cancel puts the item back with nothing sent and the focus on it; Esc closes the menu and hands the focus back to More', async () => {
+    const panel = renderTicket(BUILDING);
+    await clicked(moreButton());
+    await clicked(screen.getByRole('button', { name: 'Stop J4' }));
+    await clicked(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('group', { name: 'Confirm stopping J4' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Stop J4' }));
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(stopMenu()).toBeNull();
+    expect(document.activeElement).toBe(moreButton());
+    expect(panel.sent).toEqual([]);
+  });
+
+  test('a refused stop shows the Overseer\'s sentence verbatim beside the confirm', async () => {
+    const panel = renderTicket(BUILDING);
+    panel.answerWith({ verdict: 'refused', refusal: 'Job J4 is already stopping.' });
+    await clicked(moreButton());
+    await clicked(screen.getByRole('button', { name: 'Stop J4' }));
+    const confirmation = screen.getByRole('group', { name: 'Confirm stopping J4' });
+    await clicked(within(confirmation).getByRole('button', { name: 'Stop J4' }));
+    expect(within(confirmation).getByRole('status').textContent).toBe('Job J4 is already stopping.');
+  });
+
+  test('a stopping job shows Stopping. and no controls; one the Overseer only watches offers Stop alone and takes no message', async () => {
+    renderTicket(BUILDING, { boardState: withJob(exampleDetailJob('J4', '004', { stopRequest: 'stop' })) });
+    expect(screen.getByText('Stopping.')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Builder J4 controls' })).toBeNull();
+    cleanup();
+    renderTicket(BUILDING, {
+      boardState: withJob(exampleDetailJob('J4', '004', {
+        live: {
+          calls: 0, callBudget: 150, lastToolCall: null, watchOnly: true
+        }
+      }))
+    });
+    expect(screen.queryByRole('textbox', { name: 'Message J4' })).toBeNull();
+    await clicked(moreButton());
+    expect(within(stopMenu() as HTMLElement).getAllByRole('button').map((item) => item.firstChild?.textContent)).toEqual(['Stop J4']);
+  });
+
+  test('a review job\'s controls are the reviewer\'s, and a ticket with no job has none', () => {
+    renderTicket(BUILDING, { boardState: withJob(exampleDetailJob('J9', '004', { kind: 'review', role: 'reviewer' })) });
+    expect(screen.getByRole('group', { name: 'Reviewer J9 controls' })).toBeTruthy();
+    cleanup();
+    renderTicket({ form: 'ticket', ticketId: '013' });
+    expect(screen.queryByRole('button', { name: /^More controls/u })).toBeNull();
+    expect(screen.queryByText(/^Open incident/u)).toBeNull();
   });
 });
 

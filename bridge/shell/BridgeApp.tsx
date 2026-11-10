@@ -61,6 +61,8 @@ import {
 } from './HashRouter.ts';
 import { Header }                                 from './Header.tsx';
 import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
+import { IncidentNotice }                         from './IncidentNotice.tsx';
+import { IncidentNoticeModelUtil }                from './IncidentNoticeModel.ts';
 import type { SessionLoss }                       from './SessionWordingUtil.ts';
 import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
 import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts';
@@ -98,6 +100,9 @@ export const MOTION_ATTRIBUTE = 'data-motion';
 export const MOTION_READY = 'ready';
 
 const PANEL_ENTER_ANIMATION = 'bridge-panel-enter';
+
+/** The board's preference holding the incident defaults this viewer marked seen. */
+const SEEN_INCIDENT_DEFAULTS_CHOICE_NAME = 'seen-incident-defaults';
 
 export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: BridgeAppProps) {
   const sharedStore = useMemo(() => sharedPreferenceStoreOf(services.storage), [services]);
@@ -244,6 +249,22 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     () => (kanbanBoardState === null ? null : KanbanModel.kanbanFilterModelOf(kanbanBoardState, storedPressedChips, storedReadyOrder)),
     [kanbanBoardState, storedPressedChips, storedReadyOrder],
   );
+  const [markedSeenIncidentIds, setMarkedSeenIncidentIds] = useState<readonly string[] | null>(null);
+  const seenIncidentIds = useMemo(
+    () => markedSeenIncidentIds ?? boardStore?.readTextList(SEEN_INCIDENT_DEFAULTS_CHOICE_NAME) ?? [],
+    [markedSeenIncidentIds, boardStore],
+  );
+  const incidentNotice = useMemo(() => {
+    const slices = IncidentNoticeModelUtil.timestampSlicesOf(boardState);
+    const stampFormat = slices === null ? null : { todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices };
+    return conversationBoard === null ? null : IncidentNoticeModelUtil.incidentNoticeModelOf(conversationBoard, seenIncidentIds, stampFormat);
+  }, [boardState, conversationBoard, seenIncidentIds, boardNow]);
+  const markIncidentDefaultsSeen = (): void => {
+    if (conversationBoard === null) return;
+    const seenIds = IncidentNoticeModelUtil.seenIdsAfterMarking(conversationBoard);
+    boardStore?.writeTextList(SEEN_INCIDENT_DEFAULTS_CHOICE_NAME, seenIds);
+    setMarkedSeenIncidentIds(seenIds);
+  };
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
   const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
@@ -341,6 +362,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           warnings={headerModel.warnings}
           notices={headerModel.notices}
         />
+        {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
         <Header
           project={boardState?.project ?? identity?.project ?? ''}
           model={headerModel}

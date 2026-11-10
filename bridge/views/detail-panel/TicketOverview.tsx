@@ -1,18 +1,26 @@
 /**
- * The ticket form's Overview: the state card, the one likely action with its effect, Next as numbered steps (the current one marked),
- * Other moves, and the Facts grid. Watch is a link, so a stream that is down never disables it; every move posts a `ControlCommand`.
+ * The ticket form's Overview: the state card, the newest open incident on the ticket, the one likely action with its effect, the live job's
+ * message box and More menu, Next as numbered steps (the current one marked), Other moves, and the Facts grid. Watch is a link, so a stream
+ * that is down never disables it; every move posts a `ControlCommand`.
  */
+import { useState } from 'react';
+
 import { Button }                  from '../../design-system/Button.tsx';
 import { Callout }                 from '../../design-system/Callout.tsx';
+import { MonoId }                  from '../../design-system/MonoId.tsx';
 import { Stamp }                   from '../../design-system/Stamp.tsx';
 import { TitledBlock }             from '../../design-system/TitledBlock.tsx';
+import { CommandButton }           from '../../shell/CommandButton.tsx';
 import { HashRouter }              from '../../shell/HashRouter.ts';
 import { DetailFacts, TextParts }  from './DetailParts.tsx';
+import { JobStopMenu }             from './JobStopMenu.tsx';
 import { TicketMoves, MoveButton } from './TicketMoves.tsx';
 import type {
   LeadActionModel,
   NextStepModel,
   NowCardModel,
+  OpenIncidentLineModel,
+  TicketJobControlsModel,
   TicketOverviewModel
 } from './TicketOverviewModel.ts';
 
@@ -56,6 +64,45 @@ function LeadAction({ ticketId, lead }: { readonly ticketId: string; readonly le
   );
 }
 
+function OpenIncidentLine({ incident }: { readonly incident: OpenIncidentLineModel }) {
+  return (
+    <p className="bridge-detail-incident">
+      {'Open incident '}
+      <MonoId text={incident.incidentId} />
+      {' on this ticket: '}
+      <span className="bridge-detail-figure">{incident.kind}</span>
+      {', default '}
+      <span className="bridge-detail-figure">{incident.defaultMove}</span>
+      .
+    </p>
+  );
+}
+
+/** A message to the job while it takes one, then More; a stopping job shows `Stopping.` alone. */
+function JobControls({ ticketId, controls }: { readonly ticketId: string; readonly controls: TicketJobControlsModel }) {
+  const [message, setMessage] = useState('');
+  if (controls.stopping) return <p className="bridge-detail-note">Stopping.</p>;
+  const trimmedMessage = message.trim();
+  const messageLabel = `Message ${controls.jobId}`;
+  return (
+    <div className="bridge-detail-job-controls" role="group" aria-label={controls.label}>
+      {controls.messages
+        ? (
+          <>
+            <input className="bridge-detail-input" aria-label={messageLabel} placeholder={messageLabel} value={message} onChange={(event) => setMessage(event.target.value)} />
+            <CommandButton
+              label="Send message"
+              command={trimmedMessage === '' ? null : { kind: 'job-message', jobId: controls.jobId, text: trimmedMessage }}
+              onApplied={() => setMessage('')}
+            />
+          </>
+        )
+        : null}
+      <JobStopMenu ticketId={ticketId} controls={controls} />
+    </div>
+  );
+}
+
 function NumberedSteps({ steps }: { readonly steps: readonly NextStepModel[] }) {
   return (
     <ol className="bridge-detail-steps">
@@ -72,7 +119,10 @@ export function TicketOverview({ ticketId, model }: { readonly ticketId: string;
   return (
     <>
       <NowCard now={model.now} />
+      {model.openIncident === null ? null : <OpenIncidentLine incident={model.openIncident} />}
       {model.lead === null ? null : <LeadAction ticketId={ticketId} lead={model.lead} />}
+      {/* Keyed by ticket, so a typed message never carries over to the next ticket opened. */}
+      {model.jobControls === null ? null : <JobControls key={ticketId} ticketId={ticketId} controls={model.jobControls} />}
       {model.conflictedFiles.length === 0 ? null : (
         <ul className="bridge-detail-conflicts" aria-label="Conflicted files">
           {model.conflictedFiles.map((file) => <li key={file}>{file}</li>)}

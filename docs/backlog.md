@@ -7,9 +7,10 @@
 
 ## In one screen
 
-One item is open: four internal moves around `src/services/tracker/TicketStore.ts` and
+Two items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
-[Board](glossary.md#board). They wait for the next change that touches them.
+[Board](glossary.md#board), which wait for the next change that touches them; and two steps of an
+[incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -26,6 +27,16 @@ seventh step.
 | `forge ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
 | `nextTicketId` takes the ticket ids that [rows](glossary.md#row) name from the Board, replacing `ticketIdsNamedByTaskRows`, which reads `progress.json` a second time. | Nothing beyond its behaviour. | The next change to ticket filing |
 | A Board query replaces `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts`. | Reaching malformed ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `forge clear` prints. | The next change to `forge clear --all` |
+
+## Incident trail steps with no log record
+
+The Bridge's incident drawer and the Assistant's rail draw an incident's trail from the board and the log alone. Two
+steps the board designs drew have no record to read, so the trail leaves them out.
+
+| Step | Why it has no source | Waits for |
+| --- | --- | --- |
+| The delivery of a settled incident: delivered to the Assistant J1 in chat 14 | The open incident carries `deliveredInTurn`, but no log record notes the delivery, so it goes with the incident once settled. | A delivery record in the log, such as `incident-delivered` with the job and the chat |
+| The fresh agent a `job-fresh` default started: fresh builder J2 took #001 | `job-fresh` logs `job-stop-requested` under the old job; the new job is launched later and names no incident. | The launch of a replacing job naming the incident it answers |
 
 ## Out of the code-owned lifecycle epic
 

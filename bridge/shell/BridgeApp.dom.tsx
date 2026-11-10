@@ -12,7 +12,8 @@ import {
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  within
 } from '@testing-library/react';
 import {
   afterEach,
@@ -23,10 +24,12 @@ import {
 
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
+import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';
 import type { CommandOutcome, ControlCommandBody }                 from '../api/CommandClient.ts';
 import type { EventStreamHandlers }                                from '../api/EventStreamClient.ts';
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
+import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
 import { ESCALATED_DECISION, WAITING_TICKETS, waitingOnUserBoard } from '../testing/WaitingOnUserFixture.ts';
 import { BridgeApp, FRESHNESS_ATTRIBUTE, type BridgeServices }     from './BridgeApp.tsx';
@@ -307,6 +310,65 @@ describe('the session banner', () => {
     render(<BridgeApp services={bridge.services} sessionExchangeOutcome="refused" />);
     act(() => bridge.stream().onConnection('no-session'));
     expect(screen.getByRole('alert').textContent).toContain('another process may have used it');
+  });
+});
+
+describe('the incident line', () => {
+  const INCIDENT_BOARD = exampleIncidentBoard();
+  const SEEN_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:seen-incident-defaults`;
+
+  function boardWithDefaults(incidentBoard: ConversationBoardDocument, overseer: BoardStateDocument['overseer'] = BOARD.overseer): BoardStateDocument {
+    return {
+      ...BOARD, overseer, jobs: incidentBoard.jobs, incidents: incidentBoard.incidents, notices: incidentBoard.notices ?? [], questionHistory: incidentBoard.questionHistory
+    } as BoardStateDocument;
+  }
+
+  function incidentLine(): HTMLElement | null {
+    return document.querySelector('.bridge-incident-notice');
+  }
+
+  test('defaults are one incident line, apart from the warnings, after the connection banners and before the header', async () => {
+    const bridge = fakeBridge();
+    const batonPassWarning = { successorCodeVersion: 'code-2', step: 'prepared', error: 'the successor exited' };
+    await renderedLive(bridge, boardWithDefaults(INCIDENT_BOARD, { ...BOARD.overseer, batonPassWarning }));
+    act(() => bridge.stream().onConnection('down'));
+    expect(screen.getAllByText(/took its default/u)).toHaveLength(1);
+    expect(within(screen.getByRole('list', { name: '2 warnings' })).getAllByRole('listitem').map((warning) => warning.textContent)).toEqual([
+      'the Baton pass to code code-2 failed at prepared: the successor exited',
+      'no Assistant can come up: open incidents take their defaults',
+    ]);
+    const unreachable = screen.getByText('Overseer unreachable.');
+    const line = incidentLine();
+    expect(line).not.toBeNull();
+    expect(unreachable.compareDocumentPosition(line as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((line as Node).compareDocumentPosition(document.querySelector('.bridge-header') as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test('Mark defaults seen stores the noticed ids for this board in this browser and hides the line until a new default', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge, boardWithDefaults(INCIDENT_BOARD));
+    fireEvent.click(screen.getByRole('button', { name: 'Show incidents' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark defaults seen' }));
+    expect(JSON.parse(bridge.storage.get(SEEN_KEY) ?? '[]')).toEqual(['I1', 'I2', 'I3', 'I4']);
+    expect(incidentLine()).toBeNull();
+    const withNewDefault = {
+      ...INCIDENT_BOARD,
+      notices: [...INCIDENT_BOARD.notices ?? [], {
+        kind: 'incident-defaulted', incidentId: 'I7', move: 'job-fresh', cause: 'turn-closed'
+      }]
+    };
+    await act(async () => {
+      bridge.stream().onEvent('board', boardWithDefaults(withNewDefault));
+      await Promise.resolve();
+    });
+    expect(incidentLine()?.textContent).toContain('5 incident defaults, 2 open incidents.');
+  });
+
+  test('a seen list stored in this browser keeps the line hidden after a reload', async () => {
+    const bridge = fakeBridge();
+    bridge.storage.set(SEEN_KEY, JSON.stringify(['I1', 'I2', 'I3', 'I4']));
+    await renderedLive(bridge, boardWithDefaults(INCIDENT_BOARD));
+    expect(incidentLine()).toBeNull();
   });
 });
 

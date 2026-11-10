@@ -189,6 +189,13 @@ Status names below are stored values: `draft` shows in the Drafts group at the t
 On the ticket form Hold… and Park… ask for the reason only after you choose them, and Set network… opens its domains
 field the same way; Cancel closes the field with nothing sent. Each move states its effect beside its button.
 
+While a job works on the ticket, the ticket form also holds that job's controls under Watch, the same ones the Agents
+tab offers: a message box with Send message, and More, a menu of Wind down, Stop and Fresh agent. No item there acts on
+one click. Each opens a confirmation in its place that says what it ends, that the branch and its worktree stay, and
+which hold it leaves on the ticket (`stopped by User (J4)`, `wound down by User (J4)`, or none for Fresh agent); only the
+confirm sends it, and Cancel puts the item back. A job the Overseer only watches offers Stop alone, and a job that is
+stopping shows `Stopping.`. A line under the state card names the newest open incident on the ticket and its default.
+
 Use Hold to keep a ticket from its next launch. Use [Park](../glossary.md#park) when you want the question on your
 Questions list: it holds the ticket and opens a `parked` decision. A reason typed for one ticket never carries to the
 next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back starts.
@@ -340,8 +347,14 @@ Banners sit above the header. A red one says the Overseer is unreachable and how
 Overseer holds launches until `update` runs. The `new-code` line is the milder case: the code changed, the installed
 files still match, nothing is held. It cannot appear while launches are held for an install change.
 
-Warnings and notices sit below the tabs. Warnings cover an incident that ended with its default move, a failed Baton
-pass, and an Assistant that cannot come up.
+Under those banners one red line counts the [incident](../glossary.md#incident) defaults applied since the Overseer
+started, and the incidents open, and names the newest default: its incident, its move, its ticket and when. However many
+defaults there are, it stays one line. Show incidents opens the incident drawer over the header: the open incidents,
+then the defaults applied, newest first, each row unfolding its trail (opened, delivered, notes, the default applied).
+Esc or a click outside closes it. Mark defaults seen hides the line in this browser until the next default; open
+incidents alone raise no line, as they are the Assistant's work, counted in the header's open incidents figure.
+
+Warnings and notices sit below the line. Warnings cover a failed Baton pass and an Assistant that cannot come up.
 
 ### What a disabled control means
 
@@ -356,8 +369,8 @@ A greyed control has one of four causes.
 
 A command that cannot reach the Overseer shows nothing, and the button comes back. Check the banner.
 
-> **As built.** The job controls Stop and Wind down on the Agents tab stay enabled while launches are held for an
-> install change, and a click only raises the banner again. See
+> **As built.** The job controls Stop and Wind down, on the Agents tab and in the ticket form's More menu, stay enabled
+> while launches are held for an install change, and a click only raises the banner again. See
 > [gap-job-stop-while-install-held](../reference/known-gaps.md#gap-job-stop-while-install-held). Controls can flicker on
 > between reconnects. See [gap-stream-down-flicker](../reference/known-gaps.md#gap-stream-down-flicker).
 

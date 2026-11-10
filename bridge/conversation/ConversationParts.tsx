@@ -1,6 +1,7 @@
 /**
- * The parts the Questions, Assistant and Intake views share: a card's head (its mono id, its title and its state pill), and the meta line
- * whose ticket and job ids each link to their own place; the Agents table links its tickets the same way.
+ * The parts the Questions, Assistant and Intake views share: a card's head (its mono id, its title and its state pill), the meta line
+ * whose ticket and job ids each link to their own place, and an incident step's words with the job or decision it names linked; the
+ * Agents table links its tickets the same way, and the shell's incident drawer draws its trails with the same step.
  */
 import { Fragment, type ReactNode } from 'react';
 
@@ -9,6 +10,7 @@ import { IdLink, MonoId }    from '../design-system/MonoId.tsx';
 import { StateBadge }        from '../design-system/StateBadge.tsx';
 import { DetailRoute }       from '../shell/DetailRoute.ts';
 import { HashRouter }        from '../shell/HashRouter.ts';
+import type { IncidentStep } from '../utils/IncidentTrailUtil.ts';
 
 export interface CardPill {
   readonly state: DisplayState;
@@ -58,5 +60,16 @@ export function MetaLine({ parts }: { readonly parts: readonly ReactNode[] }) {
         </Fragment>
       ))}
     </p>
+  );
+}
+
+/** A step's words, then the Assistant job it was delivered to or the decision it escalated to, as a link to its own place. */
+export function IncidentStepText({ step }: { readonly step: IncidentStep }) {
+  return (
+    <>
+      {step.text}
+      {step.jobId === undefined ? null : <>{' '}<JobLink jobId={step.jobId} /></>}
+      {step.decisionId === undefined ? null : <>{' '}<IdLink text={step.decisionId} href={HashRouter.fragmentOf({ tab: 'questions', item: null })} /></>}
+    </>
   );
 }

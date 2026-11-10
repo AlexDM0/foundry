@@ -18,19 +18,21 @@ export interface CommandButtonProps {
   readonly onApplied?:                (result: unknown) => void;
   /** The one action a group leads with, ink on the page's ground, as a confirmation's. */
   readonly primary?:                  boolean;
+  /** The confirm of a move that ends or holds work, in the error colours. */
+  readonly danger?:                   boolean;
   /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
   readonly accessibleName?:           string;
 }
 
 export function CommandButton({
-  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, accessibleName
+  label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, danger = false, accessibleName
 }: CommandButtonProps) {
   const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
     <span className="bridge-control">
       <Button
         label={label}
-        emphasis={primary ? 'primary' : 'quiet'}
+        emphasis={danger ? 'danger' : (primary ? 'primary' : 'quiet')}
         disabled={!sender.enabled}
         onPress={() => void sender.send()}
         {...(accessibleName === undefined ? {} : { accessibleName })}

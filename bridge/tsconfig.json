@@ -78,6 +78,7 @@
     "../src/lib/tracker-model/constants/EpicFields.ts",
     "../src/lib/tracker-model/constants/JobMoveLegality.ts",
     "../src/lib/tracker-model/constants/JobStates.ts",
+    "../src/lib/tracker-model/constants/JobStopHolds.ts",
     "../src/lib/tracker-model/constants/LogRecordSchema.ts",
     "../src/lib/tracker-model/constants/NetworkDomains.ts",
     "../src/lib/tracker-model/constants/ReviewRecordVocabulary.ts",

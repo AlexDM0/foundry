@@ -16,6 +16,7 @@ import { BoardRefusal }        from './BoardRefusal.ts';
 import type { Decisions }      from './Decisions.ts';
 import type { Jobs }           from './Jobs.ts';
 import type { TicketSettings } from './TicketSettings.ts';
+import { jobStopHoldOf }       from './constants/JobStopHolds.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
 const SESSIONLESS_STATES: readonly Job['state'][] = ['launching', 'preparing', 'interrupted', 'awaiting-answer'];
@@ -28,11 +29,6 @@ const PRODUCT_OWNER_KIND = 'product-owner';
 export const STOPPED_BY_USER_CAUSE = 'stopped by User';
 
 export const FRESH_AGENT_CAUSE = 'fresh agent asked by User';
-
-const TICKET_HOLD_PHRASE_OF_MODE: Readonly<Record<Exclude<JobStopMode, 'fresh'>, string>> = {
-  'stop':      'stopped by User',
-  'wind-down': 'wound down by User',
-};
 
 const WITHDRAWN_BY_STOP_REASON = 'its product-owner job was stopped by User';
 
@@ -53,7 +49,7 @@ export class JobControls {
     const job = this.jobRules.requireJob(jobId);
     if (mode === 'fresh' && job.ticketIds.length === 0) throw new BoardRefusal({ reason: 'job-has-no-ticket', jobId });
     const logged: LogRecord[] = [...this.jobRules.recordStopRequest(jobId, mode, at).logged];
-    if (mode !== 'fresh') logged.push(...this.holdTicketsOf(job, `${TICKET_HOLD_PHRASE_OF_MODE[mode]} (${jobId})`, at));
+    if (mode !== 'fresh') logged.push(...this.holdTicketsOf(job, jobStopHoldOf(mode, jobId), at));
     if (mode === 'wind-down') return { job, logged };
     if (job.kind === PRODUCT_OWNER_KIND) {
       for (const decision of this.decisionRules.decisions().filter((open) => open.jobId === jobId)) {

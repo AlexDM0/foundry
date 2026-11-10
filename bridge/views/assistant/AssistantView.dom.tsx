@@ -3,7 +3,8 @@
  * the Assistant's prose and in User's bubble reaching the DOM only as text; the head names the session's turns and calls; a queued bubble
  * comes from the board's `job-messaged` records and the session's waiting count, so it outlasts a reload, and goes once the session took
  * the message; the composer says whether a message queues and sends `job-message` on Enter; no live session says a fresh one is booting,
- * its Send disabled; and the open and handled incidents sit in the Incidents rail, an applied default in the warning state.
+ * its Send disabled; and the open and handled incidents sit in the Incidents rail, a delivery linking its Assistant job and an escalation
+ * its decision, an applied default in the warning state.
  */
 import {
   act,
@@ -167,7 +168,7 @@ describe('the Assistant view', () => {
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send' }).disabled).toBe(true);
   });
 
-  test('shows open and handled incidents in the Incidents rail, an applied default in the warning state', () => {
+  test('shows open and handled incidents in the Incidents rail, a delivery and an escalation linked, an applied default in the warning state', () => {
     renderedWithBoard(BOARD);
     const rail = screen.getByRole('complementary', { name: 'Incidents' });
     const open = within(rail).getByRole('listitem', { name: 'Incident I3' });
@@ -175,11 +176,15 @@ describe('the Assistant view', () => {
     expect(open.querySelector('.bridge-state-badge')?.textContent).toBe('delivered');
     expect(within(open).getByRole('link', { name: '#042' }).getAttribute('href')).toBe('#tickets/ticket-row/042');
     expect(within(open).getByText('default worktree-repair')).toBeDefined();
+    expect(within(open).getByText('opened: setup-failed on #042 (step install)')).toBeDefined();
+    expect(within(open).getByRole('link', { name: 'J9' }).getAttribute('href')).toBe('#agents/J9');
     expect(within(within(rail).getByRole('listitem', { name: 'Incident I1' })).getByText('handled with gate-retry')).toBeDefined();
-    expect(within(within(rail).getByRole('listitem', { name: 'Incident I2' })).getByText('escalated to User as E5')).toBeDefined();
+    const escalated = within(rail).getByRole('listitem', { name: 'Incident I2' });
+    expect(within(escalated).getByRole('link', { name: 'E5' }).getAttribute('href')).toBe('#questions');
+    expect(within(escalated).getByRole('link', { name: 'E5' }).parentElement?.textContent).toBe('escalated to User as E5');
     const defaulted = within(rail).getByRole('listitem', { name: 'Incident I6' });
     expect(defaulted.dataset['state']).toBe('warning');
     expect(defaulted.querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('draft');
-    expect(within(defaulted).getByText('default applied: open-quiet-job-decision (turn-closed)')).toBeDefined();
+    expect(within(defaulted).getByText('default applied: open-quiet-job-decision, as its delivery turn closed')).toBeDefined();
   });
 });

@@ -1,9 +1,12 @@
 /**
- * The ticket form's Overview, as a model: the state card (what works on the ticket now, or why nothing does), the one likely action, Next
- * (the Overseer's forecast of the steps to the landing), the other moves with their effects, and the facts. The live job is joined here by
- * its `ticketIds`; nothing here decides a step: the forecast and the controls are the Board's and the Overseer's.
+ * The ticket form's Overview, as a model: the state card (what works on the ticket now, or why nothing does), the newest open incident
+ * naming the ticket, the one likely action, the live job's own controls (a message, and Wind down, Stop and Fresh agent, each worded with
+ * what it ends and the hold it leaves), Next (the Overseer's forecast of the steps to the landing), the other moves with their effects, and
+ * the facts. The live job is joined here by its `ticketIds`; nothing here decides a step: the forecast and the controls are the Board's
+ * and the Overseer's, and the hold a stop leaves is the Board's own phrase (`JobStopHolds.ts`).
  */
 import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
+import { jobStopHoldOf }             from '../../../src/lib/tracker-model/constants/JobStopHolds.ts';
 import { FIRST_REPEAT_REVIEW_ROUND } from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
 import type {
   DetailBoardState,
@@ -14,6 +17,7 @@ import type {
 } from '../../@types/DetailBoardState.ts';
 import { DisplayStateWordingUtil }                  from '../../utils/DisplayStateWordingUtil.ts';
 import { JobLiveFactsUtil }                         from '../../utils/JobLiveFactsUtil.ts';
+import { JobStateUtil }                             from '../../utils/JobStateUtil.ts';
 import { TimeUtil }                                 from '../../utils/TimeUtil.ts';
 import type { DetailControlsModel, MergeWaitModel } from './DetailControlsModel.ts';
 import {
@@ -42,6 +46,16 @@ const HEADING_FOR_JOB_KIND: Readonly<Record<string, string>> = {
 };
 
 const REVIEWER_ROLE = 'reviewer';
+
+/** The job's role as its controls group names it, `Builder J4 controls`; a job with no role is named by its kind's word. */
+const CONTROLS_NAME_OF_ROLE: Readonly<Record<string, string>> = {
+  builder:  'Builder',
+  reviewer: 'Reviewer',
+};
+
+const CONTROLS_NAME_OF_ROLELESS_JOB = 'Job';
+
+const STOPPING_STATE = 'stopping';
 
 /** `ticket park` with no incident holds the ticket under this kind (`docs/cli.md`). */
 const USER_PARK_HOLD = 'parked:user';
@@ -98,9 +112,45 @@ export interface NextStepModel {
   readonly parts:   readonly TextPartModel[];
 }
 
+/** A move under the job's More menu: Wind down, Stop or Fresh agent, each confirmed in place before its command is sent. */
+export type JobStopMove = 'wind-down' | 'stop' | 'fresh';
+
+export interface JobStopItemModel {
+  readonly move:         JobStopMove;
+  readonly label:        string;
+  /** The item's line under its label. */
+  readonly description:  string;
+  readonly question:     string;
+  /** What the move ends and holds, naming the ticket, its branch and the hold it leaves. */
+  readonly consequence:  readonly TextPartModel[];
+  readonly confirmLabel: string;
+}
+
+/** The live job's own controls under Watch: a message to it while it takes one, and its More menu; only `Stopping.` once it stops. */
+export interface TicketJobControlsModel {
+  readonly jobId:     string;
+  /** `Builder J4 controls`. */
+  readonly label:     string;
+  readonly stopping:  boolean;
+  /** A job with a role takes a message, unless only watched. */
+  readonly messages:  boolean;
+  /** Wind down, Stop and Fresh agent in that order; Stop alone for a job the Overseer only watches. */
+  readonly stopItems: readonly JobStopItemModel[];
+}
+
+/** The newest open incident naming the ticket. */
+export interface OpenIncidentLineModel {
+  readonly incidentId:  string;
+  readonly kind:        string;
+  readonly defaultMove: string;
+}
+
 export interface TicketOverviewModel {
   readonly now:             NowCardModel;
+  readonly openIncident:    OpenIncidentLineModel | null;
   readonly lead:            LeadActionModel | null;
+  /** `null` with no live job on the ticket. */
+  readonly jobControls:     TicketJobControlsModel | null;
   /** The conflicted files under the lead while the ticket waits for merge; empty otherwise. */
   readonly conflictedFiles: readonly string[];
   /** `null` when the board carries no forecast for the ticket: an older Overseer, a closed ticket or a draft. */
@@ -145,6 +195,7 @@ function isDetailJob(value: unknown): value is DetailJobDocument {
     && Array.isArray(value['ticketIds'])
     && typeof value['state'] === 'string'
     && typeof value['attempt'] === 'number'
+    && (value['stopRequest'] === undefined || typeof value['stopRequest'] === 'string')
     && isLiveFacts(value['live']);
 }
 
@@ -445,6 +496,91 @@ function factsOf(reading: TicketOverviewReading, liveJob: DetailJobDocument | nu
   ];
 }
 
+function heldPartsOf(ticket: DetailTicketDocument, hold: string): TextPartModel[] {
+  const id = emphasisOf(idTextOf(ticket.id));
+  if (ticket.hold !== undefined) return [id, textOf(' keeps its hold'), ...(ticket.hold === '' ? [] : [textOf(' '), figureOf(ticket.hold)]), textOf('.')];
+  return [id, textOf(' is held '), figureOf(hold), textOf(' until User unholds it.')];
+}
+
+function branchPartsOf(ticket: DetailTicketDocument): TextPartModel[] {
+  if (ticket.branch === undefined || ticket.branch === '') return [];
+  return [textOf(' Branch '), figureOf(ticket.branch), textOf(' and its worktree stay as they are. ')];
+}
+
+function onTicketPartsOf(ticket: DetailTicketDocument): TextPartModel[] {
+  return [textOf(' on '), emphasisOf(idTextOf(ticket.id)), textOf(` ${ticket.title}`)];
+}
+
+/** Wind down, Stop and Fresh agent, each worded with what it ends and the hold it leaves. */
+function stopItemsOf(job: DetailJobDocument, ticket: DetailTicketDocument): JobStopItemModel[] {
+  const id = idTextOf(ticket.id);
+  const branchParts = branchPartsOf(ticket);
+  const closing = branchParts.length === 0 ? [textOf('. ')] : [textOf('.'), ...branchParts];
+  const windDown: JobStopItemModel = {
+    move:        'wind-down',
+    label:       `Wind down ${job.id}`,
+    description: `${job.id} gets a wind-down turn, then ends; ${id} is held.`,
+    question:    `Wind down ${job.id}?`,
+    consequence: [
+      textOf(`${job.id} wraps up its work`),
+      ...onTicketPartsOf(ticket),
+      textOf(' in a wind-down turn, then ends'),
+      ...closing,
+      ...heldPartsOf(ticket, jobStopHoldOf('wind-down', job.id)),
+    ],
+    confirmLabel: `Wind down ${job.id}`,
+  };
+  const stop: JobStopItemModel = {
+    move:        'stop',
+    label:       `Stop ${job.id}`,
+    description: `Ends ${job.id}'s session now; ${id} is held.`,
+    question:    `Stop ${job.id} now?`,
+    consequence: [
+      textOf(`Ends ${job.id}'s session`), ...onTicketPartsOf(ticket), textOf(' in the middle of its turn'), ...closing, ...heldPartsOf(ticket, jobStopHoldOf('stop', job.id)),
+    ],
+    confirmLabel: `Stop ${job.id}`,
+  };
+  if (job.live.watchOnly === true) return [stop];
+  if (!JobStateUtil.offersFreshAgent(job.kind)) return [windDown, stop];
+  const successor = job.role ?? job.kind;
+  const onBranch = ticket.branch === undefined || ticket.branch === '' ? [textOf(' on its worktree')] : [textOf(' on the worktree of '), figureOf(ticket.branch)];
+  return [windDown, stop, {
+    move:        'fresh',
+    label:       'Fresh agent',
+    description: `Ends ${job.id}'s session and starts a new ${successor}${ticket.branch === undefined || ticket.branch === '' ? '' : ` on ${ticket.branch}`}.`,
+    question:    `Start a fresh agent on ${id}?`,
+    consequence: [
+      textOf(`Ends ${job.id}'s session`),
+      ...onTicketPartsOf(ticket),
+      textOf(`; a new ${successor} takes the next attempt`),
+      ...onBranch,
+      textOf(' with the earlier session\'s note. '),
+      emphasisOf(id),
+      textOf(' is not held.'),
+    ],
+    confirmLabel: 'Start fresh agent',
+  }];
+}
+
+function jobControlsOf(job: DetailJobDocument | null, ticket: DetailTicketDocument): TicketJobControlsModel | null {
+  if (job === null) return null;
+  const watchOnly = job.live.watchOnly === true;
+  const roleName = job.role !== null && Object.hasOwn(CONTROLS_NAME_OF_ROLE, job.role) ? CONTROLS_NAME_OF_ROLE[job.role] : undefined;
+  return {
+    jobId:     job.id,
+    label:     `${roleName ?? CONTROLS_NAME_OF_ROLELESS_JOB} ${job.id} controls`,
+    stopping:  job.state === STOPPING_STATE || job.stopRequest !== undefined,
+    messages:  job.role !== null && !watchOnly,
+    stopItems: stopItemsOf(job, ticket),
+  };
+}
+
+/** The newest open incident listing the ticket: incidents are numbered as they open, so it is the last. */
+function openIncidentOf(state: DetailBoardState, ticketId: string): OpenIncidentLineModel | null {
+  const incident = (state.incidents ?? []).findLast((candidate) => candidate.ticketIds.includes(ticketId));
+  return incident === undefined ? null : { incidentId: incident.id, kind: incident.kind, defaultMove: incident.defaultMove };
+}
+
 function overviewOf(reading: TicketOverviewReading): TicketOverviewModel {
   const { state, ticket, controls } = reading;
   const liveJob = liveJobOf(state.jobs, ticket.id);
@@ -453,7 +589,9 @@ function overviewOf(reading: TicketOverviewReading): TicketOverviewModel {
   const leadMove = lead?.kind === 'move' ? lead.move.move : null;
   return {
     now:             nowCardOf(liveJob, reading),
+    openIncident:    openIncidentOf(state, ticket.id),
     lead,
+    jobControls:     jobControlsOf(liveJob, ticket),
     conflictedFiles: leadMove === 'merge-accept' ? controls.mergeWait?.conflictedFiles ?? [] : [],
     nextSteps:       nextStepsOf(state.ticketForecasts, state.page.tickets, ticket.id),
     otherMoves:      moves.filter((move) => move.move !== leadMove),

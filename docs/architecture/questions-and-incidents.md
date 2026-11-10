@@ -110,8 +110,8 @@ whatever its kind.
 
 Ten kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
 notice: it stays until its condition goes away. `cli/overseer/OverseerWording.ts` words them for `oversee status`, and
-the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and `incident-defaulted` as a
-warning.
+the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and every `incident-defaulted`
+in one incident line above the header, whose drawer lists each default with its trail.
 
 | Kind | Raised by | Means | Action |
 | --- | --- | --- | --- |
@@ -122,7 +122,7 @@ warning.
 | `target-file-held` | `Airlocks`, a `target-file-held` landing refusal | Another process held a file of the target's checkout open on every try, so git could not replace it; what git wrote went back to HEAD | Close the program; `recheckHeldTargets` clears it at the next sweep |
 | `attribution-found` | `JobLaunch.attributionTicketIdsOf` | The ticket's newest ended job failed Customs on an AI attribution | Inspect the ticket; it clears when its next job ends |
 | `rounds-not-converging` | `ReviewOutcome.nonConvergingTicketIdsOf` | The newest review reworked past `REWORK_ROUND_THRESHOLD_LINES` and was refused another round | Decide whether a separate ticket should pin down the rule that keeps breaking |
-| `incident-defaulted` | `IncidentRouter.defaultedIncidentsOf` | An incident took its default since the Overseer last started | Read the incident's log lines; it clears at the next start |
+| `incident-defaulted` | `IncidentRouter.defaultedIncidentsOf` | An incident took its default since the Overseer last started | Read the incident's log lines, or its trail in the Bridge's incident drawer; it clears at the next start |
 | `cleanup-declined` | `Airlocks` `reportDeclinedCleanup` | Git declined a removal after a refresh or a release | Remove what is named; a later Pass drops the notice |
 | `instructions-missing` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because an instruction file the pipeline names is missing; retried each Pass | Restore the file or change the pipeline |
 | `agent-program-refused` | `DrivePass` `launchWatcher` | A job's launch was refused, nothing spawned, because the agent program did not resolve to an absolute path outside the repository, or resolved to a Windows batch file; retried each Pass | Install the program outside the repository, on Windows the native one, and put its folder first on `PATH` |

@@ -40,10 +40,10 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | Folder | Holds |
 | --- | --- |
 | `bridge/index.html`, `bridge/Main.tsx` | The page with its meta CSP, and the entry that sets the theme, builds the services and mounts React |
-| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel, and `WaitingOnUserModel` with the Waiting on User pill and its inbox |
+| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, the incident line and its drawer, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel, and `WaitingOnUserModel` with the Waiting on User pill and its inbox |
 | `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
-| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators), tabs and count badge, banner, confirm strip, side panel, choice option, tag, callout, keyed line list, and `utils/RovingFocusUtil.ts` and `utils/MeterUtil.ts`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
+| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators, an open state its caller may hold, an Esc caught before a side panel's), tabs and count badge, banner, confirm strip, side panel, choice option, tag, callout, keyed line list, and `utils/RovingFocusUtil.ts` and `utils/MeterUtil.ts`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
 | `bridge/conversation/` | Parts several conversation views share that build ids or post commands: chat box, decision card (its options drawn as design-system choice options), transcript log, card heads, ticket and job links, and the chat parts: the ask item (one thing that waits on User, as an inbox row or a strip under a job), the chat card and thread (system lines, agent turns, User's bubbles, decisions), the tool use fold (a turn's tool calls, a running one ticking on the Bridge clock) and the composer (recipient, status tag, Enter sends through `useControlCommand`). `ChatThreadModel.ts` reads a transcript as a chat: turns closed by `turn-end`, calls paired with their results by `toolUseId`, a subagent's entries left out. The chat parts and the ask item were built before the views that use them, on the owner's order, from the picked board designs. `OpenDecisionsUtil.ts` holds the open decisions in the order User answers them, which ones an Assistant escalated and from which incident |
 | `bridge/chips/` | Parts that carry ticket vocabulary or link to the Epics tab: filter chips, epic chips, ticket marks |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
@@ -209,7 +209,7 @@ Five owners hold state, and an owner's lifetime is what decides whether a thing 
 | --- | --- | --- |
 | Server | Tickets, jobs, decisions, the [log](../glossary.md#log), everything else in `BoardState` | The tracker read per publish, joined with the Overseer's in-memory facts |
 | URL | The tab and its item | `location.hash` through `HashRouter` |
-| Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice | `PreferenceStore`, keys below |
+| Browser storage | Theme, chart range, folds, the Kanban's [epic](../glossary.md#epic) filter and Ready order, grouping, finished-work choice, incident defaults seen | `PreferenceStore`, keys below |
 | Refs and shell state | `boardState`, `connection`, `identity`, `installRefusal`, `knownCodeVersion`, `streamWasDown`, seen decision ids | `BridgeApp`, `useOpenQuestionAlerts` |
 | Component state | Typed text, the Tickets search, chips and sort, selected [draft tickets](../glossary.md#draft-ticket), `TranscriptMemory` | Each view |
 
@@ -243,6 +243,7 @@ against the older state. An Agents transcript restarts from its history on retur
 | `...:name-column` | Name column width |
 | `...:progress-folded-epics` | Folded epic heads |
 | `...:visibility` | Finished-work choice |
+| `...:seen-incident-defaults` | The incident defaults marked seen, so the incident line stays hidden until a new one |
 
 </details>
 
@@ -288,7 +289,13 @@ or why nothing works on the ticket), the one likely action with its effect (Watc
 Agents, else Ready, Accept or Unhold), Next (the steps the Overseer's `ticketForecasts` names, the current one marked,
 the landing linking the tickets it lets start), Other moves with their effects (Update branch, Hold…, Park…, Set
 network…, each opening its reason or domains field first) and the Facts grid. The Bridge joins the live job by its
-`ticketIds`, a build, review or merge-agent job only; a board with no forecast shows no Next. The row form keeps the
+`ticketIds`, a build, review or merge-agent job only; a board with no forecast shows no Next. Under the state card a line
+names the newest open [incident](../glossary.md#incident) listing the ticket, with its kind and default. Under Watch the
+live job has its own controls: a message box while the job takes one, and More, a menu of Wind down, Stop and Fresh
+agent (Stop alone for a job the Overseer only watches; `Stopping.` alone once it stops). Each item opens a confirmation
+in its place that names the ticket, its branch and the hold the move leaves, and only the confirm posts the command; the
+hold it names is the Board's own phrase, `jobStopHoldOf` in `src/lib/tracker-model/constants/JobStopHolds.ts`, which
+the Bridge imports rather than copies. The row form keeps the
 Bridge's own controls in a Merge and a Controls section under the head.
 A board view opens it through `useDetailRouting`, whose openers keep the tab, so
 the panel opens over the view the viewer is on, and a second click on the open item closes it. A board view reads the
@@ -463,6 +470,8 @@ Once a page holds a board, the board stays through every failure but a render er
 | Stream down | Red banner with the time of the last `board` event; controls off; board stays | `ConnectionBanners` |
 | Board read throws on the server | Nothing; the old board stays and the Overseer logs a line | `publishState` |
 | Install version changed | Banner; controls off but those marked `answeredWhileInstallHeld` | `ConnectionBanners`, `ControlAvailabilityUtil` |
+| Incident defaults applied | One error line under the connection banners, however many defaults, naming the newest; its drawer lists the open incidents and the applied defaults, each with its trail; Mark defaults seen hides it in this browser until the next default | `IncidentNotice`, `IncidentNoticeModel` |
+| A failed Baton pass, or no Assistant can come up | An error banner each, apart from the incident line | `HeaderModel`, `ConnectionBanners` |
 | Code version moved, seen after a reconnect | The page reloads | `BridgeApp` |
 | Page build failed | JSON 500 `page-build-failed` at `/`; the next request rebuilds | `pageFileResponse` |
 | A view throws while rendering | Whole-app banner until reload: "the board itself is unaffected" | `BridgeErrorBoundary` |

@@ -1,8 +1,9 @@
 /**
  * The header's model, pure: the status line (its label from the Overseer's state and the event stream, its mono details), which of
  * Pause, Resume and Restart the Overseer offers, the new-code notice, the header statistics, the activity strip's facts, the open notices
- * and the warnings (owner answer Q34): every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
- * come up. Warnings are derived from the notices and the Overseer's facts, never stored.
+ * and the warnings (owner answer Q34): a failed Baton pass with its step and error, and an Assistant that cannot come up. The incident
+ * defaults are the incident line's (`IncidentNoticeModel.ts`), one line however many. Warnings are derived from the notices and the
+ * Overseer's facts, never stored.
  */
 import { TokenCountUtil } from '../../src/lib/token-count/TokenCountUtil.ts';
 import { PRODUCT_NAMES }  from '../../src/shared/constants/ProductNames.ts';
@@ -145,7 +146,6 @@ function warningsOf(notices: readonly NoticeDocument[], overseer: OverseerFactsD
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
   const batonPass = overseer?.batonPassWarning ?? null;
   return [
-    ...defaulted.map(incidentDefaultTextOf),
     ...(batonPass === null ? [] : [`the Baton pass to code ${batonPass.successorCodeVersion} failed at ${batonPass.step}: ${batonPass.error}`]),
     ...(defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE) ? ['no Assistant can come up: open incidents take their defaults'] : []),
   ];

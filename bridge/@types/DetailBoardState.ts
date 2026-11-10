@@ -87,17 +87,29 @@ export type DetailLimits = TimelineLimits & TimestampSlices & DurationUnits;
 
 /** A job on the board as the ticket form reads it: the build, review or merge-agent job working on the ticket, joined by its `ticketIds`. */
 export interface DetailJobDocument {
-  readonly id:        string;
-  readonly kind:      string;
-  readonly role:      string | null;
-  readonly ticketIds: readonly string[];
-  readonly state:     string;
-  readonly attempt:   number;
+  readonly id:           string;
+  readonly kind:         string;
+  readonly role:         string | null;
+  readonly ticketIds:    readonly string[];
+  readonly state:        string;
+  readonly attempt:      number;
+  /** Set once User asked the job to stop, wind down or make way for a fresh agent: the job is stopping. */
+  readonly stopRequest?: string;
   readonly live: {
     readonly calls:        number;
     readonly callBudget:   number | null;
     readonly lastToolCall: { readonly toolName: string; readonly running: boolean } | null;
+    /** A Watcher of an older protocol, which the Overseer only watches: the job takes nothing but Stop. */
+    readonly watchOnly?:   boolean;
   };
+}
+
+/** An open incident as the ticket form names it: the newest one listing the ticket heads its Overview. */
+export interface DetailIncidentDocument {
+  readonly id:          string;
+  readonly kind:        string;
+  readonly ticketIds:   readonly string[];
+  readonly defaultMove: string;
 }
 
 /** An open ticket's steps to its landing and the tickets waiting on it, as `BoardState.ticketForecasts` serves them. */
@@ -116,6 +128,7 @@ export interface DetailBoardState {
   readonly jobs?:            readonly unknown[];
   /** Missing from an older Overseer: the ticket form then shows no Next. */
   readonly ticketForecasts?: readonly DetailTicketForecastDocument[];
+  readonly incidents?:       readonly DetailIncidentDocument[];
   readonly page: {
     readonly tickets: readonly DetailTicketDocument[];
     readonly payload: {

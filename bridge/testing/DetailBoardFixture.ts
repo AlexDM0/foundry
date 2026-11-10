@@ -3,6 +3,7 @@ import type { DraftSummary }     from '../../src/lib/tracker-model/@types/Draft.
 import type { DisplayState }     from '../../src/lib/tracker-model/@types/Task.ts';
 import type {
   DetailBoardState,
+  DetailIncidentDocument,
   DetailJobDocument,
   DetailLogEntry,
   DetailTaskDocument,
@@ -74,6 +75,13 @@ export function exampleDetailJob(id: string, ticketId: string, fields: Partial<D
   };
 }
 
+/** An open incident on the ticket, waiting to take its default `gate-retry`. */
+export function exampleDetailIncident(id: string, ticketId: string, fields: Partial<DetailIncidentDocument> = {}): DetailIncidentDocument {
+  return {
+    id, kind: 'sandbox-unavailable', ticketIds: [ticketId], defaultMove: 'gate-retry', ...fields
+  };
+}
+
 /** A pending ticket's forecast: a builder takes it, Customs and the gate, a review, then it lands on main; nothing waits on it. */
 export function exampleTicketForecast(ticketId: string, fields: Partial<DetailTicketForecastDocument> = {}): DetailTicketForecastDocument {
   return {
@@ -105,6 +113,7 @@ export interface ExampleDetailBoardFields {
   /** The board's jobs, records the ticket form joins by their `ticketIds`. */
   readonly jobs?:            readonly unknown[];
   readonly ticketForecasts?: readonly DetailTicketForecastDocument[];
+  readonly incidents?:       readonly DetailIncidentDocument[];
   /** A board without epics, for a spec of the whole shell, whose other views read an epic's full roll-up. */
   readonly withoutEpics?:    boolean;
 }
@@ -116,6 +125,7 @@ export function exampleDetailBoard(fields: ExampleDetailBoardFields): DetailBoar
     ...(fields.mergeQueue === undefined ? {} : { mergeQueue: fields.mergeQueue }),
     ...(fields.jobs === undefined ? {} : { jobs: fields.jobs }),
     ...(fields.ticketForecasts === undefined ? {} : { ticketForecasts: fields.ticketForecasts }),
+    ...(fields.incidents === undefined ? {} : { incidents: fields.incidents }),
     page: {
       tickets: fields.tickets,
       payload: {

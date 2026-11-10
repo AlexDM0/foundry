@@ -5,7 +5,9 @@
  * is Watch for a live job, else Accept, Ready or Unhold by state, Accept never sendable on a prediction that is not clean; the other moves
  * keep their order without the lead, and Park names the running job only while one runs; Next words each forecast step, marks exactly the
  * current one (none while nothing runs), links the tickets the landing lets start and says what still holds the others, and is absent
- * without a forecast; and the facts carry their second lines.
+ * without a forecast; the facts carry their second lines; the live job's controls offer a message while it takes one and Wind down, Stop
+ * and Fresh agent by its kind (Stop alone while only watched, nothing while stopping), each worded with the ticket, its branch and the
+ * Board's own hold phrase, a ticket already held keeping its hold; and the newest open incident listing the ticket heads the Overview.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,6 +15,7 @@ import type { DetailBoardState } from '../../@types/DetailBoardState.ts';
 import {
   EXAMPLE_DETAIL_FORMAT,
   exampleDetailBoard,
+  exampleDetailIncident,
   exampleDetailJob,
   exampleDetailRow,
   exampleDetailTicket,
@@ -108,6 +111,110 @@ describe('the live job', () => {
     const job = exampleDetailJob('J4', '004', { live: { calls: 12, callBudget: null, lastToolCall: { toolName: 'Bash', running: true } } });
     const { now } = overviewOf(exampleDetailBoard({ tickets: [BUILDING], jobs: [job] }), '004');
     expect([now.job?.callsText, now.job?.lastToolText]).toEqual(['12', 'Bash running']);
+  });
+});
+
+describe('the live job\'s controls', () => {
+  const BUILDING_TITLED = { ...BUILDING, title: 'Account pages dark mode' };
+
+  function controlsOf(job: unknown, ticket = BUILDING_TITLED) {
+    return overviewOf(exampleDetailBoard({ tickets: [ticket], rows: [BUILDING_ROW], jobs: [job] }), '004').jobControls;
+  }
+
+  test('a building J4 takes a message and offers Wind down, Stop and Fresh agent, each naming the ticket, its branch and the hold it leaves', () => {
+    const controls = controlsOf(exampleDetailJob('J4', '004'));
+    expect(controls?.label).toBe('Builder J4 controls');
+    expect(controls?.stopping).toBe(false);
+    expect(controls?.messages).toBe(true);
+    expect(controls?.stopItems.map(({
+      move, label, description, question, confirmLabel, consequence
+    }) => [move, label, description, question, confirmLabel, wordsOf(consequence)])).toEqual([
+      [
+        'wind-down',
+        'Wind down J4',
+        'J4 gets a wind-down turn, then ends; #004 is held.',
+        'Wind down J4?',
+        'Wind down J4',
+        'J4 wraps up its work on #004 Account pages dark mode in a wind-down turn, then ends. Branch ticket-004 and its worktree stay as they '
+        + 'are. #004 is held wound down by User (J4) until User unholds it.',
+      ],
+      [
+        'stop',
+        'Stop J4',
+        'Ends J4\'s session now; #004 is held.',
+        'Stop J4 now?',
+        'Stop J4',
+        'Ends J4\'s session on #004 Account pages dark mode in the middle of its turn. Branch ticket-004 and its worktree stay as they are. '
+        + '#004 is held stopped by User (J4) until User unholds it.',
+      ],
+      [
+        'fresh',
+        'Fresh agent',
+        'Ends J4\'s session and starts a new builder on ticket-004.',
+        'Start a fresh agent on #004?',
+        'Start fresh agent',
+        'Ends J4\'s session on #004 Account pages dark mode; a new builder takes the next attempt on the worktree of ticket-004 with the '
+        + 'earlier session\'s note. #004 is not held.',
+      ],
+    ]);
+  });
+
+  test('the hold a stop leaves is the Board\'s own phrase, shown as a figure', () => {
+    const stop = controlsOf(exampleDetailJob('J4', '004'))?.stopItems.find((item) => item.move === 'stop');
+    expect(stop?.consequence).toContainEqual({ kind: 'figure', text: 'stopped by User (J4)' });
+    expect(stop?.consequence).toContainEqual({ kind: 'figure', text: 'ticket-004' });
+  });
+
+  test('a ticket already held keeps its hold, and one with no branch names none', () => {
+    const held = { ...BUILDING_TITLED, hold: 'waiting on the example vendor' };
+    const [windDown] = controlsOf(exampleDetailJob('J4', '004'), held)?.stopItems ?? [];
+    expect(wordsOf(windDown?.consequence ?? [])).toEndWith('then ends. Branch ticket-004 and its worktree stay as they are. #004 keeps its hold waiting on the example vendor.');
+    const { branch: _omittedBranch, ...branchless } = BUILDING_TITLED;
+    const [, stop, fresh] = controlsOf(exampleDetailJob('J4', '004'), branchless)?.stopItems ?? [];
+    expect(wordsOf(stop?.consequence ?? [])).toBe('Ends J4\'s session on #004 Account pages dark mode in the middle of its turn. '
+      + '#004 is held stopped by User (J4) until User unholds it.');
+    expect(fresh?.description).toBe('Ends J4\'s session and starts a new builder.');
+  });
+
+  test('a stopping job, by its state or a stop request, offers nothing but says so', () => {
+    expect(controlsOf(exampleDetailJob('J4', '004', { state: 'stopping' }))?.stopping).toBe(true);
+    expect(controlsOf(exampleDetailJob('J4', '004', { stopRequest: 'wind-down' }))?.stopping).toBe(true);
+  });
+
+  test('a job the Overseer only watches takes no message and offers Stop alone', () => {
+    const controls = controlsOf(exampleDetailJob('J4', '004', {
+      live: {
+        calls: 0, callBudget: 150, lastToolCall: null, watchOnly: true
+      }
+    }));
+    expect(controls?.messages).toBe(false);
+    expect(controls?.stopItems.map((item) => item.move)).toEqual(['stop']);
+  });
+
+  test('a reviewer is named so and handed to a new reviewer; a merge agent takes no message and gets no fresh agent', () => {
+    const reviewer = controlsOf(exampleDetailJob('J9', '004', { kind: 'review', role: 'reviewer' }));
+    expect(reviewer?.label).toBe('Reviewer J9 controls');
+    expect(reviewer?.stopItems.at(-1)?.description).toBe('Ends J9\'s session and starts a new reviewer on ticket-004.');
+    const merge = controlsOf(exampleDetailJob('J7', '004', { kind: 'merge-agent', role: null }));
+    expect(merge?.label).toBe('Job J7 controls');
+    expect(merge?.messages).toBe(false);
+    expect(merge?.stopItems.map((item) => item.move)).toEqual(['wind-down', 'stop']);
+  });
+
+  test('a ticket with no live job has no job controls', () => {
+    expect(overviewOf(exampleDetailBoard({ tickets: [BUILDING], rows: [BUILDING_ROW] }), '004').jobControls).toBeNull();
+  });
+});
+
+describe('the open incident line', () => {
+  test('names the newest open incident listing the ticket, and none without one', () => {
+    const board = exampleDetailBoard({
+      tickets:   [BUILDING],
+      rows:      [BUILDING_ROW],
+      incidents: [exampleDetailIncident('I5', '004', { kind: 'quiet-job', defaultMove: 'job-fresh' }), exampleDetailIncident('I6', '004'), exampleDetailIncident('I7', '009')],
+    });
+    expect(overviewOf(board, '004').openIncident).toEqual({ incidentId: 'I6', kind: 'sandbox-unavailable', defaultMove: 'gate-retry' });
+    expect(overviewOf(exampleDetailBoard({ tickets: [BUILDING], rows: [BUILDING_ROW] }), '004').openIncident).toBeNull();
   });
 });
 

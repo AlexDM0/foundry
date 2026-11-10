@@ -40,7 +40,7 @@ takes its default move.
 | `decisions` lists something | [Decisions](#decisions) |
 | An `outage` decision is open | [Outage](#outage) |
 | `merges` shows a holder that does not move | [A merge is stuck](#a-merge-is-stuck) |
-| `jobs` warns that an incident took its default | [No Assistant](#no-assistant) |
+| `jobs` warns that an incident took its default; the Bridge shows it in the incident line | [No Assistant](#no-assistant) |
 | A process or the machine died | [Something died](#something-died) |
 | A `notice:` or a refusal names `update` | [Updating](#updating) |
 
@@ -247,7 +247,8 @@ forge gate retry J7
 
 ### `setup-failed`
 
-**You see:** a `setup-failed` incident, the job ended `stopped`, or `jobs` printing a warning that it took its default.
+**You see:** a `setup-failed` incident, the job ended `stopped`, or `jobs` printing a warning that it took its default
+(the Bridge shows it in the incident line).
 
 This block is a list: pick the line for the step that failed.
 
@@ -512,7 +513,8 @@ forge oversee resume
 
 ### No Assistant
 
-**You see:** `jobs` lists no `assistant` job and prints `warning: incident I2 took its default`.
+**You see:** `jobs` lists no `assistant` job and prints `warning: incident I2 took its default`; the Bridge counts it in
+the incident line above the header.
 
 **Cause:** the Assistant failed to boot `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` times, or a usage limit is on. Every
 incident has a default, so nothing hangs, but each takes the cautious path without judgement. To read why, find the

@@ -1,6 +1,7 @@
 /**
  * The menu in a happy-dom document. What matters: the trigger opens and closes it and says so in `aria-expanded`; Esc closes it and hands
- * the focus back to the trigger; a pointer down or focus outside closes it; an item closes it by its `closing`, handing the focus back or
+ * the focus back to the trigger, caught before a side panel's own Esc, which finds it handled; a pointer down or focus outside closes it;
+ * a caller may hold whether it is open, told each open and close instead; an item closes it by its `closing`, handing the focus back or
  * leaving it, while a `stays-open` item, a toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its
  * hint, a checked item says so and shows its check, a pressed one only says so; an item's description shows under its label and describes
  * it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a button; and the words are text,
@@ -100,6 +101,45 @@ describe('the menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open elsewhere' }));
     expect(menu()).toBeNull();
     expect(document.activeElement).not.toBe(trigger);
+  });
+
+  test('catches Esc before a side panel\'s own listener, which finds it handled', () => {
+    const escapesSeenHandled: boolean[] = [];
+    const panelListener = (event: KeyboardEvent): void => {
+      escapesSeenHandled.push(event.defaultPrevented);
+    };
+    document.addEventListener('keydown', panelListener);
+    try {
+      const { trigger, menu } = renderMenu();
+      fireEvent.click(trigger);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(menu()).toBeNull();
+      expect(escapesSeenHandled).toEqual([true]);
+    } finally {
+      document.removeEventListener('keydown', panelListener);
+    }
+  });
+
+  test('a caller holding whether it is open opens and closes it, and is told each open and close the menu would make', () => {
+    const changes: boolean[] = [];
+
+    function HeldMenu({ isOpen }: { readonly isOpen: boolean }) {
+      return (
+        <Menu label="Example held" trigger="button" align="end" triggerContent="More" isOpen={isOpen} onOpenChange={(open) => changes.push(open)}>
+          <MenuItem label="Choose" closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+      );
+    }
+    const { rerender } = render(<HeldMenu isOpen={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    expect(changes).toEqual([true]);
+    expect(screen.queryByRole('dialog', { name: 'Example held' })).toBeNull();
+    rerender(<HeldMenu isOpen />);
+    fireEvent.click(screen.getByRole('button', { name: 'Choose' }));
+    expect(changes).toEqual([true, false]);
+    expect(screen.queryByRole('dialog', { name: 'Example held' })).not.toBeNull();
+    rerender(<HeldMenu isOpen={false} />);
+    expect(screen.queryByRole('dialog', { name: 'Example held' })).toBeNull();
   });
 
   test('an item calls its choice', () => {

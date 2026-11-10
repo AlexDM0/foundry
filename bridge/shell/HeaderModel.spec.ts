@@ -1,11 +1,11 @@
 /**
  * The header's model. What matters: the status line reads Live only while serving unpaused with the stream up, and otherwise the state the
  * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
- * new-code notice points at `update`; every incident default, a failed Baton pass with its step and error, and an Assistant that cannot
- * come up are warnings, kept apart from the other notices, and any notice also reads as one sentence; the statistics read concurrency and
- * today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs holding a launch slot, never the rows
- * in progress nor the Assistant, and says so on hover; the embedded summary line counts building and reviewing from the same slot jobs as
- * the activity strip, so the line, the figure and the strip agree.
+ * new-code notice points at `update`; a failed Baton pass with its step and error and an Assistant that cannot come up are warnings, kept
+ * apart from the other notices, and an incident default is neither (the incident line holds it); any notice also reads as one sentence;
+ * the statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
+ * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building and
+ * reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -76,7 +76,7 @@ describe('the confinement in force', () => {
 });
 
 describe('the warnings and notices', () => {
-  test('every incident default, a failed Baton pass and an Assistant that cannot come up are warnings', () => {
+  test('a failed Baton pass and an Assistant that cannot come up are warnings; an incident default is not', () => {
     const model = headerModelOf(boardStateFixture({
       overseer: {
         state: 'serving', paused: false, codeVersion: 'code-1', batonPassWarning: { successorCodeVersion: 'code-2', step: 'prepared', error: 'the successor exited' }
@@ -91,8 +91,6 @@ describe('the warnings and notices', () => {
       ],
     }), FIXTURE_NOW, 'live');
     expect(model.warnings).toEqual([
-      'incident I3 took its default, merge-abort: its delivery turn closed',
-      'incident I4 took its default, merge-review: no Assistant was up',
       'the Baton pass to code code-2 failed at prepared: the successor exited',
       'no Assistant can come up: open incidents take their defaults',
     ]);

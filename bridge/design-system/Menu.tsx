@@ -1,8 +1,9 @@
 /**
- * A menu: a trigger button that opens a small popover of items under itself, closed by Esc, which hands the focus back to the trigger, by a
- * choice, or by a pointer down or focus outside. An item closes it by its `closing`: `return-focus` hands the focus back to the trigger,
- * `keep-focus` leaves it to whatever the item opened, and `stays-open`, a toggle, leaves the menu open. An item may say what it does on a
- * line under its label, and a separator parts groups of items.
+ * A menu: a trigger button that opens a small popover of items under itself, closed by Esc, which hands the focus back to the trigger and
+ * is caught before a side panel's own, as the popover lies over it, by a choice, or by a pointer down or focus outside. An item closes it
+ * by its `closing`: `return-focus` hands the focus back to the trigger, `keep-focus` leaves it to whatever the item opened, and
+ * `stays-open`, a toggle, leaves the menu open. An item may say what it does on a line under its label, and a separator parts groups of
+ * items. A caller may hold whether the menu is open, to close it itself.
  */
 import {
   useId,
@@ -34,24 +35,40 @@ export interface MenuProps {
   readonly triggerTitle?:  string;
   /** Lets the caller hand the focus back to the trigger after a popover the menu opened. */
   readonly triggerRef?:    RefObject<HTMLButtonElement | null>;
+  /**
+   * A menu its caller opens and closes, such as one that closes once a move it confirmed in place was applied: open while `true`, every
+   * open and close the menu would make itself told to `onOpenChange` instead.
+   */
+  readonly isOpen?:        boolean;
+  readonly onOpenChange?:  (isOpen: boolean) => void;
   readonly children:       ReactNode;
 }
 
 const CLOSES_MENU_ATTRIBUTE = 'data-closes-menu';
 
 export function Menu({
-  label, trigger, triggerContent, align, marked = false, triggerName, triggerTitle, triggerRef, children
+  label, trigger, triggerContent, align, marked = false, triggerName, triggerTitle, triggerRef, isOpen, onOpenChange, children
 }: MenuProps) {
-  const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const [ownMenuIsOpen, setOwnMenuIsOpen] = useState(false);
+  const menuIsOpen = isOpen ?? ownMenuIsOpen;
+  const setMenuIsOpen = (open: boolean): void => {
+    if (isOpen === undefined) setOwnMenuIsOpen(open);
+    else onOpenChange?.(open);
+  };
+  const toggleMenu = (): void => {
+    if (isOpen === undefined) setOwnMenuIsOpen((wasOpen) => !wasOpen);
+    else onOpenChange?.(!isOpen);
+  };
   const ownTriggerRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const popoverElementId = useId();
   const triggerElement = (): HTMLButtonElement | null => triggerRef?.current ?? ownTriggerRef.current;
 
   useDismissal({
-    isOpen:     menuIsOpen,
-    insideRefs: [popoverRef, ownTriggerRef],
-    onDismiss:  (reason) => {
+    isOpen:      menuIsOpen,
+    insideRefs:  [popoverRef, ownTriggerRef],
+    escapePhase: 'capture',
+    onDismiss:   (reason) => {
       setMenuIsOpen(false);
       if (reason === 'escape') triggerElement()?.focus();
     },
@@ -80,7 +97,7 @@ export function Menu({
         aria-expanded={menuIsOpen}
         aria-controls={popoverElementId}
         title={triggerTitle}
-        onClick={() => setMenuIsOpen((wasOpen) => !wasOpen)}
+        onClick={toggleMenu}
       >
         {triggerContent}
       </button>
