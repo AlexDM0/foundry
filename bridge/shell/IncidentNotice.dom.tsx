@@ -4,7 +4,7 @@
  * Esc (handled, so neither a side panel nor an embedding page takes it too, the focus back on the button) or a pointer down outside, and
  * when a link in it is followed; the newest default starts unfolded and one row unfolds at a time, its trail in order with the applied
  * default marked; a delivery links its Assistant job; Mark defaults seen tells the shell and closes the drawer; and with every default seen
- * nothing renders.
+ * nothing renders, an open drawer closing with its line.
  */
 import {
   act,
@@ -95,6 +95,20 @@ describe('the drawer', () => {
     expect(escape.defaultPrevented).toBe(true);
     expect(drawer()).toBeNull();
     expect(document.activeElement).toBe(toggle());
+  });
+
+  test('a drawer whose line went away is closed: it takes no Esc, and a new default brings the line back closed', () => {
+    const modelOf = (seen: readonly string[]) => IncidentNoticeModelUtil.incidentNoticeModelOf(exampleIncidentBoard(), seen, FORMAT);
+    const { rerender } = render(<IncidentNotice model={modelOf([])} onMarkSeen={() => undefined} />);
+    fireEvent.click(toggle());
+    rerender(<IncidentNotice model={modelOf(['I1', 'I2', 'I3', 'I4'])} onMarkSeen={() => undefined} />);
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => {
+      document.dispatchEvent(escape);
+    });
+    expect(escape.defaultPrevented).toBe(false);
+    rerender(<IncidentNotice model={modelOf(['I1', 'I2', 'I3'])} onMarkSeen={() => undefined} />);
+    expect([drawer(), toggle().textContent]).toEqual([null, 'Show incidents']);
   });
 
   test('a pointer down outside closes it, and so does a link in it once followed', () => {

@@ -170,7 +170,9 @@ export function IncidentNotice({ model, onMarkSeen }: IncidentNoticeProps) {
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const drawerElementId = useId();
   const close = (): void => setDrawerIsOpen(false);
-  useDrawerDismissal(drawerIsOpen, noticeRef, toggleRef, close);
+  // A drawer whose line went away closes with it, so it neither takes an Esc unseen nor comes back open with the line.
+  if (model.banner === null && drawerIsOpen) setDrawerIsOpen(false);
+  useDrawerDismissal(drawerIsOpen && model.banner !== null, noticeRef, toggleRef, close);
   if (model.banner === null) return null;
   return (
     <div ref={noticeRef} className="bridge-incident-notice">
