@@ -1,5 +1,6 @@
 /** The ticket form a Kanban card or wave card opens: head, facts, the Bridge's controls, the Timeline and the Description. */
 import { PriorityMark, TypeMark }     from '../../chips/TicketMarks.tsx';
+import { StatePill }                  from '../../design-system/StatePill.tsx';
 import { SandboxedHtmlFrame }         from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailControls }             from './DetailControls.tsx';
 import { DetailFacts, DetailSection } from './DetailParts.tsx';
@@ -12,7 +13,7 @@ export function TicketDetail({ model }: { readonly model: TicketDetailModel }) {
       <div className="bridge-detail-head" data-state={model.stateToken}>
         <span className="bridge-detail-id">{model.idText}</span>
         <h2 className="bridge-detail-title">{model.title}</h2>
-        <span className="bridge-state-pill">{model.stateLabel}</span>
+        <StatePill label={model.stateLabel} />
         {model.reviewedTitle === null
           ? null
           : <span className="bridge-detail-reviewed-mark" data-state="reviewed" title={model.reviewedTitle} role="img" aria-label="reviewed">✓</span>}

@@ -4,8 +4,8 @@
  */
 import type { DisplayState }                         from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { PageTicketDocument }                   from '../../@types/BoardStateDocument.ts';
-import { StateBadge }                                from '../../chips/StateBadge.tsx';
 import { TicketIdMark }                              from '../../chips/TicketMarks.tsx';
+import { StateBadge }                                from '../../design-system/StateBadge.tsx';
 import { useDetailRouting }                          from '../../shell/DetailRouting.ts';
 import { DisplayStateWordingUtil }                   from '../../utils/DisplayStateWordingUtil.ts';
 import { FinishedWorkUtil, type FinishedWorkChoice } from '../../utils/FinishedWorkUtil.ts';

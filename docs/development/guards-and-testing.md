@@ -77,7 +77,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the Bridge design system's isolation (`bridge/design-system/` imports only itself and the display-state type), the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
 | `src/ProjectIncludeLists.spec.ts` | `bridge/tsconfig.json`'s `include` equals what Bridge shipping modules reach outside `bridge/`, plus every tracker model shipping module. | Add or remove the named entry. |
 | `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |

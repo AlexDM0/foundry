@@ -2,12 +2,9 @@
  * The one control that posts a `ControlCommand`: disabled whenever the shell says controls may not act, and showing the Overseer's
  * refusal verbatim beside itself, or that the Overseer could not be reached.
  */
-import { useContext, useState } from 'react';
-
-import type { ControlCommandBody }                             from '../api/CommandClient.ts';
-import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
-
-const UNREACHABLE_WORDING = 'The Overseer could not be reached. Try again.';
+import type { ControlCommandBody } from '../api/CommandClient.ts';
+import { Button }                  from '../design-system/Button.tsx';
+import { useControlCommand }       from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {
   readonly label:                     string;
@@ -17,8 +14,8 @@ export interface CommandButtonProps {
   readonly answeredWhileInstallHeld?: boolean;
   /** The view's own reason it has nothing to send, such as a multi-select with nothing selected. */
   readonly hasNothingToSend?:         boolean;
-  /** Called once the Overseer applied the command, so a form can clear itself. */
-  readonly onApplied?:                () => void;
+  /** Called with the command's result once the Overseer applied it, so a form can clear itself. */
+  readonly onApplied?:                (result: unknown) => void;
   /** The one action a group leads with, ink on the page's ground, as a confirmation's. */
   readonly primary?:                  boolean;
   /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
@@ -28,39 +25,17 @@ export interface CommandButtonProps {
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, accessibleName
 }: CommandButtonProps) {
-  const {
-    availability, commandClient, onInstallHeld, onSessionLost
-  } = useContext(ControlSurroundingsContext);
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && command !== null;
-
-  const send = async (): Promise<void> => {
-    if (command === null) return;
-    setSending(true);
-    setRefusal(null);
-    const outcome = await commandClient.send(command);
-    setSending(false);
-    if (outcome.verdict === 'applied') onApplied?.();
-    if (outcome.verdict === 'refused') setRefusal(outcome.refusal);
-    if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
-    if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
-    if (outcome.verdict === 'no-session') onSessionLost?.();
-  };
-
+  const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
     <span className="bridge-control">
-      <button
-        type="button"
-        className="bridge-button"
-        data-primary={primary ? '' : undefined}
-        aria-label={accessibleName}
-        disabled={!enabled}
-        onClick={() => void send()}
-      >
-        {label}
-      </button>
-      {refusal === null ? null : <span className="bridge-refusal" role="status">{refusal}</span>}
+      <Button
+        label={label}
+        emphasis={primary ? 'primary' : 'quiet'}
+        disabled={!sender.enabled}
+        onPress={() => void sender.send()}
+        {...(accessibleName === undefined ? {} : { accessibleName })}
+      />
+      {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
     </span>
   );
 }

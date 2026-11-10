@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { TicketIdMark }                                                   from '../../chips/TicketMarks.tsx';
+import { StateBadge }                                                     from '../../design-system/StateBadge.tsx';
 import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
 import type { DependencyNodeChip, DependencyNodeModel, WavesCanvasModel } from './WavesModel.ts';
 import { EMPTY_WAVES_TEXT, WavesModel }                                   from './WavesModel.ts';
@@ -18,9 +19,9 @@ export interface WavesViewProps {
 }
 
 function NodeChip({ chip }: { readonly chip: DependencyNodeChip }) {
-  if (chip.kind === 'ready') return <span className="bridge-state-badge" data-ready="">Ready</span>;
+  if (chip.kind === 'ready') return <StateBadge state="ready" label="Ready" />;
   if (chip.kind === 'held') return <span className="bridge-kanban-held" title={chip.title}>Held</span>;
-  return <span className="bridge-state-badge" data-state={chip.displayState}>{chip.label}</span>;
+  return <StateBadge state={chip.displayState} label={chip.label} />;
 }
 
 function DependencyNode({ node, isLit, onPoint }: { readonly node: DependencyNodeModel; readonly isLit: boolean; readonly onPoint: (ticketId: string) => void }) {

@@ -1,6 +1,6 @@
 /** One job's row in the Agents table, then a row per subagent grouped under it by `parentToolUseId`, each with its own calls and tokens. */
-import { StateBadge }            from '../../chips/StateBadge.tsx';
 import { TicketLinks }           from '../../conversation/ConversationParts.tsx';
+import { StateBadge }            from '../../design-system/StateBadge.tsx';
 import { HashRouter }            from '../../shell/HashRouter.ts';
 import { JobStateUtil }          from '../../utils/JobStateUtil.ts';
 import type { AgentJobDocument } from './AgentJobDocument.ts';

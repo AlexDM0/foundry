@@ -14,6 +14,7 @@ type ImportViolation =
   | 'command-imports-a-sibling-command'
   | 'command-set-imports-another-set'
   | 'bridge-view-imports-a-sibling-view'
+  | 'bridge-design-system-reaches-outside'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
   | 'test-helper-imported-outside-its-allowlist'
@@ -134,6 +135,9 @@ const CLI_SET_SHARED_FOLDERS = ['@types', 'constants', 'utils'];
 /** Folders directly under `cli/` that hold what every set shares rather than one set of commands. */
 const CLI_SHARED_FOLDERS = ['@types', 'arguments', 'constants', 'testing', 'utils'];
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
+const BRIDGE_DESIGN_SYSTEM_FOLDER = 'bridge/design-system/';
+/** The one file outside its folder a design-system part may import: the display-state type its marks are coloured by. */
+const DISPLAY_STATE_TYPE_PATH = 'src/lib/tracker-model/@types/Task.ts';
 const LIB_FOLDER = 'src/lib/';
 const LIB_DEPENDENCY_SENTENCE = /depends on ([^.]+)/i;
 const LIB_PACKAGE_REFERENCE = /`src\/lib\/([a-z-]+)`/g;
@@ -311,6 +315,13 @@ function bridgeViewFinding(edge: ImportEdge, targetPath: string): Finding | null
   return edgeFinding(edge, 'bridge-view-imports-a-sibling-view', `the view folder ${fromView} imports another view's folder; hoist what both need above them`);
 }
 
+function bridgeDesignSystemFinding(edge: ImportEdge, targetPath: string): Finding | null {
+  if (!isInside(edge.fromPath, BRIDGE_DESIGN_SYSTEM_FOLDER) || isTestOnly(edge.fromPath)) return null;
+  if (isInside(targetPath, BRIDGE_DESIGN_SYSTEM_FOLDER) || targetPath === DISPLAY_STATE_TYPE_PATH) return null;
+  return edgeFinding(edge, 'bridge-design-system-reaches-outside', `${BRIDGE_DESIGN_SYSTEM_FOLDER} imports only itself and ${DISPLAY_STATE_TYPE_PATH}; `
+    + 'a link arrives as an href, an action as a callback');
+}
+
 function libFinding(edge: ImportEdge, declarations: ReadonlyMap<string, readonly string[]>): Finding | null {
   const fromPackage = libPackageOf(edge.fromPath);
   if (fromPackage === null) return null;
@@ -346,6 +357,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
     commandFinding(edge, targetPath),
     commandSetFinding(edge, targetPath, allowlists),
     bridgeViewFinding(edge, targetPath),
+    bridgeDesignSystemFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
     vendorSeamFinding(edge, targetPath),
     libVerdict,
@@ -514,6 +526,8 @@ describe('the scan itself', () => {
     expect(commandFolders.size, 'command folders under cli/').toBeGreaterThanOrEqual(10);
     expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
+    expect(GRAPH.scannedPaths.filter((path) => isInside(path, BRIDGE_DESIGN_SYSTEM_FOLDER)).length, `files under ${BRIDGE_DESIGN_SYSTEM_FOLDER}`)
+      .toBeGreaterThanOrEqual(5);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
     expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'owner-only-files', 'process-identity']);
@@ -617,6 +631,18 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     const importingOwnAndHoistedFiles = `${importing('./dependencies/DependenciesModel.ts')}${importing('../../conversation/ChatBox.tsx').replaceAll('planted', 'plantedChat')}`;
     expect(plantedSentencesOf({ 'bridge/views/progress/PlantedPart.tsx': importingOwnAndHoistedFiles })).toEqual([]);
+  });
+
+  test('a Bridge design-system file importing outside its folder, and not a sibling part or the display-state type', () => {
+    const importingShellAndUtil = `${importing('../shell/HashRouter.ts')}${importing('../utils/TimeUtil.ts').replaceAll('planted', 'plantedTime')}`;
+    expect(plantedSentencesOf({ 'bridge/design-system/Planted.tsx': importingShellAndUtil })).toEqual([
+      'bridge-design-system-reaches-outside — bridge/design-system/Planted.tsx:1 imports bridge/shell/HashRouter.ts: '
+        + 'bridge/design-system/ imports only itself and src/lib/tracker-model/@types/Task.ts; a link arrives as an href, an action as a callback',
+      'bridge-design-system-reaches-outside — bridge/design-system/Planted.tsx:3 imports bridge/utils/TimeUtil.ts: '
+        + 'bridge/design-system/ imports only itself and src/lib/tracker-model/@types/Task.ts; a link arrives as an href, an action as a callback',
+    ]);
+    const importingPartAndType = `${importing('./Button.tsx')}${importing('../../src/lib/tracker-model/@types/Task.ts').replaceAll('planted', 'plantedState')}`;
+    expect(plantedSentencesOf({ 'bridge/design-system/Planted.tsx': importingPartAndType })).toEqual([]);
   });
 
   test('the binary importing anything but cli/', () => {
@@ -765,6 +791,10 @@ describe('the imports of the tree', () => {
 
   test('no bridge/views/ view folder imports a sibling view\'s folder', () => {
     expect(sentencesAbout(FINDINGS, 'bridge-view-imports-a-sibling-view')).toEqual([]);
+  });
+
+  test('no bridge/design-system/ file imports outside itself but the display-state type', () => {
+    expect(sentencesAbout(FINDINGS, 'bridge-design-system-reaches-outside')).toEqual([]);
   });
 
   test('agent-progress.ts imports only cli/', () => {

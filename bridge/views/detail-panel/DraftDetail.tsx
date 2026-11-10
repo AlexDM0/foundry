@@ -1,4 +1,6 @@
 /** The read-only form a filing draft opens: head, facts, its Request as the user wrote it, then its Questions tree. */
+import { MonoId }                                                           from '../../design-system/MonoId.tsx';
+import { StatePill }                                                        from '../../design-system/StatePill.tsx';
 import { DetailFacts, DetailSection }                                       from './DetailParts.tsx';
 import { NO_QUESTION_TEXT, type DraftDetailModel, type DraftQuestionModel } from './DraftDetailModel.ts';
 
@@ -9,7 +11,7 @@ function DraftQuestions({ questions }: { readonly questions: readonly DraftQuest
       {questions.map((question) => (
         <li key={question.id} className="bridge-draft-question" data-open={question.isOpen ? '' : undefined}>
           <p className="bridge-draft-question-head">
-            <span className="bridge-ticket-id">{question.id}</span>
+            <MonoId text={question.id} />
             <span>{question.question}</span>
             {question.isMultiple ? <span className="bridge-draft-mark" data-mark="multiple">multi-select</span> : null}
           </p>
@@ -40,7 +42,7 @@ export function DraftDetail({ model }: { readonly model: DraftDetailModel }) {
       <div className="bridge-detail-head" data-state="draft">
         <span className="bridge-detail-id">{model.idText}</span>
         <h2 className="bridge-detail-title">{model.title}</h2>
-        <span className="bridge-state-pill">{model.stateWord}</span>
+        <StatePill label={model.stateWord} />
       </div>
       <DetailFacts facts={model.facts} />
       <DetailSection title="Request">

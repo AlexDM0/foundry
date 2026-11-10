@@ -12,8 +12,10 @@ import {
 } from 'react';
 
 import type { EpicsBoardState }                           from '../../@types/EpicsBoardState.ts';
-import { StateBadge }                                     from '../../chips/StateBadge.tsx';
 import { TicketIdMark }                                   from '../../chips/TicketMarks.tsx';
+import { SegmentMeter }                                   from '../../design-system/Meter.tsx';
+import { StateBadge }                                     from '../../design-system/StateBadge.tsx';
+import { StateDot }                                       from '../../design-system/StateDot.tsx';
 import { SandboxedHtmlFrame }                             from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailRoute }                                    from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                               from '../../shell/DetailRouting.ts';
@@ -111,21 +113,11 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
         {card.summaryText === '' ? null : <p className="bridge-epic-summary">{card.summaryText}</p>}
         {card.saysMore ? <EpicDescription card={card} /> : null}
         <div>
-          <div className="bridge-epic-progress" role="img" aria-label={card.rollupLabel}>
-            {card.segments.map((segment) => (
-              <span
-                key={segment.state}
-                className="bridge-epic-segment"
-                data-state={segment.state}
-                style={{ flexGrow: segment.count }}
-                title={`${segment.label}: ${segment.count}`}
-              />
-            ))}
-          </div>
+          <SegmentMeter label={card.rollupLabel} segments={card.segments} />
           <ul className="bridge-epic-legend">
             {card.segments.map((segment) => (
               <li key={segment.state}>
-                <span className="bridge-lane-dot" data-state={segment.state} />
+                <StateDot state={segment.state} />
                 {`${segment.label} `}
                 <b>{segment.count}</b>
               </li>

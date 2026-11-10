@@ -11,10 +11,10 @@ import {
   CardHead,
   JobLink,
   MetaLine,
-  SectionHead,
   TicketLinks
 } from '../../conversation/ConversationParts.tsx';
 import { TranscriptLog, useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
+import { ListSection, SectionHead }                              from '../../design-system/ListSection.tsx';
 import { AssistantModelUtil, type IncidentEntry }                from './AssistantModel.ts';
 
 export interface AssistantViewProps {
@@ -57,26 +57,23 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
         {queued.map((text) => <p key={text} className="bridge-note">{`Queued until the Assistant is idle: ${text}`}</p>)}
         <ChatBox label="Message the Assistant" jobId={model.assistantJobId} onSent={(text) => setSentTexts((previous) => [...previous, text])} />
       </section>
-      <section className="bridge-section" aria-label="Open incidents">
-        <SectionHead title="Open incidents" count={model.openIncidents.length} />
-        {model.openIncidents.length === 0
-          ? <p className="bridge-empty">No open incident.</p>
-          : (
-            <ul className="bridge-list">
-              {model.openIncidents.map((incident) => <IncidentItem key={incident.incidentId} incident={incident} />)}
-            </ul>
-          )}
-      </section>
-      <section className="bridge-section" aria-label="Handled incidents">
-        <SectionHead title="Handled incidents" />
-        {model.settledIncidents.length === 0
-          ? <p className="bridge-empty">No handled incident yet.</p>
-          : (
-            <ul className="bridge-list">
-              {model.settledIncidents.map((incident) => <IncidentItem key={incident.incidentId} incident={incident} />)}
-            </ul>
-          )}
-      </section>
+      <ListSection
+        label="Open incidents"
+        title="Open incidents"
+        count={model.openIncidents.length}
+        emptyText="No open incident."
+        items={model.openIncidents}
+        keyOf={(incident) => incident.incidentId}
+        renderItem={(incident) => <IncidentItem incident={incident} />}
+      />
+      <ListSection
+        label="Handled incidents"
+        title="Handled incidents"
+        emptyText="No handled incident yet."
+        items={model.settledIncidents}
+        keyOf={(incident) => incident.incidentId}
+        renderItem={(incident) => <IncidentItem incident={incident} />}
+      />
     </div>
   );
 }

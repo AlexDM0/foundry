@@ -19,6 +19,7 @@ import type { CommandClient }                                                   
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
+import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
@@ -360,7 +361,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           }}
         >
           {boardState === null && sessionLoss === null
-            ? <p className="bridge-empty">Waiting for the Overseer&apos;s first board.</p>
+            ? <EmptyState text="Waiting for the Overseer's first board." />
             : null}
           {boardState !== null && route.tab === 'agents'
             ? <AgentsView jobs={boardState.jobs} decisions={boardState.decisions} selectedJobId={route.item} clock={bridgeClock} />
@@ -390,9 +391,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 
 function BoardCounts({ boardState, tab }: { readonly boardState: BoardStateDocument; readonly tab: string }) {
   return (
-    <p className="bridge-empty">
-      {`${boardState.jobs.length} jobs, ${boardState.decisions.length} decisions, ${boardState.incidents.length} incidents. `}
+    <EmptyState text={`${boardState.jobs.length} jobs, ${boardState.decisions.length} decisions, ${boardState.incidents.length} incidents. `}>
       {tab === 'kanban' ? <a href={HashRouter.fragmentOf({ tab: 'kanban', item: MERGE_QUEUE_ITEM })}>Merge queue</a> : null}
-    </p>
+    </EmptyState>
   );
 }

@@ -16,9 +16,9 @@ import {
   test
 } from 'bun:test';
 
-import { FilterChipGroup } from './FilterChipGroup.tsx';
+import { FilterChipGroup, type FilterChip } from './FilterChipGroup.tsx';
 
-const CHIPS = [
+const CHIPS: readonly FilterChip[] = [
   { value: 'pending', label: 'To do', stateToken: 'pending' },
   { value: 'checkout', label: 'Example checkout', slot: 3 },
   { value: 'planted', label: '<b>planted</b>' },

@@ -6,6 +6,10 @@ import { Fragment, useId } from 'react';
 
 import { TokenCountUtil }                                                     from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { EpicRollupDocument }                                            from '../../@types/BoardStateDocument.ts';
+import { TextButton }                                                         from '../../design-system/Button.tsx';
+import { SegmentMeter }                                                       from '../../design-system/Meter.tsx';
+import { MicroCapsLabel }                                                     from '../../design-system/MicroCapsLabel.tsx';
+import { SegmentedControl }                                                   from '../../design-system/SegmentedControl.tsx';
 import { DetailRoute }                                                        from '../../shell/DetailRoute.ts';
 import { HashRouter }                                                         from '../../shell/HashRouter.ts';
 import { EpicRollupUtil }                                                     from '../../utils/EpicRollupUtil.ts';
@@ -26,19 +30,9 @@ const HELD_COUNT_HINT = '↦ N on a card: tickets that wait on it, directly or f
 function EpicStripRollup({ epic }: { readonly epic: EpicRollupDocument }) {
   return (
     <div className="bridge-epic-strip-rollup" data-epic-slot={String(epic.slot)}>
-      <div className="bridge-epic-progress" role="img" aria-label={EpicRollupUtil.rollupAriaLabelOf(epic)}>
-        {EpicRollupUtil.rollupSegmentsOf(epic).map((segment) => (
-          <span
-            key={segment.state}
-            className="bridge-epic-segment"
-            data-state={segment.state}
-            style={{ flexGrow: segment.count }}
-            title={`${segment.label}: ${segment.count}`}
-          />
-        ))}
-      </div>
+      <SegmentMeter label={EpicRollupUtil.rollupAriaLabelOf(epic)} segments={EpicRollupUtil.rollupSegmentsOf(epic)} />
       <span>{`${EpicRollupUtil.doneTextOf(epic)} · ${TokenCountUtil.formatTokenCount(epic.tokens)} tokens`}</span>
-      <a className="bridge-link-button" href={HashRouter.fragmentOf({ tab: 'epics', item: DetailRoute.epicItemTextOf(epic.key) })}>{`${epic.title} details`}</a>
+      <TextButton label={`${epic.title} details`} href={HashRouter.fragmentOf({ tab: 'epics', item: DetailRoute.epicItemTextOf(epic.key) })} />
     </div>
   );
 }
@@ -54,7 +48,7 @@ export function KanbanFilterSections({ filters, choices, epicRollups }: KanbanFi
         : (
           <section className="bridge-filter-section">
             <div className="bridge-filter-section-head">
-              <span className="bridge-range-label" id={epicLabelId}>Epic</span>
+              <MicroCapsLabel text="Epic" id={epicLabelId} />
               <span className="bridge-filter-scope">Kanban</span>
             </div>
             <div className="bridge-chips bridge-filter-epic-list" role="group" aria-labelledby={epicLabelId}>
@@ -89,16 +83,15 @@ export function KanbanFilterSections({ filters, choices, epicRollups }: KanbanFi
         ? (
           <section className="bridge-filter-section">
             <div className="bridge-filter-section-head">
-              <span className="bridge-range-label" id={orderLabelId}>Order Ready</span>
+              <MicroCapsLabel text="Order Ready" id={orderLabelId} />
               <span className="bridge-filter-scope">Kanban</span>
             </div>
-            <div className="bridge-segments" role="group" aria-labelledby={orderLabelId}>
-              {KANBAN_READY_ORDERS.map((order) => (
-                <button key={order} type="button" aria-pressed={filters.readyOrder === order} onClick={() => choices.chooseReadyOrder(order)}>
-                  {READY_ORDER_LABEL[order]}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              labelledBy={orderLabelId}
+              options={KANBAN_READY_ORDERS.map((order) => ({ value: order, label: READY_ORDER_LABEL[order] }))}
+              selected={filters.readyOrder}
+              onSelect={choices.chooseReadyOrder}
+            />
             <p className="bridge-kanban-order-hint">{HELD_COUNT_HINT}</p>
           </section>
         )

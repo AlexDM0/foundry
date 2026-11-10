@@ -6,11 +6,13 @@
 import { useState } from 'react';
 
 import type { ConversationBoardDocument, TicketDocument }        from '../../@types/ConversationDocuments.ts';
-import { StateBadge }                                            from '../../chips/StateBadge.tsx';
 import { ChatBox }                                               from '../../conversation/ChatBox.tsx';
-import { CardHead, SectionHead }                                 from '../../conversation/ConversationParts.tsx';
+import { CardHead }                                              from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                          from '../../conversation/DecisionCard.tsx';
 import { TranscriptLog, useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
+import { ListSection, SectionHead }                              from '../../design-system/ListSection.tsx';
+import { MonoId }                                                from '../../design-system/MonoId.tsx';
+import { StateBadge }                                            from '../../design-system/StateBadge.tsx';
 import { CommandButton }                                         from '../../shell/CommandButton.tsx';
 import { DetailRoute }                                           from '../../shell/DetailRoute.ts';
 import { HashRouter }                                            from '../../shell/HashRouter.ts';
@@ -39,7 +41,7 @@ function DraftItem({ ticket }: { readonly ticket: TicketDocument }) {
         className="bridge-intake-draft-link"
         href={HashRouter.fragmentOf({ tab: 'kanban', item: DetailRoute.itemTextOf({ form: 'ticket', ticketId: ticket.id }) })}
       >
-        <span className="bridge-ticket-id">{`#${ticket.id}`}</span>
+        <MonoId text={`#${ticket.id}`} />
         <span className="bridge-intake-draft-title">{ticket.title}</span>
       </a>
       <StateBadge state={pill.state} label={pill.label} />
@@ -89,16 +91,15 @@ export function IntakeView({ board, followTranscript }: IntakeViewProps) {
         <SectionHead title="New request" />
         <NewRequestForm />
       </section>
-      <section className="bridge-section" aria-label="Product-owner sessions">
-        <SectionHead title="Sessions" count={sessions.length} />
-        {sessions.length === 0
-          ? <p className="bridge-empty">No intake session yet.</p>
-          : (
-            <ul className="bridge-list">
-              {sessions.map((session) => <IntakeSessionItem key={session.jobId} session={session} followTranscript={followTranscript} />)}
-            </ul>
-          )}
-      </section>
+      <ListSection
+        label="Product-owner sessions"
+        title="Sessions"
+        count={sessions.length}
+        emptyText="No intake session yet."
+        items={sessions}
+        keyOf={(session) => session.jobId}
+        renderItem={(session) => <IntakeSessionItem session={session} followTranscript={followTranscript} />}
+      />
     </div>
   );
 }

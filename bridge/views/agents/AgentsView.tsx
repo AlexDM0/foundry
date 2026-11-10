@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
+import { EmptyState }                                                    from '../../design-system/ListSection.tsx';
+import { MonoId }                                                        from '../../design-system/MonoId.tsx';
 import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
 import { JobControls }                                                   from './JobControls.tsx';
@@ -42,7 +44,7 @@ export function AgentsView({
           <span className="agents-card-count">{AgentsModel.jobCountTextOf(agentJobs.length)}</span>
         </div>
         {agentJobs.length === 0
-          ? <p className="bridge-empty">No agents are running.</p>
+          ? <EmptyState text="No agents are running." />
           : (
             <div className="agents-scroll">
               <table className="agents-table">
@@ -75,7 +77,7 @@ export function AgentsView({
             <div className="agents-card-head">
               <h2 className="agents-card-title">
                 {'Job '}
-                <span className="bridge-ticket-id">{selectedJob.id}</span>
+                <MonoId text={selectedJob.id} />
               </h2>
             </div>
             <div className="agents-card-body">

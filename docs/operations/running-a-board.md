@@ -565,7 +565,7 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | --- | --- | --- | --- |
 | Header offers | `bridge/shell/HeaderModel.ts` | `headerModelOf` | `bridge/shell/HeaderModel.spec.ts` |
 | Control availability | `bridge/shell/ControlAvailability.ts` | `availabilityOf`, `controlIsEnabled` | `bridge/shell/BridgeApp.dom.tsx` |
-| The posting control | `bridge/shell/CommandButton.tsx` | `CommandButton` | `bridge/shell/Header.dom.tsx` |
+| The posting control | `bridge/shell/CommandButton.tsx`, `bridge/shell/ControlCommandSender.ts` | `CommandButton`, `useControlCommand` | `bridge/shell/Header.dom.tsx`, `bridge/shell/ControlCommandSender.dom.tsx` |
 | Routes | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS`, `routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Lanes | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `KANBAN_LANES` | `bridge/views/kanban/KanbanModel.spec.ts` |
 | Merge queue view | `bridge/views/merge-queue/MergeQueueModel.ts` | `mergeQueueModelOf`, `FIVE_KEY_ORDER_TEXT` | `bridge/views/merge-queue/MergeQueueModel.spec.ts` |

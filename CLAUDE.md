@@ -275,6 +275,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
+| Code starts beside its only consumer. | `bridge/design-system/` and the chat parts in `bridge/conversation/` were built before their consumers, from the eight picked boards. | The owner ordered the design system first, so the views share one set of parts. |
 
 ## Local rules
 
@@ -341,6 +342,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
   plain `.spec.ts` in the main run; its behaviour is held by `.dom.tsx` specs, never a frozen markup table. A pure
   util several views use lives in `bridge/utils/` (chip parts in `bridge/chips/`), with its spec.
+- `bridge/design-system/` holds the reusable components of the Bridge. A component in it knows nothing about the board,
+  the routes, the API or the shell: a link comes as an `href`, an action as a callback and each word as a prop. It
+  takes no `className` prop: a variant is a `data-*` attribute. `src/ImportDirection.spec.ts` holds its imports.
 - `bridge/shell/` holds what the entry starts with: the hash router, the theme bootstrap, the embedded channel (theme in
   and Esc out by `postMessage`, only with the framing parent's origin), the banners and the error boundary.
   `bridge/api/` holds the clients of the Overseer's API. Every control is a `CommandButton` posting a

@@ -11,6 +11,8 @@ import {
   type ReactNode
 } from 'react';
 
+import { Button }                     from '../design-system/Button.tsx';
+import { RovingFocusUtil }            from '../design-system/utils/RovingFocusUtil.ts';
 import { ActivityStrip }              from './ActivityStrip.tsx';
 import type { ActivityEntry }         from './ActivityStripModel.ts';
 import type { BridgeClock }           from './BridgeClock.ts';
@@ -60,22 +62,19 @@ const THEME_CHOICES: readonly ThemeChoice[] = ['auto', 'light', 'dark'];
 
 const THEME_LABELS: Readonly<Record<ThemeChoice, string>> = { auto: 'Auto', light: 'Light', dark: 'Dark' };
 
-const PREVIOUS_CHOICE_KEYS: readonly string[] = ['ArrowLeft', 'ArrowUp'];
-const NEXT_CHOICE_KEYS: readonly string[] = ['ArrowRight', 'ArrowDown'];
-
 /** The embedded page's word for a stream that went down, centred over the board. */
 export const STALE_NOTICE_TEXT = 'Not updated while the Overseer is unreachable';
 
 function StopOverseer() {
   const [confirming, setConfirming] = useState(false);
   if (!confirming) {
-    return <button type="button" className="bridge-button" onClick={() => setConfirming(true)}>Stop Overseer</button>;
+    return <Button label="Stop Overseer" onPress={() => setConfirming(true)} />;
   }
   return (
     <span className="bridge-confirm" role="group" aria-label="Confirm stopping the Overseer">
       Stop the Overseer? Launches end until it is started again.
       <CommandButton label="Confirm stop" command={{ kind: 'overseer-stop', now: false }} answeredWhileInstallHeld primary />
-      <button type="button" className="bridge-button" onClick={() => setConfirming(false)}>Cancel</button>
+      <Button label="Cancel" onPress={() => setConfirming(false)} />
     </span>
   );
 }
@@ -100,14 +99,13 @@ function ConcurrencyControl({ limit }: { readonly limit: number }) {
   );
 }
 
-/** One radio group: the checked choice alone takes the tab stop, and the arrow keys move, check and wrap. */
+/** One radio group: the checked choice alone takes the tab stop, and the arrow keys, Home and End move, check and wrap. */
 function ThemeSwitch({ themeChoice, onThemeChoice }: { readonly themeChoice: ThemeChoice; readonly onThemeChoice: (choice: ThemeChoice) => void }) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const moveChoice = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const step = PREVIOUS_CHOICE_KEYS.includes(event.key) ? -1 : (NEXT_CHOICE_KEYS.includes(event.key) ? 1 : 0);
-    if (step === 0) return;
+    const position = RovingFocusUtil.targetIndexOf(event.key, THEME_CHOICES.indexOf(themeChoice), THEME_CHOICES.length, 'both');
+    if (position === null) return;
     event.preventDefault();
-    const position = (THEME_CHOICES.indexOf(themeChoice) + step + THEME_CHOICES.length) % THEME_CHOICES.length;
     const next = THEME_CHOICES[position] ?? themeChoice;
     onThemeChoice(next);
     buttons.current[position]?.focus();
@@ -188,12 +186,9 @@ function TabBar({ shownTabs, selectedTab }: { readonly shownTabs: readonly Bridg
   const moveTab = (event: KeyboardEvent<HTMLElement>): void => {
     const current = links.current.findIndex((link) => link === event.target);
     if (current < 0) return;
-    const targetIndexByKey: Readonly<Record<string, number>> = {
-      ArrowRight: current + 1, ArrowLeft: current - 1, Home: 0, End: shownTabs.length - 1,
-    };
-    if (!Object.hasOwn(targetIndexByKey, event.key)) return;
+    const position = RovingFocusUtil.targetIndexOf(event.key, current, shownTabs.length, 'horizontal');
+    if (position === null) return;
     event.preventDefault();
-    const position = ((targetIndexByKey[event.key] ?? current) + shownTabs.length) % shownTabs.length;
     const tab = shownTabs[position];
     if (tab === undefined) return;
     links.current[position]?.focus();

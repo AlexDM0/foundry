@@ -19,6 +19,8 @@ import { ChipFilterUtil }                        from '../../chips/ChipFilterUti
 import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                             from '../../chips/EpicChips.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
+import { TextButton }                            from '../../design-system/Button.tsx';
+import { MonoId }                                from '../../design-system/MonoId.tsx';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                        from '../../shell/BridgeClock.ts';
 import { CommandButton }                         from '../../shell/CommandButton.tsx';
@@ -170,7 +172,7 @@ function KanbanCard({
       onKeyDown={openOnKey}
     >
       <div className="bridge-kanban-card-head">
-        <span className="bridge-ticket-id">{card.idText}</span>
+        <MonoId text={card.idText} />
         {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
         {card.priority === null ? null : <PriorityMark priority={card.priority} />}
         {card.ticketType === null ? null : <TypeMark type={card.ticketType} />}
@@ -265,7 +267,7 @@ function KanbanLaneFooterView({
         ? (
           <div className="bridge-lane-hidden-line">
             <span>{`${hiddenCount} earlier hidden`}</span>
-            <button type="button" className="bridge-link-button" onClick={onShowAllFinished}>show all</button>
+            <TextButton label="show all" onPress={onShowAllFinished} />
           </div>
         )
         : null}

@@ -40,11 +40,12 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | Folder | Holds |
 | --- | --- |
 | `bridge/index.html`, `bridge/Main.tsx` | The page with its meta CSP, and the entry that sets the theme, builds the services and mounts React |
-| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton`, error boundary, theme bootstrap, embedded channel |
+| `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel |
 | `bridge/api/` | The clients of the Overseer's API: commands, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
-| `bridge/conversation/` | Parts several conversation views share: chat box, decision card, transcript log, section and card heads, linked ids |
-| `bridge/chips/` | Filter chip parts |
+| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment meter, and `utils/RovingFocusUtil.ts`. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
+| `bridge/conversation/` | Parts several conversation views share that build ids or post commands: chat box, decision card, transcript log, card heads, ticket and job links |
+| `bridge/chips/` | Parts that carry ticket vocabulary or link to the Epics tab: filter chips, epic chips, ticket marks |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
 | `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording, job states |
 | `bridge/@types/` | Structural documents of exactly the fields a view reads |
@@ -174,7 +175,9 @@ machines](../data-model/state-machines.md). The Bridge learns of the hold from t
 ## From a click to an answer
 
 `CommandButton` is the one control that posts, and each outcome has one display. It is disabled while availability says
-so, while sending, while its form is incomplete, or when its view has nothing to send.
+so, while sending, while its form is incomplete, or when its view has nothing to send. The sending itself is
+`useControlCommand` in `bridge/shell/ControlCommandSender.ts`, which `CommandButton` draws as a design-system `Button`
+with the refusal beside it, so a later control that sends on a key keeps the same outcomes.
 
 ![A click on a CommandButton goes through CommandClient, which fetches a session token the first time and posts to /api/commands. The Overseer checks the bearer token first, and answerControlCommand applies through ControlService.apply. A 401 from the check clears the token and retries once inside the client. Four endings follow: 200 is applied and resets the form, 409 or any other status is refused and prints verbatim beside the button, 423 is install-held and raises the install banner, and no answer is unreachable, which shows nothing.](../figures/bridge/click-to-refusal.png)
 
@@ -182,8 +185,8 @@ so, while sending, while its form is incomplete, or when its view has nothing to
 
 - `OverseerServer.answerCommand` checks the bearer token before the route, so a 401 never reaches
   `answerControlCommand`, which applies the command through `ControlService.apply` and wakes a Pass.
-- Board data settles with the next `board`. `onApplied` is local: it clears a form, closes an edit form, and on the
-  [Assistant](../glossary.md#assistant) tab adds a queued-message note.
+- Board data settles with the next `board`. `onApplied` is local and receives the command's result: it clears a form,
+  closes an edit form, and on the [Assistant](../glossary.md#assistant) tab adds a queued-message note.
 - `CommandClient` maps any other status to `refused`, with the body's `refusal` or the bare status number. So a 400
   prints `malformed-body`, and a 401 after the retry prints `unauthorized`.
 - A failed token fetch counts as `unreachable`.
@@ -459,7 +462,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | State reducer | `bridge/shell/BoardStateUpdate.ts` | `boardStateAfter` | `bridge/shell/BoardStateUpdate.spec.ts` |
 | Event stream | `bridge/api/EventStreamClient.ts` | `EventStreamClient.open` | `bridge/api/EventStreamClient.spec.ts` |
 | Transcript stream | `bridge/api/TranscriptStreamClient.ts` | `TranscriptStreamClient.follow` | `bridge/api/TranscriptStreamClient.spec.ts` |
-| Commands | `bridge/api/CommandClient.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/BridgeApp.dom.tsx` |
+| Commands | `bridge/api/CommandClient.ts`, `bridge/shell/ControlCommandSender.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `useControlCommand`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/ControlCommandSender.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Kanban lanes and offers | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `actionsOf` | `bridge/views/kanban/KanbanModel.spec.ts` |
 | Board read | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState` | `cli/overseer/routes/BoardStateReader.mergeForecasts.spec.ts` |

@@ -14,6 +14,9 @@ import {
 } from 'react';
 
 import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
+import { TextButton }                                  from '../design-system/Button.tsx';
+import { MicroCapsLabel }                              from '../design-system/MicroCapsLabel.tsx';
+import { SegmentedControl }                            from '../design-system/SegmentedControl.tsx';
 import type { PreferenceStore }                        from '../preferences/PreferenceStore.ts';
 import {
   DEFAULT_FINISHED_WORK_CHOICE,
@@ -106,6 +109,7 @@ export function FinishedWorkFilter({
   const hidden = hiddenNoteOf(choice);
   const { lead, window } = FinishedWorkUtil.filterLineTextOf(choice, hidden.itemCount);
   const since = FinishedWorkUtil.sinceFieldReadingOf(typedSince, choice, nowEpochMilliseconds, durationUnits);
+  const pressedSpan = OFFERED_FINISHED_WORK_SPANS.find((span) => span === choice) ?? null;
 
   const closeMenu = (returnsFocus: boolean): void => {
     setMenuIsOpen(false);
@@ -196,32 +200,28 @@ export function FinishedWorkFilter({
         <div className="bridge-popover bridge-filter-menu" role="dialog" aria-label="Filters">
           <section className="bridge-filter-section">
             <div className="bridge-filter-section-head">
-              <span className="bridge-range-label" id={finishedLabelId}>Finished work</span>
+              <MicroCapsLabel text="Finished work" id={finishedLabelId} />
               <span className="bridge-filter-scope">every tab</span>
             </div>
             <p className="bridge-filter-lede">Unfinished work always shows. Also show what finished in the last</p>
-            <div className="bridge-segments" role="group" aria-labelledby={finishedLabelId}>
-              {OFFERED_FINISHED_WORK_SPANS.map((span) => {
+            <SegmentedControl
+              labelledBy={finishedLabelId}
+              options={OFFERED_FINISHED_WORK_SPANS.map((span) => {
                 const shownCount = shownCountOf(span);
-                return (
-                  <button
-                    key={span}
-                    ref={(button) => {
-                      if (button === null) spanButtons.current.delete(span);
-                      else spanButtons.current.set(span, button);
-                    }}
-                    type="button"
-                    aria-pressed={span === choice}
-                    aria-label={FinishedWorkUtil.spanButtonLabelOf(span, shownCount, counted.noun)}
-                    onClick={() => choose(span)}
-                  >
-                    {SPAN_SEGMENT_LABEL[span]}
-                    {' '}
-                    <span className="bridge-segment-count">{shownCount}</span>
-                  </button>
-                );
+                return {
+                  value:          span,
+                  label:          SPAN_SEGMENT_LABEL[span],
+                  count:          shownCount,
+                  accessibleName: FinishedWorkUtil.spanButtonLabelOf(span, shownCount, counted.noun),
+                };
               })}
-            </div>
+              selected={pressedSpan}
+              onSelect={choose}
+              optionRef={(span, button) => {
+                if (button === null) spanButtons.current.delete(span);
+                else spanButtons.current.set(span, button);
+              }}
+            />
             <div className="bridge-filter-since">
               <label htmlFor={sinceFieldId}>or since</label>
               <input
@@ -247,31 +247,25 @@ export function FinishedWorkFilter({
               {hidden.note === ''
                 ? null
                 : (
-                  <button
-                    type="button"
-                    className="bridge-link-button"
-                    onClick={() => {
+                  <TextButton
+                    label="show all"
+                    onPress={() => {
                       choose('all');
                       spanButtons.current.get('all')?.focus();
                     }}
-                  >
-                    show all
-                  </button>
+                  />
                 )}
             </p>
           </section>
           {tabSections}
           <div className="bridge-filter-foot">
-            <button
-              type="button"
-              className="bridge-link-button"
-              onClick={() => {
+            <TextButton
+              label="Reset filters"
+              onPress={() => {
                 onResetTabFilters?.();
                 choose(DEFAULT_FINISHED_WORK_CHOICE);
               }}
-            >
-              Reset filters
-            </button>
+            />
             <span className="bridge-filter-scope">Esc closes</span>
           </div>
         </div>

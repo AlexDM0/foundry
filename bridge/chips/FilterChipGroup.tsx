@@ -5,11 +5,15 @@
  */
 import { useId } from 'react';
 
+import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
+import { MicroCapsLabel }    from '../design-system/MicroCapsLabel.tsx';
+import { StateDot }          from '../design-system/StateDot.tsx';
+
 export interface FilterChip {
   readonly value:       string;
   readonly label:       string;
   /** A state chip leads with the lane dot of this state. */
-  readonly stateToken?: string;
+  readonly stateToken?: DisplayState;
   /** An epic chip leads with the swatch of this colour slot. */
   readonly slot?:       number;
 }
@@ -43,7 +47,7 @@ function FilterChips({
         aria-pressed={pressed.includes(chip.value)}
         onClick={() => onToggle(chip.value)}
       >
-        {chip.stateToken === undefined ? null : <span className="bridge-lane-dot" data-state={chip.stateToken} />}
+        {chip.stateToken === undefined ? null : <StateDot state={chip.stateToken} />}
         {chip.slot === undefined ? null : <span className="bridge-epic-swatch" aria-hidden="true" />}
         {chip.label}
         {' '}
@@ -61,7 +65,7 @@ export function FilterChipGroup({
   if (!labelIsShown) return <div className="bridge-chips" role="group" aria-label={label}>{chipButtons}</div>;
   return (
     <div className="bridge-toolbar-group" data-own-line={startsOwnLine ? '' : undefined}>
-      <span className="bridge-range-label" id={labelId}>{label}</span>
+      <MicroCapsLabel text={label} id={labelId} />
       <div className="bridge-chips" role="group" aria-labelledby={labelId}>{chipButtons}</div>
     </div>
   );

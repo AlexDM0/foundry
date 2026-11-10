@@ -1,14 +1,11 @@
 /** The row form a Gantt row or ticket-table line opens: head, the Bridge's controls on its ticket, then Task, Phases, Ticket and Log. */
-import { StateBadge }             from '../../chips/StateBadge.tsx';
-import { TicketIdMark, TypeMark } from '../../chips/TicketMarks.tsx';
-import { SandboxedHtmlFrame }     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
-import { DetailControls }         from './DetailControls.tsx';
-import {
-  DetailFacts,
-  DetailNote,
-  DetailSection,
-  Stamp
-} from './DetailParts.tsx';
+import { TicketIdMark, TypeMark }                 from '../../chips/TicketMarks.tsx';
+import { Stamp }                                  from '../../design-system/Stamp.tsx';
+import { StateBadge }                             from '../../design-system/StateBadge.tsx';
+import { StatePill }                              from '../../design-system/StatePill.tsx';
+import { SandboxedHtmlFrame }                     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
+import { DetailControls }                         from './DetailControls.tsx';
+import { DetailFacts, DetailNote, DetailSection } from './DetailParts.tsx';
 import {
   NO_LOG_LINES_NOTE,
   type PhasesModel,
@@ -24,7 +21,7 @@ function RowHead({ head }: { readonly head: RowDetailHeadModel }) {
       <span className="bridge-detail-id">{head.idText}</span>
       <h2 className="bridge-detail-title" title={head.titleTitle ?? undefined}>{head.title}</h2>
       {state.kind === 'row'
-        ? <span className="bridge-state-pill">{state.label}</span>
+        ? <StatePill label={state.label} />
         : <StateBadge state={state.status} label={state.label} palette="ticket-status" />}
     </div>
   );
@@ -38,8 +35,8 @@ function Phases({ phases }: { readonly phases: PhasesModel }) {
         <ol className="bridge-detail-phases">
           {phases.lines.map((line, index) => (
             <li key={`${line.stamp.fullText}:${String(index)}`} data-state={line.stateToken}>
-              <span className="bridge-state-pill">{line.label}</span>
-              <Stamp stamp={line.stamp} element="time" />
+              <StatePill label={line.label} />
+              <Stamp shortText={line.stamp.shortText} fullText={line.stamp.fullText} element="time" />
               {line.gapText === null ? null : <span className="bridge-detail-gap">{line.gapText}</span>}
             </li>
           ))}
@@ -79,7 +76,7 @@ export function RowDetail({ model }: { readonly model: RowDetailModel }) {
             <ul className="bridge-detail-log">
               {model.logLines.map((line) => (
                 <li key={line.key}>
-                  <Stamp stamp={line.stamp} element="time" />
+                  <Stamp shortText={line.stamp.shortText} fullText={line.stamp.fullText} element="time" />
                   <span>{line.text}</span>
                 </li>
               ))}

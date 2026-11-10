@@ -12,6 +12,9 @@ import {
   type RefObject
 } from 'react';
 
+import { Button }           from '../../design-system/Button.tsx';
+import { MicroCapsLabel }   from '../../design-system/MicroCapsLabel.tsx';
+import { SegmentedControl } from '../../design-system/SegmentedControl.tsx';
 import {
   customRangeDraftVerdict,
   customRangeOverride,
@@ -32,8 +35,15 @@ export interface CustomRangePopoverProps {
   readonly onClose:           (returnFocus: boolean) => void;
 }
 
+const TICK_CHOICES: readonly (number | null)[] = [null, ...TICK_MINUTE_CHOICES];
+
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = 1440;
+
+/** A tick choice as its segment's value: the automatic choice, or its minutes. */
+function tickChoiceValueOf(tickMinutes: number | null): string {
+  return tickMinutes === null ? AUTOMATIC_TICK_CHOICE : String(tickMinutes);
+}
 
 function tickLabelOf(tickMinutes: number | null): string {
   if (tickMinutes === null) return 'Auto';
@@ -60,7 +70,7 @@ function BoundField({
   const resolvedElementId = useId();
   return (
     <div className="bridge-range-field">
-      <label className="bridge-range-label" htmlFor={inputElementId}>{label}</label>
+      <MicroCapsLabel text={label} element="label" htmlFor={inputElementId} />
       <input
         ref={inputRef}
         id={inputElementId}
@@ -141,18 +151,17 @@ export function CustomRangePopover({
         <code>-1d</code>.
       </p>
       <div className="bridge-range-ticks">
-        <span className="bridge-range-label" id={ticksLabelElementId}>Ticks</span>
-        <div className="bridge-segments" role="group" aria-labelledby={ticksLabelElementId}>
-          {[null, ...TICK_MINUTE_CHOICES].map((choice) => (
-            <button key={choice ?? AUTOMATIC_TICK_CHOICE} type="button" aria-pressed={choice === tickMinutes} onClick={() => setTickMinutes(choice)}>
-              {tickLabelOf(choice)}
-            </button>
-          ))}
-        </div>
+        <MicroCapsLabel text="Ticks" id={ticksLabelElementId} />
+        <SegmentedControl
+          labelledBy={ticksLabelElementId}
+          options={TICK_CHOICES.map((choice) => ({ value: tickChoiceValueOf(choice), label: tickLabelOf(choice) }))}
+          selected={tickChoiceValueOf(tickMinutes)}
+          onSelect={(value) => setTickMinutes(TICK_CHOICES.find((choice) => tickChoiceValueOf(choice) === value) ?? null)}
+        />
       </div>
       <div className="bridge-range-actions">
-        <button type="button" className="bridge-button" onClick={() => onClose(true)}>Cancel</button>
-        <button type="button" className="bridge-button" data-primary="" disabled={!verdict.draftIsApplicable} onClick={applyDraft}>Apply</button>
+        <Button label="Cancel" onPress={() => onClose(true)} />
+        <Button label="Apply" emphasis="primary" disabled={!verdict.draftIsApplicable} onPress={applyDraft} />
       </div>
     </div>
   );

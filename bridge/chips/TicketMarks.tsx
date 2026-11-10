@@ -5,6 +5,7 @@
 import { Fragment } from 'react';
 
 import type { TicketPriority, TicketType } from '../../src/lib/tracker-model/@types/Ticket.ts';
+import { MonoId }                          from '../design-system/MonoId.tsx';
 
 const PRIORITY_MARK_TITLE: Readonly<Record<Exclude<TicketPriority, 'normal'>, string>> = {
   low:  'Low priority: no row on the chart until it is started, and worked once every normal and high ticket is done',
@@ -12,7 +13,7 @@ const PRIORITY_MARK_TITLE: Readonly<Record<Exclude<TicketPriority, 'normal'>, st
 };
 
 export function TicketIdMark({ ticketId }: { readonly ticketId: string }) {
-  return <span className="bridge-ticket-id">{`#${ticketId}`}</span>;
+  return <MonoId text={`#${ticketId}`} />;
 }
 
 /** Nothing for a normal ticket. */

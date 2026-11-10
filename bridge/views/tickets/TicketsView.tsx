@@ -16,8 +16,10 @@ import { ChipFilterUtil }                        from '../../chips/ChipFilterUti
 import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                             from '../../chips/EpicChips.tsx';
 import { FilterChipGroup }                       from '../../chips/FilterChipGroup.tsx';
-import { StateBadge }                            from '../../chips/StateBadge.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
+import { TextButton }                            from '../../design-system/Button.tsx';
+import { SegmentMeter }                          from '../../design-system/Meter.tsx';
+import { StateBadge }                            from '../../design-system/StateBadge.tsx';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                        from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                           from '../../shell/DetailRoute.ts';
@@ -170,17 +172,7 @@ function EpicHeadRow({ head, columnCount }: { readonly head: TicketEpicHeadModel
                   <span className="bridge-epic-swatch" aria-hidden="true" />
                   {head.epic.title}
                 </a>
-                <span className="bridge-ticket-epic-progress" role="img" aria-label={head.rollupLabel}>
-                  {head.segments.map((segment) => (
-                    <span
-                      key={segment.state}
-                      className="bridge-ticket-epic-segment"
-                      data-state={segment.state}
-                      style={{ flexGrow: segment.count }}
-                      title={`${segment.label}: ${segment.count}`}
-                    />
-                  ))}
-                </span>
+                <SegmentMeter label={head.rollupLabel} segments={head.segments} />
                 <span className="bridge-ticket-epic-done">{head.doneText}</span>
                 <span className="bridge-ticket-epic-facts">
                   {head.facts.map((fact) => (
@@ -263,7 +255,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
         {model.showsEpics
           ? <FilterChipGroup label="Epic" labelIsShown chips={model.epicChips} pressed={shownView.epicChips} countByChip={model.countByChip.epic} onToggle={toggleEpic} />
           : null}
-        {model.narrows ? <button type="button" className="bridge-link-button" onClick={clear}>Clear search and filters</button> : null}
+        {model.narrows ? <TextButton label="Clear search and filters" onPress={clear} /> : null}
         <FilterChipGroup
           label="Status"
           labelIsShown
@@ -310,7 +302,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
                 <tr className="bridge-ticket-empty">
                   <td colSpan={columnCount}>
                     <p><strong>{model.emptyText}</strong></p>
-                    {model.narrows ? <p><button type="button" className="bridge-link-button" onClick={clear}>Clear search and filters</button></p> : null}
+                    {model.narrows ? <p><TextButton label="Clear search and filters" onPress={clear} /></p> : null}
                   </td>
                 </tr>
               )}

@@ -27,7 +27,7 @@
  *                           and its muted .bridge-section-count), each a .bridge-list of cards or a .bridge-empty card
  *   .bridge-card[data-state] a decision, incident, notice or intake session: open | answered | handled | escalated | warning
  *                           (an applied default) | notice | closed; its .bridge-card-head (.bridge-card-title: mono id and title,
- *                           then its state pill), .bridge-card-meta (.bridge-id-link ids, .bridge-card-stamp), .bridge-note lines,
+ *                           then its state pill), .bridge-card-meta (.bridge-id-link ids, .bridge-stamp), .bridge-note lines,
  *                           .bridge-card-actions; a notice names its kind in .bridge-notice-kind; an intake session lists its
  *                           .bridge-intake-drafts
  *   .bridge-question        one question of a decision, a bare fieldset: its legend (.bridge-question-header mark and the question)
@@ -40,13 +40,23 @@
  *                           .agents-card-body of .agents-section blocks (Controls, Transcript)
  * Marks
  *   .bridge-banner          an alert card above the header, warn by default, .bridge-banner-error in the error colours
- *   .bridge-button          a quiet button, [data-primary] the one a group leads with
  *   .bridge-control         a command button and, beside it, the Overseer's refusal verbatim (.bridge-refusal)
  *   .agents-elapsed-silent  the time since a job's last tool call while its silent sweeps are above zero
+ * Design system (bridge/design-system/), every state colour from the [data-state] rows of tokens.css
+ *   .bridge-button          a quiet button, [data-primary] the one a group leads with, [data-danger] a destructive one,
+ *                           [aria-pressed="true"] a toggle that is on; a.bridge-button a link drawn as one
+ *   .bridge-link-button     a text button in the link colour; .bridge-icon-button a square glyph button, placed by its parent
+ *   .bridge-state-badge[data-state|data-ready][data-palette?][data-size?]  the state pill; .bridge-state-pill[data-state?][data-width?]
+ *                           the fixed-width pill reading its head's state; .bridge-lane-dot[data-state] a state's dot
+ *   .bridge-ticket-id       any mono id; .bridge-id-link a mono id linking to its place; .bridge-stamp a short stamp, the full one
+ *                           on hover; .bridge-micro-caps[data-tone?] a small-capitals label
+ *   .bridge-section         a view's section: .bridge-section-head (.bridge-section-title, .bridge-section-count), then a .bridge-list
+ *                           or the .bridge-empty card
+ *   .bridge-segments        a choice of one, its buttons [aria-pressed], each with an optional .bridge-segment-count
+ *   .bridge-segment-meter   a roll-up bar[role=img] of .bridge-segment-meter-part[data-state] parts, sized by its parent
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
  *   .bridge-epic-chips      .bridge-epic-chip[data-epic-slot] (.bridge-epic-swatch, .bridge-epic-chip-text), then .bridge-epic-more "+N"
- *   .bridge-state-badge[data-state][data-palette?]  the state pill; .bridge-ticket-id the mono id; .bridge-priority-mark[data-priority],
- *                           .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
+ *   .bridge-priority-mark[data-priority], .bridge-type-mark[data-type], .bridge-waiting-on (.bridge-waiting-on-link per id)
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
@@ -324,7 +334,6 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 }
 .bridge-filter-section { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line); }
 .bridge-filter-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--sp-2); }
-.bridge-range-label { font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
 .bridge-filter-scope { font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-filter-lede { margin: 0 0 var(--sp-2); font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
 .bridge-segments { display: flex; gap: 2px; width: max-content; margin-bottom: var(--sp-3); padding: 2px; background: var(--surface-2); border-radius: var(--r-2); }
@@ -390,7 +399,7 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 .bridge-filter-epic-list .bridge-chip:hover { background: var(--surface-2); }
 .bridge-filter-epic-list .bridge-chip .bridge-chip-count { margin-left: auto; }
 .bridge-epic-strip-rollup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-3); padding: 0 4px 6px 24px; font-size: var(--fs-small); color: var(--ink-muted); }
-.bridge-epic-strip-rollup .bridge-epic-progress { width: 96px; }
+.bridge-epic-strip-rollup .bridge-segment-meter { width: 96px; }
 .bridge-kanban-order-hint { margin: 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
 .bridge-link-button { padding: 0; font: var(--fs-small)/1.5 var(--font-ui); color: var(--link); background: none; border: 0; cursor: pointer; }
 .bridge-link-button:hover { color: var(--ink); text-decoration: underline; }
@@ -446,7 +455,13 @@ html[data-embedded="dashboard"]:has(.bridge-detail) .bridge-activity.bridge-stal
 .bridge-button:hover { border-color: var(--ink-muted); }
 .bridge-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .bridge-button[data-primary] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+.bridge-button[data-danger] { color: var(--surface); background: var(--err-ink); border-color: var(--err-ink); }
+.bridge-button[aria-pressed="true"] { background: var(--surface-2); border-color: var(--ink-muted); }
 .bridge-button:disabled { opacity: 0.45; cursor: not-allowed; }
+/* A link drawn as a button keeps the button's ink and never underlines. */
+a.bridge-button { display: inline-flex; align-items: center; text-decoration: none; }
+a.bridge-button:hover { color: var(--ink); text-decoration: none; }
+a.bridge-button:is([data-primary], [data-danger]):hover { color: var(--surface); }
 
 button, [role="button"], .bridge-tab, a.bridge-stat, .bridge-kanban-size { transition: var(--feedback-transition); }
 /* The epic marks are links, yet give the same eased feedback as a button. */
@@ -549,6 +564,8 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
   white-space: nowrap;
   transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
+/* A row's badge: shorter, and only as wide as its word. */
+.bridge-state-badge[data-size="compact"] { height: 18px; min-width: 0; }
 
 .bridge-ticket-id { flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-muted); }
 
@@ -577,6 +594,28 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 }
 .bridge-waiting-on-link { color: inherit; font-family: var(--font-mono); }
 .bridge-waiting-on-link:hover { color: inherit; }
+
+/* ------------------------------------------- design system (bridge/design-system/) -- */
+/* The parts that know nothing of the board: their kept classes stay in the sections above, their new and renamed classes are here. */
+.bridge-icon-button {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0;
+  font: 500 15px/1 var(--font-ui); color: var(--ink-muted);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+  cursor: pointer;
+}
+.bridge-icon-button:hover { color: var(--ink); border-color: var(--line-strong); }
+.bridge-icon-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.bridge-stamp { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.bridge-micro-caps { margin: 0; font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-muted); }
+.bridge-micro-caps[data-tone="state"] { color: var(--s-ink); }
+.bridge-micro-caps[data-tone="error"] { color: var(--err-ink); }
+
+/* A roll-up bar: one part per state, each as wide as its count; its width comes from where it sits. */
+.bridge-segment-meter { display: flex; gap: 2px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
+.bridge-segment-meter-part { min-width: 4px; background: var(--s-fill); }
 
 /* ----------------------------------------------------------------- kanban -- */
 /* Lanes share the width, stretch to the tallest and grow with their cards (the page scrolls, never a lane); a narrow window scrolls the
@@ -882,7 +921,6 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .bridge-card-title .bridge-ticket-id { font-weight: 400; }
 .bridge-card-meta,
 .bridge-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
-.bridge-card-stamp { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .bridge-card-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .bridge-notice-kind { font-size: var(--fs-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
 
@@ -969,6 +1007,8 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 .agents-field { display: flex; flex: 1 1 16rem; flex-direction: column; align-items: flex-start; gap: var(--sp-2); max-width: 28rem; }
 
 .bridge-state-badge[data-ready] { --s-tint: var(--link-tint); --s-edge: var(--link); --s-ink: var(--link); }
+
+/* ----------------------------------------- conversation parts (bridge/conversation/) -- */
 
 /* --------------------------------------------------------------- progress -- */
 /* The Progress tab is one viewport tall and its chart card takes every pixel below the tab bar, so the rows scroll inside the card; a
@@ -1572,8 +1612,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 /* No epic is a name, not a link. */
 span.bridge-ticket-epic-title { cursor: default; }
 .bridge-ticket-epic-title .bridge-epic-swatch { width: 10px; height: 10px; }
-.bridge-ticket-epic-progress { display: flex; gap: 2px; width: 160px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
-.bridge-ticket-epic-segment { min-width: 4px; background: var(--s-fill); }
+.bridge-ticket-epic-line .bridge-segment-meter { width: 160px; }
 .bridge-ticket-epic-done { font-size: var(--fs-small); color: var(--ink-muted); }
 .bridge-ticket-epic-facts { display: flex; flex-wrap: wrap; gap: 2px var(--sp-4); font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-ticket-epic-fact b { font-weight: 500; color: var(--ink-muted); opacity: 0.75; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -1600,8 +1639,6 @@ span.bridge-ticket-epic-title { cursor: default; }
 .bridge-epic-description-toggle:hover { color: var(--ink); text-decoration: underline; }
 .bridge-epic-description-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
-.bridge-epic-progress { display: flex; gap: 2px; height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
-.bridge-epic-segment { min-width: 4px; background: var(--s-fill); }
 .bridge-epic-legend { display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); margin: 6px 0 0; padding: 0; list-style: none; font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-epic-legend li { display: inline-flex; align-items: center; gap: 5px; }
 .bridge-epic-legend b { font: 500 var(--fs-micro)/1 var(--font-mono); color: var(--ink); }
@@ -1752,6 +1789,8 @@ span.bridge-ticket-epic-title { cursor: default; }
   white-space: nowrap;
   transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
+/* A pill of its own state, outside a detail head, is as wide as its word. */
+.bridge-state-pill[data-width="fit"] { width: auto; padding: 0 8px; }
 .bridge-detail-reviewed-mark { margin-left: var(--sp-1); font: 600 var(--fs-small)/1 var(--font-ui); color: var(--s-fill); cursor: help; }
 
 .bridge-detail-section { border-top: 1px solid var(--line); padding-top: var(--sp-3); margin-top: var(--sp-3); }

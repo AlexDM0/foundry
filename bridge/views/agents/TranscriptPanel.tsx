@@ -11,6 +11,7 @@ import type {
   TranscriptStreamOptions
 } from '../../api/TranscriptStreamClient.ts';
 import { TranscriptLog } from '../../conversation/TranscriptLog.tsx';
+import { EmptyState }    from '../../design-system/ListSection.tsx';
 
 export type FollowTranscript = (jobId: string, handlers: TranscriptStreamHandlers, options?: TranscriptStreamOptions) => TranscriptStream;
 
@@ -52,6 +53,6 @@ export function TranscriptPanel({ jobId, memory, followTranscript }: TranscriptP
     return () => stream.close();
   }, [jobId, memory, followTranscript]);
 
-  if (entries.length === 0) return <p className="bridge-empty">No transcript yet.</p>;
+  if (entries.length === 0) return <EmptyState text="No transcript yet." />;
   return <TranscriptLog label={`Transcript of ${jobId}`} entries={entries} roleTextOf={roleTextOf} textOf={entryTextOf} />;
 }

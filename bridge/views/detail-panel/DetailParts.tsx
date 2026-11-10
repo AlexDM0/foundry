@@ -1,25 +1,15 @@
 /**
- * What every form of the detail panel draws with: a stamp short with the full stamp on hover, a section
- * under its small-capitals title, the facts line, and a link that opens another detail over the tab the panel is on.
+ * What every form of the detail panel draws with: a section under its small-capitals title, the facts line, and a link that opens
+ * another detail over the tab the panel is on.
  */
 import { Fragment, type ReactNode } from 'react';
 
-import { EpicChips }        from '../../chips/EpicChips.tsx';
-import { DetailRoute }      from '../../shell/DetailRoute.ts';
-import { useDetailRouting } from '../../shell/DetailRouting.ts';
-import { HashRouter }       from '../../shell/HashRouter.ts';
-import type {
-  DetailFactModel,
-  DetailLinkModel,
-  IntegrationModel,
-  StampModel
-} from './DetailFactsModel.ts';
-
-export function Stamp({ stamp, element = 'span' }: { readonly stamp: StampModel; readonly element?: 'span' | 'time' }) {
-  return element === 'time'
-    ? <time title={stamp.fullText}>{stamp.shortText}</time>
-    : <span title={stamp.fullText}>{stamp.shortText}</span>;
-}
+import { EpicChips }                                               from '../../chips/EpicChips.tsx';
+import { Stamp }                                                   from '../../design-system/Stamp.tsx';
+import { DetailRoute }                                             from '../../shell/DetailRoute.ts';
+import { useDetailRouting }                                        from '../../shell/DetailRouting.ts';
+import { HashRouter }                                              from '../../shell/HashRouter.ts';
+import type { DetailFactModel, DetailLinkModel, IntegrationModel } from './DetailFactsModel.ts';
 
 export function DetailSection({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
@@ -62,7 +52,7 @@ function Integration({ integration }: { readonly integration: IntegrationModel }
 function FactValue({ fact }: { readonly fact: DetailFactModel }) {
   switch (fact.kind) {
     case 'stamp':
-      return <Stamp stamp={fact.stamp} />;
+      return <Stamp shortText={fact.stamp.shortText} fullText={fact.stamp.fullText} />;
     case 'links':
       return <DetailLinks links={fact.links} />;
     case 'epics':
