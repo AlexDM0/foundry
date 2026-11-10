@@ -10,14 +10,14 @@ import { timingSafeEqual } from 'node:crypto';
 
 import type { HTMLBundle } from 'bun';
 
-import { WATCHER_PROTOCOL_VERSION }                     from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { TranscriptEntry }                         from '../../shared/@types/TranscriptEntry.ts';
-import { SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
-import { BrowserSessions }                              from './BrowserSessions.ts';
-import type { EventBroker, OverseerEvent }              from './EventBroker.ts';
-import { OverseerPort, type OverseerPortChoice }        from './OverseerPort.ts';
-import { MILLISECONDS_PER_SECOND }                      from './constants/TimeUnits.ts';
+import { WATCHER_PROTOCOL_VERSION }                                               from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { TranscriptEntry }                                                   from '../../shared/@types/TranscriptEntry.ts';
+import { PICTURE_SIZE_LIMIT_BYTES, SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
+import { BrowserSessions }                                                        from './BrowserSessions.ts';
+import type { EventBroker, OverseerEvent }                                        from './EventBroker.ts';
+import { OverseerPort, type OverseerPortChoice }                                  from './OverseerPort.ts';
+import { MILLISECONDS_PER_SECOND }                                                from './constants/TimeUnits.ts';
 
 export interface OverseerIdentity {
   application:            string;
@@ -34,6 +34,11 @@ export interface RouteAnswer {
   status: number;
   body:   unknown;
 }
+
+/** A `POST /api/pictures` body, read no further than past the size limit: past it, only how many bytes were declared or read by then. */
+export type PictureUpload =
+  | { verdict: 'read'; bytes: Uint8Array }
+  | { verdict: 'over-limit'; bytes: number };
 
 /** A job's transcript after a cursor, re-read on each call. */
 export type TranscriptFollower = () => TranscriptEntry[];
@@ -56,7 +61,7 @@ export interface OverseerRoutes {
   /** A served job file's text, `null` when the job or the file does not exist. */
   jobFileText:  (jobId: string, fileName: string) => string | null;
   /** A non-empty `POST /api/pictures` body behind a valid token: 200 `{ pictureId, bytes, mediaType }`, or 413 or 415 worded. */
-  storePicture: (bytes: Uint8Array) => RouteAnswer;
+  storePicture: (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
   picture:      (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
   /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
@@ -157,12 +162,37 @@ async function answerCommand(request: Request, routes: OverseerRoutes): Promise<
   return jsonResponse(await routes.command(body));
 }
 
+/** A declared length over the limit is not read at all, and a body that runs past it stops being read there, so no memory goes to it. */
+async function pictureUploadOf(request: Request, sizeLimitBytes: number): Promise<PictureUpload> {
+  const declaredLength = request.headers.get('content-length');
+  if (declaredLength !== null && Number(declaredLength) > sizeLimitBytes) return { verdict: 'over-limit', bytes: Number(declaredLength) };
+  if (request.body === null) return { verdict: 'read', bytes: new Uint8Array() };
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let readBytes = 0;
+  for (let read = await reader.read(); !read.done; read = await reader.read()) {
+    readBytes += read.value.length;
+    if (readBytes > sizeLimitBytes) {
+      await reader.cancel();
+      return { verdict: 'over-limit', bytes: readBytes };
+    }
+    chunks.push(read.value);
+  }
+  const bytes = new Uint8Array(readBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return { verdict: 'read', bytes };
+}
+
 /** The raw body is the picture; what it is and whether it fits is the route's, read from its bytes. */
 async function answerPictureUpload(request: Request, routes: OverseerRoutes): Promise<Response> {
   if (!bearerTokenMatches(request, routes.token())) return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  if (bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
-  return jsonResponse(routes.storePicture(bytes));
+  const upload = await pictureUploadOf(request, PICTURE_SIZE_LIMIT_BYTES);
+  if (upload.verdict === 'read' && upload.bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
+  return jsonResponse(routes.storePicture(upload));
 }
 
 /** Never sniffed, never cached, and sandboxed: a picture is shown as an image and can run nothing. */
@@ -432,4 +462,4 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
   };
 }
 
-export const OverseerServer = Object.freeze({ start });
+export const OverseerServer = Object.freeze({ start, pictureUploadOf });

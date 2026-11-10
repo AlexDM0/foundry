@@ -93,9 +93,10 @@ function startExampleServer(
     events:       () => broker,
     transcriptOf: (jobId) => (jobId === 'J1' ? () => [] : null),
     jobFileText:  (_jobId, fileName) => `text of ${fileName}`,
-    storePicture: (bytes) => {
-      pictureUploads.push(bytes);
-      return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: bytes.length, mediaType: 'image/png' } };
+    storePicture: (upload) => {
+      if (upload.verdict === 'over-limit') return { status: 413, body: { refusal: 'too-large' } };
+      pictureUploads.push(upload.bytes);
+      return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: upload.bytes.length, mediaType: 'image/png' } };
     },
     picture:      (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES } : null),
     frameOrigins: () => [DASHBOARD_ORIGIN],

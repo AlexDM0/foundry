@@ -130,7 +130,9 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
         return null;
       }
     },
-    storePicture: (bytes) => pictureUploadAnswerOf(PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, bytes)),
+    storePicture: (upload) => pictureUploadAnswerOf(upload.verdict === 'over-limit'
+      ? { verdict: 'too-large', bytes: upload.bytes }
+      : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
     picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
     frameOrigins: () => dashboardFrameOriginsOf(context.homeDirectory),
     page:         bridgePage,
