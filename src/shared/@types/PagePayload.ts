@@ -28,6 +28,7 @@ export interface PageLimits {
 /** The two figures of `status --json`'s `concurrency` block the page shows, computed Bun-side by the same function. */
 export interface PageConcurrency {
   limit:          number;
+  /** The live build and review jobs, the count every launch gate reads. */
   agentsInFlight: number;
 }
 

@@ -324,7 +324,6 @@ const MODEL = {
     'gap-refused-merge-relaunches-review': 'A refused merge relaunches a review',
     'gap-merge-gate-blocks-pass': 'A merged-tree gate blocks the Pass',
     'gap-help-text-stale': 'Help text is stale',
-    'gap-slot-has-two-definitions': 'A launch slot has two definitions',
     'gap-group-tickets-missing-from-ready-ids': 'Group tickets are missing from the ready ids'
   },
 
@@ -687,7 +686,7 @@ const MODEL = {
       rule: 'Priority never blocks. It decides who takes a free [launch slot](../glossary.md#launch-slot): {free} free, and {ahead} ranked ahead of this ticket.',
       confirm: ['forge jobs', 'forge status --json'],
       clears: 'A `build` or `review` job ending frees a launch slot. To go first: `forge ticket priority <id> high`. To run more at once: `forge concurrency <n>`, up to `CONCURRENCY_LIMIT_CEILING_AGENTS` ({CONCURRENCY_LIMIT_CEILING_AGENTS}).',
-      runbook: 'Not moving', gaps: ['gap-help-text-stale', 'gap-slot-has-two-definitions']
+      runbook: 'Not moving', gaps: ['gap-help-text-stale']
     },
     'airlock-hold': {
       stage: 'airlock', actor: 'User', walk: 'No hold',

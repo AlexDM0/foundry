@@ -17,6 +17,7 @@ import type { PlaybookObservations, PlaybookStep }                              
 import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
 import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
 import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
+import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
 import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
 import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
@@ -50,9 +51,6 @@ export interface PlaybookFacts {
   reviewIsSet:                 boolean;
   observations:                PlaybookObservations;
 }
-
-/** The jobs a concurrency slot bounds: merge, refresh and merge-agent jobs never wait behind builds, and sessions have no ticket. */
-const SLOT_TAKING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
 /** The jobs whose spent red resumes park their ticket; an Airlock agent's Airlock parks its own, aborting the merge. */
 const TICKET_WORK_JOB_KINDS: readonly JobKind[] = ['review', 'build'];
@@ -427,10 +425,8 @@ function candidateOrder(facts: PlaybookFacts): (a: Candidate, b: Candidate) => n
   );
 }
 
-/** A `waiting-for-answer` or `interrupted` job keeps its slot: it is the same job, holding the slot already. */
 function freeSlotsOf(facts: PlaybookFacts): number {
-  const jobsHoldingASlot = facts.jobs.filter((job) => SLOT_TAKING_JOB_KINDS.includes(job.kind)).length;
-  return Math.max(0, facts.concurrencyLimit - jobsHoldingASlot);
+  return ConcurrencyUtil.concurrencyOf(facts.jobs, facts.concurrencyLimit).freeSlots;
 }
 
 function launchStepsOf(facts: IndexedPlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {

@@ -162,9 +162,6 @@ group and stores the cause. `bindFirstFree` binds the port.
 > **As built.** The Airlock and the Bridge order candidates separately; see
 > [the duplicate order](known-gaps.md#gap-dead-code-and-unused-states).
 
-> **As built.** A launch slot means one thing to `freeSlotsOf` and another to `status`; see
-> [the two definitions](known-gaps.md#gap-slot-has-two-definitions).
-
 ## Bounds
 
 Every design constant that bounds behaviour is here, read from the source at commit 70ce56de.

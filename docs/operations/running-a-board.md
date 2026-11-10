@@ -188,8 +188,8 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 
 ![The Agents tab: a table of six running jobs, an assistant, three builders, a product owner and a reviewer, with their calls, tokens, last tool and Watcher.](../images/bridge-agents.png)
 
-*Press a job id to open its controls and transcript below the table. The header's 4 / 5, seen in the Kanban screenshot,
-counts in-progress rows, so the Assistant and product-owner jobs add nothing to it.*
+*Press a job id to open its controls and transcript below the table. The header's figure counts the live build and
+review jobs, so the Assistant and product-owner jobs add nothing to it.*
 
 Agents lists every [job](../glossary.md#job) on the board, ticking each second, with a line per subagent under it.
 Silent sweeps counts the [sweeps](../glossary.md#sweep) a job's [event log](../glossary.md#event-log) stood still, and
@@ -297,9 +297,8 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 11 | Warnings and notices | see [Banners, warnings and notices](#banners-warnings-and-notices) |
 
 The concurrency control takes a whole number up to `CONCURRENCY_LIMIT_CEILING_AGENTS` (10), and a higher one is refused.
-
-> **As built.** "agents working" counts in-progress rows, so a queued ticket's open review bar counts as an agent, while
-> launches count jobs. See [gap-slot-has-two-definitions](../reference/known-gaps.md#gap-slot-has-two-definitions).
+"agents working" counts the live build and review jobs, the count the Overseer launches by; a session, a merge and a
+row with no job count nothing.
 
 ### Banners, warnings and notices
 

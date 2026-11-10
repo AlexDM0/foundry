@@ -114,9 +114,7 @@ forge oversee status
 
 Priority never blocks a ticket; it only orders candidates. [The Pass](../architecture/the-pass.md) gives the order.
 
-> **As built.** Help words priority as a block: [gap-help-text-stale](../reference/known-gaps.md#gap-help-text-stale).
-> The Next line and `jobs` count launch slots differently from the launch decision:
-> [gap-slot-has-two-definitions](../reference/known-gaps.md#gap-slot-has-two-definitions). A
+> **As built.** Help words priority as a block: [gap-help-text-stale](../reference/known-gaps.md#gap-help-text-stale). A
 > [group](../glossary.md#group) ticket can be absent from the ready list:
 > [gap-group-tickets-missing-from-ready-ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
 

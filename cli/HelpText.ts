@@ -341,10 +341,8 @@ never carries it.
                               The next review round and the reviewer's in-progress bar
                               (\`Review <N> #<id> — <title>\`, its \`reviewOf\` the ticket, N the
                               \`## Review\` sections plus one) in one lock hold, closing any bar of
-                              the round before: the builder's slot passes to its reviewer, and one
-                              round's to the next, without \`status --json\` ever showing it free.
-                              A bundle's bar carries its claim's agent key while other rows of the
-                              bundle still run, so it takes no second slot.
+                              the round before. A bundle's bar carries its claim's agent key while
+                              other rows of the bundle still run.
                               --owner and --note name the bar, and are refused without the flag.
 
   ticket rereview <id>        Send a ticket already in review round again, for a fresh reviewer: the
@@ -463,12 +461,11 @@ never carries it.
                               error and skipped.
 
   concurrency [<n>] [--json]  Print the concurrency limit: how many agents may be in flight at once.
-                              A slot is an agent: the in-progress rows one claim started
-                              count once, and every other in-progress row, such as a review bar,
-                              counts on its own. With <n>, store a new one for every worktree, a
-                              whole number from 1 to 10: any other is refused at exit 1 with
-                              nothing written, and one above 10 an older tracker stored reads as
-                              10. A tracker that never set one reads 2; a limit below the agents already
+                              A slot is a build or review job, in any state; merge, merge-agent,
+                              refresh, session and onboarder jobs take none, and no row takes one.
+                              With <n>, store a new one for every worktree, a whole number from 1
+                              to 10: any other is refused at exit 1 with nothing written, and one
+                              above 10 an older tracker stored reads as 10. A tracker that never set one reads 2; a limit below the agents already
                               in flight is accepted and simply leaves no free slot. \`status --json\`
                               carries it beside \`agentsInFlight\`, the free slots and the ready
                               tickets.

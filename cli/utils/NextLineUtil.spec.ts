@@ -6,8 +6,9 @@
  */
 import { expect, test } from 'bun:test';
 
-import { boardFixture, taskFixture, ticketFixture } from '../../src/testing/BoardFixtures.ts';
-import { NextLineUtil }                             from './NextLineUtil.ts';
+import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
+import { boardFixture, ticketFixture } from '../../src/testing/BoardFixtures.ts';
+import { NextLineUtil }                from './NextLineUtil.ts';
 
 const { composeNextLine, nextLineOf } = NextLineUtil;
 
@@ -187,13 +188,29 @@ test('more than five held ready tickets name the first five and count the rest',
   })).toBe('Next: 2 of 2 slots free; nothing ready; held: #1, #2, #3, #4, #5 and 1 more');
 });
 
+/** The one live build the Board case runs, which takes one launch slot. */
+const LIVE_BUILD: Job = {
+  id:                 'J1',
+  kind:               'build',
+  role:               'builder',
+  ticketIds:          ['002'],
+  parentJobId:        null,
+  attempt:            1,
+  target:             'main',
+  state:              'running',
+  watcherInstance:    1,
+  eventCursor:        { instance: 1, sequence: 0 },
+  answeredRequestIds: [],
+  crashResumes:       0,
+};
+
 test('a Board with a free slot and one ready ticket names the free slot and that ticket', () => {
   const { board, progress } = boardFixture({
-    tasks:            [taskFixture({ id: 1, status: 'in-progress' })],
-    tickets:          [ticketFixture({ id: '001' })],
+    tickets:          [ticketFixture({ id: '001' }), ticketFixture({ id: '002', status: 'in-progress' })],
     concurrencyLimit: 2,
   });
   progress.overseerState = 'running';
+  progress.jobs          = [LIVE_BUILD];
   expect(nextLineOf(board)).toBe('Next: 1 of 2 slots free; ready: #001');
 });
 

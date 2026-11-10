@@ -1,6 +1,7 @@
 /**
  * The limit the board holds: the default a tracker that never set one reads (a tracker from before the field existed included), a stored
  * value read back by a later command, the refusals that must leave the file byte-identical, and a lowered limit that takes nothing back.
+ * The agents in flight are the live build and review jobs: a row started by hand counts nothing.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -10,6 +11,7 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
+import type { Job, JobKind, JobRole }             from '../../../src/lib/tracker-model/@types/Job.ts';
 import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
@@ -27,6 +29,23 @@ let repositoryDirectory = '';
 
 function progressFilePath(): string {
   return workspacePathsFor(repositoryDirectory).progressFilePath;
+}
+
+function liveJobOf(id: string, kind: JobKind, role: JobRole, ticketId: string): Job {
+  return {
+    id,
+    kind,
+    role,
+    ticketIds:          [ticketId],
+    parentJobId:        null,
+    attempt:            1,
+    target:             'main',
+    state:              'running',
+    watcherInstance:    1,
+    eventCursor:        { instance: 1, sequence: 0 },
+    answeredRequestIds: [],
+    crashResumes:       0,
+  };
 }
 
 async function runWithExitCode(commandLineArguments: readonly string[]): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {
@@ -107,9 +126,10 @@ describeWhenGitIsRecorded('the concurrency limit', () => {
   });
 
   // The user lowers the limit when the session is running out; the agents already at work are not stopped, only no new one may start.
-  test('a limit below the rows already running is accepted, and status then reports no free slot', async () => {
-    await run(['task', 'add', 'Review pass one', '--start']);
-    await run(['task', 'add', 'Review pass two', '--start']);
+  test('a limit below the build and review jobs already running is accepted, and status then reports no free slot', async () => {
+    const progress = storedProgressOf(repositoryDirectory);
+    writeFileSync(progressFilePath(), JSON.stringify({ ...progress, jobs: [liveJobOf('J1', 'build', 'builder', '001'), liveJobOf('J2', 'review', 'reviewer', '002')] }));
+    await run(['task', 'add', 'Hotfix the export', '--start']);
 
     await run(['concurrency', '1']);
 

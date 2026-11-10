@@ -91,6 +91,7 @@
     "../src/lib/tracker-model/utils/EpicUtil.ts",
     "../src/lib/tracker-model/utils/FailedPassUtil.ts",
     "../src/lib/tracker-model/utils/GroupNameUtil.ts",
+    "../src/lib/tracker-model/utils/LaunchSlotUtil.ts",
     "../src/lib/tracker-model/utils/MergeQueueUtil.ts",
     "../src/lib/tracker-model/utils/NetworkDomainUtil.ts",
     "../src/lib/tracker-model/utils/NumberedIdUtil.ts",

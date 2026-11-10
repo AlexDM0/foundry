@@ -322,7 +322,8 @@ work), then readiness, then numeric id. Readiness is the log position of the new
 first. A review goes before a rebuild within a priority because it contains finished work.
 
 **Cut.** `freeSlotsOf` is the [concurrency limit](../glossary.md#concurrency-limit) minus every `build` and `review`
-job on the board, floored at zero.
+job on the board, floored at zero. It reads `ConcurrencyUtil.concurrencyOf`, the count `forge status` and the Next line
+print, so the figure and the gate agree.
 
 - A job in any state keeps its launch slot: waiting for an answer, interrupted, gating. It is the same job, so a resume
   needs no free launch slot.
@@ -331,9 +332,7 @@ job on the board, floored at zero.
 - Priority sorts. It never excludes: with a free launch slot, a low ticket launches.
 
 > **As built.** `cli/HelpText.ts` words priority differently; see
-> [stale help text](../reference/known-gaps.md#gap-help-text-stale). `freeSlotsOf` counts jobs while
-> `forge status` counts rows; see
-> [two definitions of a slot](../reference/known-gaps.md#gap-slot-has-two-definitions). The ready list
+> [stale help text](../reference/known-gaps.md#gap-help-text-stale). The ready list
 > `forge status` prints is not the Playbook's candidate list; see
 > [group tickets missing from the ready ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
 

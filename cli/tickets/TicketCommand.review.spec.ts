@@ -1,7 +1,7 @@
 /**
- * `ticket finish|rereview --start-review`: the move to review and the review bar in one lock hold, so the ticket's slot passes from its builder to
- * its reviewer, and from one round to the next, without a moment at which `status --json` shows it free. The race with a claim for that slot is
- * the case the option exists for; the plain `ticket finish` beside it shows the gap it closes.
+ * `ticket finish|rereview --start-review`: the move to review and the review bar in one lock hold, closing the round before's bar. A row takes
+ * no launch slot, so what matters is the round each bar stores, that every move out of review closes the running bar, and that a running bar
+ * refuses a claim of its ticket.
  */
 import { readFileSync } from 'node:fs';
 
@@ -12,13 +12,9 @@ import {
   test
 }                                                                             from 'bun:test';
 import type { Task }                              from '../../src/lib/tracker-model/@types/Task.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE, withLock } from '../../src/services/tracker/TrackerLock.ts';
-import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
-import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
@@ -52,18 +48,12 @@ function inProgressBarsReviewing(ticketId: string): Task[] {
   return storedProgressOf(repositoryDirectory).tasks.filter((task) => task.status === 'in-progress' && task.reviewOf === ticketId);
 }
 
-async function agentsInFlightNow(): Promise<number> {
-  const document = JSON.parse((await run(['status', '--json'])).outputText()) as { concurrency: { agentsInFlight: number } };
-  return document.concurrency.agentsInFlight;
-}
-
 const recordedGit = useRecordedGit();
 
 beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('ticket-start-review', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', REVIEWED_TICKET_TITLE]);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
-  await run(['concurrency', '1']);
   await run(['ticket', 'claim', '1', '--owner', 'opus']);
 });
 
@@ -72,40 +62,12 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('starting the review bar with the move to review', () => {
-  // The gap the option closes: between a plain move to review and the reviewer's own `task add --start`, the board shows the slot free.
-  test('a plain ticket finish frees the slot, so a claim before the reviewer adds its bar takes it and the board runs one over', async () => {
-    await run(['ticket', 'finish', '1']);
-    await run(['ticket', 'claim', '2']);
-    await run(['task', 'add', `Review 1 #001 — ${REVIEWED_TICKET_TITLE}`, '--review-of', '1', '--start']);
-
-    expect(await agentsInFlightNow()).toBe(2);
-  });
-
-  // Whichever of the two the lock lets in first, the claim meets a full board: the slot never shows free between them.
-  test('a claim racing the move to review for the ticket\'s slot is refused, and one agent stays in flight', async () => {
-    const queuedCommands = await parkingLockRetries((parkedRetries) => withLock(workspacePathsFor(repositoryDirectory), async () => {
-      const commands = [
-        runWithExitCode(['ticket', 'finish', '1', '--start-review']),
-        runWithExitCode(['ticket', 'claim', '2']),
-      ];
-      await waitUntil(() => parkedRetries() === commands.length, 'both commands queueing on the lock');
-      return commands;
-    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE));
-
-    const [reviewOutcome, claimOutcome] = await Promise.all(queuedCommands);
-    expect(reviewOutcome?.exitCode).toBe(0);
-    expect(claimOutcome?.exitCode).toBe(1);
-    expect(await agentsInFlightNow()).toBe(1);
-    expect(inProgressBarsReviewing('001')).toHaveLength(1);
-  });
-
   test('ticket rereview --start-review closes the round\'s running bar and starts the next, numbered from the ticket\'s review sections', async () => {
     await run(['ticket', 'finish', '1', '--start-review']);
     const [firstBar] = inProgressBarsReviewing('001');
     const ticketFilePath = JSON.parse((await run(['ticket', 'show', '1', '--json'])).outputText()) as { filePath: string };
     const ticketText     = readFileSync(ticketFilePath.filePath, 'utf8');
     await Bun.write(ticketFilePath.filePath, `${ticketText}\n## Review\nRound 1 reworked 900 lines.\n`);
-    const agentsBefore = await agentsInFlightNow();
 
     await run(['ticket', 'rereview', '1', '--start-review', '--owner', 'opus']);
 
@@ -113,7 +75,6 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     expect(bars).toHaveLength(1);
     expect(bars[0]?.name).toBe(`Review 2 #001 — ${REVIEWED_TICKET_TITLE}`);
     expect(storedProgressOf(repositoryDirectory).tasks.find((task) => task.id === firstBar?.id)?.status).toBe('delivered');
-    expect(await agentsInFlightNow()).toBe(agentsBefore);
   });
 
   test('each bar stores the round it was started for: 1 on finish, and the review sections plus one on rereview', async () => {
@@ -131,7 +92,6 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
   // A single-ticket dispatcher run launched late would otherwise claim the in-review ticket its whole-board twin is reviewing, and rebuild it.
   test('a claim of a ticket whose review bar runs is refused, and one after the bar is closed takes it for the rebuild', async () => {
     await run(['ticket', 'finish', '1', '--start-review']);
-    await run(['concurrency', '2']);
     const [bar] = inProgressBarsReviewing('001');
 
     const refused = await runWithExitCode(['ticket', 'claim', '1']);
@@ -145,8 +105,8 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     expect(JSON.parse((await run(['ticket', 'show', '1', '--json'])).outputText())).toMatchObject({ status: 'in-progress' });
   });
 
-  // A bar left running would keep the reviewer's slot taken and refuse the ticket's own claim.
-  test('every move out of review closes the ticket\'s running bar with one log line, freeing its slot', async () => {
+  // A bar left running would refuse the ticket's own claim.
+  test('every move out of review closes the ticket\'s running bar with one log line', async () => {
     const movesOutOfReview: string[][] = [
       ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
       ['ticket', 'reopen', '1'],
@@ -167,14 +127,6 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     }
   });
 
-  test('at a limit of 1, a claim after abandoning a ticket whose review bar ran takes the freed slot', async () => {
-    await run(['ticket', 'finish', '1', '--start-review']);
-    await run(['ticket', 'abandon', '1', '--reason', 'superseded by #2']);
-
-    expect(await agentsInFlightNow()).toBe(0);
-    await run(['ticket', 'claim', '2']);
-  });
-
   test('a reopened ticket whose review bar ran can be claimed again', async () => {
     await run(['ticket', 'finish', '1', '--start-review']);
     await run(['ticket', 'reopen', '1']);
@@ -182,18 +134,13 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     await run(['ticket', 'claim', '1']);
   });
 
-  // A bundle is one agent: its first ticket's reviewer shares the slot the builder still holds for the rest.
-  test('a bundle\'s review bar shares the claim\'s slot while the bundle\'s other rows still run, so the agents in flight stay one', async () => {
+  // A bundle is one agent: its first ticket's reviewer works beside the builder that still runs the rest.
+  test('a bundle\'s review bar carries the claim\'s agent key while the bundle\'s other rows still run', async () => {
     await run(['ticket', 'reopen', '1']);
     await run(['ticket', 'claim', '1', '2']);
-    expect(await agentsInFlightNow()).toBe(1);
 
     await run(['ticket', 'finish', '1', '--start-review']);
-    expect(await agentsInFlightNow()).toBe(1);
     expect(inProgressBarsReviewing('001')[0]?.agent).toBe('001,002');
-
-    await run(['ticket', 'finish', '2', '--start-review']);
-    expect(await agentsInFlightNow()).toBe(1);
   });
 
   test('--owner or --note without --start-review is refused, and nothing moves', async () => {

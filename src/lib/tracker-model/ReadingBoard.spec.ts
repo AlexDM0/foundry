@@ -4,16 +4,17 @@
  */
 import { expect, test } from 'bun:test';
 
-import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { readingBoardOf }                           from './ReadingBoard.ts';
+import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { readingBoardOf }              from './ReadingBoard.ts';
+import { jobFixture }                  from './testing/LifecycleFixtures.ts';
 
 test('its queries answer over the progress file and the tickets handed in', () => {
   const { progress, tickets } = boardFixture({
-    tasks:            [taskFixture({ id: 1, status: 'in-progress' })],
     tickets:          [ticketFixture({ id: '001' }), ticketFixture({ id: '002', hold: '' })],
     concurrencyLimit: 2,
   });
-  const board = readingBoardOf(progress, tickets, []);
+  progress.jobs = [jobFixture({ id: 'J1', ticketIds: ['003'] })];
+  const board   = readingBoardOf(progress, tickets, []);
 
   expect(board.concurrency()).toEqual({ limit: 2, agentsInFlight: 1, freeSlots: 1 });
   expect(board.readyTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001', '002']);

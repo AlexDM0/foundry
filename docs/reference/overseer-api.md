@@ -285,6 +285,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | Key | Produced by | Holds |
 | --- | --- | --- |
 | Status keys | `fullDocumentOf` | Stored progress fields, `tasks`, the worded `log`, `tickets`, `epics`, `drafts`, `concurrency`, `readyTickets`, `reviewWaitingTickets`, `pausedBuilds`, `ticketRows`, `tokensByOwner`, `ticketCountByStatus`. Their meaning is in the [CLI reference](../cli.md). |
+| `concurrency` | `ConcurrencyUtil.concurrencyOf`, a status key | `{limit, agentsInFlight, freeSlots}`. `agentsInFlight` counts the live build and review jobs (`LaunchSlotUtil`), the count the Overseer's launch gate reads; the Bridge header shows it against `limit`. |
 | `page` | `assemblePagePayload` | `{payload, tickets}`: the rendered ticket bodies and the `boardFacts` the views read |
 | `jobs` | `Board.jobs`, `JobLiveFactsReader` | Every stored job plus `live`. Replaces the status document's `jobs`. |
 | `decisions`, `incidents` | The Board | The open ones. Replaces the status document's. |

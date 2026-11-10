@@ -63,7 +63,7 @@ test('a document with no concurrency limit reads, and its figures fall back to t
   delete withoutLimit.concurrencyLimit;
   const result = readBack('store-no-limit', withoutLimit);
   expect(result.verdict).toBe('readable');
-  const concurrency = result.verdict === 'readable' ? ConcurrencyUtil.concurrencyOf(result.progress.tasks, result.progress.concurrencyLimit) : null;
+  const concurrency = result.verdict === 'readable' ? ConcurrencyUtil.concurrencyOf(result.progress.jobs ?? [], result.progress.concurrencyLimit) : null;
   expect(concurrency).toEqual({ limit: 2, agentsInFlight: 0, freeSlots: 2 });
 });
 

@@ -21,7 +21,7 @@ export class DispatchQueries {
   ) {}
 
   concurrency(): Concurrency {
-    return ConcurrencyUtil.concurrencyOf(this.records.progress.tasks, this.records.progress.concurrencyLimit);
+    return ConcurrencyUtil.concurrencyOf(this.records.progress.jobs ?? [], this.records.progress.concurrencyLimit);
   }
 
   overseerState(): OverseerState {

@@ -1,18 +1,16 @@
 import type { Concurrency }                                                   from '../@types/Concurrency.ts';
-import type { Task }                                                          from '../@types/Task.ts';
+import type { Job }                                                           from '../@types/Job.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } from '../constants/ConcurrencyLimits.ts';
+import { LaunchSlotUtil }                                                     from './LaunchSlotUtil.ts';
 
-function agentsInFlightOf(tasks: readonly Readonly<Task>[]): number {
-  const inProgressTasks   = tasks.filter((task) => task.status === 'in-progress');
-  const claimedAgentKeys  = new Set(inProgressTasks.flatMap((task) => (task.agent === undefined ? [] : [task.agent])));
-  const unclaimedRowCount = inProgressTasks.filter((task) => task.agent === undefined).length;
-  return claimedAgentKeys.size + unclaimedRowCount;
+function agentsInFlightOf(jobs: readonly Pick<Job, 'id' | 'kind'>[]): number {
+  return LaunchSlotUtil.slotJobIdsOf(jobs).length;
 }
 
 /** A stored limit above the ceiling reads as the ceiling, and a tracker that never stored one reads the default. */
-function concurrencyOf(tasks: readonly Readonly<Task>[], storedLimit: number | undefined): Concurrency {
+function concurrencyOf(jobs: readonly Pick<Job, 'id' | 'kind'>[], storedLimit: number | undefined): Concurrency {
   const limit          = Math.min(storedLimit ?? DEFAULT_CONCURRENCY_LIMIT_AGENTS, CONCURRENCY_LIMIT_CEILING_AGENTS);
-  const agentsInFlight = agentsInFlightOf(tasks);
+  const agentsInFlight = agentsInFlightOf(jobs);
   return { limit, agentsInFlight, freeSlots: Math.max(0, limit - agentsInFlight) };
 }
 

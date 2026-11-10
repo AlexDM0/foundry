@@ -35,6 +35,8 @@ const POLICY_MODULE = 'src/lib/tracker-model/Playbook.ts';
 
 const FAILED_PASS_MODULE = 'src/lib/tracker-model/utils/FailedPassUtil.ts';
 
+const LAUNCH_SLOT_MODULE = 'src/lib/tracker-model/utils/LaunchSlotUtil.ts';
+
 interface PolicyClaim {
   name:    string;
   facts:   PlaybookFacts;
@@ -45,6 +47,10 @@ interface PolicyClaim {
 
 function policyLine(find: string, replace: string): SourceMutant {
   return { modulePath: POLICY_MODULE, find, replace };
+}
+
+function launchSlotLine(find: string, replace: string): SourceMutant {
+  return { modulePath: LAUNCH_SLOT_MODULE, find, replace };
 }
 
 function onboarderJob(): Job {
@@ -206,7 +212,7 @@ const CLAIMS: PolicyClaim[] = [
       concurrencyLimit: 2,
     }),
     holds:  launchesExactly(['002']),
-    mutant: policyLine('SLOT_TAKING_JOB_KINDS.includes(job.kind))', 'SLOT_TAKING_JOB_KINDS.includes(job.kind) && job.state !== \'waiting-for-answer\')'),
+    mutant: launchSlotLine('SLOT_TAKING_JOB_KINDS.includes(job.kind);', 'SLOT_TAKING_JOB_KINDS.includes(job.kind) && job.state !== \'waiting-for-answer\';'),
   },
   {
     name:  'a ticket whose ended job left its question open launches nothing until User answers',
@@ -237,7 +243,7 @@ const CLAIMS: PolicyClaim[] = [
     name:   'an Assistant job takes no slot',
     facts:  factsWith({ tickets: [ticketOf('001', 'pending')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
-    mutant: policyLine('= [\'build\', \'review\'];', '= [\'build\', \'review\', \'assistant\'];'),
+    mutant: launchSlotLine('= [\'build\', \'review\'];', '= [\'build\', \'review\', \'assistant\'];'),
   },
   {
     name:   'launches stop at the concurrency limit',

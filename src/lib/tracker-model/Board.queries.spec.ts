@@ -8,6 +8,7 @@ import { expect, test } from 'bun:test';
 import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { Board }                                    from './Board.ts';
 import { createLogger }                             from './Logger.ts';
+import { jobFixture }                               from './testing/LifecycleFixtures.ts';
 
 test('a ticket reference resolves written as 3, #3 or 003', () => {
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' }), ticketFixture({ id: '003', title: 'Example basket badge' })] });
@@ -23,17 +24,23 @@ test('a reference to no ticket on the board, or text that is no reference, resol
   }
 });
 
-test('the concurrency counts the in-progress rows by agent against the stored limit', () => {
-  const { board } = boardFixture({
+// The rows say nothing to the count: a claimed bundle's rows and a by-hand row beside the one live build take no slot of their own.
+test('the concurrency counts the live build and review jobs against the stored limit, and no row', () => {
+  const { board, progress } = boardFixture({
     tasks: [
       taskFixture({ id: 1, status: 'in-progress', agent: '001,002' }),
       taskFixture({ id: 2, status: 'in-progress', agent: '001,002' }),
       taskFixture({ id: 3, status: 'in-progress' }),
-      taskFixture({ id: 4, status: 'paused' }),
     ],
     concurrencyLimit: 3,
   });
-  expect(board.concurrency()).toEqual({ limit: 3, agentsInFlight: 2, freeSlots: 1 });
+  progress.jobs = [
+    jobFixture({ id: 'J1', ticketIds: ['001', '002'] }),
+    jobFixture({
+      id: 'J2', kind: 'assistant', role: 'assistant', target: null
+    }),
+  ];
+  expect(board.concurrency()).toEqual({ limit: 3, agentsInFlight: 1, freeSlots: 2 });
 });
 
 // A dependency whose file is gone or unreadable is not finished work, so the ticket waiting on it must still be told it waits.
@@ -133,10 +140,9 @@ test('the held ids are every held ticket an agent may still work, in progress an
   expect(board.heldTicketIds()).toEqual(['001', '002', '003']);
 });
 
-/** A normal ticket held, a high one with its agents named, and a low one, beside one agent in flight. */
+/** A normal ticket held, a high one with its agents named, and a low one, beside one build in flight. */
 function boardWithHeldAndLowTickets(): ReturnType<typeof boardFixture> {
-  return boardFixture({
-    tasks:   [taskFixture({ id: 1, status: 'in-progress' })],
+  const fixture = boardFixture({
     tickets: [
       ticketFixture({ id: '001', hold: '' }),
       ticketFixture({
@@ -149,6 +155,8 @@ function boardWithHeldAndLowTickets(): ReturnType<typeof boardFixture> {
     ],
     concurrencyLimit: 3,
   });
+  fixture.progress.jobs = [jobFixture({ id: 'J1', ticketIds: ['004'] })];
+  return fixture;
 }
 
 // Callers print this object as it comes, so its key order is part of the document a script reads.

@@ -76,9 +76,6 @@ the rule. `overseerFirstStartedAt` records the Overseer's first start on the boa
 (`submitFirstRunLeftovers`) happens once. [`forge clear`](../cli.md) throws away every row and the log and
 keeps this key; `clear --all` also deletes the tickets and epics.
 
-> **As built.** `status` counts free capacity from rows while the Overseer counts jobs; see
-> [two counts of launch slots](../reference/known-gaps.md#gap-slot-has-two-definitions).
-
 **Job.** `kind` is its [job kind](../glossary.md#job-kind) and `role` is the [role](../glossary.md#role) of the agent
 doing it. `role` is `null` for `merge` and `refresh`, which run no agent of their own. `target` is the
 [target](../glossary.md#target): the [main line](../glossary.md#main-line) or `group-<name>`, and `null` for a

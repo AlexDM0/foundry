@@ -790,7 +790,7 @@ const MODEL = {
     {
      "id": "in-progress",
      "who": "agent",
-     "gloss": "Work runs on the row. The `status` count gives each in-progress row with no `agent` key one running agent of its own (`ConcurrencyUtil.agentsInFlightOf`), and production code writes no such key.",
+     "gloss": "Work runs on the row. A row takes no launch slot: the `status` count reads the live build and review jobs (`LaunchSlotUtil`), never the rows.",
      "reachedBy": ["`task start <id>`.", "A ticket reaching `in-progress`.", "`startReviewBar` files each review bar here."]
     },
     {

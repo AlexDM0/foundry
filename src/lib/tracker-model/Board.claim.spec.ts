@@ -1,6 +1,6 @@
 /**
  * A claim starts every ticket named as one agent, all or nothing, with its refusals in a fixed order so the one reported is predictable.
- * The limit counts agents, not rows.
+ * The limit counts the live build and review jobs, never rows: a claim starts rows and no job, so it takes no slot itself.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,6 +13,7 @@ import {
 } from '../../testing/BoardFixtures.ts';
 import type { TicketClaim }        from './@types/BoardChanges.ts';
 import type { BoardRefusalDetail } from './BoardRefusal.ts';
+import { jobFixture }              from './testing/LifecycleFixtures.ts';
 
 const STARTED_AT = '2026-09-18T10:00:00+02:00';
 const CLAIMED_AT = '2026-09-18T11:00:00+02:00';
@@ -95,6 +96,7 @@ describe('refusals', () => {
       tickets:          [ticketFixture({ id: '001' }), ticketFixture({ id: '002' })],
       concurrencyLimit: 1,
     });
+    fixture.progress.jobs = [jobFixture({ id: 'J1', ticketIds: ['003', '004'] })];
     expect(refusalOfAClaimOn(fixture, ['002', '001'])).toEqual({
       reason:             'concurrency-limit-reached',
       ticketIds:          ['001', '002'],
@@ -176,18 +178,18 @@ describe('a claim that goes through', () => {
     ]);
   });
 
-  test('the concurrency comes back as it stands after the claim, the bundle counted as one agent', () => {
+  test('the concurrency comes back as it stands after the claim, which starts no job and so takes no slot', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' }), ticketFixture({ id: '002' })], concurrencyLimit: 3 });
-    expect(board.claimTickets(['001', '002'], {}, CLAIMED_AT).concurrency).toEqual({ limit: 3, agentsInFlight: 1, freeSlots: 2 });
+    expect(board.claimTickets(['001', '002'], {}, CLAIMED_AT).concurrency).toEqual({ limit: 3, agentsInFlight: 0, freeSlots: 3 });
   });
 });
 
 /**
- * Group `checkout`, release ticket 003: 001 in review under an in-progress review bar, 002 waiting on it alone, 004 on it and on the
- * pending 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
+ * Group `checkout`, release ticket 003: 001 in review under an in-progress review bar and a live review job, 002 waiting on it alone, 004
+ * on it and on the pending 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
  */
 function pipelinedGroupFixture(concurrencyLimit: number): BoardFixture {
-  return boardFixture({
+  const fixture = boardFixture({
     tasks: [
       taskFixture({
         id:     1,
@@ -221,6 +223,10 @@ function pipelinedGroupFixture(concurrencyLimit: number): BoardFixture {
     ],
     concurrencyLimit,
   });
+  fixture.progress.jobs = [jobFixture({
+    id: 'J1', kind: 'review', role: 'reviewer', ticketIds: ['001']
+  })];
+  return fixture;
 }
 
 describe('a claim --after a predecessor in review', () => {
@@ -234,7 +240,7 @@ describe('a claim --after a predecessor in review', () => {
 
     expect(claimed.tickets.map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.status])).toEqual([['002', 'in-progress']]);
     expect(records.map((record) => record.kind)).toEqual(['ticket-started']);
-    expect(claimed.concurrency).toEqual({ limit: 2, agentsInFlight: 2, freeSlots: 0 });
+    expect(claimed.concurrency).toEqual({ limit: 2, agentsInFlight: 1, freeSlots: 1 });
   });
 
   test('with the limit full it is refused concurrency-limit-reached and writes nothing', () => {

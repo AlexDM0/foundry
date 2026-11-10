@@ -368,8 +368,9 @@ describeWhenGitIsRecorded('the log listing', () => {
 });
 
 describeWhenGitIsRecorded('the concurrency block both --json documents carry', () => {
-  // The Overseer reads this to decide whether to start an agent and on what: the review bar counts, and a ticket waiting on unfinished work is not ready.
-  test('counts every running row against the limit and lists the ready tickets lowest first', async () => {
+  // The Overseer reads this to decide whether to start an agent and on what: a running row with no job takes no slot, and a ticket waiting on
+  // unfinished work is not ready.
+  test('counts no running row against the limit, only build and review jobs, and lists the ready tickets lowest first', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the roles', '--depends-on', '1']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Import the roles']);
@@ -379,8 +380,8 @@ describeWhenGitIsRecorded('the concurrency block both --json documents carry', (
 
     const expected = {
       limit:                 2,
-      agentsInFlight:        2,
-      freeSlots:             0,
+      agentsInFlight:        0,
+      freeSlots:             2,
       readyTicketIds:        ['002', '004'],
       overseerState:         'paused',
       heldTicketIds:         [],

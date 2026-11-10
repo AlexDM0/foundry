@@ -58,7 +58,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-malformed-ticket-answer-v6](#gap-malformed-ticket-answer-v6) | Lifecycle | bug | Answering `malformed-ticket` fails the job's own Customs |
 | [gap-merge-gate-blocks-pass](#gap-merge-gate-blocks-pass) | Lifecycle | bug | A merged-tree gate stalls the whole [Pass](../glossary.md#pass) |
 | [gap-clear-all-reuses-ticket-ids](#gap-clear-all-reuses-ticket-ids) | Lifecycle | misleading text | `clear --all` restarts ticket ids at 001 |
-| [gap-slot-has-two-definitions](#gap-slot-has-two-definitions) | Lifecycle | misleading text | `status` counts [rows](../glossary.md#row); the [Playbook](../glossary.md#playbook) counts jobs |
 | [gap-group-tickets-missing-from-ready-ids](#gap-group-tickets-missing-from-ready-ids) | Lifecycle | misleading text | The ready list omits tickets the Playbook launches |
 | [gap-answering-parked-does-not-unhold](#gap-answering-parked-does-not-unhold) | Lifecycle | bug | Answering `parked` leaves the hold in place |
 | [gap-held-target-retries-unbounded](#gap-held-target-retries-unbounded) | Lifecycle | bug | An untracked file makes a held target retry forever |
@@ -303,25 +302,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `src/services/tracker/TicketStore.ts` `nextTicketId`; `src/lib/tracker-model/TrackerChanges.ts`
   `clearTracker`.
 - **Established:** probed. **Severity:** misleading text.
-
-<a id="gap-slot-has-two-definitions"></a>
-
-### A launch slot has two definitions
-
-![Two overlapping regions. agentsInFlightOf, which status and the Next line use, counts in-progress rows. freeSlotsOf, which the Playbook uses, counts live build and review jobs. A running build or review is in both. An in-progress row with no job, from task add --start, is counted by status alone. A build job still launching, whose row has not started, is counted by the Playbook alone.](../figures/known-gaps/two-launch-slot-counts.png)
-
-*Each side counts something the other does not, so the two can differ either way.*
-
-- **Expected:** the free count a command prints is the free count the Playbook uses.
-- **Does:** the Playbook counts live build and review jobs in `freeSlotsOf`. `status` and the [Next
-  line](../glossary.md#next-line) count in-progress rows in `ConcurrencyUtil.agentsInFlightOf`.
-- **Effect:** the Next line can report a launch slot taken or free where the Playbook sees otherwise. An open review
-  bar of a queued ticket counts as an agent, and a scratch board showed `agents 1/2` beside `No job is live` after a
-  ticket parked.
-- **Instead:** read `forge jobs` for what launches.
-- **Evidence:** `src/lib/tracker-model/Playbook.ts` `freeSlotsOf`; `src/lib/tracker-model/utils/ConcurrencyUtil.ts`
-  `agentsInFlightOf`.
-- **Established:** read, and the `agents 1/2` line probed. **Severity:** misleading text.
 
 <a id="gap-group-tickets-missing-from-ready-ids"></a>
 

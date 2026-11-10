@@ -1,6 +1,7 @@
 /**
  * A review counts as in flight on any row storing `reviewOf`, as a claim counts it, and a ticket waits for review exactly while no
- * reviewer is at work; a ticket's linked row is the one its frontmatter `task` names.
+ * reviewer is at work; a ticket's linked row is the one its frontmatter `task` names. The free slots the concurrency figure shows are the
+ * builds the Playbook launches on the same board, so the figure and the launch gate never disagree.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -10,6 +11,15 @@ import {
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
+import { Board }        from './Board.ts';
+import { createLogger } from './Logger.ts';
+import {
+  FIXTURE_AT,
+  FIXTURE_LIMITS,
+  FIXTURE_OBSERVATIONS,
+  LIVE_ASSISTANT,
+  jobFixture
+} from './testing/LifecycleFixtures.ts';
 
 describe('the ticket ids in flight', () => {
   test('come once each in row order, from in-progress rows that belong to a ticket only', () => {
@@ -377,6 +387,51 @@ describe('the row a ticket links', () => {
 
     expect(board.linkedRowOf('001')).toBeNull();
     expect(board.linkedRowOf('002')).toBeNull();
+  });
+});
+
+describe('the concurrency figure', () => {
+  // The Next line, `status`, `concurrency` and the header read this figure; the Playbook's launch gate decides from the same count.
+  test('leaves free exactly the slots the Playbook fills with builds when enough tickets are ready', () => {
+    const board = new Board({
+      progress: {
+        trackerId:        'example-tracker-id',
+        project:          'Example Agency',
+        startedAt:        FIXTURE_AT,
+        view:             { kind: 'auto' },
+        nextTaskId:       2,
+        concurrencyLimit: 4,
+        overseerState:    'running',
+        nextJobId:        4,
+        jobs:             [
+          { ...LIVE_ASSISTANT },
+          jobFixture({ id: 'J1', ticketIds: ['001'] }),
+          jobFixture({
+            id: 'J2', kind: 'review', role: 'reviewer', ticketIds: ['002'], state: 'waiting-for-answer'
+          }),
+          jobFixture({
+            id: 'J3', kind: 'merge-agent', role: 'builder', ticketIds: ['003']
+          }),
+        ],
+        tasks: [taskFixture({ id: 1, status: 'in-progress' })],
+      },
+      tickets: [
+        ticketFixture({ id: '001', status: 'in-progress' }),
+        ticketFixture({ id: '002', status: 'in-review' }),
+        ticketFixture({ id: '003', status: 'in-review' }),
+        ...['004', '005', '006', '007'].map((id) => ticketFixture({ id })),
+      ],
+      epics:    [],
+      logger:   createLogger(() => undefined),
+      pipeline: { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], review: { name: 'Review' } },
+    });
+
+    const { freeSlots } = board.concurrency();
+    const { steps }     = board.followPlaybook(FIXTURE_LIMITS, FIXTURE_OBSERVATIONS, () => ({ questions: [], context: '' }));
+    const buildLaunches = steps.filter((step) => step.kind === 'launch-build');
+
+    expect(freeSlots).toBe(2);
+    expect(buildLaunches).toHaveLength(freeSlots);
   });
 });
 

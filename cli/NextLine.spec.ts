@@ -1,7 +1,7 @@
 /**
  * The Next line each of the ten commands an orchestrator runs between dispatches ends its human output
  * with, driven in process against one scratch tracker per case. What matters is that the line describes the
- * board after the move rather than before it — a claim that fills the last slot says so — and that no
+ * board after the move rather than before it — a claim takes its ticket off the ready list — and that no
  * `--json` document carries it, since a script parses that output whole. The wordings themselves are
  * pinned in `cli/utils/NextLineUtil.spec.ts`.
  */
@@ -29,7 +29,8 @@ interface NextLineCase {
 
 /**
  * Each case starts from three pending tickets (rows #1 to #3) and a free-standing row #4 under the default
- * limit of 2, with the Overseer running. The expected line is written out from that state by hand, never taken from a run.
+ * limit of 2, with the Overseer running. No case launches a job, and only a build or review job takes a launch slot, so every
+ * line has both slots free. The expected line is written out from that state by hand, never taken from a run.
  */
 const NEXT_LINE_CASES: NextLineCase[] = [
   {
@@ -56,19 +57,19 @@ const NEXT_LINE_CASES: NextLineCase[] = [
   {
     command:          ['task', 'finish', '4'],
     setup:            [['task', 'start', '4'], ['ticket', 'claim', '3']],
-    expectedNextLine: 'Next: 1 of 2 slots free; ready: #001, #002',
+    expectedNextLine: 'Next: 2 of 2 slots free; ready: #001, #002',
   },
-  // Delivered straight from running, so the move frees a slot and a line read before it would differ.
+  // Delivered straight from running: the row held no launch slot, so the free count stays where it was.
   {
     command:          ['task', 'deliver', '4'],
     setup:            [['task', 'start', '4']],
     expectedNextLine: 'Next: 2 of 2 slots free; ready: #001, #002, #003',
   },
-  // A row started as it is added takes a slot, so the line must count it.
+  // A row started as it is added takes no launch slot: no build or review job runs for it.
   {
     command:          ['task', 'add', 'Hotfix the export', '--start'],
     setup:            [],
-    expectedNextLine: 'Next: 1 of 2 slots free; ready: #001, #002, #003',
+    expectedNextLine: 'Next: 2 of 2 slots free; ready: #001, #002, #003',
   },
   // A new dependency takes #001 off the ready list without moving any row.
   {

@@ -148,10 +148,8 @@ Next: 2 of 2 slots free; nothing ready
 
 At most five ready ids are named, then `and N more`; a held ready ticket is left out and named apart (`; held: #002`).
 While the Overseer is paused, as a board that never set its Overseer state is, the line ends with
-`; Overseer paused: wait for the user's go`. `--json` output never carries the line.
-
-> **As built.** The free count here can differ from the one the Overseer launches by: [a launch slot has two
-> definitions](reference/known-gaps.md#gap-slot-has-two-definitions).
+`; Overseer paused: wait for the user's go`. `--json` output never carries the line. The free count is the one the
+Overseer launches by ([launch slots](#launch-slots)).
 
 ## Environment variables
 
@@ -560,7 +558,7 @@ says what picks each session's model.
 | `ticket abandon\|reopen <id> [--branch <b>] [--commit <sha>] [--reason <text>] [--tokens <n>] [--at <when>]` | Move a ticket and its row together, stamping both; the Overseer makes every other lifecycle move. `abandon` requires `--reason`; `reopen` clears the stamps and returns the row to pending. [The rules](#ticket-abandonreopen) are below. |
 | `ticket status <id> <status> [...same options]` | The same move as `ticket abandon\|reopen`, naming the target status directly (pending, in-progress, in-review, reviewed, delivered or abandoned) with the same options. The documented way to make a move the verbs refuse: it skips the matrix, but never moves a ticket into `draft` (`move-to-draft`) or a draft ticket anywhere but `abandoned` (`move-of-a-draft`). |
 | `ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>] [--json]` | The one record-only lifecycle verb: records as delivered a ticket User finished and landed outside the Overseer, from any status but draft, in one hold, merging, landing and spawning nothing; it logs `ticket-delivered` with `byHand: true`. Refused at exit 1, writing nothing, while an Overseer's Baton is live (`overseer-owns-the-lifecycle`, naming its URL) and while a job of the ticket is live (`ticket-has-live-job`), both judged inside the hold. Never relayed. |
-| `ticket rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]` | The next review round and the reviewer's in-progress bar (`Review <N> #<id> — <title>`, its `reviewOf` the ticket, N the bare `## Review` headings plus one, stored on the bar as `reviewBarRound`) in one lock hold, closing any bar of the round before, so `status --json` never shows the launch slot free between them. `--owner` and `--note` name the bar, and are refused without the flag. |
+| `ticket rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]` | The next review round and the reviewer's in-progress bar (`Review <N> #<id> — <title>`, its `reviewOf` the ticket, N the bare `## Review` headings plus one, stored on the bar as `reviewBarRound`) in one lock hold, closing any bar of the round before. `--owner` and `--note` name the bar, and are refused without the flag. |
 | `ticket rereview <id> [--at <when>]` | Send a ticket already in review round again, for a fresh reviewer: the ticket stays in-review and only its `updated` moves, while its row goes one review round up, from 2, and the log says which round. The one verb legal on the status the ticket already has, and refused from every other. It takes no `--tokens`: the row's figure is the builder's, and a review round has its own row. |
 
 #### `ticket add`
@@ -783,7 +781,7 @@ before the first listing is out of reach, as it is on POSIX.
 
 | command | what it does |
 |---|---|
-| `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is an agent; [below](#launch-slots) says how each side counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
+| `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, prepare, gates }`, with `review`, `constitution` and `agents` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null` and both lists empty. A malformed file is refused at exit 1 with its reason. |
 | `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added ([why to add gates first](architecture/customs-and-gates.md)). |
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
@@ -865,13 +863,11 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 
 #### Launch slots
 
-`status`, the Next line and `concurrency` count `in-progress` rows: each row with a stored `agent` key, grouped by that
-key, plus each row with none, such as a review bar or a `task add --start` row. No production path writes `agent`. The
-Overseer launches by a different count, its live build and review jobs.
-
-> **As built.** The `agent` key is never written and the two counts can differ: [dead code and unused
-> states](reference/known-gaps.md#gap-dead-code-and-unused-states), [a launch slot has two
-> definitions](reference/known-gaps.md#gap-slot-has-two-definitions).
+`status`, the Next line, `concurrency`, the Bridge header and the Overseer's launch gate read one count: the live
+`build` and `review` jobs (`LaunchSlotUtil`). A job keeps its launch slot in every state, waiting for an answer and
+interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and onboarder jobs take none, and the kind
+decides, never the role: a merge agent runs as its ticket's builder or reviewer and still takes none. No row takes a
+launch slot: a `task add --start` row or a review bar with no live job counts nothing.
 
 ### Review statistics
 

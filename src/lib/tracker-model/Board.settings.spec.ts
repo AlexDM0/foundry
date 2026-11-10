@@ -4,9 +4,10 @@
  */
 import { expect, test } from 'bun:test';
 
-import { boardFixture, taskFixture } from '../../testing/BoardFixtures.ts';
-import type { ViewRange }            from './@types/TrackerProgress.ts';
-import { DEFAULT_OVERSEER_STATE }    from './constants/OverseerStates.ts';
+import { boardFixture }           from '../../testing/BoardFixtures.ts';
+import type { ViewRange }         from './@types/TrackerProgress.ts';
+import { DEFAULT_OVERSEER_STATE } from './constants/OverseerStates.ts';
+import { jobFixture }             from './testing/LifecycleFixtures.ts';
 
 const CHANGED_AT = '2026-09-18T20:40:00+02:00';
 
@@ -34,10 +35,10 @@ test('setting the Overseer state hands back the state before and logs one overse
 });
 
 test('setting the concurrency limit hands back the limit before and the concurrency after, and logs one record', () => {
-  const { board, progress, records } = boardFixture({
-    tasks:            [taskFixture({ id: 1, status: 'in-progress' }), taskFixture({ id: 2, status: 'in-progress' })],
-    concurrencyLimit: 2,
-  });
+  const { board, progress, records } = boardFixture({ concurrencyLimit: 2 });
+  progress.jobs = [jobFixture({ id: 'J1', ticketIds: ['001'] }), jobFixture({
+    id: 'J2', kind: 'review', role: 'reviewer', ticketIds: ['002']
+  })];
   const changed = board.setConcurrencyLimit(5, CHANGED_AT);
 
   expect(changed.previousLimit).toBe(2);

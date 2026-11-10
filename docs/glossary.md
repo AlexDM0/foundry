@@ -77,8 +77,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | an onboarder's whole run | "its pass" in `src/services/overseer/Onboarding.ts` | [Customs and gates](architecture/customs-and-gates.md) |
 | **draft** | a [filing draft](#filing-draft), `D<n>` | `draft` verbs; no status, no [row](#row) | [Assistant and intake](architecture/assistant-and-intake.md) |
 | | a [draft ticket](#draft-ticket), status `draft` | `#003`; a real ticket, not yet ready | [State machines](data-model/state-machines.md) |
-| **slot** | a [launch slot](#launch-slot) | `freeSlotsOf` counts build and review jobs; the Overseer launches by this | [The Pass](architecture/the-pass.md) |
-| | a [status-counted slot](#status-counted-slot) | `Concurrency.freeSlots`, printed by `status` and the [Next line](#next-line); counts in-progress rows by `agent` | [The Pass](architecture/the-pass.md) |
+| **slot** | a [launch slot](#launch-slot) | `LaunchSlotUtil` counts build and review jobs; the Overseer launches by this, and `status` and the [Next line](#next-line) print it | [The Pass](architecture/the-pass.md) |
 | | an [Airlock slot](#airlock-slot), one per [target](#target) | `slotHolderOf`, `Job.airlock`; held by a merge or refresh job | [Airlocks and groups](architecture/airlocks-and-groups.md) |
 | | a [gate slot](#gate-slot), machine-wide | files in `<monitor>/gate-slots/` | [Customs and gates](architecture/customs-and-gates.md) |
 | | an [epic colour slot](#epic-colour-slot) | the stored `slot` field, set at `epic add`; a colour, no capacity | [Entities](data-model/entities.md) |
@@ -125,9 +124,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | a job move | `Jobs.moveJob`, a change of job state | [State machines](data-model/state-machines.md) |
 | | a review's move | what `settleReviewPass` picks: `fixer`, `fresh-reviewer`, `waiver` or `merge-queued` | [Build and review](architecture/build-and-review.md) |
 
-> **As built.** The two counts behind "slot" can disagree:
-> [the launch slot and the status-counted slot](reference/known-gaps.md#gap-slot-has-two-definitions).
-> The red-handoff text [says Baton pass](reference/known-gaps.md#gap-red-handoff-says-baton-pass).
+> **As built.** The red-handoff text [says Baton pass](reference/known-gaps.md#gap-red-handoff-says-baton-pass).
 
 ### Words often confused
 
@@ -657,8 +654,9 @@ of its secret (`WatcherLaunch`). Sessions are denied reading it. Home: [Watchers
 
 ### launch slot
 
-Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted by `freeSlotsOf` from
-jobs. Home: [The Pass](architecture/the-pass.md).
+Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted from jobs by
+`LaunchSlotUtil`: the Playbook's `freeSlotsOf`, `status`, the [Next line](#next-line) and the Bridge header all read
+this one count. Home: [The Pass](architecture/the-pass.md).
 
 ### liveness
 
@@ -734,8 +732,8 @@ command](#control-command); on a ticket it is a status transition; a review's mo
 
 ### Next line
 
-The last line a human-facing command prints, starting `Next:` (`NextLineUtil`). It reports [status-counted
-slots](#status-counted-slot) and ready tickets. Home: [CLI reference](cli.md).
+The last line a human-facing command prints, starting `Next:` (`NextLineUtil`). It reports [launch
+slots](#launch-slot) and ready tickets. Home: [CLI reference](cli.md).
 
 ### notice
 
@@ -1039,11 +1037,6 @@ over, even from a live holder; the [fence](#fence) then stops that holder's writ
 
 A rule that lets a Watcher answer a line on the session's stdout without the Overseer (`StandingReply`). A line no
 rule matches waits for the Overseer. Home: [Watchers](architecture/watchers.md).
-
-### status-counted slot
-
-Room for one more agent as `status` and the [Next line](#next-line) count it: `Concurrency.freeSlots`, from in-progress
-rows by their `agent` field. It differs from a [launch slot](#launch-slot). Home: [The Pass](architecture/the-pass.md).
 
 ### successor
 
