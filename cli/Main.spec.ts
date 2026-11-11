@@ -311,16 +311,15 @@ describe('a command that throws', () => {
 
 describe('after the stubbed cases', () => {
   /** Bun keeps a module mock for the rest of the process, so every later spec file that runs `open` would get the stub instead. */
-  test('the real open command is back, and refuses a board no Overseer serves at exit 1', async () => {
-    const trackedDirectory = createScratchDirectory('main-open');
+  test('the real open command is back, and refuses a folder with no tracker at exit 1', async () => {
+    const untrackedDirectory = createScratchDirectory('main-open');
     try {
-      const initialisingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
-      expect(await runCommandLine(['init', '--project', 'Example Agency', '--no-hooks'], initialisingContext)).toBe(0);
-      const openingContext = createCapturedCommandContext({ currentDirectory: trackedDirectory });
+      const openingContext = createCapturedCommandContext({ currentDirectory: untrackedDirectory });
       expect(await runCommandLine(['open'], openingContext), openingContext.errorText()).toBe(1);
-      expect(openingContext.errorText()).toContain('No Overseer serves this board');
+      expect(openingContext.errorText()).toContain(`No ${PRODUCT_NAMES.PROGRAM} tracker was found`);
+      expect(openingContext.outputText()).toBe('');
     } finally {
-      removeScratchDirectory(trackedDirectory);
+      removeScratchDirectory(untrackedDirectory);
     }
   });
 });

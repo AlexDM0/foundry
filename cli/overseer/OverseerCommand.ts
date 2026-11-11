@@ -4,34 +4,28 @@
  */
 import { resolve } from 'node:path';
 
-import type { GateConfinement }                from '../../src/lib/gate-confinement/GateConfinement.ts';
-import { readingBoardOf }                      from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { ControlService }                      from '../../src/services/control/ControlService.ts';
-import { Baton }                               from '../../src/services/overseer/Baton.ts';
-import { CodeVersion }                         from '../../src/services/overseer/CodeVersion.ts';
-import { overseerFilesIn, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }             from '../../src/services/overseer/OverseerPort.ts';
-import { requireProgressFile }                 from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                    from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }               from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                    from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                 from '../CommandContext.ts';
-import type { CommandHandler }                 from '../CommandHandler.ts';
-import { requireGitAtTheFloor }                from '../GitVersionFloor.ts';
-import { hatchWhenUnderJob }                   from '../HatchUnderJob.ts';
-import { requireCurrentInstall }               from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }               from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                          from '../utils/OutputUtil.ts';
-import {
-  type StoppedOverseerRequest,
-  closeTheStoppedOverseer,
-  requireNoLiveOverseer,
-  runOverseerInTheForeground
-} from './OverseerForeground.ts';
-import { OverseerRemote, type RuntimeStopKind, type StopOutcome } from './OverseerRemote.ts';
-import { OverseerWording }                                        from './OverseerWording.ts';
+import { readingBoardOf }                                                                   from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { ControlService }                                                                   from '../../src/services/control/ControlService.ts';
+import { Baton }                                                                            from '../../src/services/overseer/Baton.ts';
+import { CodeVersion }                                                                      from '../../src/services/overseer/CodeVersion.ts';
+import { overseerFilesIn, type OverseerFiles }                                              from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }                                                          from '../../src/services/overseer/OverseerPort.ts';
+import { requireProgressFile }                                                              from '../../src/services/tracker/TrackerReader.ts';
+import { requireWorkspace }                                                                 from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }                                                            from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                                                 from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                                                    from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                                                              from '../CommandContext.ts';
+import type { CommandHandler }                                                              from '../CommandHandler.ts';
+import { hatchWhenUnderJob }                                                                from '../HatchUnderJob.ts';
+import { requireCurrentInstall }                                                            from '../InstallVersionCheck.ts';
+import { openTrackerForWriting }                                                            from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                                              from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                                                                       from '../utils/OutputUtil.ts';
+import { requireTheOverseerCanStartIn, startTheOverseerDetached }                           from './DetachedOverseerStart.ts';
+import { type StoppedOverseerRequest, closeTheStoppedOverseer, runOverseerInTheForeground } from './OverseerForeground.ts';
+import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                           from './OverseerRemote.ts';
+import { OverseerWording }                                                                  from './OverseerWording.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -66,12 +60,6 @@ function successorOfIn(commandArguments: ArgumentParser): number | undefined {
   return Number(written);
 }
 
-/** Before any job: where confinement is expected and missing no gate could run, so what is missing is said once rather than job by job. */
-function requireGateConfinement(gateConfinement: GateConfinement): void {
-  const availability = gateConfinement.availability();
-  if (availability.verdict === 'unavailable') throw new OperationRefusal('refused', { kind: 'gate-confinement-unavailable', reason: availability.reason });
-}
-
 /** `--repository` stands in for the working directory, which a Windows Run entry cannot set; a relative path resolves against it. */
 function startContextOf(commandArguments: ArgumentParser, context: CommandContext): CommandContext {
   const repository = commandArguments.option('repository');
@@ -83,10 +71,9 @@ async function startOverseer(commandArguments: ArgumentParser, invokingContext: 
   commandArguments.rejectExtraPositionals(0, START_USAGE);
   const context = startContextOf(commandArguments, invokingContext);
   const successorOf = successorOfIn(commandArguments);
-  requireGitAtTheFloor(context.currentDirectory);
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.
   if (successorOf === undefined) requireCurrentInstall(context.currentDirectory);
-  requireGateConfinement(context.platformPorts.gateConfinement);
+  requireTheOverseerCanStartIn(context.currentDirectory, context.platformPorts.gateConfinement);
   const workspace  = requireWorkspace(context.currentDirectory);
   const portChoice = portChoiceOf(commandArguments, requireProgressFile(workspace).trackerId);
   if (!commandArguments.flag('detach')) {
@@ -95,10 +82,10 @@ async function startOverseer(commandArguments: ArgumentParser, invokingContext: 
     });
     return;
   }
-  const files = overseerFilesIn(workspace.trackerDirectory);
-  requireNoLiveOverseer(context.platformPorts, files);
   const portArguments = portChoice.kind === 'given' ? ['--port', String(portChoice.port)] : [];
-  const url = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, portArguments);
+  const url = await startTheOverseerDetached({
+    context, workspace, files: overseerFilesIn(workspace.trackerDirectory), portArguments
+  });
   OutputUtil.printEntity(commandArguments, context, { url }, url);
 }
 

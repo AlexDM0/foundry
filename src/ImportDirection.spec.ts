@@ -117,6 +117,7 @@ const FEATURE_REACHES_BY_PATH: readonly ExactReach[] = [{ importer: 'cli/oversee
  */
 const COMMAND_SET_REACHES: readonly ExactReach[] = [
   { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/overseer/OverseerRemote.ts' },
+  { importer: 'cli/tracking/open/OpenCommand.ts',                  target: 'cli/overseer/DetachedOverseerStart.ts' },
   { importer: 'cli/tracking/open/OpenCommand.ts',                  target: 'cli/overseer/OverseerRemote.ts' },
   { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/overseer/OverseerRemote.ts' },
 ];

@@ -1,7 +1,7 @@
 /**
  * The monitor registry `~/.agent-progress-monitor/projects.json` as the commands write it, under a scratch home and with the temp-folder
  * rule pointed at a scratch folder the repositories lie outside, so they count as real ones. What matters: exactly a call that wrote the
- * tracker registers, though nothing renders, one entry per `trackerId` carrying every field with its value; a read-only call, `open`,
+ * tracker registers, though nothing renders, one entry per `trackerId` carrying every field with its value; a read-only call,
  * `update` and a tracker under any temp folder (`/tmp`, `/var/tmp`, the system one) register nothing; the file's version, unknown keys
  * and malformed entries are handled as `docs/cli.md` says; a registry that cannot be written never changes the exit code; and concurrent
  * processes all land in the file. A case needing a registered tracker outside `/tmp` and `/var/tmp` is skipped where the scratch root lies
@@ -45,7 +45,7 @@ import { describeWhenGitIsRecorded, testWhenGitIsRecorded, testWhenTheScratchRoo
 import { runCommandLine }                                                                       from './Main.ts';
 import { registerWrittenTracker }                                                               from './RegisterWrittenTracker.ts';
 import { createCapturedCommandContext }                                                         from './testing/CapturedCommandContext.ts';
-import { runAgentProgress, runAgentProgressBesideRecordedGit }                                  from './testing/CliProcess.ts';
+import { runAgentProgress }                                                                     from './testing/CliProcess.ts';
 import { createInitializedRecordedGitRepository, createRecordedGitRepository }                  from './testing/InitializedScratchRepository.ts';
 import {
   COMMON_FOLDER_AT_THE_ROOT,
@@ -225,21 +225,15 @@ testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept b
   expect(Object.keys(registry().projects[trackerId] ?? {})).not.toContain('overseer');
 });
 
-testWhenGitIsRecorded('A2: status, ticket show, and open refused with no Overseer register nothing', async () => {
+testWhenGitIsRecorded('A2: status and ticket show register nothing', async () => {
   const repositoryDirectory = await initializedRepository();
   // The default context's temp folders hold the scratch root, so this write registers nothing and asks no origin.
   await requireExitZero(['ticket', 'add', 'Example ticket', '--type', 'ticket'], createCapturedCommandContext({ currentDirectory: repositoryDirectory }), []);
 
   await requireExitZero(['status', '--json'], await registeringContext(repositoryDirectory), []);
   await requireExitZero(['ticket', 'show', '1'], await registeringContext(repositoryDirectory), []);
-  // Spawned with a PATH holding only Bun, so no browser opener is found and none is launched.
-  const environment = { TMPDIR: folderOutsideEveryRepository, PATH: dirname(process.execPath) };
-  const opened      = await runAgentProgressBesideRecordedGit(recordedGit, HOME_ISOLATION_CHECK, ['open'], {
-    currentDirectory: repositoryDirectory, homeDirectory, environment, recordedGitStage: [],
-  });
-  expect(opened.exitCode, opened.standardError).toBe(1);
   expect(existsSync(registryFilePath())).toBe(false);
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
 
 testWhenGitIsRecorded('A2: a status call leaves an existing registry byte-identical', async () => {
   const repositoryDirectory = await initializedRepository();

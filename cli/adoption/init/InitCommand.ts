@@ -33,6 +33,19 @@ const USAGE = `${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] 
 
 const KNOWN_OPTION_NAMES = ['project', 'root', 'no-hooks'];
 
+const { PROGRAM, PRODUCT_OWNER_SKILL } = PRODUCT_NAMES;
+
+const NEXT_STEP_LINES: readonly string[] = [
+  '',
+  'Next steps:',
+  `  1. Run \`${PROGRAM} open\`. It starts the Overseer in the background and opens the board in your browser.`,
+  '     The Overseer keeps running after the terminal closes; its agents run on even when it stops.',
+  `  2. Ask a Claude session in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill, files the ticket as a`,
+  '     draft and readies it on your yes.',
+  '  3. Answer the questions the board asks, then press Resume. A new board is paused: it builds no ticket until then.',
+  `  Stop the Overseer with \`${PROGRAM} oversee stop\`; \`${PROGRAM} help\` lists every command.`,
+];
+
 export const initCommand: CommandHandler = async (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
@@ -115,4 +128,5 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     if (!marksTheInstall) context.standardOutput(reportLineOf(reportLabel, line));
   }
   recordInstallVersion(workspace.rootDirectory);
+  for (const line of NEXT_STEP_LINES) context.standardOutput(line);
 };

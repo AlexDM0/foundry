@@ -127,7 +127,7 @@ Six lines are easy to get wrong:
 | `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
 | `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
 | `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. See [Failure and recovery](../architecture/failure-and-recovery.md). |
-| `oversee --port 0 --detach` | `open` needs a live Overseer and is refused `overseer-down` without one. Port 0 asks for any free port. |
+| `oversee --port 0 --detach` | Port 0 asks for any free port; `open` with no live Overseer would start one on the derived port. |
 
 The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
 matching hashes on a paused board:
