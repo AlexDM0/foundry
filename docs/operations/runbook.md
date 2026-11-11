@@ -419,8 +419,8 @@ Nearly everything here recovers without you, because a Pass rereads files. The f
 
 *Notice that only the driving stops: your commands and [Hatch](../glossary.md#hatch) requests stand for the start.*
 
-The [Bridge](../glossary.md#bridge) comes back with the Overseer. Until then `forge open` is refused
-`overseer-down`.
+The [Bridge](../glossary.md#bridge) comes back with the Overseer. `forge open` starts one when none runs, and opens
+the Bridge.
 
 A login item is optional and restarts nothing after a crash, only at login
 ([gap-login-item-no-keepalive](../reference/known-gaps.md#gap-login-item-no-keepalive)). From the agent-progress

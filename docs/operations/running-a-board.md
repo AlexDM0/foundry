@@ -9,8 +9,8 @@
 ## In one screen
 
 The [Bridge](../glossary.md#bridge) is the one page of a [board](../glossary.md#board): a live page the
-[Overseer](../glossary.md#overseer) serves on 127.0.0.1. `forge open` opens it, and is refused
-`overseer-down` when no Overseer runs. Close the page and the board carries on: the page stores no work, and you lose
+[Overseer](../glossary.md#overseer) serves on 127.0.0.1. `forge open` opens it, and starts the
+Overseer first when none runs. Close the page and the board carries on: the page stores no work, and you lose
 only half-typed text and view filters.
 
 You do four things here. You file work on Intake, ready it on Kanban, answer [decisions](../glossary.md#decision) on

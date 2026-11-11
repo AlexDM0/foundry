@@ -514,10 +514,12 @@ never carries it.
   range --auto                Reset the axis to the automatic span; it takes no --from, --to or
                               --tick, and any of them beside it is refused at exit 1.
 
-  open                        Open the live Overseer's URL in the default browser and print it. With
-                              no live Baton it is refused (overseer-down) at exit 1, advising
-                              \`oversee --detach\`. \`progress.html\` is only a stub naming that URL, or
-                              saying the Overseer is down, written by \`init\`, \`update\` and \`oversee\`.
+  open [--no-browser]         Open the live Overseer's URL in the default browser and print it. With
+                              no live Baton it first starts the Overseer detached, as
+                              \`oversee --detach\` does. --no-browser launches nothing and prints the
+                              link with its one-time session code instead, to open within 30 seconds.
+                              \`progress.html\` is only a stub naming that URL, or saying the Overseer
+                              is down, written by \`init\`, \`update\` and \`oversee\`.
 
   oversee [--port <n>] [--detach] [--repository <path>] [--json]
                               Start the board's one Overseer on 127.0.0.1, logging to standard error

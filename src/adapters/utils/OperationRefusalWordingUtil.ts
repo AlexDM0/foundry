@@ -478,7 +478,7 @@ function messageOf(refusal: OperationRefusal): string {
       return `An Overseer already serves this board at ${detail.url} (${detail.batonFilePath}). Stop it first with \`${PRODUCT_NAMES.PROGRAM} oversee stop\`.`;
     case 'overseer-down':
       return `No Overseer serves this board (${detail.overseerDirectory} holds no live Baton), so there is nothing to open. `
-        + `Start one with \`${PRODUCT_NAMES.PROGRAM} oversee --detach\`.`;
+        + `Run \`${PRODUCT_NAMES.PROGRAM} open\` again to start one.`;
     case 'overseer-contended':
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':

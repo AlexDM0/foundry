@@ -72,7 +72,8 @@ const CLOCK_MESSAGE = 'Take the clock from the CommandContext.';
 
 export default [
   ...base,
-  { ignores: ['**/*.js', 'node_modules/**', '.claude/**'] },
+  // The worktrees an Overseer makes inside a checkout hold copies of this repository, linted in their own checkout.
+  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.forge-worktrees/**', '.agent-progress-worktrees/**'] },
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: [

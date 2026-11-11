@@ -21,7 +21,7 @@ git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
 git switch group-code-lifecycle && ./setup.sh           # once per machine; setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
-forge oversee --detach && forge open
+forge open                                  # starts the Overseer when none runs
 forge oversee resume                        # starts an onboarder; set gates first to skip it
 ```
 
@@ -129,11 +129,11 @@ Every path above and its lifetime is in the [on-disk atlas](../data-model/on-dis
 
 ## Start the Overseer
 
-`oversee --detach` starts the Overseer in the background and prints its URL. Run it with your main line checked out:
-the Overseer reads the branch of your repository's main checkout when it starts and lands onto that branch.
+`open` starts the Overseer in the background when none runs, then opens its URL in your browser. `oversee --detach`
+starts it the same way without opening a page. Run either with your main line checked out: the Overseer reads the branch
+of your repository's main checkout when it starts and lands onto that branch.
 
 ```sh
-forge oversee --detach
 forge open
 ```
 
@@ -141,8 +141,8 @@ The URL looks like `http://127.0.0.1:<port>/`. The port is derived from the trac
 `OVERSEER_PORT_FIRST` (4930), so a bookmark survives a restart. If that port is taken, the Overseer moves up, within
 `OVERSEER_PORT_COUNT` (100) ports. `--port <n>` picks one yourself.
 
-`open` opens the URL in your browser. With no Overseer it exits 1 and prints `No Overseer serves this board`, which
-[Refusals](../reference/refusals.md) lists as `overseer-down`.
+The Overseer keeps running after `open` ends and after its terminal closes. Stop it with `forge oversee stop`; running
+agents carry on under their Watchers.
 
 If you open `<data>/progress.html` by habit or from a link, you get a stub, not the board. It links the live URL, or
 says the Overseer is down.

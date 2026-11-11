@@ -486,7 +486,7 @@ the `page` field of `BoardState`.
 
 The Bridge needs a live Overseer; there is no self-contained copy.
 
-- `forge open` is refused `overseer-down` when no Overseer serves the board.
+- `forge open` starts the Overseer detached when none serves the board, then opens it.
 - `progress.html` under `<data>` is a stub naming the live URL or saying the Overseer is down
   (`src/adapters/progress-page/ProgressPageStubWriter.ts`); its writers are in the [on-disk
   atlas](../data-model/on-disk-atlas.md). After a crash the stub keeps naming the dead URL until the next start, `init`

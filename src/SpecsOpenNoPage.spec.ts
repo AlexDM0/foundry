@@ -37,10 +37,9 @@ const OPEN_COMMAND_VERB = 'open';
 const OPENER_MODULE_FILE = 'OpenInTheDefaultBrowser.ts';
 /** Each file that runs the `open` command line with no mock, and why no page opens. */
 const OPEN_RUNS_THAT_OPEN_NO_PAGE: Readonly<Record<string, string>> = {
-  'bridge/testing/HeadlessBridgeCheck.ts':          'a stub opener that only writes its arguments is first on PATH',
-  'cli/Main.spec.ts':                               'open is refused overseer-down: no Overseer serves the scratch board',
-  'cli/RegisterWrittenTracker.integration.spec.ts': 'open is refused overseer-down, spawned with a PATH that holds only Bun and no opener',
-  'cli/tracking/open/OpenCommand.spec.ts':          'open is refused overseer-down: no Overseer serves the scratch board',
+  'bridge/testing/HeadlessBridgeCheck.ts': 'a stub opener that only writes its arguments is first on PATH',
+  'cli/Main.spec.ts':                      'open is refused no-tracker-found: the scratch folder holds no tracker',
+  'cli/tracking/open/OpenCommand.spec.ts': 'open is refused gate-confinement-unavailable before it starts an Overseer',
 };
 const DOM_SPEC_SUFFIX = '.dom.tsx';
 const MINIMUM_SCANNED_FILE_COUNT = 100;
