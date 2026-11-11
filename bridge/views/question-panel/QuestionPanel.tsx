@@ -83,6 +83,7 @@ function PanelHead({ model, onFold }: { readonly model: QuestionPanelViewModel; 
 function PanelFoot({ model, onNext }: { readonly model: QuestionPanelViewModel; readonly onNext: () => void }) {
   const { queueFoot } = model;
   const laterText = queueFoot.laterEntries.map((entry) => `${entry.idText} ${entry.askerText}`).join(' · ');
+  const queueLineText = queueFoot.laterEntries.length === 0 ? 'No other question waits.' : `${queueFoot.laterEntries.length} more after this: ${laterText}`;
   return (
     <div className="bridge-question-panel-foot">
       <span className="bridge-question-panel-queue" role="img" aria-label={`Question ${queueFoot.position} of ${queueFoot.count}`}>
@@ -90,7 +91,7 @@ function PanelFoot({ model, onNext }: { readonly model: QuestionPanelViewModel; 
           <span key={index} className="bridge-question-panel-queue-pip" data-current={index + 1 === queueFoot.position ? '' : undefined} />
         ))}
       </span>
-      <span>{queueFoot.laterEntries.length === 0 ? 'No other question waits.' : `${queueFoot.laterEntries.length} more after this: ${laterText}`}</span>
+      <span className="bridge-question-panel-queue-line" title={queueLineText}>{queueLineText}</span>
       {queueFoot.laterEntries.length === 0
         ? null
         : (

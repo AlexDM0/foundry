@@ -4,10 +4,10 @@
  * with their consequences only when noted; Answer posts `decision-answer` with the chosen letter, or User's own words on a decision of one
  * question, and shows a refusal verbatim, disabled while the stream is down; Fold and × hide the panel until a decision opens that was not
  * open at the fold, the fold outlives a reload, and a panel User opened hands the focus back to its opener as it closes; Next question
- * moves along the queue and starts with nothing chosen; a code-opened decision has no conversation and no steps; the reading tabs switch
- * by click and arrow keys without losing the answer form, and one a later board drops falls back to the background; the steps are the
- * followed transcript's last top-level calls with the question current; earlier answers keep to the ticket; planted markup stays
- * text; and while the detail panel shows the panel is hidden and leaves Esc alone.
+ * moves along the queue and starts with nothing chosen, and the queue line keeps its whole text on hover; a code-opened decision has no
+ * conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form, and one a later board drops
+ * falls back to the background; the steps are the followed transcript's last top-level calls with the question current; earlier answers
+ * keep to the ticket; planted markup stays text; and while the detail panel shows the panel is hidden and leaves Esc alone.
  */
 import {
   act,
@@ -278,6 +278,12 @@ describe('folding and the queue', () => {
     expect(panel().getAttribute('aria-label')).toBe('Question E8 from J2');
     expect(within(panel()).getAllByRole<HTMLInputElement>('radio').some((radio) => radio.checked)).toBe(false);
     expect(foot()).toContain('2 more after this: E6 Overseer · E7 J4');
+  });
+
+  test('the queue line carries its whole text as its title, so a long queue cut short in the foot still reads whole on hover', () => {
+    renderPanel({ board: exampleQuestionPanelBoard({ decisions: [PARKED_DECISION, DARK_MODE_QUESTION, TWO_QUESTION_DECISION] }) });
+    const queueLine = panel().querySelector('.bridge-question-panel-queue-line');
+    expect(queueLine?.getAttribute('title')).toBe('2 more after this: E8 J2 · E6 Overseer');
   });
 
   test('a decision of its own in the queue offers no Next question', () => {

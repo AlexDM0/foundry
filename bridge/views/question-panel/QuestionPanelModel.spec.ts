@@ -3,9 +3,10 @@
  * opened since the fold, else the first) and whether the panel shows against the fold (it shows again once a decision opens that was not
  * open at the fold, and whenever User opened it); options stay exactly as asked, `(Recommended)` and all, with consequences only when the
  * agent noted them; own words only on a decision of one question; a code-opened decision has no conversation, no steps and is asked by the
- * Overseer; the ticket block reads the first ticket's sections and Acceptance as served and omits them when the board serves none; the
- * earlier answers join the openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the
- * asking call current; the queue foot names the later decisions, wrapping round; and `open since` is the sliced stamp, never the clock.
+ * Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a wrapped line joined to its paragraph as
+ * Markdown reads it, and omits them when the board serves none; the earlier answers join the openings by decision id, on that ticket
+ * only, newest first; the steps are the last top-level tool calls with the asking call current; the queue foot names the later
+ * decisions, wrapping round; and `open since` is the sliced stamp, never the clock.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -144,9 +145,48 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     expect(ticket?.epics).toEqual([{ key: 'customer-account', title: 'Customer account', slot: 2 }]);
     expect(ticket?.heldCount).toBe(2);
     expect(ticket?.callsText).toBe('J4, call 38 / 150');
-    expect(ticket?.wantedText).toBe('The account pages follow the system colour scheme.\nAn override is remembered per browser.');
+    expect(ticket?.wantedText).toBe('The account pages follow the system colour scheme. An override is remembered per browser.');
     expect(ticket?.briefText).toBe('Work belongs in `src/account/**`.');
     expect(ticket?.acceptanceItems.map((item) => item.label)).toEqual(['A1', 'A2', 'A3']);
+  });
+
+  test('a section wrapped in its file reads as Markdown reads it: soft breaks join, while blocks, hard breaks and fences keep their lines', () => {
+    const brief = [
+      'Work belongs in `src/auth/`, and the reset mail',
+      'stays as it is.',
+      '',
+      'Facts you do not need to look up:',
+      '',
+      '1. `RateLimit.consume` exists and returns',
+      '   a verdict.',
+      '- A second item',
+      '',
+      'Ends here with a hard break  ',
+      'then a line.',
+      '```',
+      'first code line',
+      'second code line',
+      '```',
+      'After the fence.',
+    ].join('\n');
+    const wrappedTicket = examplePanelTicket('004', { sections: [{ heading: 'Brief', markdown: brief }] });
+    const { ticket } = modelOf(exampleQuestionPanelBoard({ tickets: [wrappedTicket] }), 'E7');
+    expect(ticket?.briefText?.split('\n')).toEqual([
+      'Work belongs in `src/auth/`, and the reset mail stays as it is.',
+      '',
+      'Facts you do not need to look up:',
+      '',
+      '1. `RateLimit.consume` exists and returns a verdict.',
+      '- A second item',
+      '',
+      'Ends here with a hard break  ',
+      'then a line.',
+      '```',
+      'first code line',
+      'second code line',
+      '```',
+      'After the fence.',
+    ]);
   });
 
   test('the ticket block omits the sections, the Acceptance and the ticket tab when the board serves none', () => {

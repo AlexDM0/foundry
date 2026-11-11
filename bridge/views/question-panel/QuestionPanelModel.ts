@@ -38,6 +38,14 @@ const WANTED_HEADING = 'Wanted';
 
 const BRIEF_HEADING = 'Brief';
 
+/** A line that starts its own Markdown block (a list item, a heading, a quote, a table row or a fence), never a wrapped paragraph's tail. */
+const BLOCK_START_PATTERN = /^\s*(?:[-*+]\s|\d+[.)]\s|#|>|\||```|~~~)/u;
+
+const FENCE_PATTERN = /^\s*(?:```|~~~)/u;
+
+/** Markdown's hard break: a line ending in two spaces or a backslash keeps its line break. */
+const HARD_BREAK_PATTERN = /(?: {2}|\\)$/u;
+
 const TOOL_CALL_ROLE = 'tool-call';
 
 const DECISION_OPENED_KIND = 'decision-opened';
@@ -211,9 +219,28 @@ function questionModelOf(question: DecisionDocument['questions'][number]): Quest
   };
 }
 
+/**
+ * A section's Markdown with its soft line breaks read as Markdown reads them, as spaces: a ticket wrapped at 120 columns in its file would
+ * otherwise break mid-sentence in the narrow panel. Paragraph breaks, list items, headings, hard breaks and fenced lines stay as written.
+ */
+function softBreaksJoinedOf(markdown: string): string {
+  const lines: string[] = [];
+  let insideFence = false;
+  for (const line of markdown.split('\n')) {
+    const isFence = FENCE_PATTERN.test(line);
+    const previous = lines.at(-1);
+    const continuesParagraph = !insideFence && !isFence && previous !== undefined && previous.trim() !== '' && line.trim() !== ''
+      && !BLOCK_START_PATTERN.test(line) && !HARD_BREAK_PATTERN.test(previous) && !FENCE_PATTERN.test(previous);
+    if (continuesParagraph) lines[lines.length - 1] = `${previous.trimEnd()} ${line.trimStart()}`;
+    else lines.push(line);
+    if (isFence) insideFence = !insideFence;
+  }
+  return lines.join('\n');
+}
+
 function sectionTextOf(ticket: QuestionPanelTicket, heading: string): string | null {
   const section = (ticket.sections ?? []).find((candidate) => candidate.heading === heading);
-  const text = section?.markdown.trim() ?? '';
+  const text = softBreaksJoinedOf(section?.markdown ?? '').trim();
   return text === '' ? null : text;
 }
 
