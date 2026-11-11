@@ -42,7 +42,8 @@ testWhenGitIsRecorded('with no live Baton and no gate confinement, open is refus
   expect(await recordedGit.playStage([GIT_VERSION], async () => runCommandLine(['open'], context))).toBe(1);
 
   expect(context.errorText()).toContain('so the Overseer did not start');
-  expect(context.errorText()).not.toContain('Started the Overseer');
+  expect(context.errorText()).toContain('Overseer: not running; starting it in the background.');
+  expect(context.errorText()).not.toContain('Overseer: started');
   expect(context.outputText()).toBe('');
   expect(batonFileNamesIn(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer'))).toEqual([]);
 });
