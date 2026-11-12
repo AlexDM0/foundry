@@ -402,7 +402,7 @@ whose outcome is ending the session.
 | Who may ask | `src/services/overseer/DrivePass.ts`, `src/services/overseer/WorkerProfiles.ts` | `ROLES_THAT_MAY_ASK`, `profileOf` | `src/services/overseer/WorkerProfiles.spec.ts` |
 | An answer's effect on the board | `src/lib/tracker-model/AgentQuestions.ts` | `afterAnswer`, `answerIncident`, `rebindQuestionsOfEndedJob` | `src/lib/tracker-model/AgentQuestions.spec.ts` |
 | Decision storage | `src/lib/tracker-model/Decisions.ts` | `Decisions` | `src/lib/tracker-model/Board.decisions.spec.ts` |
-| Answer effects by kind | `src/services/control/DecisionControls.ts` | `answerDecision`, `answerPipelineProposal` | `src/services/control/DecisionControls.pipelineProposal.spec.ts` |
+| Answer effects by kind | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |
 | What an open decision blocks | `src/lib/tracker-model/Playbook.ts`, `src/lib/tracker-model/AirlockClaims.ts` | `TICKET_HOLDING_DECISION_KINDS`, `jobAwaitsAnAnswer`, `jobResumeIsHeld`, `SLOT_HOLDING_DECISION_KINDS` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Delivery to a session | `src/services/overseer/AnswerDelivery.ts` | `deliverAnswers` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Incident storage and closes | `src/lib/tracker-model/Incidents.ts` | `Incidents` | `src/lib/tracker-model/Board.incidents.spec.ts` |

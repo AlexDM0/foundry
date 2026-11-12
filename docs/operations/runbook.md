@@ -691,7 +691,7 @@ keep running; [Changing the code](../development/contributing.md) has the full t
 | Stop controls | `src/lib/tracker-model/JobControls.ts` | `requestJobStop`, `stopAllJobs` | `src/services/control/JobControls.spec.ts` |
 | What an unhold starts | `src/lib/tracker-model/Playbook.ts` | `candidateOf`, `mergeQueueStepsOf` | `src/lib/tracker-model/Board.lifecycle.spec.ts` |
 | Quiet job count | `src/services/overseer/IncidentRouter.ts` | `createQuietJobWatch` | `src/services/overseer/IncidentRouter.spec.ts` |
-| Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `src/services/control/DecisionControls.pipelineProposal.spec.ts` |
+| Decision answers | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |
 | Worktree repairs | `src/services/control/WorktreeRepair.ts` | `WorktreeRepair.repair` | `src/services/control/WorktreeRepair.spec.ts` |
 | Held landing targets | `src/services/overseer/Airlocks.ts` | `recheckHeldTargets`, `settleMovedTarget` | `src/services/overseer/Airlocks.spec.ts` |
 | Notices | `src/services/overseer/DrivePass.ts` | `OverseerNotice`, `noticesOf` | `cli/overseer/OverseerDrivePass.spec.ts` |

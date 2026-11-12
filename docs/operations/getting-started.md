@@ -381,4 +381,4 @@ Anything else is in the [Runbook](runbook.md), which also has
 | Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/overseer/OverseerWording.intake.spec.ts` |
 | What `ready-drafts` offers | `src/lib/tracker-model/JobControls.ts` | `readyDraftsDraftOf` | `src/services/control/JobControls.spec.ts` |
-| How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `src/services/control/DecisionControls.pipelineProposal.spec.ts` |
+| How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |
