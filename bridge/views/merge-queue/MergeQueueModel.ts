@@ -1,11 +1,12 @@
 /**
- * The Merge queue detail's model: per target, the Airlock holder and its phase, the waiting candidates in the five-key order the Overseer
- * computed, git's predicted conflicts, and why its landings wait (an open `target-moved` decision, the `dirty-main-checkout` notice). It
- * orders nothing itself: the order arrives as a fact. With merge approval on, the tickets waiting for User's accept show apart, each with
- * its prediction against the target's tip.
+ * The Merge queue detail's model: per target, the Airlock holder and its phase, the waiting candidates in the order the Overseer computed
+ * (five keys, or User's press order with merge approval on), git's predicted conflicts, and why its landings wait (an open `target-moved`
+ * decision, the `dirty-main-checkout` notice). It orders nothing itself: the order arrives as a fact. With merge approval on, the tickets
+ * waiting for User's accept show apart, each with its prediction against the target's tip.
  */
-import type { DisplayState }     from '../../../src/lib/tracker-model/@types/Task.ts';
-import type { TicketPriority }   from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type { AppliedPipelineFacts } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketPriority }       from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type {
   MergeQueueDocument,
   MergeTargetDocument,
@@ -13,7 +14,9 @@ import type {
   WaitingForMergeEntryDocument
 } from '../../@types/BoardStateDocument.ts';
 
-export const FIVE_KEY_ORDER_TEXT = 'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.';
+const FIVE_KEY_ORDER_TEXT = 'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.';
+
+const PRESS_ORDER_TEXT = 'Ordered by User\'s Merge presses, earliest first, then ticket id.';
 
 const PHASE_LABELS: Readonly<Record<string, string>> = {
   'merge-in':  'merging in',
@@ -138,6 +141,12 @@ function targetOf(facts: MergeTargetDocument, notices: readonly NoticeDocument[]
   };
 }
 
+/** With merge approval on in the applied pipeline, User's press order sets the train; otherwise the five keys do. */
+function orderTextOf(pipeline: AppliedPipelineFacts | undefined): string {
+  const mergeApprovalIsOn = pipeline?.readingVerdict === 'readable' && pipeline.pipeline.approvals?.merge === true;
+  return mergeApprovalIsOn ? PRESS_ORDER_TEXT : FIVE_KEY_ORDER_TEXT;
+}
+
 /** Every target the Overseer reported, plus one a `dirty-main-checkout` notice names that has nothing queued. */
 function mergeQueueModelOf(mergeQueue: MergeQueueDocument | undefined, notices: readonly NoticeDocument[]): MergeQueueTarget[] {
   const reported = mergeQueue?.targets ?? [];
@@ -150,4 +159,4 @@ function mergeQueueModelOf(mergeQueue: MergeQueueDocument | undefined, notices: 
   return [...reported, ...noticeOnly].map((facts) => targetOf(facts, notices));
 }
 
-export const MergeQueueModel = Object.freeze({ mergeQueueModelOf, forecastFactsOf });
+export const MergeQueueModel = Object.freeze({ mergeQueueModelOf, forecastFactsOf, orderTextOf });

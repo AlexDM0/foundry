@@ -1,5 +1,5 @@
 /**
- * One setup question as a question card: the recommended option starts chosen, Answer sends the chosen letter or the Other text as
+ * One setup question as a question card: the recommended option starts chosen, Answer sends the chosen letters or the Other text as
  * `pipeline-setup-answer`, and the card turns into its answered confirmation once the answer is applied. A refusal shows verbatim.
  */
 import { useState } from 'react';
@@ -19,7 +19,7 @@ export interface SetupQuestionFormProps {
 export function SetupQuestionForm({
   setupId, card, layout, onAnswered
 }: SetupQuestionFormProps) {
-  const [chosen, setChosen] = useState<string | null>(() => PipelineAgentPanelModel.initialChoiceOf(card));
+  const [chosen, setChosen] = useState<readonly string[]>(() => PipelineAgentPanelModel.initialChoiceOf(card));
   const [otherText, setOtherText] = useState('');
   const [sentAnswerText, setSentAnswerText] = useState<string | null>(null);
   const command = PipelineAgentPanelModel.answerCommandOf(setupId, card, chosen, otherText);
@@ -45,8 +45,9 @@ export function SetupQuestionForm({
         otherPlaceholder="Describe another way"
         otherTextLabel="Other answer"
         layout={layout}
+        multiple={card.isMultiple}
         chosen={chosen}
-        onChoose={setChosen}
+        onChoose={(letter) => setChosen(PipelineAgentPanelModel.choiceAfterChoosing(card, chosen, letter))}
         otherText={otherText}
         onOtherText={setOtherText}
         answerLabel="Answer"

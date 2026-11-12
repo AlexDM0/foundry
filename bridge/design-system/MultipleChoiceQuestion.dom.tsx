@@ -1,9 +1,10 @@
 /**
  * The question card, in a happy-dom document. What matters: it is a fieldset named by its legend, eyebrow and question, asking while no
- * answer was given; its options are radios of one group, the recommended ones marked by the word in `.bridge-choice-mark`; choosing an
- * option hands its letter on, and choosing Other moves the focus into Other's text field; Answer waits for a choice, and for words when
- * Other is chosen; the layout sets `data-layout`; once answered the green confirmation takes the place of the options and the answer
- * button, and the card says it is answered; disabled disables every control; and the words are text, never markup.
+ * answer was given; its options are radios of one group, the recommended ones marked by the word in `.bridge-choice-mark`; a multiple
+ * question draws checkboxes that show every chosen letter and hand on the letter toggled; choosing an option hands its letter on, and
+ * choosing Other moves the focus into Other's text field; Answer waits for a choice, and for words when Other is chosen; the layout sets
+ * `data-layout`; once answered the green confirmation takes the place of the options and the answer button, and the card says it is
+ * answered; disabled disables every control; and the words are text, never markup.
  */
 import {
   cleanup,
@@ -37,7 +38,8 @@ const QUESTION_PROPS: MultipleChoiceQuestionProps = {
   otherPlaceholder:   'Describe another way',
   otherTextLabel:     'Other answer',
   layout:             'columns',
-  chosen:             null,
+  multiple:           false,
+  chosen:             [],
   onChoose:           NOTHING,
   otherText:          '',
   onOtherText:        NOTHING,
@@ -47,16 +49,16 @@ const QUESTION_PROPS: MultipleChoiceQuestionProps = {
 
 /** The card with its choice and Other's words held as a view would hold them. */
 function HeldQuestion({ onAnswer }: { readonly onAnswer: (answer: string) => void }) {
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<readonly string[]>([]);
   const [otherText, setOtherText] = useState('');
   return (
     <MultipleChoiceQuestion
       {...QUESTION_PROPS}
       chosen={chosen}
-      onChoose={setChosen}
+      onChoose={(letter) => setChosen([letter])}
       otherText={otherText}
       onOtherText={setOtherText}
-      onAnswer={() => onAnswer(chosen === 'C' ? otherText : chosen ?? '')}
+      onAnswer={() => onAnswer(chosen.includes('C') ? otherText : chosen.join(''))}
     />
   );
 }
@@ -90,6 +92,16 @@ describe('the question card', () => {
     expect([chosenLetters, document.activeElement === screen.getByRole('textbox', { name: 'Other answer' })]).toEqual([['B', 'C'], true]);
   });
 
+  test('a multiple question draws checkboxes that show every chosen letter and hand on the letter toggled', () => {
+    const chosenLetters: string[] = [];
+    render(<MultipleChoiceQuestion {...QUESTION_PROPS} multiple chosen={['A', 'B']} onChoose={(letter) => chosenLetters.push(letter)} />);
+    const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Start the database in a container' }));
+    expect([screen.queryAllByRole('radio'), checkboxes.map((checkbox) => checkbox.checked), chosenLetters])
+      .toEqual([[], [true, true, false], ['A']]);
+    expect(screen.getByRole('button', { name: 'Answer' }).matches(':disabled')).toBe(false);
+  });
+
   test('Answer waits for a choice, and for words when Other is chosen', () => {
     const answers: string[] = [];
     render(<HeldQuestion onAnswer={(answer) => answers.push(answer)} />);
@@ -104,7 +116,7 @@ describe('the question card', () => {
   });
 
   test('answered, the confirmation takes the place of the options and Answer, and the card says it is answered', () => {
-    render(<MultipleChoiceQuestion {...QUESTION_PROPS} layout="stack" chosen="A" answeredText="Answered: the database starts in a container" />);
+    render(<MultipleChoiceQuestion {...QUESTION_PROPS} layout="stack" chosen={['A']} answeredText="Answered: the database starts in a container" />);
     const card = screen.getByRole('group');
     const confirmation = screen.getByRole('status');
     expect([card.getAttribute('data-state'), card.getAttribute('data-layout'), confirmation.className, confirmation.textContent])
@@ -114,7 +126,7 @@ describe('the question card', () => {
   });
 
   test('disabled disables every control', () => {
-    render(<MultipleChoiceQuestion {...QUESTION_PROPS} chosen="A" disabled />);
+    render(<MultipleChoiceQuestion {...QUESTION_PROPS} chosen={['A']} disabled />);
     expect([(screen.getByRole('group') as HTMLFieldSetElement).disabled, screen.getByRole('button', { name: 'Answer' }).matches(':disabled')])
       .toEqual([true, true]);
   });

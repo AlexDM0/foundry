@@ -1,6 +1,7 @@
 /**
- * A question card: an eyebrow and the question as the legend of a fieldset, its lettered options as radios in the question colours, the
- * recommended ones marked by a word, an Other option whose words are typed in place, and the answer button. It glows while it asks; once
+ * A question card: an eyebrow and the question as the legend of a fieldset, its lettered options as radios in the question colours, or
+ * checkboxes when several may be chosen, the recommended ones marked by a word, an Other option whose words are typed in place, and the
+ * answer button. It glows while it asks; once
  * answered, the green confirmation takes the place of its options. Its options sit side by side in equal columns or stacked.
  */
 import { useId } from 'react';
@@ -28,8 +29,11 @@ export interface MultipleChoiceQuestionProps {
   /** The name of the Other option's text field. */
   readonly otherTextLabel:     string;
   readonly layout:             'columns' | 'stack';
-  /** The chosen option's letter, the Other option's included; `null` while none is chosen. */
-  readonly chosen:             string | null;
+  /** Several options may be chosen: the options are checkboxes, and the holder toggles the letter `onChoose` hands on. */
+  readonly multiple:           boolean;
+  /** The chosen options' letters, the Other option's included; empty while none is chosen. */
+  readonly chosen:             readonly string[];
+  /** Hands on the letter of the option chosen, or toggled when the question is multiple. */
   readonly onChoose:           (letter: string) => void;
   readonly otherText:          string;
   readonly onOtherText:        (text: string) => void;
@@ -42,12 +46,13 @@ export interface MultipleChoiceQuestionProps {
 
 export function MultipleChoiceQuestion({
   eyebrow, question, options, recommendedLetters, recommendedLabel, otherLetter, otherLabel, otherPlaceholder, otherTextLabel, layout,
-  chosen, onChoose, otherText, onOtherText, answerLabel, onAnswer, answeredText, disabled = false
+  multiple, chosen, onChoose, otherText, onOtherText, answerLabel, onAnswer, answeredText, disabled = false
 }: MultipleChoiceQuestionProps) {
   const groupName = useId();
   const isAnswered = answeredText !== undefined;
-  const otherIsChosen = chosen === otherLetter;
-  const answerIsReady = chosen !== null && (!otherIsChosen || otherText.trim() !== '');
+  const inputType = multiple ? 'checkbox' : 'radio';
+  const otherIsChosen = chosen.includes(otherLetter);
+  const answerIsReady = chosen.length > 0 && (!otherIsChosen || otherText.trim() !== '');
   return (
     <fieldset
       className="bridge-question-card"
@@ -78,11 +83,11 @@ export function MultipleChoiceQuestion({
                   label={option.text}
                   {...(option.description === undefined ? {} : { description: option.description })}
                   {...(recommendedLetters.includes(option.letter) ? { marks: <ChoiceMark mark="recommended" text={recommendedLabel} /> } : {})}
-                  chosen={chosen === option.letter}
+                  chosen={chosen.includes(option.letter)}
                   input={{
-                    type:           'radio',
+                    type:           inputType,
                     name:           groupName,
-                    checked:        chosen === option.letter,
+                    checked:        chosen.includes(option.letter),
                     accessibleName: option.text,
                     onChange:       () => onChoose(option.letter),
                   }}
@@ -95,7 +100,7 @@ export function MultipleChoiceQuestion({
                 label={otherLabel}
                 chosen={otherIsChosen}
                 input={{
-                  type:           'radio',
+                  type:           inputType,
                   name:           groupName,
                   checked:        otherIsChosen,
                   accessibleName: otherLabel,

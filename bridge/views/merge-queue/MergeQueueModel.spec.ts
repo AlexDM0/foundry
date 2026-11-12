@@ -2,11 +2,13 @@
  * The Merge queue detail's model. What matters: the order is the Overseer's, kept as it arrives; the Airlock holder reads with its phase;
  * each candidate's prediction takes its pill's word and palette row, its conflicted files apart, an unknown priority
  * reads as normal, and the pairwise conflicts are worded; and a target's landings name the `target-moved` decision and the
- * `dirty-main-checkout` notice they wait on, including a target that has nothing queued.
+ * `dirty-main-checkout` notice they wait on, including a target that has nothing queued; the order is worded as five keys, or as User's
+ * press order when the applied pipeline turns merge approval on.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { DIRTY_CHECKOUT_NOTICE, QUEUED_TARGET } from '../../testing/BoardStateFixture.ts';
+import { pipelineBoardStateOf }                 from '../../testing/PipelineFixture.ts';
 import { MergeQueueModel }                      from './MergeQueueModel.ts';
 
 describe('a queued target', () => {
@@ -82,5 +84,24 @@ describe('a target only a notice names', () => {
     })).toEqual({
       forecast: 'prediction-failed', forecastLabel: 'prediction failed', forecastState: 'paused', conflictedFilesText: null
     });
+  });
+});
+
+describe('the order text', () => {
+  test('names the five keys, and User\'s press order only when the applied pipeline turns merge approval on', () => {
+    const approving = pipelineBoardStateOf('flow-human-code-review-live').pipeline;
+    if (approving?.readingVerdict !== 'readable') throw new Error('the fixture has no readable pipeline');
+    const notApproving = { ...approving, pipeline: { ...approving.pipeline, approvals: { tickets: true, merge: false } } };
+    expect([
+      MergeQueueModel.orderTextOf(approving),
+      MergeQueueModel.orderTextOf(notApproving),
+      MergeQueueModel.orderTextOf({ readingVerdict: 'absent' }),
+      MergeQueueModel.orderTextOf(undefined),
+    ]).toEqual([
+      'Ordered by User\'s Merge presses, earliest first, then ticket id.',
+      'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.',
+      'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.',
+      'Ordered by priority, clean before conflicting, fewest conflicts caused, readiness, then ticket id.',
+    ]);
   });
 });

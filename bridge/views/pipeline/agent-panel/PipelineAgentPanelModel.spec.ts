@@ -1,7 +1,9 @@
 /**
  * The pipeline agent panel's model. What matters: the activity line shows only while a turn runs, and says the newest line the agent wrote
- * or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer sends the chosen letter or the
- * Other text and nothing while it is incomplete; a message goes to the agent's job; a flow node's question cards are only its open ones.
+ * or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer sends the chosen letters or the
+ * Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with every recommended one, a single
+ * one keeps one letter, and Other excludes the letters, since the control contract takes either letters or a text; a message goes to the
+ * agent's job; a flow node's question cards are only its open ones.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -62,15 +64,49 @@ describe('the question cards', () => {
     const record = researchRecord();
     const [card] = PipelineAgentPanelModel.questionCardsOf(record.questions, 'research', record.findings);
     if (card === undefined) throw new Error('no card');
-    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, 'a', '')).toEqual({
+    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['a'], '')).toEqual({
       kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
     });
-    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, 'c', ' Run them nightly ')).toEqual({
+    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['c'], ' Run them nightly ')).toEqual({
       kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'text', text: 'Run them nightly' }
     });
-    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, 'c', '  ')).toBeNull();
-    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, null, '')).toBeNull();
-    expect(PipelineAgentPanelModel.initialChoiceOf(card)).toBe('a');
+    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, ['c'], '  ')).toBeNull();
+    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, [], '')).toBeNull();
+    expect(PipelineAgentPanelModel.initialChoiceOf(card)).toEqual(['a']);
+  });
+
+  test('a single question keeps the one letter chosen last', () => {
+    const record = researchRecord();
+    const [card] = PipelineAgentPanelModel.questionCardsOf(record.questions, 'research', record.findings);
+    if (card === undefined) throw new Error('no card');
+    expect([card.isMultiple, PipelineAgentPanelModel.choiceAfterChoosing(card, ['a'], 'b'), PipelineAgentPanelModel.choiceAfterChoosing(card, ['a'], 'c')])
+      .toEqual([false, ['b'], ['c']]);
+  });
+
+  test('a multiple question toggles its letters in option order, starts with every recommended one and sends them all', () => {
+    const record = researchRecord();
+    const multipleQuestions: SetupQuestion[] = record.questions.map((question) => ({ ...question, multiple: true, recommended: ['b', 'a'] }));
+    const [card] = PipelineAgentPanelModel.questionCardsOf(multipleQuestions, 'research', record.findings);
+    if (card === undefined) throw new Error('no card');
+    const initial = PipelineAgentPanelModel.initialChoiceOf(card);
+    const withoutA = PipelineAgentPanelModel.choiceAfterChoosing(card, initial, 'a');
+    const withAAgain = PipelineAgentPanelModel.choiceAfterChoosing(card, withoutA, 'a');
+    expect([card.isMultiple, initial, withoutA, withAAgain]).toEqual([true, ['b', 'a'], ['b'], ['a', 'b']]);
+    expect(PipelineAgentPanelModel.answerCommandOf('S1', card, withAAgain, '')).toEqual({
+      kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a', 'b'] }
+    });
+    expect(PipelineAgentPanelModel.answeredTextAfterSending(card, withAAgain, '')).toBe('Answered: Yes, in the merge phase, No, leave them out');
+  });
+
+  test('on a multiple question Other drops the letters, a letter drops Other, and Other chosen again clears it', () => {
+    const record = researchRecord();
+    const [card] = PipelineAgentPanelModel.questionCardsOf(record.questions.map((question) => ({ ...question, multiple: true })), 'research', record.findings);
+    if (card === undefined) throw new Error('no card');
+    expect([
+      PipelineAgentPanelModel.choiceAfterChoosing(card, ['a', 'b'], 'c'),
+      PipelineAgentPanelModel.choiceAfterChoosing(card, ['c'], 'a'),
+      PipelineAgentPanelModel.choiceAfterChoosing(card, ['c'], 'c'),
+    ]).toEqual([['c'], ['a'], []]);
   });
 });
 

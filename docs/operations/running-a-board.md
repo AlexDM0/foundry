@@ -733,7 +733,7 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | The posting control | `bridge/shell/CommandButton.tsx`, `bridge/shell/ControlCommandSender.ts` | `CommandButton`, `useControlCommand` | `bridge/shell/Header.dom.tsx`, `bridge/shell/ControlCommandSender.dom.tsx` |
 | Routes | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS`, `routeOf` | `bridge/shell/HashRouter.spec.ts` |
 | Lanes | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `KANBAN_LANES` | `bridge/views/kanban/KanbanModel.spec.ts` |
-| Merge queue view | `bridge/views/merge-queue/MergeQueueModel.ts` | `mergeQueueModelOf`, `FIVE_KEY_ORDER_TEXT` | `bridge/views/merge-queue/MergeQueueModel.spec.ts` |
+| Merge queue view | `bridge/views/merge-queue/MergeQueueModel.ts` | `mergeQueueModelOf`, `orderTextOf` | `bridge/views/merge-queue/MergeQueueModel.spec.ts` |
 | Waves | `bridge/views/waves/WavesModel.ts` | `wavesModelOf` | `bridge/views/waves/WavesModel.spec.ts` |
 | Pill words | `bridge/utils/DisplayStateWordingUtil.ts` | `stateLabelOf` | `bridge/utils/DisplayStateWordingUtil.spec.ts` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |

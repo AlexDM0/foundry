@@ -43,6 +43,8 @@ export interface SetupQuestionCard {
   readonly context:            string;
   readonly options:            readonly QuestionOption[];
   readonly recommendedLetters: readonly string[];
+  /** Several options may be chosen together; the Other text is still an answer of its own. */
+  readonly isMultiple:         boolean;
   /** The Other option's letter: the one after the options' own. */
   readonly otherLetter:        string;
   /** The confirmation of a stored answer; `null` while the question is open. */
@@ -128,6 +130,7 @@ function questionCardOf(question: SetupQuestion, findings: readonly ResearchFind
     context:            question.context,
     options:            question.options.map((option) => ({ letter: option.letter, text: option.text })),
     recommendedLetters: question.recommended,
+    isMultiple:         question.multiple,
     otherLetter:        otherLetterOf(question),
     answeredText:       question.answer === null ? null : answeredTextOf(question.options, question.answer),
   };
@@ -150,20 +153,33 @@ function openQuestionIdsOf(questions: readonly SetupQuestion[]): string[] {
   return questions.filter((question) => question.answer === null).map((question) => question.questionId);
 }
 
-/** The first recommended option starts chosen, as drawn; with no recommendation nothing is. */
-function initialChoiceOf(card: SetupQuestionCard): string | null {
-  return card.recommendedLetters[0] ?? null;
+/** The first recommended option starts chosen, as drawn, and on a multiple question every recommended one; with none recommended, none. */
+function initialChoiceOf(card: SetupQuestionCard): string[] {
+  if (card.isMultiple) return [...card.recommendedLetters];
+  return card.recommendedLetters.slice(0, 1);
 }
 
-/** The Other option sends its text, any other the chosen letter; nothing while no option is chosen or the Other text is empty. */
-function answerOf(card: SetupQuestionCard, chosen: string | null, otherText: string): GivenAnswer | null {
-  if (chosen === null) return null;
-  if (chosen !== card.otherLetter) return { letters: [chosen] };
+/**
+ * The letters chosen after choosing one: a single question takes the letter alone; a multiple question toggles it, and since an answer is
+ * either letters or the Other text, choosing Other drops the letters and choosing a letter drops Other.
+ */
+function choiceAfterChoosing(card: SetupQuestionCard, chosen: readonly string[], letter: string): string[] {
+  if (!card.isMultiple) return [letter];
+  if (letter === card.otherLetter) return chosen.includes(letter) ? [] : [letter];
+  const letters = chosen.filter((chosenLetter) => chosenLetter !== card.otherLetter);
+  if (letters.includes(letter)) return letters.filter((chosenLetter) => chosenLetter !== letter);
+  return card.options.map((option) => option.letter).filter((optionLetter) => optionLetter === letter || letters.includes(optionLetter));
+}
+
+/** The Other option sends its text, any other the chosen letters; nothing while no option is chosen or the Other text is empty. */
+function answerOf(card: SetupQuestionCard, chosen: readonly string[], otherText: string): GivenAnswer | null {
+  if (chosen.length === 0) return null;
+  if (!chosen.includes(card.otherLetter)) return { letters: [...chosen] };
   const text = otherText.trim();
   return text === '' ? null : { text };
 }
 
-function answerCommandOf(setupId: string, card: SetupQuestionCard, chosen: string | null, otherText: string): ControlCommandBody | null {
+function answerCommandOf(setupId: string, card: SetupQuestionCard, chosen: readonly string[], otherText: string): ControlCommandBody | null {
   const answer = answerOf(card, chosen, otherText);
   if (answer === null) return null;
   return {
@@ -175,7 +191,7 @@ function answerCommandOf(setupId: string, card: SetupQuestionCard, chosen: strin
 }
 
 /** The confirmation a card shows once its answer was applied, before the facts carry the stored answer. */
-function answeredTextAfterSending(card: SetupQuestionCard, chosen: string | null, otherText: string): string | null {
+function answeredTextAfterSending(card: SetupQuestionCard, chosen: readonly string[], otherText: string): string | null {
   const answer = answerOf(card, chosen, otherText);
   return answer === null ? null : answeredTextOf(card.options, answer);
 }
@@ -198,6 +214,7 @@ export const PipelineAgentPanelModel = Object.freeze({
   openQuestionCardsOf,
   openQuestionIdsOf,
   initialChoiceOf,
+  choiceAfterChoosing,
   answerCommandOf,
   answeredTextAfterSending,
   messageCommandOf,

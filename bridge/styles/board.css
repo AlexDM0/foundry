@@ -2572,8 +2572,6 @@ a.bridge-progress-number:hover { color: var(--ink); }
 
 /* The rows under their epics' head rows. The caret hangs in the name cell's padding, so a member row's label keeps its width. */
 .bridge-progress-rows > .bridge-progress-epic-head { background: var(--surface-2); }
-/* A head row folds its group in place; like every chart row it never moves, also while pressed. */
-.bridge-progress-rows > .bridge-progress-epic-head:active { transform: none; }
 .bridge-progress-rows > .bridge-progress-epic-head > .bridge-progress-name { gap: 4px; padding-left: var(--sp-1); font-weight: 600; background: var(--surface-2); }
 .bridge-progress-epic-caret {
   flex: none; width: 12px;

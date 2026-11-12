@@ -2,18 +2,20 @@
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
  * waiting for merge links to its detail panel, which holds Accept and Update branch.
  */
-import { PriorityMark }                                                         from '../../chips/TicketMarks.tsx';
-import { EmptyState }                                                           from '../../design-system/ListSection.tsx';
-import { IdLink }                                                               from '../../design-system/MonoId.tsx';
-import { StateBadge }                                                           from '../../design-system/StateBadge.tsx';
-import { DetailRoute }                                                          from '../../shell/DetailRoute.ts';
-import { HashRouter }                                                           from '../../shell/HashRouter.ts';
-import { FIVE_KEY_ORDER_TEXT, type MergeQueueTarget, type WaitingForMergeLine } from './MergeQueueModel.ts';
+import { PriorityMark }                               from '../../chips/TicketMarks.tsx';
+import { EmptyState }                                 from '../../design-system/ListSection.tsx';
+import { IdLink }                                     from '../../design-system/MonoId.tsx';
+import { StateBadge }                                 from '../../design-system/StateBadge.tsx';
+import { DetailRoute }                                from '../../shell/DetailRoute.ts';
+import { HashRouter }                                 from '../../shell/HashRouter.ts';
+import type { MergeQueueTarget, WaitingForMergeLine } from './MergeQueueModel.ts';
 
 const NOTHING_QUEUED_TEXT = 'Nothing is queued to merge.';
 
 export interface MergeQueueViewProps {
-  readonly targets: readonly MergeQueueTarget[];
+  readonly targets:   readonly MergeQueueTarget[];
+  /** How the candidates are ordered, worded from the applied pipeline's merge approval. */
+  readonly orderText: string;
 }
 
 function ForecastParts({ line }: { readonly line: WaitingForMergeLine }) {
@@ -27,10 +29,10 @@ function ForecastParts({ line }: { readonly line: WaitingForMergeLine }) {
   );
 }
 
-export function MergeQueueView({ targets }: MergeQueueViewProps) {
+export function MergeQueueView({ targets, orderText }: MergeQueueViewProps) {
   return (
     <section className="bridge-merge-queue" aria-label="Merge queue">
-      <p className="bridge-merge-order">{FIVE_KEY_ORDER_TEXT}</p>
+      <p className="bridge-merge-order">{orderText}</p>
       {targets.length === 0 ? <EmptyState text={NOTHING_QUEUED_TEXT} /> : null}
       {targets.map((target) => (
         <article key={target.target} className="bridge-merge-target" aria-label={target.target}>

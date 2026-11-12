@@ -336,7 +336,12 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const boardViews = (
     <>
       {boardState !== null && mergeQueueIsOpen
-        ? <MergeQueueView targets={MergeQueueModel.mergeQueueModelOf(boardState.mergeQueue, boardState.notices ?? [])} />
+        ? (
+          <MergeQueueView
+            targets={MergeQueueModel.mergeQueueModelOf(boardState.mergeQueue, boardState.notices ?? [])}
+            orderText={MergeQueueModel.orderTextOf(boardState.pipeline)}
+          />
+        )
         : null}
       {kanbanBoardState !== null && kanbanFilters !== null && route.tab === 'kanban' && !mergeQueueIsOpen
         ? (

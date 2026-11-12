@@ -1,7 +1,7 @@
 /**
  * The Merge queue detail in a happy-dom document. What matters: with merge approval on, the tickets waiting for merge show in a list of
  * their own, apart from the queued candidates, each with its forecast pill and a link to its detail panel; with merge approval off no such
- * list shows.
+ * list shows; the order line shows the text it is given.
  */
 import {
   cleanup,
@@ -32,8 +32,10 @@ const WAITING_TARGET = {
   ],
 } as const;
 
+const ORDER_TEXT = 'Ordered by an example order.';
+
 function renderedTarget(target: typeof QUEUED_TARGET): void {
-  render(<MergeQueueView targets={MergeQueueModel.mergeQueueModelOf({ targets: [target] }, [])} />);
+  render(<MergeQueueView targets={MergeQueueModel.mergeQueueModelOf({ targets: [target] }, [])} orderText={ORDER_TEXT} />);
 }
 
 /** A line's parts as shown: its id, its priority mark when not normal, its forecast pill, then its files or what it would cause. */
@@ -63,5 +65,10 @@ describe('merge approval off', () => {
     renderedTarget(QUEUED_TARGET);
     expect(screen.queryByRole('region', { name: /Waiting for merge/u })).toBeNull();
     expect(screen.queryByText('Waiting for merge')).toBeNull();
+  });
+
+  test('the order line shows the text it is given', () => {
+    renderedTarget(QUEUED_TARGET);
+    expect(document.querySelector('.bridge-merge-order')?.textContent).toBe(ORDER_TEXT);
   });
 });

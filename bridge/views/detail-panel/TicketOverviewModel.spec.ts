@@ -90,12 +90,12 @@ describe('the live job', () => {
     expect(overviewOf(later, '004').now.job?.elapsedText).toBeNull();
   });
 
-  test('a review job reads Reviewing from its newest review row\'s start; Customs, the gate and the landing name their own step', () => {
+  test('a review job reads Reviewing from its newest review row\'s start; Customs, the gate, the merge of main and the landing name their own step', () => {
     const reviewRow = exampleDetailRow(7, { reviewOf: '004', status: 'in-review', start: exampleStampAt('13:00') });
     const reviewing = exampleDetailBoard({ tickets: [BUILDING], rows: [BUILDING_ROW, reviewRow], jobs: [exampleDetailJob('J9', '004', { kind: 'review', role: 'reviewer' })] });
     expect([overviewOf(reviewing, '004').now.heading, overviewOf(reviewing, '004').now.job?.since?.shortText]).toEqual(['Reviewing', '13:00']);
     const headingIn = (state: string) => overviewOf(exampleDetailBoard({ tickets: [BUILDING], jobs: [exampleDetailJob('J4', '004', { state })] }), '004').now.heading;
-    expect(['in-customs', 'gating', 'landing'].map(headingIn)).toEqual(['In Customs', 'Gating', 'Landing']);
+    expect(['in-customs', 'gating', 'merging-main', 'landing'].map(headingIn)).toEqual(['In Customs', 'Gating', 'Merging main', 'Landing']);
   });
 
   test('a session naming the ticket and a partial job record are never joined', () => {

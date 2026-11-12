@@ -346,6 +346,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   styled and every styled class is emitted; a `className` is a literal the scan can read.
 - `bridge/HoverMovesNothing.spec.ts` holds that no `:hover` or `:active` rule moves or resizes anything. The one
   exception is the tooltip's transform: the tooltip takes no space.
+- `bridge/StyleBraceBalance.spec.ts` holds that `bridge/styles/board.css` and `bridge/styles/tokens.css` close each
+  brace that they open.
 - React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
   entities. `eslint.config.js` bans
   `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/`; agent-written HTML reaches the DOM

@@ -19,7 +19,7 @@ export interface ControlCommandSender {
 export interface ControlCommandOptions {
   /** Restart and Stop: the Overseer answers them while launches are held for an install change. */
   readonly answeredWhileInstallHeld?: boolean;
-  /** The caller's own reason it has nothing to send, such as a multi-select with nothing selected. */
+  /** The caller's own reason it has nothing to send, such as a benchmark that is still measuring. */
   readonly hasNothingToSend?:         boolean;
   /** Called with the command's result once the Overseer applied it, so a form can clear itself or follow what the command made. */
   readonly onApplied?:                (result: unknown) => void;

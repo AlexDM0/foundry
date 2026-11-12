@@ -34,10 +34,11 @@ import {
 const TICKET_JOB_KINDS: readonly string[] = ['build', 'review', 'merge-agent'];
 
 const HEADING_FOR_JOB_STATE: Readonly<Record<string, string>> = {
-  'in-customs': 'In Customs',
-  'gating':     'Gating',
-  'merging':    'Landing',
-  'landing':    'Landing',
+  'in-customs':   'In Customs',
+  'gating':       'Gating',
+  'merging-main': 'Merging main',
+  'merging':      'Landing',
+  'landing':      'Landing',
 };
 
 const HEADING_FOR_JOB_KIND: Readonly<Record<string, string>> = {
