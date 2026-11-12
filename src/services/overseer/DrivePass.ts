@@ -627,6 +627,12 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
   };
 }
 
+/** A first Apply's constitution commit runs before any pipeline is stored: its request waits, or its job holds the main line's slot. */
+function constitutionCommitIsDue(board: Board): boolean {
+  const state = board.pipelineSetup()?.applyRequest?.state;
+  return state === 'committing' || state === 'held' || board.jobs().some((job) => job.kind === 'constitution-commit');
+}
+
 function repositorySignsCommits(repositoryRoot: string): boolean {
   const run = GitProcess.run(repositoryRoot, ['config', '--bool', 'commit.gpgsign']);
   return run !== null && GitProcess.succeeded(run) && run.standardOutput.trim() === 'true';
@@ -1115,6 +1121,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       request.log(`Git declined the ${declined.cleanup} cleanup of ${declined.groupBranch}: ${declined.reason}`);
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },
+    mainConstitutionOf:     () => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine),
+    repositorySignsCommits: () => repositorySignsCommits(request.workspace.rootDirectory),
   });
 
   /** Rechecked every pass: a notice goes once what git declined to remove is gone. */
@@ -1295,7 +1303,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       deliversByControlResponse: request.deliversAnswersByControlResponse ?? CONTROL_RESPONSE_DELIVERS_ANSWERS,
       answerMessageOf:           request.answerMessageOf,
     });
-    const heldTargets = written.board.pipeline() === null ? [] : await airlocks.sweep();
+    const heldTargets = written.board.pipeline() === null && !constitutionCommitIsDue(written.board) ? [] : await airlocks.sweep();
     gateProfiling.followRuns(written.board);
     pipelineChecking.followChecks(written.board);
     await WatcherFleet.reapEndedWatchers(platformPorts, trackerDirectory);

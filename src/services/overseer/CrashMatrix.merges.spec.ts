@@ -3,7 +3,9 @@
  * makes of it. What matters: a landing whose fast-forward git already made finishes the board side; a merge-in left with no live holder is
  * aborted, reset to its branch tip and requeued, never two refreshes on a group at once; a live or interrupted Airlock agent keeps its slot;
  * a conflict re-reviewer cut short keeps the slot while it lives, is relaunched as the same attempt once replaced, and frees the slot as
- * orphaned once it ended otherwise; and a target moved by hand requeues and never lands on the moved tip. The other rows are in
+ * orphaned once it ended otherwise; a target moved by hand requeues and never lands on the moved tip; and a constitution commit job left in
+ * `committing` is replaced, one cut short after its fast-forward finishes on the board side, a waiting request with no live job gets one,
+ * and a main line already holding the text finishes Apply with no commit. The other rows are in
  * `CrashMatrix.integration.spec.ts`. The folders are real; git answers from recorded answer sets, one for each state of the repository, and
  * a crash after a git call is the case entering the set of the state that call left.
  */
@@ -40,6 +42,13 @@ import {
   type AirlocksHarness,
   type HarnessTicket
 } from './testing/AirlocksHarness.ts';
+import {
+  commitWorktreeOf,
+  CONSTITUTION_COMMIT_IDS,
+  ConstitutionCommitAnswers,
+  DRAFT_CONSTITUTION_TEXT,
+  requestConstitutionApply
+} from './testing/ConstitutionCommitAnswers.ts';
 import {
   candidateReads,
   createRecordedGroupHarness,
@@ -287,5 +296,79 @@ describe('the group merge rows', () => {
     expect(current.board.jobs().filter((job) => job.kind === 'refresh')).toEqual([]);
     expect(current.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['merge-refused', []]]);
     expect(fastForwardsAsked()).toEqual([]);
+  });
+});
+
+describe('the constitution commit rows', () => {
+  const { COMMITTED_TIP, SECOND_COMMITTED_TIP, COMMITTED_BLOB } = CONSTITUTION_COMMIT_IDS;
+
+  function harnessWithAClaimedCommit(): { current: AirlocksHarness; setupId: string } {
+    harness = createRecordedAirlocksHarness([]);
+    const current = harness;
+    const setupId = requestConstitutionApply(current.board);
+    current.board.claimConstitutionCommitSlot({ setupId, target: 'main', targetTip: MAIN_TIP }, HARNESS_AT);
+    return { current, setupId };
+  }
+
+  function commitWalkOf(current: AirlocksHarness, jobId: string, committedTip: string, tipAtLanding = MAIN_TIP): RecordedGitStage {
+    return ConstitutionCommitAnswers.constitutionCommitAnswersOf({
+      repository: current.repository, jobId, mainTip: MAIN_TIP, committedTip, tipAtLanding
+    });
+  }
+
+  test('a job left in committing by a run cut short is an orphan: its worktree goes, and a fresh job commits and lands', async () => {
+    const { current, setupId } = harnessWithAClaimedCommit();
+    mkdirSync(commitWorktreeOf(current.repository, 'J1'), { recursive: true });
+    recordedGit.answerFrom([...commitWalkOf(current, 'J1', COMMITTED_TIP), ...commitWalkOf(current, 'J2', SECOND_COMMITTED_TIP)]);
+
+    await current.slots.sweep();
+
+    expect(endedCauseOf(current, 'J1')).toBe('orphaned');
+    expect(fastForwardsAsked()).toEqual([SECOND_COMMITTED_TIP]);
+    expect(kindsLogged(current, 'pipeline-applied').map((record) => record['setupId'])).toEqual([setupId]);
+    expect(existsSync(commitWorktreeOf(current.repository, 'J1'))).toBe(false);
+  });
+
+  test('crash after the fast-forward, before the board write: the commit is main\'s tip, so the board side finishes and stage 2 runs', async () => {
+    const { current, setupId } = harnessWithAClaimedCommit();
+    const [job] = current.board.jobs();
+    current.board.setJobSlot(job?.id ?? '', {
+      target: 'main', targetTip: MAIN_TIP, branchTip: MAIN_TIP, phase: 'landing'
+    });
+    mkdirSync(commitWorktreeOf(current.repository, 'J1'), { recursive: true });
+    recordedGit.answerFrom(commitWalkOf(current, 'J1', COMMITTED_TIP, COMMITTED_TIP));
+
+    await current.slots.sweep();
+
+    expect(fastForwardsAsked()).toEqual([]);
+    expect(kindsLogged(current, 'merge-landed').map((record) => record['fields'])).toEqual([{ target: 'main', commit: COMMITTED_TIP, kind: 'landed' }]);
+    expect(kindsLogged(current, 'pipeline-applied').map((record) => record['setupId'])).toEqual([setupId]);
+    expect(current.board.pipelineSetup()).toBeNull();
+  });
+
+  test('a waiting request whose job ended before it landed gets a fresh job on the next sweep', async () => {
+    const { current, setupId } = harnessWithAClaimedCommit();
+    current.board.endJob('J1', { outcome: 'stopped', cause: 'example-crash' }, HARNESS_AT);
+    recordedGit.answerFrom(commitWalkOf(current, 'J2', COMMITTED_TIP));
+
+    await current.slots.sweep();
+
+    expect(kindsLogged(current, 'merge-landed')).toHaveLength(1);
+    expect(kindsLogged(current, 'pipeline-applied').map((record) => record['setupId'])).toEqual([setupId]);
+  });
+
+  test('main already holding the draft\'s text, as after a landing cut short or a commit by hand, finishes Apply with no commit', async () => {
+    harness = createRecordedAirlocksHarness([]);
+    const current = harness;
+    const setupId = requestConstitutionApply(current.board);
+    current.settings.mainConstitution = { verdict: 'read', constitution: { path: 'CONSTITUTION.md', markdown: DRAFT_CONSTITUTION_TEXT, blob: COMMITTED_BLOB } };
+    recordedGit.answerFrom([]);
+
+    await current.slots.sweep();
+
+    expect(current.board.jobs()).toEqual([]);
+    expect(kindsLogged(current, 'job-launched')).toEqual([]);
+    expect(kindsLogged(current, 'pipeline-applied').map((record) => [record['setupId'], (record['fields'] as { constitutionCommit: unknown }).constitutionCommit]))
+      .toEqual([[setupId, null]]);
   });
 });

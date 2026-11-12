@@ -214,9 +214,10 @@ function sentenceOf(record: LogRecordContent): string {
       return `Pipeline setup ${record.setupId} Apply of draft revision ${record.fields.revision} waits for the constitution commit`
         + `${record.fields.resumesBoard ? ', then resumes the board' : ''}`;
     case 'pipeline-apply-held':
-      return `Pipeline setup ${record.setupId} Apply held: ${record.fields.reason}`;
+      return `Pipeline setup ${record.setupId} Apply held: ${record.fields.reason}`
+        + `${record.fields.blockingFiles.length === 0 ? '' : `, blocked by ${record.fields.blockingFiles.join(', ')}`}`;
     case 'pipeline-apply-refused':
-      return `Pipeline setup ${record.setupId} Apply refused: ${record.fields.reason}`;
+      return `Pipeline setup ${record.setupId} Apply refused: ${record.fields.reason}${record.fields.gitFailure === null ? '' : ` (${record.fields.gitFailure})`}`;
     case 'pipeline-apply-cancelled':
       return `Pipeline setup ${record.setupId} Apply of draft revision ${record.fields.revision} cancelled while ${record.fields.state}`;
     case 'pipeline-applied':

@@ -9,6 +9,7 @@ import { join }      from 'node:path';
 import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { PipelineAirlock }               from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading }       from '../../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
@@ -57,14 +58,20 @@ export interface AirlocksHarness {
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
   keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
   settings:    {
-    gateOutcome:     MergedTreeGate['outcome'];
-    reading:         MergeAgentReading;
+    gateOutcome:       MergedTreeGate['outcome'];
+    reading:           MergeAgentReading;
     /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
-    resolutionLines: number | null;
-    watcherIsLive:   boolean;
-    refDeniesHold:   boolean;
+    resolutionLines:   number | null;
+    watcherIsLive:     boolean;
+    refDeniesHold:     boolean;
     /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
-    beforeGate:      () => void;
+    beforeGate:        () => void;
+    /** Main's `CONSTITUTION.md` as git would answer for the main line's tip; absent unless set. */
+    mainConstitution:  MainConstitutionReading;
+    /** The repository sets `commit.gpgsign`; false unless set. */
+    signsCommits:      boolean;
+    /** The board is paused: no ticket's slot opens; false unless set. */
+    dispatchIsStopped: boolean;
   };
   worktreeOf:   (ticketId: string) => string;
   tipOf:        (branch: string) => string;
@@ -140,12 +147,15 @@ export function createRecordedAirlocksHarness(
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
   const settings: AirlocksHarness['settings'] = {
-    gateOutcome:     'passed',
-    reading:         { calls: 0, report: undefined },
-    resolutionLines: 0,
-    watcherIsLive:   false,
-    refDeniesHold:   true,
-    beforeGate:      () => undefined,
+    gateOutcome:       'passed',
+    reading:           { calls: 0, report: undefined },
+    resolutionLines:   0,
+    watcherIsLive:     false,
+    refDeniesHold:     true,
+    beforeGate:        () => undefined,
+    mainConstitution:  { verdict: 'absent' },
+    signsCommits:      false,
+    dispatchIsStopped: false,
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
@@ -186,12 +196,14 @@ export function createRecordedAirlocksHarness(
       }],
       context: ''
     }),
-    keepAirlockFacts:      (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
-    jobFolderOf:           (job) => join(repository, '.example-tracker', 'jobs', job.id),
-    jobFolderOfId:         (jobId) => join(repository, '.example-tracker', 'jobs', jobId),
-    redHandoffResumes:     2,
-    dispatchIsStopped:     () => false,
-    reportDeclinedCleanup: (declined) => declinedCleanups.push(declined),
+    keepAirlockFacts:       (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
+    jobFolderOf:            (job) => join(repository, '.example-tracker', 'jobs', job.id),
+    jobFolderOfId:          (jobId) => join(repository, '.example-tracker', 'jobs', jobId),
+    redHandoffResumes:      2,
+    dispatchIsStopped:      () => settings.dispatchIsStopped,
+    reportDeclinedCleanup:  (declined) => declinedCleanups.push(declined),
+    mainConstitutionOf:     () => settings.mainConstitution,
+    repositorySignsCommits: () => settings.signsCommits,
   });
   return {
     repository,

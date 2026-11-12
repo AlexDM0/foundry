@@ -60,6 +60,7 @@ import {
 import { ReviewOutcome }                                               from '../lifecycle/ReviewOutcome.ts';
 import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
+import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
 import type { GateRunSlots }                                           from './GateRunSlots.ts';
 import { GroupWorktrees }                                              from './GroupWorktrees.ts';
 import { GuardCommand }                                                from './GuardCommand.ts';
@@ -924,7 +925,8 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
       return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
     },
-    refreshWorktreeOf: (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
+    refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
+    constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, jobId),
   });
 }
 

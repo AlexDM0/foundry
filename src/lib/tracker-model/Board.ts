@@ -102,7 +102,8 @@ import type {
 } from './@types/Pipeline.ts';
 import type {
   ApplyFinishing,
-  ApplyRequestReason,
+  ApplyHolding,
+  ApplyRefusal,
   ApplyRequesting,
   ConstitutionEdit,
   ConstitutionSetting,
@@ -146,6 +147,7 @@ import {
   AirlockClaims,
   type AirlockClaim,
   type BranchTreeOf,
+  type ConstitutionCommitSlotClaim,
   type MergeTargetOf,
   type RefreshSlotClaim,
   type TicketAwaitingGreen
@@ -512,6 +514,24 @@ export class Board {
 
   claimRefreshSlot(claim: RefreshSlotClaim, at: string): JobChanged {
     return this.airlockClaims.claimRefreshSlot(claim, at);
+  }
+
+  /**
+   * Launches the constitution commit job of the record's waiting Apply request, holding the main line's slot, and the request is
+   * committing under it. Refuses `no-setup-open` or `no-apply-pending` without a waiting request, and `airlock-held` while a job holds the slot.
+   */
+  claimConstitutionCommitSlot(claim: ConstitutionCommitSlotClaim, at: string): JobChanged {
+    this.pipelineSetups.requirePendingApply(claim.setupId);
+    const claimed = this.airlockClaims.claimConstitutionCommitSlot(claim, at);
+    this.pipelineSetups.attachApplyCommitJob(claim.setupId, claimed.job.id);
+    return claimed;
+  }
+
+  /** Ends a constitution commit job; a request it was committing waits for the next job, unless the same hold holds or refuses it. */
+  endConstitutionCommitJob(jobId: string, ending: JobEnding, at: string): JobChanged {
+    const ended = this.endJob(jobId, ending, at);
+    this.pipelineSetups.detachApplyCommitJob(jobId);
+    return ended;
   }
 
   /** The group's release ticket id while it is queued to merge or holds the main line's slot. */
@@ -986,12 +1006,17 @@ export class Board {
     return this.pipelineSetups.finishHalfAppliedSetup(mainConstitution, at);
   }
 
-  holdApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.holdApply(setupId, reason, at);
+  holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.holdApply(setupId, holding, at);
   }
 
-  refuseApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.refuseApply(setupId, reason, at);
+  refuseApply(setupId: string, refusal: ApplyRefusal, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.refuseApply(setupId, refusal, at);
+  }
+
+  /** Whether stage 2 would refuse `pipeline-moved`: the stored pipeline is neither the record's base nor its draft as applied. */
+  storedPipelineMovedSince(setupId: string, mainConstitution: MainConstitution | null): boolean {
+    return this.pipelineSetups.storedPipelineMovedSince(setupId, mainConstitution);
   }
 
   /** Clears the record's Apply request, which leaves it editable at the design step; refused `no-apply-pending` with none. */

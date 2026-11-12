@@ -1026,15 +1026,18 @@ whose content hash is neither the record's `baseContentHash` nor this draft's as
 - Otherwise the record stores `applyRequest`, state `committing`, logged `pipeline-apply-requested`, and nothing else is
   written: the stored pipeline and the board stay as they are. Until stage 2 or a cancel, every other setup move and
   every `gate` write is refused `pipeline-apply-pending`, so the revision being committed and the pipeline it was
-  checked against cannot change. The commit of `CONSTITUTION.md` to the main line is the Airlock's; until it lands the
-  request waits.
+  checked against cannot change. The commit of `CONSTITUTION.md` to the main line is the Airlock's
+  ([The constitution commit](#the-constitution-commit)); until it lands the request waits.
 
-Stage 2 writes, in the hold's order: `progress.json` (an open `checks-not-set` decision withdrawn, logged
-`decision-withdrawn`, and the board resumed with `--resume`, logged `overseer-set`); `pipeline.json`, the whole draft
-with `constitution.path` set to `CONSTITUTION.md` when the draft holds a constitution; `constitution-sources.json`, the
-agent's sources keyed by the blob id of the text main holds; `log.jsonl` (`pipeline-applied` with the changed, new and
-removed field names and the constitution commit, or `null`); and last the removal of `pipeline-setup.json`. Nothing is
-written under `<data>/briefs/defaults/`, and nothing writes `CONSTITUTION.md` in the main checkout.
+Stage 2 runs in the stage 1 hold, in the hold that records the constitution commit's landing, or in the sweep hold that
+finds main already holding the draft's text. It writes, in the hold's order: `progress.json` (the commit job ended when
+a commit landed, an open `checks-not-set` decision withdrawn, logged `decision-withdrawn`, and the board resumed with
+`--resume`, logged `overseer-set`); `pipeline.json`, the whole draft with `constitution.path` set to `CONSTITUTION.md`
+when the draft holds a constitution; `constitution-sources.json`, the agent's sources keyed by the blob id of the text
+main holds; `log.jsonl` (the commit job's `merge-landed` and `job-ended` when a commit landed, then `pipeline-applied`
+with the changed, new and removed field names and the constitution commit, or `null`); and last the removal of
+`pipeline-setup.json`. Nothing is written under `<data>/briefs/defaults/`, and nothing but the commit's fast-forward
+writes `CONSTITUTION.md` in the main checkout.
 
 Apply is idempotent by setup and revision. A pipeline this draft already stored is no one else's move, so a retried
 Apply finishes what is missing and never refuses `pipeline-moved`; the same revision while its request waits answers
@@ -1464,7 +1467,8 @@ unwrapped in its job worktree.
 
 After each Pass the Overseer sweeps one [Airlock](glossary.md#airlock) per target: the main line and each `group-<name>`
 with an open ticket. A queued ticket merges in a `merge` job, whose record carries
-`airlock: {target, targetTip, branchTip, phase}`.
+`airlock: {target, targetTip, branchTip, phase}`. An Apply waiting for its commit goes before every ticket of the main
+line, in a `constitution-commit` job ([The constitution commit](#the-constitution-commit)).
 
 The merged tree is gated with the merge phase's gates, unless it is the branch's own tree, that tree last passed and the
 row's green is current in the merge phase; a pass on the branch's own tree records the row's green in the merge phase.
@@ -1496,6 +1500,48 @@ refresh and release.
 | the Acceptance is not accounted for at landing | the ticket leaves the queue, held, with the `landing-refused` decision | answer the decision |
 | the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice | clean the main checkout |
 | another process holds a file of the target's checkout open, so git cannot replace it (Windows), on each of `HELD_CHECKOUT_RETRY_TRIES` (3) tries | the files git already wrote go back to HEAD; that target's landings wait under the `target-file-held` notice, which names the held files | close the program that holds the file |
+
+#### The constitution commit
+
+[Apply](#apply)'s stage 1 leaves a request whose `CONSTITUTION.md` main lacks. The main line's Airlock commits that text
+in a `constitution-commit` job, role `null`, no ticket, no agent and no Customs. It is the one write of this program to
+the main line outside a ticket's landing. The job runs no gate of any phase, takes no gate slot and opens no
+`merge-refused` decision: the commit changes only that document, and the one-path check below lets nothing else land.
+
+- **Allocation.** Each sweep, while a request waits (`committing` with no live job, or `held`) and no job holds the
+  main line's slot, the Airlock reads main's `CONSTITUTION.md` first. Main already holding the draft's text finishes
+  Apply at once, with no job and no commit. Otherwise the job is claimed on main's tip, before any ticket candidate,
+  also while the board is paused, and the request becomes `committing` under it. While a ticket holds the slot, or the
+  main line is held, the request waits, and so does every ticket of the main line.
+- **Phases.** `committing`, then `landing`, each written in its own hold; never `merge-in`, `gating` or `fixing`. The
+  job logs `job-launched`, then `merge-landed` (kind `landed`) and `job-ended` (outcome `committed`, with the commit)
+  when it lands; it logs no `merge-started`.
+- **Commit.** In a detached worktree of the slot's `targetTip` at `<worktrees>/constitution-commits/<J>/`, which the
+  job owns: main's blob of `CONSTITUTION.md` at that tip must be the record's `baseBlob`; the draft's text is written
+  byte for byte, staged with `git add -- CONSTITUTION.md` and committed with
+  `git commit --no-verify -q -m <subject>`, hooks off, in the Overseer's own process and with the repository's own
+  configuration. The subject is `Add the repository constitution` when main had no such file, else
+  `Update the repository constitution`, with no body. No call overrides `commit.gpgsign`. The commit must change
+  exactly one path against the tip, `CONSTITUTION.md`.
+- **Landing.** The same compare-and-swap fast-forward of the main checkout a ticket's landing uses, with no Acceptance
+  check. The landing's hold runs Apply's stage 2. The worktree is removed after the hold, and after every end of the
+  job.
+
+| what happens | what the Overseer does | moves for User |
+| --- | --- | --- |
+| main's `CONSTITUTION.md` changed since the record opened | the job ends `failed`; the request is `refused`, `constitution-moved` | start the update again |
+| git cannot make the commit where the repository sets `commit.gpgsign` (no agent, or a pinentry the detached Overseer cannot answer) | the job ends `failed`; the request is `refused`, `constitution-commit-unsigned`, with git's text in `pipeline-apply-refused`; no commit exists | commit the text as `CONSTITUTION.md` by hand, signed, then Apply again |
+| git cannot make the commit otherwise | the same, `git-failed` | Apply again |
+| the commit changes any other path | the job ends `failed` before landing; the request is `refused`, `constitution-commit-unexpected-paths` | Apply again |
+| the stored pipeline changed by hand while the commit waited | the job ends `failed` before landing; the request is `refused`, `pipeline-moved` | start the update again |
+| the main checkout is off the main line, holds a change to `CONSTITUTION.md` that stops the fast-forward, holds a file open, or git fails | the main line is held under its notice, the job ends `stopped` (`target-held`), and the request is `held` with the reason, logged `pipeline-apply-held` with the blocking files; it is never refused for this | clean the main checkout: the next sweep commits again |
+| main moved past the slot's tip | the job ends `stopped` with the landing's reason, and the next allocation commits again on the new tip | none |
+| the request no longer names the job: User cancelled it | the job ends `stopped` (`apply-cancelled`) before it lands | none |
+| a job is found in `committing` with its worktree already there: a run was cut short | the job ends `stopped` (`orphaned`), its worktree removed, and the next allocation replaces it | none |
+| a job is found in `landing` whose commit main already holds: a run was cut short after the fast-forward | the board side finishes: `merge-landed`, the job's end and Apply's stage 2 | none |
+
+A ticket's builder or reviewer running meanwhile is not refused for it: Customs V14 exempts the commit worktree's
+detached HEAD and the landing of a job ended `committed`.
 
 #### Merge approval
 
@@ -1851,8 +1897,8 @@ explorer](interactive/state-explorer.html) walks them.
 | key | optional | value |
 |---|---|---|
 | `id` | no | `J<n>`. |
-| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. |
-| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
+| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner` or `pipeline-agent`. |
+| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge, refresh or constitution commit job. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, or the build or review job in `merging-main` a conflict re-reviewer works under, else null. |
 | `attempt` | no | From 1. |
@@ -1863,7 +1909,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
-| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing` or `landing`. |
+| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing`, `committing` (a constitution commit job only, whose `branchTip` is the `targetTip` it commits on) or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 | `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
@@ -2110,8 +2156,10 @@ the lock, atomically; a start over removes it. This is format version 1.
 - `applyRequest` is [Apply](#apply)'s stage 1: `draftRevision`, `resumesBoard`, `commitJobId` (the Airlock's commit
   job, or `null`), `state` (`committing`, `held` or `refused`) and `reason`, a stored code while `held` or `refused`:
   `not-on-target-branch`, `dirty-checkout`, `target-file-held`, `git-failed`, `constitution-commit-unsigned`,
-  `constitution-commit-unexpected-paths` or `constitution-moved`. A refused request leaves the record editable, and a
-  new Apply replaces it. Apply's stage 2 removes the file.
+  `constitution-commit-unexpected-paths`, `constitution-moved` or `pipeline-moved` (the stored pipeline changed by hand
+  while the commit waited). A constitution commit job's claim sets `commitJobId` and `committing`, a held one too; its
+  end without a landing sets `commitJobId` back to `null`. A refused request leaves the record editable, and a new Apply
+  replaces it. Apply's stage 2 removes the file.
 - `check` is absent until User first asks for a [check](#pipeline-checks), and then holds the newest one:
   `draftRevision`, `gateNames` (the gates the draft changes or adds, in draft order), `state` (`queued`, `running`,
   `checked`, `cannot-run` or `stopped`), `result` and `reason`. `result` is set only once `checked`: `snapshotCommit`
@@ -2266,8 +2314,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-setup-discarded` | `setupId` | none |
 | `pipeline-check-requested` | `setupId` | `revision`, `gateNames`: the gates of that draft revision a check runs two times |
 | `pipeline-apply-requested` | `setupId` | `revision`, `resumesBoard`: the Apply waits for the constitution commit |
-| `pipeline-apply-held` | `setupId` | `reason`: the constitution commit waits, for this stored code |
-| `pipeline-apply-refused` | `setupId` | `reason`: the constitution commit was refused, for this stored code |
+| `pipeline-apply-held` | `setupId` | `reason`: the constitution commit waits, for this stored code; `blockingFiles`: the files of the main checkout that stop the fast-forward, or the files another process holds open |
+| `pipeline-apply-refused` | `setupId` | `reason`: the constitution commit was refused, for this stored code; `gitFailure`: git's own text when git refused, else `null` |
 | `pipeline-apply-cancelled` | `setupId` | `revision`, `state`: the request's state when User cancelled it |
 | `pipeline-applied` | `setupId` | `revision`, `resumesBoard`, `changedFields`, `newFields` and `removedFields` (draft field names), `constitutionCommit` (`null` when no commit was made) |
 
@@ -2336,7 +2384,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `merge-acceptance-set` | `ticketId` | `state`: `accepted` by `merge accept`, or `cleared` when the ticket's queue mark went |
 | `merge-updated` | `ticketId` | `target`, `outcome`: `merged` or `conflicted`, from `merge update` |
 | `merge-started` | `jobId` | `target`, `targetTip`, `branchTip`, `predictedConflictFiles` (empty for a clean prediction): the merge job took the target's Airlock slot |
-| `merge-landed` | `jobId` | `target`, `commit`, `kind` (`landed` on the main line, `integrated` on a group branch): the Overseer's list of tips it landed |
+| `merge-landed` | `jobId` | `target`, `commit`, `kind` (`landed` on the main line, a constitution commit's included, `integrated` on a group branch): the Overseer's list of tips it landed |
 | `worktree-repaired` | `ticketId` | `step`, `patchPath`: where `recreate` saved the changes, or `null` |
 
 #### Decision records

@@ -18,6 +18,7 @@ const EVERY_REASON: readonly ApplyRequestReason[] = [
   'constitution-commit-unsigned',
   'constitution-commit-unexpected-paths',
   'constitution-moved',
+  'pipeline-moved',
 ];
 
 function applyState(changes: Partial<ApplyStateFacts> & Pick<ApplyStateFacts, 'state'>): ApplyStateFacts {

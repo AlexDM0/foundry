@@ -5,8 +5,8 @@
  * land in the group's own worktree, and its release ticket lands the bundle on the main line. Every phase is written on the merge job's
  * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join }                                 from 'node:path';
 
 import { readCurrentBranch }            from '../../lib/git/BranchIntegration.ts';
 import { GitProcess }                   from '../../lib/git/GitProcess.ts';
@@ -22,22 +22,26 @@ import type {
   Airlock,
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { DecisionDraft, DecisionWording }              from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { BranchTreeOf, MergeCandidate, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
-import { MERGE_PRIORITY_RANK }                              from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                       from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                     from '../../lib/tracker-model/BoardRefusal.ts';
-import { PARKED_HOLD_PREFIX }                               from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HANDOFF_RED_INTERRUPTION }                         from '../../lib/tracker-model/constants/JobStates.ts';
-import { MergeQueueUtil, type MergeForecast }               from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
-import type { AirlockLimits }                               from '../../shared/constants/AirlockLimits.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET }                   from '../../shared/constants/OverseerLimits.ts';
-import { LANDING_OUTCOME_OF_REFUSAL, Landing }              from '../lifecycle/Landing.ts';
-import { MergeRun }                                         from '../lifecycle/MergeRun.ts';
-import { GroupWorktrees }                                   from './GroupWorktrees.ts';
-import { JobResumption }                                    from './JobResumption.ts';
-import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
+import type { ApplyRequestReason, MainConstitution, MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording }                                from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                   from '../../lib/tracker-model/AirlockClaims.ts';
+import { MERGE_PRIORITY_RANK }                                                from '../../lib/tracker-model/AirlockClaims.ts';
+import type { Board }                                                         from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }                                                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { PARKED_HOLD_PREFIX }                                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HANDOFF_RED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
+import { PENDING_APPLY_REQUEST_STATES }                                       from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { MergeQueueUtil, type MergeForecast }                                 from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { WorktreesFolder }                                                    from '../../shared/WorktreesFolder.ts';
+import type { AirlockLimits }                                                 from '../../shared/constants/AirlockLimits.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
+import { LANDING_OUTCOME_OF_REFUSAL, Landing }                                from '../lifecycle/Landing.ts';
+import { MergeRun }                                                           from '../lifecycle/MergeRun.ts';
+import { ConstitutionCommits }                                                from './ConstitutionCommits.ts';
+import { GroupWorktrees }                                                     from './GroupWorktrees.ts';
+import { CONSTITUTION_FILE_PATH }                                             from './InstructionFiles.ts';
+import { JobResumption }                                                      from './JobResumption.ts';
+import { RED_HANDOFF_FILES, RedHandoff }                                      from './RedHandoff.ts';
 
 export interface AirlockHold {
   board: Board;
@@ -55,40 +59,44 @@ export interface MergeAgentReading {
 
 export interface AirlocksContext {
   /** The main checkout, where the main line is fast-forwarded. */
-  repositoryRoot:        string;
-  mainLine:              string;
-  groupTargetPrefix:     string;
+  repositoryRoot:         string;
+  mainLine:               string;
+  groupTargetPrefix:      string;
   /** Where the group worktrees and the refresh worktrees live, beside the ticket worktrees. */
-  worktreesRoot:         string;
-  worktreeOf:            (ticketId: string) => string;
-  limits:                AirlockLimits;
+  worktreesRoot:          string;
+  worktreeOf:             (ticketId: string) => string;
+  limits:                 AirlockLimits;
   /** With the per-job ref denies holding, a target moved by someone else requeues silently; an unconfined job may have moved it itself. */
-  refDeniesHold:         boolean;
-  hold:                  AirlockHoldRunner;
+  refDeniesHold:          boolean;
+  hold:                   AirlockHoldRunner;
   /**
    * Gates the tree with the gates of `phase`, read afresh once as the run starts: `merge` for an Airlock's merged tree, the row's own phase
    * for a stale green. The result carries the stamp of what it read.
    */
-  gateMergedTree:        (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
-  mergeAgentReadingOf:   (job: Readonly<Job>) => MergeAgentReading;
+  gateMergedTree:         (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
+  mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
-  resolutionLinesOf:     (worktreePath: string) => number | null;
+  resolutionLinesOf:      (worktreePath: string) => number | null;
   /** The job's own Watcher, an agent's or a process Watcher's, is alive. */
-  watcherIsLive:         (job: Readonly<Job>) => boolean;
-  stopMergeAgent:        (job: Readonly<Job>) => Promise<void>;
-  decisionWordingOf:     (draft: DecisionDraft) => DecisionWording;
+  watcherIsLive:          (job: Readonly<Job>) => boolean;
+  stopMergeAgent:         (job: Readonly<Job>) => Promise<void>;
+  decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
-  keepAirlockFacts:      (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
+  keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
   /** The job's own folder, where a merge-gate fixer's red handoff is written for its resumed session. */
-  jobFolderOf:           (job: Readonly<Job>) => string;
+  jobFolderOf:            (job: Readonly<Job>) => string;
   /** An ended job's folder, where a stale green turned red is written for the next session of its kind. */
-  jobFolderOfId:         (jobId: string) => string;
+  jobFolderOfId:          (jobId: string) => string;
   /** How often a fixer whose fix left the merged tree red is resumed before the merge parks. */
-  redHandoffResumes:     number;
+  redHandoffResumes:      number;
   /** `oversee pause` opens no new slot; a slot already open finishes. */
-  dispatchIsStopped:     () => boolean;
+  dispatchIsStopped:      () => boolean;
   /** A removal git declined after a refresh or a release: the Overseer logs it and shows it as a notice while the leftover stands. */
-  reportDeclinedCleanup: (declined: DeclinedCleanup) => void;
+  reportDeclinedCleanup:  (declined: DeclinedCleanup) => void;
+  /** Main's `CONSTITUTION.md` as git answers for the main line's tip, read afresh at each call. */
+  mainConstitutionOf:     () => MainConstitutionReading;
+  /** The repository sets `commit.gpgsign`, so a constitution commit git cannot make is an unsigned one. */
+  repositorySignsCommits: () => boolean;
 }
 
 /** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
@@ -184,6 +192,12 @@ const REQUEUE_CAUSES = { orphaned: 'orphaned', targetMoved: 'target-moved', targ
 
 const MERGE_ABORTED_CAUSE = 'merge-aborted';
 
+/** The landing refusals that hold the main line: the constitution commit waits for them, and is never refused for them. */
+const HELD_APPLY_REASONS = ['not-on-target-branch', 'dirty-checkout', 'target-file-held', 'git-failed'] as const satisfies readonly ApplyRequestReason[];
+
+/** A constitution commit job whose Apply request no longer names it: User cancelled the Apply. */
+const APPLY_CANCELLED_CAUSE = 'apply-cancelled';
+
 const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
 
 const STALE_GREEN_LOG_FILE = 'gate.log';
@@ -223,6 +237,40 @@ function ticketIdOf(job: Readonly<Job>): string {
 
 function isRefresh(job: Readonly<Job>): boolean {
   return job.kind === 'refresh';
+}
+
+function isConstitutionCommit(job: Readonly<Job>): boolean {
+  return job.kind === 'constitution-commit';
+}
+
+/** What a constitution commit job commits and lands: the open record's Apply request that names it, with the draft's text. */
+interface ConstitutionCommitRequest {
+  setupId:       string;
+  draftRevision: number;
+  resumesBoard:  boolean;
+  markdown:      string;
+  baseBlob:      string | null;
+}
+
+/** The open record's Apply request while it waits for its commit; with `commitJobId`, only while it names that job. */
+function pendingApplyOf(board: Board, commitJobId?: string): ConstitutionCommitRequest | null {
+  const setup   = board.pipelineSetup();
+  const request = setup?.applyRequest ?? null;
+  const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+  if (setup === null || request === null || !pendingStates.includes(request.state)) return null;
+  if (commitJobId !== undefined && request.commitJobId !== commitJobId) return null;
+  return {
+    setupId:       setup.setupId,
+    draftRevision: request.draftRevision,
+    resumesBoard:  request.resumesBoard,
+    markdown:      setup.constitution?.markdown ?? '',
+    baseBlob:      setup.constitution?.baseBlob ?? null,
+  };
+}
+
+/** Main holds the draft's text when it holds `CONSTITUTION.md` with exactly that text; an empty draft only matches no file at all. */
+function mainHoldsTheText(mainConstitution: MainConstitution | null, markdown: string): boolean {
+  return (mainConstitution?.markdown ?? null) === (markdown === '' ? null : markdown);
 }
 
 function mergeAgentOf(board: Board, job: Readonly<Job>): Readonly<Job> | undefined {
@@ -387,7 +435,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    */
   async function settleTicketsAwaitingGreen(target: string): Promise<boolean> {
     if (context.dispatchIsStopped()) return false;
-    const awaiting = await context.hold((hold) => hold.board.ticketsAwaitingGreenOf(target, targetOf, branchTreeOf));
+    // With no stored pipeline only a constitution commit uses the Airlock: no ticket is gated or queued.
+    const awaiting = await context.hold((hold) => (hold.board.pipeline() === null ? [] : hold.board.ticketsAwaitingGreenOf(target, targetOf, branchTreeOf)));
     let moved = false;
     for (const { ticketId } of awaiting) {
       const settled = await context.hold((hold) => {
@@ -875,8 +924,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         return runAirlockAgent(job, hasOpenIncident);
       case 'gating':
         return runGate(job, hasOpenIncident);
+      case 'committing':
+        return runConstitutionCommit(job);
       case 'landing':
-        return runLanding(job);
+        return isConstitutionCommit(job) ? runConstitutionLanding(job) : runLanding(job);
     }
   }
 
@@ -972,10 +1023,163 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
   }
 
+  /** A worktree git declines to remove stays as a leftover, which the Overseer's next start names to User. */
+  function removeConstitutionCommitWorktree(job: Readonly<Job>): void {
+    if (existsSync(ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id))) {
+      ConstitutionCommits.removeCommitWorktree(context.repositoryRoot, context.worktreesRoot, job.id);
+    }
+  }
+
+  /** Ends a constitution commit job with its worktree removed; `inHold` runs in the same hold, after the end. */
+  async function endConstitutionCommit(job: Readonly<Job>, ending: JobEnding, inHold: (hold: AirlockHold) => void = () => undefined): Promise<boolean> {
+    removeConstitutionCommitWorktree(job);
+    await context.hold((hold) => {
+      hold.board.endConstitutionCommitJob(job.id, ending, hold.at);
+      inHold(hold);
+    });
+    return true;
+  }
+
+  /**
+   * The `committing` phase: a worktree already there is one a run cut short left, so the job is an orphan and the next allocation replaces
+   * it; a request that no longer names the job was cancelled. Otherwise the commit is made, and a refused one refuses the request.
+   */
+  async function runConstitutionCommit(job: Readonly<Job>): Promise<boolean> {
+    if (existsSync(ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id))) {
+      return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
+    }
+    const request = await context.hold((hold) => pendingApplyOf(hold.board, job.id));
+    if (request === null) return endConstitutionCommit(job, { outcome: 'stopped', cause: APPLY_CANCELLED_CAUSE });
+    const verdict = ConstitutionCommits.commitConstitution({
+      repositoryRoot: context.repositoryRoot,
+      worktreesRoot:  context.worktreesRoot,
+      jobId:          job.id,
+      targetTip:      slotOf(job).targetTip,
+      baseBlob:       request.baseBlob,
+      markdown:       request.markdown,
+      signsCommits:   context.repositorySignsCommits(),
+    });
+    if (verdict.verdict === 'refused') {
+      return endConstitutionCommit(job, { outcome: 'failed', cause: verdict.reason }, (hold) => {
+        if (pendingApplyOf(hold.board)?.setupId !== request.setupId) return;
+        hold.board.refuseApply(request.setupId, { reason: verdict.reason, gitFailure: verdict.gitFailure }, hold.at);
+      });
+    }
+    const stillNamed = await context.hold((hold) => {
+      if (pendingApplyOf(hold.board, job.id) === null) return false;
+      setPhase(hold, job, 'landing');
+      return true;
+    });
+    return stillNamed || endConstitutionCommit(job, { outcome: 'stopped', cause: APPLY_CANCELLED_CAUSE });
+  }
+
+  /**
+   * The `landing` phase, with no gate: the commit lands by the same compare-and-swap fast-forward a ticket's landing uses, and the hold that
+   * records the landing runs Apply's stage 2. A moved main line ends the job for a fresh one on the new tip; a main checkout that stops the
+   * fast-forward holds the target and the request, which is never refused for it.
+   */
+  async function runConstitutionLanding(job: Readonly<Job>): Promise<boolean> {
+    const slot     = slotOf(job);
+    const worktree = ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id);
+    const commit   = existsSync(worktree) ? MergeRun.headOf(worktree) : null;
+    const blob     = commit === null ? null : ConstitutionCommits.constitutionBlobOf(context.repositoryRoot, commit);
+    if (commit === null || commit === slot.targetTip || blob?.verdict !== 'read' || blob.blob === null) {
+      return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
+    }
+    const landed = await context.hold((hold) => {
+      const request = pendingApplyOf(hold.board, job.id);
+      if (request === null) return { verdict: 'cancelled' } as const;
+      const mainConstitution: MainConstitution = { path: CONSTITUTION_FILE_PATH, markdown: request.markdown, blob: blob.blob ?? '' };
+      if (hold.board.storedPipelineMovedSince(request.setupId, mainConstitution)) {
+        hold.board.endConstitutionCommitJob(job.id, { outcome: 'failed', cause: 'pipeline-moved' }, hold.at);
+        hold.board.refuseApply(request.setupId, { reason: 'pipeline-moved', gitFailure: null }, hold.at);
+        return { verdict: 'pipeline-moved' } as const;
+      }
+      const verdict = Landing.landOnTarget({
+        target:            { branch: mainLine, directory: context.repositoryRoot },
+        mergedCommit:      commit,
+        expectedTargetTip: slot.targetTip,
+        recordedLandings:  hold.board.recordedLandingsOn(mainLine),
+        hookPolicy:        'hooks-off',
+      });
+      if (verdict.verdict === 'refused') return { verdict: 'refused', refusal: verdict, setupId: request.setupId } as const;
+      hold.board.recordMergeLanded(job.id, { target: mainLine, commit: verdict.commit, kind: 'landed' }, hold.at);
+      hold.board.endConstitutionCommitJob(job.id, { outcome: 'committed', commit: verdict.commit }, hold.at);
+      hold.board.finishApply(request.setupId, {
+        draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, mainConstitution, constitutionCommit: verdict.commit
+      }, hold.at);
+      return { verdict: 'landed' } as const;
+    });
+    if (landed.verdict === 'cancelled') return endConstitutionCommit(job, { outcome: 'stopped', cause: APPLY_CANCELLED_CAUSE });
+    if (landed.verdict !== 'refused') {
+      removeConstitutionCommitWorktree(job);
+      return true;
+    }
+    const { refusal, setupId } = landed;
+    const heldReason = HELD_APPLY_REASONS.find((reason) => reason === refusal.reason);
+    // A main line moved by anyone: only `CONSTITUTION.md` changes, so a fresh job commits again on the new tip.
+    if (heldReason === undefined) return endConstitutionCommit(job, { outcome: 'stopped', cause: refusal.reason });
+    const blockingFiles = refusal.facts.blockingFiles ?? [];
+    const heldFiles     = refusal.facts.heldFiles ?? [];
+    heldTargets.set(mainLine, {
+      target: mainLine, branch: currentBranchIn(context.repositoryRoot), blockingFiles, heldFiles
+    });
+    return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld }, (hold) => {
+      hold.board.holdApply(setupId, { reason: heldReason, blockingFiles: [...blockingFiles, ...heldFiles] }, hold.at);
+    });
+  }
+
+  /** Stage 2 at once, with no commit, when main already holds the draft's text: the commit landed, or User committed the text by hand. */
+  function finishWithoutACommit(hold: AirlockHold, request: ConstitutionCommitRequest, mainConstitution: MainConstitution | null): void {
+    if (hold.board.storedPipelineMovedSince(request.setupId, mainConstitution)) {
+      hold.board.refuseApply(request.setupId, { reason: 'pipeline-moved', gitFailure: null }, hold.at);
+      return;
+    }
+    hold.board.finishApply(request.setupId, {
+      draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, mainConstitution, constitutionCommit: null
+    }, hold.at);
+  }
+
+  /**
+   * An Apply waiting for its commit goes before any ticket candidate of the main line, also while the board is paused, since a first Apply
+   * resumes the board only in stage 2. `none`: no request waits, so the tickets go; `waits`: the request waits, and so does every ticket.
+   */
+  async function allocateConstitutionCommit(): Promise<'none' | 'waits' | 'allocated'> {
+    const waiting = await context.hold((hold) => {
+      const request = pendingApplyOf(hold.board);
+      if (request === null) return null;
+      return { request, slotIsHeld: hold.board.airlockHolderOf(mainLine) !== undefined };
+    });
+    if (waiting === null) return 'none';
+    if (waiting.slotIsHeld) return 'waits';
+    const { request } = waiting;
+    const reading = context.mainConstitutionOf();
+    if (reading.verdict === 'unreadable') return 'waits';
+    const mainConstitution = reading.verdict === 'read' ? reading.constitution : null;
+    if (mainHoldsTheText(mainConstitution, request.markdown)) {
+      await context.hold((hold) => {
+        if (pendingApplyOf(hold.board)?.setupId === request.setupId) finishWithoutACommit(hold, request, mainConstitution);
+      });
+      return 'allocated';
+    }
+    if (heldTargets.has(mainLine)) return 'waits';
+    const targetTip = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${mainLine}`);
+    if (targetTip === null) return 'waits';
+    const claimedNow = await context.hold((hold) => {
+      if (GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${mainLine}`) !== targetTip) return true;
+      return claimed(() => hold.board.claimConstitutionCommitSlot({ setupId: request.setupId, target: mainLine, targetTip }, hold.at));
+    });
+    return claimedNow ? 'allocated' : 'waits';
+  }
+
   async function allocate(target: string): Promise<boolean> {
+    if (target === mainLine) {
+      const constitutionCommit = await allocateConstitutionCommit();
+      if (constitutionCommit !== 'none') return constitutionCommit === 'allocated';
+    }
     if (heldTargets.has(target) || context.dispatchIsStopped()) return false;
     const queue = await context.hold((hold) => {
-      if (hold.board.airlockHolderOf(target) !== undefined) return null;
+      if (hold.board.airlockHolderOf(target) !== undefined || hold.board.pipeline() === null) return null;
       const isGroup = target !== mainLine;
       return {
         candidates:               hold.board.mergeCandidatesOf(target, targetOf, branchTreeOf),
@@ -1009,7 +1213,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       for (const { frontmatter } of hold.board.tickets()) {
         if (frontmatter.group !== undefined && frontmatter.status !== 'delivered' && frontmatter.status !== 'abandoned') targets.add(`${groupTargetPrefix}${frontmatter.group}`);
       }
-      for (const job of hold.board.jobs()) if ((job.kind === 'merge' || isRefresh(job)) && job.target !== null) targets.add(job.target);
+      for (const job of hold.board.jobs()) if ((job.kind === 'merge' || isRefresh(job) || isConstitutionCommit(job)) && job.target !== null) targets.add(job.target);
       return [...targets];
     });
   }

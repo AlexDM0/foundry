@@ -9,28 +9,29 @@ import {
   readFileSync,
   realpathSync
 }                           from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
-import { writeFileAtomically }                  from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                           from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                   from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { sameBoot }                             from '../../lib/process-identity/ProcessIdentity.ts';
-import type { InterruptionCause, Job }          from '../../lib/tracker-model/@types/Job.ts';
-import type { HistoryFrame, WatcherFrame }      from '../../lib/watcher/@types/WatcherFrame.ts';
-import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
-import { watcherFilesOf }                       from '../../lib/watcher/WatcherFiles.ts';
-import { readWatcherLaunch, readWatcherSecret } from '../../lib/watcher/WatcherLaunch.ts';
-import { HATCH_FOLDER, WorktreesFolder }        from '../../shared/WorktreesFolder.ts';
-import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }   from '../../shared/constants/OverseerLimits.ts';
-import { requireProgressFile }                  from '../tracker/TrackerReader.ts';
-import type { Workspace }                       from '../tracker/Workspace.ts';
-import { GATE_PROFILE_WORKTREES_FOLDER }        from './GateProfiling.ts';
-import { GroupWorktrees }                       from './GroupWorktrees.ts';
-import { JobLaunch }                            from './JobLaunch.ts';
-import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
-import { PIPELINE_AGENT_SNAPSHOT_FOLDER }       from './PipelineAgentSessions.ts';
-import { PIPELINE_CHECK_WORKTREES_FOLDER }      from './PipelineChecking.ts';
-import { WatcherFleet }                         from './WatcherFleet.ts';
+import { writeFileAtomically }                              from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                               from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { sameBoot }                                         from '../../lib/process-identity/ProcessIdentity.ts';
+import type { InterruptionCause, Job }                      from '../../lib/tracker-model/@types/Job.ts';
+import type { HistoryFrame, WatcherFrame }                  from '../../lib/watcher/@types/WatcherFrame.ts';
+import type { EventLogEntry }                               from '../../lib/watcher/EventLog.ts';
+import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
+import { readWatcherLaunch, readWatcherSecret }             from '../../lib/watcher/WatcherLaunch.ts';
+import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/WorktreesFolder.ts';
+import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }               from '../../shared/constants/OverseerLimits.ts';
+import { requireProgressFile }                              from '../tracker/TrackerReader.ts';
+import type { Workspace }                                   from '../tracker/Workspace.ts';
+import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits } from './ConstitutionCommits.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER }                    from './GateProfiling.ts';
+import { GroupWorktrees }                                   from './GroupWorktrees.ts';
+import { JobLaunch }                                        from './JobLaunch.ts';
+import { LegacyWatcherReader }                              from './LegacyWatcherReader.ts';
+import { PIPELINE_AGENT_SNAPSHOT_FOLDER }                   from './PipelineAgentSessions.ts';
+import { PIPELINE_CHECK_WORKTREES_FOLDER }                  from './PipelineChecking.ts';
+import { WatcherFleet }                                     from './WatcherFleet.ts';
 
 export interface WatcherRegrouped {
   jobId:           string;
@@ -190,15 +191,26 @@ function branchOwnedWorktreesOf(repositoryRoot: string): Set<string> {
   return owned;
 }
 
+/** The folders directly under `folder`, as paths. */
+function foldersIn(folder: string): string[] {
+  if (!existsSync(folder)) return [];
+  return readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => join(folder, entry.name));
+}
+
+/**
+ * The worktree folders no live job and no branch owns. A refresh's worktree belongs to its live refresh job, and a constitution commit's
+ * worktree, one level down under its own folder, to its live constitution commit job.
+ */
 function leftoverWorktreesOf(workspace: Workspace, jobs: readonly Readonly<Job>[]): string[] {
   const worktreesRoot = WorktreesFolder.worktreesRootOf(workspace.rootDirectory);
   if (!existsSync(worktreesRoot)) return [];
   const refreshOwned = jobs.filter((job) => job.kind === 'refresh' && job.target !== null).map((job) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, job.target ?? ''));
-  const jobOwned     = new Set([...jobs.filter(JobLaunch.isWorktreeJob).map((job) => JobLaunch.worktreeOf(workspace, job)), ...refreshOwned].map(canonicalPathOf));
+  const commitOwned  = jobs.filter((job) => job.kind === 'constitution-commit').map((job) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, job.id));
+  const jobOwned     = new Set([...jobs.filter(JobLaunch.isWorktreeJob).map((job) => JobLaunch.worktreeOf(workspace, job)), ...refreshOwned, ...commitOwned].map(canonicalPathOf));
   const branchOwned = branchOwnedWorktreesOf(workspace.rootDirectory);
-  return readdirSync(worktreesRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !OVERSEER_OWNED_FOLDERS.has(entry.name))
-    .map((entry) => canonicalPathOf(join(worktreesRoot, entry.name)))
+  const commitFolder = join(worktreesRoot, CONSTITUTION_COMMITS_FOLDER);
+  return [...foldersIn(worktreesRoot).filter((folder) => !OVERSEER_OWNED_FOLDERS.has(basename(folder)) && folder !== commitFolder), ...foldersIn(commitFolder)]
+    .map(canonicalPathOf)
     .filter((folder) => !jobOwned.has(folder) && !branchOwned.has(folder))
     .sort();
 }

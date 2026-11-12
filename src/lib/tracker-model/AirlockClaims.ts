@@ -38,6 +38,13 @@ export interface RefreshSlotClaim {
   mainTip:   string;
 }
 
+/** An Apply's constitution commit: a commit of `CONSTITUTION.md` on the main line's tip, landed on the main line with no gate. */
+export interface ConstitutionCommitSlotClaim {
+  setupId:   string;
+  target:    string;
+  targetTip: string;
+}
+
 export interface MergeCandidate {
   ticketId:  string;
   priority:  TicketPriority;
@@ -65,14 +72,14 @@ export interface MergeLanding {
 /** The decisions naming a queued ticket that keep it out of its slot until User answers. */
 const SLOT_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'landing-refused'];
 
-const SLOT_HOLDING_JOB_KINDS: readonly Job['kind'][] = ['merge', 'refresh'];
+const SLOT_HOLDING_JOB_KINDS: readonly Job['kind'][] = ['merge', 'refresh', 'constitution-commit'];
 
 export const MERGE_PRIORITY_RANK: Readonly<Record<TicketPriority, number>> = { high: 0, normal: 1, low: 2 };
 
 export class AirlockClaims {
   constructor(private readonly records: BoardRecords, private readonly jobRules: Jobs, private readonly mergeQueueMarks: MergeQueueMarks) {}
 
-  /** The live merge or refresh job holding the target's slot, if any. */
+  /** The live merge, refresh or constitution commit job holding the target's slot, if any. */
   slotHolderOf(target: string): Readonly<Job> | undefined {
     return this.jobRules.jobs().find((job) => SLOT_HOLDING_JOB_KINDS.includes(job.kind) && job.target === target);
   }
@@ -192,6 +199,24 @@ export class AirlockClaims {
       kind: 'refresh', role: null, ticketIds: [], parentJobId: null, attempt: attempts + 1, target: claim.target,
     }, at);
     return this.holdSlot(launched, { ...claim, branchTip: claim.mainTip, predictedConflictFiles: [] }, at);
+  }
+
+  /**
+   * Refused while the target's slot is held. The job holds the slot from its first phase, `committing`, and its slot's branch tip is the
+   * target tip it commits on; it logs no `merge-started`, since it merges nothing.
+   */
+  claimConstitutionCommitSlot(claim: ConstitutionCommitSlotClaim, at: string): JobChanged {
+    this.refuseWhileTheSlotIsHeld(claim.target);
+    const attempts = [...this.records.storedLogRecords, ...this.records.loggedRecords]
+      .filter((record) => record.kind === 'job-launched' && record.fields.kind === 'constitution-commit').length;
+    const launched = this.jobRules.launchJob({
+      kind: 'constitution-commit', role: null, ticketIds: [], parentJobId: null, attempt: attempts + 1, target: claim.target,
+    }, at);
+    this.jobRules.moveJob(launched.job.id, 'merging', at);
+    const job = this.jobRules.setJobSlot(launched.job.id, {
+      target: claim.target, targetTip: claim.targetTip, branchTip: claim.targetTip, phase: 'committing'
+    });
+    return { job, logged: launched.logged };
   }
 
   /**

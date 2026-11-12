@@ -33,6 +33,7 @@ import {
 } from '../lifecycle/Customs.ts';
 import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
 import type { Workspace }            from '../tracker/Workspace.ts';
+import { ConstitutionCommits }       from './ConstitutionCommits.ts';
 import { GroupWorktrees }            from './GroupWorktrees.ts';
 import { CONSTITUTION_DEFAULT_PATH } from './InstructionFiles.ts';
 import { WatcherFleet }              from './WatcherFleet.ts';
@@ -190,7 +191,8 @@ function refMovesAllowedFor(context: TurnEndContext, board: Board, job: Readonly
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
       return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
     },
-    refreshWorktreeOf: (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
+    refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
+    constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),
   });
 }
 

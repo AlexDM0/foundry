@@ -5,8 +5,20 @@
 
 import type { QuestionOptionNotes } from './OptionConsequences.ts';
 
-/** `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket. */
-export type JobKind = 'build' | 'review' | 'merge' | 'merge-agent' | 'refresh' | 'assistant' | 'product-owner' | 'pipeline-agent';
+/**
+ * `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket.
+ * `constitution-commit` commits an Apply's `CONSTITUTION.md` and lands it on the main line through the Airlock, with no gate.
+ */
+export type JobKind =
+  | 'build'
+  | 'review'
+  | 'merge'
+  | 'merge-agent'
+  | 'refresh'
+  | 'constitution-commit'
+  | 'assistant'
+  | 'product-owner'
+  | 'pipeline-agent';
 
 /**
  * A `merge-agent` job runs as its ticket's last worker (`builder`, `reviewer` or `re-reviewer`), resumed into the Airlock, or as a
@@ -45,6 +57,8 @@ export type JobOutcome =
   | 'landed'
   | 'integrated'
   | 'refreshed'
+  /** A constitution commit landed on the main line. */
+  | 'committed'
   | 'wound-down'
   | 'failed'
   | 'blocked'
@@ -68,8 +82,11 @@ export type InterruptionCause =
   | 'forced-stop-refused'
   | 'authentication-failed';
 
-/** `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`. */
-export type AirlockPhase = 'merge-in' | 'resolving' | 're-reviewing' | 'gating' | 'fixing' | 'landing';
+/**
+ * `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`.
+ * `committing`: a constitution commit job writes and commits `CONSTITUTION.md`; its next phase is `landing`, with no gate between.
+ */
+export type AirlockPhase = 'merge-in' | 'resolving' | 're-reviewing' | 'gating' | 'fixing' | 'committing' | 'landing';
 
 export interface Airlock {
   target:    string;
@@ -111,7 +128,7 @@ export interface Job {
   /** `J<n>`, from the stored `nextJobId`, never reused or gap-filled. */
   id:                  string;
   kind:                JobKind;
-  /** `null` for a merge or refresh job, which runs no agent of its own. */
+  /** `null` for a merge, refresh or constitution commit job, which runs no agent of its own. */
   role:                JobRole | null;
   ticketIds:           string[];
   /** A merge agent's merge or refresh job; `null` for every other job. */

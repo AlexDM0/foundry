@@ -48,6 +48,7 @@ export const APPLY_REQUEST_REASONS = [
   'constitution-commit-unsigned',
   'constitution-commit-unexpected-paths',
   'constitution-moved',
+  'pipeline-moved',
 ] as const satisfies readonly ApplyRequestReason[];
 
 /** While a request is in these states, the revision being committed must not change, so every other move refuses. */

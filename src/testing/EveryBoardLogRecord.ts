@@ -51,8 +51,8 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.discardDraft(setupId, at);
   // The edit, its Undo and the discard each took the draft one revision further.
   board.requestApply(setupId, { draftRevision: 3, resumesBoard: false, mainConstitution: null }, at);
-  board.holdApply(setupId, 'dirty-checkout', at);
-  board.refuseApply(setupId, 'git-failed', at);
+  board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md'] }, at);
+  board.refuseApply(setupId, { reason: 'git-failed', gitFailure: 'fatal: example failure' }, at);
   board.cancelApply(setupId, at);
   board.startOverSetup(setupId, at);
   const applied = board.openSetup({

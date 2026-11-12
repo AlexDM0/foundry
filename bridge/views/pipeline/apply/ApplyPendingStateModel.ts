@@ -51,6 +51,8 @@ function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: read
       return `The commit changed more than ${CONSTITUTION_FILE_NAME}, so it did not land.`;
     case 'constitution-moved':
       return `${CONSTITUTION_FILE_NAME} changed on main since the draft started from it.`;
+    case 'pipeline-moved':
+      return 'The stored pipeline changed by hand while the commit waited, so the commit did not land.';
     case null:
       return 'No reason was recorded.';
   }

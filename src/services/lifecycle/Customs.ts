@@ -83,24 +83,28 @@ export interface RefMovesAllowed {
   recordedLandings:     readonly { ref: string; commit: string }[];
   /** The branches the Overseer deletes after a landing, a released group's and each landed ticket's: exempt only once gone. */
   removedAfterLandings: readonly string[];
-  /** The Airlock's refresh worktrees' detached HEADs, keyed `HEAD:<path>`: added, merged into and removed by the Overseer alone. */
-  refreshWorktreeHeads: readonly string[];
+  /**
+   * The detached HEADs of the Airlock's refresh worktrees and constitution commit worktrees, keyed `HEAD:<path>`: added, moved and removed
+   * by the Overseer alone.
+   */
+  airlockWorktreeHeads: readonly string[];
 }
 
 /** How the Overseer names the refs around its landings, which the log records only by ticket and target. */
 export interface OverseerRefNaming {
   /** The job being verified: only the jobs ending after its launch moved a ticket branch past its launch snapshot. */
-  ownJobId:              string;
-  ownBranch:             string;
-  otherJobBranches:      readonly string[];
-  ticketBranchOf:        (ticketId: string) => string;
+  ownJobId:                     string;
+  ownBranch:                    string;
+  otherJobBranches:             readonly string[];
+  ticketBranchOf:               (ticketId: string) => string;
   /** The group branch landing this ticket on the main line releases and deletes; `null` for a ticket releasing no group. */
-  releasedGroupBranchOf: (ticketId: string) => string | null;
-  refreshWorktreeOf:     (groupBranch: string) => string;
+  releasedGroupBranchOf:        (ticketId: string) => string | null;
+  refreshWorktreeOf:            (groupBranch: string) => string;
+  constitutionCommitWorktreeOf: (jobId: string) => string;
 }
 
 /** The job endings that move a target's ref: the landings V14 lets pass. */
-const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed'];
+const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
 export interface CustomsSubject {
   role:              VerifiedRole;
@@ -534,7 +538,7 @@ export function foreignRefsMovedOf(
   const nowRefs = comparableRefsOf(style, snapshots.nowRefs);
   const exempt = new Set([refMovesAllowed.ownBranch, ...refMovesAllowed.otherJobBranches].map((branch) => `refs/heads/${branch}`));
   exempt.add(comparableRefOf(style, `${WORKTREE_HEAD_PREFIX}${ownWorktree}`));
-  for (const refreshHead of refMovesAllowed.refreshWorktreeHeads) exempt.add(comparableRefOf(style, refreshHead));
+  for (const refreshHead of refMovesAllowed.airlockWorktreeHeads) exempt.add(comparableRefOf(style, refreshHead));
   const removedAfterLandings = new Set(refMovesAllowed.removedAfterLandings);
   const loggedJobRefs = new Set(refMovesAllowed.loggedJobBranches.map((branch) => `refs/heads/${branch}`));
   const moved = [...new Set([...launchRefs.keys(), ...nowRefs.keys()])].filter((ref) => {
@@ -557,13 +561,15 @@ function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
   return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved);
 }
 
-/** V14's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every refresh's worktree, and the
- * ticket branches of the jobs ending after the verified job's launch. */
+/**
+ * V14's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every refresh's and
+ * constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch.
+ */
 export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: OverseerRefNaming): RefMovesAllowed {
   const launchById = new Map<string, { target: string | null; ticketIds: readonly string[] }>();
   const recordedLandings: { ref: string; commit: string }[] = [];
   const removedAfterLandings: string[] = [];
-  const refreshWorktreeHeads: string[] = [];
+  const airlockWorktreeHeads: string[] = [];
   const loggedJobBranches = new Set<string>();
   let ownJobLaunched = false;
   for (const record of logRecords) {
@@ -573,7 +579,8 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
     }
     if (record.kind === 'job-launched') {
       launchById.set(record.jobId, { target: record.fields.target, ticketIds: record.fields.ticketIds });
-      if (record.fields.kind === 'refresh' && record.fields.target !== null) refreshWorktreeHeads.push(`HEAD:${naming.refreshWorktreeOf(record.fields.target)}`);
+      if (record.fields.kind === 'refresh' && record.fields.target !== null) airlockWorktreeHeads.push(`HEAD:${naming.refreshWorktreeOf(record.fields.target)}`);
+      if (record.fields.kind === 'constitution-commit') airlockWorktreeHeads.push(`HEAD:${naming.constitutionCommitWorktreeOf(record.jobId)}`);
     }
     if (record.kind !== 'job-ended' || !LANDING_OUTCOMES.includes(record.fields.outcome) || record.fields.commit === undefined) continue;
     const launch = launchById.get(record.jobId);
@@ -592,7 +599,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
     loggedJobBranches: [...loggedJobBranches],
     recordedLandings,
     removedAfterLandings,
-    refreshWorktreeHeads,
+    airlockWorktreeHeads,
   };
 }
 

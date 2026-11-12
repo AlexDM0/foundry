@@ -53,7 +53,7 @@ function pipelineAgentSubject(): CustomsSubject {
     logRecords:       [],
     launchSnapshot,
     refMovesAllowed:  {
-      ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
+      ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
   };
 }

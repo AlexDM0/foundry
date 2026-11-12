@@ -11,7 +11,8 @@ import type { LogRecord }                                  from './@types/LogRec
 import type { Pipeline, PipelineBilling, PipelineGate }    from './@types/Pipeline.ts';
 import type {
   ApplyFinishing,
-  ApplyRequestReason,
+  ApplyHolding,
+  ApplyRefusal,
   ApplyRequesting,
   ConstitutionDraft,
   ConstitutionEdit,
@@ -571,29 +572,59 @@ export class PipelineSetups {
   }
 
   /** The constitution commit waits, as the Airlock found main: the request stays, and so does every refusal of the other moves. */
-  holdApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+  holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
     const setup   = this.requireOpenSetup(setupId);
-    const request = setup.applyRequest;
-    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
-    if (request === null || !pendingStates.includes(request.state)) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
+    const request = this.requirePendingRequest(setup);
     setup.applyRequest = {
-      ...request, commitJobId: null, state: 'held', reason
+      ...request, commitJobId: null, state: 'held', reason: holding.reason
     };
     this.store(setup);
-    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-held', setupId, fields: { reason } }, at)], setup };
+    const fields = { reason: holding.reason, blockingFiles: [...holding.blockingFiles] };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-held', setupId, fields }, at)], setup };
   }
 
   /** The constitution commit cannot be made: the request stays, refused, and the record is editable again. */
-  refuseApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+  refuseApply(setupId: string, refusal: ApplyRefusal, at: string): PipelineSetupChanged {
     const setup   = this.requireOpenSetup(setupId);
-    const request = setup.applyRequest;
-    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
-    if (request === null || !pendingStates.includes(request.state)) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
+    const request = this.requirePendingRequest(setup);
     setup.applyRequest = {
-      ...request, commitJobId: null, state: 'refused', reason
+      ...request, commitJobId: null, state: 'refused', reason: refusal.reason
     };
     this.store(setup);
-    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-refused', setupId, fields: { reason } }, at)], setup };
+    const fields = { reason: refusal.reason, gitFailure: refusal.gitFailure };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-refused', setupId, fields }, at)], setup };
+  }
+
+  /** The record's request while it waits for its commit; refuses `no-setup-open` or `no-apply-pending`. */
+  requirePendingApply(setupId: string): Readonly<NonNullable<PipelineSetup['applyRequest']>> {
+    return this.requirePendingRequest(this.requireOpenSetup(setupId));
+  }
+
+  /** The Airlock's constitution commit job takes the waiting request: it is committing again, under that job. */
+  attachApplyCommitJob(setupId: string, commitJobId: string): PipelineSetupChanged {
+    const setup   = this.requireOpenSetup(setupId);
+    const request = this.requirePendingRequest(setup);
+    setup.applyRequest = {
+      ...request, commitJobId, state: 'committing', reason: null
+    };
+    this.store(setup);
+    return { logged: [], setup };
+  }
+
+  /** A constitution commit job that ended without a landing leaves the request committing, for the next job; another job's request stays. */
+  detachApplyCommitJob(commitJobId: string): void {
+    const setup = this.openSetupRecord();
+    if (setup?.applyRequest?.commitJobId !== commitJobId) return;
+    setup.applyRequest = { ...setup.applyRequest, commitJobId: null };
+    this.store(setup);
+  }
+
+  /** Whether the stored pipeline is neither the record's base nor its draft as applied on `mainConstitution`: stage 2 would refuse it. */
+  storedPipelineMovedSince(setupId: string, mainConstitution: MainConstitution | null): boolean {
+    const setup  = this.requireOpenSetup(setupId);
+    const stored = this.records.pipeline;
+    const contentHash = stored === null ? null : PipelineUtil.contentHashOf(stored);
+    return contentHash !== setup.baseContentHash && contentHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, mainConstitution));
   }
 
   /** Clears a committing, held or refused request; the record is back at the design step, editable, and its pipeline is not stored. */
@@ -700,6 +731,13 @@ export class PipelineSetups {
     if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
     if (reading.verdict === 'absent' || reading.setup.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
     return reading.setup;
+  }
+
+  private requirePendingRequest(setup: Readonly<PipelineSetup>): NonNullable<PipelineSetup['applyRequest']> {
+    const request = setup.applyRequest;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (request === null || !pendingStates.includes(request.state)) throw new BoardRefusal({ reason: 'no-apply-pending', setupId: setup.setupId });
+    return request;
   }
 
   private requireMovableSetup(setupId: string): PipelineSetup {

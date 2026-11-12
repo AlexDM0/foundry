@@ -5,7 +5,9 @@
  * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the withdrawal
  * of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is idempotent
  * by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes the rest,
- * and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable.
+ * and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable. A constitution
+ * commit job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a
+ * refusal git's text.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -159,13 +161,60 @@ describe('stage 1 while main lacks the draft\'s text', () => {
     const { board, setupId } = firstSetupAtApply();
     board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
 
-    board.holdApply(setupId, 'dirty-checkout', AT);
+    board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: [] }, AT);
     expect(openSetupOf(board).applyRequest).toMatchObject({ state: 'held', reason: 'dirty-checkout' });
     expect(refusalDetailOf(() => board.discardDraft(setupId, AT))).toEqual({ reason: 'pipeline-apply-pending', setupId });
-    board.refuseApply(setupId, 'constitution-commit-unsigned', AT);
+    board.refuseApply(setupId, { reason: 'constitution-commit-unsigned', gitFailure: null }, AT);
     expect(openSetupOf(board).applyRequest).toMatchObject({ state: 'refused', reason: 'constitution-commit-unsigned' });
-    expect(refusalDetailOf(() => board.holdApply(setupId, 'dirty-checkout', AT))).toEqual({ reason: 'no-apply-pending', setupId });
+    expect(refusalDetailOf(() => board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: [] }, AT))).toEqual({ reason: 'no-apply-pending', setupId });
     expect(board.discardDraft(setupId, AT).logged.map((record) => record.kind)).toEqual(['pipeline-draft-discarded']);
+  });
+
+  test('the hold logs the files that block main, and the refusal git\'s own text', () => {
+    const { board, setupId } = firstSetupAtApply();
+    board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
+
+    expect(board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md'] }, AT).logged).toEqual([{
+      at: AT, kind: 'pipeline-apply-held', setupId, fields: { reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md'] }
+    }]);
+    expect(board.refuseApply(setupId, { reason: 'constitution-commit-unsigned', gitFailure: 'error: gpg failed to sign the data' }, AT).logged).toEqual([{
+      at: AT, kind: 'pipeline-apply-refused', setupId, fields: { reason: 'constitution-commit-unsigned', gitFailure: 'error: gpg failed to sign the data' }
+    }]);
+  });
+
+  test('a constitution commit job takes a waiting or held request, committing under it; its end without a landing leaves it waiting', () => {
+    const { board, setupId } = firstSetupAtApply();
+    expect(refusalDetailOf(() => board.claimConstitutionCommitSlot({ setupId, target: 'main', targetTip: 'a'.repeat(40) }, AT)))
+      .toEqual({ reason: 'no-apply-pending', setupId });
+    board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
+    board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: [] }, AT);
+
+    const { job } = board.claimConstitutionCommitSlot({ setupId, target: 'main', targetTip: 'a'.repeat(40) }, AT);
+
+    expect(job).toMatchObject({
+      kind:    'constitution-commit',
+      role:    null,
+      state:   'merging',
+      airlock: {
+        target: 'main', targetTip: 'a'.repeat(40), branchTip: 'a'.repeat(40), phase: 'committing'
+      }
+    });
+    expect(openSetupOf(board).applyRequest).toMatchObject({ state: 'committing', reason: null, commitJobId: job.id });
+    expect(refusalDetailOf(() => board.claimConstitutionCommitSlot({ setupId, target: 'main', targetTip: 'a'.repeat(40) }, AT)))
+      .toEqual({ reason: 'airlock-held', target: 'main', jobId: job.id });
+    board.endConstitutionCommitJob(job.id, { outcome: 'stopped', cause: 'orphaned' }, AT);
+    expect(openSetupOf(board).applyRequest).toMatchObject({ state: 'committing', commitJobId: null });
+  });
+
+  test('a stored pipeline changed by hand while the commit waited is one stage 2 would refuse', () => {
+    const { board, setupId } = firstSetupAtApply();
+    board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
+    const record = structuredClone(openSetupOf(board)) as PipelineSetup;
+    expect(board.storedPipelineMovedSince(setupId, MAIN_CONSTITUTION)).toBe(false);
+
+    const { board: reloaded } = boardFixture({ pipeline: STORED_PIPELINE, pipelineSetup: { verdict: 'readable', setup: record } });
+
+    expect(reloaded.storedPipelineMovedSince(setupId, MAIN_CONSTITUTION)).toBe(true);
   });
 
   test('cancel clears the request at the design step, editable, and with none pending refuses no-apply-pending', () => {

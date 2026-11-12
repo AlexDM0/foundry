@@ -11,7 +11,17 @@ import type {
   AirlockPhase
 } from '../@types/Job.ts';
 
-export const JOB_KINDS = ['build', 'review', 'merge', 'merge-agent', 'refresh', 'assistant', 'product-owner', 'pipeline-agent'] as const satisfies readonly JobKind[];
+export const JOB_KINDS = [
+  'build',
+  'review',
+  'merge',
+  'merge-agent',
+  'refresh',
+  'constitution-commit',
+  'assistant',
+  'product-owner',
+  'pipeline-agent',
+] as const satisfies readonly JobKind[];
 
 export const JOB_ROLES = [
   'builder',
@@ -48,6 +58,7 @@ export const JOB_OUTCOMES = [
   'landed',
   'integrated',
   'refreshed',
+  'committed',
   'wound-down',
   'failed',
   'blocked',
@@ -76,7 +87,7 @@ export const HANDOFF_RED_INTERRUPTION = 'handoff-red' satisfies InterruptionCaus
 /** The interruptions a resume counts in `crashResumes`; a reboot, an answer delivery or a usage limit is nobody's crash. */
 export const CRASH_INTERRUPTION_CAUSES = ['watcher-lost', 'agent-crashed'] as const satisfies readonly InterruptionCause[];
 
-export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'landing'] as const satisfies readonly AirlockPhase[];
+export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'committing', 'landing'] as const satisfies readonly AirlockPhase[];
 
 export const OVERSEER_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly OverseerStopReason[];
 

@@ -199,9 +199,10 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-check-requested': { subject: 'pipeline-setup', fields: { revision: 'count', gateNames: 'gate-names' } },
   // Stage 1 of an Apply waits for the constitution commit of draft `revision`.
   'pipeline-apply-requested': { subject: 'pipeline-setup', fields: { revision: 'count', resumesBoard: 'flag' } },
-  // The constitution commit waits, or was refused, for the stored `reason` code.
-  'pipeline-apply-held':      { subject: 'pipeline-setup', fields: { reason: 'text' } },
-  'pipeline-apply-refused':   { subject: 'pipeline-setup', fields: { reason: 'text' } },
+  // The constitution commit waits, or was refused, for the stored `reason` code: held with the files that block the main checkout, refused
+  // with git's own text when git refused.
+  'pipeline-apply-held':      { subject: 'pipeline-setup', fields: { reason: 'text', blockingFiles: 'file-paths' } },
+  'pipeline-apply-refused':   { subject: 'pipeline-setup', fields: { reason: 'text', gitFailure: 'nullable-text' } },
   // `state` is the one the request was in when User cancelled it.
   'pipeline-apply-cancelled': { subject: 'pipeline-setup', fields: { revision: 'count', state: 'text' } },
   // The draft of `revision` is the stored pipeline; `constitutionCommit` is null when no commit was made.

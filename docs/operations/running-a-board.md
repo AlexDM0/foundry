@@ -294,7 +294,7 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 review jobs, so the Sessions card's jobs and the subagents add nothing to it.*
 
 Agents shows the [jobs](../glossary.md#job) on the board in two cards, ticking each second. The Agents card holds the
-builders and reviewers, and the merge and refresh jobs, under a project row: the launch-slot meter, its figure ("3 / 5
+builders and reviewers, and the merge, refresh and constitution commit jobs, under a project row: the launch-slot meter, its figure ("3 / 5
 workers") and "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see [Adjust
 concurrency](#adjust-concurrency). A job there that holds no launch slot, such as a merge, is tagged "not counted". The
 card's foot says which jobs the figure counts and names the tickets in progress that no job works on. The Sessions card
@@ -305,7 +305,7 @@ A job that asks User comes first in its card, its row tinted, with an Asks User 
 question, the job it blocks, how long it has been open, and Answer, which opens the Questions tab. Each row leads with
 its role as an icon in the role's colours, the role's word beside it: a hammer for a builder, a magnifier for a
 reviewer, an inbox for intake, a lifebuoy for the Assistant and a flow for the pipeline agent; a merge or refresh job
-draws its kind, and any other job a dot. The Sessions tallies lead with the same icons. Each row then shows the job's
+draws its kind, a constitution commit job a document, and any other job a dot. The Sessions tallies lead with the same icons. Each row then shows the job's
 state (with a "quiet" tag while its event log stands still, and "watch only" on an older Watcher), its calls against
 its budget as a bar that turns to its warning colour from 80% of the budget, its subagents as squares (filled while one
 runs, outlined once it ended; hover one for what it does), its last tool call and its tokens. Show diagnostics

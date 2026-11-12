@@ -115,7 +115,7 @@ function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject
       loggedJobBranches:    [],
       recordedLandings:     [],
       removedAfterLandings: [],
-      refreshWorktreeHeads: [],
+      airlockWorktreeHeads: [],
     },
     ...overrides,
   };

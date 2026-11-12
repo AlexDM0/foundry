@@ -781,6 +781,77 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedIn(GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP, ['merge-base', '--is-ancestor', mergedCommit, mergedCommit]).exitCode).toBe(0);
   });
 
+  test('a constitution commit: a detached worktree written, staged, committed, its paths read, a failing signer refused, and removed', () => {
+    const repositoryDirectory = realpathSync(scratchRepository());
+    const worktreesRoot = `${repositoryDirectory}-worktrees`;
+    scratchDirectories.push(worktreesRoot);
+    const commitWorktree = join(worktreesRoot, 'constitution-commits', 'J1');
+    gitOutputIn(repositoryDirectory, ['config', 'user.name', 'Alex Example']);
+    gitOutputIn(repositoryDirectory, ['config', 'user.email', 'alex@example.invalid']);
+    // The machine's own configuration may sign every commit; the recorded repository signs none unless the case asks for a signer.
+    gitOutputIn(repositoryDirectory, ['config', 'commit.gpgsign', 'false']);
+    commitFile(repositoryDirectory, 'base.ts', 'export const base = 1;\n');
+    const targetTip = commitFile(repositoryDirectory, 'CONSTITUTION.md', '# Example Agency\n').trim();
+    const {
+      COMMIT, FIRST_TIP, PATH, SECOND_TIP
+    } = RECORDED_PLACEHOLDERS;
+    const recordedIn = (callShape: GitCallShape, directory: string, gitArguments: readonly string[], replaced: Readonly<Record<string, string>> = {}): GitRun => {
+      const answer = GitProcess.run(directory, gitArguments, 'hooks-off', undefined, dirname(commitWorktree));
+      if (answer === null) throw new Error(`git ${gitArguments.join(' ')} could not be started`);
+      const withPlaceholders = (text: string): string => Object.entries(replaced).reduce((output, [value, placeholder]) => output.replaceAll(value, placeholder), text);
+      const recorded = { ...answer, standardOutput: withPlaceholders(answer.standardOutput), standardError: withPlaceholders(answer.standardError) };
+      recordAnswer(callShape, recorded);
+      return recorded;
+    };
+    const quietSuccess = { exitCode: 0, standardOutput: '', standardError: '' };
+    const subject = 'Add the repository constitution';
+
+    gitOutputIn(repositoryDirectory, ['worktree', 'add', '--quiet', '--detach', commitWorktree, targetTip]);
+    writeFileSync(join(commitWorktree, 'CONSTITUTION.md'), '# Example Agency\n\n- Keep the basket page fast.\n');
+    expect(recordedIn(GIT_CALL_SHAPES.STAGE_OF_A_CHANGED_PATH, commitWorktree, ['add', '--', 'CONSTITUTION.md'])).toEqual(quietSuccess);
+    expect(recordedIn(GIT_CALL_SHAPES.COMMIT_OF_A_STAGED_PATH, commitWorktree, ['commit', '--no-verify', '-q', '-m', subject])).toEqual(quietSuccess);
+    const commit = gitOutputIn(commitWorktree, ['rev-parse', 'HEAD']).trim();
+    const pathsArguments = ['diff', '--name-only', '--no-renames', '-z', targetTip, commit, '--'];
+    const tips = { [targetTip]: FIRST_TIP, [commit]: SECOND_TIP };
+    expect(recordedIn(GIT_CALL_SHAPES.PATHS_BETWEEN_TWO_COMMITS, commitWorktree, pathsArguments, { ...tips, 'CONSTITUTION.md': PATH }).standardOutput).toBe(`${PATH}\0`);
+
+    writeFileSync(join(repositoryDirectory, 'CONSTITUTION.md'), '# Example Agency, changed by hand\n');
+    const nulStatusArguments = ['status', '--porcelain=v1', '-z', '--untracked-files=all'];
+    const pathPlaceholder = { 'CONSTITUTION.md': PATH };
+    expect(recordedIn(GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_PATH, repositoryDirectory, nulStatusArguments, pathPlaceholder).standardOutput).toBe(` M ${PATH}\0`);
+    const trackedStatusArguments = ['status', '--porcelain=v1', '--untracked-files=no'];
+    expect(recordedIn(GIT_CALL_SHAPES.TRACKED_STATUS_OF_A_MODIFIED_PATH, repositoryDirectory, trackedStatusArguments, pathPlaceholder).standardOutput).toBe(` M ${PATH}\n`);
+    const fastForwardArguments = ['merge', '--ff-only', '--quiet', commit];
+    const blocked = recordedIn(GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_A_PATH, repositoryDirectory, fastForwardArguments, { ...pathPlaceholder, [commit]: COMMIT });
+    expect(blocked.exitCode).not.toBe(0);
+    expect(blocked.standardError).toContain(PATH);
+    expect(gitOutputIn(repositoryDirectory, ['rev-parse', 'HEAD']).trim()).toBe(targetTip);
+    gitOutputIn(repositoryDirectory, ['checkout', '--quiet', '--', 'CONSTITUTION.md']);
+
+    writeFileSync(join(commitWorktree, 'CONSTITUTION.md'), '# Example Agency\n\n- Name things in full.\n');
+    writeFileSync(join(commitWorktree, 'base.ts'), 'export const base = 2;\n');
+    gitOutputIn(commitWorktree, ['add', '--', 'CONSTITUTION.md', 'base.ts']);
+    gitOutputIn(commitWorktree, ['commit', '--no-verify', '-q', '-m', subject]);
+    const widerCommit = gitOutputIn(commitWorktree, ['rev-parse', 'HEAD']).trim();
+    const widerArguments = ['diff', '--name-only', '--no-renames', '-z', commit, widerCommit, '--'];
+    const widerTips = { [commit]: FIRST_TIP, [widerCommit]: SECOND_TIP, 'CONSTITUTION.md': PATH };
+    const widerPaths = recordedIn(GIT_CALL_SHAPES.TWO_PATHS_BETWEEN_TWO_COMMITS, commitWorktree, widerArguments, widerTips);
+    expect(widerPaths.standardOutput).toBe(`${PATH}\0base.ts\0`);
+
+    gitOutputIn(repositoryDirectory, ['config', 'commit.gpgsign', 'true']);
+    gitOutputIn(repositoryDirectory, ['config', 'gpg.program', 'false']);
+    writeFileSync(join(commitWorktree, 'CONSTITUTION.md'), '# Example Agency\n\n- Keep every change small.\n');
+    gitOutputIn(commitWorktree, ['add', '--', 'CONSTITUTION.md']);
+    const unsigned = recordedIn(GIT_CALL_SHAPES.COMMIT_UNSIGNED_BY_A_FAILING_SIGNER, commitWorktree, ['commit', '--no-verify', '-q', '-m', subject]);
+    expect(unsigned.exitCode).not.toBe(0);
+    expect(unsigned.standardError).toContain('gpg failed to sign');
+    expect(gitOutputIn(commitWorktree, ['rev-parse', 'HEAD']).trim()).toBe(widerCommit);
+    gitOutputIn(commitWorktree, ['reset', '--hard', '--quiet']);
+
+    expect(recordedIn(GIT_CALL_SHAPES.FORCED_REMOVE_OF_A_CLEAN_WORKTREE, repositoryDirectory, ['worktree', 'remove', '--force', commitWorktree])).toEqual(quietSuccess);
+    expect(existsSync(commitWorktree)).toBe(false);
+  });
+
   test('an Airlock walk answers its merge predictions, its merge-ins, a conflict, its tree reads and a fast-forward landing, recorded with placeholders', () => {
     const repositoryDirectory = realpathSync(scratchRepository());
     const target = gitOutputIn(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']).trim();

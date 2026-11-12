@@ -101,12 +101,12 @@ function reviewerSubject(findings: readonly Record<string, unknown>[], logRecord
       loggedJobBranches:    [],
       recordedLandings:     [],
       removedAfterLandings: [],
-      refreshWorktreeHeads: [],
+      airlockWorktreeHeads: [],
     },
   };
 }
 
-function jobLaunchedRecord(jobId: string, launch: { kind: 'build' | 'merge' | 'refresh'; ticketIds: string[]; target: string }): LogRecord {
+function jobLaunchedRecord(jobId: string, launch: { kind: 'build' | 'merge' | 'refresh' | 'constitution-commit'; ticketIds: string[]; target: string }): LogRecord {
   return {
     at:     AT,
     kind:   'job-launched',
@@ -117,7 +117,7 @@ function jobLaunchedRecord(jobId: string, launch: { kind: 'build' | 'merge' | 'r
   };
 }
 
-function jobEndedRecord(jobId: string, outcome: 'landed' | 'refreshed', commit: string): LogRecord {
+function jobEndedRecord(jobId: string, outcome: 'landed' | 'refreshed' | 'committed', commit: string): LogRecord {
   return {
     at: AT, kind: 'job-ended', jobId, fields: { outcome, commit, deniedPermissions: [] }
   };
@@ -125,18 +125,22 @@ function jobEndedRecord(jobId: string, outcome: 'landed' | 'refreshed', commit: 
 
 const OWN_BUILD_JOB_ID = 'J9';
 
-/** A live build job whose exemptions are read from the Overseer's records: ticket 378 releases `group-example`. */
-function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = ''): CustomsSubject {
+/**
+ * A live build job whose exemptions are read from the Overseer's records: ticket 378 releases `group-example`, and constitution commit job
+ * C1 commits in `commitWorktree`.
+ */
+function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = '', commitWorktree = ''): CustomsSubject {
   return {
     ...reviewerSubject([]),
     role:            'builder',
     refMovesAllowed: refMovesAllowedOf(logRecords, {
-      ownJobId:              OWN_BUILD_JOB_ID,
+      ownJobId:                     OWN_BUILD_JOB_ID,
       ownBranch,
-      otherJobBranches:      [],
-      ticketBranchOf:        (ticketId) => `ticket-${ticketId}`,
-      releasedGroupBranchOf: (ticketId) => (ticketId === '378' ? 'group-example' : null),
-      refreshWorktreeOf:     (groupBranch) => (groupBranch === 'group-example' ? refreshWorktree : ''),
+      otherJobBranches:             [],
+      ticketBranchOf:               (ticketId) => `ticket-${ticketId}`,
+      releasedGroupBranchOf:        (ticketId) => (ticketId === '378' ? 'group-example' : null),
+      refreshWorktreeOf:            (groupBranch) => (groupBranch === 'group-example' ? refreshWorktree : ''),
+      constitutionCommitWorktreeOf: (jobId) => (jobId === 'C1' ? commitWorktree : ''),
     }),
   };
 }
@@ -286,7 +290,7 @@ describeWhenGitIsRecorded('V14: no foreign ref moved', () => {
         loggedJobBranches:    [],
         recordedLandings:     [{ ref: 'refs/heads/example-target', commit: START_COMMIT }],
         removedAfterLandings: [],
-        refreshWorktreeHeads: [],
+        airlockWorktreeHeads: [],
       },
     })).toBeNull();
   });
@@ -320,6 +324,21 @@ describeWhenGitIsRecorded('V14: no foreign ref moved', () => {
     expect(refusal('V14', buildJobAcross([], listedRefreshWorktree))?.facts).toEqual([refreshHead]);
     enter(GIT_SCENARIOS.REFRESH_WORKTREE_REMOVED);
     expect(refusal('V14', buildJobAcross(refreshRecords, listedRefreshWorktree))).toBeNull();
+  });
+
+  test('a constitution commit worktree added beside a live build job and moved by its commit passes, as a refresh worktree does', () => {
+    ownBranch = 'ticket-020';
+    // The scenario's detached worktree stands for the commit worktree: git sees the same added and moved detached HEAD.
+    const commitRecords = [jobLaunchedRecord('C1', { kind: 'constitution-commit', ticketIds: [], target: MAIN_LINE })];
+    enter(GIT_SCENARIOS.REFRESH_WORKTREE_ADDED);
+    const commitHead = Object.keys(launchSnapshotOf(repositoryDirectory)?.refs ?? {}).find((ref) => ref.startsWith('HEAD:')) ?? '';
+    const listedCommitWorktree = commitHead.slice('HEAD:'.length);
+    expect(refusal('V14', buildJobAcross(commitRecords, '', listedCommitWorktree))).toBeNull();
+    enter(GIT_SCENARIOS.REFRESH_WORKTREE_MERGED_INTO);
+    expect(refusal('V14', buildJobAcross(commitRecords, '', listedCommitWorktree))).toBeNull();
+    expect(refusal('V14', buildJobAcross([], '', listedCommitWorktree))?.facts).toEqual([commitHead]);
+    const landed = [...commitRecords, jobEndedRecord('C1', 'committed', LANDED_COMMIT)];
+    expect(buildJobAcross(landed).refMovesAllowed?.recordedLandings).toEqual([{ ref: `refs/heads/${MAIN_LINE}`, commit: LANDED_COMMIT }]);
   });
 
   test('a ticket landing on the main line mid-build passes, its build ending after this one launched; one ended before, or deleting it, still refuses', () => {

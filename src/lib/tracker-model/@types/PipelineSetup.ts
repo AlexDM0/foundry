@@ -130,7 +130,10 @@ export interface SetupEdit {
 
 export type ApplyRequestState = 'committing' | 'held' | 'refused';
 
-/** Why the constitution commit holds or was refused: stored codes, worded only for display. */
+/**
+ * Why the constitution commit holds or was refused: stored codes, worded only for display. `pipeline-moved`: the stored pipeline changed
+ * by hand while the commit waited, so the commit does not land.
+ */
 export type ApplyRequestReason =
   | 'not-on-target-branch'
   | 'dirty-checkout'
@@ -138,7 +141,20 @@ export type ApplyRequestReason =
   | 'git-failed'
   | 'constitution-commit-unsigned'
   | 'constitution-commit-unexpected-paths'
-  | 'constitution-moved';
+  | 'constitution-moved'
+  | 'pipeline-moved';
+
+/** Why the main line holds the constitution commit: the reason and the files of the main checkout that stop the fast-forward. */
+export interface ApplyHolding {
+  reason:        ApplyRequestReason;
+  blockingFiles: readonly string[];
+}
+
+/** Why the constitution commit was refused: the reason and, when git refused, git's own text. */
+export interface ApplyRefusal {
+  reason:     ApplyRequestReason;
+  gitFailure: string | null;
+}
 
 /** Stage 1 of an Apply, waiting for the Airlock's commit of `CONSTITUTION.md` before the pipeline is stored. */
 export interface ApplyRequest {

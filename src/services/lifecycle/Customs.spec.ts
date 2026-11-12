@@ -50,7 +50,7 @@ function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
     launchSnapshot:   { refs: {}, hooksFolderDigest: null },
     refMovesAllowed:  {
-      ownBranch: 'example-branch', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
+      ownBranch: 'example-branch', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
     ...overrides,
   };
@@ -130,12 +130,12 @@ const WINDOWS_STYLE: GitPathStyle = { pathModule: win32, foldsCase: true };
 const LINUX_STYLE: GitPathStyle = { pathModule: posix, foldsCase: false };
 
 const NO_REF_MOVES: RefMovesAllowed = {
-  ownBranch: 'ticket-020', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
+  ownBranch: 'ticket-020', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
 };
 
 test('on Windows a detached refresh worktree\'s own HEAD, listed by git as C:/ and named by a joined path, does not read as moved', () => {
   const refreshHead = 'HEAD:C:/Example/Repository/.claude/worktrees/refresh-group-example';
-  const allowed = { ...NO_REF_MOVES, refreshWorktreeHeads: ['HEAD:C:\\Example\\Repository\\.claude\\worktrees\\refresh-group-example'] };
+  const allowed = { ...NO_REF_MOVES, airlockWorktreeHeads: ['HEAD:C:\\Example\\Repository\\.claude\\worktrees\\refresh-group-example'] };
   const snapshots = { launchRefs: { [refreshHead]: 'commit-before' }, nowRefs: { [refreshHead]: 'commit-after' } };
   expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, allowed, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([]);
   expect(foreignRefsMovedOf(WINDOWS_STYLE, snapshots, NO_REF_MOVES, 'C:\\Example\\Repository\\.claude\\worktrees\\ticket-020')).toEqual([refreshHead]);
