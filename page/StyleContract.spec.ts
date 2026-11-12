@@ -220,8 +220,8 @@ function colourValueSentencesOf(stylesheetText: string, definedTokens: ReadonlyS
     const site = `${rule.selector} { ${declaration.property} }`;
     const sentences: string[] = [];
     if (holdsAColour(declaration.value)) sentences.push(`${site} holds a colour value: ${declaration.value}`);
-    const wordsOutsideTokens = declaration.value.replace(/var\([^)]*\)/g, '').toLowerCase().match(/[a-z]+/g) ?? [];
-    const namedColours = wordsOutsideTokens.filter((word) => NAMED_COLOURS.has(word));
+    const wordsOutsideTokenNames = declaration.value.replace(/var\(\s*--[\w-]+/g, '').toLowerCase().match(/[a-z]+/g) ?? [];
+    const namedColours = wordsOutsideTokenNames.filter((word) => NAMED_COLOURS.has(word));
     if (namedColours.length > 0) sentences.push(`${site} names a colour: ${namedColours.join(', ')}`);
     const unknownTokens = [...declaration.value.matchAll(/var\((--[\w-]+)/g)].map(([, tokenName = '']) => tokenName).filter((tokenName) => !definedTokens.has(tokenName));
     sentences.push(...unknownTokens.map((tokenName) => `${site} reads ${tokenName}, which tokens.css does not define`));
@@ -354,16 +354,17 @@ describe('the readers, on known and planted values', () => {
     expect(themeGapSentencesOf(planted)).toEqual(['--line has no dark value', '--glow has a dark value but no light colour']);
   });
 
-  test('a colour function, a hex value, a named colour and an unknown token are each named, and currentColor is not a colour', () => {
+  test('a colour function, a hex value, a named colour, one in a token\'s fallback and an unknown token are each named, and currentColor is not a colour', () => {
     const planted = [
       '.a { color: oklch(0.5 0 0); } .b { background: #fff; } .c { border: 1px solid red; }',
-      '.d { color: var(--nowhere); } .e { stroke: currentColor; fill: var(--ink); }',
+      '.d { color: var(--nowhere); } .e { stroke: currentColor; fill: var(--ink); } .f { color: var(--ink, white); }',
     ].join(' ');
     expect(colourValueSentencesOf(planted, new Set(['--ink']))).toEqual([
       '.a { color } holds a colour value: oklch(0.5 0 0)',
       '.b { background } holds a colour value: #fff',
       '.c { border } names a colour: red',
       '.d { color } reads --nowhere, which tokens.css does not define',
+      '.f { color } names a colour: white',
     ]);
   });
 
