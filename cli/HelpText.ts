@@ -462,7 +462,7 @@ never carries it.
 
   concurrency [<n>] [--json]  Print the concurrency limit: how many agents may be in flight at once.
                               A slot is a build or review job, in any state; merge, merge-agent,
-                              refresh, session and onboarder jobs take none, and no row takes one.
+                              refresh, session and pipeline agent jobs take none, and no row takes one.
                               With <n>, store a new one for every worktree, a whole number from 1
                               to 10: any other is refused at exit 1 with nothing written, and one
                               above 10 an older tracker stored reads as 10. A tracker that never
@@ -662,7 +662,7 @@ never carries it.
                               a later title replaces it (job-not-intake for another kind of job).
                               Under the product owner's own job it names no job.
 
-  advise [--json]             Record an onboarder job (no ticket, no build slot) the Overseer
+  advise [--json]             Record a pipeline agent job (no ticket, no build slot) the Overseer
                               launches on a main-line snapshot: it reads the repository and the
                               gate history, files each optimisation as a draft low ticket, and
                               proposes the pipeline. With no pipeline one starts by itself

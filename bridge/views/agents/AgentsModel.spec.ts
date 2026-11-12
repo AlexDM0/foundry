@@ -1,6 +1,6 @@
 /**
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table;
- * builders, reviewers and roleless jobs are worker work and intake, Assistant and onboarding jobs are sessions, so nothing that never takes
+ * builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent jobs are sessions, so nothing that never takes
  * a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a kind
  * list, and a job is counted only when the Overseer named it; calls read against the budget, warn near it and unbounded without one;
  * subagents are squares worded in every plural form, an older board's subagent without a state reading ended; the ask carries the open
@@ -42,9 +42,9 @@ describe('which records are agent jobs', () => {
 });
 
 describe('which card a job sits in', () => {
-  test('a builder, reviewer or merge-agent job is a worker, a product-owner, assistant or onboarder job a session, a roleless job a worker', () => {
+  test('a builder, reviewer or merge-agent job is a worker, a product-owner, assistant or pipeline agent job a session, a roleless job a worker', () => {
     const groups = [
-      { role: 'builder' }, { role: 'reviewer' }, { role: 'product-owner' }, { role: 'assistant' }, { role: 'onboarder' }, { role: null },
+      { role: 'builder' }, { role: 'reviewer' }, { role: 'product-owner' }, { role: 'assistant' }, { role: 'pipeline-agent' }, { role: null },
     ].map(AgentsModel.groupOf);
     expect(groups).toEqual(['workers', 'workers', 'sessions', 'sessions', 'sessions', 'workers']);
   });
@@ -199,12 +199,12 @@ describe('the worded counts', () => {
     ]);
   });
 
-  test('a session is about its intake\'s title, else its request, the Assistant\'s open incidents, or an onboarding', () => {
+  test('a session is about its intake\'s title, else its request, the Assistant\'s open incidents, or a pipeline agent', () => {
     const { sessionAboutTextOf } = AgentsModel;
     expect(sessionAboutTextOf({ role: 'product-owner', intake: { text: 'Example saved baskets, please', title: 'Saved baskets' } }, 0)).toBe('Saved baskets');
     expect(sessionAboutTextOf({ role: 'product-owner', intake: { text: 'Example saved baskets, please' } }, 0)).toBe('Example saved baskets, please');
     expect([0, 1, 2].map((count) => sessionAboutTextOf({ role: 'assistant' }, count))).toEqual(['no open incident', '1 open incident', '2 open incidents']);
-    expect(sessionAboutTextOf({ role: 'onboarder' }, 0)).toBe('onboarding');
+    expect(sessionAboutTextOf({ role: 'pipeline-agent' }, 0)).toBe('pipeline agent');
   });
 });
 

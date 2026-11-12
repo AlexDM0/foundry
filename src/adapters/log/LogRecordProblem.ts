@@ -26,6 +26,7 @@ import { TICKET_PRIORITIES, TICKET_SIZES }                                      
 import { BoardSettingsUtil }                                                    from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
 import { VocabularyUtil }                                                       from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import { StoredValueUtil }                                                      from '../utils/StoredValueUtil.ts';
+import { LogRecordMappingUtil }                                                 from './utils/LogRecordMappingUtil.ts';
 import { ReviewRecordFieldsUtil }                                               from './utils/ReviewRecordFieldsUtil.ts';
 
 type UnknownObject = Record<string, unknown>;
@@ -129,8 +130,8 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'review-claims':          ReviewRecordFieldsUtil.claimsProblem,
   'review-findings':        ReviewRecordFieldsUtil.findingsProblem,
   'nullable-text':          (value, path) => (value === null ? null : textProblem(value, path)),
-  'job-kind':               (value, path) => vocabularyProblem(value, path, JOB_KINDS),
-  'job-role':               (value, path) => (value === null ? null : vocabularyProblem(value, path, JOB_ROLES)),
+  'job-kind':               (value, path) => vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_KINDS),
+  'job-role':               (value, path) => (value === null ? null : vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_ROLES)),
   'job-outcome':            (value, path) => vocabularyProblem(value, path, JOB_OUTCOMES),
   'interruption-cause':     (value, path) => vocabularyProblem(value, path, INTERRUPTION_CAUSES),
   'watcher-instance':       watcherInstanceProblem,

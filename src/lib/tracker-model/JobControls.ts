@@ -106,9 +106,9 @@ export class JobControls {
   }
 
   /** Recorded `launching` with no ticket, target or build slot: the lifecycle's answer to `checks-not-set`, or `advise` on demand. */
-  startOnboarder(at: string): JobChanged {
+  startPipelineAgent(at: string): JobChanged {
     return this.jobRules.launchJob({
-      kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+      kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
     }, at);
   }
 

@@ -74,7 +74,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | a review pass, the same thing as a [review round](#review-round) | code comments, `reviewPassCount`; this documentation says review round | [Build and review](architecture/build-and-review.md) |
 | | a [Baton pass](#baton-pass), the Overseer hand-over | `src/services/overseer/BatonPass.ts` | [Baton](architecture/baton.md) |
 | | the red-handoff note, `gate-failure.md` | "The Baton pass is in ..." in `RedHandoffMessage.md`; `batonPass` in `RedHandoff.ts`. No Overseer hand-over is involved | [Build and review](architecture/build-and-review.md) |
-| | an onboarder's whole run | "its pass" in `src/services/overseer/Onboarding.ts` | [Customs and gates](architecture/customs-and-gates.md) |
+| | a pipeline agent's whole run | "its pass" in `src/services/overseer/PipelineAgentSessions.ts` | [Customs and gates](architecture/customs-and-gates.md) |
 | **draft** | a [filing draft](#filing-draft), `D<n>` | `draft` verbs; no status, no [row](#row) | [Assistant and intake](architecture/assistant-and-intake.md) |
 | | a [draft ticket](#draft-ticket), status `draft` | `#003`; a real ticket, not yet ready | [State machines](data-model/state-machines.md) |
 | **slot** | a [launch slot](#launch-slot) | `LaunchSlotUtil` counts build and review jobs; the Overseer launches by this, and `status` and the [Next line](#next-line) print it | [The Pass](architecture/the-pass.md) |
@@ -297,7 +297,7 @@ launch](architecture/roles-and-launch.md).
 
 The API turns of its own session, not its subagents', that a builder, reviewer or [merge agent](#merge-agent) may
 spend, or an Assistant per turn (`DISPATCH_PROTOCOL`, `ASSISTANT_TURN_CALL_BUDGET`). A turn with several tool calls
-counts once. Product-owner and onboarder sessions have none. What follows differs by role: a builder or reviewer
+counts once. Product-owner and pipeline agent sessions have none. What follows differs by role: a builder or reviewer
 receives the [wind-down](#wind-down) message, a merge agent's merge is aborted, and an Assistant's turn ends. Home:
 [Roles and launch](architecture/roles-and-launch.md). Values: [Deciders and bounds](reference/deciders-and-bounds.md).
 
@@ -638,7 +638,7 @@ merge or refresh job runs no agent of its own. Home: [Watchers](architecture/wat
 
 ### job kind
 
-`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `onboarder`. It differs
+`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. It differs
 from a job's [role](#role). Home: [Entities](data-model/entities.md).
 
 ### landing
@@ -741,11 +741,6 @@ slots](#launch-slot) and ready tickets. Home: [CLI reference](cli.md).
 A warning the Overseer shows and nobody answers (`OverseerNotice`), such as `dirty-main-checkout`. Home: [Questions and
 incidents](architecture/questions-and-incidents.md).
 
-### onboarder
-
-The job kind and role that reads a repository and proposes its [pipeline](#pipeline), or advises on the one it has. It
-never touches a ticket. Home: [Customs and gates](architecture/customs-and-gates.md).
-
 ### orchestrator
 
 Used only for the optional interactive wrapper session. See [Words that mean several
@@ -785,6 +780,12 @@ One turn of the Overseer's loop, `runOnePass` in `src/services/overseer/DrivePas
 
 The board's `<data>/pipeline.json`: prepare steps, [gates](#gate), and optional review, constitution and agent settings
 (`Pipeline`). Meaning: [Customs and gates](architecture/customs-and-gates.md). Fields: [CLI reference](cli.md).
+
+### pipeline agent
+
+The job kind and role (`pipeline-agent`; `pipelineAgent` in `pipeline.json`) that reads a repository and proposes its
+[pipeline](#pipeline), or advises on the one it has. It never touches a ticket. Home: [Customs and
+gates](architecture/customs-and-gates.md).
 
 ### Playbook
 
@@ -951,7 +952,7 @@ review](architecture/build-and-review.md).
 
 ### role
 
-`JobRole`, what an agent is in a job: `builder`, `reviewer`, `assistant`, `product-owner` or `onboarder`. A
+`JobRole`, what an agent is in a job: `builder`, `reviewer`, `assistant`, `product-owner` or `pipeline-agent`. A
 [merge agent](#merge-agent) takes `builder` or `reviewer`. Home: [Roles and launch](architecture/roles-and-launch.md).
 
 ### role brief

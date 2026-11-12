@@ -29,7 +29,7 @@ Every path, writer, lifetime, write mode: data-model/on-disk-atlas.md.
 Layers and packages: architecture/code-map.md.
 Pass order, Playbook, launch choice: architecture/the-pass.md.
 Job flow, worktree and branch lifecycle, review moves, rework ladder, failed-pass counting: architecture/build-and-review.md.
-Customs checks, report schemas, gate verdicts, what the pipeline means, onboarder: architecture/customs-and-gates.md.
+Customs checks, report schemas, gate verdicts, what the pipeline means, pipeline agent: architecture/customs-and-gates.md.
 Airlock phases, merge order, landing, groups, release, refresh: architecture/airlocks-and-groups.md.
 Process tree, protocol, discovery, port derivation, identity, liveness, job, instance, session and attempt: architecture/watchers.md.
 Baton, start and stop, Baton pass and its failure matrix: architecture/baton.md.

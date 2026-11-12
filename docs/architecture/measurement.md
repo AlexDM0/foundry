@@ -225,7 +225,7 @@ gives it the repository root, while the vendor files a session under its own wor
 reader does not look up a slug: `findSessionSubagentTranscripts` finds a job's session by its id in every folder under
 `<config folder>/projects/`, but `usage` does not use it. Every
 job runs under `<worktrees>`: `ticket-<id>`, a [refresh](../glossary.md#refresh) worktree, an
-[onboarder](../glossary.md#onboarder) snapshot or `sessions/<job>`. Then
+[pipeline agent](../glossary.md#pipeline-agent) snapshot or `sessions/<job>`. Then
 `listSubagentTranscripts` keeps only files named `agent-*.jsonl` under `<session>/subagents/`, with workflow runs under
 `subagents/workflows/<run>/`, so a session's own `<session>.jsonl` never qualifies.
 

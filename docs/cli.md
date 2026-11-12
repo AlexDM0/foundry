@@ -205,7 +205,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 |---|---|---|---|---|
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
-| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the six instruction defaults, from `Constitution.md`, `OnboarderBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|productOwner\|onboarder\|assistant>.md` | `init`, `update` | none |
+| [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the six instruction defaults, from `Constitution.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|productOwner\|pipeline agent\|assistant>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The `SessionStart` hook running `forge hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
 | [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
 | [6](#6-what-version-16-installed) | Removed once: the managed `CLAUDE.md` block, the `SubagentStop`, `PreToolUse` and `PostToolUse` hook entries, the worker agent definition, the dispatcher script and the three briefs install version 16 wrote, and the `assistant-brief.md` versions before 19 wrote | `CLAUDE.md`, `.claude/`, `<data>/` | `init`, `update` | `--no-hooks` keeps the hook entries |
@@ -866,9 +866,9 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 
 `status`, the Next line, `concurrency`, the Bridge header and the Overseer's launch gate read one count: the live
 `build` and `review` jobs (`LaunchSlotUtil`). A job keeps its launch slot in every state, waiting for an answer and
-interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and onboarder jobs take none, and the kind
-decides, never the role: a merge agent runs as its ticket's builder or reviewer and still takes none. No row takes a
-launch slot: a `task add --start` row or a review bar with no live job counts nothing.
+interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
+kind decides, never the role: a merge agent runs as its ticket's builder or reviewer and still takes none. No row takes
+a launch slot: a `task add --start` row or a review bar with no live job counts nothing.
 
 ### Review statistics
 
@@ -1114,7 +1114,7 @@ forge question options -- '{"question": "Which export format?", "options": [{"la
 | `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer stops its Watcher, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
 | `job stop --all [--wind-down] [--json]` | `oversee pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
 | `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
-| `advise [--json]` | Record an [onboarder](glossary.md#onboarder) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. [Where it runs and what it writes](#advise) is below. |
+| `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. [Where it runs and what it writes](#advise) is below. |
 | `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: the Overseer stamps its own. [What follows](#intake-close) is below. |
 | `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with the Overseer up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: the Overseer stamps its own. [Who runs it](#intake-title) is below. |
 
@@ -1143,16 +1143,16 @@ folder with the text as its first line.
 explorer](interactive/state-explorer.html) walks them.
 
 > **As built.** A `job stop` does not stop a merge: [job stop misses a
-> merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent or onboarder: [a stop of
-> a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
+> merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent or pipeline agent: [a
+> stop of a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
 > On POSIX, a stop reaches the groups below a job only through a live parent, so a tree whose leader died with its
 > Watcher stays unreachable: [gap-bash-group-survives-kill](reference/known-gaps.md#gap-bash-group-survives-kill).
 
 #### `advise`
 
 With no pipeline stored the lifecycle starts one by itself, answering `checks-not-set`, once per opening of that
-decision. The Overseer launches it in a detached snapshot of the main line, `<worktrees>/onboard/<J>/`, writing only its
-Hatch folder, with no network.
+decision. The Overseer launches it in a detached snapshot of the main line, `<worktrees>/pipeline-agent/<J>/`, writing
+only its Hatch folder, with no network.
 
 A verified `setup` proposal ends the job `closed` and opens a `pipeline-proposal` decision: `Accept` writes the prepare
 steps and gates through the `gate prepare`, `gate add` and `gate none` moves in the answering hold, `Decline` changes
@@ -1162,8 +1162,8 @@ reserved device name (`aux.c`), one Windows cannot store, paths differing only i
 symbolic links (mode 120000), one finding each; a refused pass adds them to its facts. Nothing is repaired. [Customs and
 gates](architecture/customs-and-gates.md) holds the report, the two runs and the hand-edit route.
 
-> **As built.** An `advise` run cannot file its optimisations: [onboarder advise
-> filing](reference/known-gaps.md#gap-onboarder-advise-filing).
+> **As built.** An `advise` run cannot file its optimisations: [pipeline agent advise
+> filing](reference/known-gaps.md#gap-pipeline-agent-advise-filing).
 
 #### `intake close`
 
@@ -1594,8 +1594,8 @@ explorer](interactive/state-explorer.html) walks them.
 | key | optional | value |
 |---|---|---|
 | `id` | no | `J<n>`. |
-| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `onboarder`. |
-| `role` | no | `builder`, `reviewer`, `assistant`, `product-owner` or `onboarder`, or null for a merge or refresh job. A `merge-agent` job has its ticket's `builder` or `reviewer`. |
+| `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. |
+| `role` | no | `builder`, `reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A `merge-agent` job has its ticket's `builder` or `reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, else null. |
 | `attempt` | no | From 1. |
@@ -1729,7 +1729,7 @@ and `agents` change, and how to edit those three by hand.
 | `gates` | no | gates in run order, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true` |
 | `review` | no | `name`, `model`, `effort`; its presence sets the review phase |
 | `constitution` | no | a list of files, in place of `<data>/briefs/defaults/constitution.md` |
-| `agents` | no | a list of files per role: `builder`, `reviewer`, `productOwner`, `onboarder`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
+| `agents` | no | a list of files per role: `builder`, `reviewer`, `productOwner`, `pipelineAgent`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 
@@ -1870,7 +1870,7 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 
 | kind | ids | fields |
 |---|---|---|
-| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures |
+| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
 | `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |

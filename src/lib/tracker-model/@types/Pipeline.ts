@@ -28,7 +28,7 @@ export interface PipelineReview {
   effort?: string;
 }
 
-export type PipelineAgentRole = 'builder' | 'reviewer' | 'productOwner' | 'onboarder' | 'assistant';
+export type PipelineAgentRole = 'builder' | 'reviewer' | 'productOwner' | 'pipelineAgent' | 'assistant';
 
 /**
  * A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up; `merge` is User's accept

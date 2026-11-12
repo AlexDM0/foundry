@@ -66,7 +66,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'worktree-repair':           'worktree repair',
   'gate-retry':                'gate retry',
   'intake-start':              'intake',
-  'onboarder-advise':          'advise',
+  'pipeline-agent-advise':     'advise',
   'intake-close':              'intake close',
   'intake-title':              'intake title',
   'question-options':          'question options',

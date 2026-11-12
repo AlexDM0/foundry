@@ -53,9 +53,9 @@ function launchSlotLine(find: string, replace: string): SourceMutant {
   return { modulePath: LAUNCH_SLOT_MODULE, find, replace };
 }
 
-function onboarderJob(): Job {
+function pipelineAgentJob(): Job {
   return jobFixture({
-    id: 'J7', kind: 'onboarder', role: 'onboarder', target: null
+    id: 'J7', kind: 'pipeline-agent', role: 'pipeline-agent', target: null
   });
 }
 
@@ -65,8 +65,8 @@ function checksNotSetOpenedRecord(): LogRecord {
   };
 }
 
-function finishedOnboarderRecords(): LogRecord[] {
-  return [launchedRecord('J7', 'onboarder', []), endedRecord('J7', 'failed')];
+function finishedPipelineAgentRecords(): LogRecord[] {
+  return [launchedRecord('J7', 'pipeline-agent', []), endedRecord('J7', 'failed')];
 }
 
 function decisionOf(kind: Decision['kind']): Decision {
@@ -368,41 +368,41 @@ const CLAIMS: PolicyClaim[] = [
   {
     name:   'with no checks line nothing launches and one checks-not-set decision opens',
     facts:  factsWith({ tickets: [ticketOf('001', 'pending')], pipelineIsSet: false }),
-    holds:  (steps) => stepKindsOf(steps).join(' ') === 'open-decision launch-onboarder',
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'open-decision launch-pipeline-agent',
     mutant: policyLine(' || !facts.pipelineIsSet', ''),
   },
   {
     name:   'an open checks-not-set decision is not opened again',
-    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, onboarderJob()] }),
+    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, pipelineAgentJob()] }),
     holds:  (steps) => steps.length === 0,
     mutant: policyLine(' && !openDecisionOfKind(facts, \'checks-not-set\')', ''),
   },
   {
-    name:   'a live onboarder answers checks-not-set, so no second one launches',
-    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, onboarderJob()] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-onboarder'),
-    mutant: policyLine('  if (facts.jobs.some((job) => job.kind === \'onboarder\')) return true;\n', ''),
+    name:   'a live pipeline agent answers checks-not-set, so no second one launches',
+    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, pipelineAgentJob()] }),
+    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
+    mutant: policyLine('  if (facts.jobs.some((job) => job.kind === \'pipeline-agent\')) return true;\n', ''),
   },
   {
-    name:  'an onboarder launched since checks-not-set opened answered it, though it ended',
+    name:  'a pipeline agent launched since checks-not-set opened answered it, though it ended',
     facts: factsWith({
       pipelineIsSet: false,
       decisions:     [decisionOf('checks-not-set')],
-      logRecords:    [checksNotSetOpenedRecord(), ...finishedOnboarderRecords()],
+      logRecords:    [checksNotSetOpenedRecord(), ...finishedPipelineAgentRecords()],
     }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-onboarder'),
+    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
     mutant: policyLine('launchedSinceTheDecision = true;', 'launchedSinceTheDecision = false;'),
   },
   {
-    name:   'a checks-not-set opened again after the onboarder ended launches a fresh one',
-    facts:  factsWith({ pipelineIsSet: false, logRecords: [...finishedOnboarderRecords(), checksNotSetOpenedRecord()] }),
-    holds:  (steps) => stepKindsOf(steps).includes('launch-onboarder'),
+    name:   'a checks-not-set opened again after the pipeline agent ended launches a fresh one',
+    facts:  factsWith({ pipelineIsSet: false, logRecords: [...finishedPipelineAgentRecords(), checksNotSetOpenedRecord()] }),
+    holds:  (steps) => stepKindsOf(steps).includes('launch-pipeline-agent'),
     mutant: policyLine('\'checks-not-set\') launchedSinceTheDecision = false;', '\'checks-not-set\') launchedSinceTheDecision = true;'),
   },
   {
-    name:   'a paused board launches no onboarder',
+    name:   'a paused board launches no pipeline agent',
     facts:  factsWith({ pipelineIsSet: false, overseerState: 'paused' }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-onboarder'),
+    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
     mutant: policyLine('outageHolds || facts.overseerState === \'paused\'', 'outageHolds'),
   },
   {

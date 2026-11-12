@@ -1,4 +1,4 @@
-/** How the help and an onboarder's prompt name the grammar a stored line runs in on this machine, from the shell line port's `lineGrammar`. */
+/** How the help and a pipeline agent's prompt name the grammar a stored line runs in on this machine, from the shell line port's `lineGrammar`. */
 import type { ShellLineGrammar } from '../src/lib/shell-line/ShellLine.ts';
 
 export const LINE_GRAMMAR_WORDING: Readonly<Record<ShellLineGrammar, string>> = Object.freeze({

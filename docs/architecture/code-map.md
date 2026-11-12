@@ -192,7 +192,7 @@ The formats are in the [CLI reference](../cli.md), and the write order in [Stora
 | --- | --- | --- |
 | `render` | Turns the [tracker](../glossary.md#tracker)'s stored files into the Bridge's data: the page payload, board facts and Markdown. The only user of `marked`. | `PagePayloadAssembly.ts` |
 | `tracker` | Finds a tracker and writes it: lock, hold journal, stored files, and the one write sequence. | `TrackerPipeline.ts`, `writeTracker` |
-| `lifecycle` | Work on a tree and what follows from it: [Customs](../glossary.md#customs), [gate](../glossary.md#gate) runs, merge runs, landing, review outcomes, onboarding proposals, token crediting. It keeps no gate result; its only files are two in a job folder, the onboarding outcome and the waiver proposals. | `Customs.ts`, `GateRun.ts` |
+| `lifecycle` | Work on a tree and what follows from it: [Customs](../glossary.md#customs), [gate](../glossary.md#gate) runs, merge runs, landing, review outcomes, pipeline agent proposals, token crediting. It keeps no gate result; its only files are two in a job folder, the pipeline agent outcome and the waiver proposals. | `Customs.ts`, `GateRun.ts` |
 | `control` | Applies one control command to a `Board`, for a CLI verb, a request an agent relays through the [Hatch](../glossary.md#hatch), or the API alike. It changes records and starts nothing; the one exception is `WorktreeRepair.ts`, which runs git inside the [lock hold](../glossary.md#lock-hold) that records the repair. | `ControlService.ts`; the [Bouncer](../glossary.md#bouncer), `Bouncer.ts` |
 | `overseer` | The long-running process. It runs the [Pass](../glossary.md#pass), launches jobs, runs the [Airlocks](../glossary.md#airlock) that merge and land, keeps the Watcher fleet, holds the [Baton](../glossary.md#baton) that names the one live Overseer, runs [Regrouping](../glossary.md#regrouping) at its start, and serves the API. | `DrivePass.ts` |
 
@@ -224,7 +224,7 @@ Files are shipping modules at commit `70ce56de`.
 | `merges/` | 2 | `merges`, `merge` |
 | `decisions/` | 2 | `decisions`, `decide` |
 | `incidents/` | 2 | `incidents`, `incident` |
-| `dispatch/`, `worktrees/`, `intake/`, `onboarding/` | 1 each | `concurrency`, `worktree`, `intake`, `advise` |
+| `dispatch/`, `worktrees/`, `intake/`, `pipeline/` | 1 each | `concurrency`, `worktree`, `intake`, `advise` |
 | `arguments/`, `constants/`, `utils/` | 3 each | The parser, constants and output helpers commands share |
 
 </details>

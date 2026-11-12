@@ -1,7 +1,7 @@
 /**
- * What install version 16 wrote that 17 removes once, the three hook entries and the files below, the Assistant brief 19 retired, and the
- * merger default 26 retired. Kept out of `cli/adoption/constants/ClaudeCodeInstall.ts`, which `cli/InstalledSurface.integration.spec.ts` scans, so
- * no installed surface names them.
+ * What install version 16 wrote that 17 removes once, the three hook entries and the files below, the Assistant brief 19 retired, the
+ * merger default 26 retired, and the onboarder default 28 retired. Kept out of `cli/adoption/constants/ClaudeCodeInstall.ts`, which
+ * `cli/InstalledSurface.integration.spec.ts` scans, so no installed surface names them.
  */
 import { join } from 'node:path';
 
@@ -27,6 +27,8 @@ export interface RetiredInstalledFilePaths {
   assistantBrief:   string;
   /** Install version 26 retired the `merger` pipeline role, and with it its instruction default. */
   mergerDefault:    string;
+  /** Install version 28 renamed the `onboarder` role to the pipeline agent, and its instruction default to `pipelineAgent.md`. */
+  onboarderDefault: string;
 }
 
 export function retiredInstalledFilePathsIn(rootDirectory: string): RetiredInstalledFilePaths {
@@ -38,5 +40,6 @@ export function retiredInstalledFilePathsIn(rootDirectory: string): RetiredInsta
     agentDefinition:  join(rootDirectory, '.claude', 'agents', `${DISPATCH_PROTOCOL.WORKER_AGENT_TYPE}.md`),
     assistantBrief:   join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'assistant-brief.md'),
     mergerDefault:    join(rootDirectory, INSTRUCTION_DEFAULTS_FOLDER, 'merger.md'),
+    onboarderDefault: join(rootDirectory, INSTRUCTION_DEFAULTS_FOLDER, 'onboarder.md'),
   };
 }

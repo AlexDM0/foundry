@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="820" height="704" viewBox="0 0 820 704" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
 <title>Only three roles clear Customs; the Airlock agent gets V10 alone</title>
-<desc>Sixteen checks V1 to V16 against four roles. Builder, reviewer and onboarder columns run through clearCustoms in production. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
+<desc>Sixteen checks V1 to V16 against four roles. Builder, reviewer and pipeline agent columns run through clearCustoms in production. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
 <rect x="1" y="1" width="818" height="702" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
 <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only three roles clear Customs; the Airlock agent gets V10 alone</text>
-<text x="40" y="68" font-size="14" fill="#73726c">Each role owes its own column, in this order except the onboarder, which runs V16 second</text>
+<text x="40" y="68" font-size="14" fill="#73726c">Each role owes its own column, in this order except the pipeline agent, which runs V16 second</text>
 <text x="570.5" y="108" font-size="13" fill="#185FA5" text-anchor="middle">run by clearCustoms</text>
 <path d="M446,116 L687,116" stroke="#CFE2F6" stroke-width="1.6" fill="none"/>
 <text x="740.5" y="108" font-size="13" fill="#5F5E5A" text-anchor="middle">declared, not reached</text>
 <path d="M707,116 L774,116" stroke="#E1DDD0" stroke-width="1.6" fill="none"/>
 <text x="479.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">builder</text>
 <text x="566.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">reviewer</text>
-<text x="653.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">onboarder</text>
+<text x="653.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline agent</text>
 <text x="740.5" y="140" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">airlock-</text>
 <text x="740.5" y="156" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent</text>
 <rect x="32" y="170" width="756" height="28" rx="5" fill="#F4F2EB"/>

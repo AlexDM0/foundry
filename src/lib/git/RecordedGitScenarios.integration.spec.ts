@@ -1,5 +1,5 @@
 /**
- * Records the git scenarios the Customs and review outcome specs replay (`src/services/lifecycle/Customs.onboarder.spec.ts`,
+ * Records the git scenarios the Customs and review outcome specs replay (`src/services/lifecycle/Customs.pipelineAgent.spec.ts`,
  * `Customs.verification.spec.ts`, `Customs.provenance.spec.ts` and `ReviewOutcome.settled.spec.ts`): each case builds a scenario's state with
  * real git and runs in it the calls `src/testing/RecordedGitScenarioCalls.ts` names, so each answer is recorded under the scenario. A call
  * the production code makes and the data does not name fails its replaying spec as unrecorded. `bun run record src/lib/git/GitProcess.ts`
@@ -13,8 +13,8 @@ import { afterAll, expect, test } from 'bun:test';
 import { recordAnswer }        from '../../testing/RecordedAnswers.ts';
 import {
   CUSTOMS_SCENARIO_CALLS,
-  ONBOARDER_SCENARIO_CALLS,
-  ONBOARDER_SNAPSHOT_FOLDER_NAME,
+  PIPELINE_AGENT_SCENARIO_CALLS,
+  PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME,
   REVIEW_PASS_WITHOUT_CHANGES_CALLS,
   reviewPassScenarioCalls,
   SCENARIO_DATA_FOLDER,
@@ -150,39 +150,39 @@ function manyCodeLines(): string {
   return `${Array.from({ length: SCENARIO_MANY_CODE_LINES_COUNT }, (_unused, i) => `export const exampleValue${i} = ${i};`).join('\n')}\n`;
 }
 
-describeWhenGitIsPresent('the git scenarios the Customs onboarder spec replays', () => {
+describeWhenGitIsPresent('the git scenarios the Customs pipeline agent spec replays', () => {
   /** A main line with package.json and its detached snapshot inside the repository. */
-  function onboarderRepository(): { directory: string; snapshotDirectory: string; startCommit: string } {
+  function pipelineAgentRepository(): { directory: string; snapshotDirectory: string; startCommit: string } {
     const directory = scratchRepository('customs-scenarios');
     const startCommit = commitFile(directory, 'package.json', '{ "name": "example" }\n');
-    const snapshotDirectory = join(directory, ONBOARDER_SNAPSHOT_FOLDER_NAME);
+    const snapshotDirectory = join(directory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME);
     gitOutputIn(directory, ['worktree', 'add', '--detach', snapshotDirectory, startCommit]);
     return { directory, snapshotDirectory, startCommit };
   }
 
   test.each([
-    [GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED, (): void => undefined],
-    [GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_CHANGED, (snapshotDirectory: string): void => {
+    [GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED, (): void => undefined],
+    [GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_FILE_CHANGED, (snapshotDirectory: string): void => {
       writeFileSync(join(snapshotDirectory, 'package.json'), '{ "name": "changed" }\n');
     }],
-    [GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_ADDED, (snapshotDirectory: string): void => {
+    [GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_FILE_ADDED, (snapshotDirectory: string): void => {
       writeFileSync(join(snapshotDirectory, 'pipeline.json'), '{}\n');
     }],
-    [GIT_SCENARIOS.ONBOARDER_SNAPSHOT_BRANCH_ADDED, (snapshotDirectory: string): void => {
-      gitOutputIn(snapshotDirectory, ['branch', 'onboarder-moved', 'HEAD']);
+    [GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_BRANCH_ADDED, (snapshotDirectory: string): void => {
+      gitOutputIn(snapshotDirectory, ['branch', 'pipeline-agent-moved', 'HEAD']);
     }],
   ] as const)('%s', (scenario, plant) => {
-    const { directory, snapshotDirectory, startCommit } = onboarderRepository();
+    const { directory, snapshotDirectory, startCommit } = pipelineAgentRepository();
     plant(snapshotDirectory);
     const commits = { '<start>': startCommit };
-    expect(recordScenario(scenario, { repositoryDirectory: directory, commits }, ONBOARDER_SCENARIO_CALLS)).toBeGreaterThan(0);
+    expect(recordScenario(scenario, { repositoryDirectory: directory, commits }, PIPELINE_AGENT_SCENARIO_CALLS)).toBeGreaterThan(0);
   });
 
-  test(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_COMMITTED, () => {
-    const { directory, snapshotDirectory, startCommit } = onboarderRepository();
+  test(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_COMMITTED, () => {
+    const { directory, snapshotDirectory, startCommit } = pipelineAgentRepository();
     const movedCommit = commitFile(snapshotDirectory, 'turbo.json', '{}\n');
     const commits = { '<start>': startCommit, '<moved>': movedCommit };
-    expect(recordScenario(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_COMMITTED, { repositoryDirectory: directory, commits }, ONBOARDER_SCENARIO_CALLS))
+    expect(recordScenario(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_COMMITTED, { repositoryDirectory: directory, commits }, PIPELINE_AGENT_SCENARIO_CALLS))
       .toBeGreaterThan(0);
   });
 });

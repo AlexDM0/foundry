@@ -330,7 +330,7 @@ building and reviewing figures come from the strip's chips. The strip's flag cou
 worker card, and the theme switch in the tab bar.
 
 The Agents tab splits the jobs by role, through `AgentsModel.groupOf`. The worker card holds builder and reviewer work,
-and the roleless merge and refresh jobs; the Sessions card holds intake, Assistant and onboarding jobs, which never take a
+and the roleless merge and refresh jobs; the Sessions card holds intake, Assistant and pipeline agent jobs, which never take a
 launch slot. Each card is a `Pane` over one table: a project row (in the worker card, the `SlotMeter` of the jobs
 `launchSlots.slotJobIds` names, its figure and the limit control; in Sessions, the session count), then a row per job.
 A job the Overseer did not count carries a dashed "not counted" tag, so the Bridge copies no slot rule. A job with an

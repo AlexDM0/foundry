@@ -8,7 +8,7 @@ import type { Job, JobKind }               from '../../lib/tracker-model/@types/
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { JobLaunch }                       from './JobLaunch.ts';
 
-const EVERY_JOB_KIND: JobKind[] = ['build', 'review', 'merge', 'merge-agent', 'refresh', 'assistant', 'product-owner', 'onboarder'];
+const EVERY_JOB_KIND: JobKind[] = ['build', 'review', 'merge', 'merge-agent', 'refresh', 'assistant', 'product-owner', 'pipeline-agent'];
 const WINDING_DOWN_KINDS: readonly JobKind[] = ['build', 'review'];
 
 test.each(EVERY_JOB_KIND)('a %s job asks for the stop at the end exactly when it winds down', (kind) => {

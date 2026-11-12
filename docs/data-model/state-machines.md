@@ -275,7 +275,7 @@ the other [job kinds](../glossary.md#job-kind) use part of it. `merge` is the Ai
 `merge-agent` is a [merge agent](../glossary.md#merge-agent), launched inside a merge, in a
 [role](../glossary.md#role) of the ticket's `builder` or `reviewer`.
 `SESSION_JOB_KINDS` are `assistant` and `product-owner`; their `result` ends a turn, never the job. An
-[onboarder](../glossary.md#onboarder) proposes the [pipeline](../glossary.md#pipeline).
+[pipeline agent](../glossary.md#pipeline-agent) proposes the [pipeline](../glossary.md#pipeline).
 
 No record of a live job says what process runs it; that lives in the job's folder
 ([Watchers](../architecture/watchers.md)).
@@ -359,7 +359,7 @@ has nothing to wait for, so it ends in the same [lock hold](../glossary.md#lock-
 session needs its Watcher to finish first. `job fresh` asks for a replacement agent, so it writes no hold and needs a
 ticket. A [wind-down](../glossary.md#wind-down) asks the agent to finish and report, and changes no state.
 
-![Three rows, stop, fresh and wind-down, against no session, build or review in any other state, and session job. A stop or fresh ends a job with no session at once, and fresh needs a ticket. A build or review otherwise goes to stopping and ends. A product owner, or an Assistant in any other state, goes to stopping on a stop, ends closed, and refuses fresh. wind-down changes no state. stop and wind-down write a hold where the job has a ticket. A merge or refresh carries on from stopping; a merge-agent or onboarder stays stopping.](../figures/state-machines/stop-modes.png)
+![Three rows, stop, fresh and wind-down, against no session, build or review in any other state, and session job. A stop or fresh ends a job with no session at once, and fresh needs a ticket. A build or review otherwise goes to stopping and ends. A product owner, or an Assistant in any other state, goes to stopping on a stop, ends closed, and refuses fresh. wind-down changes no state. stop and wind-down write a hold where the job has a ticket. A merge or refresh carries on from stopping; a merge-agent or pipeline agent stays stopping.](../figures/state-machines/stop-modes.png)
 
 *Only `stop` and `wind-down` write the ticket hold; `fresh` never does. The last two lines under the grid are the kinds
 the grid's columns do not cover.*
@@ -370,7 +370,7 @@ the grid's columns do not cover.*
 - An Assistant ends `closed` once its Watcher is gone.
 - A `merge` or `refresh` job moves to `stopping` and a merge's ticket takes the hold, but the Airlock does not read that
   state, so the merge carries on ([gap-job-stop-misses-merge](../reference/known-gaps.md#gap-job-stop-misses-merge)).
-- An onboarder receives no stop frame, and nothing ends it from `stopping`. It stays on the board, and a new onboarder
+- A pipeline agent receives no stop frame, and nothing ends it from `stopping`. It stays on the board, and a new pipeline agent
   does not launch beside it.
 - A merge agent receives no stop frame and stays `stopping`. Its merge stalls with it, until the merge gives up its
   Airlock slot, which ends the agent `stopped`
@@ -385,7 +385,7 @@ instance + 1. Only a product owner that ended `closed` reaches it, through `mess
 
 ### Which kinds use which states
 
-![Eight job kinds against eleven states. All use launching, stopping and ended. build and review add preparing, running, waiting-for-answer, interrupted, in-customs and gating, and review adds awaiting-answer. merge and refresh add only merging. merge-agent adds running, interrupted, in-customs and gating. assistant adds running and interrupted, product-owner adds both question states, and onboarder adds in-customs.](../figures/state-machines/kinds-by-state.png)
+![Eight job kinds against eleven states. All use launching, stopping and ended. build and review add preparing, running, waiting-for-answer, interrupted, in-customs and gating, and review adds awaiting-answer. merge and refresh add only merging. merge-agent adds running, interrupted, in-customs and gating. assistant adds running and interrupted, product-owner adds both question states, and pipeline agent adds in-customs.](../figures/state-machines/kinds-by-state.png)
 
 *Read a column to see who reaches a state: `merging` belongs to two kinds, and `preparing` to the two worktree kinds.*
 
@@ -443,7 +443,7 @@ An ended job leaves the board, so its outcome lives in the `job-ended` log recor
 | `blocked` | a builder reported it is blocked |
 | `replaced` | a fresh session or attempt takes over |
 | `stopped` | ended by User, a setup failure, the call budget, a gate that cannot run, a requeue, an abort or a park; `cause` says why |
-| `closed` | a session or onboarder ended normally |
+| `closed` | a session or pipeline agent ended normally |
 
 </details>
 
@@ -477,7 +477,7 @@ Stored `overseerState`, from `OVERSEER_STATES` in `src/lib/tracker-model/constan
 `paused`. An absent value reads as `DEFAULT_OVERSEER_STATE`, `paused`, so a first start waits for User's go.
 `oversee pause` and `oversee resume` set it, `job stop --all` pauses, and the `pause-overseer` step pauses on an outage.
 
-`paused` stops launches and `queue-merge` (`newWorkIsHeld`) and the onboarder (`onboarderIsHeld`), and opens no Airlock
+`paused` stops launches and `queue-merge` (`newWorkIsHeld`) and the pipeline agent (`pipelineAgentIsHeld`), and opens no Airlock
 slot (`dispatchIsStopped`). It does not stop a running job, a resume, an incident default, `boot-assistant`, or a merge
 already holding an Airlock slot.
 
@@ -567,7 +567,7 @@ Kinds, and what an answer does, are in [Questions and incidents](../architecture
 | Job moves | `src/lib/tracker-model/Jobs.ts` | `moveJob`, `interruptJob`, `endJob` | `src/lib/tracker-model/Board.jobs.spec.ts` |
 | Job controls | `src/lib/tracker-model/JobControls.ts`, `src/services/overseer/JobControlDelivery.ts` | `requestJobStop`, `messageJob`; `deliverJobControls` | `src/lib/tracker-model/Board.jobs.spec.ts`, `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | Ending a stopped job | `src/services/overseer/JobLaunch.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/IntakeSessions.ts` | `userStopEndingOf`, `applyWatcherEvents` | `src/services/overseer/JobLaunch.integration.spec.ts` |
-| Pause and hold queries | `src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/InstallChangeWatch.ts` | `newWorkIsHeld`, `resumesAreHeld`, `onboarderIsHeld` in `nextStepsOf`; `dispatchIsStopped`; `installVersionChanged` | `src/lib/tracker-model/Playbook.spec.ts`, `src/services/overseer/InstallChangeWatch.spec.ts` |
+| Pause and hold queries | `src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/InstallChangeWatch.ts` | `newWorkIsHeld`, `resumesAreHeld`, `pipelineAgentIsHeld` in `nextStepsOf`; `dispatchIsStopped`; `installVersionChanged` | `src/lib/tracker-model/Playbook.spec.ts`, `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Runtime state | `src/services/overseer/BoardState.ts` | `OverseerRuntimeState` | `src/services/overseer/BoardState.spec.ts` |
 | Stored state | `src/lib/tracker-model/constants/OverseerStates.ts` | `OVERSEER_STATES` | `src/lib/tracker-model/constants/OverseerStates.spec.ts` |
 | Command refusal when held | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |

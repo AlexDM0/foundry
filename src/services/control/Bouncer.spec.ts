@@ -157,13 +157,13 @@ describe('option notes', () => {
     expect(Bouncer.verdictOf(jobOf('builder'), { ...command, jobId: 'J1' })).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 
-  test.each(['assistant', 'onboarder'] as const)('a %s, which never asks User, is refused its question-options', (role) => {
+  test.each(['assistant', 'pipeline-agent'] as const)('a %s, which never asks User, is refused its question-options', (role) => {
     expect(Bouncer.verdictOf(jobOf(role), command).verdict).toBe('refused');
   });
 });
 
 describe('ticket review', () => {
-  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'onboarder', null];
+  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', null];
 
   test('no Overseer-launched session relays ticket ready, ticket submit or a switch of ticket review', () => {
     const commands: ControlCommand[] = [

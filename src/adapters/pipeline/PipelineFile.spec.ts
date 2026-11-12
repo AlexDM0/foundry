@@ -77,6 +77,12 @@ test('an unknown key, at the top or on a gate or step, is refused with a reason 
   expect(reasonOf({ gates: [], approvals: { merges: true } })).toContain('approvals."merges" is not a pipeline key');
 });
 
+test('the retired role key onboarder is refused, and its current name pipelineAgent reads back', () => {
+  expect(reasonOf({ gates: [], agents: { onboarder: [] } })).toContain('agents."onboarder" is not a pipeline key');
+  const agents = { pipelineAgent: ['docs/pipeline-notes.md'] };
+  expect(readingOfText(JSON.stringify({ gates: [], agents }))).toMatchObject({ verdict: 'readable', pipeline: { agents } });
+});
+
 test('an approval switch that is not a boolean is refused, and one that is reads back as written', () => {
   expect(reasonOf({ gates: [], approvals: { tickets: 'off' } })).toBe('approvals.tickets is not true or false');
   expect(reasonOf({ gates: [], approvals: true })).toBe('approvals is not an object');

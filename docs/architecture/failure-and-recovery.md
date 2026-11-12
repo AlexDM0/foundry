@@ -98,8 +98,8 @@ The first stage reads each new event:
 - `result` ends only a turn for the two session jobs (`SESSION_JOB_KINDS`), the Assistant and the
   [product owner](../glossary.md#product-owner), which have no closing [report](../glossary.md#report). A `result` moves
   any other job to `in-customs`, the state where its report is settled: [Customs](../glossary.md#customs) for a build or
-  review, the [Airlock](../glossary.md#airlock) for a [merge agent](../glossary.md#merge-agent), onboarding for an
-  [onboarder](../glossary.md#onboarder).
+  review, the [Airlock](../glossary.md#airlock) for a [merge agent](../glossary.md#merge-agent), pipeline agent for an
+  [pipeline agent](../glossary.md#pipeline-agent).
 
 Then the first matching branch settles the end of the process.
 
@@ -366,7 +366,7 @@ launches decided in the same lock hold. `markHits` writes the [usage marker](../
 another board met. A malformed marker reads as no limit and is logged.
 
 While `usageLimitHolds` is true, the Playbook starts no new build or review, resumes nothing, and boots no Assistant or
-onboarder, and every open incident takes its default with cause `no-assistant`. Four things
+pipeline agent, and every open incident takes its default with cause `no-assistant`. Four things
 still launch:
 
 - An Airlock keeps running: `airlocks.sweep` has no usage check, so it can launch its merge agents.
@@ -374,7 +374,7 @@ still launch:
   no usage check.
 - A product owner past `JOB_RESUMES_BEFORE_FRESH`, or `awaiting-answer` with no question, is refreshed:
   `productOwnerStepsOf` returns `refresh-intake` before it reads `resumesAreHeld`.
-- What User starts: `intake-start`, `onboarder-advise` and a message reopening a closed product owner go through the
+- What User starts: `intake-start`, `pipeline-agent-advise` and a message reopening a closed product owner go through the
   [control path](control-and-hatch.md), which has no usage check, and `jobsNeedingAWatcher` spawns them.
 
 Sessions on other boards that are already running go on until they meet a refusal of their own. `usageLimitHolds` and

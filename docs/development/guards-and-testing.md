@@ -613,7 +613,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Watcher clients, Board and tracker fixtures |
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
-| `src/adapters/reports/testing/` | `src/adapters/`, `src/services/` | `OnboarderReportFixture` |
+| `src/adapters/reports/testing/` | `src/adapters/`, `src/services/` | `PipelineAgentReportFixture` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
 | `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `PlantedWatcher`, Watcher format fixtures |
 | `cli/testing/` | `cli/`, `bridge/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |

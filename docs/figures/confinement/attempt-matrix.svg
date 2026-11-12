@@ -14,7 +14,7 @@
 <text x="390" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Merge agents</text>
 <text x="517" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Assistant</text>
 <text x="644" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Product owner</text>
-<text x="771" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Onboarder</text>
+<text x="771" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Pipeline agent</text>
 <text x="898" y="124" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle">Gate process</text>
 <text x="40" y="162" font-size="13" font-weight="500" fill="#3d3d3a">Write own working folder</text>
 <rect x="202" y="140" width="123" height="34" rx="5" fill="#EAF3DE" stroke="#D3E6BC" stroke-width="1"/>

@@ -19,7 +19,7 @@ Customs catches a false story. Gates catch a bad tree. Customs runs first becaus
 report lies is not worth gating.
 
 A repository plugs in through one file, `pipeline.json`, its [pipeline](../glossary.md#pipeline). The `gate` verbs write
-it, or an accepted proposal from the [onboarder](../glossary.md#onboarder), the agent that fits a repository with a
+it, or an accepted proposal from the [pipeline agent](../glossary.md#pipeline-agent), the agent that fits a repository with a
 pipeline. A gate is an opaque shell line. Until that file exists, no ticket work launches.
 
 ![An agent report goes to Customs, then to gates, then is believed. V3, V4, V15 and a red gate resume the same session, any other Customs refusal ends the job failed, and a gate that cannot run stops the job with an incident.](../figures/customs-and-gates/two-stages.png)
@@ -36,7 +36,7 @@ The two stages answer different questions, so neither can stand in for the other
 | Question | Is the story true? | Is the tree good? |
 | Reads | The report, git, the ticket body, the log | An exit code and `git diff HEAD` |
 | Knows the stack | No | No: the repository's commands know it |
-| Runs where | On the [Overseer](../glossary.md#overseer), in a [lock hold](../glossary.md#lock-hold) (an onboarder's outside one) | In a [Watcher](../glossary.md#watcher) or the Overseer's process |
+| Runs where | On the [Overseer](../glossary.md#overseer), in a [lock hold](../glossary.md#lock-hold) (a pipeline agent's outside one) | In a [Watcher](../glossary.md#watcher) or the Overseer's process |
 | Cost | Git commands | As long as the repository's commands take |
 | Trusts the report | Tests it | Never reads it |
 
@@ -52,7 +52,7 @@ A [role](../glossary.md#role) owes a column: an ordered list of checks. `clearCu
 stops at the first [refusal](../glossary.md#refusal), so the Overseer acts on one reason. A check answers passed, or a
 reason code with facts and no prose; the facts are paths, commits or labels.
 
-![A grid of sixteen checks by four roles. Builder, reviewer and onboarder columns run through clearCustoms. The airlock-agent column is declared but not reached, except V10, which the Airlock runs by hand. V3, V4 and V15 for a builder and V4 for a reviewer resume the session.](../figures/customs-and-gates/customs-matrix.png)
+![A grid of sixteen checks by four roles. Builder, reviewer and pipeline agent columns run through clearCustoms. The airlock-agent column is declared but not reached, except V10, which the Airlock runs by hand. V3, V4 and V15 for a builder and V4 for a reviewer resume the session.](../figures/customs-and-gates/customs-matrix.png)
 
 *Notice the hatched column: `CHECKS_OF_ROLE` declares it, and no production path walks it.*
 
@@ -63,20 +63,20 @@ reason code with facts and no prose; the facts are paths, commits or labels.
 | --- | --- | --- |
 | `builder` | V1, V2, V3, V4, V5, V6, V7, V8, V11, V13, V14, V15 | `clearCustoms` |
 | `reviewer` | V1, V2, V4, V5, V6, V7, V8, V9, V11, V12, V13, V14 | `clearCustoms` |
-| `onboarder` | V1, V16, V4, V5, V12, V13, V14 | `clearCustoms` |
+| `pipeline-agent` | V1, V16, V4, V5, V12, V13, V14 | `clearCustoms` |
 | `airlock-agent` | V1, V2, V3, V4, V5, V6, V7, V10, V11, V13, V14 | V10 alone, by hand, on a conflict |
 
 </details>
 
-Every column runs in check order except the onboarder's, which runs V16 second.
+Every column runs in check order except the pipeline agent's, which runs V16 second.
 
 What an agent says it did is checked; what it judges or chooses is not. A builder's `outcome`, a reviewer's claim
-results and an onboarder's `mode` are validated by V1 and then taken as given.
+results and a pipeline agent's `mode` are validated by V1 and then taken as given.
 
 ### The sixteen checks
 
 Each check turns one claim or one rule into a git or log question. The table gives each check for a build or review
-[job](../glossary.md#job); an onboarder refusal always ends its job `failed`.
+[job](../glossary.md#job); a pipeline agent refusal always ends its job `failed`.
 
 The range is the commits since `start`, the HEAD recorded when the job launched. V10 also leaves out what the
 [target](../glossary.md#target) tip already contains. Each `failed` job on a ticket counts as a
@@ -105,7 +105,7 @@ alone adds the worktree to its commits, on a Pass from the merge base.*
 | V13 | `agentConfigUntouched` | `branch-touches-agent-config` | A change to `.claude/`, `.mcp.json` or the hooks folder | Job `failed`, and the `branch-touches-agent-config` [decision](../glossary.md#decision) unless one is open or already answered for this hit |
 | V14 | `onlyOwnRefsMoved` | `foreign-ref-moved` | A session moving a ref that is not its own | Job `failed` |
 | V15 | `everyAgentGateClaimedOnHead` | `gate-unclaimed` | A gate not claimed on HEAD itself, a stale claim included | Red handoff |
-| V16 | `headUnmoved` | `head-moved` | An onboarder commit; it reads and changes nothing | Job `failed` |
+| V16 | `headUnmoved` | `head-moved` | A pipeline agent commit; it reads and changes nothing | Job `failed` |
 
 ### Routing a refusal
 
@@ -123,7 +123,7 @@ broken repository reads as clean. V2 and V10 give their own reason in that case.
 has listed the range it reads each commit message separately and skips one it cannot read, so that message goes
 unscanned. Routing is by check, not reason: `git-failed` from V3, V4 or V15 is a red handoff too.
 
-> **As built.** `clearCustoms` runs for build, review and onboarder jobs only. Airlock agents never reach it; the
+> **As built.** `clearCustoms` runs for build, review and pipeline agent jobs only. Airlock agents never reach it; the
 > Airlock takes their report's `outcome` as given. See
 > [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
@@ -176,13 +176,13 @@ nothing proves no ref moved. The allowance comes from board state and the log, n
 
 </details>
 
-An onboarder gets an empty allowance, because `src/services/overseer/Onboarding.ts` passes every list empty. Its
+A pipeline agent gets an empty allowance, because `src/services/overseer/PipelineAgentSessions.ts` passes every list empty. Its
 snapshot's own HEAD is the only exempt ref, and every other ref in the repository must stand still for the length of
 its session.
 
 ### How V12 proves a filing
 
-A reviewer or onboarder cannot file directly, so its report names either a ticket id or the
+A reviewer or pipeline agent cannot file directly, so its report names either a ticket id or the
 [Hatch](../glossary.md#hatch) request id printed with `queued` when the Hatch reply did not arrive in time (see
 [Control and Hatch](control-and-hatch.md)). V12 turns either into proof from the log, never from the ticket as it
 stands, because the filing's own submission, or User, may have moved it since.
@@ -211,7 +211,7 @@ follows. Objects are closed, so an extra key is invalid. An Acceptance item is i
 | `BUILDER_REPORT_SCHEMA` | builder | `outcome`, `headCommit`, Acceptance evidence, `alsoFixed`, gate claims, [Handoff](../glossary.md#handoff) text |
 | `REVIEWER_REPORT_SCHEMA` | reviewer | `headCommit`, a claim per Acceptance item, findings fixed or filed, review text |
 | `AIRLOCK_AGENT_REPORT_SCHEMA` | a builder or reviewer in the Airlock | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
-| `ONBOARDER_REPORT_SCHEMA` | onboarder | `mode`, `headCommit`, a whole proposed pipeline, `optimisations`, notes |
+| `PIPELINE_AGENT_REPORT_SCHEMA` | pipeline agent | `mode`, `headCommit`, a whole proposed pipeline, `optimisations`, notes |
 
 </details>
 
@@ -284,7 +284,7 @@ sandbox's deny on `<data>`, not the missing variables; see [Confinement](confine
 
 ### Gate slots
 
-A gate slot caps job and Airlock gate runs across every board on the machine at `GATE_RUNS_AT_ONCE` (2); onboarder
+A gate slot caps job and Airlock gate runs across every board on the machine at `GATE_RUNS_AT_ONCE` (2); pipeline agent
 twice-runs take none. Gates are the expensive step, and two boards side by side would otherwise each run theirs.
 
 ![Overseer A creates the gate slot file exclusively, naming the Watcher folder and itself, then records the spawned Watcher. The Watcher claims, runs the gate and ends without writing. The file stays with a holder no longer live. Overseer B renames it aside, removes it and creates its own file exclusively.](../figures/customs-and-gates/gate-slot-life.png)
@@ -336,7 +336,7 @@ Across jobs only the `gate-ran` log record is read, with three readers.
 | --- | --- | --- |
 | `mergedTreeWasLastPassed` | The newest run on the tree | An Airlock whose merged tree equals the branch's tree lands without gating again, because the merge changed nothing the gates judged |
 | `landMerge` | Any passing run on the tree | The legality of `merge-land`; see [Airlocks and groups](airlocks-and-groups.md) |
-| `onboardingFactsOf` | The newest runs | History shown to the onboarder, capped by `GATE_HISTORY_RECORDS` |
+| `pipelineAgentFactsOf` | The newest runs | History shown to the pipeline agent, capped by `GATE_HISTORY_RECORDS` |
 
 </details>
 
@@ -373,7 +373,7 @@ No file stops all ticket work; `gates: []` runs all work with no gates.
 
 | `pipeline.json` | `pipelineIsSet` | Effect |
 | --- | --- | --- |
-| Absent | No | `checks-not-set` opens, an onboarder starts, and no ticket work launches or resumes |
+| Absent | No | `checks-not-set` opens, a pipeline agent starts, and no ticket work launches or resumes |
 | Malformed | No | The same, and `gate list` and every `gate` write refuse it; an accepted proposal does not refuse and writes over it |
 | `gates: []` | Yes | Counts as set: work runs and [landing](../glossary.md#landing) runs no gate. `gate none` sets it on purpose; a first `gate prepare` on a board with no file, or removing the last gate, also leaves it |
 | `{}` | Yes | Valid: both lists default to empty |
@@ -422,12 +422,12 @@ run order means something.
 The hash appears in `gate list --json` and in a [row's](../glossary.md#row) `pipelineHash`, set by
 `recordPipelineJudgedBy` when a build or review job settles its gates. Nothing compares the two.
 
-## The onboarder
+## The pipeline agent
 
-The onboarder's output is never trusted into `pipeline.json`: every line it proposes is run first, and User reads what
+The pipeline agent's output is never trusted into `pipeline.json`: every line it proposes is run first, and User reads what
 happened.
 
-![With no pipeline or on the advise command, a detached snapshot is taken and an onboarder session reports. Customs refusal ends the job failed. A report saying advise ends closed. A report saying setup runs twice with caching checks, then opens pipeline-proposal. Accept writes prepare steps and gates while review, constitution and agents stay shown. Decline changes nothing.](../figures/customs-and-gates/onboarder-flow.png)
+![With no pipeline or on the advise command, a detached snapshot is taken and a pipeline agent session reports. Customs refusal ends the job failed. A report saying advise ends closed. A report saying setup runs twice with caching checks, then opens pipeline-proposal. Accept writes prepare steps and gates while review, constitution and agents stay shown. Decline changes nothing.](../figures/customs-and-gates/pipeline-agent-flow.png)
 
 *Notice that accepting writes less than was proposed: `review`, `constitution` and `agents` have no verb, so they stay
 shown, and a board with no `review` has no review phase.*
@@ -436,19 +436,19 @@ The mode is `setup` when no pipeline is stored and `advise` when one is. `setup`
 and offer to User. `advise` looks at a stored pipeline and its gate history and reports optimisations, each meant as a
 low draft ticket; no proposal follows.
 
-The Playbook starts one onboarder per opening of `checks-not-set`; the `advise` verb starts one on demand. Its first
-message states the mode it was launched in and the newest `gate-ran` records (`onboardingFactsOf`).
+The Playbook starts one pipeline agent per opening of `checks-not-set`; the `advise` verb starts one on demand. Its first
+message states the mode it was launched in and the newest `gate-ran` records (`pipelineAgentFactsOf`).
 
 Routing follows the mode the report states, and nothing compares it with the mode the session was launched in. A
-`setup` session reporting `advise` ends `closed` with no proposal, and `onboarderAnsweredChecksNotSet` then starts no
-other onboarder for that opening. An `advise` session reporting `setup` gets a proposal too, and accepting it merges
+`setup` session reporting `advise` ends `closed` with no proposal, and `pipelineAgentAnsweredChecksNotSet` then starts no
+other pipeline agent for that opening. An `advise` session reporting `setup` gets a proposal too, and accepting it merges
 into the stored pipeline: replacing by name, or clearing the gates when it proposes none.
 
 ### The snapshot
 
-`Onboarding.prepareSnapshot` adds a detached worktree at the main line's tip, `<worktrees>/onboard/J<n>`, and writes
-`onboarder-start.json` with the start commit and launch snapshot. The Overseer removes it when the job settles.
-[Regrouping](../glossary.md#regrouping) does not count the `onboard` folder as leftover, so a snapshot of a job that
+`PipelineAgentSessions.prepareSnapshot` adds a detached worktree at the main line's tip, `<worktrees>/pipeline-agent/J<n>`, and writes
+`pipeline-agent-start.json` with the start commit and launch snapshot. The Overseer removes it when the job settles.
+[Regrouping](../glossary.md#regrouping) does not count the `pipeline-agent` folder as leftover, so a snapshot of a job that
 ended any other way stays until removed by hand.
 
 Its profile is in [Confinement](confinement.md). V4, V16 and V14 prove that it changed nothing: a changed file, a commit
@@ -499,8 +499,8 @@ file.
 
 Accepting writes only the prepare steps and gates; declining changes nothing.
 
-The outcome goes to `onboarding-outcome.json` in the job folder. The next lock hold ends the job, removes the snapshot
-and, for a proposal, opens `pipeline-proposal`. The `OnboardingOutcome` type has no proposal without its twice-run
+The outcome goes to `pipeline-agent-outcome.json` in the job folder. The next lock hold ends the job, removes the snapshot
+and, for a proposal, opens `pipeline-proposal`. The `PipelineAgentOutcome` type has no proposal without its twice-run
 record, so none can be shown without what it did.
 
 On acceptance, `acceptProposal` writes through the same Board moves as `gate prepare`, `gate add` and `gate none`, in
@@ -516,9 +516,9 @@ them.
 > unvalidated, and one the strict parser refuses makes the file malformed.
 
 > **As built.** `advise` asks for each optimisation to be filed through the Hatch, and the
-> [Bouncer](../glossary.md#bouncer) refuses every command from the onboarder role. An `advise` report with an
+> [Bouncer](../glossary.md#bouncer) refuses every command from the pipeline agent role. An `advise` report with an
 > optimisation then fails V12, and one without ends `closed` with nothing shown. See
-> [gap-onboarder-advise-filing](../reference/known-gaps.md#gap-onboarder-advise-filing).
+> [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
 
 ## Why gates are opaque
 
@@ -528,7 +528,7 @@ Agent-progress works on any stack, so anything stack-specific stays in the repos
   `git diff`. It names no language, build tool or test tool.
 - The only stack-aware file in the gate path is `src/services/lifecycle/CachingChecks.ts`, and its results are
   suggestions shown to User.
-- The onboarder is how a stack enters: an agent reads the repository and proposes lines, which then run as opaque
+- The pipeline agent is how a stack enters: an agent reads the repository and proposes lines, which then run as opaque
   lines. The knowledge lives in a session, never in the product.
 
 The trade is that the Overseer cannot explain a red gate. It hands over the output and the `fix` line, and the agent
@@ -536,9 +536,9 @@ interprets them.
 
 ## Invariants
 
-1. A build, review or onboarder report moves nothing until V1 accepts it. An `outcome` of `blocked`, `wound-down` or
+1. A build, review or pipeline agent report moves nothing until V1 accepts it. An `outcome` of `blocked`, `wound-down` or
    `cannot-build` is then believed.
-2. A build, review or onboarder report reaches gates, a twice-run or a `closed` advise ending only once its role's whole
+2. A build, review or pipeline agent report reaches gates, a twice-run or a `closed` advise ending only once its role's whole
    column passed. The first refusal stops the column and is the only one acted on.
 3. A git failure reading a check's range is a refusal, never a green check, except V7's read of a single message after
    the range is listed.
@@ -561,10 +561,10 @@ interprets them.
 | V12 from the log | `src/services/lifecycle/Customs.ts` | `ticketIdFiledByRequest`, `filingIsThisJobsLowFinding` | `src/services/lifecycle/Customs.verification.spec.ts` |
 | V14 from the log | `src/services/lifecycle/Customs.ts` | `refMovesAllowedOf`, `launchSnapshotOf` | `src/services/lifecycle/Customs.provenance.spec.ts` |
 | A retry's start for V3 | `src/services/lifecycle/Customs.ts` | `retriedFailedBuildJobIdOf` | `src/services/lifecycle/Customs.verification.spec.ts` |
-| Onboarder's column | `src/services/lifecycle/Customs.ts` | `headUnmoved` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Pipeline agent's column | `src/services/lifecycle/Customs.ts` | `headUnmoved` | `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
 | Routing a refusal | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | V13 before launch | `src/services/overseer/JobLaunch.ts` | `ticketIdsTouchingAgentConfigOf`, `holdAgentConfigHits` | `src/lib/tracker-model/Playbook.spec.ts` |
-| An open decision keeps launches off | `src/lib/tracker-model/Playbook.ts` | `TICKET_HOLDING_DECISION_KINDS`, `onboarderAnsweredChecksNotSet` | `src/lib/tracker-model/Playbook.spec.ts` |
+| An open decision keeps launches off | `src/lib/tracker-model/Playbook.ts` | `TICKET_HOLDING_DECISION_KINDS`, `pipelineAgentAnsweredChecksNotSet` | `src/lib/tracker-model/Playbook.spec.ts` |
 | V10 in the Airlock | `src/services/lifecycle/MergeRun.ts` | `resolutionIsSound` | `src/services/lifecycle/Customs.verification.spec.ts` (V10) |
 | A held job gets no Watcher | `src/services/overseer/DrivePass.ts` | `jobsNeedingAWatcher` | |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA` and siblings | `src/adapters/reports/ReportSchemas.spec.ts` |
@@ -579,9 +579,9 @@ interprets them.
 | Pipeline hash | `src/lib/tracker-model/utils/PipelineUtil.ts` | `pipelineHashOf` | |
 | Row's pipeline hash | `src/lib/tracker-model/TrackerChanges.ts` | `recordPipelineJudgedBy` | |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `trackedInstructionPathsOf`, `ROLES_GIVEN_THE_CONSTITUTION` | |
-| Onboarder job | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `onboardingFactsOf`, `onboarderProfileOf`, `settleEndedOnboarders` | |
+| Pipeline agent job | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `pipelineAgentFactsOf`, `pipelineAgentProfileOf`, `settleEndedPipelineAgents` | |
 | Twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice`, `verdictOf` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
 | Caching suggestions | `src/services/lifecycle/CachingChecks.ts` | `cachingSuggestionsOf` | `src/services/lifecycle/CachingChecks.spec.ts` |
-| Acceptance | `src/services/lifecycle/OnboardingProposal.ts` | `acceptProposal` | |
+| Acceptance | `src/services/lifecycle/PipelineAgentProposal.ts` | `acceptProposal` | |
 
 </details>

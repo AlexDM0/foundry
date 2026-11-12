@@ -1,5 +1,5 @@
 /**
- * The caching checks an onboarder's proposal carries, as suggestions only: nothing is installed and no tracked file is edited. Read from the
+ * The caching checks a pipeline agent's proposal carries, as suggestions only: nothing is installed and no tracked file is edited. Read from the
  * repository's `turbo.json` and the twice-run's measured times: a slow pipeline with no caching tool, a cache kept per worktree, task inputs
  * blind to what an import graph cannot see, and a gate run past the cache.
  */

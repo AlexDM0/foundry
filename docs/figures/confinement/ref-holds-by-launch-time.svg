@@ -58,5 +58,5 @@
   <text x="465" y="375" font-size="12" fill="#5F5E5A" text-anchor="middle">exempt</text>
   <rect x="530" y="352" width="110" height="36" rx="5" fill="#F5C4B3" stroke="#D85A30" stroke-width="1.5"/>
   <text x="585" y="375" font-size="12" fill="#712B13" text-anchor="middle">neither</text>
-  <text x="40" y="412" font-size="12" fill="#73726c">Merge agents have no V14. An onboarder's V14 exempts nothing.</text>
+  <text x="40" y="412" font-size="12" fill="#73726c">Merge agents have no V14. A pipeline agent's V14 exempts nothing.</text>
 </svg>

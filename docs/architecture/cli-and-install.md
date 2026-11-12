@@ -105,7 +105,7 @@ Reading and moving come in pairs: `merges` and `merge`, `decisions` and `decide`
 | `incidents/` | `incidents`, `incident` |
 | `jobs/` | `jobs`, `job` |
 | `intake/` | `intake` |
-| `onboarding/` | `advise` |
+| `pipeline/` | `advise` |
 | `overseer/` | `oversee`, `version` |
 | inline in the table | `help` |
 
@@ -354,7 +354,7 @@ changed default reaches the next one. A [pipeline](../glossary.md#pipeline) can 
 | `briefs/defaults/builder.md` | `resources/prompts/BuildPrompt.md` | Build jobs |
 | `briefs/defaults/reviewer.md` | `resources/prompts/ReviewPrompt.md` | Review jobs |
 | `briefs/defaults/productOwner.md` | `resources/prompts/ProductOwnerPrompt.md` | The [product owner](../glossary.md#product-owner) |
-| `briefs/defaults/onboarder.md` | `resources/templates/OnboarderBrief.md` | The [onboarder](../glossary.md#onboarder) |
+| `briefs/defaults/pipelineAgent.md` | `resources/templates/PipelineAgentBrief.md` | The [pipeline agent](../glossary.md#pipeline-agent) |
 | `briefs/defaults/assistant.md` | `resources/templates/AssistantBrief.md` | The [Assistant](../glossary.md#assistant) |
 | `session-instructions.md` | `resources/templates/SessionInstructions.md` | Every session User opens, through `hook session-start` |
 

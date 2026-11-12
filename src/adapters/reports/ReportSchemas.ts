@@ -106,13 +106,13 @@ export const REVIEWER_REPORT_SCHEMA: JsonSchema = {
 
 const TEXT_LIST = listOf(TEXT);
 
-const ONBOARDER_GATE = closedObject({
+const PIPELINE_AGENT_GATE = closedObject({
   name: TEXT, run: TEXT, definedBy: TEXT_LIST, network: TEXT_LIST, writes: TEXT_LIST
 });
 
-const ONBOARDER_REVIEW: JsonSchema = { oneOf: [{ type: 'null' }, closedObject({ name: TEXT, model: NULLABLE_TEXT, effort: NULLABLE_TEXT })], };
+const PIPELINE_AGENT_REVIEW: JsonSchema = { oneOf: [{ type: 'null' }, closedObject({ name: TEXT, model: NULLABLE_TEXT, effort: NULLABLE_TEXT })], };
 
-/** Each optimisation `advise` makes is a draft low ticket the onboarder filed through its Hatch, named as a reviewer names a filed finding. */
+/** Each optimisation `advise` makes is a draft low ticket the pipeline agent filed through its Hatch, named as a reviewer names a filed finding. */
 const FILED_OPTIMISATION: JsonSchema = {
   ...closedObject({ summary: TEXT, filedTicketId: NULLABLE_TEXT, hatchRequestId: NULLABLE_TEXT }),
   anyOf: [
@@ -122,22 +122,22 @@ const FILED_OPTIMISATION: JsonSchema = {
 };
 
 /**
- * The onboarder's proposal for the whole pipeline, every array starting from the defaults; `headCommit` is the main-line snapshot it read.
+ * The pipeline agent's proposal for the whole pipeline, every array starting from the defaults; `headCommit` is the main-line snapshot it read.
  * `setup` answers `checks-not-set`; `advise` takes the gate history and files its optimisations.
  */
-export const ONBOARDER_REPORT_SCHEMA: JsonSchema = {
+export const PIPELINE_AGENT_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
-  title:   'onboarder report',
+  title:   'pipeline agent report',
   ...closedObject({
-    role:         { const: 'onboarder' },
+    role:         { const: 'pipeline-agent' },
     mode:         { enum: ['setup', 'advise'] },
     headCommit:   COMMIT_SHA,
     prepare:      listOf(closedObject({ name: TEXT, run: TEXT })),
-    gates:        listOf(ONBOARDER_GATE),
-    review:       ONBOARDER_REVIEW,
+    gates:        listOf(PIPELINE_AGENT_GATE),
+    review:       PIPELINE_AGENT_REVIEW,
     constitution: TEXT_LIST,
     agents:       closedObject({
-      builder: TEXT_LIST, reviewer: TEXT_LIST, productOwner: TEXT_LIST, onboarder: TEXT_LIST, assistant: TEXT_LIST
+      builder: TEXT_LIST, reviewer: TEXT_LIST, productOwner: TEXT_LIST, pipelineAgent: TEXT_LIST, assistant: TEXT_LIST
     }),
     optimisations: listOf(FILED_OPTIMISATION),
     notes:         TEXT,

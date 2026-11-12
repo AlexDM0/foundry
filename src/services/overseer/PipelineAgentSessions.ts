@@ -1,5 +1,5 @@
 /**
- * The Overseer's side of an onboarder job: a detached snapshot of the main line it reads, a profile writing only its Hatch with no network,
+ * The Overseer's side of a pipeline agent job: a detached snapshot of the main line it reads, a profile writing only its Hatch with no network,
  * and the end of its pass. Once its Watcher is gone the pass is verified, a setup proposal's gates run twice on the snapshot and its caching is
  * checked, all outside the hold; the next hold opens `pipeline-proposal` with that record, or ends the job, and the snapshot is removed.
  */
@@ -25,30 +25,30 @@ import { CachingChecks }                                                        
 import { launchSnapshotOf, clearCustoms, type LaunchSnapshot }                            from '../lifecycle/Customs.ts';
 import type { GateConfinement }                                                           from '../lifecycle/GateRun.ts';
 import {
-  OnboardingProposal,
-  type OnboarderMode,
-  type OnboardingOutcome,
+  PipelineAgentProposal,
+  type PipelineAgentMode,
+  type PipelineAgentOutcome,
   type PipelineProposal
-} from '../lifecycle/OnboardingProposal.ts';
+} from '../lifecycle/PipelineAgentProposal.ts';
 import { ProposalTwiceRun }   from '../lifecycle/ProposalTwiceRun.ts';
 import { TreePortability }    from '../lifecycle/TreePortability.ts';
 import type { TrackerChange } from '../tracker/TrackerPipeline.ts';
 import type { Workspace }     from '../tracker/Workspace.ts';
 import { WatcherFleet }       from './WatcherFleet.ts';
 
-const ONBOARDER_KIND = 'onboarder';
+const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
-/** Under the worktrees root, one detached snapshot per onboarder job; the Overseer owns it, so it is never a leftover worktree. */
-export const ONBOARDER_SNAPSHOT_FOLDER = 'onboard';
+/** Under the worktrees root, one detached snapshot per pipeline agent job; the Overseer owns it, so it is never a leftover worktree. */
+export const PIPELINE_AGENT_SNAPSHOT_FOLDER = 'pipeline-agent';
 
-const SNAPSHOT_START_FILE = 'onboarder-start.json';
+const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
 
 interface SnapshotStart {
   startCommit:    string;
   launchSnapshot: LaunchSnapshot;
 }
 
-export interface OnboardingContext {
+export interface PipelineAgentContext {
   platformPorts:         PlatformPorts;
   workspace:             Workspace;
   worktreesRoot:         string;
@@ -62,21 +62,21 @@ export interface OnboardingContext {
   stopGraceMilliseconds: number;
 }
 
-type ProposalRunContext = Pick<OnboardingContext, 'platformPorts' | 'gateEnvironment' | 'confinedLineOf' | 'millisecondsNow'>;
+type ProposalRunContext = Pick<PipelineAgentContext, 'platformPorts' | 'gateEnvironment' | 'confinedLineOf' | 'millisecondsNow'>;
 
-function isOnboarderJob(job: Readonly<Job>): boolean {
-  return job.kind === ONBOARDER_KIND;
+function isPipelineAgentJob(job: Readonly<Job>): boolean {
+  return job.kind === PIPELINE_AGENT_KIND;
 }
 
 function snapshotDirectoryOf(worktreesRoot: string, jobId: string): string {
-  return join(worktreesRoot, ONBOARDER_SNAPSHOT_FOLDER, jobId);
+  return join(worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER, jobId);
 }
 
 /** Taken once, at the main line's tip: every ref and HEAD then, which Customs holds the pass to. */
-function prepareSnapshot(context: Pick<OnboardingContext, 'workspace' | 'worktreesRoot' | 'mainLine'>, job: Readonly<Job>): string {
+function prepareSnapshot(context: Pick<PipelineAgentContext, 'workspace' | 'worktreesRoot' | 'mainLine'>, job: Readonly<Job>): string {
   const snapshot = snapshotDirectoryOf(context.worktreesRoot, job.id);
   if (existsSync(snapshot)) return snapshot;
-  mkdirSync(join(context.worktreesRoot, ONBOARDER_SNAPSHOT_FOLDER), { recursive: true });
+  mkdirSync(join(context.worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER), { recursive: true });
   GitProcess.run(context.workspace.rootDirectory, ['worktree', 'add', '--detach', snapshot, context.mainLine]);
   const startCommit = GitProcess.resolvedCommitOf(snapshot, 'HEAD', GitWorktrees.ceilingOf(snapshot));
   const launchSnapshot = launchSnapshotOf(snapshot);
@@ -94,9 +94,9 @@ function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart
   }
 }
 
-/** What an onboarder's first message is filled from: `setup` with no pipeline, `advise` with one, and the gate runs logged so far. */
-export interface OnboardingFacts {
-  mode:        OnboarderMode;
+/** What a pipeline agent's first message is filled from: `setup` with no pipeline, `advise` with one, and the gate runs logged so far. */
+export interface PipelineAgentFacts {
+  mode:        PipelineAgentMode;
   gateHistory: string[];
   /** The grammar the proposed lines must be written in: the one they run in on this machine. */
   lineGrammar: ShellLineGrammar;
@@ -105,8 +105,8 @@ export interface OnboardingFacts {
 /** The newest gate runs `advise` reads its optimisations from. */
 const GATE_HISTORY_RECORDS = 200;
 
-function onboardingFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar): OnboardingFacts | null {
-  if (!isOnboarderJob(job)) return null;
+function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar): PipelineAgentFacts | null {
+  if (!isPipelineAgentJob(job)) return null;
   const gateHistory = board.logRecordsSoFar()
     .flatMap((record) => (record.kind === 'gate-ran' ? [`${record.at} ${record.fields.outcome}${record.fields.cached ? ' (cached)' : ''} tree ${record.fields.tree}`] : []))
     .slice(-GATE_HISTORY_RECORDS);
@@ -114,13 +114,13 @@ function onboardingFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellL
 }
 
 /** It reads the snapshot and writes only its Hatch folder; no network, no question, no skill. */
-function onboarderProfileOf(sessionProfile: WorkerProfile, hatchDirectory: string): WorkerProfile {
+function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: string): WorkerProfile {
   return {
     ...sessionProfile, writableRoots: [hatchDirectory], bashNetworkDomains: [], webNetworkDomains: 'none', askUser: false, skills: false, networkDomainGuard: null
   };
 }
 
-function reportOf(context: OnboardingContext, job: Readonly<Job>): unknown {
+function reportOf(context: PipelineAgentContext, job: Readonly<Job>): unknown {
   const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
   let report: unknown = undefined;
   for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
@@ -134,7 +134,7 @@ function reportOf(context: OnboardingContext, job: Readonly<Job>): unknown {
 }
 
 /** The proposal's lines, twice on the snapshot, each under the confinement a merge gate gets and in the gates' narrowed environment. */
-async function proposalOutcomeOf(context: ProposalRunContext, proposal: PipelineProposal, snapshot: string, snapshotCommit: string): Promise<OnboardingOutcome> {
+async function proposalOutcomeOf(context: ProposalRunContext, proposal: PipelineProposal, snapshot: string, snapshotCommit: string): Promise<PipelineAgentOutcome> {
   const runRecord = await ProposalTwiceRun.runProposalTwice({
     shellLine:       context.platformPorts.shellLine,
     prepare:         proposal.prepare,
@@ -157,12 +157,12 @@ async function proposalOutcomeOf(context: ProposalRunContext, proposal: Pipeline
 }
 
 /** A refused pass names them too: a case collision alone leaves the snapshot dirty on a case-insensitive file system, which Customs refuses. */
-function withTreeFindingFacts(outcome: Extract<OnboardingOutcome, { verdict: 'refused' }>, snapshot: string): OnboardingOutcome {
+function withTreeFindingFacts(outcome: Extract<PipelineAgentOutcome, { verdict: 'refused' }>, snapshot: string): PipelineAgentOutcome {
   const findingFacts = TreePortability.treeFindingsAt(snapshot, 'HEAD').map((finding) => `${finding.kind}: ${finding.paths.join(', ')}`);
   return findingFacts.length === 0 ? outcome : { ...outcome, facts: [...outcome.facts, ...findingFacts] };
 }
 
-async function settledOutcomeOf(context: OnboardingContext, board: Board, job: Readonly<Job>): Promise<OnboardingOutcome> {
+async function settledOutcomeOf(context: PipelineAgentContext, board: Board, job: Readonly<Job>): Promise<PipelineAgentOutcome> {
   const snapshot = snapshotDirectoryOf(context.worktreesRoot, job.id);
   const start = snapshotStartOf(context.workspace.trackerDirectory, job.id);
   if (start === null) return {
@@ -170,7 +170,7 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
   };
   const report = reportOf(context, job);
   const verdict = clearCustoms({
-    role:             'onboarder',
+    role:             'pipeline-agent',
     worktreePath:     snapshot,
     startCommit:      start.startCommit,
     report,
@@ -185,27 +185,27 @@ async function settledOutcomeOf(context: OnboardingContext, board: Board, job: R
     pathStyle: context.platformPorts.dataFolders,
   });
   if (verdict.verdict === 'refused') return withTreeFindingFacts(verdict, snapshot);
-  const proposal = OnboardingProposal.proposalOf(report);
+  const proposal = PipelineAgentProposal.proposalOf(report);
   if (proposal.mode === 'advise') return { verdict: 'advised' };
   return proposalOutcomeOf(context, proposal, snapshot, start.startCommit);
 }
 
-/** Outside the hold, since gates take minutes: each onboarder that reported (`in-customs`) and is not settled yet; its session is stopped first. */
-async function settleEndedOnboarders(context: OnboardingContext, board: Board): Promise<number> {
+/** Outside the hold, since gates take minutes: each pipeline agent that reported (`in-customs`) and is not settled yet; its session is stopped first. */
+async function settleEndedPipelineAgents(context: PipelineAgentContext, board: Board): Promise<number> {
   let settled = 0;
-  for (const job of board.jobs().filter(isOnboarderJob)) {
+  for (const job of board.jobs().filter(isPipelineAgentJob)) {
     if (job.state !== 'in-customs') continue;
-    if (OnboardingProposal.storedOutcomeOf(context.workspace.trackerDirectory, job.id) !== null) continue;
+    if (PipelineAgentProposal.storedOutcomeOf(context.workspace.trackerDirectory, job.id) !== null) continue;
     await WatcherFleet.sendFrames(context.platformPorts, WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id), job.watcherInstance, [
       { kind: 'stop', graceMilliseconds: context.stopGraceMilliseconds },
     ]);
-    OnboardingProposal.storeOutcome(context.workspace.trackerDirectory, job.id, await settledOutcomeOf(context, board, job));
+    PipelineAgentProposal.storeOutcome(context.workspace.trackerDirectory, job.id, await settledOutcomeOf(context, board, job));
     settled += 1;
   }
   return settled;
 }
 
-function endingOf(outcome: OnboardingOutcome): Parameters<Board['endJob']>[1] {
+function endingOf(outcome: PipelineAgentOutcome): Parameters<Board['endJob']>[1] {
   if (outcome.verdict === 'refused') return { outcome: 'failed', cause: outcome.reason };
   return outcome.verdict === 'sandbox-unavailable' ? { outcome: 'failed', cause: outcome.verdict } : { outcome: 'closed' };
 }
@@ -214,14 +214,14 @@ function endingOf(outcome: OnboardingOutcome): Parameters<Board['endJob']>[1] {
  * In the hold: a proposal opens `pipeline-proposal` naming the job, whose answer reads it; a refused line its incident; every settled pass ends.
  * `removalPrimitives` paces the snapshot removal's tries, which a spec sets short.
  */
-function applySettledOnboarders(
+function applySettledPipelineAgents(
   change: TrackerChange,
   worktreesRoot: string,
   decisionWordingOf: (draft: DecisionDraft) => DecisionWording,
   removalPrimitives: WorktreeRemovalPrimitives = REAL_WORKTREE_REMOVAL_PRIMITIVES,
 ): void {
-  for (const job of change.board.jobs().filter(isOnboarderJob)) {
-    const outcome = OnboardingProposal.storedOutcomeOf(change.workspace.trackerDirectory, job.id);
+  for (const job of change.board.jobs().filter(isPipelineAgentJob)) {
+    const outcome = PipelineAgentProposal.storedOutcomeOf(change.workspace.trackerDirectory, job.id);
     if (outcome === null) continue;
     if (outcome.verdict === 'sandbox-unavailable') {
       change.board.openIncident({
@@ -230,7 +230,7 @@ function applySettledOnboarders(
     }
     if (outcome.verdict === 'proposed') {
       const draft: DecisionDraft = {
-        kind: 'pipeline-proposal', ticketIds: [], jobId: job.id, pipelineProposal: OnboardingProposal.proposalFactsOf(outcome)
+        kind: 'pipeline-proposal', ticketIds: [], jobId: job.id, pipelineProposal: PipelineAgentProposal.proposalFactsOf(outcome)
       };
       change.board.openDecision({
         ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
@@ -244,9 +244,9 @@ function applySettledOnboarders(
 /** Forced, since a snapshot holds only what its gates wrote; one that stays is a leftover the log names. */
 function removeSnapshot(change: TrackerChange, snapshot: string, removalPrimitives: WorktreeRemovalPrimitives): void {
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: change.workspace.rootDirectory, worktreePath: snapshot, force: 'force' }, removalPrimitives);
-  if (removal.verdict === 'left') change.board.recordNote(`The onboarder snapshot ${snapshot} is a leftover: ${removal.reason}`, change.at);
+  if (removal.verdict === 'left') change.board.recordNote(`The pipeline agent snapshot ${snapshot} is a leftover: ${removal.reason}`, change.at);
 }
 
-export const Onboarding = Object.freeze({
-  isOnboarderJob, prepareSnapshot, onboarderProfileOf, onboardingFactsOf, proposalOutcomeOf, settleEndedOnboarders, applySettledOnboarders
+export const PipelineAgentSessions = Object.freeze({
+  isPipelineAgentJob, prepareSnapshot, pipelineAgentProfileOf, pipelineAgentFactsOf, proposalOutcomeOf, settleEndedPipelineAgents, applySettledPipelineAgents
 });

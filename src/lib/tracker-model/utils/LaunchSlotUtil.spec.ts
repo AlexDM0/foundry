@@ -21,8 +21,8 @@ test('a merge-agent job running as its ticket\'s builder or reviewer holds no la
   expect(jobHoldsLaunchSlot(jobFixture({ id: 'J4', kind: 'merge-agent', role: 'reviewer' }))).toBe(false);
 });
 
-test('session, onboarder, merge and refresh jobs hold no launch slot', () => {
-  const slotlessKinds: JobKind[] = ['assistant', 'product-owner', 'onboarder', 'merge', 'refresh'];
+test('session, pipeline agent, merge and refresh jobs hold no launch slot', () => {
+  const slotlessKinds: JobKind[] = ['assistant', 'product-owner', 'pipeline-agent', 'merge', 'refresh'];
   const holdingKinds = slotlessKinds.filter((kind) => jobHoldsLaunchSlot(jobFixture({ id: 'J5', kind, role: null })));
   expect(holdingKinds).toEqual([]);
 });

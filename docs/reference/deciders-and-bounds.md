@@ -128,7 +128,7 @@ groups](../architecture/airlocks-and-groups.md), [Control and Hatch](../architec
 | Is a ticket ready? | `src/lib/tracker-model/utils/TicketDependencyUtil.ts`, `readyTicketIdsOf` | Tickets, readiness positions | `DispatchQueries`, status output | `src/lib/tracker-model/utils/TicketDependencyUtil.spec.ts` |
 | Is a ticket move legal? | `src/lib/tracker-model/utils/TicketMoveUtil.ts`, `ticketMoveIsLegal` | `LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS` | `TicketMoves` | `src/lib/tracker-model/constants/TicketMoveLegality.spec.ts`, `src/lib/tracker-model/Board.ticketMoves.spec.ts` |
 | Is a job move legal? | `src/lib/tracker-model/constants/JobMoveLegality.ts`, `LEGAL_SOURCE_STATES_FOR_JOB_MOVE` | Job state, target state | `Jobs` | `src/lib/tracker-model/Board.jobs.spec.ts` |
-| Does a report clear [Customs](../glossary.md#customs)? | `src/services/lifecycle/Customs.ts`, `clearCustoms`, `CHECKS_OF_ROLE` | `CustomsSubject`: report, git range, launch snapshot, log | `JobLaunch.verifyAndRoute`, `Onboarding` | `src/services/lifecycle/Customs.spec.ts`, `src/services/lifecycle/Customs.verification.spec.ts`, `src/services/lifecycle/Customs.provenance.spec.ts`, `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Does a report clear [Customs](../glossary.md#customs)? | `src/services/lifecycle/Customs.ts`, `clearCustoms`, `CHECKS_OF_ROLE` | `CustomsSubject`: report, git range, launch snapshot, log | `JobLaunch.verifyAndRoute`, `PipelineAgentSessions` | `src/services/lifecycle/Customs.spec.ts`, `src/services/lifecycle/Customs.verification.spec.ts`, `src/services/lifecycle/Customs.provenance.spec.ts`, `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
 | Did a gate pass? | `src/services/lifecycle/GateRun.ts`, `gateOutcomeOf` | Exit code, tracked changes | `runPipeline`, `JobLaunch.stepVerdictOf`, `ProposalTwiceRun` | `src/services/lifecycle/GateRun.integration.spec.ts` |
 | What follows a review? | `src/services/lifecycle/ReviewOutcome.ts`, `settleReviewPass` | Report, rework count, recorded rounds | Itself; called by `JobLaunch` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Is another review round granted? | `src/lib/tracker-model/utils/RoundVerdictUtil.ts`, `nextRoundVerdictOf` | Earlier rounds, this round's findings and rework, `RoundLimits` | `settleReviewPass` | `src/lib/tracker-model/utils/RoundVerdictUtil.spec.ts` |
@@ -205,7 +205,7 @@ Home: [Build and review](../architecture/build-and-review.md).
 | `RED_HANDOFF_RESUME_CALL_BUDGET` | 30 | calls | Replaces the role's budget after a red handoff | Event log, from the resume | `OverseerLimits.ts` |
 | `ASSISTANT_TURN_CALL_BUDGET` | 40 | calls in one turn | Interrupted; the turn's incidents default `turn-budget` | Event log | `OverseerLimits.ts` |
 
-A product owner and an onboarder have no call budget.
+A product owner and a pipeline agent have no call budget.
 
 ### Resumes and parking
 
@@ -349,7 +349,7 @@ Home: [Customs and gates](../architecture/customs-and-gates.md).
 | `GATE_SLOT_RETRY_MILLISECONDS` | 500 | ms | Spacing of an in-process wait | Schedule | `OverseerLimits.ts` |
 | `SLOW_GATE_MILLISECONDS` | 30000 | ms | A gate this slow is worth a cache: a suggestion | Twice-run timing | `src/services/lifecycle/CachingChecks.ts` |
 | `PROPOSAL_RUN_COUNT` | 2 | runs | A proposed pipeline runs this many times | Constant | `src/services/lifecycle/ProposalTwiceRun.ts` |
-| `GATE_HISTORY_RECORDS` | 200 | records | Newest gate runs an `advise` [onboarder](../glossary.md#onboarder) reads | Log | `src/services/overseer/Onboarding.ts` |
+| `GATE_HISTORY_RECORDS` | 200 | records | Newest gate runs an `advise` [pipeline agent](../glossary.md#pipeline-agent) reads | Log | `src/services/overseer/PipelineAgentSessions.ts` |
 
 [Prepare steps](../glossary.md#prepare-step) take no gate slot (`GateRun.runPipeline`).
 
@@ -513,7 +513,7 @@ Changes what the system does:
 | `createQuietJobWatch` in `src/services/overseer/IncidentRouter.ts` | A count of timed sweeps opens `quiet-job` | Docblock on the function | A quiet job opens `quiet-job` by counted sweeps |
 | `createAssistantQuietWatch` in `src/services/overseer/AssistantSession.ts` | The same count ends a quiet Assistant | Docblock on the function | None |
 | `generationIsFree` in `src/services/tracker/TrackerLock.ts` | Lock staleness, against a time the tool wrote | File header | None |
-| `millisecondsNow` in `src/services/lifecycle/ProposalTwiceRun.ts` | A gate's duration; `CachingChecks` suggests from it | Field docblock, also in `src/services/overseer/Onboarding.ts` | None |
+| `millisecondsNow` in `src/services/lifecycle/ProposalTwiceRun.ts` | A gate's duration; `CachingChecks` suggests from it | Field docblock, also in `src/services/overseer/PipelineAgentSessions.ts` | None |
 
 Changes only what a person reads:
 

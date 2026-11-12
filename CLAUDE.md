@@ -39,6 +39,8 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 - The lifecycle components carry the names the owner decided: Overseer, Watcher, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Baton, Regrouping, Bouncer and Bridge, in code, stored values, wording and docs alike;
   `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
+- The role that designs a board's pipeline is the pipeline agent: `pipeline-agent` as a job kind and role,
+  `pipelineAgent` as a `pipeline.json` role key.
 - `eslint.config.js` holds one-letter names (`id-length`: only `i`, `a`, `b`) and inline magic numbers
   (`@typescript-eslint/no-magic-numbers`, its ignore list the arithmetic identities, off in specs, `testing/` and
   `constants/` folders); `src/LintRules.spec.ts` plants each mechanised rule's forms and exceptions.
@@ -261,6 +263,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
 | Only the current stored format is read. | A stored `dispatcherState` `finished` reads as `stopped`. | Stored files are never rewritten; reading it as stopped fails closed. |
+| Only the current stored format is read. | A `log.jsonl` record with the job kind or role `onboarder` reads as `pipeline-agent`. | The log is append-only and is never rewritten. |
 | Only the current stored format is read. | A Watcher's `watcher-<instance>.json` and event log are read in that Watcher's own `EVENT_LOG_FORMAT_VERSION` until it ends, one below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` as a watch-only legacy Watcher (`src/services/overseer/LegacyWatcherReader.spec.ts`, a fixture per version). | An Overseer update must never kill or strand a running agent. |
 | Only `agent-progress.ts` exits. | `watcher.ts`, the Watcher binary, exits with the code `runWatcher` in `src/lib/watcher/` returns, and imports nothing else, held by `src/ImportDirection.spec.ts` and `src/lib/watcher/WatcherBundleClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: the Overseer bundles and spawns it, detached, once per job instance. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | A Watcher appends its `events-<instance>.ndjson` in place, fsynced before its `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |

@@ -4,7 +4,7 @@
  */
 import type { DecisionAnswered } from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import { OnboardingProposal }    from '../lifecycle/OnboardingProposal.ts';
+import { PipelineAgentProposal } from '../lifecycle/PipelineAgentProposal.ts';
 import type { TrackerChange }    from '../tracker/TrackerPipeline.ts';
 
 /** A `pipeline-proposal` option whose label starts so accepts; any other answer declines and changes nothing. */
@@ -16,14 +16,14 @@ function answerDecision(command: ControlCommandOf<'decision-answer'>, change: Tr
   return answered;
 }
 
-/** Accepted, the onboarder's stored proposal is written through the gate verbs' moves in this hold; declined, nothing changes. */
+/** Accepted, the pipeline agent's stored proposal is written through the gate verbs' moves in this hold; declined, nothing changes. */
 function answerPipelineProposal(answered: DecisionAnswered, change: TrackerChange): DecisionAnswered {
   const accepted = Object.values(answered.answer).some((label) => label.startsWith(ACCEPT_PROPOSAL_LABEL));
   const { jobId } = answered.decision;
   if (!accepted || jobId === null) return answered;
-  const outcome = OnboardingProposal.storedOutcomeOf(change.workspace.trackerDirectory, jobId);
+  const outcome = PipelineAgentProposal.storedOutcomeOf(change.workspace.trackerDirectory, jobId);
   if (outcome?.verdict !== 'proposed') return answered;
-  return { ...answered, logged: [...answered.logged, ...OnboardingProposal.acceptProposal(change.board, outcome.proposal, change.at)] };
+  return { ...answered, logged: [...answered.logged, ...PipelineAgentProposal.acceptProposal(change.board, outcome.proposal, change.at)] };
 }
 
 export const DECISION_CONTROLS = { 'decision-answer': answerDecision, } as const;

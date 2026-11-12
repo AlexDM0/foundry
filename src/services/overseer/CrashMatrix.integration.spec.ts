@@ -913,7 +913,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
   test('a worktree folder no job or branch owns opens leftover-worktree to User once, however often the Overseer starts', async () => {
     const worktreesRoot = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER);
     mkdirSync(join(worktreesRoot, 'ticket-999'), { recursive: true });
-    mkdirSync(join(worktreesRoot, 'onboard', 'J9'), { recursive: true });
+    mkdirSync(join(worktreesRoot, 'pipeline-agent', 'J9'), { recursive: true });
     // The worktree a branch owns is the flow's ticket worktree, which git lists once the stage "worktree made" is entered.
     mkdirSync(join(worktreesRoot, RECORDED_FLOW_TICKET_BRANCH), { recursive: true });
     recordedGit.enterFlowStage('worktree made', repository);

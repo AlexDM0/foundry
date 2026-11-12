@@ -1,5 +1,5 @@
 /**
- * An onboarder's proposed prepare steps and gates, run twice on the main-line snapshot before User sees them, each gate on its own so one
+ * A pipeline agent's proposed prepare steps and gates, run twice on the main-line snapshot before User sees them, each gate on its own so one
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
 import { GitProcess }                      from '../../lib/git/GitProcess.ts';

@@ -345,8 +345,8 @@ export class Board {
     return { logged: this.endJob(jobId, { outcome: 'closed' }, at).logged };
   }
 
-  startOnboarder(at: string): JobChanged {
-    return this.jobControls.startOnboarder(at);
+  startPipelineAgent(at: string): JobChanged {
+    return this.jobControls.startPipelineAgent(at);
   }
 
   launchJob(launch: JobLaunch, at: string): JobChanged {
@@ -611,8 +611,8 @@ export class Board {
         return this.launchJob({
           kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
         }, at).logged;
-      case 'launch-onboarder':
-        return this.jobControls.startOnboarder(at).logged;
+      case 'launch-pipeline-agent':
+        return this.jobControls.startPipelineAgent(at).logged;
       case 'resume-job':
         return this.moveJob(step.jobId, 'running', at).logged;
       case 'replace-job':

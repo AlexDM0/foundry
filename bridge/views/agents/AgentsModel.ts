@@ -83,14 +83,14 @@ type AboutJob = Pick<AgentJobDocument, 'role' | 'intake'>;
 /** Display only, never a dispatch rule: from this share of its call budget a job's meter and figure take the warn colours. */
 export const CALL_BUDGET_WARNING_FRACTION = 0.8;
 
-const SESSION_ROLES: ReadonlySet<string> = new Set(['product-owner', 'assistant', 'onboarder']);
+const SESSION_ROLES: ReadonlySet<string> = new Set(['product-owner', 'assistant', 'pipeline-agent']);
 
 const ROLE_MARKS: Readonly<Record<string, RoleMark>> = {
-  'builder':       { letter: 'B', state: 'in-progress', word: 'builder' },
-  'reviewer':      { letter: 'R', state: 'reviewing', word: 'reviewer' },
-  'product-owner': { letter: 'P', state: 'draft', word: 'intake' },
-  'assistant':     { letter: 'A', state: 'reviewing', word: 'Assistant' },
-  'onboarder':     { letter: 'O', state: 'pending', word: 'onboarder' },
+  'builder':        { letter: 'B', state: 'in-progress', word: 'builder' },
+  'reviewer':       { letter: 'R', state: 'reviewing', word: 'reviewer' },
+  'product-owner':  { letter: 'P', state: 'draft', word: 'intake' },
+  'assistant':      { letter: 'A', state: 'reviewing', word: 'Assistant' },
+  'pipeline-agent': { letter: 'L', state: 'pending', word: 'pipeline agent' },
 };
 
 const ROLELESS_JOB_STATE: DisplayState = 'pending';
@@ -105,7 +105,7 @@ function openDecisionOf(decisions: readonly IdentifiedRecord[], jobId: string): 
   return decisions.find((decision): decision is JobDecisionDocument => (decision as Partial<JobDecisionDocument>).jobId === jobId) ?? null;
 }
 
-/** A session is an intake, Assistant or onboarding job; every other job, a roleless merge or refresh among them, is worker work. */
+/** A session is an intake, Assistant or pipeline agent job; every other job, a roleless merge or refresh among them, is worker work. */
 function groupOf(job: GroupedJob): AgentsGroup {
   return job.role !== null && SESSION_ROLES.has(job.role) ? 'sessions' : 'workers';
 }
@@ -255,14 +255,14 @@ function incidentsOpenTextOf(openIncidentCount: number): string {
   return `${openIncidentCount} ${openIncidentCount === 1 ? 'incident' : 'incidents'} open`;
 }
 
-/** What a session is about: an intake's title, else its request; the Assistant's open incidents; an onboarding. */
+/** What a session is about: an intake's title, else its request; the Assistant's open incidents; a pipeline agent. */
 function sessionAboutTextOf(job: AboutJob, openIncidentCount: number): string {
   if (job.role === 'product-owner') return job.intake?.title ?? job.intake?.text ?? 'intake';
   if (job.role === 'assistant') {
     if (openIncidentCount === 0) return 'no open incident';
     return `${openIncidentCount} open ${openIncidentCount === 1 ? 'incident' : 'incidents'}`;
   }
-  return 'onboarding';
+  return 'pipeline agent';
 }
 
 function watcherTextOf(job: JobLiveWording): string {

@@ -105,7 +105,7 @@
   <rect x="880" y="306" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="916.0" y="338" font-size="14" fill="#5F5E5A" text-anchor="middle">0</text>
   <text x="40" y="386" font-size="14" font-weight="500" fill="#3d3d3a" text-anchor="start">Every other role</text>
-  <text x="40" y="404" font-size="13" fill="#73726c" text-anchor="start">onboarder, no role</text>
+  <text x="40" y="404" font-size="13" fill="#73726c" text-anchor="start">pipeline-agent, no role</text>
   <rect x="272" y="362" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="308.0" y="394" font-size="14" fill="#5F5E5A" text-anchor="middle">0</text>
   <rect x="348" y="362" width="72" height="52" rx="6" fill="#F1EFE8" stroke="#E1DDD0"/>

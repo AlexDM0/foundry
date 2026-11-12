@@ -36,6 +36,14 @@ function sameValue(value: unknown): unknown {
   return value;
 }
 
+/** Install version 28 renamed the job kind and role `onboarder`; the append-only log keeps the older name, so a read gives the current one. */
+const RETIRED_PIPELINE_AGENT_NAME = 'onboarder';
+
+/** A stored job kind or role as the current vocabulary names it; only the retired pipeline agent name changes. */
+function currentJobNameOf(value: unknown): unknown {
+  return value === RETIRED_PIPELINE_AGENT_NAME ? 'pipeline-agent' : value;
+}
+
 /** Every value is one `logRecordProblemOf` passed for its shape. */
 const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => unknown>> = {
   'text':                   sameValue,
@@ -61,8 +69,8 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'review-claims':          ReviewRecordFieldsUtil.claimsCopyOf,
   'review-findings':        ReviewRecordFieldsUtil.findingsCopyOf,
   'nullable-text':          sameValue,
-  'job-kind':               sameValue,
-  'job-role':               sameValue,
+  'job-kind':               currentJobNameOf,
+  'job-role':               currentJobNameOf,
   'job-outcome':            sameValue,
   'interruption-cause':     sameValue,
   'watcher-instance':       sameValue,
@@ -112,4 +120,4 @@ function storedLogOf(logFileReading: LogFileReading): StoredLogReading {
   return { verdict: 'readable', records };
 }
 
-export const LogRecordMappingUtil = { recordOf, storedLogOf } as const;
+export const LogRecordMappingUtil = { recordOf, storedLogOf, currentJobNameOf } as const;

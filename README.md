@@ -182,9 +182,9 @@ Commit the `.gitignore` change `init` made.
   <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, CLAUDE.md, retired files, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
 </p>
 
-*Notice `oversee resume`: a new board starts paused, and no ticket builds and no onboarder starts until it runs.*
+*Notice `oversee resume`: a new board starts paused, and no ticket builds and no pipeline agent starts until it runs.*
 
-The Questions view asks for the repository's gates. An [onboarder](docs/glossary.md#onboarder) agent proposes them, and
+The Questions view asks for the repository's gates. A [pipeline agent](docs/glossary.md#pipeline-agent) proposes them, and
 User accepts the proposal there. Then describe the work in the Intake view and ready the draft tickets the product
 owner files.
 

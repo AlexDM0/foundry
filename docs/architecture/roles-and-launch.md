@@ -30,11 +30,11 @@ The [Overseer](../glossary.md#overseer) then writes everything a session needs t
 ## What each role gets
 
 **A role is a row of settings, and three tables hold them.** `launchProfileOf` in `src/services/overseer/DrivePass.ts`
-picks the profile; the first match wins: product owner, onboarder, any [`merge-agent`](../glossary.md#merge-agent), any
+picks the profile; the first match wins: product owner, pipeline agent, any [`merge-agent`](../glossary.md#merge-agent), any
 other job without a [worktree](../glossary.md#worktree), then builder or reviewer. A
 [`<worktrees>`](../glossary.md#reading-names) path below is a folder under the repository.
 
-![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and onboarder at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer, in a ticket worktree or as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
+![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and pipeline agent at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer, in a ticket worktree or as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
 
 *Hatch rights go by role, not by profile. Short `profileOf` is the one in `DrivePass.ts`.*
 
@@ -47,13 +47,13 @@ other job without a [worktree](../glossary.md#worktree), then builder or reviewe
 | `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | as its build or review job | `WorkerProfiles.profileOf` for its role, asking off |
 | [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
 | [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
-| [`onboarder`](../glossary.md#onboarder) | `onboarder` | `<worktrees>/onboard/J<n>`, detached at the main line's tip | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `onboarderProfileOf` |
+| [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/J<n>`, detached at the main line's tip | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
 
 A pipeline `review.effort` outside the vocabulary keeps `WORKER_EFFORT` (`JobLaunch.reviewerLaunchSettingsOf`). A
 ticket's `model` and `effort` reach no launch: see
 [gap-ticket-model-not-launched](../reference/known-gaps.md#gap-ticket-model-not-launched).
 
-> **As built.** The product owner, Assistant and onboarder take the short profile in `DrivePass.ts`, not the
+> **As built.** The product owner, Assistant and pipeline agent take the short profile in `DrivePass.ts`, not the
 > `WorkerProfiles` branches written for two of them. See
 > [gap-session-profiles-weaker](../reference/known-gaps.md#gap-session-profiles-weaker).
 
@@ -66,14 +66,14 @@ ticket's `model` and `effort` reach no launch: see
 | `builder` or `reviewer` in the Airlock | `RED_HANDOFF_RESUME_CALL_BUDGET` (30) per resume; a fresh replacement its role's full budget until its first resume | Stopped, merge refused | `AIRLOCK_AGENT_REPORT_SCHEMA` | `airlock-agent` |
 | `product-owner` | None | | None | None |
 | `assistant` | `ASSISTANT_TURN_CALL_BUDGET` (40) per turn | Interrupted, the turn's open [incidents](../glossary.md#incident) take their default | None | None |
-| `onboarder` | None | | `ONBOARDER_REPORT_SCHEMA` | `onboarder` |
+| `pipeline-agent` | None | | `PIPELINE_AGENT_REPORT_SCHEMA` | `pipeline-agent` |
 
 A Customs column is the ordered list of checks a role owes. A red handoff follows a failed [gate](../glossary.md#gate)
 or Customs check. How a session runs out of calls, and what a stop then causes, is in [Build and
 review](build-and-review.md). The columns' checks, the schemas' fields and what happens to a report are in [Customs and
 gates](customs-and-gates.md).
 
-> **As built.** The `airlock-agent` column exists, but `clearCustoms` runs for build, review and onboarder jobs alone.
+> **As built.** The `airlock-agent` column exists, but `clearCustoms` runs for build, review and pipeline agent jobs alone.
 > See [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ### What it can reach
@@ -85,7 +85,7 @@ gates](customs-and-gates.md).
 | `builder` or `reviewer` in the Airlock | No | Off | As its role | As its role | gpg-agent socket if present | Files low-priority tickets only |
 | `product-owner` | Yes | On | None | `any` | Unsigned | [Filing drafts](../glossary.md#filing-draft) and filing, `intake close` |
 | `assistant` | No | Off | None | `none` | Unsigned | Moves on incidents delivered to it |
-| `onboarder` | No | Off | None | `none` | Unsigned | Nothing |
+| `pipeline-agent` | No | Off | None | `none` | Unsigned | Nothing |
 
 Web: `none` turns WebFetch off, a list allows those domains, `any` allows every domain and WebSearch.
 
@@ -99,8 +99,8 @@ Every `merge-agent` gets the profile of its role, builder or reviewer, in the Ai
 > `ticket add` requires: [gap-worker-filing-omits-type](../reference/known-gaps.md#gap-worker-filing-omits-type). The
 > Assistant's job-targeting moves stop at the Hatch:
 > [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
-> onboarder's `advise` filing is always refused:
-> [gap-onboarder-advise-filing](../reference/known-gaps.md#gap-onboarder-advise-filing).
+> pipeline agent's `advise` filing is always refused:
+> [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
 
 ## The launch pipeline
 
@@ -108,7 +108,7 @@ Every `merge-agent` gets the profile of its role, builder or reviewer, in the Ai
 
 | Layer | Holds | File |
 | --- | --- | --- |
-| Policy | Decides that a job exists | `src/lib/tracker-model/Playbook.ts` for builds, reviews, the Assistant and setup onboarding; `src/services/overseer/Airlocks.ts` for merge agents; `src/lib/tracker-model/JobControls.ts` for intake and on-demand onboarding |
+| Policy | Decides that a job exists | `src/lib/tracker-model/Playbook.ts` for builds, reviews, the Assistant and setup pipeline agent; `src/services/overseer/Airlocks.ts` for merge agents; `src/lib/tracker-model/JobControls.ts` for intake and on-demand pipeline agent |
 | Launch | Reads, picks the folder, assembles the request | `src/services/overseer/DrivePass.ts`, `launchWatcher` |
 | Wording | Assembles what a session is told | `cli/overseer/OverseerWording.ts`, `launchTextOf` |
 | Port | Vendor-neutral types | `src/lib/agent-launch/` |
@@ -133,7 +133,7 @@ order; the twelve steps below are each visible on disk or as a return value.
    with the notice `agent-program-refused`, and an endpoint this platform cannot bind with
    `watcher-endpoint-does-not-fit`.
 2. Create `<worktrees>/hatch/J<n>/requests`.
-3. Pick the working directory. `Onboarding.prepareSnapshot` for an onboarder, `workingDirectoryOf` for the rest.
+3. Pick the working directory. `PipelineAgentSessions.prepareSnapshot` for a pipeline agent, `workingDirectoryOf` for the rest.
 4. `launchFactsOf`, then `request.launchTextOf`, give `firstMessage` and `roleBrief`.
 5. `JobResumption.resumeLineOf` and `launchPartsOf`: a resumed instance is told it was interrupted, never handed its
    task again.
@@ -280,7 +280,7 @@ What each line defends is in [Confinement](confinement.md).
 **A session is told two things, and which file lands in which text differs by role.** `roleBrief` becomes `role.md` and
 the system prompt; it is rewritten at every launch, resumes included. `firstMessage` is the first user line, sent once.
 
-![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. A builder or reviewer in the Airlock gets fixed prompts and one code line. For the product owner, Assistant and onboarder the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
+![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. A builder or reviewer in the Airlock gets fixed prompts and one code line. For the product owner, Assistant and pipeline agent the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
 
 *Notice the dark cells swap columns: customising a builder's brief changes its first user message, so a resumed builder
 keeps the text it started with.*
@@ -343,9 +343,9 @@ in the pipeline's `agents`.
 | `resources/prompts/ReviewPrompt.md`, installed as `reviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ProductOwnerPrompt.md`, installed as `productOwner.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `resources/templates/OnboarderBrief.md`, installed as `onboarder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
+| `resources/templates/PipelineAgentBrief.md`, installed as `pipelineAgent.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/AssistantBrief.md`, installed as `assistant.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `AirlockConflictMessage.md`, `AirlockReportMessage.md`, `OnboarderPrompt.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
+| `AirlockConflictMessage.md`, `AirlockReportMessage.md`, `PipelineAgentPrompt.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
 | `WindDownMessage.md`, `ResumeMessage.md` | Nobody | `resources/prompts/` once, at Overseer start | The next Overseer start |
 
 </details>
@@ -402,7 +402,7 @@ Pass hold runs `creditJobsTheLogEndedUncredited`, which scans the log and so cat
 verb's own hold ended. The scan skips any job id that already has an `agent-stopped` record, and the Airlock route sees
 only jobs its own hold removed, so neither route credits a job a second time. `tokensStillToCreditOf` is the backstop:
 called again for a job id already logged, it credits only growth. Ticketless jobs (the Assistant, the product owner, the
-onboarder, a refresh's agent) credit nothing, and a job with no turns logs nothing.
+pipeline agent, a refresh's agent) credit nothing, and a job with no turns logs nothing.
 
 The token column of a ticket or row and the `--tokens` flag are in the [command
 reference](../cli.md#the-handoff-and-the-token-column). What the figures measure, and why they

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="986" viewBox="0 0 680 986" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>A few commands, then the board waits on you four times</title>
-  <desc>The path from clone to first merged ticket. You run setup.sh, init and oversee --detach, and the Overseer serves the Bridge paused and opens checks-not-set. You press Resume in the header, the step nothing announces. With no pipeline stored, an onboarder session reads a main-line snapshot and proposes gates; gates stored first skip it. The Overseer runs each gate PROPOSAL_RUN_COUNT (2) times and opens pipeline-proposal. You accept it in the Questions tab or set gates by hand, then answer checks-not-set, which holds nothing. You describe the work in Intake, a product owner session files draft tickets and closes the intake, and ready-drafts opens. You ready them in the Questions tab or the Kanban Drafts lane, and the Overseer builds, gates and merges each ticket. The path ends on the main line.</desc>
+  <desc>The path from clone to first merged ticket. You run setup.sh, init and oversee --detach, and the Overseer serves the Bridge paused and opens checks-not-set. You press Resume in the header, the step nothing announces. With no pipeline stored, a pipeline agent session reads a main-line snapshot and proposes gates; gates stored first skip it. The Overseer runs each gate PROPOSAL_RUN_COUNT (2) times and opens pipeline-proposal. You accept it in the Questions tab or set gates by hand, then answer checks-not-set, which holds nothing. You describe the work in Intake, a product owner session files draft tickets and closes the intake, and ready-drafts opens. You ready them in the Questions tab or the Kanban Drafts lane, and the Overseer builds, gates and merges each ticket. The path ends on the main line.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="678" height="984" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A few commands, then the board waits on you four times</text>
@@ -37,7 +37,7 @@
   <text x="170.0" y="436" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Resume</text>
   <text x="170.0" y="454" font-size="12" fill="#854F0B" text-anchor="middle">header button; nothing builds before</text>
   <rect x="380" y="412" width="260" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5" stroke-width="1"/>
-  <text x="510.0" y="436" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Onboarder proposes gates</text>
+  <text x="510.0" y="436" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Pipeline agent proposes gates</text>
   <text x="510.0" y="454" font-size="12" fill="#993C1D" text-anchor="middle">skipped if gates are already stored</text>
   <rect x="380" y="508" width="260" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
   <text x="510.0" y="532" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer tries the gates</text>

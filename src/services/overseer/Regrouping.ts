@@ -27,7 +27,7 @@ import type { Workspace }                       from '../tracker/Workspace.ts';
 import { GroupWorktrees }                       from './GroupWorktrees.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
-import { ONBOARDER_SNAPSHOT_FOLDER }            from './Onboarding.ts';
+import { PIPELINE_AGENT_SNAPSHOT_FOLDER }       from './PipelineAgentSessions.ts';
 import { WatcherFleet }                         from './WatcherFleet.ts';
 
 export interface WatcherRegrouped {
@@ -49,7 +49,7 @@ export interface RegroupingReport {
 }
 
 /** The Overseer's own folders under the worktrees root: the sessions' working folders and the jobs' Hatch folders, one per job. */
-const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, ONBOARDER_SNAPSHOT_FOLDER]);
+const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER]);
 
 const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';

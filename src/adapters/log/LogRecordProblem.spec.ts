@@ -3,13 +3,24 @@
  * whole schema; every id and field of every kind must be refused by name when malformed, because the reason is all a person repairing the
  * file sees, and that sweep is derived from the schema so a new kind is held without a line here. One exact reason per field shape pins the
  * wording. `constructor` is refused as a kind because it is a property of every object, and a review bar's task id follows a row's id rule.
+ * A job kind or role `onboarder`, which an earlier release logged before the rename to `pipeline-agent`, reads as `pipeline-agent` with no
+ * rewrite, since the log is append-only and one refused line would make the whole board unreadable.
  */
-import { describe, expect, test } from 'bun:test';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
+import {
+  describe,
+  expect,
+  onTestFinished,
+  test
+} from 'bun:test';
 
 import type { LogRecord, LogRecordKind }                  from '../../lib/tracker-model/@types/LogRecord.ts';
 import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { LogFileIngestion }                               from './LogFileIngestion.ts';
 import { logRecordProblemOf }                             from './LogRecordProblem.ts';
 
 const RECORDED_AT = '2026-09-18T21:30:54+02:00';
@@ -148,5 +159,35 @@ describe('a malformed record', () => {
   test('a record whose fields are missing or not an object is refused naming fields', () => {
     expect(logRecordProblemOf(withKeys('note', { fields: undefined }))).toBe('fields is not an object');
     expect(logRecordProblemOf(withKeys('tracker-cleared', { fields: [] }))).toBe('fields is not an object');
+  });
+});
+
+describe('a record an earlier release logged for the retired job kind and role onboarder', () => {
+  // The shape this repository's own board logged for its job J2 before the rename.
+  const OLDER_PIPELINE_AGENT_LAUNCH = '{"at":"2026-11-11T09:22:16+01:00","kind":"job-launched","jobId":"J2","fields":{"kind":"onboarder",'
+    + '"role":"onboarder","ticketIds":[],"attempt":1,"target":null,"parentJobId":null}}\n';
+  test('reads as a pipeline-agent launch, and the read leaves the log byte-identical', () => {
+    const scratchDirectory = createScratchDirectory('log-older-pipeline-agent');
+    onTestFinished(() => removeScratchDirectory(scratchDirectory));
+    const logFilePath = join(scratchDirectory, 'log.jsonl');
+    writeFileSync(logFilePath, OLDER_PIPELINE_AGENT_LAUNCH);
+    expect(logRecordProblemOf(JSON.parse(OLDER_PIPELINE_AGENT_LAUNCH))).toBeNull();
+    expect(new LogFileIngestion(logFilePath).read()).toEqual({
+      verdict: 'readable',
+      records: [{
+        at:     '2026-11-11T09:22:16+01:00',
+        kind:   'job-launched',
+        jobId:  'J2',
+        fields: {
+          kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
+        },
+      }],
+    });
+    expect(readFileSync(logFilePath, 'utf8')).toBe(OLDER_PIPELINE_AGENT_LAUNCH);
+  });
+
+  test('no other unknown job kind or role reads', () => {
+    expect(logRecordProblemOf(withFields('job-launched', { kind: 'pipelineAgent' }))).toStartWith('fields.kind is "pipelineAgent"');
+    expect(logRecordProblemOf(withFields('job-launched', { role: 'tester' }))).toStartWith('fields.role is "tester"');
   });
 });

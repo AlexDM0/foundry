@@ -16,14 +16,14 @@ chosen by its [role](../glossary.md#role).
 - No session writes [`<data>`](../glossary.md#reading-names). Every change to the [board](../glossary.md#board) goes
   through the [Hatch](../glossary.md#hatch) as a request that the [Overseer](../glossary.md#overseer) may refuse.
 - [Customs](../glossary.md#customs) reads git, the ticket and the log to find what leaked, after a
-  [builder](../glossary.md#builder), [reviewer](../glossary.md#reviewer) or [onboarder](../glossary.md#onboarder) ends.
+  [builder](../glossary.md#builder), [reviewer](../glossary.md#reviewer) or [pipeline agent](../glossary.md#pipeline-agent) ends.
 - Builders, reviewers and [merge agents](../glossary.md#merge-agent) run under strict deny lists; the
-  [Assistant](../glossary.md#assistant), the [product owner](../glossary.md#product-owner) and the onboarder under far
+  [Assistant](../glossary.md#assistant), the [product owner](../glossary.md#product-owner) and the pipeline agent under far
   shorter ones.
 - Agent text can run outside every sandbox, through commands in git config
   ([gap-overseer-git-runs-repository-config](../reference/known-gaps.md#gap-overseer-git-runs-repository-config)).
 
-![An agent session sits inside five nested layers, from the inside out: removed tools, the guard hook, permission rules, the standing reply and the Claude sandbox. Edit, Write, Read and WebFetch leave through a gap in the sandbox ring, so only the inner rings hold them. After the session ends, Customs reads git and the log, for builders, reviewers and onboarders only.](../figures/confinement/confinement-layers.png)
+![An agent session sits inside five nested layers, from the inside out: removed tools, the guard hook, permission rules, the standing reply and the Claude sandbox. Edit, Write, Read and WebFetch leave through a gap in the sandbox ring, so only the inner rings hold them. After the session ends, Customs reads git and the log, for builders, reviewers and pipeline agents only.](../figures/confinement/confinement-layers.png)
 
 *Notice the gap: the sandbox holds Bash alone.*
 
@@ -46,7 +46,7 @@ The assets are few. Each row names an asset and what must not happen to it.
 
 Untrusted text enters the code at these named crossings.
 
-![An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by an onboarder's proposal, which runs as the Overseer, twice, unchecked. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.](../figures/confinement/trust-boundaries.png)
+![An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by a pipeline agent's proposal, which runs as the Overseer, twice, unchecked. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.](../figures/confinement/trust-boundaries.png)
 
 *Notice that no arrow runs from the left zone to the right one without passing the Overseer, and that the proposal runs
 text as code with no sandbox. Git config is an unplanned side door: see [Git hooks](#git-hooks).*
@@ -155,10 +155,10 @@ Three profile builders run, not one. `launchProfileOf` in `src/services/overseer
 `WorkerProfiles.profileOf` has branches for the product owner and the Assistant, and no launch path reaches them.
 [`<worktrees>`](../glossary.md#reading-names) is a folder in the repository root, and `<J>` is a job id.
 
-| | Builder, reviewer | Airlock agents | Assistant | Product owner | Onboarder |
+| | Builder, reviewer | Airlock agents | Assistant | Product owner | Pipeline agent |
 | --- | --- | --- | --- | --- | --- |
-| Built by | `WorkerProfiles.profileOf` | `WorkerProfiles.profileOf`, asking turned off | `DrivePass.profileOf` | `DrivePass.profileOf`, then `productOwnerProfileOf` | `DrivePass.profileOf`, then `onboarderProfileOf` |
-| Works in | ticket worktree | [Airlock](../glossary.md#airlock) worktree | `<worktrees>/sessions/<J>` | `<worktrees>/sessions/<J>` | `<worktrees>/onboard/<J>`, detached |
+| Built by | `WorkerProfiles.profileOf` | `WorkerProfiles.profileOf`, asking turned off | `DrivePass.profileOf` | `DrivePass.profileOf`, then `productOwnerProfileOf` | `DrivePass.profileOf`, then `pipelineAgentProfileOf` |
+| Works in | ticket worktree | [Airlock](../glossary.md#airlock) worktree | `<worktrees>/sessions/<J>` | `<worktrees>/sessions/<J>` | `<worktrees>/pipeline-agent/<J>`, detached |
 | Write denies | full list | full list | `<data>` | `<data>` | `<data>` |
 | Read denies | full list | full list | `<data>/overseer` | `<data>/overseer` | `<data>/overseer` |
 | Bash network | gates' and ticket's list | gates' and ticket's list | none | none | none |
@@ -174,16 +174,16 @@ Three profile builders run, not one. `launchProfileOf` in `src/services/overseer
 An Airlock agent is the ticket's own builder or reviewer, resumed in the Airlock worktree as a `merge-agent` job. It
 takes its role's profile with the Airlock worktree as its worktree, and `launchProfileOf` turns asking off.
 
-> **As built.** The Assistant, product owner and onboarder deny far less than a builder. See
+> **As built.** The Assistant, product owner and pipeline agent deny far less than a builder. See
 > [gap-session-profiles-weaker](../reference/known-gaps.md#gap-session-profiles-weaker). Airlock agents do not clear
 > full Customs: see [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
-The onboarder should change nothing but its Hatch folder, and no deny enforces that. It works in a detached snapshot of
+The pipeline agent should change nothing but its Hatch folder, and no deny enforces that. It works in a detached snapshot of
 the repository, which the sandbox and the `Edit` allow rule both permit. Customs holds the rule afterwards: V4 finds any
 changed tracked or untracked, non-ignored file, V16 any moved `HEAD`, V14 any moved ref. See
 [Customs and gates](customs-and-gates.md).
 
-The onboarder proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline), and the Overseer runs them
+The pipeline agent proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline), and the Overseer runs them
 twice to test them ([Customs and gates](customs-and-gates.md)). Each line runs under the confinement a merge gate gets,
 on the snapshot, in the gates' narrowed environment.
 
@@ -231,8 +231,8 @@ it.
   reviewer, in the Airlock too, files low-priority tickets. The
   Assistant moves delivered incidents, and its job-targeting moves are refused at the Hatch: see
   [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
-  product owner runs intake and draft tickets. The onboarder's filing is refused: see
-  [gap-onboarder-advise-filing](../reference/known-gaps.md#gap-onboarder-advise-filing).
+  product owner runs intake and draft tickets. The pipeline agent's filing is refused: see
+  [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
 - **A gate's `git reset`.** A gate may write the worktree and its admin folder. The branch's ref lives in the shared
   `.git`, outside that list, so no reset moves it. Under a profile of this shape every `git reset` on a branch exited 1
   at the ref lock, and a reset to `HEAD` had by then rewritten the tree and index. A refresh gate and a proposal's gates
@@ -250,7 +250,7 @@ it.
 ## Network
 
 A builder or reviewer, in the Airlock too, reaches only the domains its ticket and gates list; the Assistant and the
-onboarder reach none, and the product owner fetches any address but `localhost` and `127.0.0.1`.
+pipeline agent reach none, and the product owner fetches any address but `localhost` and `127.0.0.1`.
 
 The list is the ticket's `network` line plus every gate's `network`, an `overseerOnly` gate excluded, joined in
 `workerToolchainOf`. A ticket's line is set by `ticket add --network` or `ticket network`, the latter while the ticket
@@ -337,7 +337,7 @@ on each OS.
 | Network | a list of domains | on or off; on reaches any address |
 | When unusable | macOS and Linux: `failIfUnavailable: true`, the session does not run; Windows: no sandbox, the session runs | the step runs unconfined |
 
-A process Watcher, a merged-tree gate and an onboarder's proposal all take their line from `confinedLineOf`, which
+A process Watcher, a merged-tree gate and a pipeline agent's proposal all take their line from `confinedLineOf`, which
 refuses it where the `GateConfinement` port answers `unavailable`: the line never starts and the job opens a
 `sandbox-unavailable` incident. `oversee` refuses at its start on the same answer. On Windows the port answers
 `unconfined-by-design`, so the per-job ref denies do not hold there and a moved target opens a `target-moved` decision.
@@ -369,7 +369,7 @@ a folder, a branch could replace `bun` and run as the Overseer, outside every sa
 The rule runs twice. `refusalOf` refuses at `forge gate add`, checking the `PATH` of the shell running that
 command, so nothing is stored. `writableCachePathsOf` runs at each profile build, checks the Overseer's `PATH` and drops
 the folder from that profile. The second run is needed because the two `PATH`s may differ, a folder may have gained a
-`bin` since, and a folder can be stored another way, such as an accepted onboarder proposal.
+`bin` since, and a folder can be stored another way, such as an accepted pipeline agent proposal.
 
 `resolvedPathOf` in `src/services/overseer/ResolvedPath.ts` resolves symbolic links first, because Seatbelt matches
 resolved paths: `/var` must read as `/private/var`, and a path not there yet resolves through its nearest folder.
@@ -407,7 +407,7 @@ Signing has two modes, chosen by `commitSigningOf`. It reads `gpgconf --list-dir
 (`src/services/overseer/GpgDirectories.ts`) for the agent socket and the keyboxd socket. With the agent socket present,
 the profile allows it, and the keyboxd socket when gpgconf names one, through `allowUnixSockets`, leaves the key folder
 readable and denies the private keys. Otherwise it is `unsigned`: all of GnuPG's home is denied and the launch sets
-`commit.gpgsign=false`. The Assistant, product owner and onboarder are always `unsigned`. For those three, `unsigned`
+`commit.gpgsign=false`. The Assistant, product owner and pipeline agent are always `unsigned`. For those three, `unsigned`
 only turns signing off; `~/.gnupg` stays readable.
 
 Deterministic ids are not secrets. `claudeSessionIdOf` derives a session id from a hash of the tracker id and job id,
@@ -504,7 +504,7 @@ the next launch is the only check left, and V14 does not run.
 | Builder and reviewer profile | `src/services/overseer/WorkerProfiles.ts` | `profileOf`, `deniedWritableRootsOf`, `deniedReadableRootsOf` | `src/services/overseer/WorkerProfiles.spec.ts` |
 | Airlock agent profile | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Session profile, choice of profile | `src/services/overseer/DrivePass.ts` | `profileOf`, `launchProfileOf` | none |
-| Product owner, onboarder | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/Onboarding.ts` | `productOwnerProfileOf`, `onboarderProfileOf` | `src/services/lifecycle/Customs.onboarder.spec.ts` |
+| Product owner, pipeline agent | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/PipelineAgentSessions.ts` | `productOwnerProfileOf`, `pipelineAgentProfileOf` | `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
 | Proposal twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
 | Rendering to settings and flags | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `settingsOf`, `sandboxOf`, `disallowedToolsOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Standing reply | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |

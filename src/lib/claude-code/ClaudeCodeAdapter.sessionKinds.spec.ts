@@ -3,8 +3,8 @@
  * session carries a `sandbox` key, so no `failIfUnavailable` and no `autoAllowBashIfSandboxed`, since Claude Code exits at startup there
  * when the sandbox must run; on macOS and Linux every session keeps its sandbox with `failIfUnavailable: true`, byte for byte as
  * `testing/fixtures/frozen-session-settings.json` holds. Its `profiles` are the six kinds' profiles as `src/services/overseer/` built them
- * (`WorkerProfiles.profileOf`, the product owner's through `IntakeSessions.productOwnerProfileOf`, the onboarder's through
- * `Onboarding.onboarderProfileOf`); its `settings` were rendered from them with the code before Windows sessions ran unconfined. Retake
+ * (`WorkerProfiles.profileOf`, the product owner's through `IntakeSessions.productOwnerProfileOf`, the pipeline agent's through
+ * `PipelineAgentSessions.pipelineAgentProfileOf`); its `settings` were rendered from them with the code before Windows sessions ran unconfined. Retake
  * the settings only from such code, rendering these same requests and writing each settings object under its key.
  */
 import { readFileSync } from 'node:fs';
@@ -54,7 +54,7 @@ function renderedSettingsOf(platform: string, profile: WorkerProfile): Record<st
 
 describe('the Windows settings of every session kind', () => {
   test('cover the six session kinds', () => {
-    expect(Object.keys(FROZEN.profiles).sort()).toEqual(['airlock-agent', 'assistant', 'builder', 'onboarder', 'product-owner', 'reviewer']);
+    expect(Object.keys(FROZEN.profiles).sort()).toEqual(['airlock-agent', 'assistant', 'builder', 'pipeline-agent', 'product-owner', 'reviewer']);
   });
 
   for (const [kind, profile] of Object.entries(FROZEN.profiles)) {

@@ -102,7 +102,7 @@ describe('the ticket forecast against the Playbook', () => {
       'no live job',
       'src/lib/tracker-model/TicketForecasts.ts',
       'job.ticketIds.includes(ticketId));',
-      'job.ticketIds.includes(ticketId) && job.kind === \'onboarder\');',
+      'job.ticketIds.includes(ticketId) && job.kind === \'pipeline-agent\');',
     ],
     [
       'a Playbook that counts review rounds another way',

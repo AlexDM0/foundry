@@ -14,7 +14,7 @@ import {
   rmSync,
   writeFileSync
 }               from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import { afterEach, expect, test }                                from 'bun:test';
 import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
@@ -35,8 +35,9 @@ import {
   commonFolderInAWorktreeOf,
   REFRESH_OF_AN_IGNORING_REPOSITORY
 } from '../../testing/RecordedGitStages.ts';
-import { repositoryFileContentsOf } from '../../testing/RepositoryFileContents.ts';
-import { installedFileTextsFor }    from '../InstalledFileGeneration.ts';
+import { repositoryFileContentsOf }    from '../../testing/RepositoryFileContents.ts';
+import { installedFileTextsFor }       from '../InstalledFileGeneration.ts';
+import { retiredInstalledFilePathsIn } from '../constants/RetiredClaudeInstall.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -185,16 +186,21 @@ describeWhenGitIsRecorded('updating a tracked repository', () => {
     expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
   });
 
-  test('the merger instruction default that install version 25 wrote is removed once, beside the defaults that stay', async () => {
+  test('each retired instruction default an earlier install version wrote is removed once, beside the defaults that stay', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const mergerDefaultPath = join(installedFilePathsIn(repositoryDirectory).builderDefault, '..', 'merger.md');
-    writeFileSync(mergerDefaultPath, 'Example version 25 merger default\n');
+    const defaultsFolder = dirname(installedFilePathsIn(repositoryDirectory).builderDefault);
+    const retiredDefaultPaths = Object.values(retiredInstalledFilePathsIn(repositoryDirectory)).filter((filePath) => dirname(filePath) === defaultsFolder);
+    expect(retiredDefaultPaths.length).toBeGreaterThanOrEqual(2);
+    for (const retiredDefaultPath of retiredDefaultPaths) writeFileSync(retiredDefaultPath, 'Example retired instruction default\n');
 
     const { exitCode, context } = await update(repositoryDirectory);
     expect(exitCode, context.errorText()).toBe(0);
-    expect(existsSync(mergerDefaultPath)).toBe(false);
+    for (const retiredDefaultPath of retiredDefaultPaths) {
+      expect(existsSync(retiredDefaultPath), retiredDefaultPath).toBe(false);
+      expect(context.outputText()).toContain(`${basename(retiredDefaultPath)})`);
+    }
     expect(existsSync(installedFilePathsIn(repositoryDirectory).builderDefault)).toBe(true);
-    expect(context.outputText()).toContain('merger.md)');
+    expect(existsSync(installedFilePathsIn(repositoryDirectory).pipelineAgentDefault)).toBe(true);
 
     const second = await update(repositoryDirectory);
     expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');

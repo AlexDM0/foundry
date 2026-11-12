@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="516" viewBox="0 0 1000 516" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>The job's state decides how fast a stop lands</title>
-  <desc>A stop or fresh of a job in a state with no session, launching, preparing, interrupted or awaiting-answer, ends it at once, stopped or replaced; fresh needs a ticket. A build or review in any other state goes to stopping and ends once its Watcher is gone. A product owner in any state and an Assistant in any other go to stopping on a stop and end closed, and they refuse fresh. wind-down changes no state. A merge or refresh moves to stopping and the merge carries on. A merge-agent or onboarder stays stopping.</desc>
+  <desc>A stop or fresh of a job in a state with no session, launching, preparing, interrupted or awaiting-answer, ends it at once, stopped or replaced; fresh needs a ticket. A build or review in any other state goes to stopping and ends once its Watcher is gone. A product owner in any state and an Assistant in any other go to stopping on a stop and end closed, and they refuse fresh. wind-down changes no state. A merge or refresh moves to stopping and the merge carries on. A merge-agent or pipeline agent stays stopping.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -61,7 +61,7 @@
   <text x="710" y="367" font-size="14" fill="#633806" text-anchor="start" font-weight="500">no state change</text>
   <text x="710" y="392" font-size="13" fill="#854F0B" text-anchor="start" font-weight="400">the agent wraps up</text>
   <text x="40" y="438" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">hold: the ticket takes stopped by User (J&lt;n&gt;) or wound down by User (J&lt;n&gt;), unless it already has one.</text>
-  <text x="40" y="456" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">fresh needs a ticket, so every ticketless job refuses it: product owner, Assistant, onboarder, refresh.</text>
+  <text x="40" y="456" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">fresh needs a ticket, so every ticketless job refuses it: product owner, Assistant, pipeline agent, refresh.</text>
   <text x="40" y="474" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">merge, refresh: past launching a stop moves it to stopping, the Airlock does not read that, and the merge carries on.</text>
-  <text x="40" y="492" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">merge-agent, onboarder: stays stopping and no stop frame goes out; a merge-agent ends when its merge gives up the Airlock slot.</text>
+  <text x="40" y="492" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">merge-agent, pipeline agent: stays stopping and no stop frame goes out; a merge-agent ends when its merge gives up the Airlock slot.</text>
 </svg>

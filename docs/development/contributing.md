@@ -138,7 +138,7 @@ code on disk: <hash>; in memory: <hash>
 ```
 
 A fresh board starts paused, and its Overseer launches the [Assistant](../glossary.md#assistant). New work waits until
-the board has gates: `oversee resume` alone launches the [onboarder](../glossary.md#onboarder) and no ticket. To get a
+the board has gates: `oversee resume` alone launches the [pipeline agent](../glossary.md#pipeline-agent) and no ticket. To get a
 ticket running, declare no gates, give the ticket a [Brief](../glossary.md#brief), ready it and resume. In the same
 shell, run:
 

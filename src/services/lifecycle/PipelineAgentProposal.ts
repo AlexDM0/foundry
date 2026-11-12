@@ -1,5 +1,5 @@
 /**
- * What an onboarder's ended pass leaves for User: its verified proposal with the twice-run record and the caching suggestions, kept in the
+ * What a pipeline agent's ended pass leaves for User: its verified proposal with the twice-run record and the caching suggestions, kept in the
  * job's folder, and its acceptance, which writes the prepare steps and gates through the `gate` verbs' Board moves in the answering hold.
  */
 import { readFileSync } from 'node:fs';
@@ -15,11 +15,11 @@ import type { VerificationCheck, VerificationRefusalReason } from './Customs.ts'
 import type { ProposalRunRecord, ProposalRunRefusal }        from './ProposalTwiceRun.ts';
 import type { TreeFinding }                                  from './TreePortability.ts';
 
-export type OnboarderMode = 'setup' | 'advise';
+export type PipelineAgentMode = 'setup' | 'advise';
 
 /** The report's proposal, as its schema holds it. */
 export interface PipelineProposal {
-  mode:         OnboarderMode;
+  mode:         PipelineAgentMode;
   prepare:      PipelineStep[];
   gates:        { name: string; run: string; definedBy: string[]; network: string[]; writes: string[] }[];
   review:       { name: string; model: string | null; effort: string | null } | null;
@@ -29,28 +29,28 @@ export interface PipelineProposal {
 }
 
 /** A setup proposal is never shown without its twice-run record: the type has no proposal without one. */
-export type OnboardingOutcome =
+export type PipelineAgentOutcome =
   | { verdict: 'refused'; check: VerificationCheck; reason: VerificationRefusalReason; facts: readonly string[] }
   | { verdict: 'advised' }
   | ProposalRunRefusal
   | { verdict: 'proposed'; proposal: PipelineProposal; runRecord: ProposalRunRecord; cachingSuggestions: CachingSuggestion[]; treeFindings: TreeFinding[] };
 
-const OUTCOME_FILE = 'onboarding-outcome.json';
+const OUTCOME_FILE = 'pipeline-agent-outcome.json';
 
 /** The job folder the Overseer keeps per job, `<data>/jobs/<J>`, which only the Overseer writes. */
 function outcomePathOf(trackerDirectory: string, jobId: string): string {
   return join(trackerDirectory, 'jobs', jobId, OUTCOME_FILE);
 }
 
-function storeOutcome(trackerDirectory: string, jobId: string, outcome: OnboardingOutcome): void {
+function storeOutcome(trackerDirectory: string, jobId: string, outcome: PipelineAgentOutcome): void {
   writeFileAtomically(outcomePathOf(trackerDirectory, jobId), `${JSON.stringify(outcome, null, 2)}\n`);
 }
 
 /** `null` before the Overseer settled the pass, or when the file is unreadable, which accepts nothing. */
-function storedOutcomeOf(trackerDirectory: string, jobId: string): OnboardingOutcome | null {
+function storedOutcomeOf(trackerDirectory: string, jobId: string): PipelineAgentOutcome | null {
   try {
     const parsed: unknown = JSON.parse(readFileSync(outcomePathOf(trackerDirectory, jobId), 'utf8'));
-    return typeof parsed === 'object' && parsed !== null && 'verdict' in parsed ? parsed as OnboardingOutcome : null;
+    return typeof parsed === 'object' && parsed !== null && 'verdict' in parsed ? parsed as PipelineAgentOutcome : null;
   } catch {
     return null;
   }
@@ -97,7 +97,7 @@ function suggestionValuesOf(suggestion: CachingSuggestion): string[] {
 }
 
 /** The decision's facts, built only from a `proposed` outcome, which always carries its twice-run record. */
-function proposalFactsOf(outcome: Extract<OnboardingOutcome, { verdict: 'proposed' }>): PipelineProposalFacts {
+function proposalFactsOf(outcome: Extract<PipelineAgentOutcome, { verdict: 'proposed' }>): PipelineProposalFacts {
   const { proposal, runRecord } = outcome;
   return {
     snapshotCommit:     runRecord.snapshotCommit,
@@ -117,6 +117,6 @@ function proposalFactsOf(outcome: Extract<OnboardingOutcome, { verdict: 'propose
   };
 }
 
-export const OnboardingProposal = Object.freeze({
+export const PipelineAgentProposal = Object.freeze({
   storeOutcome, storedOutcomeOf, proposalOf, acceptProposal, proposalFactsOf
 });

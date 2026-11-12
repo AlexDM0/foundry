@@ -14,7 +14,7 @@ import path, { join, relative, resolve } from 'node:path';
 import {
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
-  ONBOARDER_REPORT_SCHEMA,
+  PIPELINE_AGENT_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema }            from '../../adapters/reports/ReportValidation.ts';
@@ -32,7 +32,7 @@ import { PRODUCT_NAMES }                               from '../../shared/consta
 
 /** A fixer is a builder one attempt on, and is verified as one. */
 /** `airlock-agent` is a builder or reviewer resumed into the Airlock for a conflict or a red merged tree. */
-export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'onboarder';
+export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-agent';
 
 export type VerificationCheck = 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16';
 
@@ -147,10 +147,10 @@ function protectedFormOf(gitPath: string): string {
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
 
 const REPORT_SCHEMA_OF_ROLE: Readonly<Record<VerifiedRole, JsonSchema>> = {
-  'builder':       BUILDER_REPORT_SCHEMA,
-  'reviewer':      REVIEWER_REPORT_SCHEMA,
-  'airlock-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
-  'onboarder':     ONBOARDER_REPORT_SCHEMA,
+  'builder':        BUILDER_REPORT_SCHEMA,
+  'reviewer':       REVIEWER_REPORT_SCHEMA,
+  'airlock-agent':  AIRLOCK_AGENT_REPORT_SCHEMA,
+  'pipeline-agent': PIPELINE_AGENT_REPORT_SCHEMA,
 };
 
 function refused(reason: VerificationRefusalReason, facts: readonly string[] = []): CheckVerdict {
@@ -404,7 +404,7 @@ function filingIsThisJobsLowFinding(records: readonly LogRecord[], jobId: string
     && record.fields.priority === 'low');
 }
 
-/** A reviewer's filed findings and an onboarder's optimisations, each a draft low ticket this job filed through its Hatch. */
+/** A reviewer's filed findings and a pipeline agent's optimisations, each a draft low ticket this job filed through its Hatch. */
 function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict {
   const records = subject.logRecords ?? [];
   const jobId = subject.jobId ?? '';
@@ -589,7 +589,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
   };
 }
 
-/** The onboarder reads a snapshot and changes nothing in it: a commit, even one on top of the start, moved its HEAD. */
+/** The pipeline agent reads a snapshot and changes nothing in it: a commit, even one on top of the start, moved its HEAD. */
 function headUnmoved(subject: CustomsSubject): CheckVerdict {
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
@@ -617,10 +617,10 @@ export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationChec
 
 /** The design's table, column by column, in check order. */
 export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly VerificationCheck[]>> = {
-  'builder':       ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
-  'reviewer':      ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
-  'airlock-agent': ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
-  'onboarder':     ['V1', 'V16', 'V4', 'V5', 'V12', 'V13', 'V14'],
+  'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
+  'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
+  'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
+  'pipeline-agent': ['V1', 'V16', 'V4', 'V5', 'V12', 'V13', 'V14'],
 };
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */

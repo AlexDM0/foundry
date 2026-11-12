@@ -44,22 +44,22 @@ export const REPLAYED_OBJECT_IDS: Readonly<Record<ObjectPlaceholder, string>> = 
 };
 
 export const RECORDED_FLOW_PLACES = {
-  MAIN_CHECKOUT:       'main checkout',
-  SESSION_FOLDER:      'session folder',
-  TICKET_WORKTREE:     'ticket worktree',
-  ONBOARDING_WORKTREE: 'onboarding worktree',
+  MAIN_CHECKOUT:           'main checkout',
+  SESSION_FOLDER:          'session folder',
+  TICKET_WORKTREE:         'ticket worktree',
+  PIPELINE_AGENT_WORKTREE: 'pipeline agent worktree',
 } as const;
 
 export type RecordedFlowPlace = typeof RECORDED_FLOW_PLACES[keyof typeof RECORDED_FLOW_PLACES];
 
 const WORKTREES = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, PRODUCT_NAMES.WORKTREES_FOLDER);
 const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
-const ONBOARDING_WORKTREE_FOLDER = join(WORKTREES, 'onboard', 'J1');
+const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'J1');
 
 /** Each place's folder below the repository, longest first, so a folder is the place of the deepest one it lies in. */
 export const RECORDED_FLOW_PLACE_FOLDERS: readonly (readonly [RecordedFlowPlace, string])[] = [
   [RECORDED_FLOW_PLACES.TICKET_WORKTREE, TICKET_WORKTREE_FOLDER],
-  [RECORDED_FLOW_PLACES.ONBOARDING_WORKTREE, ONBOARDING_WORKTREE_FOLDER],
+  [RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE, PIPELINE_AGENT_WORKTREE_FOLDER],
   [RECORDED_FLOW_PLACES.SESSION_FOLDER, join(WORKTREES, 'sessions')],
   [RECORDED_FLOW_PLACES.MAIN_CHECKOUT, RECORDED_FLOW_PLACEHOLDERS.REPOSITORY],
 ];
@@ -68,7 +68,7 @@ export type GitHookPolicyName = 'hooks-off' | 'repository-hooks';
 
 export type RecordedFlowStageName =
   | 'tracker ready'
-  | 'onboarding worktree made'
+  | 'pipeline agent worktree made'
   | 'worktree made'
   | 'tree changed'
   | 'tree changed with trailer'
@@ -212,7 +212,7 @@ const LANDING_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   ['diff', '--name-only', '--no-renames', '-z', 'HEAD', TICKET_TIP, '--'],
 ]);
 
-const ONBOARDING_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.ONBOARDING_WORKTREE, [
+const PIPELINE_AGENT_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE, [
   ['rev-parse', '--path-format=absolute', '--git-common-dir'],
   { gitArguments: ['config', '--get', 'core.hooksPath'], exitCode: NEGATIVE, hookPolicy: 'repository-hooks' },
   resolved('HEAD'),
@@ -232,16 +232,16 @@ function ticketWorktreeAddTo(nextStage: RecordedFlowStageName): RecordedFlowCall
 
 const TICKET_WORKTREE_ADD = ticketWorktreeAddTo('worktree made');
 
-const ONBOARDING_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
-  gitArguments: ['worktree', 'add', '--detach', ONBOARDING_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
-  nextStage:    'onboarding worktree made',
-  leavesFolder: ONBOARDING_WORKTREE_FOLDER,
+const PIPELINE_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments: ['worktree', 'add', '--detach', PIPELINE_AGENT_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
+  nextStage:    'pipeline agent worktree made',
+  leavesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
 
-const ONBOARDING_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
-  gitArguments:  ['worktree', 'remove', '--force', ONBOARDING_WORKTREE_FOLDER],
+const PIPELINE_AGENT_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments:  ['worktree', 'remove', '--force', PIPELINE_AGENT_WORKTREE_FOLDER],
   nextStage:     'tracker ready',
-  removesFolder: ONBOARDING_WORKTREE_FOLDER,
+  removesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
 
 const FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', TICKET_TIP], nextStage: 'branch merged' }]);
@@ -374,8 +374,8 @@ const RESOLUTION_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
 const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], nextStage: 'resolved branch landed' }]);
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
-  'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
-  'onboarding worktree made':     [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...ONBOARDING_WORKTREE_READS, ...ONBOARDING_WORKTREE_REMOVE],
+  'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
+  'pipeline agent worktree made': [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...PIPELINE_AGENT_WORKTREE_REMOVE],
   'worktree made':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
   'tree changed':                 [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
   'tree changed with trailer':    COMMITTED_STAGE_CALLS,

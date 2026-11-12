@@ -434,9 +434,9 @@
  {
   "file": "docs/architecture/watchers.md",
   "severity": "minor",
-  "problem": "Read beside state-machines.md and control-and-hatch.md, this sentence seems to say a stopped merge agent or onboarder gets a stop frame. Those documents say it gets none. All three are true of different stops, and watchers.md does not say which it means.",
-  "evidence": "watchers.md line 208: 'Stopping a merge agent, an onboarder ... goes through bare `sendFrames`'. state-machines.md: 'An onboarder receives no stop frame', 'A merge agent receives no stop frame'. control-and-hatch.md table: 'No frame'. Code: `stopMergeAgent` is called by the Airlock when it settles or at a budget, and `settleEndedOnboarders` stops a reported onboarder; neither runs for `job stop`.",
-  "fix": "Say the Airlock's stop of a merge agent and the settling stop of an onboarder go through bare `sendFrames`, and that a `job stop` of either sends no frame, linking gap-stop-of-merge-agent-sends-no-frame.",
+  "problem": "Read beside state-machines.md and control-and-hatch.md, this sentence seems to say a stopped merge agent or pipeline agent gets a stop frame. Those documents say it gets none. All three are true of different stops, and watchers.md does not say which it means.",
+  "evidence": "watchers.md line 208: 'Stopping a merge agent, a pipeline agent ... goes through bare `sendFrames`'. state-machines.md: 'A pipeline agent receives no stop frame', 'A merge agent receives no stop frame'. control-and-hatch.md table: 'No frame'. Code: `stopMergeAgent` is called by the Airlock when it settles or at a budget, and `settleEndedPipelineAgents` stops a reported pipeline agent; neither runs for `job stop`.",
+  "fix": "Say the Airlock's stop of a merge agent and the settling stop of a pipeline agent go through bare `sendFrames`, and that a `job stop` of either sends no frame, linking gap-stop-of-merge-agent-sends-no-frame.",
   "reviewer": "consistency"
  },
  {
@@ -603,7 +603,7 @@
   "file": "docs/data-model/on-disk-atlas.md",
   "severity": "minor",
   "problem": "L2 promises a reader can read any stored file, but the JSON files in a job folder have purpose rows and no field lists. `docs/cli.md` hands 'every other path' to the atlas, so these formats have no home in either page.",
-  "evidence": "`docs/README.md` L2 promise: 'read any stored file'. `start.json` (`startCommit`, `bodyHashAtLaunch`, `launchSnapshot`), `onboarder-start.json`, `red-handoff.json` (`fixCommand`, `exitCode`, `batonPassPath`, `fullLogPath`, `resumesAllowed`, `interruptedInstance` and others of `RedHandoffFacts`), `assistant-chats.json` (`messageNumber`, `incidentIds`) and `airlock-facts.json` (`mergeCommit`, `gateTail`) have field names with zero hits across `docs/data-model`, `docs/architecture`, `docs/cli.md` and the API reference. The atlas gives only an 'Owning type' name. Watcher, Baton, Hatch and step verdict formats are covered elsewhere.",
+  "evidence": "`docs/README.md` L2 promise: 'read any stored file'. `start.json` (`startCommit`, `bodyHashAtLaunch`, `launchSnapshot`), `pipeline-agent-start.json`, `red-handoff.json` (`fixCommand`, `exitCode`, `batonPassPath`, `fullLogPath`, `resumesAllowed`, `interruptedInstance` and others of `RedHandoffFacts`), `assistant-chats.json` (`messageNumber`, `incidentIds`) and `airlock-facts.json` (`mergeCommit`, `gateTail`) have field names with zero hits across `docs/data-model`, `docs/architecture`, `docs/cli.md` and the API reference. The atlas gives only an 'Owning type' name. Watcher, Baton, Hatch and step verdict formats are covered elsewhere.",
   "fix": "Add a `<details>` block under `### Files of other job kinds`, or beside the launch inputs, with each of these files' keys and meaning read from its owning type. These are diagnosis formats, so one line per file is enough. Link it from cli.md's 'Files on disk' through a hand-back.",
   "reviewer": "completeness"
  },
@@ -794,9 +794,9 @@
  {
   "file": "docs/operations/getting-started.md",
   "severity": "major",
-  "problem": "The onboarder failure path covers only a job that ended with no proposal. A crashed onboarder session stays `interrupted` and never ends, because an unset pipeline holds resumes. The documented exit, answering `checks-not-set` for a fresh onboarder, does nothing in that state, and the Proposal row of Did it work? does not mention it.",
-  "evidence": "Fresh board, Resume, onboarder session died: `jobs` showed `J3 onboarder/onboarder interrupted` unchanged for over 100 seconds. `decide E1 -- \"Try again\"` reopened it as E2 with no new onboarder; after 34 seconds J3 was still the interrupted one. `job fresh J3` was refused: `Job J3 works no ticket, so no fresh agent can take its work over.` Only two exits worked: `gate none` (J3 then resumed and ended `replaced`), or `job stop J3` followed by answering, which launched onboarder J7. `resumesAreHeld` includes `!facts.pipelineIsSet` in `src/lib/tracker-model/Playbook.ts` line 466.",
-  "fix": "In Let the onboarder propose and in the Proposal row, add: an onboarder that stays `interrupted` will not resume while no pipeline is stored. Set gates by hand, or run `job stop <J>` and then answer `checks-not-set` for a fresh onboarder.",
+  "problem": "The pipeline agent failure path covers only a job that ended with no proposal. A crashed pipeline agent session stays `interrupted` and never ends, because an unset pipeline holds resumes. The documented exit, answering `checks-not-set` for a fresh pipeline agent, does nothing in that state, and the Proposal row of Did it work? does not mention it.",
+  "evidence": "Fresh board, Resume, pipeline agent session died: `jobs` showed `J3 pipeline-agent/pipeline-agent interrupted` unchanged for over 100 seconds. `decide E1 -- \"Try again\"` reopened it as E2 with no new pipeline agent; after 34 seconds J3 was still the interrupted one. `job fresh J3` was refused: `Job J3 works no ticket, so no fresh agent can take its work over.` Only two exits worked: `gate none` (J3 then resumed and ended `replaced`), or `job stop J3` followed by answering, which launched pipeline agent J7. `resumesAreHeld` includes `!facts.pipelineIsSet` in `src/lib/tracker-model/Playbook.ts` line 466.",
+  "fix": "In Let the pipeline agent propose and in the Proposal row, add: a pipeline agent that stays `interrupted` will not resume while no pipeline is stored. Set gates by hand, or run `job stop <J>` and then answer `checks-not-set` for a fresh pipeline agent.",
   "reviewer": "operator"
  },
  {

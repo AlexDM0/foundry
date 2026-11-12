@@ -38,7 +38,7 @@ does not reach the next. A signal to an agent reaches its recorded group and sto
 command as the leader of [a second group](../development/overseer-claude-probe.md#process-groups), which the signal
 misses.
 
-![A login item or shell starts the Overseer. The Overseer spawns an agent Watcher, whose agent starts Bash tool commands that lead a process group of their own; a process Watcher with an install or gate child; an Airlock or onboarder gate child with no Watcher; and during a Baton pass a successor Overseer. Each sits in an operating-system session and process group of its own. Every Watcher and its child outlive the Overseer; the gate child with no Watcher has its output pipe close and loses its result.](../figures/watchers/process-tree.png)
+![A login item or shell starts the Overseer. The Overseer spawns an agent Watcher, whose agent starts Bash tool commands that lead a process group of their own; a process Watcher with an install or gate child; an Airlock or pipeline agent gate child with no Watcher; and during a Baton pass a successor Overseer. Each sits in an operating-system session and process group of its own. Every Watcher and its child outlive the Overseer; the gate child with no Watcher has its output pipe close and loses its result.](../figures/watchers/process-tree.png)
 
 *Everything with a Watcher keeps running when the Overseer dies; the gate child with no Watcher loses its result.*
 
@@ -51,7 +51,7 @@ misses.
 | Watcher | `WatcherFleet.spawnWatcher` | `detached: true`, `unref`, stdin ignored, stdout and stderr to `watcher-<n>.log` | Nobody | Yes |
 | Agent child | `superviseChild` in `src/lib/watcher/Watcher.ts` | `detached: true`, so its group id is its pid | Its Watcher, on `stop`. The Overseer, SIGKILL to the group of a lost Watcher's child (`settleLostWatcher` in [Regrouping](../glossary.md#regrouping)), SIGTERM to the child of a [`legacy-watcher`](#the-pinned-bundle-and-compatibility) | Yes |
 | Install or gate child | `superviseChild` under a [process Watcher](#process-watchers) | The same | Its Watcher, on `stop`. Nobody else | Yes |
-| [Airlock](../glossary.md#airlock) or [onboarder](../glossary.md#onboarder) gate child | The Overseer itself, through `GateRun.runGate`; no Watcher | `detached: true`, stdin ignored, stdout and stderr piped to the Overseer | Nobody | Its process does, until it ends or a write to its closed pipe stops it. Its result is held only in the Overseer and is lost |
+| [Airlock](../glossary.md#airlock) or [pipeline agent](../glossary.md#pipeline-agent) gate child | The Overseer itself, through `GateRun.runGate`; no Watcher | `detached: true`, stdin ignored, stdout and stderr piped to the Overseer | Nobody | Its process does, until it ends or a write to its closed pipe stops it. Its result is held only in the Overseer and is lost |
 
 <details>
 <summary>Who starts and signals an Overseer</summary>
@@ -223,7 +223,7 @@ same pattern.
 A send that never connected is retried on a later Pass while the Watcher is live. A frame the Watcher received repeats
 only if the Overseer dies after the send and before the marker is written. This is the at-least-once window.
 
-Stopping a [merge agent](../glossary.md#merge-agent), an [onboarder](../glossary.md#onboarder), a usage-limited job or
+Stopping a [merge agent](../glossary.md#merge-agent), a [pipeline agent](../glossary.md#pipeline-agent), a usage-limited job or
 an ended [Assistant](../glossary.md#assistant) goes through bare `sendFrames`, with no marker. So do the
 acknowledgements from `reapEndedWatchers` and the `--now` stops of process Watchers.
 
@@ -439,7 +439,7 @@ A build or review job's install and gates run under the same binary with `kind: 
 Overseer too. `JobLaunch.spawnProcessWatcher` writes a launch with no standing replies, sandboxes the argv when the
 sandbox is usable, see [Confinement](confinement.md), and uses instance 1 of a folder of its own.
 
-Airlock and onboarder gate runs have no Watcher, record or event log. The Overseer spawns them itself through
+Airlock and pipeline agent gate runs have no Watcher, record or event log. The Overseer spawns them itself through
 `GateRun.runGate` and reads their output through pipes, so their result dies with it. See
 [Customs and gates](customs-and-gates.md) for where each gate runs and
 [Failure and recovery](failure-and-recovery.md) for what follows.

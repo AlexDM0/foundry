@@ -105,7 +105,7 @@ same board.
 
 **Cost.** A few clock exceptions remain where counts cannot help. A hung session makes no calls, so nothing counts up
 to a bound. A wedged lock holder whose process is alive counts nothing, so its staleness is a time; a dead holder is
-found by its process id. The vendor's usage limit ends at a clock time. Onboarding suggests caching from measured gate
+found by its process id. The vendor's usage limit ends at a clock time. The pipeline agent suggests caching from measured gate
 durations. [Deciders and bounds](../reference/deciders-and-bounds.md#clock-exceptions) lists every exception and where
 each is stated.
 
@@ -182,7 +182,7 @@ did what it reported, not that the work is good. That judgement stays with revie
 
 **Decision.** A gate is a name and a shell line, run in User's shell. It passes when it exits 0 and leaves tracked
 files unchanged. The product parses no output and knows no language. What is stack-specific belongs to the repository,
-and an [onboarder](../glossary.md#onboarder) proposes the lines for User to accept. See [Customs and
+and a [pipeline agent](../glossary.md#pipeline-agent) proposes the lines for User to accept. See [Customs and
 gates](../architecture/customs-and-gates.md).
 
 **Alternative.** Built-in knowledge of test runners and type checkers, with per-test results. Each stack then needs an
@@ -216,7 +216,7 @@ one more file whose trust rests on nobody else writing it.
 product answering for the correctness of a key it cannot see into.
 
 **Cost.** A repository without a caching tool pays full runs, bounded across the machine by [gate
-slots](../glossary.md#gate-slot). The onboarder's proposal mitigates that: `src/services/lifecycle/CachingChecks.ts`
+slots](../glossary.md#gate-slot). The pipeline agent's proposal mitigates that: `src/services/lifecycle/CachingChecks.ts`
 suggests a tool or a fix from `turbo.json` and measured times, installing nothing and editing no tracked file.
 
 > **Careful.** A gate's `writes` folders, held by `src/services/overseer/GateCachePaths.ts`, are a separate matter. They

@@ -411,7 +411,7 @@
       },
       "networkDomainGuard": null
     },
-    "onboarder": {
+    "pipeline-agent": {
       "writableRoots": [
         "/example/repository/.example-worktrees/hatch/J4"
       ],
@@ -1119,7 +1119,7 @@
         ]
       }
     },
-    "darwin onboarder": {
+    "darwin pipeline-agent": {
       "includeCoAuthoredBy": false,
       "attribution": {
         "commit": "",
@@ -1884,7 +1884,7 @@
         ]
       }
     },
-    "linux onboarder": {
+    "linux pipeline-agent": {
       "includeCoAuthoredBy": false,
       "attribution": {
         "commit": "",

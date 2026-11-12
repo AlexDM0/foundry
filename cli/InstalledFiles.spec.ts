@@ -26,10 +26,10 @@ test('the session instructions and the reference sit in the tracker directory, t
     paths.builderDefault,
     paths.reviewerDefault,
     paths.productOwnerDefault,
-    paths.onboarderDefault,
+    paths.pipelineAgentDefault,
     paths.assistantDefault,
   ].map((path) => relative(EXAMPLE_ROOT, path));
-  expect(defaults).toEqual(['constitution', 'builder', 'reviewer', 'productOwner', 'onboarder', 'assistant']
+  expect(defaults).toEqual(['constitution', 'builder', 'reviewer', 'productOwner', 'pipelineAgent', 'assistant']
     .map((role) => join(TRACKER_FILES.TRACKER_DIRECTORY_NAME, 'briefs', 'defaults', `${role}.md`)));
 });
 

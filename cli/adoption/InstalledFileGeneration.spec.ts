@@ -30,7 +30,7 @@ describe('the installed texts', () => {
       'assistantDefault',
       'builderDefault',
       'constitutionDefault',
-      'onboarderDefault',
+      'pipelineAgentDefault',
       'productOwnerDefault',
       'reference',
       'reviewerDefault',
@@ -39,7 +39,7 @@ describe('the installed texts', () => {
     expect(TEXTS.reference).not.toContain('{{');
     expect(TEXTS.sessionInstructions).not.toContain('{{');
     expect(TEXTS.constitutionDefault).not.toContain('{{');
-    expect(TEXTS.onboarderDefault).not.toContain('{{');
+    expect(TEXTS.pipelineAgentDefault).not.toContain('{{');
     expect([...(TEXTS.assistantDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder).sort())
       .toEqual(PLACEHOLDERS_THE_OVERSEER_FILLS);
     expect(TEXTS.builderDefault).toContain('{{ticketBody}}');

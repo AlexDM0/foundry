@@ -57,7 +57,7 @@ function pipelineProposalWordingOf(proposal: PipelineProposalFacts): DecisionWor
   const failedPrepare = proposal.failedPrepareSteps.filter((step) => step !== null);
   return {
     questions: [{
-      question:    'The onboarder proposed this pipeline and its gates ran twice on the main line. Accept it?',
+      question:    'The pipeline agent proposed this pipeline and its gates ran twice on the main line. Accept it?',
       header:      'pipeline-proposal',
       multiSelect: false,
       options:     [
@@ -169,13 +169,13 @@ function gateListOf(gates: readonly Readonly<PipelineGate>[] | null): string {
 const CONFINEMENT_WORDING = {
   'confined': {
     sandboxRefusal:          'the sandbox refuses it, and ',
-    onboarderLimits:         'You may write only your Hatch folder, and you have no network.',
+    pipelineAgentLimits:     'You may write only your Hatch folder, and you have no network.',
     productOwnerBashNetwork: 'Bash reaches no network.',
     assistantNetwork:        'The Overseer refuses each of these, and you have no network.',
   },
   'unconfined-by-design': {
     sandboxRefusal:          '',
-    onboarderLimits:         'Write only to your Hatch folder, and do not use the network. No sandbox runs on this machine: nothing stops a command that breaks this rule.',
+    pipelineAgentLimits:     'Write only to your Hatch folder, and do not use the network. No sandbox runs on this machine: nothing stops a command that breaks this rule.',
     productOwnerBashNetwork: 'Do not use the network from Bash.',
     assistantNetwork:        'The Overseer refuses each of these. Do not use the network.',
   },
@@ -308,7 +308,7 @@ function reviewFindingsMessageOf(ticketId: string, facts: Readonly<ReviewFinding
  * A builder's and a reviewer's first message is its role's instruction files, the constitution first, filled with its ticket and checks
  * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it.
  */
-const ONBOARDER_MODE_INSTRUCTIONS = {
+const PIPELINE_AGENT_MODE_INSTRUCTIONS = {
   setup:  'No pipeline is stored (checks-not-set): your report is its proposal, and `optimisations` stays empty.',
   advise: `A pipeline is stored: propose it as it should stand, and file each optimisation the gate history shows as a draft low ticket
 through your Hatch (\`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --status draft --priority low\`), naming it in \`optimisations\`.`,
@@ -316,16 +316,18 @@ through your Hatch (\`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --status dra
 
 type SessionConfinement = JobLaunchFacts['confinement'];
 
-function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFacts['onboarding']>, instructions: string, confinement: SessionConfinement): JobLaunchText {
+function pipelineAgentTextOf(
+  job: Readonly<Job>, pipelineAgent: NonNullable<JobLaunchFacts['pipelineAgent']>, instructions: string, confinement: SessionConfinement
+): JobLaunchText {
   const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM, dataFolder: PRODUCT_NAMES.DATA_FOLDER };
   return {
-    firstMessage: filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'OnboarderPrompt.md'), 'utf8'), {
+    firstMessage: filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'PipelineAgentPrompt.md'), 'utf8'), {
       ...fills,
-      onboarderLimits:  CONFINEMENT_WORDING[confinement].onboarderLimits,
-      mode:             onboarding.mode,
-      modeInstructions: ONBOARDER_MODE_INSTRUCTIONS[onboarding.mode],
-      gateHistory:      onboarding.gateHistory.length === 0 ? 'None recorded.' : onboarding.gateHistory.join('\n'),
-      lineGrammar:      LINE_GRAMMAR_WORDING[onboarding.lineGrammar],
+      pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
+      mode:                pipelineAgent.mode,
+      modeInstructions:    PIPELINE_AGENT_MODE_INSTRUCTIONS[pipelineAgent.mode],
+      gateHistory:         pipelineAgent.gateHistory.length === 0 ? 'None recorded.' : pipelineAgent.gateHistory.join('\n'),
+      lineGrammar:         LINE_GRAMMAR_WORDING[pipelineAgent.lineGrammar],
     }),
     roleBrief: filledTemplateOf(instructions, fills),
   };
@@ -333,7 +335,7 @@ function onboarderTextOf(job: Readonly<Job>, onboarding: NonNullable<JobLaunchFa
 
 function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
-  if (facts.onboarding !== undefined && facts.onboarding !== null) return onboarderTextOf(job, facts.onboarding, facts.instructions, facts.confinement);
+  if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement);
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
   const { sandboxRefusal } = CONFINEMENT_WORDING[facts.confinement];
   const subject = ticketsPhraseOf(job.ticketIds);

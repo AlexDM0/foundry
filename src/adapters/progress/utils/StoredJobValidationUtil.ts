@@ -13,6 +13,7 @@ import {
   AIRLOCK_PHASES
 }                          from '../../../lib/tracker-model/constants/JobStates.ts';
 import { OptionConsequencesUtil } from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import { OLDER_FORMAT_ADVICE }    from '../../constants/OlderFormatAdvice.ts';
 import { StoredValueUtil }        from '../../utils/StoredValueUtil.ts';
 
 const FIRST_ATTEMPT = 1;
@@ -110,10 +111,11 @@ function jobProblem(value: unknown, index: number): string | null {
   const path = `jobs[${index}]`;
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
   if (!jobIdIsWellFormed(value['id'])) return `${path}.id is ${JSON.stringify(value['id'])}, and it has to be ${JOB_ID_PREFIX} and a whole number`;
+  // A kind or role an earlier release wrote, such as a renamed one, is a live job only that release can stop.
   const kindProblem = vocabularyProblem(value['kind'], `${path}.kind`, JOB_KINDS);
-  if (kindProblem !== null) return kindProblem;
+  if (kindProblem !== null) return `${kindProblem}; ${OLDER_FORMAT_ADVICE}`;
   if (value['role'] !== null && vocabularyProblem(value['role'], `${path}.role`, JOB_ROLES) !== null) {
-    return `${path}.role is ${JSON.stringify(value['role'])}, which is neither null nor one of ${JOB_ROLES.join(', ')}`;
+    return `${path}.role is ${JSON.stringify(value['role'])}, which is neither null nor one of ${JOB_ROLES.join(', ')}; ${OLDER_FORMAT_ADVICE}`;
   }
   if (!listOfTextIsWellFormed(value['ticketIds'])) return `${path}.ticketIds is not a list of ticket ids`;
   if (!nullableText(value['parentJobId'])) return `${path}.parentJobId is neither a job id nor null`;

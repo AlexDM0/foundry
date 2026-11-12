@@ -10,7 +10,7 @@ import { basename, join }                      from 'node:path';
 import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
 import {
   BUILDER_REPORT_SCHEMA,
-  ONBOARDER_REPORT_SCHEMA,
+  PIPELINE_AGENT_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   REVIEWER_REPORT_SCHEMA
 } from '../../adapters/reports/ReportSchemas.ts';
@@ -80,8 +80,8 @@ import {
 } from './JobLaunch.ts';
 import { JobResumption }                                              from './JobResumption.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
-import { Onboarding, type OnboardingFacts }                           from './Onboarding.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
+import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
@@ -119,8 +119,8 @@ export interface JobLaunchFacts {
   airlock:                AirlockFacts | null;
   /** What a fresh Assistant boots with: the incidents of its first message, the newest incident records and the board; `null` otherwise. */
   assistant:              AssistantFacts | null;
-  /** An onboarder's mode and the gate history `advise` reads; `null` for every other job. */
-  onboarding?:            OnboardingFacts | null;
+  /** A pipeline agent's mode and the gate history `advise` reads; `null` for every other job. */
+  pipelineAgent?:         PipelineAgentFacts | null;
   /** The role's instruction files as the pipeline names them, joined in order and unfilled; empty for a job no array speaks for. */
   instructions:           string;
   /** What the session runs under on this platform, the one fact its settings and its prompt's confinement claims both come from. */
@@ -321,10 +321,10 @@ const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
 const REPORTING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
 const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
-  'build':       BUILDER_REPORT_SCHEMA,
-  'review':      REVIEWER_REPORT_SCHEMA,
-  'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
-  'onboarder':   ONBOARDER_REPORT_SCHEMA,
+  'build':          BUILDER_REPORT_SCHEMA,
+  'review':         REVIEWER_REPORT_SCHEMA,
+  'merge-agent':    AIRLOCK_AGENT_REPORT_SCHEMA,
+  'pipeline-agent': PIPELINE_AGENT_REPORT_SCHEMA,
 };
 
 function fileTextOrEmpty(filePath: string): string {
@@ -591,11 +591,13 @@ function repositorySignsCommits(repositoryRoot: string): boolean {
 
 /**
  * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
- * a product owner and an onboarder get their own profile, and every other role the session profile.
+ * a product owner and a pipeline agent get their own profile, and every other role the session profile.
  */
 function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
   if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
-  if (Onboarding.isOnboarderJob(job)) return Onboarding.onboarderProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
+  if (PipelineAgentSessions.isPipelineAgentJob(job)) {
+    return PipelineAgentSessions.pipelineAgentProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
+  }
   const isAirlockAgent = job.kind === 'merge-agent';
   if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
@@ -666,7 +668,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
-    onboarding:             Onboarding.onboardingFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),
+    pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),
   };
 }
 
@@ -699,8 +701,8 @@ function launchWatcher(
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
-  const workingDirectory = Onboarding.isOnboarderJob(job)
-    ? Onboarding.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, job)
+  const workingDirectory = PipelineAgentSessions.isPipelineAgentJob(job)
+    ? PipelineAgentSessions.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, job)
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
@@ -1051,7 +1053,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
-        Onboarding.applySettledOnboarders(change, WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory), request.decisionWordingOf);
+        PipelineAgentSessions.applySettledPipelineAgents(change, WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory), request.decisionWordingOf);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
@@ -1105,7 +1107,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
-    const settledOnboarders = await Onboarding.settleEndedOnboarders({
+    const settledPipelineAgents = await PipelineAgentSessions.settleEndedPipelineAgents({
       platformPorts,
       workspace:             request.workspace,
       worktreesRoot:         WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
@@ -1116,7 +1118,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       millisecondsNow:       () => request.now().getTime(),
       stopGraceMilliseconds: sessionStopGraceMilliseconds,
     }, written.board);
-    if (settledOnboarders > 0) wake(true);
+    if (settledPipelineAgents > 0) wake(true);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
     await JobResumption.deliverFirstMessages(platformPorts, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({

@@ -43,7 +43,7 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `FilingControls.ts` (10) | `epic-add`, `draft-open`, `draft-claim`, `draft-release`, `draft-note`, `draft-ask`, `draft-answer`, `draft-drop`, `draft-close`, `draft-abandon` | All, [product owner](../glossary.md#product-owner) only |
 | `IncidentControls.ts` (4) | `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
 | `DecisionControls.ts` (1) | `decision-answer` | None |
-| `JobControls.ts` (9) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close`, `intake-title`, `question-options` | `intake-close`, `intake-title` and `question-options` only |
+| `JobControls.ts` (9) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `pipeline-agent-advise`, `intake-close`, `intake-title`, `question-options` | `intake-close`, `intake-title` and `question-options` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
 | `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
@@ -103,14 +103,14 @@ report instead of killing it; a stop ends it. The `stop` frame carries `SESSION_
 | `job stop` of an Assistant or product owner | State `stopping`, `stopRequest: stop` | `close-input`, marker `input-closed-<instance>`; then `stop`, marker `stop-<instance>` |
 | An Assistant or product owner job moved to `stopping` with no stop request, as `intake close` | State `stopping` | `close-input` only |
 | `job stop` or `job fresh` of a [build job](../glossary.md#build-job) or review job | State `stopping` | `stop`, marker `stop-sent` in the job folder (`stop-sent-<instance>` past the first instance), from `JobLaunch.deliverBuildJobFrames` |
-| `job stop` of a [merge agent](../glossary.md#merge-agent) or [onboarder](../glossary.md#onboarder), `job fresh` of a merge agent | State `stopping` | No frame: neither `deliverJobControls` nor `deliverBuildJobFrames` covers these kinds |
+| `job stop` of a [merge agent](../glossary.md#merge-agent) or [pipeline agent](../glossary.md#pipeline-agent), `job fresh` of a merge agent | State `stopping` | No frame: neither `deliverJobControls` nor `deliverBuildJobFrames` covers these kinds |
 
 `<instance>` is the [Watcher instance](../glossary.md#watcher-instance). Every marker but `stop-sent` is an empty file
 in the job folder's `control-frames/`.
 
 </details>
 
-> **As built.** A `job stop` of a merge agent or onboarder changes its state and sends no frame:
+> **As built.** A `job stop` of a merge agent or pipeline agent changes its state and sends no frame:
 > [no stop frame](../reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
 
 Three rules govern delivery:
@@ -324,7 +324,7 @@ first group it joins.
 | `builder`, `reviewer`, in the Airlock too | `ticket-add`, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). And `question-options`. | `filedByJob`, and the job's tickets as `finderTicketIds`; `question-options` gets its `jobId` from the folder |
 | `product-owner` | `ticket-add`; `intake-close`; `intake-title`; `question-options`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close`, `intake-title` and `question-options` get their `jobId` from the folder |
 | `assistant` | Only a command naming an `incidentId` delivered to this job, if that incident's kind allows the move | Nothing |
-| `onboarder`, no role (a job that runs no agent) | Nothing | Nothing |
+| `pipeline-agent`, no role (a job that runs no agent) | Nothing | Nothing |
 
 Each refusal carries one reason:
 

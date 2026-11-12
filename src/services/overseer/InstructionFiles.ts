@@ -42,7 +42,7 @@ function instructionRoleOf(job: Readonly<Job>): PipelineAgentRole | null {
   if (job.kind === 'review') return 'reviewer';
   if (job.kind === 'merge-agent') return job.role === 'builder' ? 'builder' : 'reviewer';
   if (job.role === 'product-owner') return 'productOwner';
-  if (job.role === 'onboarder') return 'onboarder';
+  if (job.role === 'pipeline-agent') return 'pipelineAgent';
   return null;
 }
 

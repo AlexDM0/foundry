@@ -11,14 +11,14 @@ import type {
   AirlockPhase
 } from '../@types/Job.ts';
 
-export const JOB_KINDS = ['build', 'review', 'merge', 'merge-agent', 'refresh', 'assistant', 'product-owner', 'onboarder'] as const satisfies readonly JobKind[];
+export const JOB_KINDS = ['build', 'review', 'merge', 'merge-agent', 'refresh', 'assistant', 'product-owner', 'pipeline-agent'] as const satisfies readonly JobKind[];
 
 export const JOB_ROLES = [
   'builder',
   'reviewer',
   'assistant',
   'product-owner',
-  'onboarder',
+  'pipeline-agent',
 ] as const satisfies readonly JobRole[];
 
 export const JOB_STATES = [

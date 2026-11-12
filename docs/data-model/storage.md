@@ -196,7 +196,7 @@ spends the lock's time.
 | Customs' git commands on a finished job | `verifyAndRoute` in `src/services/overseer/JobLaunch.ts`, `clearCustoms` |
 | An Overseer-made empty commit for a [review round](../glossary.md#review-round) with no changes | `commitNoChanges` in `src/services/lifecycle/ReviewOutcome.ts` |
 | The [landing](../glossary.md#landing) on a [target](../glossary.md#target) | `Landing.landOnTarget` in `src/services/lifecycle/Landing.ts`, called from a lock hold in `src/services/overseer/Airlocks.ts` |
-| Removing an [onboarder](../glossary.md#onboarder)'s snapshot [worktree](../glossary.md#worktree) | `applySettledOnboarders` in `src/services/overseer/Onboarding.ts` |
+| Removing a [pipeline agent](../glossary.md#pipeline-agent)'s snapshot [worktree](../glossary.md#worktree) | `applySettledPipelineAgents` in `src/services/overseer/PipelineAgentSessions.ts` |
 | A worktree repair | `repairWorktree` in `src/services/control/RepairControls.ts` |
 | Reading each [Watcher instance](../glossary.md#watcher-instance)'s [event log](../glossary.md#event-log) for token credit | `creditEndedJob` in `src/services/overseer/EndedJobTokens.ts` |
 
@@ -256,7 +256,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | Airlock agents launched and resumed | `job-launched`, `job-resumed` | `launchesUnder`, `redResumesOf`, same file |
 | [Builder](../glossary.md#builder) returns from review | `job-ended`, `ticket-unheld` | `builderReturnsFromReview` in `src/lib/tracker-model/Playbook.ts` |
 | Red handoff carries to a fresh [session](../glossary.md#session) | `job-interrupted`, `job-ended` `replaced` | `redHandoffCarriesOver`, same file |
-| One onboarder per `checks-not-set` | `decision-opened`, `job-launched` | `onboarderAnsweredChecksNotSet`, same file |
+| One pipeline agent per `checks-not-set` | `decision-opened`, `job-launched` | `pipelineAgentAnsweredChecksNotSet`, same file |
 | Session owner of a resumed job | `job-launched`, `job-ended` | `sessionOwnerJobIdOf` in `src/services/overseer/JobResumption.ts` |
 | An agent-config decision answered | `decision-opened`, `decision-answered`, `job-ended` | `agentConfigHitIsSettled` in `src/services/overseer/JobLaunch.ts` |
 | Non-converging reviews | `review-recorded`, `ticket-delivered`, `ticket-abandoned` | `nonConvergingTicketIdsOf` in `src/services/lifecycle/ReviewOutcome.ts` |
@@ -270,7 +270,7 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | The session a job replaces | `job-launched`, `job-interrupted`, `job-ended` | `earlierSessionWasReplaced`, `redHandoffTakenOverOf`, same file |
 | The Assistant's incident history | Every record naming an incident | `incidentHistoryOf` in `src/services/overseer/AssistantBoot.ts` |
 | User's messages to an Assistant | `job-messaged` | `userMessagesOf` in `src/services/overseer/AssistantSession.ts` |
-| An onboarder's gate history | `gate-ran` | `onboardingFactsOf` in `src/services/overseer/Onboarding.ts` |
+| A pipeline agent's gate history | `gate-ran` | `pipelineAgentFactsOf` in `src/services/overseer/PipelineAgentSessions.ts` |
 | The job a worktree patch belongs to | `job-launched` | `jobIdForPatchOf` in `src/services/control/RepairControls.ts` |
 | Tickets showing the attribution notice | `job-launched`, `job-ended` with the attribution cause | `attributionTicketIdsOf` in `src/services/overseer/JobLaunch.ts` |
 | What wakes a waiting `await` | `decision-opened`, `incident-escalated` | `wakingRecordsAfter` in `cli/tracking/await/AwaitCommand.ts` |
@@ -347,7 +347,7 @@ its lock hold opens. `progress.json` and `log.jsonl` are the exception to the St
 | `progress.json` | Atomic; `init` exclusive | Strict, keeps unknown keys | Equals `CURRENT_PROGRESS_FILE_VERSION` | `unreadable-tracker`, exit 2 | No command that reads the board, `status` included. |
 | `log.jsonl` | Atomic, whole file | Strict | None, kinds checked | `unreadable-tracker`, exit 2 | Reads through `requireProgressFile`, such as `concurrency`, `decisions`, `incidents`, `oversee status`. No write. |
 | `hold-journal.json` | Atomic | Strict, whole or nothing | Equals `HOLD_JOURNAL_FORMAT_VERSION` | `malformed-hold-journal`, exit 2 | Every lock-free read. `status` names it. No write. |
-| `pipeline.json` | Atomic | Strict, refuses unknown keys | None | Board reads no pipeline; `gate` verbs refuse `malformed-pipeline` | Reads and CLI moves work. The board behaves as if no pipeline were set: launches, resumes, merge-queue steps and [Airlock](../glossary.md#airlock) [sweeps](../glossary.md#sweep) stop, `checks-not-set` opens and an onboarder launches. An accepted `pipeline-proposal` is not guarded: it writes a whole pipeline over the malformed file, starting from empty. |
+| `pipeline.json` | Atomic | Strict, refuses unknown keys | None | Board reads no pipeline; `gate` verbs refuse `malformed-pipeline` | Reads and CLI moves work. The board behaves as if no pipeline were set: launches, resumes, merge-queue steps and [Airlock](../glossary.md#airlock) [sweeps](../glossary.md#sweep) stop, `checks-not-set` opens and a pipeline agent launches. An accepted `pipeline-proposal` is not guarded: it writes a whole pipeline over the malformed file, starting from empty. |
 | Ticket file | Atomic | One line-oriented parse, keeps unknown lines | None | Skipped and reported | Every other ticket. Its id stays spent. |
 | Epic file | Atomic | Keeps unknown lines | None | Skipped and reported | Every other epic. |
 | Filing draft file | Atomic | Keeps unknown keys | Equals `CURRENT_DRAFT_FILE_VERSION` | Skipped and reported | Every other filing draft. |

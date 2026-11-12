@@ -1,5 +1,5 @@
 /**
- * An onboarder's proposed lines at their one call site. What matters: both runs reach the port's `confinedArgvOf`, in the gates' narrowed
+ * A pipeline agent's proposed lines at their one call site. What matters: both runs reach the port's `confinedArgvOf`, in the gates' narrowed
  * environment; an `unavailable` answer starts no child and settles as `sandbox-unavailable`, which opens the incident and ends the job failed.
  * A snapshot the removal leaves is named in the log as a leftover, and a refused pass names the tree findings in its facts. The gate lines run
  * through the production gate run in a plain scratch folder; git answers from the recordings of `src/testing/RecordedGit.ts`.
@@ -24,13 +24,13 @@ import type { RecordedGitStage, RecordedGitStep }                               
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                                       from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                               from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                                                        from '../../testing/ToolGuard.ts';
-import { OnboardingProposal, type PipelineProposal }                                                    from '../lifecycle/OnboardingProposal.ts';
+import { PipelineAgentProposal, type PipelineProposal }                                                 from '../lifecycle/PipelineAgentProposal.ts';
 import type { TrackerChange }                                                                           from '../tracker/TrackerPipeline.ts';
-import { Onboarding, type OnboardingContext }                                                           from './Onboarding.ts';
+import { PipelineAgentSessions, type PipelineAgentContext }                                             from './PipelineAgentSessions.ts';
 import { WatcherFleet }                                                                                 from './WatcherFleet.ts';
 
 const AT = '2026-10-31T12:00:00+01:00';
-const SNAPSHOT_START_FILE = 'onboarder-start.json';
+const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
 
 const recordedGit = useRecordedGit();
 
@@ -44,9 +44,9 @@ let snapshot = '';
 let trackerDirectory = '';
 
 beforeEach(() => {
-  snapshot = createScratchDirectory('onboarding-snapshot');
+  snapshot = createScratchDirectory('pipeline-agent-snapshot');
   writeFileSync(join(snapshot, 'example.txt'), 'Example Agency\n');
-  trackerDirectory = createScratchDirectory('onboarding-tracker');
+  trackerDirectory = createScratchDirectory('pipeline-agent-tracker');
 });
 
 afterEach(() => {
@@ -82,7 +82,7 @@ testWhenGitIsRecorded('both runs go through the port, on the snapshot, in the na
   const confinement = fakeGateConfinement('confined');
   const printed = join(trackerDirectory, 'environment.txt');
 
-  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => Onboarding.proposalOutcomeOf(
+  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => PipelineAgentSessions.proposalOutcomeOf(
     contextUnder(confinement), proposalRunning(`echo "$EXAMPLE_NARROWED" > '${printed}'`), snapshot, 'example-commit'
   ));
 
@@ -92,7 +92,7 @@ testWhenGitIsRecorded('both runs go through the port, on the snapshot, in the na
 });
 
 testWhenGitIsRecorded('a proposal reports a reserved name, a case collision and a symbolic link in one finding each', async () => {
-  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => Onboarding.proposalOutcomeOf(
+  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => PipelineAgentSessions.proposalOutcomeOf(
     contextUnder(fakeGateConfinement('confined')), proposalRunning('true'), snapshot, 'example-commit'
   ));
 
@@ -103,13 +103,13 @@ testWhenGitIsRecorded('a proposal reports a reserved name, a case collision and 
     { kind: 'symbolic-link', paths: ['example-link'] },
     { kind: 'case-collision', paths: ['README.md', 'readme.md'] },
   ]);
-  expect(OnboardingProposal.proposalFactsOf(outcome).treeFindings).toEqual(outcome.treeFindings);
+  expect(PipelineAgentProposal.proposalFactsOf(outcome).treeFindings).toEqual(outcome.treeFindings);
 });
 
 testWhenGitIsRecorded('an unavailable answer starts no child and settles as sandbox-unavailable', async () => {
   const marker = join(trackerDirectory, 'ran.txt');
 
-  const outcome = await recordedGit.playStage([], () => Onboarding.proposalOutcomeOf(
+  const outcome = await recordedGit.playStage([], () => PipelineAgentSessions.proposalOutcomeOf(
     contextUnder(fakeGateConfinement('unavailable')), proposalRunning(`touch '${marker}'`), snapshot, 'example-commit'
   ));
 
@@ -120,12 +120,13 @@ testWhenGitIsRecorded('an unavailable answer starts no child and settles as sand
 testWhenGitIsRecorded('a settled sandbox-unavailable opens the incident and ends the job failed', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
-    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
   }, AT);
-  OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
+  PipelineAgentProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
   const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
 
-  await recordedGit.playStage([PRUNE_WITH_NOTHING_STALE], async () => Onboarding.applySettledOnboarders(change, trackerDirectory, () => ({ questions: [], context: '' })));
+  const noWording = () => ({ questions: [], context: '' });
+  await recordedGit.playStage([PRUNE_WITH_NOTHING_STALE], async () => PipelineAgentSessions.applySettledPipelineAgents(change, trackerDirectory, noWording));
 
   expect(board.incidents().map((incident) => [incident.kind, incident.facts['reason']])).toEqual([['sandbox-unavailable', FAKE_MISSING_TOOLS_REASON]]);
   expect(board.jobs()).toEqual([]);
@@ -134,10 +135,10 @@ testWhenGitIsRecorded('a settled sandbox-unavailable opens the incident and ends
 testWhenGitIsRecorded('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
-    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
   }, AT);
-  OnboardingProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
-  const leftoverSnapshot = join(trackerDirectory, 'onboard', job.id);
+  PipelineAgentProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
+  const leftoverSnapshot = join(trackerDirectory, 'pipeline-agent', job.id);
   mkdirSync(join(leftoverSnapshot, '.git'), { recursive: true });
   const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
   const declinedRemoval: RecordedGitStep = {
@@ -150,10 +151,10 @@ testWhenGitIsRecorded('a snapshot the removal leaves is reported as a leftover i
   const pausesNoted = { ...REAL_WORKTREE_REMOVAL_PRIMITIVES, pause: (milliseconds: number) => { pausesAsked.push(milliseconds); } };
 
   const noWording = () => ({ questions: [], context: '' });
-  await recordedGit.playStage(everyRemovalTryThenPrune, async () => Onboarding.applySettledOnboarders(change, trackerDirectory, noWording, pausesNoted));
+  await recordedGit.playStage(everyRemovalTryThenPrune, async () => PipelineAgentSessions.applySettledPipelineAgents(change, trackerDirectory, noWording, pausesNoted));
 
   const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
-  expect(notes).toEqual([expect.stringContaining(`The onboarder snapshot ${leftoverSnapshot} is a leftover: git worktree remove`)]);
+  expect(notes).toEqual([expect.stringContaining(`The pipeline agent snapshot ${leftoverSnapshot} is a leftover: git worktree remove`)]);
   expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
   expect(pausesAsked).toEqual(Array.from({ length: WORKTREE_REMOVAL_TRIES - 1 }, () => WORKTREE_REMOVAL_STEP_MILLISECONDS));
 });
@@ -161,7 +162,7 @@ testWhenGitIsRecorded('a snapshot the removal leaves is reported as a leftover i
 testWhenGitIsRecorded('a pass Customs refuses names the tree findings at the end of its facts', async () => {
   const { board } = boardFixture();
   const { job } = board.launchJob({
-    kind: 'onboarder', role: 'onboarder', ticketIds: [], parentJobId: null, attempt: 1, target: null
+    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
   }, AT);
   board.moveJob(job.id, 'running', AT);
   board.moveJob(job.id, 'in-customs', AT);
@@ -180,12 +181,12 @@ testWhenGitIsRecorded('a pass Customs refuses names the tree findings at the end
     mainLine:              'main',
     agentAdapter:          { eventsOf: () => [{ kind: 'result', structuredReport: { example: 'no field of the schema' } }] },
     stopGraceMilliseconds: 0,
-  } as unknown as OnboardingContext;
+  } as unknown as PipelineAgentContext;
 
   // The report fails its schema, so Customs refuses at its first check before it asks git anything; only the tree listing is asked.
-  await recordedGit.playStage([UNPORTABLE_TREE], () => Onboarding.settleEndedOnboarders(context, board));
+  await recordedGit.playStage([UNPORTABLE_TREE], () => PipelineAgentSessions.settleEndedPipelineAgents(context, board));
 
-  const outcome = OnboardingProposal.storedOutcomeOf(trackerDirectory, job.id);
+  const outcome = PipelineAgentProposal.storedOutcomeOf(trackerDirectory, job.id);
   expect(outcome).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
   expect(outcome?.verdict === 'refused' ? outcome.facts.at(-1) : null).toBe('case-collision: README.md, readme.md');
 });

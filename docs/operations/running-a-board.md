@@ -214,7 +214,7 @@ builders and reviewers, and the merge and refresh jobs, under a project row: the
 workers") and "agents at most", the [concurrency limit](../glossary.md#concurrency-limit); see [Adjust
 concurrency](#adjust-concurrency). A job there that holds no launch slot, such as a merge, is tagged "not counted". The
 card's foot says which jobs the figure counts and names the tickets in progress that no job works on. The Sessions card
-holds the intake, Assistant and onboarding jobs, which never count toward the limit; its head tallies the live sessions of each kind
+holds the intake, Assistant and pipeline agent jobs, which never count toward the limit; its head tallies the live sessions of each kind
 and how many wait on User, and links to the Intake and Assistant tabs.
 
 A job that asks User comes first in its card, its row tinted, with an Asks User strip under it: the decision, its first

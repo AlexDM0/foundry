@@ -75,8 +75,8 @@ export const JOB_CONTROLS = {
   'intake-start': (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(
     command.text, storedPicturesOf(command.pictures, change), change.at
   ),
-  'onboarder-advise': (_command: ControlCommandOf<'onboarder-advise'>, change: TrackerChange) => change.board.startOnboarder(change.at),
-  'intake-close':     closeIntake,
-  'intake-title':     titleIntake,
-  'question-options': noteQuestionOptions,
+  'pipeline-agent-advise': (_command: ControlCommandOf<'pipeline-agent-advise'>, change: TrackerChange) => change.board.startPipelineAgent(change.at),
+  'intake-close':          closeIntake,
+  'intake-title':          titleIntake,
+  'question-options':      noteQuestionOptions,
 } as const;

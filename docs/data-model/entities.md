@@ -70,7 +70,7 @@ lifetimes. Bare verbs below are `forge` commands.
 
 **TrackerProgress keys that carry meaning.** `trackerId` namespaces browser storage. `view` is the chart range.
 [`concurrencyLimit`](../glossary.md#concurrency-limit), absent, reads as `DEFAULT_CONCURRENCY_LIMIT_AGENTS`.
-`overseerState`, absent, reads as `paused`, so the Overseer launches no build, review, merge or onboarder work until
+`overseerState`, absent, reads as `paused`, so the Overseer launches no build, review, merge or pipeline agent work until
 User's go. The Assistant still boots and interrupted jobs still resume; [The Pass](../architecture/the-pass.md) gives
 the rule. `overseerFirstStartedAt` records the Overseer's first start on the board, so first-run handling
 (`submitFirstRunLeftovers`) happens once. [`forge clear`](../cli.md) throws away every row and the log and

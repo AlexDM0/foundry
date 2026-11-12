@@ -43,6 +43,6 @@ export interface ShellLine {
   executablesOf(line: string): string[];
   /** The steps as text a person types into this grammar's shell, the first failure stopping the rest; display only, never spawned. */
   displayLineOf(steps: readonly ShellDisplayStep[]): string;
-  /** The grammar a stored line runs in on this machine, which `gate add` help and an onboarder name. */
+  /** The grammar a stored line runs in on this machine, which `gate add` help and a pipeline agent name. */
   readonly lineGrammar:         ShellLineGrammar;
 }

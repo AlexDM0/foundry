@@ -72,7 +72,7 @@ reports which rung stopped a ticket, so you check them yourself.
 | --- | --- | --- | --- |
 | `forge oversee status` | `overseer: down` | No Overseer, so no [Pass](../glossary.md#pass) runs. | `forge oversee --detach` |
 | `forge oversee status` | `; paused` at the end of the first line (`status` adds it to the [Next line](../glossary.md#next-line)) | Someone paused, or the board never left its default: a fresh board is paused (`DEFAULT_OVERSEER_STATE`). | `forge oversee resume` |
-| `forge gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open and an [onboarder](../glossary.md#onboarder) starts unless the board is paused or held. | Answer its proposal, or run `forge gate add <name> -- <command>` or `forge gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
+| `forge gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open and a [pipeline agent](../glossary.md#pipeline-agent) starts unless the board is paused or held. | Answer its proposal, or run `forge gate add <name> -- <command>` or `forge gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
 | `jq -r .resetsAt ~/.forge-monitor/usage-limit.json` | a time ahead of the clock | A [usage limit](#usage-limit). | Wait for the reset. |
 | `forge oversee status` | [`notice: the install version changed`](../glossary.md#notice) | The program on disk has another [install version](../glossary.md#install-version). | [Update](#updating). |
 | `forge decisions` | `outage` | Crashes on different tickets in a row paused the board. | [Outage](#outage). |

@@ -16,7 +16,7 @@ export interface DecisionDraft {
   pipelineProposal?: PipelineProposalFacts;
 }
 
-/** An onboarder's verified proposal as User sees it: each gate with what its two runs did, and the caching suggestions by kind and values. */
+/** A pipeline agent's verified proposal as User sees it: each gate with what its two runs did, and the caching suggestions by kind and values. */
 export interface PipelineProposalFacts {
   snapshotCommit:     string;
   prepare:            readonly { name: string; run: string }[];
@@ -46,8 +46,8 @@ export type PlaybookStep =
   // A product owner past the bound whose questions are answered: a fresh session takes its drafts and the answers, never a resume.
   | { kind: 'refresh-intake'; jobId: string }
   | { kind: 'boot-assistant' }
-  // With no pipeline, the one onboarder answering `checks-not-set`.
-  | { kind: 'launch-onboarder' }
+  // With no pipeline, the one pipeline agent answering `checks-not-set`.
+  | { kind: 'launch-pipeline-agent' }
   // `jobId` names a job interrupted on a red handoff with its resumes spent, which ends `failed` as its ticket parks.
   | { kind: 'park'; ticketId: string; cause: ParkCause; jobId?: string }
   | { kind: 'open-decision'; decision: DecisionDraft }

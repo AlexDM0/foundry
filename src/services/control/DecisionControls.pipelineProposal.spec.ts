@@ -1,5 +1,5 @@
 /**
- * Answering an onboarder's `pipeline-proposal`: Accept writes every proposed prepare step and gate through the `gate` verbs' Board moves in
+ * Answering a pipeline agent's `pipeline-proposal`: Accept writes every proposed prepare step and gate through the `gate` verbs' Board moves in
  * the answering hold, an empty gate list as `gate none`; Decline, or a proposal the Overseer never stored, changes nothing but the answer.
  */
 import {
@@ -9,11 +9,11 @@ import {
   expect,
   test
 } from 'bun:test';
-import { onboarderReportOf }                              from '../../adapters/reports/testing/OnboarderReportFixture.ts';
+import { pipelineAgentReportOf }                          from '../../adapters/reports/testing/PipelineAgentReportFixture.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { OnboardingProposal, type PipelineProposal }      from '../lifecycle/OnboardingProposal.ts';
+import { PipelineAgentProposal, type PipelineProposal }   from '../lifecycle/PipelineAgentProposal.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { ControlService }                                 from './ControlService.ts';
 
@@ -30,11 +30,11 @@ function changeOf(board: Board): TrackerChange {
 }
 
 function proposalWith(gates: PipelineProposal['gates']): PipelineProposal {
-  return { ...OnboardingProposal.proposalOf(onboarderReportOf('a'.repeat(40))), gates };
+  return { ...PipelineAgentProposal.proposalOf(pipelineAgentReportOf('a'.repeat(40))), gates };
 }
 
 function storeProposal(proposal: PipelineProposal): void {
-  OnboardingProposal.storeOutcome(trackerDirectory, JOB_ID, {
+  PipelineAgentProposal.storeOutcome(trackerDirectory, JOB_ID, {
     verdict:            'proposed',
     proposal,
     runRecord:          { snapshotCommit: 'a'.repeat(40), prepare: { failedSteps: [null, null], output: '' }, gates: [] },

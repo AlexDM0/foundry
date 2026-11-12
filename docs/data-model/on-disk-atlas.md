@@ -162,7 +162,7 @@ Code treats a missing job file as absent, with the [five exceptions](#job-files-
 | `report.schema.json` | Overseer, for kinds with a [report](../glossary.md#report) | Nothing | Atomic | The schema reaches the session inline through `--json-schema` | `REPORT_SCHEMA_OF_JOB_KIND` |
 | `first-message-<n>.txt` | Overseer, for a fresh instance, so `<n>` is always 1 | Overseer, until delivered | Atomic | Holds the task text across an Overseer restart | `JobResumption.storeFirstMessage` |
 | `start.json` | Overseer, once, for build and review jobs | [Customs](../glossary.md#customs), a retry's Customs, and the gate step | Plain, skipped when present | Start commit, body hash and the ref snapshot Customs compares | `JobStart` |
-| `onboarder-start.json` | Overseer, once, for an [onboarder](../glossary.md#onboarder) | Overseer | Plain | The same start facts for the snapshot worktree | `SnapshotStart` |
+| `pipeline-agent-start.json` | Overseer, once, for a [pipeline agent](../glossary.md#pipeline-agent) | Overseer | Plain | The same start facts for the snapshot worktree | `SnapshotStart` |
 | `instructions-<n>.json` | Overseer | Nothing in code; kept for people | Atomic | Path and content hash of every instruction file the session got | `InstructionFileRead` |
 | `worktree-failure.txt` | Overseer | Overseer, for its presence | Plain | Git's error; stops a retry and raises `setup-failed` | `createWorktree` |
 | `worktree-unnormalised.txt` | Overseer | Overseer, for its presence | Plain | The paths a fresh checkout already changed, as line-ending normalisation leaves them; stops the install and raises `setup-failed` with cause `line-ending-normalisation` | `createWorktree` |
@@ -249,7 +249,7 @@ Each of these files belongs to one [job kind](../glossary.md#job-kind), or to an
 | --- | --- | --- | --- | --- | --- | --- |
 | `assistant-chats.json` | `assistant` | Overseer | Overseer | Atomic | The chats sent, with their incident ids, across a Baton pass | `AssistantChat` |
 | `airlock-facts.json` | `merge` | Overseer | Overseer, launching a merge agent | Atomic | Merge commit and gate tail, kept because the incident that held them is closed by launch time | `keepAirlockFacts` |
-| `onboarding-outcome.json` | `onboarder` | Overseer | Overseer, once settled; the answer to a `pipeline-proposal` decision (`answerPipelineProposal`) | Atomic | The verified outcome; the job ends from it | `OnboardingOutcome` |
+| `pipeline-agent-outcome.json` | `pipeline-agent` | Overseer | Overseer, once settled; the answer to a `pipeline-proposal` decision (`answerPipelineProposal`) | Atomic | The verified outcome; the job ends from it | `PipelineAgentOutcome` |
 | `waiver-proposals.json` | `review` | Overseer | The decision answer (`ReviewOutcome.answerWaiver`), in the process applying it, such as the `decide` verb | Plain | The items a reviewer proposes to waive | `WaiverProposal` |
 | `recreate-<k>.patch` | any with a ticket | `worktree repair --step recreate` | People | Exclusive | Uncommitted work saved before a worktree is removed; `<k>` is a running count, not an instance | `WorktreeRepair` |
 
@@ -262,7 +262,7 @@ Five job files stop something when they cannot be read. Every other reader treat
 | `watcher-<n>.json` | Unreadable | Reads as a lost Watcher (`WatcherFleet.livenessOf`) |
 | `launch-<n>.json` | Missing or unreadable | Its Watcher ends with `launch-unreadable` |
 | `start.json` | Missing or unreadable | The job fails at Customs with cause `git-failed` |
-| `onboarder-start.json` | Missing or unreadable | The onboarder is refused at check V16, and its job ends `failed` with cause `git-failed` |
+| `pipeline-agent-start.json` | Missing or unreadable | The pipeline agent is refused at check V16, and its job ends `failed` with cause `git-failed` |
 | `events-<n>.ndjson` | Malformed | `WatcherFleet.eventsAfter` answers `malformed`, and its callers refuse to read in part: [storage](storage.md#what-breaks-and-what-still-works) |
 
 ### Deleting a job folder
@@ -283,11 +283,11 @@ is in [Every worktree kind](../architecture/build-and-review.md#every-worktree-k
 | `group-<name>/` | A [group](../glossary.md#group) branch checked out | Git |
 | `refresh-group-<name>/` | A temporary checkout for a group [refresh](../glossary.md#refresh) | Git |
 | `sessions/<J>/` | The working folder of a session with no ticket worktree; empty at start | The session |
-| `onboard/<J>/` | A detached snapshot of the [main line](../glossary.md#main-line) for an onboarder | Git |
+| `pipeline-agent/<J>/` | A detached snapshot of the [main line](../glossary.md#main-line) for a pipeline agent | Git |
 | `hatch/<J>/requests/<request>.json` | What a session asks of the Overseer | Hatch verb under the job, atomic, `hatchFormatVersion` |
 | `hatch/<J>/replies/<request>.json` | The Overseer's answer | Overseer, atomic, `hatchFormatVersion` |
 
-The `sessions`, `hatch` and `onboard` folders belong to the Overseer, so Regrouping never counts them as leftover
+The `sessions`, `hatch` and `pipeline-agent` folders belong to the Overseer, so Regrouping never counts them as leftover
 worktrees (`OVERSEER_OWNED_FOLDERS`). The contract behind the Hatch files is in
 [Control: one contract, three doors](../architecture/control-and-hatch.md). A ticket worktree is repaired with
 `worktree repair`, never removed by hand.
@@ -394,7 +394,7 @@ While the board runs, code removes coordination files and temporary checkouts; a
 | `filing-cabinet/D<n>.json` | When the filing draft closes |
 | The old contents of `log.jsonl`, and the rows in `progress.json` | At `clear`, which restarts the log and rebuilds the rows |
 | `epics/<key>.md`, `tickets/*.md` | At `clear --all`; an epic also at its own removal |
-| `onboard/<J>/` | When the onboarder settles |
+| `pipeline-agent/<J>/` | When the pipeline agent settles |
 | `refresh-group-<name>/`, `group-<name>/` | When the [Airlock](../glossary.md#airlock) frees, and after a release, when git allows it |
 | A ticket worktree | By `worktree repair --step recreate`; the next launch creates it again |
 

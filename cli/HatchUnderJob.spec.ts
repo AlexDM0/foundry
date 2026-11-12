@@ -89,7 +89,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'worktree-repair':           ['worktree', 'repair', '1', '--step', 'prune', '--incident', 'I1'],
   'gate-retry':                ['gate', 'retry', 'J1', '--incident', 'I1'],
   'intake-start':              ['intake', '--', 'Alex Example asks for a basket.'],
-  'onboarder-advise':          ['advise'],
+  'pipeline-agent-advise':     ['advise'],
   'intake-close':              ['intake', 'close', '--set', '1'],
   'intake-title':              ['intake', 'title', '--', 'Example basket'],
   'question-options':          ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],

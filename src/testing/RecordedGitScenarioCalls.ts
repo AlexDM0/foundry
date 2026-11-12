@@ -91,12 +91,12 @@ const CUSTOMS_CALLS: readonly RecordedScenarioCall[] = [
 /** What the Customs checks ask a worktree of the repository: its state, the work since each named commit, and a merge against each target. */
 export const CUSTOMS_SCENARIO_CALLS: RecordedScenarioCalls = { folder: SCENARIO_REPOSITORY_PLACEHOLDER, calls: CUSTOMS_CALLS };
 
-/** The folder of an onboarder's detached snapshot, inside the repository. */
-export const ONBOARDER_SNAPSHOT_FOLDER_NAME = '.onboard-snapshot';
+/** The folder of a pipeline agent's detached snapshot, inside the repository. */
+export const PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME = '.pipeline-agent-snapshot';
 
-/** The same calls, asked in the onboarder's snapshot. */
-export const ONBOARDER_SCENARIO_CALLS: RecordedScenarioCalls = {
-  folder: join(SCENARIO_REPOSITORY_PLACEHOLDER, ONBOARDER_SNAPSHOT_FOLDER_NAME),
+/** The same calls, asked in the pipeline agent's snapshot. */
+export const PIPELINE_AGENT_SCENARIO_CALLS: RecordedScenarioCalls = {
+  folder: join(SCENARIO_REPOSITORY_PLACEHOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME),
   calls:  CUSTOMS_CALLS,
 };
 

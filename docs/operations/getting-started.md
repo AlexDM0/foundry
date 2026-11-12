@@ -12,7 +12,7 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 [gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves a
 [board](../glossary.md#board) in your browser, the [Bridge](../glossary.md#bridge).
 
-![The path from clone to first merged ticket: you run setup.sh, init and oversee --detach, press Resume, accept the onboarder's proposal, describe the work in Intake and ready the draft tickets, and the Overseer builds, gates and merges each ticket. The exits: gates stored before Resume skip the onboarder, and you may set gates by hand in place of accepting. The board waits on you four times, and only Resume goes unannounced.](../figures/getting-started/adoption-path.png)
+![The path from clone to first merged ticket: you run setup.sh, init and oversee --detach, press Resume, accept the pipeline agent's proposal, describe the work in Intake and ready the draft tickets, and the Overseer builds, gates and merges each ticket. The exits: gates stored before Resume skip the pipeline agent, and you may set gates by hand in place of accepting. The board waits on you four times, and only Resume goes unannounced.](../figures/getting-started/adoption-path.png)
 
 *Notice the heavy box: a new board is paused (`DEFAULT_OVERSEER_STATE`), builds nothing and does not ask you to resume.*
 
@@ -22,7 +22,7 @@ git switch group-code-lifecycle && ./setup.sh           # once per machine; setu
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 forge open                                  # starts the Overseer when none runs
-forge oversee resume                        # starts an onboarder; set gates first to skip it
+forge oversee resume                        # starts a pipeline agent; set gates first to skip it
 ```
 
 The Questions tab then shows `checks-not-set`, a generic line with an empty text box. Typing there stores no gates: they
@@ -150,7 +150,7 @@ says the Overseer is down.
 ## Resume the board
 
 A new board is paused, and it stays paused until you say otherwise. Until then no ticket builds and no
-[onboarder](../glossary.md#onboarder) starts. Resume starts an onboarder, a session you pay for, so to set gates by
+[pipeline agent](../glossary.md#pipeline-agent) starts. Resume starts a pipeline agent, a session you pay for, so to set gates by
 hand and skip it, run the `gate` commands in [Settle the gates](#settle-the-gates) first.
 
 The Bridge header shows the word `paused` and a Resume button; [Running a board](running-a-board.md) tours the header.
@@ -169,7 +169,7 @@ Paused holds new work, not sessions you asked for. A paused board shows this:
 | `checks-not-set` decision | Opens | Stays until answered |
 | [Assistant](../glossary.md#assistant) | Boots | Runs |
 | A request sent to Intake | Starts its [product owner](../glossary.md#product-owner) | Starts its product owner |
-| Onboarder | Waits | Starts |
+| Pipeline agent | Waits | Starts |
 | Ticket builds | Wait | Start once a [pipeline](../glossary.md#pipeline) is set |
 | Landings | Wait | Start once a pipeline is set |
 
@@ -182,23 +182,23 @@ an empty one, lets work start. The Overseer flags the gap with `checks-not-set` 
 with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands. What
 a gate means is in [Customs and gates](../architecture/customs-and-gates.md).
 
-![The checks-not-set decision is open, and three routes store a pipeline: accept the onboarder's proposal, gate add with gate prepare, or gate none. All reach one state, and the decision stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass reopen it, and a fresh onboarder follows unless the board is paused or held.](../figures/getting-started/settling-gates.png)
+![The checks-not-set decision is open, and three routes store a pipeline: accept the pipeline agent's proposal, gate add with gate prepare, or gate none. All reach one state, and the decision stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass reopen it, and a fresh pipeline agent follows unless the board is paused or held.](../figures/getting-started/settling-gates.png)
 
 *Notice the top loop: an answer before any pipeline exists does not skip the question. The next
-[Pass](../glossary.md#pass) reopens it and, unless the board is paused or [held](../glossary.md#hold), another onboarder
+[Pass](../glossary.md#pass) reopens it and, unless the board is paused or [held](../glossary.md#hold), another pipeline agent
 follows.*
 
 > **Careful.** Wait until a pipeline is stored, then answer `checks-not-set` in the Questions tab, or with
 > `forge decide <decision id> -- <text>`; `forge decisions` lists the id. Any text clears it.
 > Left open it holds nothing, but it stays in Questions and counts on the Questions tab and in Waiting on User.
 
-**Let the onboarder propose.** After Resume, one onboarder reads a snapshot of the main line and proposes
+**Let the pipeline agent propose.** After Resume, one pipeline agent reads a snapshot of the main line and proposes
 [prepare steps](../glossary.md#prepare-step) and gates. While it runs, the Agents tab lists it. The Overseer then runs
 each proposed gate `PROPOSAL_RUN_COUNT` (2) times, and `pipeline-proposal` appears in Questions showing what happened.
 Choose Accept to store the steps and gates. Choose Decline to store nothing and set them by hand.
 
 If its job ends with no proposal, for example `failed` after [Customs](../glossary.md#customs) refuses its report, no
-second onboarder starts by itself. Set gates by hand, or answer `checks-not-set`: a fresh onboarder follows once the
+second pipeline agent starts by itself. Set gates by hand, or answer `checks-not-set`: a fresh pipeline agent follows once the
 next Pass reopens the decision.
 
 **Set them yourself.** A gate is any shell line: its exit code is the verdict, so the program needs no knowledge of your
@@ -353,7 +353,7 @@ Each row is one stage; stop at the first that does not match.
 | Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before the Overseer started | Wait one Pass, then reread `<data>/overseer.log` |
 | Resume | `forge oversee status` | `not paused` | `oversee resume` |
 | Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
-| Proposal | `forge decisions` | A `pipeline-proposal` line once the onboarder ends, unless you set gates by hand | Read the log in `forge status`: a `failed` onboarder job opens none. Set gates by hand, or answer `checks-not-set` for a fresh onboarder |
+| Proposal | `forge decisions` | A `pipeline-proposal` line once the pipeline agent ends, unless you set gates by hand | Read the log in `forge status`: a `failed` pipeline agent job opens none. Set gates by hand, or answer `checks-not-set` for a fresh pipeline agent |
 | Gates | `forge gate list` | Your gates, or `none, on purpose` | Settle `checks-not-set` |
 | Drafts | `forge ticket list` | Your ticket as `draft` | Check the Intake tab |
 | Ready | `forge ticket list` | Your ticket as `pending` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |

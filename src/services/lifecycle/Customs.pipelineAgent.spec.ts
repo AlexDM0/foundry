@@ -1,5 +1,5 @@
 /**
- * The onboarder's Customs column on a scratch main-line snapshot: it reads the repository and writes only its Hatch, so a changed or added
+ * The pipeline agent's Customs column on a scratch main-line snapshot: it reads the repository and writes only its Hatch, so a changed or added
  * file in the snapshot, a commit on it and a moved ref each fail the pass; and each optimisation an `advise` names must be a draft low ticket
  * this job filed, read from its filing record as V12 reads a reviewer's filed finding. A clean proposal passes every check of the column.
  * Git answers from the scenarios `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call a scenario did not record
@@ -15,7 +15,7 @@ import {
   test
 } from 'bun:test';
 
-import { onboarderReportOf }                              from '../../adapters/reports/testing/OnboarderReportFixture.ts';
+import { pipelineAgentReportOf }                          from '../../adapters/reports/testing/PipelineAgentReportFixture.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
@@ -44,9 +44,9 @@ function enter(scenario: string): void {
   enterScenario(scenario, { repositoryDirectory, commits: { '<start>': START_COMMIT, '<moved>': MOVED_COMMIT } });
 }
 
-function onboarderSubject(report: unknown = onboarderReportOf(START_COMMIT), logRecords: readonly LogRecord[] = []): CustomsSubject {
+function pipelineAgentSubject(report: unknown = pipelineAgentReportOf(START_COMMIT), logRecords: readonly LogRecord[] = []): CustomsSubject {
   return {
-    role:             'onboarder',
+    role:             'pipeline-agent',
     worktreePath:     snapshotDirectory,
     startCommit:      START_COMMIT,
     report,
@@ -73,15 +73,15 @@ function lowDraftFiledByThisJob(ticketId: string): LogRecord {
 }
 
 function adviceNaming(filedTicketId: string): Record<string, unknown> {
-  return onboarderReportOf(START_COMMIT, { mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId, hatchRequestId: null }] });
+  return pipelineAgentReportOf(START_COMMIT, { mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId, hatchRequestId: null }] });
 }
 
 beforeEach(() => {
-  repositoryDirectory = createScratchDirectory('onboarder-verification');
-  snapshotDirectory   = join(repositoryDirectory, '.onboard-snapshot');
+  repositoryDirectory = createScratchDirectory('pipeline-agent-verification');
+  snapshotDirectory   = join(repositoryDirectory, '.pipeline-agent-snapshot');
   mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
   mkdirSync(snapshotDirectory);
-  enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED);
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
   launchSnapshot = launchSnapshotOf(snapshotDirectory) ?? launchSnapshot;
 });
 
@@ -89,67 +89,67 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsRecorded('the onboarder passes Customs only having changed nothing', () => {
+describeWhenGitIsRecorded('the pipeline agent passes Customs only having changed nothing', () => {
   test('a clean proposal on an untouched snapshot is verified', () => {
-    expect(clearCustoms(onboarderSubject())).toEqual({ verdict: 'verified' });
+    expect(clearCustoms(pipelineAgentSubject())).toEqual({ verdict: 'verified' });
   });
 
   test('a changed tracked file fails V4', () => {
-    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_CHANGED);
+    enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_FILE_CHANGED);
 
-    expect(clearCustoms(onboarderSubject())).toMatchObject({ verdict: 'refused', check: 'V4', reason: 'worktree-dirty' });
+    expect(clearCustoms(pipelineAgentSubject())).toMatchObject({ verdict: 'refused', check: 'V4', reason: 'worktree-dirty' });
   });
 
   test('a file written into the snapshot outside its Hatch fails V4', () => {
-    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_FILE_ADDED);
+    enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_FILE_ADDED);
 
-    expect(clearCustoms(onboarderSubject())).toMatchObject({ verdict: 'refused', check: 'V4', facts: ['?? pipeline.json'] });
+    expect(clearCustoms(pipelineAgentSubject())).toMatchObject({ verdict: 'refused', check: 'V4', facts: ['?? pipeline.json'] });
   });
 
   test('a commit on the snapshot, though it descends from the start, fails V16', () => {
-    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_COMMITTED);
+    enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_COMMITTED);
 
-    expect(clearCustoms(onboarderSubject(onboarderReportOf(MOVED_COMMIT)))).toEqual({
+    expect(clearCustoms(pipelineAgentSubject(pipelineAgentReportOf(MOVED_COMMIT)))).toEqual({
       verdict: 'refused', check: 'V16', reason: 'head-moved', facts: [START_COMMIT, MOVED_COMMIT]
     });
   });
 
   test('a moved branch fails V14', () => {
-    enter(GIT_SCENARIOS.ONBOARDER_SNAPSHOT_BRANCH_ADDED);
+    enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_BRANCH_ADDED);
 
-    expect(clearCustoms(onboarderSubject())).toMatchObject({
-      verdict: 'refused', check: 'V14', reason: 'foreign-ref-moved', facts: ['refs/heads/onboarder-moved']
+    expect(clearCustoms(pipelineAgentSubject())).toMatchObject({
+      verdict: 'refused', check: 'V14', reason: 'foreign-ref-moved', facts: ['refs/heads/pipeline-agent-moved']
     });
   });
 
   test('a git call the scenario did not record fails the case: the main checkout was never asked in it', () => {
     expect(() => launchSnapshotOf(repositoryDirectory)).toThrow('has no recorded answer');
-    expect(takeUnansweredCalls()[0]).toEndWith(`the scenario "${GIT_SCENARIOS.ONBOARDER_SNAPSHOT_UNTOUCHED}" recorded no such call`);
+    expect(takeUnansweredCalls()[0]).toEndWith(`the scenario "${GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED}" recorded no such call`);
   });
 
   test('a report missing a field is a failed pass before any other check', () => {
-    const { constitution: _constitution, ...withoutConstitution } = onboarderReportOf(START_COMMIT);
+    const { constitution: _constitution, ...withoutConstitution } = pipelineAgentReportOf(START_COMMIT);
 
-    expect(clearCustoms(onboarderSubject(withoutConstitution))).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
+    expect(clearCustoms(pipelineAgentSubject(withoutConstitution))).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
   });
 
   test('its column checks the report first and never asks for a commit, a ticket body or an Acceptance', () => {
-    expect(CHECKS_OF_ROLE.onboarder[0]).toBe('V1');
-    expect(CHECKS_OF_ROLE.onboarder).not.toContain('V3');
-    expect(CHECKS_OF_ROLE.onboarder).not.toContain('V6');
-    expect(CHECKS_OF_ROLE.onboarder).not.toContain('V8');
+    expect(CHECKS_OF_ROLE['pipeline-agent'][0]).toBe('V1');
+    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V3');
+    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V6');
+    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V8');
   });
 });
 
 describeWhenGitIsRecorded('an advice optimisation is a draft low ticket this job filed', () => {
   test('one the job filed as a low draft passes', () => {
-    expect(clearCustoms(onboarderSubject(adviceNaming('31'), [lowDraftFiledByThisJob('31')]))).toEqual({ verdict: 'verified' });
+    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [lowDraftFiledByThisJob('31')]))).toEqual({ verdict: 'verified' });
   });
 
   test('one naming a ticket another job filed fails V12', () => {
     const filedByAnother = { ...lowDraftFiledByThisJob('31'), fields: { ...lowDraftFiledByThisJob('31').fields, filedByJob: 'J2' } } as LogRecord;
 
-    expect(clearCustoms(onboarderSubject(adviceNaming('31'), [filedByAnother]))).toEqual({
+    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [filedByAnother]))).toEqual({
       verdict: 'refused', check: 'V12', reason: 'finding-not-filed-by-job', facts: ['31']
     });
   });
@@ -157,6 +157,6 @@ describeWhenGitIsRecorded('an advice optimisation is a draft low ticket this job
   test('one filed at normal priority fails V12', () => {
     const normal = { ...lowDraftFiledByThisJob('31'), fields: { ...lowDraftFiledByThisJob('31').fields, priority: 'normal' } } as LogRecord;
 
-    expect(clearCustoms(onboarderSubject(adviceNaming('31'), [normal]))).toMatchObject({ verdict: 'refused', check: 'V12' });
+    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [normal]))).toMatchObject({ verdict: 'refused', check: 'V12' });
   });
 });

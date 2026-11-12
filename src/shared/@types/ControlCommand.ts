@@ -111,7 +111,7 @@ export type ControlCommand =
   | { kind: 'job-message'; jobId: string; text: string; pictures?: PictureReference[]; incidentId?: string }
   /** With pictures the text may be blank. */
   | { kind: 'intake-start'; text: string; pictures?: PictureReference[] }
-  | { kind: 'onboarder-advise' }
+  | { kind: 'pipeline-agent-advise' }
   /** Relayed by a product owner without `jobId`: the role policy stamps its own job, from the Hatch folder. */
   | { kind: 'intake-close'; jobId?: string; proposedDraftSets: string[][] }
   /** The product owner's short title for its intake; relayed without `jobId` like `intake-close`. */

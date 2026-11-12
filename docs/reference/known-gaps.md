@@ -83,8 +83,9 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-incident-answer-not-delivered](#gap-incident-answer-not-delivered) | Agents and control | bug | An incident's answer never reaches the session |
 | [gap-escalated-question-of-ended-job](#gap-escalated-question-of-ended-job) | Agents and control | bug | An escalated question of an ended job reaches nobody |
 | [gap-assistant-job-moves-refused-at-hatch](#gap-assistant-job-moves-refused-at-hatch) | Agents and control | bug | The [Hatch](../glossary.md#hatch) refuses the [Assistant](../glossary.md#assistant)'s job-targeting moves |
-| [gap-onboarder-advise-filing](#gap-onboarder-advise-filing) | Agents and control | bug | The [onboarder](../glossary.md#onboarder)'s advised filing cannot succeed |
-| [gap-session-profiles-weaker](#gap-session-profiles-weaker) | Agents and control | bug | Assistant, [product owner](../glossary.md#product-owner) and onboarder run weaker denies |
+| [gap-pipeline-agent-advise-filing](#gap-pipeline-agent-advise-filing) | Agents and control | bug | The [pipeline agent](../glossary.md#pipeline-agent)'s advised filing cannot succeed |
+| [gap-live-pipeline-agent-under-older-name](#gap-live-pipeline-agent-under-older-name) | Agents and control | bug | A live pipeline agent job an earlier release started makes `progress.json` unreadable |
+| [gap-session-profiles-weaker](#gap-session-profiles-weaker) | Agents and control | bug | Assistant, [product owner](../glossary.md#product-owner) and pipeline agent run weaker denies |
 | [gap-refused-relayed-command-partial](#gap-refused-relayed-command-partial) | Agents and control | bug | A refused relayed command keeps its changes |
 | [gap-hatch-order-random](#gap-hatch-order-random) | Agents and control | bug | Queued requests of a job apply in random order |
 | [gap-subagents-always-empty](#gap-subagents-always-empty) | Agents and control | leftover | The profile's `subagents` field is always empty |
@@ -128,7 +129,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-pass-memory-effects-lost](#gap-pass-memory-effects-lost) | Runtime | bug | A crash between hold and effect loses three effects |
 | [gap-fingerprint-omits-files](#gap-fingerprint-omits-files) | Runtime | bug | A hand edit of a ticket starts no Pass |
 | [gap-settled-fingerprint-hides-a-write](#gap-settled-fingerprint-hides-a-write) | Runtime | bug | A write after the hold can go unacted on |
-| [gap-onboarder-settling-blocks-pass](#gap-onboarder-settling-blocks-pass) | Runtime | bug | A proposal's twice-run stalls the whole Pass |
+| [gap-pipeline-agent-settling-blocks-pass](#gap-pipeline-agent-settling-blocks-pass) | Runtime | bug | A proposal's twice-run stalls the whole Pass |
 | [gap-merge-gate-outlives-its-overseer](#gap-merge-gate-outlives-its-overseer) | Runtime | bug | A dead Overseer's gate runs on beside its rerun |
 | [gap-recycled-group-can-be-signalled](#gap-recycled-group-can-be-signalled) | Runtime | bug | An age check can pass on a reused group id |
 | [gap-managed-block-unseen-on-idle-group](#gap-managed-block-unseen-on-idle-group) | Runtime | bug | A managed block on an idle group goes unseen |
@@ -188,7 +189,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** every [role](../glossary.md#role) clears its Customs checks. `CUSTOMS_CHECKS` numbers them V1 to V16 and
   lists a column for `airlock-agent`, among them [V13](../architecture/customs-and-gates.md) (agent config untouched)
   and V14 (only own refs moved).
-- **Does:** `clearCustoms` runs for build and review jobs through `JobLaunch` and for onboarders through `Onboarding`.
+- **Does:** `clearCustoms` runs for build and review jobs through `JobLaunch` and for pipeline agents through `PipelineAgentSessions`.
   `Airlocks` reads a [merge agent](../glossary.md#merge-agent)'s [report](../glossary.md#report) directly with
   `sessionReadingOf`. No caller passes the `airlock-agent` column. Of the checks, only V10 (merge resolved) runs, after
   a conflict, through `MergeRun.resolutionIsSound`.
@@ -475,7 +476,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** [V14](../architecture/customs-and-gates.md) fails a job for the refs that job moved.
 - **Does:** `launchSnapshotOf` records every ref, remote-tracking refs and tags included, and `onlyOwnRefsMoved`
   compares all of them. `RefMovesAllowed` exempts the job's own branch, other jobs' branches and the Overseer's recorded
-  landings, and has no case for a person. An onboarder's allowance is empty, so any ref moving during its session fails
+  landings, and has no case for a person. A pipeline agent's allowance is empty, so any ref moving during its session fails
   it.
 - **Effect:** a commit on the main line, a `git fetch` that moves a remote-tracking ref, or a hand-deleted branch of a
   ticket that did not land ends each build and review job live across the move `failed`, cause `foreign-ref-moved`. V14
@@ -483,7 +484,7 @@ named in the [Glossary](../glossary.md#reading-names).
   starts.
 - **Instead:** with jobs live, leave the repository's refs alone. Check with `forge jobs` first.
 - **Evidence:** `src/services/lifecycle/Customs.ts` `launchSnapshotOf`, `onlyOwnRefsMoved`, `refMovesAllowedOf`;
-  `src/services/overseer/Onboarding.ts` `settledOutcomeOf`; `src/services/overseer/JobLaunch.ts`
+  `src/services/overseer/PipelineAgentSessions.ts` `settledOutcomeOf`; `src/services/overseer/JobLaunch.ts`
   `RESUMABLE_CUSTOMS_CHECKS`.
 - **Established:** probed for a hand commit during a review, which ended that job `failed` and launched a second review;
   read for the rest. **Severity:** bug.
@@ -509,12 +510,12 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** a malformed `pipeline.json` is refused, not replaced: every `gate` verb refuses `malformed-pipeline`.
 - **Does:** `inReadablePipeline` guards the `gate` verbs alone. `answerPipelineProposal` calls
-  `OnboardingProposal.acceptProposal`, which calls the Board moves directly. `changedPipelineOf` starts from an empty
+  `PipelineAgentProposal.acceptProposal`, which calls the Board moves directly. `changedPipelineOf` starts from an empty
   pipeline when the Board read none, and the hold writes the file.
 - **Effect:** an answer to a `pipeline-proposal` decision loses a hand-edited file that failed to parse.
 - **Instead:** repair `<data>/pipeline.json`, or copy it aside, before accepting a proposal.
 - **Evidence:** `src/services/control/SettingControls.ts` `inReadablePipeline`;
-  `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `src/services/lifecycle/OnboardingProposal.ts`
+  `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `src/services/lifecycle/PipelineAgentProposal.ts`
   `acceptProposal`; `src/lib/tracker-model/TrackerChanges.ts` `changedPipelineOf`.
 - **Established:** read. **Severity:** bug.
 
@@ -526,9 +527,9 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Does:** `Playbook.nextStepsOf` opens it while no pipeline is set, and nothing closes it. `gate none`, a `gate add`
   and an accepted proposal leave it open, and `answerPipelineProposal` touches only its own decision.
 - **Effect:** the question stays on the Questions tab after it stopped applying. Answered with no pipeline set, it
-  reopens and a fresh onboarder launches.
+  reopens and a fresh pipeline agent launches.
 - **Instead:** once a pipeline is set, run `forge decide <E> -- <text>`.
-- **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `onboarderAnsweredChecksNotSet`;
+- **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `pipelineAgentAnsweredChecksNotSet`;
   `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `cli/overseer/OverseerWording.ts`
   `decisionWordingOf`.
 - **Established:** probed for `gate none`; read for an accepted proposal. **Severity:** bug.
@@ -704,33 +705,48 @@ named in the [Glossary](../glossary.md#reading-names).
   `JOB_TARGETING_KINDS`. `src/services/control/Bouncer.spec.ts` tests `verdictOf` alone.
 - **Established:** probed. **Severity:** bug.
 
-<a id="gap-onboarder-advise-filing"></a>
+<a id="gap-pipeline-agent-advise-filing"></a>
 
-### The onboarder's advised filing cannot work
+### The pipeline agent's advised filing cannot work
 
-- **Expected:** in `advise` mode the onboarder files each optimisation as a low draft ticket.
+- **Expected:** in `advise` mode the pipeline agent files each optimisation as a low draft ticket.
 - **Does:** the prompt says `ticket add "<title>" --status draft --priority low`. `--status` is not in
   `ADD_OPTION_NAMES`, and `--type` is required, so the verb refuses it. A correct filing meets `Bouncer.verdictOf`,
-  which has no branch for role `onboarder` and refuses `command-not-allowed-for-role`.
-- **Effect:** an onboarder cannot file anything. The report schema admits only filed optimisations, each with a
+  which has no branch for role `pipeline-agent` and refuses `command-not-allowed-for-role`.
+- **Effect:** a pipeline agent cannot file anything. The report schema admits only filed optimisations, each with a
   `filedTicketId` or `hatchRequestId`, so an `advise` run listing any ends `failed` at
   [V12](../architecture/customs-and-gates.md) (filings are this job's). A run listing none reports nothing.
 - **Instead:** read the optimisations in the session's transcript on the Bridge, which shows the session's text where
   `forge job attach <J>` does not, and file them by hand. Each entry's only free text is its `summary`; the
   report's `notes` field may also carry advice.
-- **Evidence:** `cli/overseer/OverseerWording.ts` `ONBOARDER_MODE_INSTRUCTIONS`;
+- **Evidence:** `cli/overseer/OverseerWording.ts` `PIPELINE_AGENT_MODE_INSTRUCTIONS`;
   `cli/tickets/TicketFilingSubcommands.ts` `ADD_OPTION_NAMES`; `src/services/control/Bouncer.ts` `verdictOf`;
   `src/services/lifecycle/Customs.ts` `filedFindingsWereFiledByThisJob`; `src/adapters/reports/ReportSchemas.ts`
   `FILED_OPTIMISATION`.
+- **Established:** read. **Severity:** bug.
+
+<a id="gap-live-pipeline-agent-under-older-name"></a>
+
+### A live pipeline agent job from an earlier release is refused
+
+- **Expected:** an update of the program keeps every board readable.
+- **Does:** install version 28 renamed the pipeline agent's job kind and role. A `progress.json` that still holds a live
+  job under the older name is refused with the older-format advice; nothing migrates it. The log keeps reading, since
+  its older records read as `pipeline-agent` (`CLAUDE.md`, Deviations).
+- **Effect:** `status` and every command that reads the board refuse until that job is gone.
+- **Instead:** before the update, let the job end or stop it with `forge job stop <J>`; after it, stop it with an
+  earlier release, as the advice says.
+- **Evidence:** `src/adapters/progress/utils/StoredJobValidationUtil.ts` `jobProblem`;
+  `src/adapters/log/utils/LogRecordMappingUtil.ts` `currentJobNameOf`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-session-profiles-weaker"></a>
 
 ### Session profiles are weaker than workers'
 
-- **Expected:** Assistant, product owner and onboarder sessions run under the same denies as workers;
+- **Expected:** Assistant, product owner and pipeline agent sessions run under the same denies as workers;
   `WorkerProfiles.profileOf` has branches with full denies for two of them.
-- **Does:** production calls it only for `reviewer` and `builder`, in the Airlock too. Assistant, product owner and onboarder
+- **Does:** production calls it only for `reviewer` and `builder`, in the Airlock too. Assistant, product owner and pipeline agent
   take the local `profileOf` in `DrivePass.ts`, which denies writes only to `<data>` and reads only to
   `<data>/overseer` and `<monitor>/watchers`.
 - **Effect:** those sessions can read `~/.ssh`, `~/.aws`, `~/.gnupg` and each job's `launch-*.json`. The product owner
@@ -1144,7 +1160,7 @@ named in the [Glossary](../glossary.md#reading-names).
   the life of the `DrivePass`, and the filter excludes it. A Watcher that never claims its job (its bundle is gone, or
   it dies before it claims) is not spawned again until the next Overseer.
 - **Effect:** a running build or review opens a `quiet-job` incident. A job with no worktree of its own (Assistant,
-  product owner, onboarder or merge agent) stays `launching` with no signal, because `createQuietJobWatch` looks only at
+  product owner, pipeline agent or merge agent) stays `launching` with no signal, because `createQuietJobWatch` looks only at
   `running` jobs.
 - **Instead:** run `forge oversee restart`. [Regrouping](../glossary.md#regrouping) lists the job, and the
   successor's first Pass spawns its Watcher.
@@ -1174,7 +1190,7 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** a job whose [Watcher](../glossary.md#watcher) ended before its session started is ended or tried again.
 - **Does:** `applyWatcherEvents` acts on a gone Watcher only for a `running`, `waiting-for-answer` or `stopping` job.
   `jobsNeedingAWatcher` spawns only for an `unclaimed` instance, which an ended or lost Watcher is not. This reaches a
-  job with no worktree of its own (Assistant, product owner, onboarder or merge agent), for example after a reboot.
+  job with no worktree of its own (Assistant, product owner, pipeline agent or merge agent), for example after a reboot.
 - **Effect:** the job stays `launching`, across restarts too. A stranded Assistant still counts as live in
   `nextStepsOf`, so no fresh one boots and incidents wait for it.
 - **Instead:** run `forge job stop <J>`. `oversee restart` does not help here, unlike [a Watcher that never
@@ -1302,28 +1318,28 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-stop-of-merge-agent-sends-no-frame"></a>
 
-### `job stop` of a merge agent or onboarder sends no frame
+### `job stop` of a merge agent or pipeline agent sends no frame
 
 - **Expected:** `job stop` stops the session, and the job ends.
 - **Does:** `requestJobStop` moves the job to `stopping`, and `job fresh` of a merge agent does the same.
   `deliverBuildJobFrames` sends the stop for build and review jobs, and `deliverJobControls` for the Assistant and
-  product owner. A merge agent or onboarder is neither. `applyWatcherEvents` ends only session kinds from `stopping`,
-  `settleAirlockAgent` acts only on `running` or `in-customs`, and `settleEndedOnboarders` only on
+  product owner. A merge agent or pipeline agent is neither. `applyWatcherEvents` ends only session kinds from `stopping`,
+  `settleAirlockAgent` acts only on `running` or `in-customs`, and `settleEndedPipelineAgents` only on
   `in-customs`.
 - **Effect:** the job reads `stopping` while its session runs on, and it stays `stopping` after the session ends. A
-  merge agent's merge stalls in its Airlock slot with its call budget unchecked. An onboarder stays on the board, so
-  `onboarderAnsweredChecksNotSet` launches no other. A `job stop` of the parent merge job leaves both `stopping`.
+  merge agent's merge stalls in its Airlock slot with its call budget unchecked. A pipeline agent stays on the board, so
+  `pipelineAgentAnsweredChecksNotSet` launches no other. A `job stop` of the parent merge job leaves both `stopping`.
 - **Instead:** for a ticket's merge agent, run `forge ticket park <id> -- <reason>`. `parked:user` replaces
   the `stopped by User` hold, and the next sweep's `abortParkedMerge` aborts the merge, frees the slot and ends the
-  agent `stopped`. A live session still needs its process ended by hand. A refresh's merge agent and an onboarder have
+  agent `stopped`. A live session still needs its process ended by hand. A refresh's merge agent and a pipeline agent have
   no ticket, so no verb frees them, and a refresh's Airlock stays held.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/JobLaunch.ts`
   `deliverBuildJobFrames`; `src/services/overseer/JobControlDelivery.ts` `deliverJobControls`;
   `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts`
-  `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`; `src/services/overseer/Onboarding.ts`
-  `settleEndedOnboarders`; `src/lib/tracker-model/Playbook.ts` `onboarderAnsweredChecksNotSet`.
+  `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`; `src/services/overseer/PipelineAgentSessions.ts`
+  `settleEndedPipelineAgents`; `src/lib/tracker-model/Playbook.ts` `pipelineAgentAnsweredChecksNotSet`.
 - **Established:** probed through `AirlocksHarness` on the real `createAirlocks` for a ticket's merge agent, and on a
-  real `DrivePass` for an onboarder; the refresh case read. **Severity:** bug.
+  real `DrivePass` for a pipeline agent; the refresh case read. **Severity:** bug.
 
 <a id="gap-misshapen-request-stops-the-pass"></a>
 
@@ -1446,20 +1462,20 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Established:** read for the cause; the stall seen once in a scratch repository, and its cause there not proved.
   **Severity:** bug.
 
-<a id="gap-onboarder-settling-blocks-pass"></a>
+<a id="gap-pipeline-agent-settling-blocks-pass"></a>
 
-### Onboarder settling blocks the Pass
+### Pipeline agent settling blocks the Pass
 
-- **Expected:** slow work stays outside the Pass: `settleEndedOnboarders` runs outside the hold since gates take
+- **Expected:** slow work stays outside the Pass: `settleEndedPipelineAgents` runs outside the hold since gates take
   minutes.
-- **Does:** `runOnePass` awaits `Onboarding.settleEndedOnboarders`, which awaits `settledOutcomeOf` and
+- **Does:** `runOnePass` awaits `PipelineAgentSessions.settleEndedPipelineAgents`, which awaits `settledOutcomeOf` and
   `ProposalTwiceRun.runProposalTwice`. Every effect after it in that Pass waits, and no other Pass runs. The twice-run
   takes no [gate slot](../glossary.md#gate-slot) and has no timeout.
 - **Effect:** a slow or hung proposal stops the board as [a merged-tree gate does](#gap-merge-gate-blocks-pass).
 - **Instead:** keep proposed gates short. If one hangs, find it by its line with `pgrep -lf`, confirm its working
-  directory is the onboarder's snapshot, and kill its process group.
-- **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`; `src/services/overseer/Onboarding.ts`
-  `settleEndedOnboarders`, `settledOutcomeOf`; `src/services/lifecycle/ProposalTwiceRun.ts` `runProposalTwice`.
+  directory is the pipeline agent's snapshot, and kill its process group.
+- **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`; `src/services/overseer/PipelineAgentSessions.ts`
+  `settleEndedPipelineAgents`, `settledOutcomeOf`; `src/services/lifecycle/ProposalTwiceRun.ts` `runProposalTwice`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-merge-gate-outlives-its-overseer"></a>
@@ -1786,7 +1802,7 @@ These are reported, not edited. Each entry states what an agent is told and what
 ### The installed `reference.md` omits job kinds
 
 - **Text says:** the installed `reference.md` names `build`, `review`, `merge`, `product-owner` and `assistant`.
-- **Code does:** `JobKind` also has `merge-agent`, `refresh` and `onboarder`.
+- **Code does:** `JobKind` also has `merge-agent`, `refresh` and `pipeline-agent`.
 - **Effect:** an agent reading `jobs` output meets kinds its `reference.md` does not explain.
 - **Instead:** no agent workaround: agents in a tracked repository cannot read these pages. A person reviewing the
   transcript reads [Entities](../data-model/entities.md).
@@ -1864,7 +1880,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `agentDescriptionBeside`, `workflowRunIdentifierOf` | `src/lib/claude-code/ClaudeTranscripts.ts` | No production caller |
 | `AgentAdapter.capabilities` | `src/lib/agent-launch/AgentAdapter.ts` | Set by both adapters; nothing reads it |
 | `AGENT_BRIEF_PATH_IN_REPOSITORY`, `BUILDER_BRIEF_PATH_IN_REPOSITORY`, `REVIEW_BRIEF_PATH_IN_REPOSITORY` | `src/shared/constants/DispatchProtocol.ts` | No reader |
-| `cached` on `gate-ran` | `src/services/overseer/JobLaunch.ts`, `Airlocks.ts`, `Onboarding.ts` | Every writer passes false, so the `(cached)` text in `Onboarding.ts` is reached only by an older log |
+| `cached` on `gate-ran` | `src/services/overseer/JobLaunch.ts`, `Airlocks.ts`, `PipelineAgentSessions.ts` | Every writer passes false, so the `(cached)` text in `PipelineAgentSessions.ts` is reached only by an older log |
 | `legacyWatcherJobIds` | `src/services/overseer/DrivePass.ts` | Computed each Pass; nothing reads it, and `BoardState` does not carry it |
 | `OverseerRuntimeState` value `down` | `src/services/overseer/BoardState.ts` | No running Overseer publishes it, so the Bridge's `down` text cannot come from the board state. `oversee status` also prints `starting`, outside the type |
 | `TranscriptRole` value `overseer` | `src/shared/@types/TranscriptEntry.ts` | `entriesOfLogEntry` never emits it |
@@ -1906,7 +1922,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/lib/claude-code/ClaudeTranscripts.ts`, `transcriptFolderFor` | "every worktree resolves to one folder" | The vendor files a session started in a worktree under that worktree's slug; see [`usage`](#gap-usage-misses-job-sessions) |
 | `src/services/overseer/DrivePass.ts`, the comments on `OverseerNotice` and `launchProfileOf` | "later tickets" add the other notice kinds and the other roles' profiles | Both exist: `noticesOf` raises every kind, and the local `profileOf` serves [the session roles](#gap-session-profiles-weaker) |
 | `CLAUDE.md`, Deviations | A stored `dispatcherState` `finished` reads as `stopped` | No TypeScript names `dispatcherState`; it survives in `cli/FrozenInstalledSurface.json` |
-| `CLAUDE.md`, Runtime | Every write of a file a reader may hold open goes through the atomic-file package | `<step>-verdict.json`, `gate.log`, `start.json`, `onboarder-start.json`, `waiver-proposals.json`, `worktree-failure.txt` and `process-sandbox.sb` use plain `writeFileSync`. Readers catch a bad parse, except `gate.log`, which the job-file route serves |
+| `CLAUDE.md`, Runtime | Every write of a file a reader may hold open goes through the atomic-file package | `<step>-verdict.json`, `gate.log`, `start.json`, `pipeline-agent-start.json`, `waiver-proposals.json`, `worktree-failure.txt` and `process-sandbox.sb` use plain `writeFileSync`. Readers catch a bad parse, except `gate.log`, which the job-file route serves |
 | `CLAUDE.md`, Runtime | Each clock exception says so in a comment at its site | `elapsedSinceText`, `statisticsOf` in `HeaderModel.ts`, `oldestFirst` in `UsageAgents.ts`, `spanOf` in `EpicUtil.ts`, `usageResetsAtOf` and `markHits` carry none. `createAssistantQuietWatch` has a comment and no Deviations row |
 | `CLAUDE.md`, The page | The render service builds the payload from the same Board queries `status --json` prints | `boardFactsOf` shares only `epicRollups`, `readyTicketEntries` and `openDraftSummaries` with `cli/StatusDocuments.ts` |
 | `CLAUDE.md`, Command surface | This checkout's tracker is live | `PRODUCT_NAMES` sets the data folder to `.forge`, and no checkout of this branch holds one |

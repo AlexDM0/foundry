@@ -348,7 +348,7 @@ const MODEL = {
   },
   "JOB_KINDS": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["build", "review", "merge", "merge-agent", "refresh", "assistant", "product-owner", "onboarder"]
+   "value": ["build", "review", "merge", "merge-agent", "refresh", "assistant", "product-owner", "pipeline-agent"]
   },
   "JOB_OUTCOMES": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
@@ -1004,7 +1004,7 @@ const MODEL = {
      "gloss": "The session is being closed. The Overseer ends the job once the session is gone.",
      "kindNotes": {
       "merge-agent": "Only `job stop` or `job fresh` puts this kind here, and no code sends it a stop frame; its merge job ends it when the Airlock is freed.",
-      "onboarder": "Only `job stop` puts this kind here, and no code sends it a stop frame. It ends only if its outcome was already stored.",
+      "pipeline-agent": "Only `job stop` puts this kind here, and no code sends it a stop frame. It ends only if its outcome was already stored.",
       "merge": "Only `job stop` or `job fresh` puts this kind here. The Airlock goes on by phase and ends the job.",
       "refresh": "Only `job stop` puts this kind here. The Airlock goes on by phase and ends the job."
      }
@@ -1052,7 +1052,7 @@ const MODEL = {
      "outcomes": ["closed", "replaced"],
      "mainPath": ["launching", "running", "stopping", "ended"]
     },
-    "onboarder": {
+    "pipeline-agent": {
      "states": ["launching", "running", "interrupted", "in-customs", "stopping", "ended"],
      "outcomes": ["closed", "failed", "stopped", "replaced"],
      "mainPath": ["launching", "running", "in-customs", "ended"]
@@ -1091,7 +1091,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "applyWatcherEvents",
      "at": "src/services/overseer/DrivePass.ts",
-     "kinds": ["merge-agent", "assistant", "product-owner", "onboarder"]
+     "kinds": ["merge-agent", "assistant", "product-owner", "pipeline-agent"]
     },
     "launching>merging": {
      "moves": "The Airlock claim, in the [[lock hold]] that launched the job, so `progress.json` never records `launching`.",
@@ -1130,7 +1130,7 @@ const MODEL = {
      "actor": "User",
      "by": "JobControls.requestJobStop",
      "at": "src/lib/tracker-model/JobControls.ts",
-     "kinds": ["build", "review", "merge-agent", "assistant", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "assistant", "pipeline-agent"],
      "cases": [
       {
        "moves": "`job stop`. With no session to stop, the job ends at once, in the same [[lock hold]] as the command: outcome `stopped`.",
@@ -1144,7 +1144,7 @@ const MODEL = {
       {
        "moves": "`job stop` on a job with no ticket. With no session to stop, the job ends at once, in the same [[lock hold]] as the command: outcome `stopped`.",
        "actor": "User",
-       "kinds": ["assistant", "onboarder"],
+       "kinds": ["assistant", "pipeline-agent"],
        "by": "JobControls.requestJobStop",
        "at": "src/lib/tracker-model/JobControls.ts",
        "log": ["job-stop-requested", "job-ended"]
@@ -1246,7 +1246,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "applyWatcherEvents",
      "at": "src/services/overseer/DrivePass.ts",
-     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
      "changes": ["`interruption` set"],
      "cases": [
       {
@@ -1271,13 +1271,13 @@ const MODEL = {
      "actor": "Overseer",
      "by": "applyWatcherEvents",
      "at": "src/services/overseer/DrivePass.ts",
-     "kinds": ["build", "review", "merge-agent", "onboarder"]
+     "kinds": ["build", "review", "merge-agent", "pipeline-agent"]
     },
     "running>stopping": {
      "actor": "Overseer",
      "by": "JobLaunch.applyObservation",
      "at": "src/services/overseer/JobLaunch.ts",
-     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
      "cases": [
       {
        "moves": "Over the call budget plus `WIND_DOWN_GRACE_CALLS`.",
@@ -1300,7 +1300,7 @@ const MODEL = {
       {
        "moves": "`job stop` on a job with no ticket.",
        "actor": "User",
-       "kinds": ["assistant", "onboarder"],
+       "kinds": ["assistant", "pipeline-agent"],
        "by": "JobControls.requestJobStop",
        "at": "src/lib/tracker-model/JobControls.ts",
        "log": ["job-stop-requested"]
@@ -1344,7 +1344,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "applyWatcherEvents",
      "at": "src/services/overseer/DrivePass.ts",
-     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
      "cases": [
       {
        "moves": "A clean exit with no [[report]]: outcome `failed`, cause `no-report`.",
@@ -1357,7 +1357,7 @@ const MODEL = {
       {
        "moves": "A resume the vendor could not take: outcome `replaced`, and a `resume-failed` incident opens.",
        "actor": "Overseer",
-       "kinds": ["build", "review", "merge-agent", "product-owner", "onboarder"],
+       "kinds": ["build", "review", "merge-agent", "product-owner", "pipeline-agent"],
        "by": "JobResumption.applyResumeFailure",
        "at": "src/services/overseer/JobResumption.ts",
        "log": ["job-ended", "incident-opened"]
@@ -1464,7 +1464,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "Board.applyPlaybookStep",
      "at": "src/lib/tracker-model/Board.ts",
-     "kinds": ["build", "review", "merge-agent", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "product-owner", "pipeline-agent"],
      "log": ["job-resumed"],
      "note": "The [[Playbook]] withholds the step while resumes are held or a [[decision]] or question incident naming the job is open. See [Why is my ticket not moving?](why-not-moving.html) for the conditions."
     },
@@ -1503,12 +1503,12 @@ const MODEL = {
      "actor": "Overseer",
      "by": "Board.applyPlaybookStep",
      "at": "src/lib/tracker-model/Board.ts",
-     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
      "cases": [
       {
        "moves": "Crash resumes spent (`JOB_RESUMES_BEFORE_FRESH`): outcome `replaced`.",
        "actor": "Overseer",
-       "kinds": ["build", "review", "merge-agent", "onboarder"],
+       "kinds": ["build", "review", "merge-agent", "pipeline-agent"],
        "by": "Board.applyPlaybookStep",
        "at": "src/lib/tracker-model/Board.ts",
        "log": ["job-ended"]
@@ -1549,7 +1549,7 @@ const MODEL = {
       {
        "moves": "`job stop` on a job with no ticket. With no session to stop, the job ends at once, in the same [[lock hold]] as the command: outcome `stopped`.",
        "actor": "User",
-       "kinds": ["assistant", "onboarder"],
+       "kinds": ["assistant", "pipeline-agent"],
        "by": "JobControls.requestJobStop",
        "at": "src/lib/tracker-model/JobControls.ts",
        "log": ["job-stop-requested", "job-ended"]
@@ -1677,7 +1677,7 @@ const MODEL = {
      "actor": "User",
      "by": "JobControls.requestJobStop",
      "at": "src/lib/tracker-model/JobControls.ts",
-     "kinds": ["build", "review", "merge-agent", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "pipeline-agent"],
      "cases": [
       {
        "moves": "`job stop`.",
@@ -1691,7 +1691,7 @@ const MODEL = {
       {
        "moves": "`job stop` on a job with no ticket.",
        "actor": "User",
-       "kinds": ["onboarder"],
+       "kinds": ["pipeline-agent"],
        "by": "JobControls.requestJobStop",
        "at": "src/lib/tracker-model/JobControls.ts",
        "log": ["job-stop-requested"]
@@ -1711,7 +1711,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "JobLaunch.verifyAndRoute",
      "at": "src/services/overseer/JobLaunch.ts",
-     "kinds": ["build", "review", "merge-agent", "onboarder"],
+     "kinds": ["build", "review", "merge-agent", "pipeline-agent"],
      "cases": [
       {
        "moves": "The report is refused or says `cannot-build`, or Customs refuses with a check no session can fix: outcome `failed`.",
@@ -1762,15 +1762,15 @@ const MODEL = {
        "log": ["job-ended"]
       },
       {
-       "moves": "The onboarder's run is settled: outcome `closed`, or `failed` if refused. A setup proposal opens `pipeline-proposal`.",
+       "moves": "The pipeline agent's run is settled: outcome `closed`, or `failed` if refused. A setup proposal opens `pipeline-proposal`.",
        "actor": "Overseer",
-       "kinds": ["onboarder"],
-       "by": "Onboarding.applySettledOnboarders",
-       "at": "src/services/overseer/Onboarding.ts",
+       "kinds": ["pipeline-agent"],
+       "by": "PipelineAgentSessions.applySettledPipelineAgents",
+       "at": "src/services/overseer/PipelineAgentSessions.ts",
        "log": ["decision-opened", "job-ended"]
       }
      ],
-     "logNote": "`decision-opened` on the onboarder only with a setup proposal."
+     "logNote": "`decision-opened` on the pipeline agent only with a setup proposal."
     },
     "gating>interrupted": {
      "actor": "Overseer",
@@ -2002,7 +2002,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "JobLaunch.applyObservation",
      "at": "src/services/overseer/JobLaunch.ts",
-     "kinds": ["build", "review", "merge", "refresh", "merge-agent", "assistant", "product-owner", "onboarder"],
+     "kinds": ["build", "review", "merge", "refresh", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
      "cases": [
       {
        "moves": "The session is gone: outcome `stopped`, or `replaced` after `job fresh`.",
@@ -2047,9 +2047,9 @@ const MODEL = {
       {
        "moves": "Its outcome was already stored when `job stop` landed: outcome `closed`, or `failed` if refused.",
        "actor": "Overseer",
-       "kinds": ["onboarder"],
-       "by": "Onboarding.applySettledOnboarders",
-       "at": "src/services/overseer/Onboarding.ts",
+       "kinds": ["pipeline-agent"],
+       "by": "PipelineAgentSessions.applySettledPipelineAgents",
+       "at": "src/services/overseer/PipelineAgentSessions.ts",
        "log": ["job-ended"]
       }
      ],

@@ -25,7 +25,7 @@ and no Watcher is spawned during the main hold; git and [Customs](../glossary.md
 - The [Playbook](../glossary.md#playbook) decides inside the hold: a pure function from facts to steps.
 - Effects run after the hold commits. A dead Overseer's lost effects come back from the board plus
   [markers](../glossary.md#marker); [three do not](#effects-come-after-the-commit).
-- Pausing alone does not stop resumes: a paused board launches no builds, reviews or onboarder, queues no merge, and
+- Pausing alone does not stop resumes: a paused board launches no builds, reviews or pipeline agent, queues no merge, and
   still resumes interrupted jobs.
 - Priority orders who gets a free [launch slot](../glossary.md#launch-slot). It blocks nothing.
 
@@ -45,7 +45,7 @@ quiet, a reset reached, a restart. No clock reading enters the fingerprint.
 | The usage limit's reset time | yes | `src/services/overseer/DrivePass.ts`, `scheduleThePassAtTheReset` |
 | [Regrouping](../glossary.md#regrouping) finished at start | yes | `src/services/overseer/DrivePass.ts`, `regroup` |
 | A failed [Baton pass](../glossary.md#baton-pass), after which the old Overseer keeps driving | yes | `cli/overseer/OverseerForeground.ts`, the `kept-driving` branch, `serving.drivePass.wake(true)` |
-| A Pass that settled an [onboarder](../glossary.md#onboarder), or left a job awaiting another Pass | yes | `src/services/overseer/DrivePass.ts`, `runOnePass` |
+| A Pass that settled a [pipeline agent](../glossary.md#pipeline-agent), or left a job awaiting another Pass | yes | `src/services/overseer/DrivePass.ts`, `runOnePass` |
 
 ![File events in a burst produce one debounced wake and Pass 1. Three wakes during Pass 1 collapse into exactly one more Pass. The writes of a Pass and a later sweep are wakes too, and both end at the fingerprint as skipped.](../figures/the-pass/wake-coalescing.png)
 
@@ -137,7 +137,7 @@ A module named in this table or in the effects table is `src/services/overseer/<
 | 1 | One `leftover-worktree` decision per folder Regrouping named | `openLeftoverWorktreeDecisions` |
 | 2 | Hatch requests through the [Bouncer](../glossary.md#bouncer) and control commands, each logged `hatch-applied` | `HatchInbox.applyPendingRequests` |
 | 3 | Watcher events: start, question, usage refusal, closing `result`, and what a gone Watcher means. The cursor moves here | `applyWatcherEvents` |
-| 4 | Closed [intakes](assistant-and-intake.md) (a product owner's filing conversations) and settled onboarders | `IntakeSessions.endClosedIntakes`, `Onboarding.applySettledOnboarders` |
+| 4 | Closed [intakes](assistant-and-intake.md) (a product owner's filing conversations) and settled pipeline agents | `IntakeSessions.endClosedIntakes`, `PipelineAgentSessions.applySettledPipelineAgents` |
 | 5 | Quiet-job [incidents](../glossary.md#incident) and down Assistants | `IncidentRouter.openQuietJobIncidents`, `AssistantSession.endDownAssistants` |
 | 6 | Build observations: launching to preparing, Customs, gates | `JobLaunch.applyBuildJobObservations` |
 | 7 | Agent-configuration hits | `JobLaunch.holdAgentConfigHits` |
@@ -188,7 +188,7 @@ Effects run in this order. Most read the board the hold wrote, so the next Pass 
 | 2 | Usage marker and stop frames, `stopLimitedJobs` | Nothing: only the Pass's memory | **Not derived.** The job stays `interrupted` and the next Overseer resumes it with no usage block; its next usage refusal marks the limit |
 | 3 | Reset timer, `scheduleThePassAtTheReset` | The usage marker | Scheduled again at every Pass |
 | 4 | Worktree, the Watcher running the install line, wind-down, close-input and stop frames, next gate step, `JobLaunch.runBuildJobEffects` | Job state, the worktree on disk, one marker per frame and instance, step verdict files | Repeated |
-| 5 | Onboarder settling, which awaits the twice-run of the proposal's gates, `Onboarding.settleEndedOnboarders` | Job state, stored outcome file | Repeated until the outcome is stored |
+| 5 | Pipeline agent settling, which awaits the twice-run of the proposal's gates, `PipelineAgentSessions.settleEndedPipelineAgents` | Job state, stored outcome file | Repeated until the outcome is stored |
 | 6 | Stop frames to Assistants ended down, in `runOnePass` | Nothing: only the Pass's memory | **Not derived.** The job is off the board, and neither Regrouping nor a later Pass looks at it |
 | 7 | First messages, `JobResumption.deliverFirstMessages` | Stored first-message file, marker | Repeated |
 | 8 | Assistant chats, `AssistantSession.deliverChats` | Chat file written before sending, marker per chat | Repeated |
@@ -204,9 +204,9 @@ A frame with a marker is sent first and marked after, by `WatcherFleet.sendFrame
 [Watchers](watchers.md) draws the order. What may repeat and what may not is the at-most-once table in
 [Failure and recovery](failure-and-recovery.md).
 
-> **As built.** Two effects run long inside the Pass, and no other Pass runs meanwhile. Onboarder settling awaits its
+> **As built.** Two effects run long inside the Pass, and no other Pass runs meanwhile. Pipeline agent settling awaits its
 > twice-run, so the delivery, spawns and answers of that Pass wait for it
-> ([gap-onboarder-settling-blocks-pass](../reference/known-gaps.md#gap-onboarder-settling-blocks-pass)). The Airlock
+> ([gap-pipeline-agent-settling-blocks-pass](../reference/known-gaps.md#gap-pipeline-agent-settling-blocks-pass)). The Airlock
 > sweep awaits its merge gates; see
 > [a merge gate blocks the Pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
 
@@ -240,7 +240,7 @@ The Playbook is one pure function, `nextStepsOf(facts, limits)`. `Board.followPl
 records, and observations passed in as values. Nothing else reaches it. The one time it compares is the usage reset,
 which the vendor gives as a time, against the `now` passed in `limits`.
 
-![Nine groups of steps in order, from outage down to incident defaults, with five columns of board-wide blocks; resumesAreHeld spans the first four and newWorkIsHeld all five. Paused blocks the outage check, the onboarder and new work, and does not block resume-job. Replacing, parking and incident defaults run under every block.](../figures/the-pass/playbook-order.png)
+![Nine groups of steps in order, from outage down to incident defaults, with five columns of board-wide blocks; resumesAreHeld spans the first four and newWorkIsHeld all five. Paused blocks the outage check, the pipeline agent and new work, and does not block resume-job. Replacing, parking and incident defaults run under every block.](../figures/the-pass/playbook-order.png)
 
 *Notice which rows have no amber dot: trouble is always settled, even when nothing new may start.*
 
@@ -280,7 +280,7 @@ What each step kind does when `applyPlaybookStep` applies it, in the figure's or
 | --- | --- |
 | `pause-overseer` | On an outage, sets the stored state `paused` |
 | `open-decision` | Opens the decision the step carries |
-| `launch-onboarder` | Starts the one onboarder |
+| `launch-pipeline-agent` | Starts the one pipeline agent |
 | `resume-job` | Moves the job to `running`, next Watcher instance |
 | `replace-job` | Ends the job `replaced` |
 | `await-answer` | Moves a [product owner](../glossary.md#product-owner) to `awaiting-answer` |
@@ -349,7 +349,7 @@ print, so the figure and the gate agree.
 8. No effect runs for an Overseer the Baton check found overtaken.
 9. The Playbook launches no build or review for a ticket that has a job on the board.
 10. No launch step exceeds the concurrency limit, counted over `build` and `review` jobs.
-11. Paused by itself blocks no resume: a paused board launches no builds, reviews or onboarder, queues no merge and
+11. Paused by itself blocks no resume: a paused board launches no builds, reviews or pipeline agent, queues no merge and
     opens no new Airlock, and a resume stops only for another block.
 12. Replacing, parking and incident defaults are stopped by none of the five board-wide blocks.
 

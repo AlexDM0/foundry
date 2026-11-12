@@ -1,9 +1,11 @@
 /**
  * A stored job the format does not hold makes the whole progress file unreadable, so each field's check is planted once and its reason must
- * name the field; a well-formed job, and a file with neither key, pass.
+ * name the field; a well-formed job, and a file with neither key, pass. A live job of the retired kind and role `onboarder` is refused with
+ * the advice to stop it with an earlier release, since nothing migrates it.
  */
 import { expect, test } from 'bun:test';
 
+import { OLDER_FORMAT_ADVICE }     from '../../constants/OlderFormatAdvice.ts';
 import { StoredJobValidationUtil } from './StoredJobValidationUtil.ts';
 
 const { jobProblem, jobsProblemOf } = StoredJobValidationUtil;
@@ -73,6 +75,15 @@ test.each<[string, Record<string, unknown>, string]>([
   ],
 ])('%s is a problem naming the field', (_case, change, field) => {
   expect(jobsProblemOf({ jobs: [{ ...WELL_FORMED_JOB, ...change }] })).toStartWith(field);
+});
+
+test.each<[string, Record<string, unknown>, string]>([
+  ['the retired kind', { kind: 'onboarder', role: 'pipeline-agent' }, 'jobs[0].kind'],
+  ['the retired role', { kind: 'pipeline-agent', role: 'onboarder' }, 'jobs[0].role'],
+])('a job of %s is refused with the older-format advice', (_case, change, field) => {
+  const problem = jobsProblemOf({ jobs: [{ ...WELL_FORMED_JOB, ...change }] });
+  expect(problem).toStartWith(`${field} is "onboarder"`);
+  expect(problem).toEndWith(OLDER_FORMAT_ADVICE);
 });
 
 test('a job counter below 1 and jobs that are not a list are problems', () => {

@@ -461,13 +461,13 @@ function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: bool
   });
 }
 
-/** One onboarder answers each `checks-not-set`: live now, or launched since the newest one opened, which this pass may be opening. */
-function onboarderAnsweredChecksNotSet(facts: PlaybookFacts): boolean {
-  if (facts.jobs.some((job) => job.kind === 'onboarder')) return true;
+/** One pipeline agent answers each `checks-not-set`: live now, or launched since the newest one opened, which this pass may be opening. */
+function pipelineAgentAnsweredChecksNotSet(facts: PlaybookFacts): boolean {
+  if (facts.jobs.some((job) => job.kind === 'pipeline-agent')) return true;
   let launchedSinceTheDecision = false;
   for (const record of facts.logRecords) {
     if (record.kind === 'decision-opened' && record.fields.kind === 'checks-not-set') launchedSinceTheDecision = false;
-    if (record.kind === 'job-launched' && record.fields.kind === 'onboarder') launchedSinceTheDecision = true;
+    if (record.kind === 'job-launched' && record.fields.kind === 'pipeline-agent') launchedSinceTheDecision = true;
   }
   return launchedSinceTheDecision;
 }
@@ -501,8 +501,8 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   const steps: PlaybookStep[] = [];
   if (outageNow) steps.push({ kind: 'pause-overseer', cause: 'outage' }, boardDecisionStepOf('outage'));
   if (!facts.pipelineIsSet && !openDecisionOfKind(facts, 'checks-not-set')) steps.push(boardDecisionStepOf('checks-not-set'));
-  const onboarderIsHeld = versionOrUsageHolds || outageHolds || facts.overseerState === 'paused';
-  if (!facts.pipelineIsSet && !onboarderIsHeld && !onboarderAnsweredChecksNotSet(facts)) steps.push({ kind: 'launch-onboarder' });
+  const pipelineAgentIsHeld = versionOrUsageHolds || outageHolds || facts.overseerState === 'paused';
+  if (!facts.pipelineIsSet && !pipelineAgentIsHeld && !pipelineAgentAnsweredChecksNotSet(facts)) steps.push({ kind: 'launch-pipeline-agent' });
   steps.push(...crashBoundStepsOf(facts, limits, resumesAreHeld));
   if (!assistantIsLive && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
   const parkSteps    = parkStepsOf(facts, limits);

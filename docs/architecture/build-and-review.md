@@ -54,7 +54,7 @@ it holds no process, except after a Customs red, whose input was never closed (s
 full legality table is in [State machines](../data-model/state-machines.md).
 
 A few effects run inside the lock hold: a [review round](../glossary.md#review-round)'s no-changes commit, the
-job-folder files for a red handoff and a waiver, the `git worktree remove` of `Onboarding.applySettledOnboarders`, and
+job-folder files for a red handoff and a waiver, the `git worktree remove` of `PipelineAgentSessions.applySettledPipelineAgents`, and
 the git step of `src/services/control/RepairControls.ts`. If a no-changes commit lands and the store write does not,
 the job is still `gating`, so the next Pass settles it again and commits a second empty commit. The branch shows the
 round twice; the store records it once.
@@ -111,7 +111,7 @@ default move is `worktree-repair`; the repair steps are in [the CLI reference](.
 | `group-<name>`, branch `group-<name>` | `GroupWorktrees.prepareGroupWorktree`, at the group's first launch or Airlock target lookup | The folder exists. An existing branch is checked out as it stands. | `GroupWorktrees.removeGroup`, after the release |
 | `refresh-group-<name>`, detached | `GroupWorktrees.prepareRefreshWorktree`, in a refresh's merge-in | A leftover at the group tip, or moved there by `detachLeftoverAt`. One holding a merge or uncommitted changes refuses. | `removeRefreshWorktree` |
 | `sessions/<J>`, a plain folder | `workingDirectoryOf`, for a job with no ticket worktree: the Assistant and each [product owner](../glossary.md#product-owner) | `mkdir` is idempotent, so a resumed instance finds it. | Nothing |
-| `onboard/<J>`, detached | `Onboarding.prepareSnapshot`, at the main line's tip, for an [onboarder](../glossary.md#onboarder) | The folder exists. | `applySettledOnboarders` |
+| `pipeline-agent/<J>`, detached | `PipelineAgentSessions.prepareSnapshot`, at the main line's tip, for a [pipeline agent](../glossary.md#pipeline-agent) | The folder exists. | `applySettledPipelineAgents` |
 
 <details>
 <summary>How each is removed</summary>
@@ -121,7 +121,7 @@ default move is `worktree-repair`; the repair steps are in [the CLI reference](.
 | `ticket-<id>` | `worktree repair --step recreate` saves any changes to `recreate-<n>.patch`, then runs `git worktree remove --force`. It is refused while a job names the ticket. Nothing removes the worktree after a landing. |
 | `group-<name>` | `worktree remove`, then `branch -d`, never forced. A decline shows the `cleanup-declined` [notice](../glossary.md#notice). |
 | `refresh-group-<name>` | Removed when the refresh lands or frees its [Airlock slot](../glossary.md#airlock-slot), never forced. |
-| `onboard/<J>` | Removed with `--force` once the onboarder's outcome is stored. A job that ends with no stored outcome leaves its snapshot; nothing else removes it. |
+| `pipeline-agent/<J>` | Removed with `--force` once the pipeline agent's outcome is stored. A job that ends with no stored outcome leaves its snapshot; nothing else removes it. |
 
 </details>
 
@@ -505,7 +505,7 @@ and intake](assistant-and-intake.md#the-findings-path).
 | --- | --- | --- | --- |
 | Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
 | Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.spec.ts` |
-| Onboarder snapshot | `src/services/overseer/Onboarding.ts` | `prepareSnapshot`, `applySettledOnboarders` | None of its own; `src/services/lifecycle/Customs.onboarder.spec.ts` holds its Customs |
+| Pipeline agent snapshot | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `applySettledPipelineAgents` | None of its own; `src/services/lifecycle/Customs.pipelineAgent.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA`, `REVIEWER_REPORT_SCHEMA` | `src/adapters/reports/ReportSchemas.spec.ts` |
