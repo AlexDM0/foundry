@@ -17,8 +17,8 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 *Notice the heavy box: a new board is paused (`DEFAULT_OVERSEER_STATE`), builds nothing and does not ask you to resume.*
 
 ```sh
-git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
-git switch group-code-lifecycle && ./setup.sh           # once per machine; setup.ps1 on Windows
+git clone git@github.com:AlexDM0/forge.git && cd forge
+./setup.sh                                  # once per machine; setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 forge open                                  # starts the Overseer when none runs
@@ -49,14 +49,13 @@ and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md
 
 ## Install the program
 
-The setup makes `forge` a command on this machine. This build runs beside the released `agent-progress`
-under its own names ([Reading names](../glossary.md#reading-names)), and it lives on the branch `group-code-lifecycle`.
-Switch to that branch before you run the setup. The `&&` keeps a failed switch from running it on another branch.
+The setup makes `forge` a command on this machine. forge runs beside the released `agent-progress` under its own
+names ([Reading names](../glossary.md#reading-names)).
 
 ```sh
-git clone git@github.com:AlexDM0/agent-progress.git
-cd agent-progress
-git switch group-code-lifecycle && ./setup.sh
+git clone git@github.com:AlexDM0/forge.git
+cd forge
+./setup.sh
 ```
 
 The setup is `setup.ts`, with its steps in `cli/setup/`. Two bootstraps start it: `setup.sh` on macOS and Linux, and
@@ -67,8 +66,8 @@ directly.
 | Step | What it does | Touches |
 | --- | --- | --- |
 | 1/4 Bun | Checks Bun against `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
-| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your agent-progress clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
-| 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your agent-progress clone | `~/.claude/skills/` |
+| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
+| 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your forge clone | `~/.claude/skills/` |
 | 4/4 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
 
 `./setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your repositories:
@@ -86,11 +85,9 @@ when they start, so it must be on your `PATH`.
 
 | You see | Cause | Do |
 | --- | --- | --- |
-| Empty `command -v`, and `git branch --show-current` in your agent-progress clone names another branch | On any other branch the setup links the released program | `git switch group-code-lifecycle && ./setup.sh` |
-| `invalid reference` from `git switch` | Your clone lacks the branch | `git fetch origin group-code-lifecycle:group-code-lifecycle`, then switch |
-| Empty `command -v` on the right branch | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
+| Empty `command -v` | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
-After a `git pull`, run `./setup.sh` in your agent-progress clone, then `forge update` in each tracked
+After a `git pull`, run `./setup.sh` in your forge clone, then `forge update` in each tracked
 repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
 [CLI and install](../architecture/cli-and-install.md).
 
@@ -323,7 +320,7 @@ overwritten, landings wait and the header shows the `dirty-main-checkout` [notic
 The Overseer does not come back after a reboot on its own. On macOS, an optional login item starts it at login:
 
 ```sh
-cd <your agent-progress clone>
+cd <your forge clone>
 ./setup.sh --login-overseer ~/code/example-storefront
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.overseer.plist
 ```

@@ -439,7 +439,7 @@ checkout, passing the tracked repository:
 | `overseer-port-in-use` | The derived range or your `--port` is taken. | `forge oversee --detach --port 0` |
 | `overseer-did-not-start` | The detached process exited. | Run `forge oversee` in the foreground to see why; read `overseer.log`. |
 | `overseer-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
-| `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the agent-progress checkout, run `bun install`. |
+| `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the forge checkout, run `bun install`. |
 | `baton-taken` | A newer Overseer took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |
 
@@ -594,7 +594,7 @@ forge oversee --detach
 ```
 
 **`update` is refused `install-version-mismatch`, `from a newer forge`:** the board's installed files are
-newer than the program. Update the program in the agent-progress checkout with `git pull` and `bun install`, then run
+newer than the program. Update the program in the forge checkout with `git pull` and `bun install`, then run
 `forge update` again in the tracked repository.
 
 ## Cleaning up by hand

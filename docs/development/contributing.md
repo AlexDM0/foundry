@@ -31,15 +31,12 @@ matter:
 
 ## Getting the code running
 
-This build runs beside the released `agent-progress` under its own names
-([Reading names](../glossary.md#reading-names)). It lives on its own branch and never merges into `main`, so a plain
-clone checks out the released program, a different codebase. You need Bun and git. Clone, switch to the branch and run
-the setup script:
+forge runs beside the released `agent-progress` under its own names
+([Reading names](../glossary.md#reading-names)). You need Bun and git. Clone and run the setup script:
 
 ```sh
-git clone <this repository> agent-progress
-cd agent-progress
-git switch group-code-lifecycle
+git clone git@github.com:AlexDM0/forge.git
+cd forge
 ./setup.sh
 ```
 
@@ -61,7 +58,7 @@ Setup touches nothing in any tracked repository: adopting one is `forge init`'s 
 `cli/SetupScript.integration.spec.ts` hold that.
 
 > **Careful.** `bun link` repoints the machine-wide `forge` at the checkout you run it from. Run the
-> setup from a long-lived checkout of this branch, not from a [ticket](../glossary.md#ticket)
+> setup from a long-lived checkout of `main`, not from a [ticket](../glossary.md#ticket)
 > [worktree](../glossary.md#worktree) that a merge removes later.
 
 **Running from source.** The linked command runs this checkout's `agent-progress.ts`. Without the link, run the entry
@@ -291,8 +288,8 @@ Chrome. `--no-copy` keeps the result in `.readme-graphics/build/images/` and lea
 .readme-graphics/regenerate.sh --no-copy
 ```
 
-**Retake the README screenshots after a visual change reaches the branch.** Run `.readme-graphics/regenerate.sh` in the
-long-lived checkout of this branch, look at the images, then commit them. The Overseer runs on the real clock and its
+**Retake the README screenshots after a visual change reaches `main`.** Run `.readme-graphics/regenerate.sh` in the
+long-lived checkout of `main`, look at the images, then commit them. The Overseer runs on the real clock and its
 fake agents race it, so jobs and times differ between runs.
 [The folder's own README](../../.readme-graphics/README.md) has the details.
 

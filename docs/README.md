@@ -94,8 +94,8 @@ Each table lists its documents in reading order. Each question is the one the do
 
 ### L0 Front door
 
-**Promise:** five minutes to learn what agent-progress v2 is, what it looks like, that this branch never merges and
-where to go next, and one click to the fix when something is wrong.
+**Promise:** five minutes to learn what forge is, what it looks like and where to go next, and one click to the fix
+when something is wrong.
 
 | Document | Its question | Time |
 | --- | --- | --- |
@@ -173,7 +173,7 @@ decides. Enough to trace any behaviour on the board and change it safely. With L
 ### L4 Change
 
 **Promise:** get a change past every guard, know why the code has this shape, know what the vendor contract rests on,
-and carry the code into a separate product.
+and know what forge carried over from `agent-progress` and what it left behind.
 
 | Document | Its question | Time |
 | --- | --- | --- |
@@ -254,7 +254,7 @@ open docs/interactive/ticket-journey.html
 
 They do not render on a Git host, which shows their source.
 
-## Names on this branch
+## Names
 
 The program is `forge`, and it runs beside the released `agent-progress` under folders and environment
 variables of its own. Documents write those folders as `<data>`, `<worktrees>` and `<monitor>`.
@@ -276,5 +276,5 @@ reasons a released spelling still appears.
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Names on this branch | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
+| Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | Component names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
