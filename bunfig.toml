@@ -1,3 +1,4 @@
 [test]
 preload = ["./src/testing/TestRunPreload.ts"]
-pathIgnorePatterns = [".scratch/**", ".claude/**", "node_modules/**"]
+# A boundary's real-system spec is a recording command, run by `bun run record`, never by a plain `bun test`.
+pathIgnorePatterns = [".scratch/**", ".claude/**", "node_modules/**", "**/*.recording.spec.ts"]

@@ -9,7 +9,8 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    references. Never run a forge verb in the forge checkout.
 2. **Never touch the real home.** No spec reads or writes `~/.forge-monitor` or `~/.gaia` or talks to a running forge. The test preload
    moves `HOME` and `TMPDIR` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind. A
-   child process gets `environmentCopy()` as its `env`: without one, Bun hands it the environment the run started with, the real home.
+   child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
+   without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. The known numbers are
    `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper.
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself.
@@ -18,7 +19,8 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
 7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.
 8. **Commits:** one plain, human-written subject line. No AI attribution of any kind: no `Co-Authored-By`, no "generated with" footer.
    Never `--no-verify`.
-9. **Verify** with `bun run verify` (typecheck of `src/` and `page/`, lint, specs), never with ad-hoc compiler flags.
+9. **Verify** with `bun run verify` (typecheck of `src/` and `page/`, lint, specs, the recording-stamp check), never with ad-hoc compiler
+   flags.
 
 ## Map
 
@@ -31,7 +33,7 @@ src/adapters/      every boundary: the registry, the forge's API and program, Ga
 src/services/      ForgeWatch, FleetStore, SettingsStore, and Environment, the one reader of the environment
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards
 src/shared/        the internal model's types, app-wide constants, GaiaError
-src/testing/       the scratch root, the test run preload and the leak check; test-only
+src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach
 ```
 
@@ -46,8 +48,14 @@ page/              the browser runtime, with its own tsconfig listing exactly th
 | The Notification API | `page/notifications/NotificationBoundary.ts` |
 | The clock | an injected `now` and injected timers |
 
-Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers. A fixture for a forge contract that
-does not exist yet is authored by hand and stamped `source: 'authored'` until it is recorded from a real forge.
+Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers (`src/testing/RecordedRuns.ts` for
+process-run). A fixture for a forge contract that does not exist yet is authored by hand and stamped `source: 'authored'` until it is
+recorded from a real forge.
+
+A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
+`bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
+with the system's version. Verify fails on a stale stamp, lists a boundary with no recording for the OS as not finished, and lists an
+authored recording as a warning. `src/RealProgramRuns.spec.ts` holds the exact list of files that may start a program another way.
 
 # Coding conventions
 

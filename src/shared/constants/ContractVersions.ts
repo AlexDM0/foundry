@@ -15,4 +15,5 @@ export const CONTRACT_VERSIONS = {
   gaiaCommandAnswer:  1,
   gaiaHealth:         1,
   gaiaProgramAnswer:  1,
+  boundaryRecording:  1,
 } as const;

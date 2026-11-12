@@ -12,7 +12,8 @@
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "test": "bun test",
-    "verify": "bun run typecheck && bun run lint && bun test"
+    "record": "bun src/testing/RecordBoundary.ts",
+    "verify": "bun run typecheck && bun run lint && bun test && bun src/testing/CheckRecordingStamps.ts"
   },
   "dependencies": {
     "react": "19.3.1",
