@@ -4,17 +4,17 @@
  * `{controlVersion, refusal, text}`: the refusal's code and the sentence every printed refusal is worded with. `overseer-stop` and
  * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no hold.
  */
-import { OperationRefusalWordingUtil }           from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CONTROL_COMMAND_KINDS, ControlService } from '../../../src/services/control/ControlService.ts';
-import { MachineAgentLimit }                     from '../../../src/services/overseer/MachineAgentLimit.ts';
-import type { RouteAnswer }                      from '../../../src/services/overseer/OverseerServer.ts';
-import type { ControlCommand, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal, reasonCodeOf }        from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }              from '../../../src/shared/constants/OverseerApiContracts.ts';
-import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                   from '../../CommandContext.ts';
-import { openTrackerForWriting }                 from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
+import { OperationRefusalWordingUtil }                              from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CONTROL_COMMAND_KINDS, ControlService }                    from '../../../src/services/control/ControlService.ts';
+import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
+import type { RouteAnswer }                                         from '../../../src/services/overseer/OverseerServer.ts';
+import type { ControlCommand, ControlCommandOf, TrackerClearScope } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal, reasonCodeOf }                           from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
+import { PRODUCT_NAMES }                                            from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                                      from '../../CommandContext.ts';
+import { openTrackerForWriting }                                    from '../../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -55,17 +55,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const JOB_STOP_ALL_MODES: readonly ControlCommandOf<'job-stop-all'>['mode'][] = ['stop', 'wind-down'];
 
+const TRACKER_CLEAR_SCOPES: readonly TrackerClearScope[] = ['tasks-and-log', 'everything'];
+
+function chartRangeIsWellTyped(range: unknown): boolean {
+  if (!isRecord(range)) return false;
+  if (range['kind'] === 'automatic') return true;
+  return range['kind'] === 'window' && typeof range['from'] === 'string' && typeof range['to'] === 'string'
+    && (range['tickMinutes'] === null || typeof range['tickMinutes'] === 'number');
+}
+
+function isAbsentOrText(value: unknown): boolean {
+  return value === undefined || typeof value === 'string';
+}
+
 /**
- * The fields of the board kinds of control contract 1, checked before any hold: a field of the wrong type answers 400. A value of the right
- * type that a rule refuses, such as a concurrency limit above the ceiling, answers 409 from the applier.
+ * The fields checked before any hold, a field of the wrong type answering 400: the board kinds of control contract 1, and the kinds only
+ * User's own surfaces send, where a wrong value would still act, such as a clear of an unknown scope. A value of the right type that a rule
+ * refuses, such as a concurrency limit above the ceiling, answers 409 from the applier.
  */
-const FIELDS_CHECK_OF_CONTRACT_KIND: Readonly<Record<string, (body: Record<string, unknown>) => boolean>> = {
-  'concurrency-set': (body) => typeof body['limit'] === 'number',
-  'job-stop-all':    (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
+const FIELDS_CHECK_OF_KIND: Readonly<Record<string, (body: Record<string, unknown>) => boolean>> = {
+  'concurrency-set':        (body) => typeof body['limit'] === 'number',
+  'job-stop-all':           (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
+  'chart-range-set':        (body) => chartRangeIsWellTyped(body['range']),
+  'tracker-clear':          (body) => (TRACKER_CLEAR_SCOPES as readonly unknown[]).includes(body['scope']),
+  'ticket-deliver-by-hand': (body) => typeof body['ticketReference'] === 'string' && isAbsentOrText(body['branch']) && isAbsentOrText(body['commit']),
 };
 
-function contractFieldsAreWellTyped(kind: string, body: Record<string, unknown>): boolean {
-  return !Object.hasOwn(FIELDS_CHECK_OF_CONTRACT_KIND, kind) || FIELDS_CHECK_OF_CONTRACT_KIND[kind]?.(body) === true;
+function fieldsAreWellTyped(kind: string, body: Record<string, unknown>): boolean {
+  return !Object.hasOwn(FIELDS_CHECK_OF_KIND, kind) || FIELDS_CHECK_OF_KIND[kind]?.(body) === true;
 }
 
 function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteAnswer {
@@ -101,7 +118,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     return appliedAnswerOf({ outcome: 'done', result: { kind } });
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
-  if (!contractFieldsAreWellTyped(kind, body)) return MALFORMED;
+  if (!fieldsAreWellTyped(kind, body)) return MALFORMED;
   if (request.launchesHeld()) {
     return {
       status: HTTP_STATUS.LOCKED,

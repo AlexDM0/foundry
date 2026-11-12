@@ -29,7 +29,7 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 52 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 53 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
 resolved inside the hold by `ticketIdOfReference`. Ten applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
@@ -50,12 +50,12 @@ verbs are refused `verb-not-relayable`, so they never cross the Hatch. They are 
 | `DecisionControls.ts` (1) | `decision-answer` | None |
 | `JobControls.ts` (9) | `job-stop`, `job-fresh`, `job-stop-all`, `job-message`, `intake-start`, `onboarder-advise`, `intake-close`, `intake-title`, `question-options` | `intake-close`, `intake-title` and `question-options` only |
 | `RepairControls.ts` (2) | `worktree-repair`, `gate-retry` | `worktree-repair` only |
-| `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
+| `OverseerControls.ts` (5) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` | None |
 | `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
 | `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
 | `BoardLifetimeControls.ts` (2) | `chart-range-set`, `tracker-clear` | None |
 
-So 25 of the 52 kinds can get through the Hatch at all, for some role. The other 27 are User's alone: the verbs of 24
+So 25 of the 53 kinds can get through the Hatch at all, for some role. The other 28 are User's alone: the verbs of 25
 still relay, and the Overseer refuses them in its hold; the verbs of the three unrelayed kinds do not relay.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and
@@ -63,9 +63,10 @@ then it is `nothing-to-do`: the Board found the change already made, as a `gate-
 [incident](../glossary.md#incident) to settle. Anything else leaves as a [refusal](../glossary.md#refusal), which
 carries a code and facts; only the CLI words it. [Refusals](../reference/refusals.md) holds every wording.
 
-`overseer-stop` and `overseer-restart` are the two kinds that never apply. Their verbs talk to the live Overseer, and
-the API route diverts them before the hold. `ControlService.apply` refuses both `overseer-control-is-runtime-only`, so
-they are never mistaken for a board change.
+`overseer-stop`, `overseer-restart` and `machine-agent-limit-set` are the three kinds that never apply. The first two
+verbs talk to the live Overseer, `machine limit` writes the monitor folder, and the API route diverts all three before
+the hold. `ControlService.apply` refuses each `overseer-control-is-runtime-only`, so none is mistaken for a board
+change.
 
 ## Records only
 

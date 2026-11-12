@@ -46,7 +46,7 @@ status through the reply, so a session exits as a direct run would.
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the Bridge control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
 | 423 | `The install version changed` in the shell banner | Launches are held for an install change. | Run `update`. See the [known gap](known-gaps.md#gap-job-stop-while-install-held) on stopping a job meanwhile. |
-| 400 | `The command body is not a control command this Overseer knows` | The body is not a known [control command](../architecture/control-and-hatch.md), or a field of a [control contract](overseer-api.md#control-contract-1) kind has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
+| 400 | `The command body is not a control command this Overseer knows` | The body is not a known [control command](../architecture/control-and-hatch.md), or a field of a [control contract](overseer-api.md#control-contract-1) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
 
 ## When something was written
 
