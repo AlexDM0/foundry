@@ -41,9 +41,9 @@ const INTERVALS: ForgeWatchIntervals = {
   summaryPollIntervalMilliseconds:     3_000,
   unreachableAfterFailedTries:         3,
 };
-const REGISTRY_CHECK = INTERVALS.registryCheckIntervalMilliseconds;
-const RECONNECT = INTERVALS.streamReconnectIntervalMilliseconds;
-const SUMMARY_POLL = INTERVALS.summaryPollIntervalMilliseconds;
+const REGISTRY_CHECK_MILLISECONDS = INTERVALS.registryCheckIntervalMilliseconds;
+const RECONNECT_MILLISECONDS = INTERVALS.streamReconnectIntervalMilliseconds;
+const SUMMARY_POLL_MILLISECONDS = INTERVALS.summaryPollIntervalMilliseconds;
 
 const SHORT_BOUND_MILLISECONDS = 200;
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
@@ -209,36 +209,36 @@ describe('a forge through every stage of PLAN 7.1', () => {
 
     overseerFetch.enter(STAGE_ANSWERS.started);
     writeRegistry([{}]);
-    timers.fire(REGISTRY_CHECK);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
     const starting = onlyReadingOf(await untilReadings(onlyReadingIs('dormant', 'starting')));
     expect(starting.url).toBe('http://127.0.0.1:4951/');
-    await timers.untilPending(RECONNECT);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
 
     overseerFetch.enter(STAGE_ANSWERS.live);
-    timers.fire(RECONNECT);
+    timers.fire(RECONNECT_MILLISECONDS);
     const live = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
     expect(live).toMatchObject({ project: 'Example Storefront', lastReportedAt: STAMPS.live, url: 'http://127.0.0.1:4951' });
     expect(live.agents.length).toBeGreaterThan(0);
     expect(live.attention.length).toBeGreaterThan(0);
-    await timers.untilPending(RECONNECT);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
 
     overseerFetch.enter(STAGE_ANSWERS.streamLost);
     for (let i = 1; i < INTERVALS.unreachableAfterFailedTries; i += 1) {
-      timers.fire(RECONNECT);
-      await timers.untilPending(RECONNECT);
+      timers.fire(RECONNECT_MILLISECONDS);
+      await timers.untilPending(RECONNECT_MILLISECONDS);
       expect(watch.readings()).toEqual([live]);
     }
 
     overseerFetch.enter(STAGE_ANSWERS.unreachable);
     currentStamp = STAMPS.unreachable;
-    timers.fire(RECONNECT);
+    timers.fire(RECONNECT_MILLISECONDS);
     const unreachable = onlyReadingOf(await untilReadings(onlyReadingIs('unreachable', 'unreachable')));
     expect(unreachable).toEqual({ ...live, fidelity: 'unreachable', condition: 'unreachable' });
-    await timers.untilPending(RECONNECT);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
 
     overseerFetch.enter(STAGE_ANSWERS.back);
     currentStamp = STAMPS.back;
-    timers.fire(RECONNECT);
+    timers.fire(RECONNECT_MILLISECONDS);
     const back = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
     expect(back.lastReportedAt).toBe(STAMPS.back);
     expect(overseerFetch.callShapes()).toEqual([
@@ -267,7 +267,7 @@ describe('a forge through every stage of PLAN 7.1', () => {
 
     overseerFetch.enter(STAGE_ANSWERS.dormant);
     writeRegistry([{ hasOverseer: false }]);
-    timers.fire(REGISTRY_CHECK);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
     const dormant = onlyReadingOf(await untilReadings(onlyReadingIs('dormant', 'dormant')));
 
     expect(dormant).toMatchObject({
@@ -283,7 +283,7 @@ describe('a forge through every stage of PLAN 7.1', () => {
       today:            null,
     });
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
-    expect(timers.pendingDelays()).toEqual([REGISTRY_CHECK]);
+    expect(timers.pendingDelays()).toEqual([REGISTRY_CHECK_MILLISECONDS]);
   });
 });
 
@@ -309,10 +309,10 @@ describe('a forge read through its summary', () => {
 
     const countsOnly = onlyReadingOf(await untilReadings(onlyReadingIs('counts-only', 'paused')));
     expect(countsOnly.lastReportedAt).toBe(STAMPS.live);
-    await timers.untilPending(SUMMARY_POLL);
+    await timers.untilPending(SUMMARY_POLL_MILLISECONDS);
 
     currentStamp = STAMPS.back;
-    timers.fire(SUMMARY_POLL);
+    timers.fire(SUMMARY_POLL_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastReportedAt === STAMPS.back);
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/summary', 'GET /api/identity', 'GET /api/summary']);
   });
@@ -339,9 +339,9 @@ describe('a forge that cannot be read', () => {
     expect(unreachable).toMatchObject({
       lastReportedAt: null, url: 'http://127.0.0.1:4951/', processId: 48_107, agents: []
     });
-    await timers.untilPending(RECONNECT);
-    timers.fire(RECONNECT);
-    await timers.untilPending(RECONNECT);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
+    timers.fire(RECONNECT_MILLISECONDS);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/identity']);
   });
 
@@ -353,7 +353,7 @@ describe('a forge that cannot be read', () => {
     watch.start();
 
     await untilReadings(onlyReadingIs('unreachable', 'unreachable'));
-    await timers.untilPending(RECONNECT);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });
 
@@ -367,7 +367,7 @@ describe('a forge that cannot be read', () => {
     overseerFetch.enter(STAGE_ANSWERS.back);
     await watch.lookAgain();
     await untilReadings(onlyReadingIs('full', 'live'));
-    expect(timers.pendingDelays()).toEqual([REGISTRY_CHECK]);
+    expect(timers.pendingDelays()).toEqual([REGISTRY_CHECK_MILLISECONDS]);
   });
 });
 
@@ -378,11 +378,11 @@ describe('the registry', () => {
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
     await untilReadings(onlyReadingIs('full', 'live'));
-    await timers.untilPending(REGISTRY_CHECK);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
 
     writeRegistry([{}]);
-    timers.fire(REGISTRY_CHECK);
-    await timers.untilPending(REGISTRY_CHECK);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'STREAM /api/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
@@ -393,12 +393,12 @@ describe('the registry', () => {
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
     await untilReadings(onlyReadingIs('full', 'live'));
-    await timers.untilPending(REGISTRY_CHECK);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
 
     overseerFetch.enter(STAGE_ANSWERS.back);
     currentStamp = STAMPS.back;
     writeRegistry([{ processId: 48_200 }]);
-    timers.fire(REGISTRY_CHECK);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastReportedAt === STAMPS.back);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
@@ -410,7 +410,7 @@ describe('the registry', () => {
     watch.start();
 
     const readings = await untilReadings(onlyReadingIs('full', 'live'));
-    await timers.untilPending(REGISTRY_CHECK);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
     expect(readings.map((reading) => reading.trackerId)).toEqual([STOREFRONT_TRACKER_ID]);
   });
 
@@ -420,10 +420,10 @@ describe('the registry', () => {
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
     await untilReadings(onlyReadingIs('full', 'live'));
-    await timers.untilPending(REGISTRY_CHECK);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
 
     writeRegistry([]);
-    timers.fire(REGISTRY_CHECK);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await untilReadings((readings) => readings.length === 0);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });
@@ -433,7 +433,7 @@ describe('the registry', () => {
     const { watch, timers } = watchOver(overseerFetch);
     watch.start();
 
-    await timers.untilPending(REGISTRY_CHECK);
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
     expect(watch.readings()).toEqual([]);
     expect(overseerFetch.callShapes()).toEqual([]);
   });
@@ -442,7 +442,7 @@ describe('the registry', () => {
 describe('a stopped watch', () => {
   test('opens no stream and starts no timer when an answer arrives after the stop', async () => {
     writeRegistry([{}]);
-    const inner = stagedOverseerFetch(STAGE_ANSWERS.back);
+    const recordedFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
     let releaseIdentity: () => void = () => undefined;
     // The held answer travels in a record: a promise settled with a promise would wait for it.
     let identityWasAsked: (held: { readonly answer: Promise<OverseerAnswer> }) => void = () => undefined;
@@ -453,11 +453,11 @@ describe('a stopped watch', () => {
       request: (overseerRequest) => {
         const answer = new Promise<void>((resolve) => {
           releaseIdentity = resolve;
-        }).then(() => inner.request(overseerRequest));
+        }).then(() => recordedFetch.request(overseerRequest));
         identityWasAsked({ answer });
         return answer;
       },
-      openStream: inner.openStream,
+      openStream: recordedFetch.openStream,
     };
     const { watch, timers } = watchOver(heldFetch);
     watch.start();
@@ -471,8 +471,8 @@ describe('a stopped watch', () => {
       setImmediate(resolve);
     });
     expect(timers.pendingDelays()).toEqual([]);
-    expect(inner.callShapes()).toEqual(['GET /api/identity']);
-    expect(inner.streamsLeftOpen()).toBe(0);
+    expect(recordedFetch.callShapes()).toEqual(['GET /api/identity']);
+    expect(recordedFetch.streamsLeftOpen()).toBe(0);
     expect(watch.readings()).toEqual([]);
   });
 });
