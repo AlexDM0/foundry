@@ -5,6 +5,7 @@ import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAccepta
 import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
+import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import { resourceFilePathOf }                 from '../../shared/ResourceFilePath.ts';
 import { createTicket }                       from '../tracker/TicketStore.ts';
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
@@ -95,6 +96,24 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: TrackerChan
   }, change.at);
 }
 
+/**
+ * A ticket User finished and landed outside the Overseer, recorded delivered in the hold, merging, landing and spawning nothing. A live job
+ * of the ticket refuses it, judged inside the hold; the verb refuses a live Overseer first, so on a live board only its own hold records it.
+ */
+function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: TrackerChange) {
+  const ticketId = ticketIdOfReference(change, command.ticketReference);
+  const liveJob  = change.board.jobs().find((job) => job.ticketIds.includes(ticketId));
+  if (liveJob !== undefined) throw new OperationRefusal('refused', {
+    kind: 'ticket-has-live-job', ticketId, jobId: liveJob.id, state: liveJob.state
+  });
+  return change.board.moveTicket(ticketId, 'delivered', {
+    checksLegality: false,
+    byHand:         true,
+    ...(command.branch === undefined ? {} : { branch: command.branch }),
+    ...(command.commit === undefined ? {} : { commit: command.commit }),
+  }, change.at);
+}
+
 export const TICKET_CONTROLS = {
   'ticket-add':      addTicket,
   'ticket-edit':     editTicket,
@@ -126,4 +145,5 @@ export const TICKET_CONTROLS = {
     ticketIdOfReference(change, command.ticketReference),
     change.at,
   ),
+  'ticket-deliver-by-hand': deliverTicketByHand,
 } as const;

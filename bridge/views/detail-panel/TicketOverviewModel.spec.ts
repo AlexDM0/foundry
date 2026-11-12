@@ -3,7 +3,8 @@
  * session naming the ticket and a partial record are passed over; the state card says what that job does (calls against budget, the last
  * tool call, since when, the elapsed time left off for a stamp later than now), or with no job why nothing works on the ticket; the lead
  * is Watch for a live job, else Accept, Ready or Unhold by state, Accept never sendable on a prediction that is not clean; the other moves
- * keep their order without the lead, and Park names the running job only while one runs; Next words each forecast step, marks exactly the
+ * keep their order without the lead, Park names the running job only while one runs, and Delivered by hand… confirms first and waits
+ * while a job of the ticket runs; Next words each forecast step, marks exactly the
  * current one (none while nothing runs), links the tickets the landing lets start and says what still holds the others, and is absent
  * without a forecast; the facts carry their second lines; the live job's controls offer a message while it takes one and Wind down, Stop
  * and Fresh agent by its kind (Stop alone while only watched, nothing while stopping), each worded with the ticket, its branch and the
@@ -275,7 +276,7 @@ describe('a ticket with no job', () => {
 });
 
 describe('the other moves', () => {
-  test('keep their order without the lead: Update branch, then Hold…, Park… and Set network…', () => {
+  test('keep their order without the lead: Update branch, then Hold…, Park…, Set network… and Delivered by hand…', () => {
     const board = exampleDetailBoard({
       tickets:    [exampleDetailTicket('013', { status: 'draft' }), exampleDetailTicket('020', { status: 'in-review' })],
       mergeQueue: {
@@ -288,7 +289,14 @@ describe('the other moves', () => {
       },
     });
     expect(overviewOf(board, '013').otherMoves.map((move) => move.label)).toEqual(['Hold…', 'Park…', 'Set network…']);
-    expect(overviewOf(board, '020').otherMoves.map((move) => move.label)).toEqual(['Update branch', 'Park…']);
+    expect(overviewOf(board, '020').otherMoves.map((move) => move.label)).toEqual(['Update branch', 'Park…', 'Delivered by hand…']);
+  });
+
+  test('Delivered by hand… asks for its confirmation first, and waits while a job of the ticket runs', () => {
+    const byHandOf = (jobs: readonly unknown[]) => overviewOf(exampleDetailBoard({ tickets: [BUILDING], jobs }), '004').otherMoves.find((move) => move.move === 'deliver-by-hand');
+    expect(byHandOf([])).toMatchObject({ opens: 'by-hand', sendable: true });
+    expect(wordsOf(byHandOf([])?.effect ?? [])).toBe('Records #004 delivered: work User landed outside the Overseer. Nothing merges, lands or launches.');
+    expect(byHandOf([exampleDetailJob('J4', '004')])?.sendable).toBe(false);
   });
 
   test('Park names the running job only while one runs, and asks for a reason first', () => {

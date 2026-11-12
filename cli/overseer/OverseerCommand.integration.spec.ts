@@ -308,7 +308,9 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
       trackerId:      expect.any(String),
       codeVersion:    CodeVersion.onDisk(),
       installVersion: expect.any(Number),
-      contracts:      { summary: 1, monitor: 1, control: 1 },
+      contracts:      {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      },
     });
     const second = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(second.exitCode, second.standardError).toBe(0);

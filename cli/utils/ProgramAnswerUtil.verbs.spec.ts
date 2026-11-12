@@ -48,8 +48,10 @@ test('version answers its versions, the contracts it serves and its monitor fold
       answerVersion:  1,
       codeVersion:    expect.any(String),
       installVersion: INSTALL_VERSION,
-      contracts:      { summary: 1, monitor: 1, control: 1 },
-      monitorFolder:  expect.any(String),
+      contracts:      {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      },
+      monitorFolder: expect.any(String),
     },
   });
   expect(await answerIn(directory, ['version', 'extra', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });

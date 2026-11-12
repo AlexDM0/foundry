@@ -204,8 +204,10 @@ describe('a tracker whose installed files are of another install version', () =>
       answerVersion:  1,
       codeVersion:    expect.stringMatching(/^[0-9a-f]{12}$/),
       installVersion: INSTALL_VERSION,
-      contracts:      { summary: 1, monitor: 1, control: 1 },
-      monitorFolder:  expect.stringMatching(/monitor$/),
+      contracts:      {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      },
+      monitorFolder: expect.stringMatching(/monitor$/),
     });
   });
 

@@ -9,8 +9,8 @@
 ## In one screen
 
 Each [board](../glossary.md#board) has one [Overseer](../glossary.md#overseer), and it serves one HTTP API on
-`127.0.0.1`. Its clients are the [Bridge](../glossary.md#bridge), the CLI and agent-dashboard, a separate program that
-lists boards and frames the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id, see
+`127.0.0.1`. Its clients are the [Bridge](../glossary.md#bridge), the CLI, and agent-dashboard and Gaia, separate
+programs that list boards and frame the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id, see
 [Watchers](../architecture/watchers.md).
 
 ![The User works in the Bridge, which posts commands to the Overseer server and receives server-sent events. Most CLI verbs write the board files themselves and then nudge the server; a few post a command or read the state. agent-dashboard reads with GET. The server answers by reading board files, job event logs and agent transcripts, and takes no lock to read.](../figures/overseer-api/api-at-a-glance.png)
@@ -39,7 +39,7 @@ on 409, 413, 415 and 423, where it is a sentence. A 401, a 403 and the 500s `rea
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
-| `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor |
+| `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor such as Gaia |
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
 | `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
@@ -146,9 +146,10 @@ default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img
 base-uri 'none'; form-action 'none'; frame-ancestors <origins, or 'none'>
 ```
 
-`dashboardFrameOriginsOf` reads agent-dashboard's server record for every response, taking the origins of its `url` and
-`boardOrigin`. An unreadable record, or one with neither, gives `'none'`. `bridge/index.html` repeats the policy as a
-meta tag, without `frame-ancestors`.
+`FrameOrigins.frameOriginsOf` reads two server records for every response: agent-dashboard's, taking the origins of its
+`url` and `boardOrigin`, and Gaia's, taking its `origin` ([The Gaia contract](#the-gaia-contract)). A record that is
+absent or unreadable adds no origin; with no origin the policy says `'none'`. `bridge/index.html` repeats the policy as
+a meta tag, without `frame-ancestors`.
 
 Changed Bridge code reaches the browser only through an Overseer on that code, since the memory lives as long as the
 server.
@@ -158,8 +159,10 @@ server.
 
 ## Commands
 
-`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 47 kinds at commit
-029f32c9. What each does is in [Control](../architecture/control-and-hatch.md).
+`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 52 kinds. What each
+does is in [Control](../architecture/control-and-hatch.md). Three of them are the Bridge's controls for verbs that once
+needed a terminal: `chart-range-set` (`range`), `tracker-clear` (`clear`) and `ticket-deliver-by-hand`
+(`ticket deliver --by-hand`). They are in no versioned control contract.
 
 ![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/overseer-api/command-route.png)
 
@@ -519,6 +522,7 @@ numbers: the version of each contract this program serves. A contract it does no
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
 | `monitor` | 1 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
 | `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
+| `embed` | 1 | [The Gaia contract](#the-gaia-contract): `?embedded=gaia` and the embed channel, whose messages carry the same number as `channelVersion` |
 
 A change of shape in a contract raises its number in the same change: a key added, removed or renamed, a value that
 changes type or meaning, or a union that gains or loses a value. The numbers are `SERVED_CONTRACT_VERSIONS` in
@@ -612,6 +616,41 @@ origin; `auto` resolves through the system's scheme. `{kind: 'leave-board'}` goe
 inner layer used, posted to that origin and never to `*`. agent-dashboard posts the theme to, and listens on, the frame
 that shows the board, so a Bridge it frames directly answers in the shapes its board bridge already uses.
 
+## The Gaia contract
+
+Gaia is a separate program that monitors many boards and frames the Bridge of one board. It writes its server record,
+`<monitor>/gaia/server.json`, `{version: 1, url, origin, processId, startedAt}`.
+
+**Framing.** `frame-ancestors` adds the `origin` of that record. The Overseer reads the record for every response. A
+record that is absent, unreadable, or of a `version` other than 1 adds no origin. An `origin` that is no URL, or that
+is opaque (`null`, as for a `file:` URL), adds no origin.
+
+**Embedded mode.** Only the literal parameter `?embedded=gaia` marks the document embedded for Gaia. The root then has
+`data-embedded="gaia"`. The Bridge hides its title row (project name, status line, Overseer controls, Waiting on User
+pill), its activity strip and its theme switch, so the tab bar is the first row. The banners and the incident line
+stay above the tab bar when they show. `?embedded=dashboard` does not change.
+
+**The embed channel, version 1.** Every `postMessage` in each direction is
+`{channel: 'forge-embed', channelVersion: 1, kind, ...}`. The Bridge accepts a message only from the framing parent at
+its origin, and posts only to that origin, never to `*`. It ignores a message of another `channel` or another
+`channelVersion`, an unknown `kind` and a malformed field, and sends no answer to it. `channelVersion` is
+`contracts.embed`.
+
+| Direction | `kind` | Fields | Meaning |
+| --- | --- | --- | --- |
+| Bridge to parent | `ready` | none | The Bridge painted and listens. Sent once for each load. |
+| Bridge to parent | `route` | `fragment` | The route that the Bridge shows changed, such as `#questions/E2`. Sent once after `ready` for the first route. |
+| Bridge to parent | `leave` | none | An Esc that no panel and no inner layer used. |
+| Bridge to parent | `session-lost` | none | An API call answered 401: the Overseer restarted. |
+| Parent to Bridge | `theme` | `themeChoice`: `auto`, `light`, `dark` | Applied and not stored, as for agent-dashboard. |
+| Parent to Bridge | `navigate` | `fragment`, which starts with `#` | Go to this route. The Bridge answers with `route`, also when the route does not change. |
+
+A route `#questions/<id>` that names an open question opens the question panel on that question. This is true in each
+mode, not only in Gaia's frame.
+
+The channel is `VersionedEmbedChannel` in `bridge/shell/VersionedEmbedChannel.ts`; `BridgeApp` sends `ready`, `route`
+and `session-lost`, and follows `navigate`.
+
 ## Invariants
 
 1. Every answer from a route that returns carries a CSP.
@@ -637,7 +676,9 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 | Monitor snapshot | `src/services/overseer/MonitorSnapshotAssembly.ts` | `MonitorSnapshotAssembly` | `src/services/overseer/MonitorSnapshotAssembly.spec.ts` |
 | Monitor stream | `src/services/overseer/MonitorStream.ts` | `MonitorStream.createMonitorStream` | `src/services/overseer/MonitorStream.spec.ts` |
 | Waiting on User, notices, today | `src/shared/monitor/` | `attentionEntriesOf`, `NoticeWordingUtil`, `todayFiguresOf` | the `.spec.ts` beside each, `bridge/shell/WaitingOnUserModel.spec.ts` |
-| Route wiring, frame origins, refusal sentences | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `dashboardFrameOriginsOf`, `SERVER_REFUSAL_TEXT` | `cli/overseer/OverseerApi.integration.spec.ts` |
+| Route wiring, refusal sentences | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `SERVER_REFUSAL_TEXT` | `cli/overseer/OverseerApi.integration.spec.ts` |
+| Frame origins | `cli/overseer/routes/FrameOrigins.ts` | `FrameOrigins.frameOriginsOf`, `dashboardFrameOriginsOf`, `gaiaFrameOriginsOf` | `cli/overseer/routes/FrameOrigins.spec.ts` |
+| The embed channel | `bridge/shell/VersionedEmbedChannel.ts` | `VersionedEmbedChannel` | `bridge/shell/VersionedEmbedChannel.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
 | Board state | `src/services/overseer/BoardState.ts` | `BoardStateAssembly` | `src/services/overseer/BoardState.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |

@@ -29,17 +29,22 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 49 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 52 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
-resolved inside the hold by `ticketIdOfReference`. Nine applier files implement the kinds, and a `satisfies` check on
+resolved inside the hold by `ticketIdOfReference`. Ten applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
 
 A few verbs only User runs by hand, such as `log` and `ticket status`, have no command
 (`NOT_RELAYABLE_MUTATING_VERBS` in `cli/ControlContract.spec.ts`). They never cross the Hatch or the API.
 
+Three kinds are sent only from User's own surfaces: the Bridge, a monitor that holds the token, or their verb outside a
+job. They are `chart-range-set` (`range`), `tracker-clear` (`clear`) and `ticket-deliver-by-hand`
+(`ticket deliver --by-hand`), in `UNRELAYED_VERB_OF_CONTROL_KIND` in `cli/constants/JobVerbs.ts`. Under a job their
+verbs are refused `verb-not-relayable`, so they never cross the Hatch. They are in no versioned control contract.
+
 | Applier file in `src/services/control/` | Kinds | Reaches an applier through a Hatch |
 | --- | --- | --- |
-| `TicketControls.ts` (11) | `ticket-add`, `ticket-edit`, `ticket-depends`, `ticket-priority`, `ticket-epic`, `ticket-abandon`, `ticket-ready`, `ticket-submit`, `ticket-network`, `ticket-hold`, `ticket-unhold` | All but `ticket-ready`, `ticket-submit` and the last two |
+| `TicketControls.ts` (12) | `ticket-add`, `ticket-edit`, `ticket-depends`, `ticket-priority`, `ticket-epic`, `ticket-abandon`, `ticket-ready`, `ticket-submit`, `ticket-network`, `ticket-hold`, `ticket-unhold`, `ticket-deliver-by-hand` | All but `ticket-ready`, `ticket-submit` and the last three |
 | `FilingControls.ts` (10) | `epic-add`, `draft-open`, `draft-claim`, `draft-release`, `draft-note`, `draft-ask`, `draft-answer`, `draft-drop`, `draft-close`, `draft-abandon` | All, [product owner](../glossary.md#product-owner) only |
 | `IncidentControls.ts` (4) | `ticket-park`, `incident-answer`, `incident-note`, `incident-escalate` | All, [Assistant](../glossary.md#assistant) only |
 | `DecisionControls.ts` (1) | `decision-answer` | None |
@@ -48,9 +53,10 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
 | `SettingControls.ts` (6) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
 | `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
+| `BoardLifetimeControls.ts` (2) | `chart-range-set`, `tracker-clear` | None |
 
-So 25 of the 49 kinds can get through the Hatch at all, for some role. The other 24 are User's alone: their verbs
-still relay, and the Overseer refuses them in its hold.
+So 25 of the 52 kinds can get through the Hatch at all, for some role. The other 27 are User's alone: the verbs of 24
+still relay, and the Overseer refuses them in its hold; the verbs of the three unrelayed kinds do not relay.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and
 then it is `nothing-to-do`: the Board found the change already made, as a `gate-retry` with no
@@ -412,7 +418,9 @@ To add a mutation:
 6. If a role may run it, add it to the `Bouncer` and to `Bouncer.spec.ts`. Otherwise nothing: refusal is the default.
 7. Update [the CLI reference](../cli.md), and word any new refusal.
 
-A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` instead, as a verb User runs by hand.
+A mutating verb that should never relay goes on `NOT_RELAYABLE_MUTATING_VERBS` instead, as a verb User runs by hand. A
+kind that only User's own surfaces send goes in `UNRELAYED_VERB_OF_CONTROL_KIND` in place of step 3, and step 5 does not
+apply: its verb stays refused under a job.
 
 ## Invariants
 

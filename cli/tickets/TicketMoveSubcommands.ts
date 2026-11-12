@@ -46,7 +46,8 @@ function requireTicketReference(commandArguments: ArgumentParser, subcommand: st
 
 /**
  * The one record-only lifecycle verb: a ticket User finished and landed outside the Overseer is recorded delivered in one hold, merging,
- * landing and spawning nothing. Both refusals are judged inside the hold, so an Overseer starting meanwhile reads the ticket delivered or not at all.
+ * landing and spawning nothing. A live Overseer refuses it, judged inside the hold, so an Overseer starting meanwhile reads the ticket
+ * delivered or not at all; on a live board the Bridge sends the same command to the Overseer, which records it in its own hold.
  */
 async function deliverByHand(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(BY_HAND_OPTION_NAMES, TICKET_USAGE);
@@ -56,6 +57,12 @@ async function deliverByHand(commandArguments: ArgumentParser, context: CommandC
   const reference = requireTicketReference(commandArguments, 'deliver');
   const branch    = commandArguments.option('branch');
   const commit    = commandArguments.option('commit');
+  const command: ControlCommandOf<'ticket-deliver-by-hand'> = {
+    kind:            'ticket-deliver-by-hand',
+    ticketReference: reference,
+    ...(branch === undefined ? {} : { branch }),
+    ...(commit === undefined ? {} : { commit }),
+  };
   const { result: move, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
     const { overseerDirectory } = overseerFilesIn(change.workspace.trackerDirectory);
     const newestBaton     = Baton.newestBatonOf(context.platformPorts, overseerDirectory);
@@ -63,14 +70,7 @@ async function deliverByHand(commandArguments: ArgumentParser, context: CommandC
       const batonFilePath = Baton.batonFilePathFor(overseerDirectory, newestBaton.generation);
       throw new OperationRefusal('refused', { kind: 'overseer-owns-the-lifecycle', url: newestBaton.record.url, batonFilePath });
     }
-    const ticketId = TicketLookupUtil.requireTicket(change, reference).frontmatter.id;
-    const liveJob  = change.board.jobs().find((job) => job.ticketIds.includes(ticketId));
-    if (liveJob !== undefined) throw new OperationRefusal('refused', {
-      kind: 'ticket-has-live-job', ticketId, jobId: liveJob.id, state: liveJob.state
-    });
-    return change.board.moveTicket(ticketId, 'delivered', {
-      checksLegality: false, byHand: true, ...(branch === undefined ? {} : { branch }), ...(commit === undefined ? {} : { commit }),
-    }, change.at);
+    return ControlService.apply(command, change).result;
   });
   const humanText = `${OutputUtil.loggedSentencesOf(move.logged.filter(ReviewBarOutputUtil.recordClosesNoBar))}${ReviewBarOutputUtil.closedReviewBarsText(move.closedReviewBars)}`;
   OutputUtil.printEntityThenNextLine(commandArguments, context, ReviewBarOutputUtil.ticketWithReviewBarAsJson(move.ticket, null, move.closedReviewBars), humanText, nextLine);

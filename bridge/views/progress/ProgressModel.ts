@@ -10,6 +10,7 @@ import type { ViewRange }                                from '../../../src/lib/
 import { FIRST_REPEAT_REVIEW_ROUND }                     from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
 import type { ProgressBoardState, ProgressTaskDocument } from '../../@types/ProgressBoardState.ts';
 import type { TimelineBar, TimelineTick }                from '../../@types/Timeline.ts';
+import type { ControlCommandBody }                       from '../../api/CommandClient.ts';
 import { BarPhaseUtil }                                  from '../../utils/BarPhaseUtil.ts';
 import { ChangeHighlightUtil }                           from '../../utils/ChangeHighlightUtil.ts';
 import { DisplayStateWordingUtil }                       from '../../utils/DisplayStateWordingUtil.ts';
@@ -403,6 +404,17 @@ function progressBoardStateOf(document: unknown): ProgressBoardState | null {
   return document as unknown as ProgressBoardState;
 }
 
+/** The range shown, as the board's default axis: typed or preset bounds as written, and Fit as the automatic span. */
+function boardRangeCommandOf(override: StoredViewOverride): ControlCommandBody {
+  if (override.fromText === null || override.toText === null) return { kind: 'chart-range-set', range: { kind: 'automatic' } };
+  return {
+    kind:  'chart-range-set',
+    range: {
+      kind: 'window', from: override.fromText, to: override.toText, tickMinutes: override.tickMinutes
+    },
+  };
+}
+
 export const ProgressModel = Object.freeze({
-  progressChartOf, rangeBoundOf, progressBoardStateOf, changedTaskIdsBetween
+  progressChartOf, rangeBoundOf, progressBoardStateOf, changedTaskIdsBetween, boardRangeCommandOf
 });

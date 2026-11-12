@@ -1,5 +1,5 @@
 /**
- * The routes the Overseer's API serves, over the board, its job folders, its picture store and agent-dashboard's server record: the state,
+ * The routes the Overseer's API serves, over the board, its job folders, its picture store and the framing programs' server records: the state,
  * summary and monitor snapshot read fresh each request, the sentence of each refusal, a job's transcript and served files, the pictures
  * User uploads and the ones a transcript names, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML import is the
  * one place the command surface reaches `bridge/`, by path, for Bun to bundle.
@@ -32,6 +32,7 @@ import { PRODUCT_NAMES }                                                       f
 import { JOB_ID_PATTERN }                                                      from '../../constants/RecordIdPatterns.ts';
 import { readBoardState, type BoardStateSource }                               from './BoardStateReader.ts';
 import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
+import { FrameOrigins }                                                        from './FrameOrigins.ts';
 
 export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context'> {
   token:         () => string | null;
@@ -54,30 +55,6 @@ const MONITOR_STATUS = {
   ANSWERED: 200,
   STARTING: 503,
 } as const;
-
-/** agent-dashboard's own server record: its path is the dashboard's, never the product's naming constant. */
-const DASHBOARD_SERVER_RECORD = ['.agent-progress-monitor', 'agent-dashboard', 'server.json'] as const;
-
-function originOf(url: unknown): string[] {
-  if (typeof url !== 'string') return [];
-  try {
-    return [new URL(url).origin];
-  } catch {
-    return [];
-  }
-}
-
-/** With no readable record no origin may frame the Bridge. */
-export function dashboardFrameOriginsOf(homeDirectory: string): string[] {
-  try {
-    const record: unknown = JSON.parse(readFileSync(join(homeDirectory, ...DASHBOARD_SERVER_RECORD), 'utf8'));
-    if (typeof record !== 'object' || record === null) return [];
-    const { url, boardOrigin } = record as { url?: unknown; boardOrigin?: unknown };
-    return [...new Set([...originOf(url), ...originOf(boardOrigin)])];
-  } catch {
-    return [];
-  }
-}
 
 function newestInstanceIn(jobFolder: string): number {
   let instance = 0;
@@ -165,7 +142,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       ? { verdict: 'too-large', bytes: upload.bytes }
       : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
     picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
-    frameOrigins: () => dashboardFrameOriginsOf(context.homeDirectory),
+    frameOrigins: () => FrameOrigins.frameOriginsOf(context.homeDirectory, context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
     page:         bridgePage,
   };
 }

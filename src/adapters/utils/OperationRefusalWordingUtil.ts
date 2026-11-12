@@ -545,13 +545,23 @@ function messageOf(refusal: OperationRefusal): string {
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'overseer-owns-the-lifecycle':
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
-        + `Stop it with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` before recording work by hand. ${NOTHING_WAS_WRITTEN}`;
+        + `Record the work with Delivered by hand… on the ticket's form in the Bridge, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first. `
+        + NOTHING_WAS_WRITTEN;
     case 'watcher-bundle-failed':
       return `The Watcher entry ${detail.entryPath} did not bundle, so the Overseer cannot spawn Watchers: ${detail.reason}`;
     case 'watcher-endpoint-does-not-fit':
       return `This platform cannot bind the Watcher endpoint ${detail.endpoint}, so no launch file was written. Move the home folder to a shorter path.`;
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
+    case 'chart-range-bound-unreadable':
+      return `--${detail.bound} "${detail.written}" could not be read as a time, so it is not a range bound. `
+        + 'Write an ISO 8601 timestamp, `start`, `now`, or a signed offset from now such as `-2h` or `+30m`.';
+    case 'chart-range-backwards':
+      return `--from "${detail.from}" is not before --to "${detail.to}", so the axis would have no width. Swap them, or widen the window.`;
+    case 'chart-range-tick-unreadable':
+      return `A tick of ${detail.tickMinutes} minutes is not a whole number of minutes above zero. ${NOTHING_WAS_WRITTEN}`;
+    case 'tracker-has-live-jobs':
+      return `Job(s) ${detail.jobIds.join(', ')} are live, so the board cannot be cleared under them. Stop them first. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-hatch-request':
       return `The relayed request ${detail.requestId} is not a request the Overseer reads. ${NOTHING_WAS_WRITTEN}`;
     case 'hatch-identity-mismatch':

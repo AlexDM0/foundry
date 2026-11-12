@@ -5,8 +5,10 @@
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
  * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
  * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
- * behind a routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a
- * view that throws leaves the error banner, not a blank page.
+ * behind a routed detail and closes on Esc only after it, `#questions/<id>` points it at that question, an embedded page's Esc leaves the
+ * board on any route no panel takes it on, Gaia's frame hears `ready`, each route, `leave` and `session-lost` in the versioned channel's
+ * shape and is followed on `navigate`, a message of another channel version is answered by nothing, and a view that throws leaves the
+ * error banner, not a blank page.
  */
 import {
   act,
@@ -87,7 +89,7 @@ function fakeBridge(): FakeBridge {
         setItem:    (key, value) => storage.set(key, value),
         removeItem: (key) => storage.delete(key),
       }),
-      embedded:             false,
+      embeddingHost:        null,
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:00Z'),
       followTranscript:     () => ({ close: () => undefined }),
@@ -577,7 +579,10 @@ describe('the embedded page\'s Esc', () => {
     const leaveMessages: unknown[] = [];
     const parent = { postMessage: (message: unknown) => leaveMessages.push(message) };
     return {
-      bridge: { ...bridge, services: { ...bridge.services, embedded: true, embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) } },
+      bridge: {
+        ...bridge,
+        services: { ...bridge.services, embeddingHost: 'dashboard', embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) },
+      },
       leaveMessages,
     };
   }
@@ -603,6 +608,123 @@ describe('the embedded page\'s Esc', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
     expect(leaveMessages).toEqual([]);
+  });
+});
+
+describe('the Gaia embed channel', () => {
+  const GAIA_ORIGIN = 'http://127.0.0.1:5180';
+
+  interface PostedMessage {
+    readonly message:      unknown;
+    readonly targetOrigin: string;
+  }
+
+  function gaiaBridge(): { bridge: FakeBridge; posted: PostedMessage[]; parent: Window } {
+    const bridge = fakeBridge();
+    const posted: PostedMessage[] = [];
+    const parent = { postMessage: (message: unknown, targetOrigin: string) => posted.push({ message, targetOrigin }) } as unknown as Window;
+    return {
+      bridge: { ...bridge, services: { ...bridge.services, embeddingHost: 'gaia', embeddedSurroundings: () => ({ window, parent, parentOrigin: GAIA_ORIGIN }) } },
+      posted,
+      parent,
+    };
+  }
+
+  function envelope(message: object): PostedMessage {
+    return { message: { channel: 'forge-embed', channelVersion: 1, ...message }, targetOrigin: GAIA_ORIGIN };
+  }
+
+  async function parentSends(parent: Window, data: unknown): Promise<void> {
+    await act(async () => {
+      window.dispatchEvent(new MessageEvent('message', { data, origin: GAIA_ORIGIN, source: parent }));
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+  }
+
+  /** The identity arrives after the first board; it is awaited too, so no state update lands outside `act`. */
+  async function renderedInGaia(bridge: FakeBridge, board: unknown = BOARD): Promise<void> {
+    await renderedLive(bridge, board);
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  const twoQuestionBoard = (): unknown => ({
+    ...BOARD,
+    ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
+    decisions:       [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }, { ...DARK_MODE_QUESTION, id: 'E8', ticketIds: ['002'] }],
+    questionHistory: [],
+  });
+
+  test('ready goes out once when the shell has painted, then the shown route, both to Gaia\'s origin only', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge);
+    expect(posted).toEqual([envelope({ kind: 'ready' }), envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('navigate to #questions/E8 points the question panel at E8 and is answered with route', async () => {
+    window.location.hash = '#kanban';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge, twoQuestionBoard());
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions/E8'
+    });
+    expect(screen.queryByRole('complementary', { name: 'Question E8 from J4' })).not.toBeNull();
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#questions/E8' })]);
+  });
+
+  test('navigate to the route already shown is answered with route at once', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents'
+    });
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('navigate that moves the address bar but leaves the route shown is answered with the route shown', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents/'
+    });
+    expect(window.location.hash).toBe('#agents/');
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('a message of another channel version, another channel or agent-dashboard\'s shape is ignored and answered by nothing', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 2, kind: 'navigate', fragment: '#questions'
+    });
+    await parentSends(parent, {
+      channel: 'other-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions'
+    });
+    await parentSends(parent, { kind: 'theme', themeChoice: 'dark' });
+    expect(window.location.hash).toBe('#agents');
+    expect(posted).toEqual([]);
+  });
+
+  test('Esc that no panel takes posts leave, and a lost session posts session-lost', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    act(() => bridge.stream().onConnection('no-session'));
+    expect(posted).toEqual([envelope({ kind: 'leave' }), envelope({ kind: 'session-lost' })]);
   });
 });
 

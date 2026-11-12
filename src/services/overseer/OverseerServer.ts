@@ -78,7 +78,7 @@ export interface OverseerRoutes {
   storePicture:  (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
   picture:       (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
-  /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
+  /** The origins allowed to frame the Bridge, read per response: agent-dashboard's and Gaia's. */
   frameOrigins:  () => readonly string[];
   /**
    * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through

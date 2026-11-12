@@ -329,6 +329,9 @@ agent-dashboard's own record. `dashboardFrameOriginsOf` reads it for the origins
 Its spelling is the dashboard's, and with no readable record no origin may embed the Bridge. This system never writes
 it.
 
+`<monitor>/gaia/server.json` is Gaia's record, `{version: 1, url, origin, processId, startedAt}`. `gaiaFrameOriginsOf`
+(`cli/overseer/routes/FrameOrigins.ts`) reads only its `origin`, and only at version 1. This system never writes it.
+
 ## Installed items outside `<data>`
 
 | Path | Written by | Read by | Safe to delete |

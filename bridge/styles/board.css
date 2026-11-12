@@ -18,7 +18,7 @@
  *                           .bridge-tab with an optional .bridge-count-badge of what waits on User, the
  *                           .bridge-theme switch, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
- *                           .bridge-stale-notice while the stream is down
+ *                           .bridge-stale-notice while the stream is down; framed by Gaia ([data-embedded="gaia"]) only the tab bar
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
@@ -178,7 +178,8 @@
  *                           .bridge-progress-chart-head row (in its pinned cell the range and the row options .bridge-menu, the
  *                           range menu led by .bridge-progress-range-note; Custom… opens
  *                           .bridge-range-popover; on its track the .bridge-progress-tick lines and labels, [data-covered] hidden)
- *                           over .bridge-progress-rows
+ *                           over .bridge-progress-rows; under the card the .bridge-progress-board-controls row (Save as the
+ *                           board's range, Clear… and its confirmation)
  *   .bridge-progress-row[data-state][data-live?][data-selected?][data-changed?]  .bridge-progress-number, the name and
  *                           .bridge-progress-chip in the pinned cell, and a .bridge-progress-track of
  *                           .bridge-progress-bar[data-state][data-bar-kind] stretches placed by style; [data-changed] once its
@@ -648,6 +649,11 @@ html[data-embedded="dashboard"] .bridge-activity.bridge-stale-notice {
 }
 /* It would lie over an open detail panel's contents, so it waits for the panel to close. */
 html[data-embedded="dashboard"]:has(.bridge-side-panel) .bridge-activity.bridge-stale-notice { display: none; }
+/* Framed by Gaia, which draws the board's name, state, controls and theme above the frame, so the tab bar is the first row. */
+html[data-embedded="gaia"] body { padding: 18px 20px 24px; }
+html[data-embedded="gaia"] .bridge-head-title-row { display: none; }
+html[data-embedded="gaia"] .bridge-activity { display: none; }
+html[data-embedded="gaia"] .bridge-tab-bar > .bridge-theme { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 .bridge-button {
@@ -1738,6 +1744,8 @@ body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
   transition: --col-name var(--motion-base) var(--ease-out);
 }
 .bridge-progress-view[data-name-column="wide"] { --col-name: var(--col-name-wide); }
+/* Under the chart card: the range shown saved as the board's, and Clear… with its confirmation. */
+.bridge-progress-board-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding-top: var(--sp-3); }
 
 .bridge-progress-chart {
   flex: 1; min-height: 0;

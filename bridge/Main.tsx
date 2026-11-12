@@ -22,7 +22,7 @@ import { QuestionAlerts }                                 from './views/question
 
 const ROOT_ELEMENT_ID = 'bridge-root';
 
-const { embedded } = FirstPaint.prepare(sharedPreferenceStoreOf());
+const { embeddingHost } = FirstPaint.prepare(sharedPreferenceStoreOf());
 
 // One token source, so a token the command client rotated is the one the picture upload carries; each client then fetches through it.
 const sessionTokenSource = SessionTokenSource.create();
@@ -34,7 +34,7 @@ const services: BridgeServices = {
   fetchIdentity:        () => IdentityClient.fetchIdentity(),
   reload:               () => window.location.reload(),
   storage:              BROWSER_STORAGE_AREAS.local,
-  embedded,
+  embeddingHost,
   embeddedSurroundings: EmbeddedChannel.browserSurroundings,
   now:                  () => new Date(),
   followTranscript:     (jobId, handlers) => TranscriptStreamClient.follow(jobId, handlers),

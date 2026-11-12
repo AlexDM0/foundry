@@ -54,6 +54,10 @@ export type OperationRefusalDetail =
   | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
   | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
+  | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
+  | { kind: 'chart-range-backwards'; from: string; to: string }
+  | { kind: 'chart-range-tick-unreadable'; tickMinutes: string }
+  | { kind: 'tracker-has-live-jobs'; jobIds: readonly string[] }
   | { kind: 'malformed-hatch-request'; requestId: string }
   | { kind: 'hatch-identity-mismatch'; requestId: string; jobId: string }
   | { kind: 'overseer-not-answering'; url: string }

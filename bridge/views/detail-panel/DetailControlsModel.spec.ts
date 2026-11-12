@@ -11,20 +11,20 @@ import { DetailControlsModelUtil } from './DetailControlsModel.ts';
 describe('the ticket controls', () => {
   test('a draft offers Ready, Hold, Park and network', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('013', { status: 'draft' }), undefined)).toEqual({
-      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: []
+      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: [], deliversByHand: false
     });
   });
 
   test('a held ticket under review offers Unhold and Park, and no network', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('012', { status: 'in-review', hold: '', network: ['registry.example.com'] }), undefined)).toEqual({
-      readies: false, holdMove: 'unhold', parks: true, setsNetwork: false, network: ['registry.example.com']
+      readies: false, holdMove: 'unhold', parks: true, setsNetwork: false, network: ['registry.example.com'], deliversByHand: true
     });
   });
 
   test('a closed ticket offers nothing', () => {
     const controls = DetailControlsModelUtil.controlsOf(exampleDetailTicket('014', { status: 'delivered' }), undefined);
     expect(controls).toEqual({
-      readies: false, holdMove: null, parks: false, setsNetwork: false, network: []
+      readies: false, holdMove: null, parks: false, setsNetwork: false, network: [], deliversByHand: false
     });
     expect(DetailControlsModelUtil.offersAnyTicketControl(controls)).toBe(false);
   });

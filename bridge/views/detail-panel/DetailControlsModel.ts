@@ -4,17 +4,19 @@ import type { DetailBoardState, DetailTicketDocument } from '../../@types/Detail
 /** What the panel offers; each is a `ControlCommand` the Overseer applies or refuses. */
 export interface DetailControlsModel {
   /** A draft ticket: `ticket-ready`. */
-  readonly readies:     boolean;
+  readonly readies:        boolean;
   /** An open ticket: `ticket-hold` while unheld and not yet started, `ticket-unhold` while held, `null` otherwise. */
-  readonly holdMove:    'hold' | 'unhold' | null;
+  readonly holdMove:       'hold' | 'unhold' | null;
   /** Any open ticket: `ticket-park`. */
-  readonly parks:       boolean;
+  readonly parks:          boolean;
   /** Only while `draft` or `pending`: `ticket-network`. */
-  readonly setsNetwork: boolean;
+  readonly setsNetwork:    boolean;
   /** The domains stored now, which the network control starts from. */
-  readonly network:     readonly string[];
+  readonly network:        readonly string[];
+  /** Any open ticket past `draft`: `ticket-deliver-by-hand`, for work User landed outside the Overseer. */
+  readonly deliversByHand: boolean;
   /** Written only while the ticket waits for merge (merge approval on): `merge-accept` and `merge-update`. */
-  readonly mergeWait?:  MergeWaitModel;
+  readonly mergeWait?:     MergeWaitModel;
 }
 
 /** Git's prediction of the waiting ticket's merge into its target's current tip, and whether Accept may be pressed. */
@@ -51,11 +53,12 @@ function controlsOf(ticket: DetailTicketDocument, mergeQueue: DetailBoardState['
   if (isOpen && ticket.hold !== undefined) holdMove = 'unhold';
   else if (notYetStarted) holdMove = 'hold';
   return {
-    readies:     awaitsReady,
+    readies:        awaitsReady,
     holdMove,
-    parks:       isOpen,
-    setsNetwork: notYetStarted,
-    network:     ticket.network ?? [],
+    parks:          isOpen,
+    setsNetwork:    notYetStarted,
+    network:        ticket.network ?? [],
+    deliversByHand: isOpen && ticket.status !== 'draft',
     ...mergeWaitOf(mergeQueue, ticket.id),
   };
 }

@@ -72,7 +72,12 @@ async function nextEventOf(reader: Pick<ReadableStreamDefaultReader<Uint8Array>,
 describe('the identity', () => {
   test('carries identityVersion 1 and the contracts this program serves', async () => {
     const answer = await handlerOf(null).answer(get('/api/identity', { host: `127.0.0.1:${PORT}` }), PORT);
-    expect(await answer.json()).toMatchObject({ identityVersion: 1, contracts: { summary: 1, monitor: 1, control: 1 } });
+    expect(await answer.json()).toMatchObject({
+      identityVersion: 1,
+      contracts:       {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      }
+    });
   });
 });
 

@@ -59,7 +59,8 @@
           "contracts": {
             "summary": 1,
             "monitor": 1,
-            "control": 1
+            "control": 1,
+            "embed": 1
           }
         }
       }
