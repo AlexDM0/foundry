@@ -1,8 +1,8 @@
 /**
- * The three button forms, in a happy-dom document. What matters: a quiet button calls `onPress` and a disabled one does not; each emphasis
- * is a `data-*` attribute on the one class; with an `href` the button is a link and no button; a toggle and a disclosure carry their aria
- * state; the leading glyph comes before the label; a text button is a link or a button by its `href`; the icon button shows its glyph under
- * its accessible name; and a label is text, never markup.
+ * The three button forms, in a happy-dom document. What matters: a quiet button calls `onPress` and a disabled one does not; each emphasis,
+ * the attention band and the link tint is a `data-*` attribute on the one class; with an `href` the button is a link and no button; a
+ * toggle and a disclosure carry their aria state; the leading glyph comes before the label; a text button is a link or a button by its
+ * `href`; the icon button shows its glyph under its accessible name; and a label is text, never markup.
  */
 import {
   cleanup,
@@ -42,6 +42,22 @@ describe('the button', () => {
     );
     expect(screen.getByRole('button', { name: 'Lead' }).hasAttribute('data-primary')).toBe(true);
     expect(screen.getByRole('button', { name: 'Stop J4' }).hasAttribute('data-danger')).toBe(true);
+  });
+
+  test('attention sets data-attention on the primary, the link tint sets data-tint, and a plain button has neither', () => {
+    render(
+      <>
+        <Button label="Apply the pipeline" emphasis="primary" attention />
+        <Button label="Update the pipeline" tint="link" />
+        <Button label="Cancel" />
+      </>,
+    );
+    const attributesOf = (name: string): [boolean, boolean, string | null] => {
+      const button = screen.getByRole('button', { name });
+      return [button.hasAttribute('data-primary'), button.hasAttribute('data-attention'), button.getAttribute('data-tint')];
+    };
+    expect([attributesOf('Apply the pipeline'), attributesOf('Update the pipeline'), attributesOf('Cancel')])
+      .toEqual([[true, true, null], [false, false, 'link'], [false, false, null]]);
   });
 
   test('with an href it is a link drawn as a button, and no button', () => {

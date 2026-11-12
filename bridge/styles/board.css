@@ -66,8 +66,9 @@
  *   .bridge-control         a command button and, beside it, the Overseer's refusal verbatim (.bridge-refusal)
  *   .agents-elapsed-silent  the time since a job's last tool call while its silent sweeps are above zero
  * Design system (bridge/design-system/), every state colour from the [data-state] rows of tokens.css
- *   .bridge-button          a quiet button, [data-primary] the one a group leads with, [data-danger] a destructive one,
- *                           [aria-pressed="true"] a toggle that is on; a.bridge-button a link drawn as one
+ *   .bridge-button          a quiet button, [data-primary] the one a group leads with ([data-attention] its passing band of light),
+ *                           [data-danger] a destructive one, [data-tint="link"] a quiet one in the link colour, [aria-pressed="true"] a
+ *                           toggle that is on; a.bridge-button a link drawn as one
  *   .bridge-link-button     a text button in the link colour; .bridge-icon-button a square glyph button, placed by its parent
  *   .bridge-state-badge[data-state|data-ready][data-palette?][data-size?]  the state pill; .bridge-state-pill[data-state?][data-width?]
  *                           the fixed-width pill reading its head's state; .bridge-lane-dot[data-state] a state's dot
@@ -75,7 +76,8 @@
  *                           on hover; .bridge-micro-caps[data-tone?] a small-capitals label
  *   .bridge-section         a view's section: .bridge-section-head (.bridge-section-title, .bridge-section-count), then a .bridge-list
  *                           or the .bridge-empty card
- *   .bridge-segments        a choice of one, its buttons [aria-pressed], each with an optional .bridge-segment-count
+ *   .bridge-segments[data-size?][data-fill?]  a choice of one, its buttons [aria-pressed], each with an optional
+ *                           .bridge-segment-count; [data-fill] the whole width in --segment-count equal columns
  *   .bridge-segment-meter   a roll-up bar[role=img] of .bridge-segment-meter-part[data-state] parts, sized by its parent;
  *                           .bridge-fill-meter[data-state][data-near?][data-unbounded?] a fill bar[role=img] holding its
  *                           .bridge-fill-meter-bar; .bridge-slot-meter[data-state] a row[role=img] of .bridge-slot-meter-cell[data-cell]
@@ -85,9 +87,10 @@
  *   .bridge-block[data-rule] a block under its .bridge-block-title; .bridge-facts[data-layout] a dl of .bridge-fact pairs, each with
  *                           an optional .bridge-fact-sub line
  *   .bridge-popover[data-placement][data-width]  a card hanging under its anchor; .bridge-menu[data-trigger] a
- *                           .bridge-menu-button[data-trigger][data-marked?] over a .bridge-menu-popover[data-align] of .bridge-menu-item
- *                           buttons ([data-marked?], a .bridge-menu-hint, a .bridge-menu-check, a .bridge-menu-item-description line)
- *                           parted by .bridge-menu-separator lines
+ *                           .bridge-menu-button[data-trigger][data-insert?][data-marked?] (the insert trigger's svg.bridge-menu-insert-glyph)
+ *                           over a .bridge-menu-popover[data-align] of an optional .bridge-menu-heading and .bridge-menu-item buttons
+ *                           ([data-marked?], a .bridge-menu-hint, a .bridge-menu-check, a .bridge-menu-item-description line) parted by
+ *                           .bridge-menu-separator lines
  *   .bridge-tabs[data-mode][data-size]  .bridge-tab links or tab buttons, each with an optional .bridge-count-badge[data-tone]
  *                           (.bridge-count-badge-dot when marked)
  *   .bridge-confirm[data-tone]  an action confirmed in place: .bridge-confirm-text (.bridge-confirm-question,
@@ -98,10 +101,14 @@
  *                           .bridge-dialog-head (.bridge-dialog-heading: .bridge-dialog-kicker, the .bridge-dialog-title-line of the
  *                           .bridge-dialog-title and its end, .bridge-dialog-description; then its close .bridge-icon-button),
  *                           .bridge-dialog-body and .bridge-dialog-foot
- *   .bridge-choice[data-chosen?][data-variant]  a lettered option: .bridge-choice-input, .bridge-choice-letter, .bridge-choice-text
- *                           (.bridge-choice-description, .bridge-choice-facts)
- *   .bridge-tag[data-tone][data-state?][data-dashed?]  a small tinted chip of text, a span, link or button, led by a
- *                           .bridge-lane-dot or an svg.bridge-tag-glyph
+ *   .bridge-choice[data-chosen?][data-variant][data-tone?]  a lettered option: .bridge-choice-input, .bridge-choice-letter,
+ *                           .bridge-choice-text (.bridge-choice-description, .bridge-choice-facts, Other's .bridge-choice-free-text), then
+ *                           its marks, such as .bridge-choice-mark[data-mark="recommended"]
+ *   .bridge-question-card[data-layout][data-state]  a question as a fieldset: .bridge-question-card-legend (.bridge-question-card-eyebrow,
+ *                           .bridge-question-card-text) over .bridge-question-card-options and .bridge-question-card-actions, or once
+ *                           answered the .bridge-question-card-answered confirmation and its .bridge-question-card-answered-glyph
+ *   .bridge-tag[data-tone][data-state?][data-dashed?][data-busy?][data-change?][data-pops?]  a small tinted chip of text, a span,
+ *                           link or button, led by a .bridge-lane-dot, an svg.bridge-tag-glyph or, while busy, a .bridge-tag-spinner
  *   .bridge-icon[data-icon] a line drawing on a 16 by 16 grid, stroked in its holder's colour and sized by it; [data-icon="dot"]
  *                           filled
  *   .bridge-callout[data-tone][data-state?]  a tinted state card or a warn-ruled quote, headed by an optional .bridge-callout-title
@@ -1600,6 +1607,112 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   :root[data-freshness="live"] .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { animation: none; stroke-dashoffset: 0; }
   .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { stroke-dasharray: none; }
   .bridge-zoom-step { transition: none; }
+}
+
+/* The tag's later forms: a turning ring while busy, the change colours (removed struck through) and the pop of a tag that just came. */
+.bridge-tag-spinner {
+  flex: none; box-sizing: border-box; width: 10px; height: 10px;
+  border: 1.5px solid currentColor; border-left-color: transparent; border-radius: 50%;
+  animation: bridge-spin 0.9s linear infinite;
+}
+.bridge-tag[data-change="changed"] { color: var(--change-changed-ink); background: var(--change-changed-fill); border-color: var(--change-changed-edge); }
+.bridge-tag[data-change="new"] { color: var(--change-new-ink); background: var(--change-new-fill); border-color: var(--change-new-edge); }
+.bridge-tag[data-change="removed"] {
+  color: var(--change-removed-ink); background: var(--change-removed-fill); border-color: var(--change-removed-edge);
+  text-decoration: line-through;
+}
+.bridge-tag[data-pops] { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
+
+/* The insert trigger: a 28px round plus on a flow line, solid in the link colour or dashed grey, pulsing a ring while closed; its menu
+   slides in beside it under a micro-caps heading. */
+.bridge-menu-button[data-trigger="insert"] {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-2); background: var(--surface-panel); border: 1.5px dashed var(--line-control); border-radius: 50%; cursor: pointer;
+}
+.bridge-menu-button[data-trigger="insert"][data-insert="solid"] { color: var(--link); border-style: solid; border-color: var(--link); }
+.bridge-menu-button[data-trigger="insert"][aria-expanded="false"] { animation: bridge-ring 2.4s ease-in-out infinite; }
+.bridge-menu-button[data-trigger="insert"]:hover { filter: brightness(1.15); }
+.bridge-menu-insert-glyph { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.bridge-menu-popover[data-trigger="insert"] {
+  top: -6px; left: calc(100% + 8px); width: 268px; box-sizing: border-box; border-radius: 10px; box-shadow: var(--shadow-menu);
+  animation: bridge-menu 260ms var(--ease-out) both;
+}
+.bridge-menu-heading { padding: 4px 8px 6px; font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+
+/* The recommended mark of an option, a word on the question accent; .bridge-draft-mark stays the intake drafts' own. */
+.bridge-choice-mark {
+  flex: none; align-self: flex-start; padding: 0 5px; font-size: 10.5px; font-weight: 600; line-height: 16px; white-space: nowrap;
+  border-radius: 4px;
+}
+.bridge-choice-mark[data-mark="recommended"] { color: var(--question-option-fill); background: var(--question-accent); }
+
+/* An option in the question colours: a chosen one keeps its 1px border and adds an inset ring of the same colour. Other's text field sits
+   under its label. */
+.bridge-choice[data-tone="question"] { align-items: flex-start; color: var(--question-ink); }
+.bridge-choice[data-tone="question"][data-variant="card"] {
+  padding: 10px 12px; background: var(--question-option-fill); border-color: var(--question-edge); border-radius: 8px;
+}
+.bridge-choice[data-tone="question"][data-variant="card"]:hover { background: var(--question-option-fill); box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-choice[data-tone="question"][data-chosen] { border-color: var(--question-accent); box-shadow: inset 0 0 0 0.5px var(--question-accent); }
+.bridge-choice[data-tone="question"] .bridge-choice-input { margin-top: 2px; accent-color: var(--question-accent); }
+.bridge-choice[data-tone="question"] .bridge-choice-text { flex: 1 1 auto; gap: 4px; }
+.bridge-choice[data-tone="question"] .bridge-choice-description { font-size: var(--fs-small); line-height: 17px; color: var(--question-option-ink); }
+.bridge-choice-free-text {
+  box-sizing: border-box; width: 100%; height: 28px; margin-top: 2px; padding: 0 var(--sp-2);
+  color: var(--ink-1); font: 400 var(--fs-small) var(--font-ui);
+  background: var(--question-input-fill); border: 1px solid var(--question-edge); border-radius: 6px;
+}
+.bridge-choice-free-text:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+/* The question card, in the question colours: it glows while it asks, and once answered the green confirmation pops in. */
+.bridge-question-card {
+  display: flex; flex-direction: column; gap: var(--sp-3); min-inline-size: 0; margin: 0; padding: var(--sp-4);
+  color: var(--question-ink); background: var(--question-fill); border: 1px solid var(--question-edge); border-radius: 10px;
+}
+.bridge-question-card[data-state="asking"] { animation: bridge-glow var(--glow-period) ease-in-out infinite; }
+.bridge-question-card-legend { float: left; display: flex; align-items: baseline; gap: var(--sp-3); width: 100%; padding: 0; }
+.bridge-question-card-eyebrow { flex: none; font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.bridge-question-card-text { line-height: 19px; color: var(--ink-1); }
+.bridge-question-card-options { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-question-card[data-layout="columns"] .bridge-question-card-options {
+  display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column;
+}
+.bridge-question-card-actions { display: flex; justify-content: flex-end; }
+.bridge-question-card-answered {
+  display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: 10px 12px;
+  color: var(--done-ink); background: var(--done-fill); border: 1px solid var(--done-edge); border-radius: 10px;
+  animation: bridge-pop var(--motion-pop) var(--ease-out) both;
+}
+.bridge-question-card-answered-glyph { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* A primary button that waits on User draws a band of light across itself; a link-tinted button is the quiet one in the link colour. */
+.bridge-button[data-primary][data-attention] {
+  background-image: linear-gradient(100deg, transparent 40%, color-mix(in oklch, var(--flare-light) 28%, transparent) 50%, transparent 60%);
+  background-size: 200px 100%; background-repeat: no-repeat;
+  animation: bridge-sheen 2.8s ease-in-out 1s infinite;
+}
+.bridge-button[data-tint="link"] { color: var(--link); background: var(--link-tint); border-color: var(--accent-outline); }
+.bridge-button[data-tint="link"]:hover { border-color: var(--link); }
+
+/* Segments of a set height, and segments that take the whole width in equal columns, --segment-count of them. */
+.bridge-segments[data-size] button { display: inline-flex; align-items: center; justify-content: center; padding-block: 0; }
+.bridge-segments[data-size="standard"] button { height: 26px; }
+.bridge-segments[data-size="compact"] button { height: 22px; }
+.bridge-segments[data-fill] {
+  display: grid; grid-template-columns: repeat(var(--segment-count), minmax(0, 1fr)); box-sizing: border-box; width: 100%;
+}
+.bridge-segments[data-fill] button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-tag-spinner { animation: none; }
+  .bridge-tag[data-pops],
+  .bridge-question-card-answered { animation: none; }
+  .bridge-menu-button[data-trigger="insert"][aria-expanded="false"],
+  .bridge-menu-popover[data-trigger="insert"] { animation: none; }
+  .bridge-question-card[data-state="asking"] {
+    animation: none; box-shadow: 0 0 0 4px color-mix(in oklch, var(--question-accent) 14%, transparent);
+  }
+  .bridge-button[data-primary][data-attention] { animation: none; background-image: none; }
 }
 
 /* The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets

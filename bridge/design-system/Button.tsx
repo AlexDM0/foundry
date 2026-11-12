@@ -6,11 +6,17 @@ import type { ReactNode, Ref } from 'react';
 
 export type ButtonEmphasis = 'quiet' | 'primary' | 'danger';
 
+/** `link` tints a quiet button in the link colour, for the one action a view offers beside its primary. */
+export type ButtonTint = 'link';
+
 export interface ButtonProps {
   readonly label:           string;
   /** A glyph or inline SVG before the label. */
   readonly leading?:        ReactNode;
   readonly emphasis?:       ButtonEmphasis;
+  /** Draws a band of light across a primary button now and then, the next step a view waits on. */
+  readonly attention?:      boolean;
+  readonly tint?:           ButtonTint;
   /** A link drawn as a button; with it, `onPress` is not used. */
   readonly href?:           string;
   readonly onPress?:        () => void;
@@ -25,11 +31,14 @@ export interface ButtonProps {
 }
 
 export function Button({
-  label, leading, emphasis = 'quiet', href, onPress, disabled = false, pressed, expanded, controls, accessibleName, buttonRef
+  label, leading, emphasis = 'quiet', attention = false, tint, href, onPress, disabled = false, pressed, expanded, controls, accessibleName,
+  buttonRef
 }: ButtonProps) {
   const emphasisAttributes = {
-    'data-primary': emphasis === 'primary' ? '' : undefined,
-    'data-danger':  emphasis === 'danger' ? '' : undefined,
+    'data-primary':   emphasis === 'primary' ? '' : undefined,
+    'data-danger':    emphasis === 'danger' ? '' : undefined,
+    'data-attention': attention ? '' : undefined,
+    'data-tint':      tint,
   };
   if (href !== undefined) {
     return (

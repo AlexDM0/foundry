@@ -1,7 +1,9 @@
 /**
  * The choice option, in a happy-dom document. What matters: with an input it is a label whose input carries the accessible name, the
  * group and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
- * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`; and the words are text, never
+ * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant` and the tone `data-tone`; the
+ * Other option's text field takes the focus when the option is chosen, chooses the option once when it takes the focus itself, and hands
+ * each typed value on; the recommended mark is a word in its own class, never the intake drafts' mark; and the words are text, never
  * markup.
  */
 import {
@@ -17,7 +19,7 @@ import {
   test
 } from 'bun:test';
 
-import { ChoiceOption } from './ChoiceOption.tsx';
+import { ChoiceMark, ChoiceOption } from './ChoiceOption.tsx';
 
 afterEach(() => {
   cleanup();
@@ -72,6 +74,74 @@ describe('the choice option', () => {
     render(<ol><ChoiceOption letter="C" label="Example" chosen={false} variant="card" facts={<span>touches bridge/</span>} /></ol>);
     const option = screen.getByRole('listitem');
     expect([option.getAttribute('data-variant'), option.querySelector('.bridge-choice-text .bridge-choice-facts')?.textContent]).toEqual(['card', 'touches bridge/']);
+  });
+
+  test('choosing the Other option moves the focus into its text field, and calls onChange once', () => {
+    const changes: string[] = [];
+    render(
+      <ChoiceOption
+        letter="C"
+        label="Other"
+        chosen={false}
+        variant="card"
+        tone="question"
+        input={{
+          type: 'radio', name: 'E2-0', checked: false, accessibleName: 'Other', onChange: () => changes.push('other'),
+        }}
+        freeText={{
+          value: '', placeholder: 'Describe another way', accessibleName: 'Other answer', onChange: () => undefined,
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Other' }));
+    const textField = screen.getByRole('textbox', { name: 'Other answer' });
+    expect([document.activeElement === textField, changes, textField.getAttribute('placeholder')]).toEqual([true, ['other'], 'Describe another way']);
+    expect(textField.closest('.bridge-choice')?.getAttribute('data-tone')).toBe('question');
+  });
+
+  test('the text field chooses the Other option when it takes the focus itself, and hands each typed value on', () => {
+    const changes: string[] = [];
+    const typed: string[] = [];
+    render(
+      <ChoiceOption
+        letter="C"
+        label="Other"
+        chosen={false}
+        variant="card"
+        input={{
+          type: 'radio', name: 'E2-1', checked: false, accessibleName: 'Other', onChange: () => changes.push('other'),
+        }}
+        freeText={{
+          value: '', placeholder: 'Describe another way', accessibleName: 'Other answer', onChange: (value) => typed.push(value),
+        }}
+      />,
+    );
+    const textField = screen.getByRole('textbox', { name: 'Other answer' });
+    textField.focus();
+    fireEvent.change(textField, { target: { value: 'Run it nightly' } });
+    expect([changes, typed]).toEqual([['other'], ['Run it nightly']]);
+  });
+
+  test('without free text there is no text field, and without a tone no data-tone', () => {
+    const { container } = render(
+      <ChoiceOption
+        letter="A"
+        label="Example"
+        chosen={false}
+        variant="card"
+        input={{
+          type: 'radio', name: 'E2-2', checked: false, accessibleName: 'Example', onChange: () => undefined,
+        }}
+      />,
+    );
+    expect([screen.queryByRole('textbox'), container.querySelector('.bridge-choice')?.hasAttribute('data-tone')]).toEqual([null, false]);
+  });
+
+  test('the recommended mark is a word in its own class, never the intake drafts\' mark', () => {
+    render(<ol><ChoiceOption letter="A" label="Example" chosen={false} variant="card" marks={<ChoiceMark mark="recommended" text="Recommended" />} /></ol>);
+    const mark = screen.getByText('Recommended');
+    expect([mark.className, mark.getAttribute('data-mark'), screen.getByRole('listitem').querySelector('.bridge-draft-mark')])
+      .toEqual(['bridge-choice-mark', 'recommended', null]);
   });
 
   test('the words are text, never markup', () => {

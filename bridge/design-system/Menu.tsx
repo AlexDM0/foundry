@@ -1,6 +1,7 @@
 /**
  * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
- * panel's own and the focus back on the trigger, and an item closes it by its `closing`.
+ * panel's own and the focus back on the trigger, and an item closes it by its `closing`. The insert trigger is a round plus on a line,
+ * named by `triggerName`, that pulses while closed and opens its popover beside itself.
  */
 import {
   useId,
@@ -13,8 +14,14 @@ import {
 
 import { useDismissal } from './Dismissal.ts';
 
-/** `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look. */
-export type MenuTrigger = 'outlined' | 'icon' | 'button';
+/**
+ * `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look, `insert`
+ * a round plus that adds something where it sits.
+ */
+export type MenuTrigger = 'outlined' | 'icon' | 'button' | 'insert';
+
+/** `solid` in the link colour, `dashed` in a quiet grey. */
+export type MenuInsertStyle = 'solid' | 'dashed';
 
 /**
  * How an item closes the menu: `return-focus` hands the focus back to the trigger, `keep-focus` leaves it to whatever the item opened, and
@@ -24,31 +31,37 @@ export type MenuItemClosing = 'return-focus' | 'keep-focus' | 'stays-open';
 
 export interface MenuProps {
   /** The menu's accessible name. */
-  readonly label:          string;
-  readonly trigger:        MenuTrigger;
-  readonly triggerContent: ReactNode;
+  readonly label:           string;
+  readonly trigger:         MenuTrigger;
+  /** What the trigger holds; the insert trigger draws its own plus and shows none. */
+  readonly triggerContent?: ReactNode;
+  /** The insert trigger's look; it needs the `insert` trigger. */
+  readonly insertStyle?:    MenuInsertStyle;
+  /** A micro-caps line over the items, such as where an inserted step goes. */
+  readonly heading?:        string;
   /** Which edge of the trigger the popover lines up with. */
-  readonly align:          'start' | 'end';
+  readonly align:           'start' | 'end';
   /** A dot on the trigger, such as the one saying the rows changed under a held range. */
-  readonly marked?:        boolean;
+  readonly marked?:         boolean;
   /** The trigger's accessible name when its content is a glyph rather than words. */
-  readonly triggerName?:   string;
-  readonly triggerTitle?:  string;
+  readonly triggerName?:    string;
+  readonly triggerTitle?:   string;
   /** Lets the caller hand the focus back to the trigger after a popover the menu opened. */
-  readonly triggerRef?:    RefObject<HTMLButtonElement | null>;
+  readonly triggerRef?:     RefObject<HTMLButtonElement | null>;
   /**
    * A menu its caller opens and closes, such as one that closes once a move it confirmed in place was applied: open while `true`, every
    * open and close the menu would make itself told to `onOpenChange` instead.
    */
-  readonly isOpen?:        boolean;
-  readonly onOpenChange?:  (isOpen: boolean) => void;
-  readonly children:       ReactNode;
+  readonly isOpen?:         boolean;
+  readonly onOpenChange?:   (isOpen: boolean) => void;
+  readonly children:        ReactNode;
 }
 
 const CLOSES_MENU_ATTRIBUTE = 'data-closes-menu';
 
 export function Menu({
-  label, trigger, triggerContent, align, marked = false, triggerName, triggerTitle, triggerRef, isOpen, onOpenChange, children
+  label, trigger, triggerContent, insertStyle, heading, align, marked = false, triggerName, triggerTitle, triggerRef, isOpen, onOpenChange,
+  children
 }: MenuProps) {
   const [ownMenuIsOpen, setOwnMenuIsOpen] = useState(false);
   const menuIsOpen = isOpen ?? ownMenuIsOpen;
@@ -92,6 +105,7 @@ export function Menu({
         type="button"
         className={trigger === 'button' ? 'bridge-menu-button bridge-button' : 'bridge-menu-button'}
         data-trigger={trigger}
+        data-insert={trigger === 'insert' ? insertStyle ?? 'solid' : undefined}
         data-marked={marked ? '' : undefined}
         aria-label={triggerName}
         aria-haspopup="dialog"
@@ -100,7 +114,13 @@ export function Menu({
         title={triggerTitle}
         onClick={toggleMenu}
       >
-        {triggerContent}
+        {trigger === 'insert'
+          ? (
+            <svg className="bridge-menu-insert-glyph" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M6 1.5v9 M1.5 6h9" />
+            </svg>
+          )
+          : triggerContent}
       </button>
       {/* The items are buttons; their click is read as it bubbles, to close the menu after the item acted. */}
       <div
@@ -114,6 +134,7 @@ export function Menu({
         hidden={!menuIsOpen}
         onClick={closeOnChoice}
       >
+        {menuIsOpen && heading !== undefined ? <span className="bridge-menu-heading">{heading}</span> : null}
         {menuIsOpen ? children : null}
       </div>
     </div>

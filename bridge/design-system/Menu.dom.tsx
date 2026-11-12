@@ -4,8 +4,9 @@
  * a caller may hold whether it is open, told each open and close instead; an item closes it by its `closing`, handing the focus back or
  * leaving it, while a `stays-open` item, a toggle, leaves it open; a trigger named apart from its glyph keeps that name; an item shows its
  * hint, a checked item says so and shows its check, a pressed one only says so; an item's description shows under its label and describes
- * it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a button; and the words are text,
- * never markup.
+ * it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a button; the insert trigger draws
+ * its own plus under its name, says whether it is open in `aria-expanded`, carries its style, and its open menu leads with its heading;
+ * and the words are text, never markup.
  */
 import {
   cleanup,
@@ -230,6 +231,40 @@ describe('the trigger', () => {
     render(<Menu label="Job moves" trigger="button" align="end" triggerContent="More"><MenuItem label="Stop" closing="return-focus" onChoose={NOTHING} /></Menu>);
     const trigger = screen.getByRole('button', { name: 'More' });
     expect([trigger.classList.contains('bridge-button'), trigger.getAttribute('data-trigger')]).toEqual([true, 'button']);
+  });
+
+  test('the insert trigger draws its own plus under its name, says whether it is open, and its menu leads with its heading', () => {
+    render(
+      <>
+        <Menu label="Add a step" trigger="insert" insertStyle="solid" heading="Add after the builder" align="start" triggerName="Add a step after Builder">
+          <MenuItem label="A gate" description="Runs a command" closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+        <Menu label="Add a gate" trigger="insert" insertStyle="dashed" align="start" triggerName="Add a step before the fast-forward">
+          <MenuItem label="A gate" closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+      </>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Add a step after Builder' });
+    const dashedTrigger = screen.getByRole('button', { name: 'Add a step before the fast-forward' });
+    expect([
+      trigger.getAttribute('data-trigger'),
+      trigger.getAttribute('data-insert'),
+      dashedTrigger.getAttribute('data-insert'),
+      trigger.getAttribute('aria-expanded'),
+      trigger.querySelector('svg.bridge-menu-insert-glyph')?.getAttribute('aria-hidden'),
+      trigger.textContent,
+    ]).toEqual(['insert', 'solid', 'dashed', 'false', 'true', '']);
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('dialog', { name: 'Add a step' });
+    expect([trigger.getAttribute('aria-expanded'), menu.getAttribute('data-trigger'), menu.firstElementChild?.className, menu.firstElementChild?.textContent])
+      .toEqual(['true', 'insert', 'bridge-menu-heading', 'Add after the builder']);
+    fireEvent.click(trigger);
+    expect([trigger.getAttribute('aria-expanded'), screen.queryByText('Add after the builder')]).toEqual(['false', null]);
+  });
+
+  test('a trigger other than insert carries no insert style', () => {
+    renderMenu();
+    expect(screen.getByRole('button', { name: 'Example options' }).hasAttribute('data-insert')).toBe(false);
   });
 
   test('the words are text, never markup', () => {
