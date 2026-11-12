@@ -13,8 +13,9 @@ import type { ActivityEntry }                                              from 
 import type { AgentRow }                                                   from '../../shared/@types/AgentRow.ts';
 import type { FleetSnapshot }                                              from '../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading }                                               from '../../shared/@types/ForgeReading.ts';
+import { LIMITS }                                                          from '../../shared/constants/Limits.ts';
 
-import { ACTIVITY_ENTRIES_SHOWN_PER_FORGE, fleetSnapshotOf, type FleetAssemblyInput } from './FleetAssembly.ts';
+import { fleetSnapshotOf, type FleetAssemblyInput } from './FleetAssembly.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
@@ -132,13 +133,13 @@ describe('activity', () => {
   });
 
   test('keeps the newest 50 entries of each forge and drops the older ones', () => {
-    const entryCount = ACTIVITY_ENTRIES_SHOWN_PER_FORGE + 2;
+    const entryCount = LIMITS.activityEntriesShownPerForge + 2;
     const entries    = [...Array(entryCount).keys()].map((i) => landedEntryAt(i, `2026-11-12T10:${String(i).padStart(2, '0')}:00.000Z`));
     const busyForge  = { ...READINGS.exampleStorefront, activity: entries.toReversed() };
     const { activity } = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [busyForge, READINGS.designSystem]));
     const kept       = activity.filter((entry) => entry.trackerId === busyForge.trackerId);
-    expect(ACTIVITY_ENTRIES_SHOWN_PER_FORGE).toBe(50);
-    expect(kept).toHaveLength(ACTIVITY_ENTRIES_SHOWN_PER_FORGE);
+    expect(LIMITS.activityEntriesShownPerForge).toBe(50);
+    expect(kept).toHaveLength(LIMITS.activityEntriesShownPerForge);
     expect(kept.at(-1)?.logPosition).toBe(2);
     expect(activity.filter((entry) => entry.trackerId === READINGS.designSystem.trackerId)).toHaveLength(1);
   });

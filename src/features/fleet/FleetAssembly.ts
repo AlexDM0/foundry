@@ -7,13 +7,11 @@ import type {
 } from '../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings } from '../../shared/@types/GaiaSettings.ts';
+import { LIMITS }            from '../../shared/constants/Limits.ts';
 
 import { AttentionOrderUtil } from './utils/AttentionOrderUtil.ts';
 import { FigureUtil }         from './utils/FigureUtil.ts';
 import { ForgeLookUtil }      from './utils/ForgeLookUtil.ts';
-
-/** Each forge reports its newest 50 log entries, and the Activity view promises exactly those (artboard A3). */
-export const ACTIVITY_ENTRIES_SHOWN_PER_FORGE = 50;
 
 export interface FleetAssemblyInput {
   /** In registry order, which is the order every forge list keeps. */
@@ -46,7 +44,7 @@ function fleetActivityOf(readings: readonly ForgeReading[]): FleetActivityEntry[
     .flatMap((reading) => reading.activity
       .map((entry): FleetActivityEntry => ({ ...entry, trackerId: reading.trackerId }))
       .sort(newestFirst)
-      .slice(0, ACTIVITY_ENTRIES_SHOWN_PER_FORGE))
+      .slice(0, LIMITS.activityEntriesShownPerForge))
     .sort(newestFirst);
 }
 

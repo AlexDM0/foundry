@@ -12,6 +12,7 @@
     "./**/*.ts",
     "./**/*.tsx",
     "../src/shared/constants/ContractVersions.ts",
+    "../src/shared/constants/Limits.ts",
     "../src/shared/constants/ProductNames.ts"
   ],
   "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./testing/**"]
