@@ -687,8 +687,9 @@ never carries it.
                               The pipeline setup record, <data>/pipeline-setup.json, one open at a
                               time (setup-in-progress): setup opens a first one and starts its
                               pipeline agent (--replace-unreadable lets its Apply write over an
-                              unreadable pipeline.json), update one on the stored pipeline. continue completes the current step (billing,
-                              research, constitution, design); answer answers a setup question;
+                              unreadable pipeline.json), update one on the stored pipeline.
+                              continue completes the current step (billing, research,
+                              constitution, design); answer answers a setup question;
                               constitution stores the whole text from a file or standard input and
                               the SOURCES ticks (contributing, research, installed-default); edit
                               sets draft fields in one move, --set repeating (gate:<name>,
