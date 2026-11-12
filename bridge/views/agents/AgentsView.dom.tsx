@@ -396,6 +396,7 @@ describe('a row\'s live facts', () => {
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:05Z'),
       followTranscript:     () => ({ close: () => undefined }),
+      followProfileLog:     () => () => undefined,
       questionNotifier:     {
         allowance:         () => 'denied',
         askAllowance:      () => Promise.resolve('denied'),

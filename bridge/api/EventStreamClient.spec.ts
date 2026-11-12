@@ -71,10 +71,17 @@ describe('the event-stream client', () => {
     source?.fire('open', new Event('open'));
     source?.fire('board', messageEvent('board', { project: 'Example Agency' }, '3-1'));
     source?.fire('job', messageEvent('job', { id: 'J1' }, '3-2'));
+    source?.fire('profile', messageEvent('profile', { profileRunId: 'P1' }, '3-3'));
+    source?.fire('pipeline', messageEvent('pipeline', { pipelineSetup: null }, '3-4'));
     source?.fire('error', new Event('error'));
     expect(source?.url).toBe('/api/events');
-    expect(received).toEqual([['board', { project: 'Example Agency' }], ['job', { id: 'J1' }]]);
-    expect(client.lastEventId()).toBe('3-2');
+    expect(received).toEqual([
+      ['board', { project: 'Example Agency' }],
+      ['job', { id: 'J1' }],
+      ['profile', { profileRunId: 'P1' }],
+      ['pipeline', { pipelineSetup: null }],
+    ]);
+    expect(client.lastEventId()).toBe('3-4');
     expect(states).toEqual(['connecting', 'live', 'down']);
     client.close();
     expect(source?.closed).toBe(true);

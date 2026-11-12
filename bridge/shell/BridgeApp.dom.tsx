@@ -93,6 +93,7 @@ function fakeBridge(): FakeBridge {
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:00Z'),
       followTranscript:     () => ({ close: () => undefined }),
+      followProfileLog:     () => () => undefined,
       questionNotifier:     {
         allowance:         () => 'denied',
         askAllowance:      () => Promise.resolve('denied'),

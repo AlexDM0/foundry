@@ -46,6 +46,8 @@ export interface HeadlessBridgeReading {
   /** The project heading the shell rendered, `null` when it never rendered one. */
   readonly projectHeading:           string | null;
   readonly visitedTabs:              readonly string[];
+  /** The screen the Pipeline view drew from the live facts on its tab, `null` when it drew none. */
+  readonly pipelineScreen:           string | null;
   /** The address bar once the board rendered, which must hold no session code. */
   readonly addressAfterLoad:         string;
   /** The status of an `overseer-pause` posted with the token the page's session cookie fetched, `null` when none came back. */
@@ -54,8 +56,10 @@ export interface HeadlessBridgeReading {
   readonly pictureWidth:             number | null;
   /** Each argument the stub browser opener got. */
   readonly openerArguments:          readonly string[];
-  /** The code in the URL `open` printed, `null` when it printed none. */
+  /** The code in the redirect file `open` handed its opener, read while the file stood, `null` when it held none. */
   readonly sessionCodeOfOpen:        string | null;
+  /** What `open` printed on standard output, which must hold no session code. */
+  readonly openStandardOutput:       string;
   readonly redirectFileWasOwnerOnly: boolean;
   /** Read once `open` ended on its stop signal. */
   readonly redirectFileWasRemoved:   boolean;
@@ -83,7 +87,7 @@ const UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token
   + '(character) => character.charCodeAt(0)) })).then((answer) => answer.json()).then(({ pictureId }) => { const picture = new Image(); '
   + 'picture.src = `/api/pictures/${pictureId}`; return picture.decode().then(() => picture.naturalWidth); })';
 const EXECUTABLE_FILE_MODE = 0o755;
-const SESSION_CODE_IN_OUTPUT = /#session=([0-9a-f]+)/;
+const SESSION_CODE_IN_REDIRECT_FILE = /#session=([0-9a-f]+)/;
 
 /** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
 const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
@@ -159,6 +163,8 @@ interface RunningOpen {
   /** Each argument the stub opener got, one per line. */
   readonly openerArguments:  readonly string[];
   readonly redirectFilePath: string;
+  /** The code the redirect file held when the opener got it; `open` prints none, since the code is the launched browser's alone. */
+  readonly sessionCode:      string | null;
   /** `null` while `open` still runs. */
   readonly ending:           () => AgentProgressResult | null;
 }
@@ -190,8 +196,13 @@ async function startOpen(recordedGit: RecordedGit, repositoryDirectory: string, 
     return undefined;
   }, 'open starting the browser opener', POLL_INTERVAL_MILLISECONDS);
   const redirectFilePath = openerArguments[openerArguments.length - 1] ?? '';
+  const redirectFileText = existsSync(redirectFilePath) ? readFileSync(redirectFilePath, 'utf8') : '';
   const running: RunningOpen = {
-    started, openerArguments, redirectFilePath, ending: () => ending
+    started,
+    openerArguments,
+    redirectFilePath,
+    sessionCode: SESSION_CODE_IN_REDIRECT_FILE.exec(redirectFileText)?.[1] ?? null,
+    ending:      () => ending,
   };
   if (!redirectFilePath.endsWith('.html')) {
     await stopTheOpen(running);
@@ -261,11 +272,13 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     const shownAddress = await evaluate('window.location.href');
     const addressAfterLoad = typeof shownAddress === 'string' ? shownAddress : '';
     const visitedTabs: string[] = [];
+    let shownPipelineScreen: unknown = null;
     for (const tab of HEADLESS_CHECK_TABS) {
       await evaluate(`window.location.hash = '#${tab}'`);
       const shownTab = (): Promise<unknown> => evaluate('document.querySelector(\'.bridge-panel\')?.getAttribute(\'data-tab\') ?? null');
       await waitUntil(async () => await shownTab() === tab, `the ${tab} tab showing`, POLL_INTERVAL_MILLISECONDS);
       visitedTabs.push(tab);
+      if (tab === 'pipeline') shownPipelineScreen = await evaluate('document.querySelector(\'.bridge-pipeline\')?.getAttribute(\'data-screen\') ?? null');
     }
     const commandStatus = await evaluate(SEND_A_COMMAND_AS_THE_BRIDGE_DOES);
     const pictureWidth = await evaluate(UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES);
@@ -276,11 +289,13 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       problems,
       projectHeading,
       visitedTabs,
+      pipelineScreen:         typeof shownPipelineScreen === 'string' ? shownPipelineScreen : null,
       addressAfterLoad,
       commandStatus:          typeof commandStatus === 'number' ? commandStatus : null,
       pictureWidth:           typeof pictureWidth === 'number' ? pictureWidth : null,
       openerArguments:        opened.openerArguments,
-      sessionCodeOfOpen:      SESSION_CODE_IN_OUTPUT.exec(openEnding.standardOutput)?.[1] ?? null,
+      sessionCodeOfOpen:      opened.sessionCode,
+      openStandardOutput:     openEnding.standardOutput,
       redirectFileWasOwnerOnly,
       redirectFileWasRemoved: !existsSync(opened.redirectFilePath),
     };

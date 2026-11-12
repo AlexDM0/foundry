@@ -21,7 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 
 import type { BoardStateDocument }                        from '../../../@types/BoardStateDocument.ts';
-import type { LogTailLine }                               from '../../../design-system/LogTail.tsx';
+import type { ProfileOutputLine }                         from '../../../api/ProfileStreamClient.ts';
 import { clickSettled, fakeControls }                     from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
 import type { FlowOpenRequest }                           from '../flow/PipelineFlow.tsx';
@@ -79,13 +79,13 @@ function button(name: string): HTMLButtonElement {
 /** A follower a spec feeds by hand, recording which runs were followed. */
 function fakeProfileLog() {
   const followed: string[] = [];
-  let deliver: (lines: readonly LogTailLine[]) => void = () => undefined;
+  let deliver: (lines: readonly ProfileOutputLine[]) => void = () => undefined;
   const follow: ProfileLogFollower = (profileRunId, onLines) => {
     followed.push(profileRunId);
     deliver = onLines;
     return () => undefined;
   };
-  return { follow, followed, feed: (lines: readonly LogTailLine[]) => act(() => deliver(lines)) };
+  return { follow, followed, feed: (lines: readonly ProfileOutputLine[]) => act(() => deliver(lines)) };
 }
 
 describe('the form', () => {
@@ -173,14 +173,15 @@ describe('the profile box', () => {
     expect(within(dialog()).getByText('Stopped · no result')).toBeDefined();
   });
 
-  test('the log lines come from the profile log the box follows, never from the board facts', () => {
+  test('the log lines come from the profile stream the box follows, never from the board facts', () => {
     const profileLog = fakeProfileLog();
     renderDialog('profile-running', BROWSER_TESTS_REQUEST, profileLog.follow);
     expect(profileLog.followed).toEqual(['P1']);
     const tail = within(dialog()).getByRole('list', { name: 'Profile output' });
     expect(tail.children).toHaveLength(0);
-    profileLog.feed([{ key: '1', text: '$ bun run test:browser', kind: 'command' }, { key: '2', text: 'example output', kind: 'output' }]);
-    expect([...tail.children].map((line) => line.textContent)).toEqual(['$ bun run test:browser', 'example output']);
+    profileLog.feed([{ lineNumber: 1, text: 'Running 12 tests' }]);
+    profileLog.feed([{ lineNumber: 2, text: '12 passed' }]);
+    expect([...tail.children].map((line) => line.textContent)).toEqual(['Running 12 tests', '12 passed']);
   });
 
   test('a run that has not been started offers Profile, and a passed run follows no log', () => {

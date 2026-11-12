@@ -1,11 +1,14 @@
 /**
  * The gate dialog's model, pure: the form a gate, a prepare step or a new one starts from; whether it can be saved; the edits a Save sends
  * (the definition, and the order of each phase whose box changed, or of the prepare steps for a new one) and the one Remove sends; the
- * kicker over the title; and the profile box's state, result and words from the newest profile run of the gate in the dialog's phase.
+ * kicker over the title; the profile box's state, result and words from the newest profile run of the gate in the dialog's phase; and
+ * the log lines its output stream gives.
  */
 import { GATE_PHASES, type GatePhase }                                     from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { Pipeline, PipelineGate }                                     from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineGateRowKind, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ProfileOutputLine }                                          from '../../../api/ProfileStreamClient.ts';
+import type { LogTailLine }                                                from '../../../design-system/LogTail.tsx';
 import type { FlowDraftEdit }                                              from '../flow/PipelineFlowModel.ts';
 
 /** Which gate the dialog shows: a stored one, or a new one, of either kind; `phase` is the tab or + it was opened from. */
@@ -178,12 +181,18 @@ function profileLeadOf(phase: GatePhase): string {
   return `runs the command once in the ${phase} phase, on main`;
 }
 
+/** Every line of a profile's stream is the command's own output; its number, unique within the run, keys it. */
+function logTailLinesOf(lines: readonly ProfileOutputLine[]): LogTailLine[] {
+  return lines.map((line) => ({ key: String(line.lineNumber), text: line.text, kind: 'output' }));
+}
+
 export const GateDialogModel = Object.freeze({
   PHASE_WORDS,
   PROFILING_TEXT,
   canSave,
   formOf,
   kickerOf,
+  logTailLinesOf,
   profileBoxViewOf,
   profileLeadOf,
   removeEditsOf,

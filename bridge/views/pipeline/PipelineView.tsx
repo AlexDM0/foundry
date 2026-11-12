@@ -8,7 +8,8 @@
  * edited, the editing aside stands beside it (the smallest pipeline keeps its note instead), and the footer counts the changes, or names
  * the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply dialog. Once a
  * setup is applied, the live flow takes back the bare `#pipeline` route; it stands beside the activity aside over the applied footer, and
- * an Apply sent from this view shows its toast once the facts carry the version it made.
+ * an Apply sent from this view shows its toast once the facts carry the version it made. A gate dialog on any screen reads a profile's
+ * output through the follower the view provides.
  */
 import { useEffect, useState } from 'react';
 
@@ -26,8 +27,10 @@ import { TimeUtil }                        from '../../utils/TimeUtil.ts';
 
 import { FlowWorkspace, useFlowSelection }                                from './FlowWorkspace.tsx';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
+import { ProfileLogFollowerContext }                                      from './ProfileLogFollowerContext.ts';
 import { ApplyChangesDialog }                                             from './apply/ApplyChangesDialog.tsx';
 import { ApplyChangesDialogModel }                                        from './apply/ApplyChangesDialogModel.ts';
+import type { ProfileLogFollower }                                        from './dialogs/ProfileBox.tsx';
 import { EditingAside }                                                   from './editing/EditingAside.tsx';
 import { PipelineEditingModel }                                           from './editing/PipelineEditingModel.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
@@ -49,6 +52,8 @@ export interface PipelineViewProps {
   readonly boardStore?:      PreferenceStore | null;
   /** Follows the pipeline agent's transcript for its chat. */
   readonly followTranscript: TranscriptFollower;
+  /** Follows a gate profile's output on its stream route for the gate dialog's log. */
+  readonly followProfileLog: ProfileLogFollower;
   readonly clock:            BridgeClock;
 }
 
@@ -248,7 +253,7 @@ function useAppliedToast(facts: PipelineViewFacts): { toast: LiveToastView | nul
 }
 
 export function PipelineView({
-  facts, route, boardStore = null, followTranscript, clock
+  facts, route, boardStore = null, followTranscript, followProfileLog, clock
 }: PipelineViewProps) {
   const screen = PipelineViewModel.screenOf(facts, route);
   const setupRouteIsLeft = PipelineViewModel.setupRouteIsLeftOf(screen, route);
@@ -258,14 +263,16 @@ export function PipelineView({
   }, [setupRouteIsLeft]);
   return (
     <section className="bridge-pipeline" aria-label={PipelineViewModel.screenTitleOf(screen)} data-screen={screen.screen}>
-      <ScreenContent
-        facts={facts}
-        screen={screen}
-        boardStore={boardStore}
-        followTranscript={followTranscript}
-        clock={clock}
-        onApplySent={appliedToast.awaitApply}
-      />
+      <ProfileLogFollowerContext.Provider value={followProfileLog}>
+        <ScreenContent
+          facts={facts}
+          screen={screen}
+          boardStore={boardStore}
+          followTranscript={followTranscript}
+          clock={clock}
+          onApplySent={appliedToast.awaitApply}
+        />
+      </ProfileLogFollowerContext.Provider>
       {appliedToast.toast === null
         ? null
         : (

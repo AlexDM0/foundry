@@ -38,6 +38,7 @@ import { KanbanView, type KanbanLaneHighlightRequest }                          
 import { MergeQueueModel }                                                               from '../views/merge-queue/MergeQueueModel.ts';
 import { MergeQueueView }                                                                from '../views/merge-queue/MergeQueueView.tsx';
 import { PipelineView }                                                                  from '../views/pipeline/PipelineView.tsx';
+import type { ProfileLogFollower }                                                       from '../views/pipeline/dialogs/ProfileBox.tsx';
 import { ProgressModel }                                                                 from '../views/progress/ProgressModel.ts';
 import { ProgressView }                                                                  from '../views/progress/ProgressView.tsx';
 import { QuestionPanel }                                                                 from '../views/question-panel/QuestionPanel.tsx';
@@ -87,6 +88,8 @@ export interface BridgeServices {
   readonly embeddedSurroundings: () => EmbeddedSurroundings;
   readonly now:                  () => Date;
   readonly followTranscript:     TranscriptFollower;
+  /** Follows a gate profile's output on its own stream route; the board's event stream carries none. */
+  readonly followProfileLog:     ProfileLogFollower;
   readonly questionNotifier:     QuestionNotifier;
 }
 
@@ -440,6 +443,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
                   route={route}
                   boardStore={boardStore}
                   followTranscript={services.followTranscript}
+                  followProfileLog={services.followProfileLog}
                   clock={bridgeClock}
                 />
               )

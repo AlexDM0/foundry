@@ -1,12 +1,13 @@
 /**
  * The gate dialog's profile box: what a profile does, the press that starts one (Profile, or Profile again beside the last result) or
  * stops the one running, the running state with its spinner, bar and output, and the last result as a pill, with a red run's last lines.
- * A profile starts only on that press. The output comes only from the profile's own log, which the holder follows by its run id; the
- * board's facts carry none.
+ * A profile starts only on that press. The output comes only from the profile's own stream route, which the holder follows by its run id;
+ * the board's facts and event stream carry none.
  */
 import { useEffect, useState } from 'react';
 
 import type { ControlCommandBody }   from '../../../api/CommandClient.ts';
+import type { ProfileOutputLine }    from '../../../api/ProfileStreamClient.ts';
 import { BusyIndicator }             from '../../../design-system/BusyIndicator.tsx';
 import { LogTail, type LogTailLine } from '../../../design-system/LogTail.tsx';
 import { CommandButton }             from '../../../shell/CommandButton.tsx';
@@ -14,7 +15,7 @@ import { CommandButton }             from '../../../shell/CommandButton.tsx';
 import { GateDialogModel, type ProfileBoxView } from './GateDialogModel.ts';
 
 /** Follows one profile run's output, handing on each batch of new lines; the function it returns stops following. */
-export type ProfileLogFollower = (profileRunId: string, onLines: (lines: readonly LogTailLine[]) => void) => () => void;
+export type ProfileLogFollower = (profileRunId: string, onLines: (lines: readonly ProfileOutputLine[]) => void) => () => void;
 
 export interface ProfileBoxProps {
   readonly view:         ProfileBoxView;
@@ -30,7 +31,7 @@ function useProfileLog(profileRunId: string | null, followLog: ProfileLogFollowe
     if (profileRunId === null || followLog === undefined) return undefined;
     return followLog(profileRunId, (lines) => setLog((before) => ({
       profileRunId,
-      lines: before.profileRunId === profileRunId ? [...before.lines, ...lines] : [...lines],
+      lines: [...before.profileRunId === profileRunId ? before.lines : [], ...GateDialogModel.logTailLinesOf(lines)],
     })));
   }, [profileRunId, followLog]);
   return log.profileRunId === profileRunId ? log.lines : [];

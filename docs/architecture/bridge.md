@@ -120,7 +120,9 @@ The broker sends slice events, then `board`; the order and the no-change rule ar
 *Notice the second row: a removal other than an ended job waits for the `board`.*
 
 A `board` replaces the state, and a slice event before the first `board` is ignored. `job`, `decision` and `incident`
-add or replace their record by id; `overseer` and `usage` update their slice. Each publish closes with a `board`, so
+add or replace their record by id; `profile` adds or replaces its run in `profileRuns` by run id; `pipeline` replaces
+the `pipeline`, `pipelineSetup` and `pipelineFlow` slices it carries; `overseer` and `usage` update their slice. Each
+publish closes with a `board`, so
 what a viewer reads settles with it. `EventStreamClient` drops a malformed event because the next `board` repairs it.
 
 > **As built.** Each publish carries every ticket body and the whole question history, see
@@ -320,7 +322,9 @@ sends the edits through the same sender as the flow (on a live board, `pipeline-
 once they are applied and shows a refusal verbatim. Each dialog's pure model words its role, reads the draft's stored
 settings over the facts' resolved pair, and builds the edits. The gate dialog's profile box starts and stops a profile
 only on a press (`gate-profile-start`, `gate-profile-stop`) and reads a run's output only from the profile log it is
-handed by run id, never from the board facts.
+handed by run id, never from the board facts. The shell builds that follower over `ProfileStreamClient.follow`, the
+[gate profile stream](../reference/overseer-api.md#the-gate-profile-stream), and the Pipeline view hands it to the gate
+dialog on every screen.
 
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 
@@ -604,6 +608,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | State reducer | `bridge/shell/BoardStateUpdate.ts` | `boardStateAfter` | `bridge/shell/BoardStateUpdate.spec.ts` |
 | Event stream | `bridge/api/EventStreamClient.ts` | `EventStreamClient.open` | `bridge/api/EventStreamClient.spec.ts` |
 | Transcript stream | `bridge/api/TranscriptStreamClient.ts` | `TranscriptStreamClient.follow` | `bridge/api/TranscriptStreamClient.spec.ts` |
+| Profile stream | `bridge/api/ProfileStreamClient.ts` | `ProfileStreamClient.follow` | `bridge/api/ProfileStreamClient.spec.ts` |
 | Commands | `bridge/api/CommandClient.ts`, `bridge/shell/ControlCommandSender.ts`, `bridge/shell/CommandButton.tsx` | `CommandClient.create`, `useControlCommand`, `CommandButton` | `bridge/api/CommandClient.spec.ts`, `bridge/shell/ControlCommandSender.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Picture upload | `bridge/api/PictureUploadClient.ts`, `bridge/api/SessionTokenSource.ts`, `bridge/views/intake/PictureAttachments.ts` | `PictureUploadClient.create`, `SessionTokenSource.create`, `usePictureAttachments` | `bridge/api/PictureUploadClient.spec.ts`, `bridge/api/SessionTokenSource.spec.ts`, `bridge/views/intake/PictureAttachments.dom.tsx` |
 | Intake sessions and chat | `bridge/views/intake/IntakeModel.ts` | `IntakeModelUtil` | `bridge/views/intake/IntakeModel.spec.ts`, `bridge/views/intake/IntakeView.dom.tsx` |

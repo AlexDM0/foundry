@@ -14,6 +14,7 @@ import type { GatePhase } from '../../../src/lib/tracker-model/@types/GatePhase.
 
 import type { PreferenceStore }               from '../../preferences/PreferenceStore.ts';
 import type { PipelineViewFacts }             from './PipelineViewModel.ts';
+import { useProfileLogFollower }              from './ProfileLogFollowerContext.ts';
 import { PipelineAgentPanelModel }            from './agent-panel/PipelineAgentPanelModel.ts';
 import { PipelineDialogs }                    from './dialogs/PipelineDialogs.tsx';
 import { PipelineFlow, type FlowOpenRequest } from './flow/PipelineFlow.tsx';
@@ -95,6 +96,7 @@ export interface FlowWorkspaceProps {
 export function FlowWorkspace({
   facts, boardStore, selection, flowAside = null
 }: FlowWorkspaceProps) {
+  const followProfileLog = useProfileLogFollower();
   const gatesAreaRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const { scrollRequest } = selection;
@@ -134,7 +136,12 @@ export function FlowWorkspace({
         onOpen={selection.open}
         areaRef={gatesAreaRef}
       />
-      <PipelineDialogs facts={facts} request={selection.openRequest} onClose={selection.close} />
+      <PipelineDialogs
+        facts={facts}
+        request={selection.openRequest}
+        onClose={selection.close}
+        {...(followProfileLog === null ? {} : { followLog: followProfileLog })}
+      />
     </div>
   );
 }

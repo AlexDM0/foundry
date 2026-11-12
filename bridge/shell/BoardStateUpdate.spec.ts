@@ -1,8 +1,11 @@
 /**
  * The state after one event. What matters: `board` replaces everything, a record event replaces its record by id or adds it, an ended
- * job leaves the jobs, a slice event replaces its slice, and nothing updates before the first board.
+ * job leaves the jobs, a profile run replaces its run by run id or is added, a pipeline event replaces only the slices it carries, a
+ * slice event replaces its slice, and nothing updates before the first board.
  */
 import { describe, expect, test } from 'bun:test';
+
+import type { GateProfileRunFacts } from '../../src/lib/tracker-model/@types/PipelineFacts.ts';
 
 import type { BoardStateDocument } from '../@types/BoardStateDocument.ts';
 import { BoardStateUpdate }        from './BoardStateUpdate.ts';
@@ -38,5 +41,24 @@ describe('the board state after an event', () => {
   test('overseer and usage replace their slices', () => {
     expect(BoardStateUpdate.boardStateAfter(BOARD, 'overseer', { paused: true })?.overseer).toEqual({ state: 'serving', paused: true, codeVersion: 'code-1' });
     expect(BoardStateUpdate.boardStateAfter(BOARD, 'usage', { resetsAt: null })?.usage).toEqual({ resetsAt: null });
+  });
+
+  test('a profile run replaces its run by run id or is added', () => {
+    const running: GateProfileRunFacts = {
+      profileRunId: 'P1', gateName: 'typecheck', phase: 'build', state: 'running', elapsedMilliseconds: null
+    };
+    const withRun = BoardStateUpdate.boardStateAfter({ ...BOARD, profileRuns: [running] }, 'profile', { ...running, state: 'passed', elapsedMilliseconds: 4200 });
+    expect(withRun?.profileRuns).toEqual([{ ...running, state: 'passed', elapsedMilliseconds: 4200 }]);
+    expect(BoardStateUpdate.boardStateAfter(BOARD, 'profile', { ...running, profileRunId: 'P2' })?.profileRuns).toEqual([{ ...running, profileRunId: 'P2' }]);
+    expect(BoardStateUpdate.boardStateAfter(BOARD, 'profile', { state: 'passed' })).toBe(BOARD);
+  });
+
+  test('a pipeline event replaces only the pipeline slices it carries', () => {
+    const before: BoardStateDocument = { ...BOARD, pipelineSetup: null, pipelineFlow: null };
+    const after = BoardStateUpdate.boardStateAfter(before, 'pipeline', { pipeline: { readingVerdict: 'absent' }, project: 'Other Agency' });
+    expect(after?.pipeline).toEqual({ readingVerdict: 'absent' });
+    expect(after?.project).toBe('Example Agency');
+    expect(after?.pipelineSetup).toBeNull();
+    expect(BoardStateUpdate.boardStateAfter(before, 'pipeline', null)).toBe(before);
   });
 });

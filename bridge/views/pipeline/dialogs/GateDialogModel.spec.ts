@@ -3,7 +3,7 @@
  * phase it was opened from; a gate with no phase, no name or no command cannot be saved, a prepare step needs no phase; a Save sends the
  * definition, keeping fields the dialog does not show, and the order of only the phases whose box changed; a new prepare step also sends
  * the prepare order; Remove is one `null` edit of the gate or the step; the kicker says the phase, the place and the mark; and the profile
- * box follows the newest run of the gate in that phase.
+ * box follows the newest run of the gate in that phase, its stream's lines shown as output keyed by their number.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -130,5 +130,14 @@ describe('the profile box', () => {
     expect(textOf(profileRun('timed-out', 120_000))).toEqual(['timed-out', 'Last profile: timed out at 120 s', false, 'Profile again']);
     expect(textOf(profileRun('stopped', 3000))).toEqual(['stopped', 'Stopped · no result', false, 'Profile again']);
     expect(textOf(profileRun('red', 9000))).toEqual(['red', 'Red after 9 s', true, 'Profile again']);
+  });
+});
+
+describe('the profile log', () => {
+  test('each stream line is output, keyed by its line number', () => {
+    expect(GateDialogModel.logTailLinesOf([{ lineNumber: 4, text: 'Running 12 tests' }, { lineNumber: 5, text: '12 passed' }])).toEqual([
+      { key: '4', text: 'Running 12 tests', kind: 'output' },
+      { key: '5', text: '12 passed', kind: 'output' },
+    ]);
   });
 });

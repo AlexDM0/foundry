@@ -10,6 +10,7 @@ import { CommandClient }                                  from './api/CommandCli
 import { EventStreamClient }                              from './api/EventStreamClient.ts';
 import { IdentityClient }                                 from './api/IdentityClient.ts';
 import { PictureUploadClient }                            from './api/PictureUploadClient.ts';
+import { ProfileStreamClient }                            from './api/ProfileStreamClient.ts';
 import { SessionCodeExchange }                            from './api/SessionCodeExchange.ts';
 import { SessionTokenSource }                             from './api/SessionTokenSource.ts';
 import { TranscriptStreamClient }                         from './api/TranscriptStreamClient.ts';
@@ -38,6 +39,7 @@ const services: BridgeServices = {
   embeddedSurroundings: EmbeddedChannel.browserSurroundings,
   now:                  () => new Date(),
   followTranscript:     (jobId, handlers) => TranscriptStreamClient.follow(jobId, handlers),
+  followProfileLog:     (profileRunId, onLines) => ProfileStreamClient.follow(profileRunId, { onLines }).close,
   questionNotifier:     QuestionAlerts.browserQuestionNotifier(),
 };
 

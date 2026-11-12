@@ -8,7 +8,7 @@ import { SessionCodeExchange }                                               fro
 import type { FetchFunction }                                                from './SessionTokenSource.ts';
 import { EVENT_SOURCE_CLOSED_READY_STATE, STREAM_REOPEN_DELAY_MILLISECONDS } from './constants/StreamReopening.ts';
 
-export const OVERSEER_EVENT_KINDS = ['board', 'job', 'decision', 'incident', 'overseer', 'usage'] as const;
+export const OVERSEER_EVENT_KINDS = ['board', 'job', 'decision', 'incident', 'overseer', 'usage', 'profile', 'pipeline'] as const;
 
 export type OverseerEventKind = typeof OVERSEER_EVENT_KINDS[number];
 

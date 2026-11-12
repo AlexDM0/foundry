@@ -37,6 +37,7 @@ import type { BoardStateDocument, PageTicketDocument, UsageDocument } from '../@
 
 import type { TranscriptFollower } from '../conversation/TranscriptLog.tsx';
 import type { BridgeClock }        from '../shell/BridgeClock.ts';
+import type { ProfileLogFollower } from '../views/pipeline/dialogs/ProfileBox.tsx';
 
 import { boardStateFixture, exampleAgentJob } from './BoardStateFixture.ts';
 
@@ -88,14 +89,16 @@ export const PIPELINE_FIXTURE_NOW = new Date('2026-11-12T09:30:00Z');
 
 const PIPELINE_AGENT_LAUNCHED_AT = '2026-11-12T09:27:20Z';
 
-/** What the Pipeline view takes beside its facts and route: a follower that streams nothing, and a clock that stands still. */
+/** What the Pipeline view takes beside its facts and route: followers that stream nothing, and a clock that stands still. */
 export function pipelineViewServicesOf(followTranscript: TranscriptFollower = () => ({ close: () => undefined })): {
   readonly followTranscript: TranscriptFollower;
+  readonly followProfileLog: ProfileLogFollower;
   readonly clock:            BridgeClock;
 } {
   return {
     followTranscript,
-    clock: { now: () => PIPELINE_FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined },
+    followProfileLog: () => () => undefined,
+    clock:            { now: () => PIPELINE_FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined },
   };
 }
 

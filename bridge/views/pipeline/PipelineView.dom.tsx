@@ -3,7 +3,8 @@
  * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the flow;
  * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
  * Apply changes, while a live flow has no footer. The gates area stands under the flow, and Enter on a Gates node selects that phase's
- * tab. A double-click on a node opens its dialog with the node selected, and closing it clears the selection.
+ * tab. A double-click on a node opens its dialog with the node selected, and closing it clears the selection. A gate dialog opened on any
+ * screen shows a running profile's output from the follower the view was given, the one the shell builds over the stream route.
  */
 import {
   act,
@@ -22,6 +23,7 @@ import {
 import { useState } from 'react';
 
 import type { BoardStateDocument }                      from '../../@types/BoardStateDocument.ts';
+import type { ProfileOutputLine }                       from '../../api/ProfileStreamClient.ts';
 import type { BridgeRoute }                             from '../../shell/HashRouter.ts';
 import { clickSettled, fakeControls }                   from '../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf } from '../../testing/PipelineFixture.ts';
@@ -197,5 +199,27 @@ describe('the toast after an Apply', () => {
     const { show } = renderHost(pipelineBoardStateOf('A5'), { tab: 'pipeline', item: null });
     show(appliedAt(3));
     expect(document.querySelector('.bridge-toast')).toBeNull();
+  });
+});
+
+describe('the profile log', () => {
+  test('a gate dialog opened from the gates area follows the running profile through the view\'s follower and shows its lines', async () => {
+    const followed: string[] = [];
+    let deliver: (lines: readonly ProfileOutputLine[]) => void = () => undefined;
+    const services = {
+      ...pipelineViewServicesOf(),
+      followProfileLog: (profileRunId: string, onLines: (lines: readonly ProfileOutputLine[]) => void) => {
+        followed.push(profileRunId);
+        deliver = onLines;
+        return () => undefined;
+      },
+    };
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('profile-running')} route={{ tab: 'pipeline', item: 'setup/design' }} {...services} />);
+    await clickSettled(screen.getByRole('tab', { name: /^Merge/ }));
+    fireEvent.doubleClick(screen.getByRole('group', { name: /^Open the browser-tests / }));
+    expect(followed).toEqual(['P1']);
+    act(() => deliver([{ lineNumber: 1, text: 'Running 12 tests' }]));
+    const tail = within(screen.getByRole('dialog')).getByRole('list', { name: 'Profile output' });
+    expect([...tail.children].map((line) => line.textContent)).toEqual(['Running 12 tests']);
   });
 });
