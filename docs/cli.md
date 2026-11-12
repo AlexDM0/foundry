@@ -940,12 +940,9 @@ question and edit id is read in either case (`s1`, `S1`).
 An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
 agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts from
 User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. A record with no agent,
-or with one that ended otherwise, gets no message: the record is what a later agent starts from.
-
-Facts read `mainMovedByCommits` (main's commits past `snapshotCommit`) from git and never store it; the Overseer keeps
-the count by (`snapshotCommit`, main's tip), so a state read asks git again only when one of them changed. A body sent
-to `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`,
-naming the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
+or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
+`POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming
+the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
 #### The pipeline agent's verbs
 
