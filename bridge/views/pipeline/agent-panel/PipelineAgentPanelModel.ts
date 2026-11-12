@@ -153,9 +153,9 @@ function openQuestionIdsOf(questions: readonly SetupQuestion[]): string[] {
   return questions.filter((question) => question.answer === null).map((question) => question.questionId);
 }
 
-/** The first recommended option starts chosen, as drawn, and on a multiple question every recommended one; with none recommended, none. */
+/** The first recommended option starts chosen, as drawn, and on a multiple question every recommended one in option order; with none, none. */
 function initialChoiceOf(card: SetupQuestionCard): string[] {
-  if (card.isMultiple) return [...card.recommendedLetters];
+  if (card.isMultiple) return card.options.map((option) => option.letter).filter((letter) => card.recommendedLetters.includes(letter));
   return card.recommendedLetters.slice(0, 1);
 }
 

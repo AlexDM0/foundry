@@ -1,8 +1,8 @@
 /**
  * A question card: an eyebrow and the question as the legend of a fieldset, its lettered options as radios in the question colours, or
  * checkboxes when several may be chosen, the recommended ones marked by a word, an Other option whose words are typed in place, and the
- * answer button. It glows while it asks; once
- * answered, the green confirmation takes the place of its options. Its options sit side by side in equal columns or stacked.
+ * answer button. It glows while it asks; once answered, the green confirmation takes the place of its options. Its options sit side by
+ * side in equal columns or stacked.
  */
 import { useId } from 'react';
 

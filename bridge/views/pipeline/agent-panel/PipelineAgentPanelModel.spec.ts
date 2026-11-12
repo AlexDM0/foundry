@@ -91,7 +91,7 @@ describe('the question cards', () => {
     const initial = PipelineAgentPanelModel.initialChoiceOf(card);
     const withoutA = PipelineAgentPanelModel.choiceAfterChoosing(card, initial, 'a');
     const withAAgain = PipelineAgentPanelModel.choiceAfterChoosing(card, withoutA, 'a');
-    expect([card.isMultiple, initial, withoutA, withAAgain]).toEqual([true, ['b', 'a'], ['b'], ['a', 'b']]);
+    expect([card.isMultiple, initial, withoutA, withAAgain]).toEqual([true, ['a', 'b'], ['b'], ['a', 'b']]);
     expect(PipelineAgentPanelModel.answerCommandOf('S1', card, withAAgain, '')).toEqual({
       kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a', 'b'] }
     });
