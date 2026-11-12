@@ -12,5 +12,3 @@ export type ForgeCommand =
 export type FleetCommand = { readonly kind: 'fleet-look-again' };
 
 export type GaiaCommand = ForgeCommand | FleetCommand;
-
-export type GaiaCommandKind = GaiaCommand['kind'];
