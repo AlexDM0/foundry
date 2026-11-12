@@ -41,7 +41,4 @@ function fleetAttentionOf(readings: readonly ForgeReading[]): FleetAttentionItem
     .sort(attentionInFleetOrder);
 }
 
-export const AttentionOrderUtil = {
-  fleetAttentionOf,
-  attentionInFleetOrder,
-} as const;
+export const AttentionOrderUtil = { fleetAttentionOf } as const;
