@@ -1,10 +1,10 @@
 /**
  * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
  * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
- * per guard, a command carried through the command port and answered with its verdict, and the CSP on every answer, refusals and
- * failures included. It refuses to start where Gaia already answers. The page's files are a stand-in for the build, whose own spec builds
- * the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the heartbeat's timers are fired by
- * hand.
+ * per guard, a command carried through the command port and answered with its verdict, a frame session routed behind the session guard,
+ * and the CSP on every answer, refusals and failures included. It refuses to start where Gaia already answers. The page's files are a
+ * stand-in for the build, whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries
+ * every kind; the frame session route's own spec asks a forge for a code; the heartbeat's timers are fired by hand.
  */
 import { readFileSync, statSync } from 'node:fs';
 import { join }                   from 'node:path';
