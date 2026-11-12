@@ -29,7 +29,7 @@ describe('the lifecycle under seeded interleavings', () => {
   });
 
   test.each([
-    ['a launch past the concurrency limit', '    .slice(0, freeSlotsOf(facts))\n', ''],
+    ['a launch past the concurrency limit', '    .slice(0, freeSlotsOf(facts));\n', ';\n'],
     ['two live jobs for one ticket', '!ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && ', ''],
     ['a resume of a session', '    if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: \'replace-job\', jobId: job.id }];\n', ''],
   ])('the world sees %s once the policy allows it', async (_broken, find, replace) => {

@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync
 } from 'node:fs';
 import { dirname, win32 } from 'node:path';
@@ -35,7 +36,8 @@ function posixPrimitives(homeDirectory: string, choices: FakePosixChoices = {}):
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, text);
       },
-      run: (command) => {
+      removeFile: (path) => rmSync(path, { force: true }),
+      run:        (command) => {
         commands.push([...command]);
         return choices.answerOf?.(command) ?? SUCCEEDED;
       },
@@ -45,7 +47,7 @@ function posixPrimitives(homeDirectory: string, choices: FakePosixChoices = {}):
   };
 }
 
-/** reg.exe's `add` and `query` over one map of value names to data, answering in reg.exe's layout. */
+/** reg.exe's `add`, `query` and `delete` over one map of value names to data, answering in reg.exe's layout. */
 function windowsPrimitives(): FakePrimitives & { readonly registry: Map<string, string> } {
   const commands: string[][] = [];
   const registry = new Map<string, string>();
@@ -58,6 +60,9 @@ function windowsPrimitives(): FakePrimitives & { readonly registry: Map<string, 
       writeText:     () => {
         throw new Error('the Windows adapter writes no file');
       },
+      removeFile: () => {
+        throw new Error('the Windows adapter removes no file');
+      },
       run: (command) => {
         commands.push([...command]);
         const [, verb, key, , valueName = ''] = command;
@@ -65,6 +70,7 @@ function windowsPrimitives(): FakePrimitives & { readonly registry: Map<string, 
           registry.set(valueName, command[command.indexOf('/d') + 1] ?? '');
           return { exitCode: 0, output: 'The operation completed successfully.\r\n' };
         }
+        if (verb === 'delete' && registry.delete(valueName)) return { exitCode: 0, output: 'The operation completed successfully.\r\n' };
         const data = registry.get(valueName);
         if (verb !== 'query' || data === undefined) return { exitCode: 1, output: 'ERROR: The system was unable to find the specified registry key or value.\r\n' };
         return { exitCode: 0, output: `\r\n${key ?? ''}\r\n    ${valueName}    REG_SZ    ${data}\r\n\r\n` };

@@ -99,6 +99,13 @@ export function windowsAutostartOver(primitives: AutostartPrimitives): Autostart
       const added = primitives.run([program, 'add', RUN_KEY, '/v', item.label, '/t', REGISTRY_STRING_TYPE, '/d', commandLine, '/f'], primitives.homeDirectory);
       return added.exitCode === 0 ? { verdict: 'written' } : { verdict: 'refused', reason: `reg.exe add failed: ${added.output.trim()}` };
     },
+    remove: (label) => {
+      if (storedCommandLineOf(label) === null) return { verdict: 'absent' };
+      const program = registryProgram();
+      if (program === null) return { verdict: 'refused', reason: 'SystemRoot is not an absolute folder, so reg.exe cannot be run by absolute path' };
+      const deleted = primitives.run([program, 'delete', RUN_KEY, '/v', label, '/f'], primitives.homeDirectory);
+      return deleted.exitCode === 0 ? { verdict: 'removed' } : { verdict: 'refused', reason: `reg.exe delete failed: ${deleted.output.trim()}` };
+    },
     adviceAfterWriting: () => ['Windows starts it at your next sign-in, with no promise of how soon; to start it now as well, run the same command yourself'],
   };
 }

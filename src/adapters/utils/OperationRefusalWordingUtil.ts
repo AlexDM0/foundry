@@ -525,6 +525,18 @@ function messageOf(refusal: OperationRefusal): string {
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':
       return `The message carries ${detail.pictureCount} pictures, and one message carries at most ${detail.limit}. ${NOTHING_WAS_WRITTEN}`;
+    case 'login-item-unavailable':
+      return `No login item can start the Overseer on this machine: ${detail.reason}.`;
+    case 'login-item-not-changed':
+      return `The login item ${detail.location} was not changed: ${detail.reason}.`;
+    case 'overseer-not-answering':
+      return `The Overseer at ${detail.url} is live, but its API did not answer, so nothing was started beside it. Stop it and start it again.`;
+    case 'machine-agent-limit-above-cpus':
+      return `A machine agent limit of ${detail.limit} is above the ${detail.ceiling} CPUs this machine has, so nothing was written.`;
+    case 'machine-agent-limit-not-whole':
+      return `A machine agent limit of ${detail.limit} is not a whole number of at least 1, so nothing was written.`;
+    case 'machine-limits-newer-version':
+      return `${detail.filePath} holds version ${detail.version}, newer than this program knows, so it was not written over.`;
     case 'picture-too-large':
       return `The picture is ${detail.bytes} bytes, and a picture is at most ${detail.sizeLimitBytes} bytes, so it was not stored.`;
     case 'picture-type-unsupported':

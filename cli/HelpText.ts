@@ -23,8 +23,11 @@ decimal with a \`k\`/\`m\`/\`b\` suffix: \`12000\`, \`12k\`, \`12.3k\`, \`1.2m\`
 the command word; a \`-h\` further on is refused at exit 1, since it may be text (put text behind a
 bare \`--\`). An option taking a value, given twice, is refused at exit 1.
 ${ROOT_OVERRIDE_VARIABLE} names the repository to use instead of walking up from the current directory. --json, accepted by every
-command but init, update, open, hook and help, prints one JSON document on standard output
-in place of the human output.
+command but open, hook and help, prints one JSON document on standard output
+in place of the human output. The answers of start, stop, init, update, version, machine
+and login-item carry \`answerVersion\` 1, and under --json their refusal is the document
+{answerVersion, refusal, text} at exit 1: the refusal's code and the sentence printed on
+standard error.
 
 \`status\`, \`ticket add\`, every ticket or task move (\`task add --start\` among them), \`ticket
 depends\`, \`priority\`, \`agent\`, \`hold\` and \`unhold\` end their
@@ -37,7 +40,7 @@ never carries it.
   init                        Create the tracker here: \`${PRODUCT_NAMES.DATA_FOLDER}/\` with an empty progress
       [--project <name>]      file and log and a \`tickets/\` folder, and \`.gitignore\` entries for it
       [--root <path>]         and for \`${PRODUCT_NAMES.WORKTREES_FOLDER}/\`, before any worktree can exist. Beside the
-      [--no-hooks]            tracker go \`session-instructions.md\` (written first, its presence marking
+      [--no-hooks] [--json]   tracker go \`session-instructions.md\` (written first, its presence marking
                               the install), \`reference.md\` (the ticket format, the moves and the exit
                               codes) and \`assistant-brief.md\`, the role prompt the Overseer fills for
                               its Assistant; the SessionStart hook \`hook session-start\` goes into
@@ -50,9 +53,12 @@ never carries it.
                               track. Re-running only refreshes what \`update\` refreshes, and
                               \`update\` is the command to reach for there. --project names the project shown
                               on the page, --root tracks that directory instead of the discovered
-                              repository root, and --no-hooks touches no settings file.
+                              repository root, and --no-hooks touches no settings file. --json
+                              prints {answerVersion, outcome, trackerId, project, root}, the
+                              outcome \`created\` or, for a tracker that was there, \`refreshed\`.
 
-  update [--no-hooks]         Refresh what the tool wrote into a repository it already tracks: the
+  update [--no-hooks] [--json]
+                              Refresh what the tool wrote into a repository it already tracks: the
                               three files beside the tracker, guidance shipped with the tool rather
                               than files a project edits, the SessionStart hook, the two skills and
                               the worktrees folder's \`.gitignore\` entry, removing what an earlier
@@ -70,8 +76,12 @@ never carries it.
                               is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
                               Each line says whether that file changed, so a session that read the
                               instructions at its start learns that its copy is now stale.
-                              Every command but init, update, help, status, version, oversee
-                              status and oversee stop refuses, with exit 1, while the files
+                              --json prints {answerVersion, outcome, installVersion, batonPass,
+                              batonPassStep}, batonPass \`done\`, \`not-needed\` or \`not-taken\`; a
+                              failed Baton pass is the refusal baton-pass-failed, whose answer
+                              adds batonPass \`failed\` and batonPassStep.
+                              Every command but init, update, help, status, version, stop, machine,
+                              login-item, oversee status and oversee stop refuses, with exit 1, while the files
                               installed here are of another install version than this
                               ${PRODUCT_NAMES.PROGRAM} (the hooks run regardless);
                               update rewrites them, and it and \`init\` refuse files a newer
@@ -470,6 +480,16 @@ never carries it.
                               accepted and simply leaves no free slot. \`status --json\` carries it
                               beside \`agentsInFlight\`, the free slots and the ready tickets.
 
+  machine limit [<n>] [--json]
+                              Print the machine agent limit: how many build and review jobs may run
+                              at once across every board on this machine, at most its CPU count,
+                              which it is when none was set. With <n>, store a new one in the
+                              monitor folder, read by every Overseer at its next launch; one above
+                              the CPU count is refused machine-agent-limit-above-cpus at exit 1
+                              with nothing written, and lowering it stops no job in flight. --json
+                              prints {answerVersion, limit, ceiling, agentsInFlight}, or after a set
+                              {answerVersion, outcome, limit, ceiling}.
+
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints
                               {pipelineIsSet, pipelineHash, prepare, gates} and review,
@@ -554,7 +574,29 @@ never carries it.
                               version on disk against the live Overseer's. Read-only, no lock.
 
   version [--json]            Print the code version on disk and the install version:
-                              {codeVersion, installVersion}. Read-only.
+                              {answerVersion, codeVersion, installVersion, contracts,
+                              monitorFolder}, \`contracts\` the Overseer API's contracts this
+                              program serves, as \`GET /api/identity\` names them. Read-only.
+
+  start [--repository <path>] [--port <n>] [--json]
+                              Start the board's Overseer detached, as \`open\` does, and open no
+                              browser; with one live, start nothing. It returns only once the
+                              Overseer's API answers. --json prints {answerVersion, started, url,
+                              generation, trackerId, codeVersion, installVersion, contracts}.
+                              --repository starts the Overseer of that repository, and --port
+                              binds the port given, 0 any free one, as \`oversee\` does.
+
+  stop [--now] [--json]       \`oversee stop\` under the short name: {answerVersion, outcome},
+                              with \`ending\` when the Overseer ended before it finished its stop.
+
+  login-item add|remove|status [--repository <path>] [--json]
+                              The item that starts this board's Overseer when the user logs in, as
+                              \`setup --login-overseer\` writes it, under the label
+                              \`${PRODUCT_NAMES.LOGIN_ITEM_LABEL}.<trackerId>\`, so every board has its own.
+                              --json prints {answerVersion, outcome, state, label, location,
+                              repository}: state \`present\` or \`absent\` after the step, outcome
+                              null for status. Refused login-item-unavailable where no item could
+                              run, and login-item-not-changed where the system refused the change.
 
   merges [--json]             The merge queue: each held slot {target, jobId, ticketIds, phase,
                               targetTip, branchTip}, then each queued ticket {ticketId, target,

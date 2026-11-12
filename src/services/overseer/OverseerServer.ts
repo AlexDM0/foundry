@@ -35,7 +35,7 @@ export interface OverseerIdentity {
 }
 
 /** What a 401, a 403 or a 500 refuses, which the routes word as `text` beside it. */
-export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'page-build-failed';
+export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'page-build-failed' | 'malformed-body';
 
 /** A route's answer: the status and the JSON body. */
 export interface RouteAnswer {
@@ -155,6 +155,7 @@ const STATUS_OF_SERVER_REFUSAL: Readonly<Record<ServerRefusal, number>> = {
   'forbidden':         HTTP_STATUS.FORBIDDEN,
   'read-failed':       HTTP_STATUS.SERVER_ERROR,
   'page-build-failed': HTTP_STATUS.SERVER_ERROR,
+  'malformed-body':    HTTP_STATUS.BAD_REQUEST,
 };
 
 function refusalResponse(routes: OverseerRoutes, refusal: ServerRefusal): Response {
@@ -199,7 +200,10 @@ async function answerCommand(request: Request, routes: OverseerRoutes): Promise<
   try {
     body = await request.json();
   } catch {
-    return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
+    return jsonResponse({
+      status: HTTP_STATUS.BAD_REQUEST,
+      body:   { controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal: 'malformed-body', text: routes.refusalTextOf('malformed-body') },
+    });
   }
   return jsonResponse(await routes.command(body));
 }

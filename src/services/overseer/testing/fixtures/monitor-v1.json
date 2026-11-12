@@ -16,7 +16,10 @@
   },
   "concurrency": {
     "limit": 3,
-    "agentsInFlight": 2
+    "agentsInFlight": 2,
+    "machineLimit": 4,
+    "machineAgentsInFlight": 3,
+    "ticketsWaitingForMachineSlot": 1
   },
   "ticketCountByStatus": {
     "draft": 1,

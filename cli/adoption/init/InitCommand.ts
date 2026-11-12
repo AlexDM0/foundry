@@ -5,15 +5,18 @@ import { ensureIgnored }                                  from '../../../src/lib
 import { LocalTimeUtil }                                  from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { listTickets }                                    from '../../../src/services/tracker/TicketStore.ts';
 import { createTracker }                                  from '../../../src/services/tracker/TrackerCreation.ts';
+import { requireProgressFile }                            from '../../../src/services/tracker/TrackerReader.ts';
 import { findWorkspace, workspacePathsFor }               from '../../../src/services/tracker/Workspace.ts';
 import { TRACKER_FILES }                                  from '../../../src/services/tracker/constants/TrackerFiles.ts';
 import { OperationRefusal }                               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
+import { JsonTextUtil }                                   from '../../../src/shared/utils/JsonTextUtil.ts';
 import type { CommandHandler }                            from '../../CommandHandler.ts';
 import { requireGitAtTheFloor }                           from '../../GitVersionFloor.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { registerWrittenTracker }                         from '../../RegisterWrittenTracker.ts';
 import { OutputUtil }                                     from '../../utils/OutputUtil.ts';
+import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import type { InstalledFileTexts }                        from '../InstalledFileGeneration.ts';
 import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
@@ -29,9 +32,9 @@ import {
 import { writeProgressPageStub }                                       from '../WriteProgressPageStub.ts';
 import { initRootDirectoryOf, refuseAnOverrideNamingAnotherDirectory } from './InitRoot.ts';
 
-const USAGE = `${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] [--no-hooks]`;
+const USAGE = `${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] [--no-hooks] [--json]`;
 
-const KNOWN_OPTION_NAMES = ['project', 'root', 'no-hooks'];
+const KNOWN_OPTION_NAMES = ['project', 'root', 'no-hooks', 'json'];
 
 const { PROGRAM, PRODUCT_OWNER_SKILL } = PRODUCT_NAMES;
 
@@ -50,6 +53,16 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
 
+  const answersInJson = commandArguments.flag('json');
+  // Under --json only the answer reaches standard output: `created` for a new tracker, `refreshed` for one that existed.
+  const output = answersInJson ? (_line: string) => undefined : context.standardOutput;
+  const printAnswer = (outcome: 'created' | 'refreshed') => {
+    if (!answersInJson) return;
+    const { trackerId, project } = requireProgressFile(workspace);
+    context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({
+      outcome, trackerId, project, root: workspace.rootDirectory
+    })));
+  };
   const rootDirectory = initRootDirectoryOf(commandArguments.option('root'), context.currentDirectory);
   const workspace     = workspacePathsFor(rootDirectory);
   const optOutFlags = optOutFlagsGiven((flagName) => commandArguments.flag(flagName));
@@ -71,11 +84,12 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   });
   const reportTheRefreshOfAnExistingTracker = (installedFileTexts: InstalledFileTexts) => {
     const refresh = refreshTheRepository(installedFileTexts, { writesTheBriefFirst: false });
-    context.standardOutput(`${PRODUCT_NAMES.PROGRAM} is already initialised in ${rootDirectory}.`);
-    for (const line of refreshReportLinesOf(refresh, workspace.htmlFilePath)) context.standardOutput(line);
-    context.standardOutput(`  \`${PRODUCT_NAMES.PROGRAM} update\` is the command for this refresh; \`init\` only creates a tracker.`);
+    output(`${PRODUCT_NAMES.PROGRAM} is already initialised in ${rootDirectory}.`);
+    for (const line of refreshReportLinesOf(refresh, workspace.htmlFilePath)) output(line);
+    output(`  \`${PRODUCT_NAMES.PROGRAM} update\` is the command for this refresh; \`init\` only creates a tracker.`);
     writeProgressPageStub(context.platformPorts, workspace);
     recordInstallVersion(workspace.rootDirectory);
+    printAnswer('refreshed');
   };
 
   const existingWorkspace = findWorkspace(rootDirectory);
@@ -119,14 +133,15 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
 
   const refresh = refreshTheRepository(installedFileTexts, { writesTheBriefFirst: true });
 
-  context.standardOutput(`Initialised ${PRODUCT_NAMES.PROGRAM} for "${project}" in ${rootDirectory}`);
-  context.standardOutput(`  tracker:     ${workspace.trackerDirectory}`);
-  context.standardOutput(`  brief:       ${refresh.briefFilePath}`);
-  context.standardOutput(`  dashboard:   ${workspace.htmlFilePath}`);
-  context.standardOutput(`  .gitignore:  ${IGNORE_OUTCOME_WORDS[ignoreOutcome]}`);
+  output(`Initialised ${PRODUCT_NAMES.PROGRAM} for "${project}" in ${rootDirectory}`);
+  output(`  tracker:     ${workspace.trackerDirectory}`);
+  output(`  brief:       ${refresh.briefFilePath}`);
+  output(`  dashboard:   ${workspace.htmlFilePath}`);
+  output(`  .gitignore:  ${IGNORE_OUTCOME_WORDS[ignoreOutcome]}`);
   for (const { reportLabel, line, marksTheInstall } of refresh.partLines) {
-    if (!marksTheInstall) context.standardOutput(reportLineOf(reportLabel, line));
+    if (!marksTheInstall) output(reportLineOf(reportLabel, line));
   }
   recordInstallVersion(workspace.rootDirectory);
-  for (const line of NEXT_STEP_LINES) context.standardOutput(line);
+  for (const line of NEXT_STEP_LINES) output(line);
+  printAnswer('created');
 };

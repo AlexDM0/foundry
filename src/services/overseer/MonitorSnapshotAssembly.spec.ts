@@ -186,6 +186,7 @@ const OVERSEER: MonitorOverseerFacts = {
   codeVersion:       'code-example',
   codeVersionOnDisk: 'code-newer',
   installVersion:    17,
+  machine:           { limit: 4, agentsInFlight: 3, ticketsWaitingForMachineSlot: 1 },
 };
 
 const BOARD = {

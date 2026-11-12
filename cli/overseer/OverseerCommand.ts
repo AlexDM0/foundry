@@ -2,30 +2,29 @@
  * `oversee` and its subcommands. Starting, restarting, pausing and resuming check the install version; `oversee status` and `oversee stop` do not,
  * so an Overseer whose install changed can still be inspected and stopped.
  */
-import { resolve } from 'node:path';
-
-import { readingBoardOf }                                                                   from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { ControlService }                                                                   from '../../src/services/control/ControlService.ts';
-import { Baton }                                                                            from '../../src/services/overseer/Baton.ts';
-import { CodeVersion }                                                                      from '../../src/services/overseer/CodeVersion.ts';
-import { overseerFilesIn, type OverseerFiles }                                              from '../../src/services/overseer/OverseerFiles.ts';
-import type { OverseerPortChoice }                                                          from '../../src/services/overseer/OverseerPort.ts';
-import { requireProgressFile }                                                              from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                                                                 from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }                                                            from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                                                 from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                                                    from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                                                              from '../CommandContext.ts';
-import type { CommandHandler }                                                              from '../CommandHandler.ts';
-import { hatchWhenUnderJob }                                                                from '../HatchUnderJob.ts';
-import { requireCurrentInstall }                                                            from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                                                            from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                                              from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                                                                       from '../utils/OutputUtil.ts';
-import { requireTheOverseerCanStartIn, startTheOverseerDetached }                           from './DetachedOverseerStart.ts';
-import { type StoppedOverseerRequest, closeTheStoppedOverseer, runOverseerInTheForeground } from './OverseerForeground.ts';
-import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                           from './OverseerRemote.ts';
-import { OverseerWording }                                                                  from './OverseerWording.ts';
+import { readingBoardOf }                                                         from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { ControlService }                                                         from '../../src/services/control/ControlService.ts';
+import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
+import { CodeVersion }                                                            from '../../src/services/overseer/CodeVersion.ts';
+import { overseerFilesIn, type OverseerFiles }                                    from '../../src/services/overseer/OverseerFiles.ts';
+import type { OverseerPortChoice }                                                from '../../src/services/overseer/OverseerPort.ts';
+import { requireProgressFile }                                                    from '../../src/services/tracker/TrackerReader.ts';
+import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }                                                  from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                                       from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                                                    from '../CommandContext.ts';
+import type { CommandHandler }                                                    from '../CommandHandler.ts';
+import { hatchWhenUnderJob }                                                      from '../HatchUnderJob.ts';
+import { requireCurrentInstall }                                                  from '../InstallVersionCheck.ts';
+import { openTrackerForWriting }                                                  from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                                    from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                                                             from '../utils/OutputUtil.ts';
+import { requireTheOverseerCanStartIn, startContextOf, startTheOverseerDetached } from './DetachedOverseerStart.ts';
+import { type StoppedOverseerRequest, runOverseerInTheForeground }                from './OverseerForeground.ts';
+import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                 from './OverseerRemote.ts';
+import { stopAndCloseTheLiveOverseer, stopTheOverseer }                           from './OverseerStop.ts';
+import { OverseerWording }                                                        from './OverseerWording.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -58,12 +57,6 @@ function successorOfIn(commandArguments: ArgumentParser): number | undefined {
     throw new OperationRefusal('refused', `"${written}" is not a Baton generation. Write a whole number.\n  Usage: ${SUCCESSOR_USAGE}`);
   }
   return Number(written);
-}
-
-/** `--repository` stands in for the working directory, which a Windows Run entry cannot set; a relative path resolves against it. */
-function startContextOf(commandArguments: ArgumentParser, context: CommandContext): CommandContext {
-  const repository = commandArguments.option('repository');
-  return repository === undefined ? context : { ...context, currentDirectory: resolve(context.currentDirectory, repository) };
 }
 
 async function startOverseer(commandArguments: ArgumentParser, invokingContext: CommandContext): Promise<void> {
@@ -102,37 +95,9 @@ function stopSubcommand(kind: RuntimeStopKind): RunSubcommand {
       await restartTheOverseer({ commandArguments, context, workspace }, files, now);
       return;
     }
-    const stopped = await stopAndCloseTheLiveOverseer({ commandArguments, context, workspace }, files, now);
-    if (stopped.verdict === 'was-down') {
-      OutputUtil.printEntity(commandArguments, context, { outcome: 'nothing-to-do' }, 'No Overseer is live; nothing to stop.');
-      return;
-    }
-    const ending = stopped.verdict === 'found-dead' ? 'unfinished' : stopped.ending;
-    const entity = ending === 'clean' ? { outcome: 'done' } : { outcome: 'done', ending };
-    OutputUtil.printEntity(commandArguments, context, entity, stopTextOf(stopped, now));
+    const { entity, humanLine } = await stopTheOverseer({ commandArguments, context, workspace }, files, now);
+    OutputUtil.printEntity(commandArguments, context, entity, humanLine);
   };
-}
-
-/**
- * An ending other than `clean` means the process is gone, by a dead Baton or a landed force, so what the Overseer left undone runs without it. A
- * newest Baton found dead is closed the same way, so a close that was refused before is repaired by the next stop.
- */
-async function stopAndCloseTheLiveOverseer(request: StoppedOverseerRequest, files: OverseerFiles, now: boolean): Promise<StopOutcome> {
-  const stopped = await OverseerRemote.stopTheLiveOverseer(request.context.platformPorts, files, 'overseer-stop', now);
-  const leftUnclosed = stopped.verdict === 'found-dead' || (stopped.verdict === 'stopped' && stopped.ending !== 'clean');
-  if (leftUnclosed) await closeTheStoppedOverseer(request, files, stopped.generation);
-  return stopped;
-}
-
-function stopTextOf(stopped: Exclude<StopOutcome, { verdict: 'was-down' }>, now: boolean): string {
-  const overseerAtUrl = stopped.record === null ? 'The Overseer' : `The Overseer at ${stopped.record.url}`;
-  const watcherNote   = now ? ' Process Watchers were not stopped: --now needs the API.' : '';
-  const closing       = `this command recorded the stop in its place.${watcherNote}`;
-  if (stopped.verdict === 'found-dead') return `${overseerAtUrl} had already ended before it finished its stop, so ${closing}`;
-  const { ending, record } = stopped;
-  if (ending === 'clean') return `Stopped the Overseer at ${record.url}.`;
-  if (ending === 'forced') return `Ended the Overseer at ${record.url} by force: its API did not answer and it could not finish its stop, so ${closing}`;
-  return `${overseerAtUrl} ended before it finished its stop, so ${closing}`;
 }
 
 /**

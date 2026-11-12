@@ -119,6 +119,8 @@ export type ControlCommand =
   /** An agent's notes for the options of the question it asks next; relayed without `jobId`, the role policy stamps its own job. */
   | { kind: 'question-options'; jobId?: string; question: string; options: OptionNote[] }
   | { kind: 'concurrency-set'; limit: number }
+  /** Machine-wide, never a board change: the Overseer writes `<monitor>/machine-limits.json`; applied to a board it is refused as runtime only. */
+  | { kind: 'machine-agent-limit-set'; limit: number }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   | { kind: 'pipeline-gate-add'; gate: PipelineGate }
   | { kind: 'pipeline-gates-none' }

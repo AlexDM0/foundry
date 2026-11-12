@@ -72,6 +72,15 @@ export function linuxAutostartOver(primitives: AutostartPrimitives): Autostart {
       }
       return { verdict: 'written' };
     },
+    remove: (label) => {
+      if (primitives.readText(locationOf(label)) === null) return { verdict: 'absent' };
+      const program = systemctl() ?? SYSTEMCTL_PROGRAM;
+      const disabled = primitives.run([program, '--user', 'disable', unitFileNameOf(label)], primitives.homeDirectory);
+      if (disabled.exitCode !== 0) return { verdict: 'refused', reason: `${SYSTEMCTL_PROGRAM} --user disable failed: ${disabled.output.trim()}` };
+      primitives.removeFile(locationOf(label));
+      primitives.run([program, '--user', 'daemon-reload'], primitives.homeDirectory);
+      return { verdict: 'removed' };
+    },
     adviceAfterWriting: (item) => [
       `To start it now as well: ${SYSTEMCTL_PROGRAM} --user start ${unitFileNameOf(item.label)}`,
       'To start it at boot without a login session: loginctl enable-linger "$USER"',

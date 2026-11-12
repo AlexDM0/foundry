@@ -32,6 +32,7 @@ import type { DecisionDraft, DecisionWording }       from '../../lib/tracker-mod
 import type { Board }                                from '../../lib/tracker-model/Board.ts';
 import { Playbook }                                  from '../../lib/tracker-model/Playbook.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
+import { LaunchSlotUtil }                            from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
 import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 import { WorktreesFolder }                           from '../../shared/WorktreesFolder.ts';
@@ -49,6 +50,7 @@ import { ReviewOutcome }                                       from '../lifecycl
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
+import { AgentSlots }                                          from './AgentSlots.ts';
 import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
@@ -80,6 +82,7 @@ import {
 } from './JobLaunch.ts';
 import { JobResumption }                                              from './JobResumption.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
+import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
 import { Onboarding, type OnboardingFacts }                           from './Onboarding.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
@@ -222,6 +225,8 @@ export interface DrivePassRequest {
   processStarts?:                    ProcessStarts;
   /** Overridden by specs, which cannot wait out the production retry of a merge gate looking for a free gate slot. */
   gateSlotRetryMilliseconds?:        number;
+  /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
+  machineAgentCeiling?:              number;
   /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
   sessionStopGraceMilliseconds?:     number;
 }
@@ -253,12 +258,14 @@ export type OverseerNotice =
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
 
 export interface OverseerStateDocument {
-  generation:          number;
-  passes:              number;
-  runtimeState:        PassRuntimeState;
-  notices:             OverseerNotice[];
+  generation:                   number;
+  passes:                       number;
+  runtimeState:                 PassRuntimeState;
+  notices:                      OverseerNotice[];
   /** Jobs whose Watcher speaks a protocol below the supported window: watched through their files alone. */
-  legacyWatcherJobIds: string[];
+  legacyWatcherJobIds:          string[];
+  /** The tickets the last pass would have launched but for the machine-wide agent limit. */
+  ticketsWaitingForMachineSlot: number;
 }
 
 export interface DrivePass {
@@ -850,7 +857,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let assistantsMidTurnAtTheLastPass: readonly string[] = [];
   let assistantBootRetryRequested = false;
   let state: OverseerStateDocument = {
-    generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], legacyWatcherJobIds: []
+    generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], legacyWatcherJobIds: [], ticketsWaitingForMachineSlot: 0
   };
   let stopped = false;
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
@@ -866,6 +873,17 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(platformPorts, holding),
     retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
   });
+
+  /** Read afresh each pass, so a machine limit another Overseer or the `machine limit` verb set holds from the next launch. */
+  function agentSlotsOfThisPass(): ReturnType<typeof AgentSlots.createAgentSlots> {
+    const ceiling = request.machineAgentCeiling ?? MachineAgentLimit.cpuCeiling();
+    return AgentSlots.createAgentSlots({
+      monitorFolder:  request.monitorFolder,
+      limit:          MachineAgentLimit.readingIn(request.monitorFolder, ceiling).limit,
+      ownProcess:     platformPorts.processSupervision.identityOf(process.pid),
+      overseerIsLive: AgentSlots.overseerIsLiveWith(platformPorts),
+    });
+  }
   const jobLaunchContext: JobLaunchContext = {
     platformPorts,
     workspace:            request.workspace,
@@ -1071,7 +1089,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           assistantBootRetryDue,
         };
         const jobIdsBeforeTheLifecycle = new Set(change.board.jobs().map((job) => job.id));
-        change.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt }, observations, request.decisionWordingOf);
+        const agentSlots = agentSlotsOfThisPass();
+        const slotJobIdsBefore = LaunchSlotUtil.slotJobIdsOf(change.board.jobs());
+        agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
+        for (const jobId of slotJobIdsBefore) agentSlots.tryAcquire(observation.trackerId, jobId);
+        const machineAgentSlotsFree = agentSlots.reserve(observation.trackerId, change.board.concurrency().freeSlots);
+        const { steps } = change.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt }, { ...observations, machineAgentSlotsFree }, request.decisionWordingOf);
+        const slotJobIdsAfter = LaunchSlotUtil.slotJobIdsOf(change.board.jobs());
+        agentSlots.assignReservations(observation.trackerId, slotJobIdsAfter.filter((jobId) => !slotJobIdsBefore.includes(jobId)));
+        agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
         AssistantBoot.deliverOpenIncidentsAtBoot(change.board, jobIdsBeforeTheLifecycle);
         if (usageResetsAt === null) {
           AssistantSession.deliverIncidentsWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory, change.at);
@@ -1082,13 +1108,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         return {
           replies,
           endedJobIdsExaminedThisPass,
-          endedAssistantJobs:       downAssistants.endedJobs,
+          endedAssistantJobs:           downAssistants.endedJobs,
           usageLimitHits,
           stoppedSessions,
           usageResetsAt,
-          attributionTicketIds:     JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
-          agentConfigHeldTicketIds: agentConfigHold.held,
-          nonConvergingTicketIds:   ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), LIFECYCLE_LIMITS),
+          attributionTicketIds:         JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
+          agentConfigHeldTicketIds:     agentConfigHold.held,
+          nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), LIFECYCLE_LIMITS),
+          ticketsWaitingForMachineSlot: steps.filter((step) => step.kind === 'await-machine-slot').length,
         };
       },
     });
@@ -1188,7 +1215,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
         launchRefusals,
       ),
-      legacyWatcherJobIds: legacyWatcherJobIdsOf(written.board, request.workspace.trackerDirectory),
+      legacyWatcherJobIds:          legacyWatcherJobIdsOf(written.board, request.workspace.trackerDirectory),
+      ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
     const settled = observe(request, jobLaunchContext);
     // An event a Watcher logged after this pass read its events is unapplied work, never a settled state an unforced wake may skip.

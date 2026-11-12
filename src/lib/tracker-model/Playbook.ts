@@ -429,13 +429,17 @@ function freeSlotsOf(facts: PlaybookFacts): number {
   return ConcurrencyUtil.concurrencyOf(facts.jobs, facts.concurrencyLimit).freeSlots;
 }
 
+/** The board's free slots bound the launches first; of those, the ones past the machine's free slots wait as `await-machine-slot`. */
 function launchStepsOf(facts: IndexedPlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
-  return facts.tickets
+  const launchable = facts.tickets
     .filter((ticket) => !ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && !ticketIsHeld(ticket, facts))
     .flatMap((ticket) => candidateOf(ticket, facts) ?? [])
     .sort(candidateOrder(facts))
-    .slice(0, freeSlotsOf(facts))
-    .map((candidate) => candidate.step);
+    .slice(0, freeSlotsOf(facts));
+  const machineSlotsFree = facts.observations.machineAgentSlotsFree ?? launchable.length;
+  return launchable.map((candidate, index): PlaybookStep => (
+    index < machineSlotsFree ? candidate.step : { kind: 'await-machine-slot', ticketId: candidate.ticket.id }
+  ));
 }
 
 

@@ -21,12 +21,19 @@ export type LoginItemWriteVerdict =
   | { readonly verdict: 'written' }
   | { readonly verdict: 'refused'; readonly reason: string };
 
+export type LoginItemRemoveVerdict =
+  | { readonly verdict: 'removed' }
+  | { readonly verdict: 'absent' }
+  | { readonly verdict: 'refused'; readonly reason: string };
+
 export interface AutostartPrimitives {
   readonly homeDirectory:       string;
   /** The file's text, or null when it does not exist. */
   readonly readText:            (path: string) => string | null;
   /** Writes the file, creating its folders. */
   readonly writeText:           (path: string, text: string) => void;
+  /** Removes the file; one already gone is no failure. */
+  readonly removeFile:          (path: string) => void;
   readonly run:                 (command: readonly string[], workingDirectory: string) => FinishedCommand;
   readonly programOnSearchPath: (programName: string) => string | null;
   /** Windows' system folder (`SystemRoot`), or undefined where none is set. */
@@ -44,6 +51,8 @@ export interface Autostart {
   readonly registeredRepositoryOf: (label: string) => string | null;
   readonly commandOf:              (item: LoginItem) => readonly string[];
   readonly write:                  (item: LoginItem) => LoginItemWriteVerdict;
+  /** Removes the item of `label`, so nothing starts at the next login; `absent` when none was stored. */
+  readonly remove:                 (label: string) => LoginItemRemoveVerdict;
   /** What the user may do next, one line each, such as starting the item now. */
   readonly adviceAfterWriting:     (item: LoginItem) => readonly string[];
 }

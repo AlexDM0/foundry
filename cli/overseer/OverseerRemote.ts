@@ -52,6 +52,28 @@ async function identityAnswers(record: BatonRecord): Promise<boolean> {
   }
 }
 
+async function identityDocumentOf(record: BatonRecord): Promise<Readonly<Record<string, unknown>> | null> {
+  try {
+    const response = await fetch(new URL('api/identity', record.url), { signal: AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS) });
+    if (!response.ok) return null;
+    const document = await response.json() as unknown;
+    return typeof document === 'object' && document !== null && !Array.isArray(document) ? document as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The live Overseer's identity once its API answers, looked for on the schedule a detached start waits on; `null` when it never answered. */
+async function identityOnceItAnswers(record: BatonRecord): Promise<Readonly<Record<string, unknown>> | null> {
+  const schedule = overseerPollScheduleOf({ tries: OVERSEER_READY_TRIES, intervalMilliseconds: OVERSEER_READY_INTERVAL_MILLISECONDS }, overseerPollIntervalOverride());
+  for (let attempt = 0; attempt < schedule.tries; attempt++) {
+    const identity = await identityDocumentOf(record);
+    if (identity !== null) return identity;
+    await Bun.sleep(schedule.intervalMilliseconds);
+  }
+  return null;
+}
+
 async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: boolean): Promise<boolean> {
   const token = tokenIn(record);
   if (token === null) return false;
@@ -204,5 +226,5 @@ async function sessionCodeOf(record: BatonRecord): Promise<string | null> {
 }
 
 export const OverseerRemote = Object.freeze({
-  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, stateOf, sessionCodeOf
+  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, identityOnceItAnswers, stateOf, sessionCodeOf
 });

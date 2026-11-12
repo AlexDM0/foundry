@@ -3,6 +3,7 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   writeFileSync
 } from 'node:fs';
@@ -21,7 +22,7 @@ export interface LoginOverseerRequest {
   readonly instructOnly: boolean;
 }
 
-function autostartPrimitivesOf(host: SetupHost): AutostartPrimitives {
+export function autostartPrimitivesOf(host: SetupHost): AutostartPrimitives {
   return {
     homeDirectory: host.homeDirectory,
     readText:      (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null),
@@ -29,9 +30,23 @@ function autostartPrimitivesOf(host: SetupHost): AutostartPrimitives {
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, text);
     },
+    removeFile:          (path) => rmSync(path, { force: true }),
     run:                 host.run,
     programOnSearchPath: host.programOnSearchPath,
     systemFolder:        host.systemFolder,
+  };
+}
+
+/** The item that starts the Overseer of `repository` at login, run by this checkout under the Bun setup found. */
+export function loginItemOf(host: SetupHost, repository: string, label: string): LoginItem {
+  const checkout = host.checkoutDirectory;
+  return {
+    label,
+    repository,
+    bunProgram:         physicalPathOf(host.bunProgram),
+    isolatingArguments: ToolRuntimeUtil.isolatingArgumentsFor(checkout),
+    entryPoint:         join(checkout, 'agent-progress.ts'),
+    searchPath:         [bunBinFolderOf(host), ...host.searchPath].join(delimiter),
   };
 }
 
@@ -61,15 +76,7 @@ export function writeLoginOverseer(host: SetupHost, report: SetupReport, request
     report.failure(`${location} already starts the Overseer of another repository; pass --label <label> for ${repository}`);
     return 1;
   }
-  const checkout = host.checkoutDirectory;
-  const item: LoginItem = {
-    label:              request.label,
-    repository,
-    bunProgram:         physicalPathOf(host.bunProgram),
-    isolatingArguments: ToolRuntimeUtil.isolatingArgumentsFor(checkout),
-    entryPoint:         join(checkout, 'agent-progress.ts'),
-    searchPath:         [bunBinFolderOf(host), ...host.searchPath].join(delimiter),
-  };
+  const item = loginItemOf(host, repository, request.label);
   if (request.instructOnly) {
     report.notice(`Would write the ${autostart.mechanism} ${location}, running ${autostart.commandOf(item).join(' ')} for ${repository} at login`);
     return 0;

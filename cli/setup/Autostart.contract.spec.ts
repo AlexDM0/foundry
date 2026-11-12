@@ -88,6 +88,16 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
     },
   },
   {
+    claim: 'a removed item reads back no repository, and a second removal finds it absent',
+    check: ({ autostart, itemFor }) => {
+      const item = itemFor('com.example-agency.overseer', 'example-storefront');
+      autostart.write(item);
+      expect(autostart.remove(item.label)).toEqual({ verdict: 'removed' });
+      expect(autostart.registeredRepositoryOf(item.label)).toBeNull();
+      expect(autostart.remove(item.label)).toEqual({ verdict: 'absent' });
+    },
+  },
+  {
     claim: 'a rewrite of the same label reads back the newer repository',
     check: ({ autostart, itemFor }) => {
       autostart.write(itemFor('com.example-agency.overseer', 'example-storefront'));

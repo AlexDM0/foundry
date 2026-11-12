@@ -48,7 +48,7 @@ on 409, 413, 415 and 423, where it is a sentence. A 401, a 403 and the 500s `rea
 | `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor such as Gaia |
 | `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor such as Gaia |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
-| `POST /api/commands` | bearer token | `{outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
+| `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
 | `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
@@ -167,11 +167,11 @@ server.
 
 | Status | Body | Meaning |
 | --- | --- | --- |
-| 200 | `{outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
-| 400 | `{refusal: 'malformed-body'}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, or a control function reading a field the body lacks. Nothing was written. |
+| 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
+| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` that is not a number, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
-| 409 | `{refusal: <sentence>}` | The write was refused. The sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{refusal: <sentence>}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs, see [Baton](../architecture/baton.md). |
+| 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
+| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs, see [Baton](../architecture/baton.md). |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
@@ -187,6 +187,20 @@ board and go to the running Overseer, so they are taken during the install hold,
 > see [gap-restart-now-dropped](known-gaps.md#gap-restart-now-dropped) and
 > [gap-stop-dropped-during-baton-pass](known-gaps.md#gap-stop-dropped-during-baton-pass). The install hold refuses a job
 > stop too, see [gap-job-stop-while-install-held](known-gaps.md#gap-job-stop-while-install-held).
+
+`machine-agent-limit-set` `{kind, limit}` sets the machine agent limit in `<monitor>/machine-limits.json`, the one
+`machine limit <n>` sets: it changes no board, so it is applied in no lock hold and is taken during the install hold. A
+limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and writes nothing.
+
+### Control contract 1
+
+`contracts.control` on the identity is the version of what a monitor may send and what it gets back. Control contract 1
+names seven kinds, `CONTROL_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`,
+`overseer-resume`, `overseer-stop {now}`, `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}` and
+`machine-agent-limit-set {limit}`. Each answer carries `controlVersion`, the same number. A 200 answers
+`outcome` `done` or `nothing-to-do`; a 400, a 409 and a 423 answer `refusal`, a code, and `text`, its sentence; a 401
+answers `unauthorized`. `cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A
+change to one of them raises `contracts.control` in the same change; the other kinds may change and keep it.
 
 `CommandClient` in `bridge/api/` is the reference client. Its `SessionTokenSource` posts once, on a 401 clears its
 token, fetches another and posts once more, because an Overseer start rotates the token. `PictureUploadClient` posts a
@@ -502,6 +516,7 @@ numbers: the version of each contract this program serves. A contract it does no
 | --- | --- | --- |
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
 | `monitor` | 1 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+| `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
 
 A change of shape in a contract raises its number in the same change: a key added, removed or renamed, a value that
 changes type or meaning, or a union that gains or loses a value. The numbers are `SERVED_CONTRACT_VERSIONS` in
@@ -523,7 +538,7 @@ request, from the same reading as `BoardState`.
 | `monitorVersion` | 1 |
 | `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
 | `overseer` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
-| `concurrency` | `{limit, agentsInFlight}`, as `status --json` counts them |
+| `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three complete version 1 as `FORGE_REQUIREMENTS.md` F2 defined it; `monitorVersion` stays 1. |
 | `ticketCountByStatus` | Every status counted |
 | `readyTicketIds` | The ready tickets' ids, in dispatch order |
 | `openIncidents` | A count |

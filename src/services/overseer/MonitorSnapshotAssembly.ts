@@ -38,6 +38,14 @@ export interface MonitorOverseerFacts {
   /** The code version the program on disk answered last; the one in memory until it answered. */
   codeVersionOnDisk: string;
   installVersion:    number;
+  /** The machine-wide agent limit, every board's agent jobs holding a slot, and this board's tickets the limit holds back. */
+  machine:           MonitorMachineFacts;
+}
+
+export interface MonitorMachineFacts {
+  limit:                        number;
+  agentsInFlight:               number;
+  ticketsWaitingForMachineSlot: number;
 }
 
 export interface MonitorSnapshotSource {
@@ -237,7 +245,13 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
       codeVersionOnDisk: overseer.codeVersionOnDisk,
       installVersion:    overseer.installVersion,
     },
-    concurrency:         { limit, agentsInFlight },
+    concurrency: {
+      limit,
+      agentsInFlight,
+      machineLimit:                 overseer.machine.limit,
+      machineAgentsInFlight:        overseer.machine.agentsInFlight,
+      ticketsWaitingForMachineSlot: overseer.machine.ticketsWaitingForMachineSlot,
+    },
     ticketCountByStatus: board.ticketCountByStatus(),
     readyTicketIds:      board.readyTicketEntries().map((ready) => ready.id),
     openIncidents:       state.incidents.length,

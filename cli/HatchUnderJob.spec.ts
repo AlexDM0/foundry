@@ -40,6 +40,7 @@ import { COMMAND_NAMES }                                             from './Com
 import { runCommandLine }                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
 import { QUESTION_SUBCOMMAND_NAMES }                                 from './decisions/QuestionCommand.ts';
+import { MACHINE_SUBCOMMAND_NAMES }                                  from './dispatch/machine/MachineCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }                                    from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }                                     from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }                                     from './gates/GateCommand.ts';
@@ -48,6 +49,7 @@ import { INTAKE_SUBCOMMAND_NAMES }                                   from './int
 import { JOB_SUBCOMMAND_NAMES }                                      from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
+import { LOGIN_ITEM_SUBCOMMAND_NAMES }                               from './setup/login-item/LoginItemCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                   from './tickets/TicketCommand.ts';
@@ -98,6 +100,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'overseer-stop':             ['oversee', 'stop', '--now'],
   'overseer-restart':          ['oversee', 'restart'],
   'concurrency-set':           ['concurrency', '3'],
+  'machine-agent-limit-set':   ['machine', 'limit', '2'],
   'pipeline-prepare-step-set': ['gate', 'prepare', 'install', '--', 'bun install'],
   'pipeline-gate-add':         ['gate', 'add', 'test', '--defined-by', 'bunfig.toml', '--', 'bun test'],
   'pipeline-gates-none':       ['gate', 'none'],
@@ -211,6 +214,8 @@ function everyVerb(): string[] {
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     if (command === 'question') return QUESTION_SUBCOMMAND_NAMES.map((subcommand) => `question ${subcommand}`);
+    if (command === 'machine') return MACHINE_SUBCOMMAND_NAMES.map((subcommand) => `machine ${subcommand}`);
+    if (command === 'login-item') return LOGIN_ITEM_SUBCOMMAND_NAMES.map((subcommand) => `login-item ${subcommand}`);
     return [command];
   });
 }

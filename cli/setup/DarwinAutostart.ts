@@ -62,6 +62,11 @@ export function darwinAutostartOver(primitives: AutostartPrimitives): Autostart 
       primitives.writeText(locationOf(item.label), propertyListOf(item));
       return { verdict: 'written' };
     },
+    remove: (label) => {
+      if (primitives.readText(locationOf(label)) === null) return { verdict: 'absent' };
+      primitives.removeFile(locationOf(label));
+      return { verdict: 'removed' };
+    },
     adviceAfterWriting: (item) => [`To start it now as well: launchctl bootstrap gui/$(id -u) "${locationOf(item.label)}"`],
   };
 }

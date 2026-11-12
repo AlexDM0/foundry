@@ -288,6 +288,11 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
   (`cli/Main.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
   `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
+  `stop` skips it for the same reason. `machine` and `login-item` skip it, because they write no file of
+  the install. `start` checks the repository that it starts.
+- The `--json` answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry
+  `answerVersion` (`cli/utils/ProgramAnswerUtil.ts`). With `--json`, a refusal of these commands is
+  `{answerVersion, refusal, text}` on stdout at exit 1. A change of shape increases `answerVersion`.
 - `src/TestFileConventions.spec.ts` holds that no spec starts an Overseer without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by
   `cli/CommandTable.spec.ts` and `cli/HelpText.spec.ts`.

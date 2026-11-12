@@ -41,8 +41,9 @@ describe('answerControlCommand', () => {
     const { request, runtimeCommands, wakes } = heldRoute(true);
     const held = await answerControlCommand({ kind: 'overseer-pause' }, request);
     expect(held.status).toBe(423);
-    expect(held.body).toEqual({ refusal: expect.stringContaining('update') });
-    expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request)).toEqual({ status: 200, body: { outcome: 'done', result: { kind: 'overseer-stop' } } });
+    expect(held.body).toEqual({ controlVersion: 1, refusal: 'launches-held-by-install-change', text: expect.stringContaining('update') });
+    const stopAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'overseer-stop' } };
+    expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request)).toEqual({ status: 200, body: stopAnswer });
     expect(runtimeCommands).toEqual([{ kind: 'overseer-stop', now: true }]);
     expect(wakes).toEqual([]);
   });

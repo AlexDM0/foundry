@@ -22,6 +22,7 @@ import { QuietWatch }                                     from '../../src/lib/qu
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
+import { AgentSlots }                                     from '../../src/services/overseer/AgentSlots.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import {
   type BatonPassFailure,
@@ -38,6 +39,7 @@ import { createDrivePass, type DrivePass }                          from '../../
 import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
 import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
 import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { MachineAgentLimit }                                        from '../../src/services/overseer/MachineAgentLimit.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts }       from '../../src/services/overseer/MonitorSnapshotAssembly.ts';
 import { MonitorStream }                                            from '../../src/services/overseer/MonitorStream.ts';
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
@@ -404,6 +406,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         batonPassWarning: state?.batonPassWarning ?? null,
       } as const;
     };
+    const monitorFolderOfTheMachine = context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
     const monitorFactsNow = (): MonitorOverseerFacts | null => {
       if (servedUrl === null || servedGeneration === null || startedAt === null) return null;
       return {
@@ -417,6 +420,11 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         codeVersion,
         codeVersionOnDisk,
         installVersion: INSTALL_VERSION,
+        machine:        {
+          limit:                        MachineAgentLimit.readingIn(monitorFolderOfTheMachine, MachineAgentLimit.cpuCeiling()).limit,
+          agentsInFlight:               AgentSlots.liveHoldingCountIn(context.platformPorts, monitorFolderOfTheMachine),
+          ticketsWaitingForMachineSlot: current?.drivePass.state().ticketsWaitingForMachineSlot ?? 0,
+        },
       };
     };
     const server = OverseerServer.start({

@@ -55,9 +55,15 @@ export type OperationRefusalDetail =
   | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'malformed-hatch-request'; requestId: string }
-  | { kind: 'hatch-identity-mismatch'; requestId: string; jobId: string };
+  | { kind: 'hatch-identity-mismatch'; requestId: string; jobId: string }
+  | { kind: 'overseer-not-answering'; url: string }
+  | { kind: 'login-item-unavailable'; reason: string }
+  | { kind: 'login-item-not-changed'; location: string; reason: string }
+  | { kind: 'machine-agent-limit-above-cpus'; limit: number; ceiling: number }
+  | { kind: 'machine-agent-limit-not-whole'; limit: number }
+  | { kind: 'machine-limits-newer-version'; filePath: string; version: number };
 
-function reasonCodeOf(detail: OperationRefusalDetail): string {
+export function reasonCodeOf(detail: OperationRefusalDetail): string {
   if (detail.kind === 'role-command-refused') return detail.reason;
   return detail.kind === 'board-refusal' ? detail.boardRefusal.reason : detail.kind;
 }

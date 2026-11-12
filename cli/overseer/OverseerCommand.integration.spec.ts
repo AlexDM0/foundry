@@ -296,6 +296,28 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     await stopOverseer();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
+  test('start twice answers started true, then false, both at exit 0 with one Overseer live, and stop answers done', async () => {
+    const first = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(first.exitCode, first.standardError).toBe(0);
+    const firstAnswer = JSON.parse(first.standardOutput) as Record<string, unknown>;
+    expect(firstAnswer).toEqual({
+      answerVersion:  1,
+      started:        true,
+      url:            expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+\/$/),
+      generation:     1,
+      trackerId:      expect.any(String),
+      codeVersion:    CodeVersion.onDisk(),
+      installVersion: expect.any(Number),
+      contracts:      { summary: 1, monitor: 1, control: 1 },
+    });
+    const second = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(second.exitCode, second.standardError).toBe(0);
+    expect(JSON.parse(second.standardOutput)).toEqual({ ...firstAnswer, started: false });
+    expect(batonFileNames()).toEqual(['baton-1.json']);
+    const stopped = await runAgentProgress(['stop', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 1, outcome: 'done' });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
   test('a detached Overseer prints its URL once it answers; status reports it serving; restart keeps its port under a new process', async () => {
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);

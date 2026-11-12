@@ -100,6 +100,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'overseer-stop':             { kind: 'overseer-stop', now: true },
   'overseer-restart':          { kind: 'overseer-restart', now: false },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
+  'machine-agent-limit-set':   { kind: 'machine-agent-limit-set', limit: 2 },
   'pipeline-prepare-step-set': { kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install' } },
   'pipeline-gate-add':         { kind: 'pipeline-gate-add', gate: { name: 'test', run: 'bun test', definedBy: ['bunfig.toml'] } },
   'pipeline-gates-none':       { kind: 'pipeline-gates-none' },

@@ -10,6 +10,7 @@ import type { ControlCommandKind }                                              
 import { COMMAND_NAMES }                                                                          from './CommandTable.ts';
 import { OTHER_VERBS_OF_CONTROL_KIND, READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
 import { QUESTION_SUBCOMMAND_NAMES }                                                              from './decisions/QuestionCommand.ts';
+import { MACHINE_SUBCOMMAND_NAMES }                                                               from './dispatch/machine/MachineCommand.ts';
 import { DRAFT_SUBCOMMAND_NAMES }                                                                 from './drafts/DraftCommand.ts';
 import { EPIC_SUBCOMMAND_NAMES }                                                                  from './epics/EpicCommand.ts';
 import { GATE_SUBCOMMAND_NAMES }                                                                  from './gates/GateCommand.ts';
@@ -18,6 +19,7 @@ import { INTAKE_SUBCOMMAND_NAMES }                                              
 import { JOB_SUBCOMMAND_NAMES }                                                                   from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                                                 from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                                               from './overseer/OverseerCommand.ts';
+import { LOGIN_ITEM_SUBCOMMAND_NAMES }                                                            from './setup/login-item/LoginItemCommand.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                                                from './tickets/TicketCommand.ts';
 import { WORKTREE_SUBCOMMAND_NAMES }                                                              from './worktrees/WorktreeCommand.ts';
 
@@ -43,13 +45,17 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
   'init',
   'update',
   'oversee',
+  'start',
+  'stop',
+  'login-item add',
+  'login-item remove',
 ];
 
 /**
  * `open` writes no tracker file but launches a browser and registers the dashboard, so a session under a job may not run it; `await` is
- * the wait of User's own session around the Overseer, which runs under no job.
+ * the wait of User's own session around the Overseer, which runs under no job; `login-item status` reads the login item and writes nothing.
  */
-const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'open', 'await'];
+const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'open', 'await', 'login-item status'];
 
 /** Verbs design section 9.2 retires, which no command replaces; T26 retired `ticket claim` and the measurement hook events, T26b `render`. */
 const RETIRING_VERBS = ['hook'];
@@ -81,6 +87,8 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
     if (command === 'question') return subcommandVerbsOf(command, QUESTION_SUBCOMMAND_NAMES);
+    if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
+    if (command === 'login-item') return subcommandVerbsOf(command, LOGIN_ITEM_SUBCOMMAND_NAMES);
     // The measurement events retire as `hook`; the network guard an Overseer renders into a job's settings stays.
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
     return [command];

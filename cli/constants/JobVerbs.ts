@@ -75,6 +75,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'overseer-stop':             'oversee stop',
   'overseer-restart':          'oversee restart',
   'concurrency-set':           'concurrency',
+  'machine-agent-limit-set':   'machine limit',
   'pipeline-prepare-step-set': 'gate prepare',
   'pipeline-gate-add':         'gate add',
   'pipeline-gates-none':       'gate none',

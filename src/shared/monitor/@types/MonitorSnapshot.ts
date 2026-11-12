@@ -107,7 +107,13 @@ export interface MonitorSnapshot {
     readonly codeVersionOnDisk: string;
     readonly installVersion:    number;
   };
-  readonly concurrency:         { readonly limit: number; readonly agentsInFlight: number };
+  readonly concurrency:         {
+    readonly limit:                        number;
+    readonly agentsInFlight:               number;
+    readonly machineLimit:                 number;
+    readonly machineAgentsInFlight:        number;
+    readonly ticketsWaitingForMachineSlot: number;
+  };
   readonly ticketCountByStatus: Readonly<Record<string, number>>;
   readonly readyTicketIds:      readonly string[];
   readonly openIncidents:       number;
