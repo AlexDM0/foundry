@@ -986,14 +986,15 @@ the Overseer's own, so the regrouping never names it as a leftover.
 Apply turns the record's draft into `pipeline.json`. The constitution is the tracked file `CONSTITUTION.md` at the
 repository root, which only a commit on the main line can change, so Apply has two stages.
 
-Stage 1 is the `pipeline apply` hold. It reads main's `CONSTITUTION.md` and its blob id, and refuses, in this order:
-a revision other than the draft's (`pipeline-draft-stale`); an open setup question (`setup-question-open`, naming the
-questions); a step before Apply that needs a recheck (`setup-step-needs-recheck`); a snapshot a turn end found touched
-(`setup-snapshot-touched`); an older or malformed `pipeline.json`, unless the record was opened with
-`--replace-unreadable` (`older-pipeline`, `malformed-pipeline`); a `CONSTITUTION.md` on main that is not the one the
-record opened on (`constitution-moved`), unless main already holds the draft's text; a draft with no constitution
-text while main holds one (`constitution-empty`); and a stored pipeline whose content hash is neither the record's
-`baseContentHash` nor this draft's as applied (`pipeline-moved`). Then:
+Stage 1 is the `pipeline apply` hold. It refuses, in this order: an older or malformed `pipeline.json`, unless the
+record was opened with `--replace-unreadable` (`older-pipeline`, `malformed-pipeline`); a main whose `CONSTITUTION.md`
+git cannot read (`main-constitution-unreadable`, exit 2), since it reads that file and its blob id next; another
+revision while an earlier request waits (`pipeline-apply-pending`); a revision other than the draft's
+(`pipeline-draft-stale`); an open setup question (`setup-question-open`, naming the questions); a step before Apply that
+needs a recheck (`setup-step-needs-recheck`); a snapshot a turn end found touched (`setup-snapshot-touched`); a
+`CONSTITUTION.md` on main that is not the one the record opened on (`constitution-moved`), unless main already holds
+the draft's text; a draft with no constitution text while main holds one (`constitution-empty`); and a stored pipeline
+whose content hash is neither the record's `baseContentHash` nor this draft's as applied (`pipeline-moved`). Then:
 
 - When main already holds the draft's text byte for byte as `CONSTITUTION.md`, or the draft has no text and main no
   file, stage 2 runs in the same hold and no commit is made.
@@ -2143,11 +2144,11 @@ The pipeline agent's sources of the constitution the main line holds, beside `pi
 ```
 
 An annotation is as the [setup record](#datapipeline-setupjson) holds it. The sources belong to one text: `pipeline
-update` and `advise` start their constitution with them only when `blob` is main's blob id of `CONSTITUTION.md`, so the
-sources of another text never show. Keys the CLI does not know are kept at the top level, in their stored order, so a
-read and a write leave the file byte for byte. A file that is not JSON, has another `formatVersion`, has no `blob` or a
-malformed annotation is malformed: its sources show nowhere, nothing but an Apply writes over it, and every command runs
-as before.
+setup`, `pipeline update` and `advise` start their constitution with them only when `blob` is main's blob id of
+`CONSTITUTION.md`, so the sources of another text never show. Keys the CLI does not know are kept at the top level,
+in their stored order, so a read and a write leave the file byte for byte. A file that is not JSON, has another
+`formatVersion`, has no `blob` or a malformed annotation is malformed: its sources show nowhere, nothing but an Apply
+writes over it, and every command runs as before.
 
 ### `<data>/log.jsonl`
 

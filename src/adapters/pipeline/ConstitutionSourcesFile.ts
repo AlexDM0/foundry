@@ -53,7 +53,7 @@ function read(sourcesFilePath: string): ConstitutionSourcesReading {
   return documentReadingOf(parsedJson.value);
 }
 
-/** Each annotation in the read's key order, then every key this build does not know. */
+/** The owned keys, each annotation's four keys in the order the setup record writes them, then every key this build does not know. */
 function contentsOf(sources: Readonly<StoredConstitutionSources>): string {
   // `fromEntries` makes every stored key an own property, so a stored `__proto__` stays data instead of setting the prototype.
   return JsonTextUtil.storedFileTextOf(Object.fromEntries([
