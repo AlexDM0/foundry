@@ -56,7 +56,7 @@ export interface AgentStepSettings {
   instructions?: InstructionEntry[];
 }
 
-/** Present means on: a re-review runs when the fixes change at least `thresholdLines` lines. */
+/** Present means on: a re-review runs when the fixes change more than `thresholdLines` lines. */
 export interface ConditionalReReview {
   thresholdLines: number;
 }
