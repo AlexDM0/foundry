@@ -1,9 +1,10 @@
 /**
  * The modal dialog, in a happy-dom document. What matters: closed, it renders nothing; open, it is a modal `<dialog>` shown through
- * `showModal()`, named by its title and described by its description; opening focuses the first field, or × when there is none; Esc,
- * × and a click on the backdrop call `onDismiss` with their reason, while a click inside the panel, a press that began inside it and an
- * Esc a layer above already took do not; Tab and Shift+Tab cycle inside it; on close the focus returns to the opener; and the words are
- * text, never markup. happy-dom's `showModal()` only sets `open` and fires no `cancel`, so the cases send the events themselves.
+ * `showModal()`, named by its title and described by its description; opening focuses the element the caller names, else the first
+ * field, or × when there is none; Esc, × and a click on the backdrop call `onDismiss` with their reason, while a click inside the panel,
+ * a press that began inside it and an Esc a layer above already took do not; Tab and Shift+Tab cycle inside it; on close the focus
+ * returns to the opener; and the words are text, never markup. happy-dom's `showModal()` only sets `open` and fires no `cancel`, so the
+ * cases send the events themselves.
  */
 import {
   act,
@@ -18,7 +19,7 @@ import {
   expect,
   test
 } from 'bun:test';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import { Button }                                               from './Button.tsx';
 import { Dialog, type DialogDismissalReason, type DialogWidth } from './Dialog.tsx';
@@ -102,6 +103,20 @@ describe('the dialog', () => {
     render(<OpenedDialog reasons={[]} />);
     openFromTheOpener();
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Example field' }));
+  });
+
+  test('opening focuses the element the caller names before the first field', () => {
+    function NamedFocusDialog() {
+      const group = useRef<HTMLButtonElement>(null);
+      return (
+        <Dialog title="Example step" isOpen onDismiss={() => undefined} closeLabel="Close" width="standard" initialFocus={group}>
+          <input aria-label="Example field" />
+          <button ref={group} type="button">Example choice</button>
+        </Dialog>
+      );
+    }
+    render(<NamedFocusDialog />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Example choice' }));
   });
 
   test('opening a dialog with no field focuses ×', () => {

@@ -4,7 +4,8 @@
  * `#pipeline/edit/constitution` while an applied pipeline is edited), the bare `#pipeline` of an open setup the resume summary; each
  * of them carries its own heading, and every other screen shows its title. The setup landing names an unreadable `pipeline.json` in a
  * warn banner. The flow screen draws the pipeline flow, the smallest pipeline's note beside it, the gates area under them (a Gates node
- * selects its phase's tab and scrolls to it), and, while editing, the footer with the removed steps, Discard and Apply changes.
+ * selects its phase's tab and scrolls to it), the dialog a node, a gate row or a + opens, and, while editing, the footer with the removed
+ * steps, Discard and Apply changes.
  */
 import { useRef, useState } from 'react';
 
@@ -21,6 +22,7 @@ import { CommandButton }           from '../../shell/CommandButton.tsx';
 import type { BridgeRoute }        from '../../shell/HashRouter.ts';
 
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
+import { PipelineDialogs }                                                from './dialogs/PipelineDialogs.tsx';
 import { PipelineFlow, type FlowOpenRequest }                             from './flow/PipelineFlow.tsx';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
 import { GatesArea }                                                      from './gates/GatesArea.tsx';
@@ -89,6 +91,7 @@ function FlowScreen({ facts, boardStore }: FlowScreenProps) {
         onOpen={setOpenRequest}
         areaRef={gatesAreaRef}
       />
+      <PipelineDialogs facts={facts} request={openRequest} onClose={() => setOpenRequest(null)} />
       {editing
         ? (
           <ActionBar

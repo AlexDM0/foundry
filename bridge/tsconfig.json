@@ -13,6 +13,7 @@
     "./**/*.tsx",
     "../src/shared/constants/ProductNames.ts",
     "../src/shared/constants/DispatchProtocol.ts",
+    "../src/shared/constants/OverseerLimits.ts",
     "../src/lib/html-escape/HtmlEscapeUtil.ts",
     "../src/lib/local-time/LocalTimeUtil.ts",
     "../src/lib/token-count/TokenCountUtil.ts",

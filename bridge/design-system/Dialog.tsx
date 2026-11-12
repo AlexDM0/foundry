@@ -1,7 +1,8 @@
 /**
  * A modal over the whole page: a native `<dialog>` shown with `showModal()`, which makes the page behind it inert. Esc, × and a click on
- * the backdrop ask the caller to dismiss it, with the reason; the caller closes it through `isOpen`. On open the focus moves to the first
- * field (× when there is none) and Tab cycles inside; on close it slides out and the focus returns to the element that held it before.
+ * the backdrop ask the caller to dismiss it, with the reason; the caller closes it through `isOpen`. On open the focus moves to the element
+ * the caller names, else to the first field (× when there is none), and Tab cycles inside; on close it slides out and the focus returns to
+ * the element that held it before.
  */
 import {
   useEffect,
@@ -38,18 +39,20 @@ export type DialogDismissalReason = 'escape' | 'close' | 'backdrop';
 export type DialogWidth = 'narrow' | 'standard' | 'wide' | 'widest';
 
 export interface DialogProps {
-  readonly title:        string;
+  readonly title:         string;
   /** The small-capitals line over the title. */
-  readonly kicker?:      string;
+  readonly kicker?:       string;
   /** What sits after the title on its line, such as a meter. */
-  readonly headEnd?:     ReactNode;
-  readonly description?: string;
-  readonly isOpen:       boolean;
-  readonly onDismiss:    (reason: DialogDismissalReason) => void;
-  readonly closeLabel:   string;
-  readonly width:        DialogWidth;
-  readonly foot?:        ReactNode;
-  readonly children:     ReactNode;
+  readonly headEnd?:      ReactNode;
+  readonly description?:  string;
+  readonly isOpen:        boolean;
+  readonly onDismiss:     (reason: DialogDismissalReason) => void;
+  readonly closeLabel:    string;
+  readonly width:         DialogWidth;
+  readonly foot?:         ReactNode;
+  /** What takes the focus on open, such as a group the form starts with; absent or empty, the first field does. */
+  readonly initialFocus?: RefObject<HTMLElement | null>;
+  readonly children:      ReactNode;
 }
 
 function focusableElementsIn(container: HTMLElement): HTMLElement[] {
@@ -89,7 +92,8 @@ function useShowing(isOpen: boolean, dialog: RefObject<HTMLDialogElement | null>
 function useModalFocus(
   isShown: boolean,
   dialog: RefObject<HTMLDialogElement | null>,
-  closeButton: RefObject<HTMLButtonElement | null>
+  closeButton: RefObject<HTMLButtonElement | null>,
+  initialFocus: RefObject<HTMLElement | null> | undefined
 ): RefObject<boolean> {
   const isClosingItself = useRef(false);
   useLayoutEffect(() => {
@@ -99,18 +103,18 @@ function useModalFocus(
     isClosingItself.current = false;
     if (!element.open) element.showModal();
     const firstField = element.querySelector<HTMLElement>(FIELD_SELECTOR);
-    (firstField ?? closeButton.current)?.focus({ preventScroll: true });
+    (initialFocus?.current ?? firstField ?? closeButton.current)?.focus({ preventScroll: true });
     return () => {
       isClosingItself.current = true;
       if (element.open) element.close();
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
     };
-  }, [isShown, dialog, closeButton]);
+  }, [isShown, dialog, closeButton, initialFocus]);
   return isClosingItself;
 }
 
 export function Dialog({
-  title, kicker, headEnd, description, isOpen, onDismiss, closeLabel, width, foot, children
+  title, kicker, headEnd, description, isOpen, onDismiss, closeLabel, width, foot, initialFocus, children
 }: DialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -118,7 +122,7 @@ export function Dialog({
   const titleId = useId();
   const descriptionId = useId();
   const { isShown, isLeaving } = useShowing(isOpen, dialog);
-  const isClosingItself = useModalFocus(isShown, dialog, closeButton);
+  const isClosingItself = useModalFocus(isShown, dialog, closeButton, initialFocus);
   if (!isShown) return null;
 
   const dismissOnKey = (event: KeyboardEvent<HTMLDialogElement>): void => {

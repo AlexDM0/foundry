@@ -66,7 +66,11 @@ you edit an applied pipeline, the same page at `#pipeline/edit/constitution` edi
 
 Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
 left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
-to open its settings; the merge of main before review has none, since the builder's settings drive it. The two switches,
+to open its settings; the merge of main before review has none, since the builder's settings drive it. An agent step's
+dialog sets its model, effort and instruction files, read top to bottom; the review step's also sets the re-review after
+its fixes, and a merge step's the re-review after a conflict merge. A gate's dialog sets its command, fix command, folder,
+phases and network, and its Profile box runs the gate once when you press it. Nothing changes until you press Save, and
+on a live board the first Save opens an edit. The two switches,
 Human ticket review and Human code review, change the pipeline at once; on a live board the first change opens an
 edit. A + sits where a step is missing and offers what fits there. While you edit, the footer lists the steps you
 removed, with Discard and Apply changes. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.

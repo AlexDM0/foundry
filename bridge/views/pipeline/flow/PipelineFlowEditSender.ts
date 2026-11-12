@@ -27,12 +27,15 @@ interface HeldEdits {
   readonly awaitsStart:   boolean;
 }
 
-/** `target` is the open record the edits go to; `null` on a live board, where the first gesture opens one. */
-export function usePipelineFlowEditSender(target: DraftEditTarget | null): PipelineFlowEditSender {
+/**
+ * `target` is the open record the edits go to; `null` on a live board, where the first gesture opens one. `onEditsApplied` is called once
+ * the Overseer applied a gesture's edits, so a dialog can close.
+ */
+export function usePipelineFlowEditSender(target: DraftEditTarget | null, onEditsApplied?: () => void): PipelineFlowEditSender {
   const [heldEdits, setHeldEdits] = useState<HeldEdits | null>(null);
   const sentGestureNumber = useRef(0);
   const editCommand = heldEdits === null || target === null ? null : PipelineFlowModel.draftEditCommandOf(target, heldEdits.edits);
-  const editSender = useControlCommand(editCommand);
+  const editSender = useControlCommand(editCommand, onEditsApplied === undefined ? {} : { onApplied: onEditsApplied });
   const updateStartSender = useControlCommand(UPDATE_START_COMMAND);
   const startWasRefused = updateStartSender.refusal !== null && heldEdits?.awaitsStart === true;
 

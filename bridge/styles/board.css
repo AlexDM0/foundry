@@ -62,6 +62,13 @@
  *                           textarea, its text transparent over the aria-hidden -mirror of -mirror-line[data-heading?][data-changed?]
  *                           rows (-mirror-text, a source tag, the drafting -caret), the visually hidden -sources-list, and the
  *                           -refusal line
+ *   .bridge-pipeline-dialog-body the step and gate dialogs (A3, A3c, A3d, A2b): -settings[data-size] of -field rows (-label, segments,
+ *                           -hint), the -instructions group (-instructions-head, -instruction-rows of listed files and the dashed
+ *                           -constitution-off row with its -constitution-off-text and -constitution-off-label, the -add-file field,
+ *                           the -note), the -info box[data-layout?], the -rereview[data-on?] box (-rereview-head, -rereview-heading,
+ *                           -switch, -threshold), the gate form's -columns, -phases, -checks and -check, -input[data-mono?], the
+ *                           -file-text of an opened file; the -foot (-foot-row, -foot-gap); the gate's .bridge-pipeline-profile[data-state]
+ *                           (-head, -status, -result[data-tone] with its -result-dot)
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -3737,3 +3744,73 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 @media (prefers-reduced-motion: reduce) {
   .bridge-pipeline-constitution-mirror-line[data-changed] { background: var(--new-text-tint); }
 }
+
+/* The step and gate dialogs: stacked rows at the dialog's full width, model and effort as full-width segments, the instruction list, the
+ * re-review box and the gate form; the foot puts the dialog's own actions on the start side and Cancel and Save on the end. */
+.bridge-pipeline-dialog-body { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-dialog-settings { display: flex; flex-direction: column; gap: var(--sp-3); }
+.bridge-pipeline-dialog-settings[data-size="compact"] { gap: var(--sp-2); }
+.bridge-pipeline-dialog-field { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.bridge-pipeline-dialog-label { font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-dialog-hint { font-size: var(--fs-small); line-height: 18px; color: var(--ink-3); }
+.bridge-pipeline-dialog-note { margin: 0; font-size: var(--fs-small); line-height: 18px; color: var(--ink-4); }
+.bridge-pipeline-dialog-instructions { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-pipeline-dialog-instructions-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.bridge-pipeline-dialog-instruction-rows { display: flex; flex-direction: column; gap: 6px; }
+.bridge-pipeline-dialog-constitution-off {
+  display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 32px; padding: 0 10px;
+  border: 1px dashed var(--line-hairline); border-radius: var(--r-2);
+}
+.bridge-pipeline-dialog-constitution-off-text { flex: 1 1 auto; font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-dialog-constitution-off-label { font-size: var(--fs-small); color: var(--ink-2); }
+.bridge-pipeline-dialog-add-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-dialog-add-file > .bridge-pipeline-dialog-input { flex: 1 1 240px; }
+.bridge-pipeline-dialog-input {
+  box-sizing: border-box; height: 32px; padding: 0 10px; font: inherit; color: var(--ink-1);
+  background: var(--surface-page); border: 1px solid var(--line-control); border-radius: 6px;
+}
+.bridge-pipeline-dialog-input[data-mono] { font-family: var(--font-mono); font-size: var(--fs-small); }
+.bridge-pipeline-dialog-input:focus-visible { border-color: var(--link); outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+.bridge-pipeline-dialog-file-text {
+  max-height: 420px; margin: 0; padding: var(--sp-3); overflow: auto; font: var(--fs-small)/1.5 var(--font-mono); white-space: pre-wrap;
+  color: var(--ink-2); background: var(--log-surface); border-radius: var(--r-2);
+}
+.bridge-pipeline-dialog-info {
+  display: flex; flex-direction: column; gap: var(--sp-1); padding: 10px 12px; font-size: var(--fs-small); line-height: 18px;
+  color: var(--ink-2); background: var(--surface-info); border-radius: var(--r-2);
+}
+.bridge-pipeline-dialog-info[data-layout="row"] { flex-direction: row; align-items: center; gap: 10px; }
+.bridge-pipeline-dialog-info strong { color: var(--ink-1); }
+.bridge-pipeline-dialog-rereview {
+  display: flex; flex-direction: column; gap: var(--sp-3); padding: 14px;
+  background: var(--surface-page); border: 1px solid var(--line-hairline); border-radius: 10px;
+}
+.bridge-pipeline-dialog-rereview-head { display: flex; align-items: center; gap: var(--sp-3); }
+.bridge-pipeline-dialog-rereview-heading { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; }
+.bridge-pipeline-dialog-switch { display: inline-flex; flex: none; }
+.bridge-pipeline-dialog-threshold { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ink-2); }
+.bridge-pipeline-dialog-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.bridge-pipeline-dialog-phases { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); font-size: var(--fs-small); }
+.bridge-pipeline-dialog-checks { display: inline-flex; flex-wrap: wrap; gap: var(--sp-4); }
+.bridge-pipeline-dialog-check { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-1); }
+.bridge-pipeline-dialog-check > input { margin: 0; accent-color: var(--link); }
+.bridge-pipeline-dialog-foot { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.bridge-pipeline-dialog-foot-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-dialog-foot-gap { flex: 1 1 auto; }
+.bridge-pipeline-profile {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  background: var(--surface-page); border: 1px solid var(--line-hairline); border-radius: 10px;
+}
+.bridge-pipeline-profile-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.bridge-pipeline-profile-status { display: flex; align-items: center; gap: var(--sp-2); color: var(--link); }
+.bridge-pipeline-profile-result {
+  display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 10px; border-radius: 6px;
+  color: var(--ink-2); background: var(--surface-raised);
+}
+.bridge-pipeline-profile-result[data-tone="passed"] { color: var(--done-ink); background: var(--done-fill); }
+.bridge-pipeline-profile-result[data-tone="timed-out"] { color: var(--change-changed-ink); background: var(--change-changed-fill); }
+.bridge-pipeline-profile-result[data-tone="red"] { color: var(--change-removed-ink); background: var(--change-removed-fill); }
+.bridge-pipeline-profile-result-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--line-arrow); }
+.bridge-pipeline-profile-result[data-tone="passed"] > .bridge-pipeline-profile-result-dot { background: var(--live-dot); }
+.bridge-pipeline-profile-result[data-tone="timed-out"] > .bridge-pipeline-profile-result-dot { background: var(--change-changed-dot); }
+.bridge-pipeline-profile-result[data-tone="red"] > .bridge-pipeline-profile-result-dot { background: var(--change-removed-edge); }

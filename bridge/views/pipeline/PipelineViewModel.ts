@@ -11,9 +11,9 @@ import type {
   PipelineFlowFacts,
   PipelineSetupFacts
 } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineSetup, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { StepperStatus }                    from '../../design-system/Stepper.tsx';
-import { HashRouter, type BridgeRoute }          from '../../shell/HashRouter.ts';
+import type { PipelineSetup, PipelineSetupMode, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { StepperStatus }                                       from '../../design-system/Stepper.tsx';
+import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
 
 /** The setup steps in their order. */
 export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
@@ -112,6 +112,12 @@ function setupStepFragmentOf(step: PipelineSetupStep): string {
   return HashRouter.fragmentOf(setupStepRouteOf(step));
 }
 
+/** Where the constitution is edited: its setup step in a first setup, else `#pipeline/edit/constitution` (an update, advise or a live board). */
+function constitutionFragmentOf(mode: PipelineSetupMode | null): string {
+  if (mode === 'setup') return setupStepFragmentOf('constitution');
+  return HashRouter.fragmentOf({ tab: 'pipeline', item: CONSTITUTION_EDIT_ITEM });
+}
+
 function screenTitleOf(screen: PipelineScreen): string {
   switch (screen.screen) {
     case 'setup-landing':
@@ -134,5 +140,5 @@ function unreadableTextOf(unreadable: UnreadablePipeline): string {
 }
 
 export const PipelineViewModel = Object.freeze({
-  screenOf, setupStepStatusOf, setupStepRouteOf, setupStepFragmentOf, screenTitleOf, unreadableTextOf,
+  screenOf, setupStepStatusOf, setupStepRouteOf, setupStepFragmentOf, constitutionFragmentOf, screenTitleOf, unreadableTextOf,
 });

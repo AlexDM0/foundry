@@ -3,7 +3,7 @@
  * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the flow;
  * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
  * Apply changes, while a live flow has no footer. The gates area stands under the flow, and Enter on a Gates node selects that phase's
- * tab.
+ * tab. A double-click on a node opens its dialog with the node selected, and closing it clears the selection.
  */
 import {
   cleanup,
@@ -73,5 +73,30 @@ describe('the Pipeline view', () => {
     fireEvent.keyDown(mergeGatesNode, { key: 'Enter' });
     expect(within(gates).getByRole('tab', { selected: true }).getAttribute('aria-label')).toBe('Merge, 3 gates');
     expect(within(gates).getByRole('tabpanel', { name: 'Merge gates' })).toBeDefined();
+  });
+
+  test('a double-click on a node opens its dialog with the node selected, and Esc closes it', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A6')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
+    const builderNode = document.querySelector<HTMLElement>('[data-flow-node-id="builder"] .bridge-flow-node');
+    if (builderNode === null) throw new Error('no Builder node');
+    fireEvent.doubleClick(builderNode);
+    expect(screen.getByRole('dialog', { name: 'Builder' })).toBeDefined();
+    expect(builderNode.hasAttribute('data-selected')).toBe(true);
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Builder' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Builder' })).toBeNull();
+    expect(builderNode.hasAttribute('data-selected')).toBe(false);
+  });
+
+  test('Enter on a gate row opens the Gate dialog of that row: a prepare row its prepare variant, a gate its place in the tab\'s phase', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
+    const rows = [...document.querySelectorAll<HTMLElement>('.bridge-pipeline-gate-row[aria-haspopup="dialog"]')];
+    const kickerAfterEnterOn = (row: HTMLElement | undefined): string | null => {
+      if (row === undefined) throw new Error('no gate row that opens a dialog');
+      fireEvent.keyDown(row, { key: 'Enter' });
+      const kicker = screen.getByRole('dialog').querySelector('.bridge-dialog-kicker')?.textContent ?? null;
+      fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+      return kicker;
+    };
+    expect([kickerAfterEnterOn(rows[0]), kickerAfterEnterOn(rows[1])]).toEqual(['Prepare step', 'Build gate 1']);
   });
 });
