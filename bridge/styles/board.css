@@ -1541,6 +1541,10 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
 .bridge-flow-node[data-mark="removed"] { border-style: dashed; border-color: var(--change-removed-row-edge); opacity: 0.55; }
 .bridge-flow-node[data-mark="removed"] .bridge-flow-node-title { text-decoration: line-through; }
 .bridge-flow-node[data-selected] { border-color: var(--link); box-shadow: inset 0 0 0 1px var(--link), 0 0 0 4px var(--accent-ring); }
+/* The glow animates box-shadow, so a selected node stops it and keeps its selection ring. */
+.bridge-flow-node[data-selected]:is([data-mark="proposed"], [data-mark="changed"]) {
+  animation: bridge-rise var(--motion-rise) var(--ease-out) calc(var(--rise-order, 0) * var(--rise-step)) both;
+}
 
 /* A labelled frame around nodes that run together, its label in small capitals at the top. */
 .bridge-flow-frame {
@@ -1590,6 +1594,8 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   .bridge-flow-node[data-mark="changed"] { animation: none; transition: none; }
   .bridge-flow-node[data-mark="proposed"],
   .bridge-flow-node[data-mark="changed"] { box-shadow: 0 0 0 4px var(--glow-ring); }
+  .bridge-flow-node[data-selected] { box-shadow: inset 0 0 0 1px var(--link), 0 0 0 4px var(--accent-ring); }
+  .bridge-flow-node[data-selected]:is([data-mark="proposed"], [data-mark="changed"]) { animation: none; }
   .bridge-flow-arrows .bridge-flow-arrow[data-tone] :is(.bridge-flow-arrow-line, .bridge-flow-arrow-head),
   :root[data-freshness="live"] .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { animation: none; stroke-dashoffset: 0; }
   .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { stroke-dasharray: none; }
