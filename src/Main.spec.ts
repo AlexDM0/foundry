@@ -7,8 +7,9 @@ import { describe, expect, test } from 'bun:test';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
-import { runGaia, type ProgramOutput } from './Main.ts';
-import { environmentCopy }             from './services/Environment.ts';
+import { runGaia, type ProgramOutput }               from './Main.ts';
+import { environmentCopy }                           from './services/Environment.ts';
+import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
 
 interface CapturedOutput extends ProgramOutput {
   readonly standardOutput: () => string;
@@ -34,9 +35,19 @@ describe('gaia version', () => {
   });
 
   test('prints the versioned JSON and exits 0 when run as the gaia program', () => {
-    const finished = Bun.spawnSync([process.execPath, join(import.meta.dir, 'Main.ts'), 'version', '--json'], { env: environmentCopy(), stdout: 'pipe', stderr: 'pipe' });
-    expect(finished.exitCode).toBe(0);
-    expect(JSON.parse(finished.stdout.toString())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
+    // A home of its own, removed after, since Bun keeps its transpiler cache in the home folder of the program it runs.
+    const programHome = createScratchDirectory('version-home');
+    try {
+      const finished = Bun.spawnSync([process.execPath, join(import.meta.dir, 'Main.ts'), 'version', '--json'], {
+        env:    { ...environmentCopy(), HOME: programHome },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      expect(finished.exitCode).toBe(0);
+      expect(JSON.parse(finished.stdout.toString())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
+    } finally {
+      removeScratchPath(programHome);
+    }
   });
 
   test('answers one readable line without --json', async () => {
@@ -50,6 +61,7 @@ describe('gaia help', () => {
   test('lists every verb, also when no verb is given', async () => {
     const output = capturedOutput();
     expect(await runGaia([], output)).toBe(0);
+    expect(output.standardOutput()).toContain('serve');
     expect(output.standardOutput()).toContain('version');
     expect(output.standardOutput()).toContain('help');
   });

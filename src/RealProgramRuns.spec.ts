@@ -15,6 +15,7 @@ import { RECORDING_SPEC_SUFFIX } from './testing/BoundaryRecordings.ts';
 const DIRECT_PROCESS_STARTS_ALLOWED: Readonly<Record<string, string>> = {
   'src/lib/process-run/ProcessRun.ts': 'the boundary to other programs itself',
   'src/Main.spec.ts':                  'runs Gaia\'s own program end to end, since other programs read its version answer from its output',
+  'src/Main.serve.spec.ts':            'runs gaia serve as the program the launcher starts, and stops it with a signal',
   'src/testing/LeakCheck.ts':          'reads the repository\'s git status after a run, to find a file the run left behind',
   'src/testing/LeakCheck.spec.ts':     'runs a planted test run under the preload, since the leak check judges a whole run',
 };
@@ -188,6 +189,7 @@ describe('the guard on program starts', () => {
     const violations = programRunViolationsOf([
       { path: 'src/lib/process-run/ProcessRun.ts', reaches: programReachesIn('ProcessRun.ts', 'Bun.spawn([]);') },
       { path: 'src/Main.spec.ts', reaches: programReachesIn('Main.spec.ts', 'Bun.spawnSync([]);') },
+      { path: 'src/Main.serve.spec.ts', reaches: programReachesIn('Main.serve.spec.ts', 'Bun.spawn([]);') },
       { path: 'src/testing/LeakCheck.ts', reaches: programReachesIn('LeakCheck.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/LeakCheck.spec.ts', reaches: programReachesIn('LeakCheck.spec.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/RecordBoundary.ts', reaches: programReachesIn('RecordBoundary.ts', realBoundaryImport) },
