@@ -1,8 +1,8 @@
 /**
  * The forge watch over a registry in the scratch root, recorded and authored Overseer answers, and timers the spec fires by hand. The flow
  * spec walks one forge through every stage PLAN 7.1 names, one answer set per stage: dormant, started, live, stream lost, unreachable and
- * back. Around it: a missing repository, a forge read as counts, another program on the port, a hidden forge, an unchanged registry, look
- * again, and a stop at any moment leaves no timer and no open stream. No spec waits a real interval.
+ * back. Around it: a missing repository, a forge read as counts, another program or another forge on the port, a hidden forge, an unchanged
+ * registry, look again, and a stop at any moment leaves no timer and no open stream. No spec waits a real interval.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -343,6 +343,18 @@ describe('a forge that cannot be read', () => {
     timers.fire(RECONNECT_MILLISECONDS);
     await timers.untilPending(RECONNECT_MILLISECONDS);
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/identity']);
+  });
+
+  test('reads unreachable when another forge answers at the address its registry entry names, and opens no stream', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(answersOf('serving', 'GET /api/identity'));
+    const { watch, timers, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+
+    const unreachable = onlyReadingOf(await untilReadings(onlyReadingIs('unreachable', 'unreachable')));
+    expect(unreachable.trackerId).toBe(STOREFRONT_TRACKER_ID);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity']);
   });
 
   test('counts a stream whose token is refused as a failed try', async () => {
