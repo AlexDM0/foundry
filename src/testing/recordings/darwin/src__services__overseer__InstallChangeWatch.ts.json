@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"codeVersion\": \"df333fadbfa8\",\n  \"installVersion\": 28\n}\n",
+        "stdout": "{\n  \"codeVersion\": \"3eff182f9f1b\",\n  \"installVersion\": 28\n}\n",
         "stderr": ""
       }
     },
