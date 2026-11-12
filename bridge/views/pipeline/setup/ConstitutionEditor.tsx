@@ -70,8 +70,13 @@ export function ConstitutionEditor({
       setEditorText((current) => ConstitutionEditorModel.savedTextOf(current, { markdown: savedOnText.text, revision: savedOnText.baseRevision }));
     },
   });
-  if (sender.refusal !== null && !refusalIsHeld) setRefusalIsHeld(true);
-  const refusalIsShown = sender.refusal !== null && ConstitutionEditorModel.textIsUnsaved(savedOnText);
+  // Only a refusal that just arrived holds; one that Discard my edit let go stays let go.
+  const [heldRefusal, setHeldRefusal] = useState<string | null>(null);
+  if (sender.refusal !== heldRefusal) {
+    setHeldRefusal(sender.refusal);
+    if (sender.refusal !== null) setRefusalIsHeld(true);
+  }
+  const refusalIsShown = refusalIsHeld && sender.refusal !== null && ConstitutionEditorModel.textIsUnsaved(savedOnText);
 
   const save = (): void => {
     void sender.send();

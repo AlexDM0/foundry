@@ -2,9 +2,10 @@
  * The constitution step against fake controls. What matters: a source tag shows exactly on the lines the annotations anchor; READ BY
  * lists the facts' readers; Preview is a sandboxed frame and the mirror draws the text through React, never as HTML; a blur or Cmd/Ctrl+S
  * saves the whole markdown with the revision User saw, only when it changed; a stale save shows its refusal verbatim, keeps User's text,
- * and the next save goes on top of the new facts; the facts' re-anchored annotations drop the edited line's tag and keep the others; the
- * footer counts the outline with the Draft chip; the mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and
- * Continue send their commands; at `#pipeline/edit/constitution` the same step shows only Back to the flow.
+ * and the next save goes on top of the new facts, but after Discard my edit a new edit saves on the revision User saw; the facts'
+ * re-anchored annotations drop the edited line's tag and keep the others; the footer counts the outline with the Draft chip; the
+ * mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and Continue send their commands; at
+ * `#pipeline/edit/constitution` the same step shows only Back to the flow.
  */
 import {
   act,
@@ -181,6 +182,23 @@ describe('the save', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Discard my edit' }));
     expect(editor().value).toBe(factsText);
     expect(screen.queryByText('Example refusal.')).toBeNull();
+  });
+
+  test('after Discard my edit, a new edit shows no old refusal and saves on the revision User saw, not on a newer draft', async () => {
+    const { controls, show } = renderConstitution();
+    const factsText = editor().value;
+    fireEvent.change(editor(), { target: { value: `${factsText}- Typed.\n` } });
+    controls.answerNextWith({ verdict: 'refused', refusal: 'Example refusal.' });
+    await blurSettled(editor());
+    fireEvent.click(screen.getByRole('button', { name: 'Discard my edit' }));
+    const typedAgain = `${factsText}- Typed again.\n`;
+    fireEvent.change(editor(), { target: { value: typedAgain } });
+    expect(screen.queryByText('Example refusal.')).toBeNull();
+    show(withConstitution(pipelineBoardStateOf('A3b'), '# The agent redrafted it\n', 4));
+    await blurSettled(editor());
+    expect(controls.sent.at(-1)).toEqual({
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown: typedAgain
+    });
   });
 
   test('the facts re-anchored after a save drop the edited line tag and keep every other tag', async () => {
