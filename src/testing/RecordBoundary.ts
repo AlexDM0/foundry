@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { AtomicFile }        from '../lib/atomic-file/AtomicFile.ts';
 import { realProcessRun }    from '../lib/process-run/ProcessRun.ts';
 import { environmentCopy }   from '../services/Environment.ts';
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
@@ -54,7 +55,9 @@ function collectedAnswersIn(answersPath: string): CollectedAnswers {
   return { verdict: 'collected', answers };
 }
 
-function writeRecording(boundary: RecordedBoundary, answers: readonly RecordedAnswer[]): string {
+type RecordingWrite = { readonly verdict: 'written'; readonly recordingPath: string } | { readonly verdict: 'unwritable'; readonly failure: string };
+
+async function writeRecording(boundary: RecordedBoundary, answers: readonly RecordedAnswer[]): Promise<RecordingWrite> {
   const recording: BoundaryRecording = {
     recordingVersion: CONTRACT_VERSIONS.boundaryRecording,
     stamp:            {
@@ -68,8 +71,8 @@ function writeRecording(boundary: RecordedBoundary, answers: readonly RecordedAn
   };
   const recordingPath = recordingPathOf(boundary.recordingName, process.platform);
   mkdirSync(dirname(join(repositoryRoot(), recordingPath)), { recursive: true });
-  writeFileSync(join(repositoryRoot(), recordingPath), `${JSON.stringify(recording, null, JSON_INDENT_SPACES)}\n`);
-  return recordingPath;
+  const written = await AtomicFile.write(join(repositoryRoot(), recordingPath), `${JSON.stringify(recording, null, JSON_INDENT_SPACES)}\n`);
+  return written.verdict === 'written' ? { verdict: 'written', recordingPath } : written;
 }
 
 export async function recordBoundary(recordingName: string, output: RecordOutput): Promise<number> {
@@ -100,8 +103,12 @@ export async function recordBoundary(recordingName: string, output: RecordOutput
       output.writeStandardError(`The spec recorded two different answers for ${collected.callShape}: nothing is recorded.\n`);
       return 1;
     }
-    const recordingPath = writeRecording(boundary, collected.answers);
-    output.writeStandardOutput(`Recorded ${collected.answers.length} answers to ${recordingPath}.\n`);
+    const recordingWrite = await writeRecording(boundary, collected.answers);
+    if (recordingWrite.verdict === 'unwritable') {
+      output.writeStandardError(`The recording of ${boundary.recordingName} could not be written (${recordingWrite.failure}): nothing is recorded.\n`);
+      return 1;
+    }
+    output.writeStandardOutput(`Recorded ${collected.answers.length} answers to ${recordingWrite.recordingPath}.\n`);
     return 0;
   } finally {
     if (existsSync(answersPath)) rmSync(answersPath);
