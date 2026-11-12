@@ -21,6 +21,7 @@ import {
 
 import { hatchReplyFilePathOf, writeHatchRequest }          from '../../src/adapters/hatch/HatchFolder.ts';
 import { UsageMarkerFile }                                  from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageWindowsFile }                                 from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { OperationRefusalWordingUtil }                      from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { createWindowsExecutableResolver }                  from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
@@ -551,7 +552,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     }, () => `the interrupted job resuming on instance 2: ${overseerLog.join('\n')}`);
   });
 
-  test('a per-window warning, or a window rejected under an allowed top level, interrupts nothing and writes no marker', async () => {
+  test('a per-window warning, or a window rejected under an allowed top level, interrupts nothing and writes no marker, only the windows', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       { kind: 'print', line: rateLimitLine('allowed_warning', 'seven_day', 'allowed_warning') },
@@ -566,6 +567,15 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)?.state).toBe('running');
     expect(UsageMarkerFile.read(monitorFolder)).toEqual({ verdict: 'absent' });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('usage-limit-hit');
+    // The fake agent fills each planted line from a recorded one, so the window a line does not plant keeps its recorded values.
+    const plantedFiveHour = { window: 'five_hour', utilization: 1, resetsAt: USAGE_RESET_STAMP };
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      const reading = UsageWindowsFile.read(monitorFolder);
+      return reading.verdict === 'read' && reading.windows.some((observation) => Bun.deepEquals(observation, plantedFiveHour));
+    }, () => `the planted window recorded: ${JSON.stringify(UsageWindowsFile.read(monitorFolder))}`);
+    const reading = UsageWindowsFile.read(monitorFolder);
+    expect(reading.verdict === 'read' ? reading.windows.map((observation) => observation.window) : []).toEqual(['five_hour', 'seven_day']);
   });
 });
 

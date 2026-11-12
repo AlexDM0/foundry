@@ -16,6 +16,7 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
 import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
@@ -427,9 +428,11 @@ function lostWatcherCauseOf(watcher: WatcherObservation): InterruptionCause {
 }
 
 interface AppliedWatcherEvents {
-  usageLimitHits:  UsageLimitHit[];
+  usageLimitHits:          UsageLimitHit[];
+  /** Every usage window the streams reported, in stream order, which the pass records after the hold. */
+  usageWindowObservations: UsageWindowObservation[];
   /** Sessions a refused key or a budget stop ended the work of, which the pass stops after the hold. */
-  stoppedSessions: StoppedSession[];
+  stoppedSessions:         StoppedSession[];
 }
 
 /** What the watcher events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
@@ -453,6 +456,7 @@ function applyWatcherEvents(
   const { board, at } = change;
   const { apiBilling } = facts;
   const usageLimitHits: UsageLimitHit[] = [];
+  const usageWindowObservations: UsageWindowObservation[] = [];
   const stoppedSessions: StoppedSession[] = [];
   const apiRateLimitResetsAt = apiBilling === null ? null : UsageLimits.apiRateLimitResetsAtOf(at);
   for (const watcher of watchers) {
@@ -462,6 +466,8 @@ function applyWatcherEvents(
       if (entry.origin !== 'agent') continue;
       for (const event of adapter.eventsOf(entry.line)) {
         const state = board.jobById(watcher.jobId)?.state;
+        const windowObservation = UsageLimits.windowObservationOf(event, apiBilling !== null);
+        if (windowObservation !== null) usageWindowObservations.push(windowObservation);
         const refusal = UsageLimits.refusalOf(event, apiRateLimitResetsAt);
         if (refusal !== null && state === 'running') {
           const hit = { jobId: watcher.jobId, ...refusal };
@@ -512,7 +518,7 @@ function applyWatcherEvents(
       board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : 'agent-crashed', at);
     }
   }
-  return { usageLimitHits, stoppedSessions };
+  return { usageLimitHits, usageWindowObservations, stoppedSessions };
 }
 
 /** One decision per folder, its context the folder itself, so a restart finding the same folder opens no second one. */
@@ -1041,7 +1047,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         request.afterHoldPhase?.('relayed-commands', change.board);
         const billing = change.board.pipeline()?.billing;
         const watcherEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
-        const { usageLimitHits, stoppedSessions } = applyWatcherEvents(
+        const { usageLimitHits, usageWindowObservations, stoppedSessions } = applyWatcherEvents(
           change,
           request.agentAdapter,
           observation.watchers,
@@ -1086,6 +1092,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           endedJobIdsExaminedThisPass,
           endedAssistantJobs:       downAssistants.endedJobs,
           usageLimitHits,
+          usageWindowObservations,
           stoppedSessions,
           usageResetsAt,
           attributionTicketIds:     JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
@@ -1104,6 +1111,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const jobId of written.result.endedJobIdsExaminedThisPass) endedJobIdsExamined.add(jobId);
     HatchInbox.writeReplies(written.result.replies);
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
+    UsageLimits.recordWindowObservations(request.monitorFolder, written.result.usageWindowObservations);
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);

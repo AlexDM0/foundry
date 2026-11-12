@@ -1,7 +1,8 @@
 /**
  * The pure parts of the usage-limit handling. What matters: only a top-level refusal counts, never a warning; the reset the policy holds by
  * is the latest of the marker's and this pass's hits, so a limit met in this hold already holds its launches; a marker is never moved
- * earlier, since another board may have met a longer limit; and the scheduled wake never overflows the timer, which would fire at once.
+ * earlier, since another board may have met a longer limit; the scheduled wake never overflows the timer, which would fire at once; and
+ * every reported window is shown, as a whole percent, except under API billing, where no window counts.
  */
 import {
   afterEach,
@@ -11,6 +12,7 @@ import {
   test
 } from 'bun:test';
 import { UsageMarkerFile }                                from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowsReading }                       from '../../adapters/usage-marker/UsageWindowsFile.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { UsageLimits }                                    from './UsageLimits.ts';
 
@@ -87,5 +89,40 @@ describe('millisecondsUntilReset', () => {
 
   test('a reset weeks away is capped at the longest delay a timer holds, so the wake never fires at once', () => {
     expect(UsageLimits.millisecondsUntilReset('2026-12-31T00:00:00.000Z', now)).toBe(2_147_483_647);
+  });
+});
+
+describe('the usage windows', () => {
+  const observation = { window: 'five_hour', utilization: 0.19, resetsAt: '2026-11-01T22:00:00.000Z' };
+  const windowsRead: UsageWindowsReading = {
+    verdict: 'read', windows: [observation, { window: 'seven_day', utilization: 0.461, resetsAt: '2026-11-04T09:00:00.000Z' }], storedText: '', document: {}
+  };
+
+  test('every reported window is an observation, refused or not, and nothing else is one', () => {
+    const refusedWindow = UsageLimits.windowObservationOf({ ...WINDOW_EVENT, requestsRefused: true }, false);
+    expect(refusedWindow).toEqual({ window: 'five_hour', utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z' });
+    expect(UsageLimits.windowObservationOf({ ...WINDOW_EVENT, status: 'allowed', requestsRefused: false }, false)).not.toBeNull();
+    expect(UsageLimits.windowObservationOf({ kind: 'permission-denied', toolName: 'Bash' }, false)).toBeNull();
+  });
+
+  test('under API billing no window is an observation', () => {
+    expect(UsageLimits.windowObservationOf({ ...WINDOW_EVENT, requestsRefused: false }, true)).toBeNull();
+  });
+
+  test('the facts show only the windows seen, each as a whole percent, beside the marker', () => {
+    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, windowsRead, false)).toEqual({
+      resetsAt: null,
+      window:   null,
+      windows:  [
+        { window: 'five_hour', utilization: 19, resetsAt: '2026-11-01T22:00:00.000Z' },
+        { window: 'seven_day', utilization: 46, resetsAt: '2026-11-04T09:00:00.000Z' },
+      ],
+    });
+  });
+
+  test('no observation, a malformed file and API billing show no window', () => {
+    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, { verdict: 'absent' }, false).windows).toEqual([]);
+    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, { verdict: 'malformed', reason: 'example' }, false).windows).toEqual([]);
+    expect(UsageLimits.usageFactsOf({ verdict: 'absent' }, windowsRead, true).windows).toEqual([]);
   });
 });

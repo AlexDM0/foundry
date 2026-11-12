@@ -37,7 +37,7 @@ const EXAMPLE_STATE = {
   overseer:   {
     state: 'serving', paused: false, url: 'http://127.0.0.1:4100/', generation: 2, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
   },
-  usage: { resetsAt: null, window: null },
+  usage: { resetsAt: null, window: null, windows: [] },
 } as unknown as BoardState;
 
 describe('BoardStateAssembly.questionHistoryOf', () => {

@@ -66,7 +66,7 @@ function exampleState(ticketCount: number): BoardState {
     overseer:   {
       state: 'serving', paused: false, url: null, generation: 1, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
     },
-    usage: { resetsAt: null, window: null },
+    usage: { resetsAt: null, window: null, windows: [] },
   } as unknown as BoardState;
 }
 

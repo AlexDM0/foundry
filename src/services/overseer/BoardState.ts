@@ -33,10 +33,21 @@ export interface OverseerFacts {
   batonPassWarning: unknown;
 }
 
+/** The newest observation of one usage window of the vendor's plan. */
+export interface UsageWindowFacts {
+  /** As the vendor names it, such as `five_hour` or `seven_day`. */
+  window:      string;
+  /** The whole percent of the window used, 0 to 100. */
+  utilization: number;
+  resetsAt:    string;
+}
+
 export interface UsageFacts {
   /** From the machine's usage marker: no launch happens before it; `null` when no limit was hit. */
   resetsAt: string | null;
   window:   string | null;
+  /** From the machine's usage windows: empty before the first observation and under API billing. */
+  windows:  UsageWindowFacts[];
 }
 
 /** One waiting candidate on a target, in the merge queue's order. */
@@ -173,7 +184,8 @@ export interface BoardSummary {
   jobs:                { id: string; kind: string; ticketIds: string[]; state: string; role: string | null; tokens: number }[];
   openDecisions:       number;
   openIncidents:       number;
-  usage:               UsageFacts;
+  /** The usage marker alone: the windows are not part of the version 1 contract. */
+  usage:               Pick<UsageFacts, 'resetsAt' | 'window'>;
 }
 
 function mergeTargetOf(board: Board, target: string, forecasting: MergeForecasting): MergeTargetFacts {
@@ -326,7 +338,7 @@ function summaryOf(state: BoardState, project: string, readyTicketIds: readonly 
     })),
     openDecisions: state.decisions.length,
     openIncidents: state.incidents.length,
-    usage:         state.usage,
+    usage:         { resetsAt: state.usage.resetsAt, window: state.usage.window },
   };
 }
 

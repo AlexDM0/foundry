@@ -147,21 +147,41 @@ function isoStampOfEpochSeconds(epochSeconds: number): string {
   return new Date(epochSeconds * MILLISECONDS_PER_SECOND).toISOString();
 }
 
-/** The top-level status is the one that refuses requests; a rejected window under allowed overage stays a warning. */
+/** A window `unifiedWindows` lacks but `rateLimitType` names is read from the top-level fields, as an event without the list carries it. */
+function namedWindowEventOf(information: StreamRecord, window: string, requestsRefused: boolean): AgentSessionEvent {
+  return {
+    kind:        'usage-window',
+    window,
+    utilization: numberAt(information, 'utilization'),
+    resetsAt:    isoStampOfEpochSeconds(numberAt(information, 'resetsAt')),
+    status:      stringAt(information, 'status'),
+    requestsRefused,
+  };
+}
+
+/**
+ * One event per window the event reports. Only the top-level status refuses requests, and only on the window `rateLimitType` names: a
+ * rejected window under allowed overage stays a warning.
+ */
 function usageWindowEventsOf(record: StreamRecord): AgentSessionEvent[] {
   const information = recordAt(record, 'rate_limit_info');
   if (information === null) return [];
-  const window = stringAt(information, 'rateLimitType');
-  const windowInformation = recordAt(recordAt(information, 'unifiedWindows'), window);
-  const status = stringAt(information, 'status');
-  return [{
-    kind:            'usage-window',
-    window,
-    utilization:     typeof fieldOf(information, 'utilization') === 'number' ? numberAt(information, 'utilization') : numberAt(windowInformation, 'utilization'),
-    resetsAt:        isoStampOfEpochSeconds(numberAt(information, 'resetsAt')),
-    status,
-    requestsRefused: status === 'rejected',
-  }];
+  const namedWindow = stringAt(information, 'rateLimitType');
+  const topLevelRefuses = stringAt(information, 'status') === 'rejected';
+  const unifiedWindows = recordAt(information, 'unifiedWindows') ?? {};
+  const listedEvents = Object.entries(unifiedWindows)
+    .filter((entry): entry is [string, StreamRecord] => isRecord(entry[1]))
+    .map(([window, windowInformation]): AgentSessionEvent => ({
+      kind:            'usage-window',
+      window,
+      utilization:     numberAt(windowInformation, 'utilization'),
+      resetsAt:        isoStampOfEpochSeconds(numberAt(windowInformation, 'resetsAt')),
+      status:          stringAt(windowInformation, 'status'),
+      requestsRefused: topLevelRefuses && window === namedWindow,
+    }));
+  const namedWindowIsListed = listedEvents.some((event) => event.kind === 'usage-window' && event.window === namedWindow);
+  const namedWindowIsMissing = !namedWindowIsListed && (namedWindow !== '' || topLevelRefuses);
+  return namedWindowIsMissing ? [...listedEvents, namedWindowEventOf(information, namedWindow, topLevelRefuses)] : listedEvents;
 }
 
 function usageTotalsOf(modelUsage: StreamRecord | null): AgentUsageTotals | null {

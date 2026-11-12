@@ -1,7 +1,8 @@
 /**
  * The mapper is the Overseer's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture
  * (`docs/development/overseer-claude-probe.md`) rather than a hand-written line: the start, a question the Overseer must deliver, the denials it
- * counts, the structured report it verifies, and the two rate-limit shapes of which only the top-level refusal may interrupt a job.
+ * counts, the structured report it verifies, and the two rate-limit shapes, each
+ * window of which is one event, and of which only the top-level refusal of the named window may interrupt a job.
  * The API billing results (a refused key, a budget stop) have no recording yet: those cases plant their values over a recorded result line.
  * A subagent's spawning call has no recording either: its case writes the line, and holds that the call's description arrives whole.
  */
@@ -71,20 +72,52 @@ describe('a session refused by its deny rules (permission-denials-under-deny-rul
 });
 
 describe('rate limits', () => {
-  test('a top-level rejected limit refuses requests, and its error result has no report', () => {
+  test('a top-level rejected limit refuses requests on the window it names alone, and its error result has no report', () => {
     const events = eventsOfFixture('rate-limit-rejected');
-    expect(eventsOfKind(events, 'usage-window')).toEqual([{
-      kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
-    }]);
+    expect(eventsOfKind(events, 'usage-window')).toEqual([
+      {
+        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
+      },
+      {
+        kind: 'usage-window', window: 'seven_day', utilization: 0.62, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed', requestsRefused: false,
+      },
+    ]);
     expect(eventsOfKind(events, 'result')[0]).toMatchObject({ isError: true, structuredReport: null });
   });
 
-  test('a warning on one window, another rejected under overage, refuses nothing', () => {
+  test('a warning on one window, another rejected under overage, reports both windows and refuses nothing', () => {
     const events = eventsOfFixture('rate-limit-window-rejected-under-allowed');
-    expect(eventsOfKind(events, 'usage-window')).toEqual([{
-      kind: 'usage-window', window: 'seven_day', utilization: 0.91, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed_warning', requestsRefused: false,
-    }]);
+    expect(eventsOfKind(events, 'usage-window')).toEqual([
+      {
+        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: false,
+      },
+      {
+        kind: 'usage-window', window: 'seven_day', utilization: 0.91, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed_warning', requestsRefused: false,
+      },
+    ]);
     expect(eventsOfKind(events, 'result')[0]?.isError).toBe(false);
+  });
+
+  test('every recorded session reports both windows of its plan in one event', () => {
+    for (const fixture of ['ask-user-question-live-answer', 'mid-turn-line-folded', 'permission-denials-under-deny-rules', 'resume-structured-output']) {
+      expect(eventsOfKind(eventsOfFixture(fixture), 'usage-window').map((event) => event.window)).toEqual(['five_hour', 'seven_day']);
+    }
+  });
+
+  test('an event without unifiedWindows reports the window it names from the top-level fields, a refusal kept', () => {
+    const line = JSON.stringify({
+      type:            'rate_limit_event',
+      rate_limit_info: {
+        status: 'rejected', resetsAt: 1793142034, rateLimitType: 'five_hour', utilization: 1
+      }
+    });
+    expect([...claudeStreamEventsOf(line)]).toEqual([{
+      kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
+    }]);
+  });
+
+  test('an event that names no window and lists none reports nothing', () => {
+    expect(claudeStreamEventsOf(JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed' } }))).toEqual([]);
   });
 });
 

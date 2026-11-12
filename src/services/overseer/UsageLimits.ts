@@ -1,12 +1,15 @@
 /**
  * Usage limits, design section 7.5: a top-level refusal in a job's stream interrupts the job (cause `usage-limit`, resumed by id after the
- * reset) and is written to the machine-wide marker, which every Overseer reads back as the `usageResetsAt` its Playbook holds by.
+ * reset) and is written to the machine-wide marker, which every Overseer reads back as the `usageResetsAt` its Playbook holds by. Every
+ * window a stream reports is written to the machine-wide usage windows, which every Overseer reads back as its `usage.windows`.
  */
-import { type UsageMarkerReading, UsageMarkerFile } from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { AgentSessionEvent }                   from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { Board }                               from '../../lib/tracker-model/Board.ts';
-import { API_RATE_LIMIT_BACKOFF_SECONDS }           from '../../shared/constants/OverseerLimits.ts';
-import { MILLISECONDS_PER_SECOND }                  from './constants/TimeUnits.ts';
+import { type UsageMarkerReading, UsageMarkerFile }                                from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import { type UsageWindowObservation, type UsageWindowsReading, UsageWindowsFile } from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { AgentSessionEvent }                                                  from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { Board }                                                              from '../../lib/tracker-model/Board.ts';
+import { API_RATE_LIMIT_BACKOFF_SECONDS }                                          from '../../shared/constants/OverseerLimits.ts';
+import type { UsageFacts }                                                         from './BoardState.ts';
+import { MILLISECONDS_PER_SECOND }                                                 from './constants/TimeUnits.ts';
 
 export interface UsageLimitHit {
   jobId:    string;
@@ -71,6 +74,36 @@ function millisecondsUntilReset(usageResetsAt: string | null, now: Date): number
   return remaining > 0 ? Math.min(remaining, LONGEST_TIMER_DELAY_MILLISECONDS) : null;
 }
 
+/** Every reported window is an observation, refused or not; under API billing (`apiBilling`) the stream reports none that counts. */
+function windowObservationOf(event: AgentSessionEvent, apiBilling: boolean): UsageWindowObservation | null {
+  if (apiBilling || event.kind !== 'usage-window') return null;
+  return { window: event.window, utilization: event.utilization, resetsAt: event.resetsAt };
+}
+
+function recordWindowObservations(monitorFolder: string, observations: readonly UsageWindowObservation[]): void {
+  UsageWindowsFile.record(monitorFolder, observations);
+}
+
+const PERCENT_OF_THE_WHOLE = 100;
+
+/** Only windows seen are shown, as a whole percent; none before the first observation, from a malformed file, or under API billing. */
+function usageFactsOf(marker: UsageMarkerReading, windows: UsageWindowsReading, apiBilling: boolean): UsageFacts {
+  const limit = marker.verdict === 'read' ? { resetsAt: marker.marker.resetsAt, window: marker.marker.window } : { resetsAt: null, window: null };
+  const observed = windows.verdict === 'read' && !apiBilling ? windows.windows : [];
+  return {
+    ...limit,
+    windows: observed.map(({ window, utilization, resetsAt }) => ({ window, utilization: Math.round(utilization * PERCENT_OF_THE_WHOLE), resetsAt })),
+  };
+}
+
 export const UsageLimits = Object.freeze({
-  refusalOf, apiRateLimitResetsAtOf, interruptLimitedJob, usageResetsAtOf, markHits, millisecondsUntilReset
+  refusalOf,
+  apiRateLimitResetsAtOf,
+  interruptLimitedJob,
+  usageResetsAtOf,
+  markHits,
+  millisecondsUntilReset,
+  windowObservationOf,
+  recordWindowObservations,
+  usageFactsOf,
 });

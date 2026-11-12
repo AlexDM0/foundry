@@ -39,6 +39,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
 | `<data>/version.json` | [The install version file](#dataversionjson) |
 | `<monitor>/projects.json` | [The machine's registry](#monitorprojectsjson) |
+| `<monitor>/usage-windows.json` | [The machine's usage windows](#monitorusage-windowsjson) |
 | `<data>/tickets/<id>-<slug>.md` | [The ticket file](#datafoldertickets003-double-click-a-role-to-edit-itmd) |
 | `<data>/epics/<key>.md` | [The epic file](#dataepicscheckout-redesignmd) |
 | `<data>/filing-cabinet/D<n>.json` | [The filing draft](#datafiling-cabinetd1json) |
@@ -2102,6 +2103,33 @@ spaces and ending in a newline. Unknown keys, at the top level and on an entry, 
 `version` is newer than 1 is left untouched and a warning is printed. A malformed file is reported and rewritten with
 every entry that is still an object, plus this one. A registry that cannot be read or written, its lock included, is a
 warning on standard error: the command keeps its exit code, 0 when it succeeded.
+
+### `<monitor>/usage-windows.json`
+
+```json
+{
+  "windows": {
+    "five_hour": { "utilization": 0.19, "resetsAt": "2026-10-27T23:00:34.000Z" },
+    "seven_day": { "utilization": 0.46, "resetsAt": "2026-10-30T22:00:34.000Z" }
+  }
+}
+```
+
+The newest observation of each usage window of the vendor's plan, machine-wide, beside the usage marker
+`<monitor>/usage-limit.json`. Every `rate_limit_event` of a job's session reports each window of its `unifiedWindows`
+(Claude Code names them `five_hour` and `seven_day`); the Overseer's pass writes them after its lock hold, the later
+observation of a window replacing its `utilization` (the share used, 0 to 1, as the vendor reports it) and `resetsAt`
+(ISO) in place. A window seen first is added last. Only the top-level refusal of the window `rateLimitType` names
+interrupts a job and writes the usage marker; a window's own status writes nothing more.
+
+Nothing is written under API billing, and a board under API billing shows no window. `/api/state` shows each window as
+`usage.windows` (`{window, utilization, resetsAt}`, `utilization` as a whole percent), none before the first
+observation.
+
+The file is written atomically, indented two spaces and ending in a newline, and only when a value changes, so an
+unchanged file stays byte-identical. Unknown keys, at the top level and on a window, are kept in order. A file that is
+not JSON, has no `windows` object, or holds a window without a number `utilization` or a stamp `resetsAt` is malformed:
+it shows no window, never stops the Overseer, and the next observation replaces it.
 
 ### `{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`
 

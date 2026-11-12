@@ -1,6 +1,7 @@
 /** Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it. */
 
 import { UsageMarkerFile }   from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageWindowsFile }  from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { LogUtil }           from '../../../src/adapters/utils/LogUtil.ts';
 import { GitProcess }        from '../../../src/lib/git/GitProcess.ts';
 import { predictMerges }     from '../../../src/lib/git/MergeTree.ts';
@@ -15,6 +16,7 @@ import {
   type UsageFacts
 } from '../../../src/services/overseer/BoardState.ts';
 import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
+import { UsageLimits }         from '../../../src/services/overseer/UsageLimits.ts';
 import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
 import { WorktreesFolder }     from '../../../src/shared/WorktreesFolder.ts';
@@ -100,9 +102,9 @@ export function mergeForecastingIn(
   };
 }
 
-function usageOf(context: CommandContext): UsageFacts {
-  const reading = UsageMarkerFile.read(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory));
-  return reading.verdict === 'read' ? { resetsAt: reading.marker.resetsAt, window: reading.marker.window } : { resetsAt: null, window: null };
+function usageOf(context: CommandContext, apiBilling: boolean): UsageFacts {
+  const monitorFolder = context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
+  return UsageLimits.usageFactsOf(UsageMarkerFile.read(monitorFolder), UsageWindowsFile.read(monitorFolder), apiBilling);
 }
 
 export function readBoardState(source: BoardStateSource): { state: BoardState; project: string; readyTicketIds: string[] } {
@@ -133,7 +135,7 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     }),
     notices:            source.notices(),
     overseer:           { ...source.overseer(), paused: board.overseerState() === 'paused' },
-    usage:              usageOf(context),
+    usage:              usageOf(context, pipeline?.billing?.mode === 'api'),
     mergeForecasting:   source.mainLine === undefined ? null : mergeForecastingIn(workspace.rootDirectory, source.mainLine, source.mergeForecastCache ?? null),
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
   });
