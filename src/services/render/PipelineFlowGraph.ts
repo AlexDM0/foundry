@@ -3,13 +3,9 @@
  * the same graph on every stage; only the marks differ: all `proposed` in a proposal, all `unchanged` live, and against the applied
  * pipeline while editing.
  */
-import type {
-  GatePhase,
-  Pipeline,
-  PipelineAgentRole,
-  PipelineDraftField
-} from '../../lib/tracker-model/@types/Pipeline.ts';
-import { GATE_PHASES, PIPELINE_FORMAT_VERSION } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GATE_PHASES, type GatePhase }                          from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { Pipeline, PipelineAgentRole, PipelineDraftField } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION }                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   DerivedSettingsSource,
   MergePlacement,
