@@ -1,7 +1,8 @@
 /**
- * Agent-written HTML, a ticket's body or an epic's description, reaches the DOM only as the `srcdoc` of this frame: without
- * `allow-scripts` nothing in it runs, `allow-same-origin` lets the parent size the frame to its content and lets the frame load the
- * page's own stylesheets, and links open in a new tab. The frame follows the page's theme, so the HTML reads in the page's type and colours.
+ * Agent-written HTML, a ticket's body, an epic's description or the constitution's preview, reaches the DOM only as the `srcdoc` of this
+ * frame: without `allow-scripts` nothing in it runs, `allow-same-origin` lets the parent size the frame to its content and lets the frame
+ * load the page's own stylesheets, and links open in a new tab. The frame follows the page's theme, so the HTML reads in the page's type
+ * and colours.
  */
 import {
   useEffect,
@@ -18,7 +19,7 @@ const THEME_ATTRIBUTE = 'data-theme';
 
 const DEFAULT_THEME = 'light';
 
-export type SandboxedHtmlPlacement = 'ticket-body' | 'epic-description';
+export type SandboxedHtmlPlacement = 'ticket-body' | 'epic-description' | 'constitution';
 
 export interface SandboxedHtmlFrameProps {
   readonly title:     string;

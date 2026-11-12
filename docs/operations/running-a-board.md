@@ -54,6 +54,16 @@ under them sends `job-message`, which is how you correct a finding. **Continue t
 is offered the whole time, and lights up once the agent says the research is done; **Stop the pipeline agent** stops
 its job and returns to the resume summary.
 
+The constitution step (`#pipeline/setup/constitution`) shows the pipeline agent's draft of `CONSTITUTION.md` as one
+markdown document. In Edit you type into it directly; a line carries a small source tag (`CONTRIBUTING.md`, `research`
+or `default`) only where the agent named a source for it, and editing that line drops its tag. Leaving the editor, or
+Cmd/Ctrl+S, saves the whole text (`pipeline-constitution-edit`); if the agent redrafted it meanwhile, the refusal shows
+and your text stays until you save again or discard it. Preview shows the rendered document. The aside lists who reads
+it, the sources the agent drafts from (ticking one sends `pipeline-constitution-edit` too), and the agent's questions
+and chat; the footer counts the sections and rules, with **Back to research** and **Continue to pipeline design**. While
+you edit an applied pipeline, the same page at `#pipeline/edit/constitution` edits main's `CONSTITUTION.md`, with only
+**Back to the flow** in its footer.
+
 Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
 left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
 to open its settings; the merge of main before review has none, since the builder's settings drive it. The two switches,

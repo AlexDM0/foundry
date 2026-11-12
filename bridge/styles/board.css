@@ -53,6 +53,15 @@
  *                           the -actions), then the -panel: the -columns header over a reorderable list of
  *                           .bridge-pipeline-gate-row[data-row-kind][data-change?][data-proposed?] rows (-position, -name with its
  *                           -name-text and -kind, -command, -also-in, -network, -profile), or the empty state with its add buttons
+ *   .bridge-pipeline-constitution[data-mode][data-state] the constitution step (A3bConstitution): the -body of the -main (the
+ *                           -hero with its -hero-text, -status[data-state] line and -status-dot, then the -article[data-view] holding
+ *                           the -editor or the Preview frame or the -empty line) and the -aside (-aside-head with its -aside-title,
+ *                           the -aside-body: the -readers block with its -reader-list of -reader chips and -readers-note, the
+ *                           -sources block with its -source-list of -source[data-mono?] cards and their -source-note, the agent
+ *                           panel); the footer's -outline and -footer-note. The -editor is a .bridge-pipeline-constitution-input
+ *                           textarea, its text transparent over the aria-hidden -mirror of -mirror-line[data-heading?][data-changed?]
+ *                           rows (-mirror-text, a source tag, the drafting -caret), the visually hidden -sources-list, and the
+ *                           -refusal line
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -3641,3 +3650,90 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-agent-questions { display: flex; flex-direction: column; gap: 10px; }
 .bridge-pipeline-agent-question { display: flex; flex-direction: column; gap: 6px; }
 .bridge-pipeline-agent-question-context { margin: 0; font-size: var(--fs-small); color: var(--ink-3); }
+
+/* The constitution step (A3bConstitution): the document and its Edit or Preview on the left, the aside of readers, sources and the
+   agent panel on the right, the action bar under both. The editor's textarea and mirror share one font, line height and padding, so the
+   mirror's lines stand under the textarea's; the textarea's own text is transparent and its caret stays visible. */
+.bridge-pipeline-constitution { display: flex; flex-direction: column; gap: var(--sp-4); width: 100%; max-width: 1440px; margin: 0 auto; }
+.bridge-pipeline-constitution-body { display: flex; align-items: stretch; gap: var(--sp-4); min-height: 0; }
+.bridge-pipeline-constitution-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-constitution-hero { display: flex; align-items: flex-end; gap: var(--sp-4); }
+.bridge-pipeline-constitution-hero-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 6px; min-width: 0; }
+.bridge-pipeline-constitution .bridge-pipeline-setup-heading { font-size: 24px; }
+.bridge-pipeline-constitution-status { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-constitution-status-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--ink-4); }
+.bridge-pipeline-constitution-status:not([data-state="not-running"]) .bridge-pipeline-constitution-status-dot,
+.bridge-pipeline-constitution-status-dot[data-state="drafting"],
+.bridge-pipeline-constitution-status-dot[data-state="ready"] { background: var(--live-dot); }
+.bridge-pipeline-constitution-article {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-height: 420px; overflow: hidden;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-pipeline-constitution-article[data-view="preview"] { padding: var(--sp-5); overflow: auto; }
+.bridge-pipeline-constitution-empty { margin: 0; color: var(--ink-3); }
+.bridge-pipeline-constitution-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.bridge-pipeline-constitution-mirror,
+.bridge-pipeline-constitution-input {
+  box-sizing: border-box; margin: 0; padding: var(--sp-5);
+  font: 12.5px/20px var(--font-mono); letter-spacing: normal; tab-size: 2; white-space: pre;
+}
+.bridge-pipeline-constitution-mirror { position: absolute; inset: 0; overflow: hidden; color: var(--ink-2); pointer-events: none; }
+.bridge-pipeline-constitution-mirror-line { display: flex; align-items: baseline; gap: var(--sp-2); min-height: 20px; width: max-content; }
+.bridge-pipeline-constitution-mirror-line[data-heading] { color: var(--link); }
+.bridge-pipeline-constitution-mirror-line .bridge-tag { font-family: var(--font-ui); }
+.bridge-pipeline-constitution-mirror-text { white-space: pre; }
+.bridge-pipeline-constitution-caret { display: inline-block; width: 7px; height: 15px; align-self: center; background: var(--link); }
+.bridge-pipeline-constitution-input {
+  position: relative; flex: 1 1 auto; width: 100%; min-height: 420px; resize: none; overflow: auto;
+  color: transparent; caret-color: var(--ink-1); background: transparent; border: 0; outline: none;
+}
+.bridge-pipeline-constitution-input::selection { color: transparent; background: var(--accent-ring); }
+.bridge-pipeline-constitution-input:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-outline); border-radius: var(--r-3); }
+.bridge-pipeline-constitution-sources-list { margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-constitution-refusal {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) var(--sp-5);
+  border-top: 1px solid var(--line-hairline);
+}
+.bridge-pipeline-constitution-aside {
+  display: flex; flex: 0 0 400px; flex-direction: column; min-width: 0;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-pipeline-constitution-aside-head {
+  display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; box-sizing: border-box; padding: 0 var(--sp-4);
+  border-bottom: 1px solid var(--line-hairline);
+}
+.bridge-pipeline-constitution-aside-title { flex: 1 1 auto; }
+.bridge-pipeline-constitution-aside-body { display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-4); }
+.bridge-pipeline-constitution-readers,
+.bridge-pipeline-constitution-sources { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-pipeline-constitution-reader-list,
+.bridge-pipeline-constitution-source-list { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-constitution-reader-list { flex-wrap: wrap; }
+.bridge-pipeline-constitution-source-list { flex-direction: column; gap: var(--sp-2); }
+.bridge-pipeline-constitution-reader { padding: 3px 8px; border-radius: var(--r-2); background: var(--surface-raised); color: var(--ink-1); }
+.bridge-pipeline-constitution-readers-note { margin: 0; font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-constitution-source .bridge-choice[data-variant="card"] { background: var(--surface-page); border-color: var(--line-hairline); }
+.bridge-pipeline-constitution-source .bridge-choice[data-variant="card"]:hover { box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-pipeline-constitution-source .bridge-choice-letter { display: none; }
+.bridge-pipeline-constitution-source[data-mono] .bridge-choice-text { font: var(--fs-small)/1.4 var(--font-mono); }
+.bridge-pipeline-constitution-source-note { flex: none; margin-left: auto; font-size: var(--fs-micro); color: var(--ink-4); }
+.bridge-pipeline-constitution-outline { color: var(--ink-1); }
+.bridge-pipeline-constitution-footer-note { color: var(--ink-3); }
+@media (max-width: 900px) {
+  .bridge-pipeline-constitution-body, .bridge-pipeline-constitution-hero { flex-direction: column; align-items: stretch; }
+  .bridge-pipeline-constitution-aside { flex-basis: auto; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-pipeline-constitution-status:not([data-state="not-running"]) .bridge-pipeline-constitution-status-dot {
+    animation: bridge-pulse var(--pulse-status) ease-in-out infinite;
+  }
+  .bridge-pipeline-constitution-hero, .bridge-pipeline-constitution-article { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
+  .bridge-pipeline-constitution-caret { animation: bridge-caret 1s steps(1) infinite; }
+  .bridge-pipeline-constitution-mirror-line[data-changed] {
+    background-image: linear-gradient(var(--new-text-tint), var(--new-text-tint)); background-repeat: no-repeat;
+    animation: bridge-mark 700ms var(--ease-out) 400ms both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bridge-pipeline-constitution-mirror-line[data-changed] { background: var(--new-text-tint); }
+}
