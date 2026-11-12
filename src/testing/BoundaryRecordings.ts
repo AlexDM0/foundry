@@ -54,6 +54,18 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     recordingSpec:  null,
     system:         'forge',
   },
+  {
+    recordingName:  'overseer-fetch',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.recording.spec.ts',
+    system:         'forge',
+  },
+  {
+    recordingName:  'overseer-fetch-authored',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  null,
+    system:         'forge',
+  },
 ];
 
 export const RECORDING_SPEC_SUFFIX = '.recording.spec.ts';
