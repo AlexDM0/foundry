@@ -2,7 +2,8 @@
  * The board's lifetime kinds, applied through the control service to a Board as a hold carries it. What matters: a window is stored
  * as `range` stores it, relative bounds as written and timestamps normalised, read against the hold's own time; an unreadable bound, a
  * backwards pair and a tick that is no whole number of minutes are refused with a wordless detail and leave the axis alone; and a clear is
- * refused while any job is live, since a job would run on against rows, a log and tickets that are gone, and otherwise keeps the tickets.
+ * refused while any job but the Assistant is live, since a job would run on against rows, a log and tickets that are gone, and a live
+ * Overseer always has an Assistant, so it alone must not hold the clear back; otherwise the clear keeps the tickets.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -112,6 +113,18 @@ describe('tracker-clear', () => {
     const refusal = refusalOf(() => apply(board, { kind: 'tracker-clear', scope: 'everything' }));
     expect(refusal.detail).toEqual({ kind: 'tracker-has-live-jobs', jobIds: ['J1'] });
     expect(board.tickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
+  });
+
+  test('a live Assistant, which a live Overseer always has, neither refuses the clear nor is named beside a job that does', () => {
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress' })] });
+    board.launchJob({
+      kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
+    }, AT);
+    expect(apply(board, { kind: 'tracker-clear', scope: 'tasks-and-log' })).toMatchObject({ reseededTicketCount: 1 });
+    board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, AT);
+    expect(refusalOf(() => apply(board, { kind: 'tracker-clear', scope: 'tasks-and-log' })).detail).toEqual({ kind: 'tracker-has-live-jobs', jobIds: ['J2'] });
   });
 });
 

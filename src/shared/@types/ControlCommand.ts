@@ -138,7 +138,7 @@ export type ControlCommand =
   | { kind: 'merge-update'; ticketReference: string }
   /** The board's default chart axis, as `range` stores it. Only User's own surfaces send it: it is never relayed from a job. */
   | { kind: 'chart-range-set'; range: ChartRangeRequest }
-  /** `clear`, refused while a job is live. Only User's own surfaces send it: it is never relayed from a job. */
+  /** `clear`, refused while a job other than the Assistant is live. Only User's own surfaces send it: it is never relayed from a job. */
   | { kind: 'tracker-clear'; scope: TrackerClearScope }
   /**
    * Records a ticket User finished and landed outside the Overseer, refused while a job of the ticket is live. The verb is refused while an

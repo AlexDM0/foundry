@@ -17,7 +17,7 @@ function ClearBoard() {
     <ConfirmStrip
       label="Confirm clearing the board"
       question="Clear the board?"
-      consequence="Every task row and the log go, and the clock starts again. Refused while a job is live."
+      consequence="Every task row and the log go, and the clock starts again. Refused while a job other than the Assistant is live."
       tone="danger"
       confirm={(
         <>
