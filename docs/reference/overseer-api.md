@@ -168,7 +168,7 @@ server.
 | Status | Body | Meaning |
 | --- | --- | --- |
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
-| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` that is not a number, or a control function reading a field the body lacks. Nothing was written. |
+| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs, see [Baton](../architecture/baton.md). |
@@ -198,9 +198,11 @@ limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and write
 names seven kinds, `CONTROL_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`,
 `overseer-resume`, `overseer-stop {now}`, `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}` and
 `machine-agent-limit-set {limit}`. Each answer carries `controlVersion`, the same number. A 200 answers
-`outcome` `done` or `nothing-to-do`; a 400, a 409 and a 423 answer `refusal`, a code, and `text`, its sentence; a 401
-answers `unauthorized`. `cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A
-change to one of them raises `contracts.control` in the same change; the other kinds may change and keep it.
+`outcome` `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a
+400, a 409 and a 423 answer `refusal`, a code, and `text`, its sentence; a 401 answers `unauthorized`. A
+`concurrency-set` `limit` outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
+`cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A change to one of them
+raises `contracts.control` in the same change; the other kinds may change and keep it.
 
 `CommandClient` in `bridge/api/` is the reference client. Its `SessionTokenSource` posts once, on a 401 clears its
 token, fetches another and posts once more, because an Overseer start rotates the token. `PictureUploadClient` posts a

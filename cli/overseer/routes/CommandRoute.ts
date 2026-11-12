@@ -8,7 +8,7 @@ import { OperationRefusalWordingUtil }           from '../../../src/adapters/uti
 import { CONTROL_COMMAND_KINDS, ControlService } from '../../../src/services/control/ControlService.ts';
 import { MachineAgentLimit }                     from '../../../src/services/overseer/MachineAgentLimit.ts';
 import type { RouteAnswer }                      from '../../../src/services/overseer/OverseerServer.ts';
-import type { ControlCommand }                   from '../../../src/shared/@types/ControlCommand.ts';
+import type { ControlCommand, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal, reasonCodeOf }        from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }              from '../../../src/shared/constants/OverseerApiContracts.ts';
 import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
@@ -53,6 +53,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const JOB_STOP_ALL_MODES: readonly ControlCommandOf<'job-stop-all'>['mode'][] = ['stop', 'wind-down'];
+
+/**
+ * The fields of the board kinds of control contract 1, checked before any hold: a field of the wrong type answers 400. A value of the right
+ * type that a rule refuses, such as a concurrency limit above the ceiling, answers 409 from the applier.
+ */
+const FIELDS_CHECK_OF_CONTRACT_KIND: Readonly<Record<string, (body: Record<string, unknown>) => boolean>> = {
+  'concurrency-set': (body) => typeof body['limit'] === 'number',
+  'job-stop-all':    (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
+};
+
+function contractFieldsAreWellTyped(kind: string, body: Record<string, unknown>): boolean {
+  return !Object.hasOwn(FIELDS_CHECK_OF_CONTRACT_KIND, kind) || FIELDS_CHECK_OF_CONTRACT_KIND[kind]?.(body) === true;
+}
+
 function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteAnswer {
   return { status: HTTP_STATUS.OK, body: { controlVersion: CONTROL_VERSION, ...applied } };
 }
@@ -86,6 +101,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     return appliedAnswerOf({ outcome: 'done', result: { kind } });
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
+  if (!contractFieldsAreWellTyped(kind, body)) return MALFORMED;
   if (request.launchesHeld()) {
     return {
       status: HTTP_STATUS.LOCKED,

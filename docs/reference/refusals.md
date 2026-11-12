@@ -20,8 +20,10 @@ them:
    touched. The exceptions are named under [When something was written](#when-something-was-written).
 2. **`refused` exits 1 and `unrepaired` exits 2.** The rule is in [cli.md](../cli.md#exit-codes). Every row here is exit
    1 unless it says exit 2.
-3. **`--json` does not change a refusal.** A refused command prints its sentence on standard error and nothing on
-   standard output, with or without `--json`.
+3. **`--json` does not change a refusal, with seven exceptions.** A refused command prints its sentence on standard
+   error and nothing on standard output, with or without `--json`. Under `--json`, `start`, `stop`, `init`, `update`,
+   `version`, `machine` and `login-item` also print `{answerVersion, refusal, text}` on standard output: the code and
+   the sentence. A refusal worded from the arguments has the code `arguments-refused`.
 4. **The [Bridge](../glossary.md#bridge) shows the same sentence,** beside the Bridge control that was used.
 5. **A [session](../glossary.md#session) under a [job](../glossary.md#job) sees the same sentence too,** worded by its
    own command from the [Hatch](../glossary.md#hatch) reply.
@@ -44,7 +46,7 @@ status through the reply, so a session exits as a direct run would.
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the Bridge control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
 | 423 | `The install version changed` in the shell banner | Launches are held for an install change. | Run `update`. See the [known gap](known-gaps.md#gap-job-stop-while-install-held) on stopping a job meanwhile. |
-| 400 | `malformed-body` | The body is not a known [control command](../architecture/control-and-hatch.md). | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
+| 400 | `The command body is not a control command this Overseer knows` | The body is not a known [control command](../architecture/control-and-hatch.md), or a field of a [control contract](overseer-api.md#control-contract-1) kind has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
 
 ## When something was written
 
@@ -296,10 +298,11 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>15 sentences</summary>
+<summary>16 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
+| `is live, but its API did not answer, so nothing was started beside it` | `overseer-not-answering` | `start` found a live Overseer, or started one, whose API did not answer within the start's tries. | Run `stop`, then `start` again. | [cli.md](../cli.md#the-overseer) |
 | `must be a positive whole number of milliseconds` | `malformed-overseer-poll-interval` | The test setting `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | [Baton](../architecture/baton.md) |
 | `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | [Baton](../architecture/baton.md) |
 | `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | [Baton](../architecture/baton.md) |
@@ -315,6 +318,24 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Run `oversee stop` first. | [cli.md](../cli.md) |
 | `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the forge program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | [watchers](../architecture/watchers.md) |
 | `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. A drive pass turns this into a notice of the same kind. | Move the home folder to a shorter path. | [watchers](../architecture/watchers.md) |
+
+</details>
+
+### Machine limit and login item
+
+Words here: [Overseer](../glossary.md#overseer), [job](../glossary.md#job).
+
+<details open>
+<summary>6 sentences</summary>
+
+| Printed words | Code | Cause | What to do | Home |
+| --- | --- | --- | --- | --- |
+| `CPUs this machine has, so nothing was written` | `machine-agent-limit-above-cpus` | `machine limit <n>` or `machine-agent-limit-set` with a limit above the CPU count the runtime reports. | Set a limit from 1 to the CPU count. | [cli.md](../cli.md#concurrency-and-gates) |
+| `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [overseer-api.md](overseer-api.md#commands) |
+| `newer than this program knows, so it was not written over` | `machine-limits-newer-version` | `<monitor>/machine-limits.json` holds a newer version. | Update this program. | [cli.md](../cli.md#concurrency-and-gates) |
+| `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [overseer-api.md](overseer-api.md#control-contract-1) |
+| `No login item can start the Overseer on this machine` | `login-item-unavailable` | `login-item` on a platform with no login item, or where the item would never run. | Start the Overseer another way, such as `start`. | [cli.md](../cli.md#the-overseer) |
+| `was not changed:` | `login-item-not-changed` | The system refused to write or remove the login item; the reason ends the line. | Read the reason, repair it, and run `login-item` again. | [cli.md](../cli.md#the-overseer) |
 
 </details>
 

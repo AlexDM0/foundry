@@ -61,6 +61,7 @@ export type OperationRefusalDetail =
   | { kind: 'login-item-not-changed'; location: string; reason: string }
   | { kind: 'machine-agent-limit-above-cpus'; limit: number; ceiling: number }
   | { kind: 'machine-agent-limit-not-whole'; limit: number }
+  | { kind: 'concurrency-limit-out-of-range'; limit: number; ceiling: number }
   | { kind: 'machine-limits-newer-version'; filePath: string; version: number };
 
 export function reasonCodeOf(detail: OperationRefusalDetail): string {

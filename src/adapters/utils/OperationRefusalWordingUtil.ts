@@ -535,6 +535,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `A machine agent limit of ${detail.limit} is above the ${detail.ceiling} CPUs this machine has, so nothing was written.`;
     case 'machine-agent-limit-not-whole':
       return `A machine agent limit of ${detail.limit} is not a whole number of at least 1, so nothing was written.`;
+    case 'concurrency-limit-out-of-range':
+      return `A concurrency limit of ${detail.limit} is not a whole number of agents from 1 to ${detail.ceiling}, so nothing was written.`;
     case 'machine-limits-newer-version':
       return `${detail.filePath} holds version ${detail.version}, newer than this program knows, so it was not written over.`;
     case 'picture-too-large':
