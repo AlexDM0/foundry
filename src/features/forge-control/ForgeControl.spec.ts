@@ -334,14 +334,14 @@ describe('forge-open-in-browser, carried by the forge program', () => {
 
 describe('fleet-look-again, carried by the forge watch', () => {
   test('asks the watch to look again and answers done when it has', async () => {
-    let looksAgain = 0;
+    let lookAgainRequestCount = 0;
     const control = controlOver({
       lookAgain: async () => {
-        looksAgain += 1;
+        lookAgainRequestCount += 1;
       },
     });
     expect(await control.carry({ kind: 'fleet-look-again' })).toEqual({ verdict: 'done' });
-    expect(looksAgain).toBe(1);
+    expect(lookAgainRequestCount).toBe(1);
   });
 });
 
