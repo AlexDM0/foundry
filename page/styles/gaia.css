@@ -1,0 +1,399 @@
+/*
+ * Every class of Gaia's page, reading only the tokens of `tokens.css`: no colour value lives here. A variant is a `data-*` attribute on
+ * the component's one class. A hover or a press changes colour, background, border colour, shadow or opacity only, never a size or a
+ * place. One section per owner: the design system first, then each view's own section.
+ */
+
+/* ── Design system ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-mark { flex: none; }
+
+.gaia-micro-caps {
+  margin: 0;
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--micro-caps-tracking);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.gaia-figure { display: inline-flex; flex-direction: column; }
+.gaia-figure-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-figure);
+  font-weight: var(--weight-figure);
+  color: var(--ink);
+}
+.gaia-figure-label { font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* Buttons */
+.gaia-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  box-sizing: border-box;
+  height: var(--control-height);
+  padding: 0 var(--sp-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--weight-strong) var(--fs-small) var(--font-ui);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.gaia-button[data-emphasis="primary"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.gaia-button[data-icon-only] { padding: 0 var(--sp-2); }
+.gaia-button:hover:not(:disabled) { background: var(--surface-2); text-decoration: none; }
+.gaia-button[data-emphasis="primary"]:hover:not(:disabled) { background: var(--ink-muted); border-color: var(--ink-muted); }
+.gaia-button:disabled { background: var(--surface); color: var(--ink-muted); border-color: var(--line); cursor: default; }
+.gaia-button-icon { flex: none; font-size: var(--fs-body); line-height: 1; }
+
+/* Segmented control */
+.gaia-segmented {
+  display: inline-flex;
+  gap: var(--sp-half);
+  padding: var(--sp-half);
+  border-radius: var(--r-2);
+  background: var(--surface-2);
+}
+.gaia-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: var(--segment-height);
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-1);
+  background: none;
+  color: var(--ink-muted);
+  font: var(--weight-strong) var(--fs-small) var(--font-ui);
+  cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.gaia-segment:hover:not(:disabled) { color: var(--ink); }
+.gaia-segment[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+.gaia-segment:disabled { cursor: default; }
+.gaia-segment-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Stepper */
+.gaia-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.gaia-stepper-button {
+  box-sizing: border-box;
+  width: var(--stepper-button-size);
+  height: var(--stepper-button-size);
+  padding: 0;
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--weight-strong) var(--fs-body) var(--font-mono);
+  cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.gaia-stepper-button:hover:not(:disabled) { background: var(--surface-2); }
+.gaia-stepper-button:disabled { color: var(--line-strong); border-color: var(--line); cursor: default; }
+.gaia-stepper-value {
+  min-width: var(--stepper-value-width);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.gaia-stepper-value[data-size="figure"] { font-size: var(--fs-figure); font-weight: var(--weight-figure); }
+
+/* Dots: filled for a settled condition, a ring for one on its way or asleep, a dashed ring for one Gaia cannot read */
+.gaia-condition-dot,
+.gaia-role-dot {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: var(--r-pill);
+}
+.gaia-condition-dot { width: var(--condition-dot-size); height: var(--condition-dot-size); }
+.gaia-condition-dot[data-condition="live"] { background: var(--status-live); }
+.gaia-condition-dot[data-condition="paused"] { background: var(--paused-fill); }
+.gaia-condition-dot[data-condition="held"] { background: var(--warn-edge); }
+.gaia-condition-dot[data-condition="unreachable"] { background: var(--err-edge); }
+.gaia-condition-dot[data-condition="starting"] { border: var(--dot-ring-width) solid var(--status-live); }
+.gaia-condition-dot[data-condition="dormant"] { border: var(--dot-ring-width) solid var(--line-strong); }
+.gaia-condition-dot[data-condition="unreadable"] { border: var(--dot-ring-width) dashed var(--ink-muted); }
+.gaia-condition-dot[data-condition="missing"] { border: var(--dot-ring-width) dashed var(--line-strong); }
+
+.gaia-role-dot { width: var(--role-dot-size); height: var(--role-dot-size); }
+.gaia-role-dot[data-role="builder"] { background: var(--build-fill); }
+.gaia-role-dot[data-role="reviewer"] { background: var(--review-fill); }
+.gaia-role-dot[data-role="waiting"] { background: var(--paused-fill); }
+.gaia-role-dot[data-role="landed"] { background: var(--done-fill); }
+.gaia-role-dot[data-role="needs-user"] { background: var(--attn-edge); }
+.gaia-role-dot[data-role="forge"] { border: var(--dot-ring-width) solid var(--ink-muted); }
+
+/* Pill and tag */
+.gaia-pill,
+.gaia-tag {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: var(--hairline) solid var(--attn-edge);
+  border-radius: var(--r-pill);
+  background: var(--attn-tint);
+  color: var(--attn-ink);
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  white-space: nowrap;
+}
+.gaia-pill { height: var(--pill-height); padding: 0 var(--sp-2); }
+.gaia-tag { height: var(--tag-height); padding: 0 var(--sp-2); }
+.gaia-pill[data-tone="error"] { background: var(--err-tint); color: var(--err-ink); border-color: var(--err-edge); }
+.gaia-tag[data-tone="warn"] { background: var(--warn-tint); color: var(--warn-ink); border-color: var(--warn-edge); }
+
+/* Meter: never animated */
+.gaia-meter {
+  display: block;
+  overflow: hidden;
+  height: var(--meter-thin);
+  border-radius: var(--r-1);
+  background: var(--surface-2);
+}
+.gaia-meter[data-thickness="thick"] { height: var(--meter-thick); }
+.gaia-meter-fill { display: block; height: 100%; background: var(--ink-muted); }
+.gaia-meter[data-tone="builder"] .gaia-meter-fill { background: var(--build-fill); }
+.gaia-meter[data-tone="reviewer"] .gaia-meter-fill { background: var(--review-fill); }
+.gaia-meter[data-tone="paused"] .gaia-meter-fill { background: var(--paused-fill); }
+.gaia-meter[data-tone="landed"] .gaia-meter-fill { background: var(--done-fill); }
+.gaia-meter[data-full] .gaia-meter-fill { background: var(--warn-edge); }
+
+/* Callout */
+.gaia-callout {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-3);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.gaia-callout[data-tone="warn"] { background: var(--warn-tint); color: var(--warn-ink); border-color: var(--warn-edge); }
+.gaia-callout[data-tone="error"] { background: var(--err-tint); color: var(--err-ink); border-color: var(--err-edge); }
+.gaia-callout[data-tone="neutral"] { border-style: dashed; }
+.gaia-callout-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-half); }
+.gaia-callout-title { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-callout-name { font-weight: var(--weight-strong); }
+.gaia-callout-word {
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--micro-caps-tracking);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.gaia-callout[data-tone="warn"] .gaia-callout-word { color: var(--warn-ink); }
+.gaia-callout[data-tone="error"] .gaia-callout-word { color: var(--err-ink); }
+.gaia-callout-sentence { margin: 0; }
+.gaia-callout-machine-line { margin: 0; font-family: var(--font-mono); font-size: var(--fs-micro); }
+.gaia-callout[data-tone="neutral"] .gaia-callout-machine-line { color: var(--ink-muted); }
+.gaia-callout-actions { display: inline-flex; flex: none; gap: var(--sp-2); }
+
+/* Banner */
+.gaia-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-6);
+  border-bottom: var(--hairline) solid var(--err-edge);
+  background: var(--err-tint);
+  color: var(--err-ink);
+}
+.gaia-banner-text { flex: 1; min-width: 0; }
+.gaia-banner-action { display: inline-flex; flex: none; gap: var(--sp-2); }
+
+/* Data table: one grid per row */
+.gaia-table {
+  overflow: hidden;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-table-row { border-bottom: var(--hairline) solid var(--line); }
+.gaia-table-row:last-child { border-bottom: 0; }
+.gaia-table-row[data-selected] { background: var(--surface-selected); }
+.gaia-table-cells {
+  display: grid;
+  align-items: center;
+  column-gap: var(--sp-3);
+  box-sizing: border-box;
+  min-height: var(--table-row-height);
+  padding: 0 var(--sp-4);
+}
+.gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--table-tall-row-height); }
+.gaia-table-row[data-head] .gaia-table-cells {
+  min-height: var(--table-head-height);
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--micro-caps-tracking);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.gaia-table-cell { min-width: 0; }
+.gaia-table-cell[data-align="end"] { text-align: end; }
+.gaia-table-below { display: block; padding: 0 var(--sp-4) var(--sp-4); }
+
+/* List card */
+.gaia-list-card {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-list-card-row { padding: var(--sp-3) var(--sp-4); border-bottom: var(--hairline) solid var(--line); }
+.gaia-list-card-row:last-child { border-bottom: 0; }
+
+/* Fact list */
+.gaia-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: var(--sp-4);
+  row-gap: var(--sp-1);
+  margin: 0;
+  font-size: var(--fs-small);
+}
+.gaia-facts[data-layout="values-end"] { grid-template-columns: minmax(0, 1fr) auto; }
+.gaia-fact { display: contents; }
+.gaia-fact dt { color: var(--ink-muted); }
+.gaia-fact dd { margin: 0; min-width: 0; color: var(--ink); }
+.gaia-fact dd[data-face="mono"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Choice option */
+.gaia-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.gaia-choice:hover { border-color: var(--ink-muted); }
+.gaia-choice[data-chosen] { border-color: var(--ink); box-shadow: inset 0 0 0 var(--hairline) var(--ink); }
+.gaia-choice-input { margin: var(--sp-half) 0 0; accent-color: var(--ink); }
+.gaia-choice-text { display: flex; flex-direction: column; }
+.gaia-choice-title { font-weight: var(--weight-strong); }
+.gaia-choice-consequence { font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* Confirm panel */
+.gaia-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-3);
+  background: var(--bg);
+}
+.gaia-confirm-question { margin: 0; font-weight: var(--weight-strong); }
+.gaia-confirm-choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--sp-3); }
+.gaia-confirm-footer { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-confirm-consequence { flex: 1; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* Refusal */
+.gaia-refusal {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--err-edge);
+  border-radius: var(--r-2);
+  background: var(--err-tint);
+  color: var(--err-ink);
+}
+.gaia-refusal-text { flex: 1; min-width: 0; }
+.gaia-refusal-code { font-family: var(--font-mono); }
+
+/* Dialog: one of the two places a shadow is drawn, since it floats */
+.gaia-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--backdrop);
+}
+.gaia-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  box-sizing: border-box;
+  width: var(--dialog-width);
+  max-width: calc(100% - 2 * var(--sp-6));
+  padding: var(--sp-5);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-dialog);
+}
+.gaia-dialog-title { margin: 0; font-size: var(--fs-title); font-weight: var(--weight-strong); }
+.gaia-dialog-body { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-dialog-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+
+/* Text field */
+.gaia-text-field { display: flex; flex: 1; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.gaia-text-field-label {
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--micro-caps-tracking);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.gaia-text-field-label[data-hidden] {
+  position: absolute;
+  overflow: hidden;
+  width: var(--hairline);
+  height: var(--hairline);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.gaia-text-field-input {
+  box-sizing: border-box;
+  height: var(--field-height);
+  padding: 0 var(--sp-2);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--fs-body) var(--font-ui);
+}
+.gaia-text-field-input[data-face="mono"] { font: var(--fs-small) var(--font-mono); }
+.gaia-text-field-input:disabled { color: var(--ink-muted); border-color: var(--line); }
+
+/* Checkbox */
+.gaia-checkbox { display: flex; align-items: flex-start; gap: var(--sp-2); cursor: pointer; }
+.gaia-checkbox-input {
+  flex: none;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  margin: var(--sp-half) 0 0;
+  accent-color: var(--ink);
+}
+.gaia-checkbox-text { display: flex; flex: 1; flex-direction: column; }
+.gaia-checkbox-label { color: var(--ink); }
+.gaia-checkbox-explanation { font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
+.gaia-button:focus-visible,
+.gaia-segment:focus-visible,
+.gaia-stepper-button:focus-visible,
+.gaia-choice-input:focus-visible,
+.gaia-checkbox-input:focus-visible,
+.gaia-text-field-input:focus-visible,
+.gaia-dialog:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: var(--focus-ring-width);
+}

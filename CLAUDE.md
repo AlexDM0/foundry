@@ -21,6 +21,10 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    Never `--no-verify`.
 9. **Verify** with `bun run verify` (typecheck of `src/` and `page/`, lint, specs, the recording-stamp check), never with ad-hoc compiler
    flags.
+10. **Colour lives only in `page/styles/tokens.css`**, in a light and a dark value. `page/styles/gaia.css` reads only tokens, styles exactly
+    the classes the components emit, and lets a hover or press change no size or place; `page/StyleContract.spec.ts` holds this and 4.5:1
+    on every text pair of both themes. A variant is a `data-*` attribute, never a class. Design-system components take no hooks, so their
+    specs unfold them with `page/testing/ReactElementTree.ts` without a document.
 
 ## Map
 
