@@ -48,7 +48,7 @@ export interface HeadlessBridgeReading {
   readonly pictureWidth:             number | null;
   /** Each argument the stub browser opener got. */
   readonly openerArguments:          readonly string[];
-  /** The code in the URL `open` printed, `null` when it printed none. */
+  /** The code in the redirect file `open` gave the opener, `null` when it held none. */
   readonly sessionCodeOfOpen:        string | null;
   readonly redirectFileWasOwnerOnly: boolean;
   /** Read once `open` ended on its stop signal. */
@@ -77,7 +77,7 @@ const UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token
   + '(character) => character.charCodeAt(0)) })).then((answer) => answer.json()).then(({ pictureId }) => { const picture = new Image(); '
   + 'picture.src = `/api/pictures/${pictureId}`; return picture.decode().then(() => picture.naturalWidth); })';
 const EXECUTABLE_FILE_MODE = 0o755;
-const SESSION_CODE_IN_OUTPUT = /#session=([0-9a-f]+)/;
+const SESSION_CODE_IN_REDIRECT = /#session=([0-9a-f]+)/;
 
 /** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
 const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
@@ -153,6 +153,8 @@ interface RunningOpen {
   /** Each argument the stub opener got, one per line. */
   readonly openerArguments:  readonly string[];
   readonly redirectFilePath: string;
+  /** The code the redirect file hands the browser; `open` prints only the URL, so the file is the one place it shows. */
+  readonly sessionCode:      string | null;
   /** `null` while `open` still runs. */
   readonly ending:           () => AgentProgressResult | null;
 }
@@ -184,8 +186,9 @@ async function startOpen(recordedGit: RecordedGit, repositoryDirectory: string, 
     return undefined;
   }, 'open starting the browser opener', POLL_INTERVAL_MILLISECONDS);
   const redirectFilePath = openerArguments[openerArguments.length - 1] ?? '';
+  const sessionCode = existsSync(redirectFilePath) ? SESSION_CODE_IN_REDIRECT.exec(readFileSync(redirectFilePath, 'utf8'))?.[1] ?? null : null;
   const running: RunningOpen = {
-    started, openerArguments, redirectFilePath, ending: () => ending
+    started, openerArguments, redirectFilePath, sessionCode, ending: () => ending
   };
   if (!redirectFilePath.endsWith('.html')) {
     await stopTheOpen(running);
@@ -273,7 +276,7 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       commandStatus:          typeof commandStatus === 'number' ? commandStatus : null,
       pictureWidth:           typeof pictureWidth === 'number' ? pictureWidth : null,
       openerArguments:        opened.openerArguments,
-      sessionCodeOfOpen:      SESSION_CODE_IN_OUTPUT.exec(openEnding.standardOutput)?.[1] ?? null,
+      sessionCodeOfOpen:      opened.sessionCode,
       redirectFileWasOwnerOnly,
       redirectFileWasRemoved: !existsSync(opened.redirectFilePath),
     };
