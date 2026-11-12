@@ -31,11 +31,18 @@ afterEach(() => {
 });
 
 test('the on-disk program answers both versions, and a missing program fails to start with ENOENT', async () => {
-  const placeholders = { [VERSION_CHECK_RECORDING.BUN_PLACEHOLDER]: process.execPath, [VERSION_CHECK_RECORDING.CHECKOUT_PLACEHOLDER]: CHECKOUT_ROOT };
+  const placeholders = {
+    [VERSION_CHECK_RECORDING.BUN_PLACEHOLDER]:      process.execPath,
+    [VERSION_CHECK_RECORDING.CHECKOUT_PLACEHOLDER]: CHECKOUT_ROOT,
+    [VERSION_CHECK_RECORDING.HOME_PLACEHOLDER]:     scratchDirectory,
+  };
   const programCommand = [process.execPath, join(CHECKOUT_ROOT, 'agent-progress.ts')];
-  const answer = realCommandAnswerOf([...programCommand, ...VERSION_ARGUMENTS], { cwd: scratchDirectory });
+  const answer = realCommandAnswerOf([...programCommand, ...VERSION_ARGUMENTS], { cwd: scratchDirectory, env: { HOME: scratchDirectory } });
   expect(answer.kind === 'finished' ? answer.exitCode : answer.code).toBe(0);
-  expect(await versionsFromTheBinary(programCommand, scratchDirectory)).toEqual(answer.kind === 'finished' ? JSON.parse(answer.stdout) : null);
+  const printed = answer.kind === 'finished' ? JSON.parse(answer.stdout) as { codeVersion: string; installVersion: number } : null;
+  // The answer carries more keys, such as `contracts`; the Overseer reads only the two versions from it.
+  const versionsPrinted = printed === null ? null : { codeVersion: printed.codeVersion, installVersion: printed.installVersion };
+  expect(await versionsFromTheBinary(programCommand, scratchDirectory)).toEqual(versionsPrinted);
   recordCommandAnswer({ argv: [...programCommand, ...VERSION_ARGUMENTS] }, placeholders, answer);
 
   const missingProgram = [join(CHECKOUT_ROOT, 'missing-program')];

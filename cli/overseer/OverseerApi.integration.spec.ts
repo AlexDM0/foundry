@@ -234,10 +234,10 @@ describe('the Overseer API on a scratch board', () => {
     const command = (body: unknown) => fetch(new URL('api/commands', url), { method: 'POST', headers, body: JSON.stringify(body) });
     const unknown = await command({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] });
     expect(unknown.status).toBe(409);
-    expect(((await unknown.json()) as { refusal: string }).refusal).toContain(`No picture ${'b'.repeat(64)} is stored`);
+    expect(await unknown.json()).toMatchObject({ controlVersion: 1, refusal: 'picture-unknown', text: expect.stringContaining(`No picture ${'b'.repeat(64)} is stored`) });
     const blank = await command({ kind: 'intake-start', text: ' ' });
     expect(blank.status).toBe(409);
-    expect(((await blank.json()) as { refusal: string }).refusal).toContain('blank and carries no picture');
+    expect(await blank.json()).toMatchObject({ controlVersion: 1, refusal: 'intake-empty', text: expect.stringContaining('blank and carries no picture') });
     const state = await (await fetch(new URL('api/state', url), { headers })).json() as Record<string, unknown>;
     expect(state['pictureLimits']).toMatchObject({ perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

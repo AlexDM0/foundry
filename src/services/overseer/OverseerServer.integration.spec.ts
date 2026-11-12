@@ -189,7 +189,7 @@ describe('OverseerServer guards', () => {
       installVersion:         17,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
-      contracts:              { summary: 1, monitor: 1 },
+      contracts:              { summary: 1, monitor: 1, control: 1 },
     });
   });
 

@@ -15,6 +15,8 @@ export const VERSION_CHECK_RECORDING = {
   BOUNDARY:             'src/services/overseer/InstallChangeWatch.ts',
   BUN_PLACEHOLDER:      '<bun>',
   CHECKOUT_PLACEHOLDER: '<checkout>',
+  /** The home the recorded program runs under, a scratch folder, so the monitor folder `version` prints names no real home. */
+  HOME_PLACEHOLDER:     '<home>',
   MISSING_SITUATION:    MISSING_PROGRAM_SITUATION,
 } as const;
 

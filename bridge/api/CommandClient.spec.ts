@@ -15,8 +15,10 @@ import { SessionTokenSource }                                                   
 
 const recordedOverseer = recordedOverseerOfThisSpecFile();
 
+/** The sentence the Bridge shows: the recorded `text`, where the answer carries the refusal's code beside it, else the recorded `refusal`. */
 function recordedRefusalOf(callShape: OverseerCallShape): string {
-  return ((recordedOverseerAnswerOf(callShape) as RecordedHttpResponse).body as { refusal: string }).refusal;
+  const body = (recordedOverseerAnswerOf(callShape) as RecordedHttpResponse).body as { refusal: string; text?: string };
+  return body.text ?? body.refusal;
 }
 
 describe('the command client', () => {
