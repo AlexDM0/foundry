@@ -146,7 +146,18 @@ describe('the files a reading takes', () => {
 
     expect(missing).toEqual([]);
     expect(builtInBriefPathOf('conflictReReviewer').endsWith(join('resources', 'prompts', 'BuiltInBriefConflictReReviewer.md'))).toBe(true);
-    expect(readFileSync(builtInBriefPathOf('reReviewer'), 'utf8')).toContain('You are the re-reviewer');
+    const roleWordOfRole: Readonly<Record<PipelineAgentRole, string>> = {
+      productOwner:       'product owner',
+      builder:            'builder',
+      reviewer:           'reviewer',
+      reReviewer:         're-reviewer',
+      conflictReReviewer: 'conflict re-reviewer',
+      pipelineAgent:      'pipeline agent',
+      assistant:          'Assistant',
+    };
+    const briefsNotNamingTheirRole = PIPELINE_AGENT_ROLES
+      .filter((role) => !readFileSync(builtInBriefPathOf(role), 'utf8').startsWith(`You are the ${roleWordOfRole[role]} `));
+    expect(briefsNotNamingTheirRole).toEqual([]);
   });
 
   test('one missing file refuses the whole reading, naming it, though the files around it exist', () => {
