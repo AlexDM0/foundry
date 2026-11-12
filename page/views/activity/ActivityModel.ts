@@ -201,8 +201,8 @@ function todayListOf(
 /** Worded as the Bridge words its usage: under the limit, or the window that hit it and when it resets. */
 function usageLineOf(usage: FleetDocumentUsage, clockFormat: Intl.DateTimeFormat): string {
   if (usage.resetsAt === null) return 'under its limit';
-  const window = usage.window === null ? '' : `${usage.window} `;
-  return `${window}limit hit · resets ${clockTimeOf(usage.resetsAt, clockFormat)}`;
+  const windowWord = usage.window === null ? '' : `${usage.window} `;
+  return `${windowWord}limit hit · resets ${clockTimeOf(usage.resetsAt, clockFormat)}`;
 }
 
 function usageLinesOf(fleetDocument: FleetDocument, clockFormat: Intl.DateTimeFormat): string[] {
