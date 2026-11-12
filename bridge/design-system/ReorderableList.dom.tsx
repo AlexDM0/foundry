@@ -266,12 +266,25 @@ describe('the announcements', () => {
     expect(announcer().textContent).toBe('lint moved to position 1');
   });
 
-  test('each pointer move to a new place is spoken', () => {
+  test('each pointer move to a new place is spoken, and Esc speaks the row back at its place', () => {
     renderList(GATE_ROWS, []);
     fireEvent.pointerDown(grip('test'), { pointerId: POINTER_ID, button: 0, clientY: middleOfRow(2) });
     fireEvent.pointerMove(grip('test'), { pointerId: POINTER_ID, clientY: middleOfRow(1) - 1 });
     expect(announcer().textContent).toBe('test moved to position 2');
     fireEvent.pointerMove(grip('test'), { pointerId: POINTER_ID, clientY: middleOfRow(0) - 1 });
     expect(announcer().textContent).toBe('test moved to position 1');
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(announcer().textContent).toBe('test moved to position 3');
+  });
+
+  test('a pointer cancel speaks the row back at its place', () => {
+    renderList(GATE_ROWS, []);
+    fireEvent.pointerDown(grip('lint'), { pointerId: POINTER_ID, button: 0, clientY: middleOfRow(0) });
+    fireEvent.pointerMove(grip('lint'), { pointerId: POINTER_ID, clientY: middleOfRow(1) + 1 });
+    expect(announcer().textContent).toBe('lint moved to position 2');
+    fireEvent.pointerCancel(grip('lint'), { pointerId: POINTER_ID });
+    expect(announcer().textContent).toBe('lint moved to position 1');
   });
 });

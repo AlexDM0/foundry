@@ -98,6 +98,11 @@ export function ReorderableList({
     if (drag === null) keyKeepingFocus.current = null;
   });
 
+  const cancel = (current: Drag): void => {
+    setDrag(null);
+    if (current.toIndex !== current.fromIndex) setAnnouncement(announce(current.fromIndex, current.fromIndex));
+  };
+
   useEffect(() => {
     if (drag?.kind !== 'pointer') return undefined;
     const cancelOnEscape = (event: globalThis.KeyboardEvent): void => {
@@ -106,12 +111,13 @@ export function ReorderableList({
       event.stopPropagation();
       if (drag.grip.hasPointerCapture(drag.pointerId)) drag.grip.releasePointerCapture(drag.pointerId);
       setDrag(null);
+      if (drag.toIndex !== drag.fromIndex) setAnnouncement(announce(drag.fromIndex, drag.fromIndex));
     };
     document.addEventListener('keydown', cancelOnEscape, true);
     return () => {
       document.removeEventListener('keydown', cancelOnEscape, true);
     };
-  }, [drag]);
+  }, [drag, announce]);
 
   const moveTo = (current: Drag, toIndex: number): void => {
     if (toIndex === current.toIndex) return;
@@ -140,8 +146,7 @@ export function ReorderableList({
     } else if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      setDrag(null);
-      if (drag.toIndex !== drag.fromIndex) setAnnouncement(announce(drag.fromIndex, drag.fromIndex));
+      cancel(drag);
     } else if (Object.hasOwn(STEP_BY_KEY, event.key)) {
       event.preventDefault();
       moveTo(drag, ReorderIndexUtil.clampedToBand(bands, drag.fromIndex, drag.toIndex + (STEP_BY_KEY[event.key] ?? 0)));
@@ -151,7 +156,7 @@ export function ReorderableList({
   const blurOfGrip = (event: FocusEvent<HTMLButtonElement>): void => {
     if (event.relatedTarget === null) return;
     keyKeepingFocus.current = null;
-    if (drag?.kind === 'keyboard') setDrag(null);
+    if (drag?.kind === 'keyboard') cancel(drag);
   };
 
   const measuredRowBoxes = (): readonly RowBox[] => {
@@ -186,7 +191,7 @@ export function ReorderableList({
   };
 
   const pointerCancelOnGrip = (event: PointerEvent<HTMLButtonElement>): void => {
-    if (drag?.kind === 'pointer' && event.pointerId === drag.pointerId) setDrag(null);
+    if (drag?.kind === 'pointer' && event.pointerId === drag.pointerId) cancel(drag);
   };
 
   const displayedIndices = drag?.kind === 'keyboard'
