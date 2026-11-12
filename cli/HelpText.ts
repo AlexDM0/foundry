@@ -698,8 +698,8 @@ never carries it.
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
                               every proposed change; start-over removes the record. A stale
-                              --revision is refused at exit 1. An answer, edit, undo, discard or
-                              continue also messages a live pipeline agent.
+                              --revision is refused at exit 1. An answer, constitution, edit, undo,
+                              discard or continue also messages a live pipeline agent.
 
   await [--json] [--after <n>]
                               Wait until the log holds a decision-opened or incident-escalated
