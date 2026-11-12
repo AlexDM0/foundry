@@ -2,10 +2,11 @@
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, and this
  * machine's agents against its limit. Every count is the document's own figure; one the document does not hold is absent, never zero.
  */
-import { CONTRACT_VERSIONS }                                              from '../../src/shared/constants/ContractVersions.ts';
-import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../@types/FleetDocument.ts';
-import type { DotCondition }                                              from '../design-system/ConditionDot.tsx';
-import { type GaiaRoute, type GaiaView, HashRouter }                      from './HashRouter.ts';
+import { CONTRACT_VERSIONS }                         from '../../src/shared/constants/ContractVersions.ts';
+import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
+import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
+import { ForgeTextUtil }                             from '../shared/utils/ForgeTextUtil.ts';
+import { type GaiaRoute, type GaiaView, HashRouter } from './HashRouter.ts';
 
 export type RailCountTone = 'attention' | 'muted';
 
@@ -69,10 +70,6 @@ function countedPhrase(count: number, singularPhrase: string, pluralPhrase: stri
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
-}
-
-function dotConditionOf(condition: FleetDocumentCondition): DotCondition {
-  return condition === 'passing-baton' ? 'starting' : condition;
 }
 
 /** In place needs the embed contract Gaia knows, and a forge read in full or as last reported; any other opens at its Forges row. */
@@ -161,7 +158,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
     forges: fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => ({
       trackerId: forge.trackerId,
       project:   forge.project,
-      condition: dotConditionOf(forge.condition),
+      condition: ForgeTextUtil.dotConditionOf(forge.condition),
       href:      forgeHrefOf(forge),
       count:     forgeCountOf(forge),
       isCurrent: forge.trackerId === currentTrackerId,

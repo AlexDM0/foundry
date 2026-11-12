@@ -13,12 +13,13 @@ import {
   type CommandSubject,
   useCommandSender
 } from '../../api/CommandSender.ts';
-import { Button }                              from '../../design-system/Button.tsx';
-import { MicroCapsLabel }                      from '../../design-system/MicroCapsLabel.tsx';
-import { Refusal }                             from '../../design-system/Refusal.tsx';
-import { TextField }                           from '../../design-system/TextField.tsx';
-import { AddRepositoryForm }                   from './AddRepositoryForm.ts';
-import { AttentionModel, type NoForgeContent } from './AttentionModel.ts';
+import { Button }                 from '../../design-system/Button.tsx';
+import { MicroCapsLabel }         from '../../design-system/MicroCapsLabel.tsx';
+import { Refusal }                from '../../design-system/Refusal.tsx';
+import { TextField }              from '../../design-system/TextField.tsx';
+import { CommandFailureTextUtil } from '../../shared/utils/CommandFailureTextUtil.ts';
+import { AddRepositoryForm }      from './AddRepositoryForm.ts';
+import { type NoForgeContent }    from './AttentionModel.ts';
 
 /** Which button asked for the last path, so a refused choice shows beside it. */
 export type PathChooser = 'folder' | 'forge-program';
@@ -60,7 +61,7 @@ function FailureLine({
 }) {
   const { failure } = CommandSender.stateOf(commandStates, subject);
   if (failure === null) return null;
-  const { code, sentence } = AttentionModel.refusalTextOf(failure);
+  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return <Refusal commandLabel={commandLabel} code={code} sentence={sentence} onTryAgain={onTryAgain} onDismiss={() => onDismissFailure(subject)} />;
 }
 

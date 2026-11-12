@@ -4,8 +4,8 @@
  * full, its banner and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the
  * document does not hold is absent, never zero.
  */
-import { CONTRACT_VERSIONS }                from '../../../src/shared/constants/ContractVersions.ts';
-import type { CommandBody, CommandOutcome } from '../../@types/CommandDocument.ts';
+import { CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
+import type { CommandBody }  from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentAttentionKind,
@@ -16,15 +16,15 @@ import type {
   FleetDocumentLook,
   FleetDocumentLookKind,
 } from '../../@types/FleetDocument.ts';
-import type { CommandFailure }             from '../../api/CommandSender.ts';
 import type { ButtonEmphasis, ButtonIcon } from '../../design-system/Button.tsx';
 import type { CalloutTone }                from '../../design-system/Callout.tsx';
 import type { DotCondition }               from '../../design-system/ConditionDot.tsx';
 import type { PillTone }                   from '../../design-system/Pill.tsx';
 import type { DotRole }                    from '../../design-system/RoleDot.tsx';
+import { ForgeTextUtil }                   from '../../shared/utils/ForgeTextUtil.ts';
+import { StampTextUtil }                   from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }                      from '../../shell/HashRouter.ts';
 import type { TopBarStatus }               from '../../shell/TopBar.tsx';
-import { StampTextUtil }                   from './utils/StampTextUtil.ts';
 
 /** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
 export interface ClockReading {
@@ -144,11 +144,6 @@ export interface NoForgeContent {
 
 export type AttentionScreen = { readonly kind: 'fleet'; readonly content: AttentionContent } | { readonly kind: 'no-forge'; readonly content: NoForgeContent };
 
-export interface RefusalText {
-  readonly code:     string;
-  readonly sentence: string;
-}
-
 const HEAD_SEPARATOR = ' · ';
 const META_SEPARATOR = ' · ';
 const RECENT_ENTRIES_SHOWN = 4;
@@ -160,17 +155,6 @@ const NO_FORGE_STATUS: TopBarStatus = { condition: null, text: 'no forge on this
 
 const EVERY_FORGE_HIDDEN_STATUS: TopBarStatus = { condition: null, text: 'every forge is hidden in Gaia' };
 
-const CONDITION_WORDS: Readonly<Record<FleetDocumentCondition, string>> = {
-  'live':          'live',
-  'paused':        'paused',
-  'held':          'launches held',
-  'passing-baton': 'passing the baton',
-  'starting':      'starting',
-  'dormant':       'dormant',
-  'unreachable':   'unreachable',
-  'unreadable':    'not readable',
-  'missing':       'repository missing',
-};
 
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
@@ -184,23 +168,12 @@ const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
 /** The conditions under which a forge's Overseer runs. */
 const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
 
-const OUTCOME_SENTENCES: Readonly<Record<CommandOutcome, string>> = {
-  'done':          'The command was carried out.',
-  'nothing-to-do': 'There was nothing to do.',
-  'refused':       'The command was refused.',
-  'unreachable':   'The forge\'s Overseer did not answer.',
-  'not-supported': 'This forge does not take this command from Gaia.',
-};
 
 const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 const NEW_CODE_NOTICE_KIND = 'new-code';
 
 function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
   return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
-function dotConditionOf(condition: FleetDocumentCondition): DotCondition {
-  return condition === 'passing-baton' ? 'starting' : condition;
 }
 
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
@@ -292,8 +265,8 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       key:           `${item.trackerId}/${item.key}`,
       trackerId:     item.trackerId,
       project:       forge.project,
-      condition:     dotConditionOf(forge.condition),
-      conditionWord: CONDITION_WORDS[forge.condition],
+      condition:     ForgeTextUtil.dotConditionOf(forge.condition),
+      conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
       kindText:      KIND_TEXTS[item.kind],
       kindTone:      item.kind === 'escalated-question' ? 'error' : 'attention',
       idText:        item.idText,
@@ -347,14 +320,9 @@ function forgeTextOf(entries: readonly { readonly kind: string; readonly text: s
 }
 
 function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
-  const lastAnswer = clockTextOf(forge.lastReportedAt, clock);
-  const address = forge.url === null ? null : forge.url.replace(/^https?:\/\//, '');
   return {
-    tone:        'error' as const,
-    word:        'Unreachable',
-    sentence:    'Its Overseer stopped answering. The registry still names it.',
-    machineLine: [address, forge.processId === null ? null : `process ${forge.processId}`, lastAnswer === null ? null : `last answer ${lastAnswer}`]
-      .filter((part) => part !== null).join(META_SEPARATOR) || null,
+    tone:    'error' as const,
+    ...ForgeTextUtil.unreachableCalloutTextOf(forge, clockTextOf(forge.lastReportedAt, clock)),
     actions: [
       commandAction('Look again', 'plain', { kind: 'fleet-look-again' }),
       linkAction('Stop', HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId })),
@@ -448,7 +416,7 @@ function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, F
     return [{
       trackerId: forge.trackerId,
       lookKind:  look.kind,
-      condition: dotConditionOf(forge.condition),
+      condition: ForgeTextUtil.dotConditionOf(forge.condition),
       project:   forge.project,
       ...parts,
     }];
@@ -471,8 +439,8 @@ function runningCardsOf(forges: readonly FleetDocumentForge[]): RunningCard[] {
     return {
       trackerId:     forge.trackerId,
       project:       forge.project,
-      condition:     dotConditionOf(forge.condition),
-      conditionWord: CONDITION_WORDS[forge.condition],
+      condition:     ForgeTextUtil.dotConditionOf(forge.condition),
+      conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
       slotsText:     forge.concurrency === null ? null : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`,
       jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), text: `${row.jobId} ${row.role ?? row.kind}` })),
@@ -569,23 +537,8 @@ function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionS
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }
 
-/** The code and the sentence of a send that did not succeed: the forge's own when it refused, Gaia's when nothing answered for it. */
-function refusalTextOf(failure: CommandFailure): RefusalText {
-  const { result } = failure;
-  switch (result.verdict) {
-    case 'answered':
-      return { code: result.answer.refusal ?? result.answer.outcome, sentence: result.answer.text ?? OUTCOME_SENTENCES[result.answer.outcome] };
-    case 'server-unreachable':
-      return { code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' };
-    case 'answer-not-understood':
-      return { code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' };
-  }
-}
-
 export const AttentionModel = {
   screenOf,
   statusLineOf,
-  refusalTextOf,
   compactCountOf,
-  CONDITION_WORDS,
 } as const;

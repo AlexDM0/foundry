@@ -301,20 +301,3 @@ describe('no forge yet (B4)', () => {
     expect(noForgeContentOf(found).forgeProgramIsMissing).toBe(false);
   });
 });
-
-describe('a refusal\'s code and sentence', () => {
-  test('are the forge\'s own when it refused, and Gaia\'s when nothing answered for it', () => {
-    const refused = {
-      answerVersion: 1, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
-    } as const;
-    expect(AttentionModel.refusalTextOf({ kind: 'forge-update', result: { verdict: 'answered', answer: refused } }))
-      .toEqual({ code: 'update-in-progress', sentence: 'An update already runs in this repository.' });
-    const notSupported = {
-      answerVersion: 1, outcome: 'not-supported', refusal: null, text: null
-    } as const;
-    expect(AttentionModel.refusalTextOf({ kind: 'forge-restart', result: { verdict: 'answered', answer: notSupported } }))
-      .toEqual({ code: 'not-supported', sentence: 'This forge does not take this command from Gaia.' });
-    expect(AttentionModel.refusalTextOf({ kind: 'forge-start', result: { verdict: 'server-unreachable' } }))
-      .toEqual({ code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' });
-  });
-});

@@ -1,5 +1,5 @@
 /**
- * A forge's stamp as the Attention view prints it: an age against the page's clock (`4m`, `2h 04m`, `3d 05h`), or a clock time in the
+ * A forge's stamp as the page prints it: an age against the page's clock (`4m`, `2h 04m`, `3d 05h`), or a clock time in the
  * page's time zone, with its month and day when it is from another day. A stamp that does not parse prints nothing rather than a wrong
  * time. Comparing the stamp's day with the clock's is a stated clock exception: it decides only the text printed.
  */

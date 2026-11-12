@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLEET_FIXTURES_READ_AT } from '../../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
 import { StampTextUtil }          from './StampTextUtil.ts';
 
 const READ_AT = Date.parse(FLEET_FIXTURES_READ_AT);

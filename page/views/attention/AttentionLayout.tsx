@@ -15,9 +15,9 @@ import { MicroCapsLabel }                                         from '../../de
 import { Pill }                                                   from '../../design-system/Pill.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
+import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
 import {
   type AttentionContent,
-  AttentionModel,
   type AttentionRow,
   type ForgeReadingLine,
   type LookAction,
@@ -60,7 +60,7 @@ function LookAgainRefusal({ commandStates, onCommand, onDismissFailure }: Comman
   const subject = CommandSender.subjectOf(LOOK_AGAIN);
   const { failure } = CommandSender.stateOf(commandStates, subject);
   if (failure === null) return null;
-  const { code, sentence } = AttentionModel.refusalTextOf(failure);
+  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
     <div className="gaia-attention-refusal">
       <Refusal commandLabel="Look again" code={code} sentence={sentence} onTryAgain={() => onCommand(LOOK_AGAIN)} onDismiss={() => onDismissFailure(subject)} />
@@ -131,7 +131,7 @@ function LookRefusal({
     ? undefined
     : look.actions.find((action) => action.kind === 'command' && action.command.kind === failure.kind && 'trackerId' in action.command);
   if (failure === null || refusedAction?.kind !== 'command') return null;
-  const { code, sentence } = AttentionModel.refusalTextOf(failure);
+  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
     <Refusal
       commandLabel={refusedAction.label}

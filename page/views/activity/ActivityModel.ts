@@ -8,10 +8,10 @@ import type {
   FleetDocumentActivityCategory,
   FleetDocumentFleetActivityEntry,
   FleetDocumentForge,
-  FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { DotRole } from '../../design-system/RoleDot.tsx';
-import { HashRouter }   from '../../shell/HashRouter.ts';
+import type { DotRole }  from '../../design-system/RoleDot.tsx';
+import { ForgeTextUtil } from '../../shared/utils/ForgeTextUtil.ts';
+import { HashRouter }    from '../../shell/HashRouter.ts';
 
 export type ActivityKindFilter = 'everything' | FleetDocumentActivityCategory;
 
@@ -198,15 +198,8 @@ function todayListOf(
   };
 }
 
-/** Worded as the Bridge words its usage: under the limit, or the window that hit it and when it resets. */
-function usageLineOf(usage: FleetDocumentUsage, clockFormat: Intl.DateTimeFormat): string {
-  if (usage.resetsAt === null) return 'under its limit';
-  const windowWord = usage.window === null ? '' : `${usage.window} `;
-  return `${windowWord}limit hit · resets ${clockTimeOf(usage.resetsAt, clockFormat)}`;
-}
-
 function usageLinesOf(fleetDocument: FleetDocument, clockFormat: Intl.DateTimeFormat): string[] {
-  const lines = fleetDocument.forges.flatMap((forge) => (forge.usage === null ? [] : [usageLineOf(forge.usage, clockFormat)]));
+  const lines = fleetDocument.forges.flatMap((forge) => (forge.usage === null ? [] : [ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTimeOf(stamp, clockFormat))]));
   return [...new Set(lines)];
 }
 

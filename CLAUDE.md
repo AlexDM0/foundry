@@ -41,6 +41,7 @@ src/lib/           building blocks: forge-client, event-stream, process-run, ato
 src/shared/        the internal model's types, app-wide constants, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach
+page/shared/       what several parts of the page word or print alike, hoisted from a view once a second part needs it
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `FrameSessionDocument`); the server maps across it in src/adapters/page-api/, and only there
 ```
 
