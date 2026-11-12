@@ -963,7 +963,8 @@ Overseer's own gate runs. A profile may write only inside its worktree and the t
 folders are not granted, so a gate that needs one ends `red` or `cannot-run`. The process runs outside the hold; the
 Overseer takes the hold only to record `running` and the end (`passed`, `red`, `cannot-run`), with the duration, which
 is only recorded and shown. Its output is appended, as it arrives, to `<data>/gate-profile-runs/<P>.ndjson`, one
-`{"text": …}` line per piece. A profile never records a green or a `gate-ran` record, and Apply never waits on one.
+`{"text": …}` line per piece, and the Overseer API streams it at `GET /api/profiles/<P>/stream`; the board's event
+stream carries no output line. A profile never records a green or a `gate-ran` record, and Apply never waits on one.
 When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and each new
 suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
 records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
@@ -1100,9 +1101,9 @@ API](reference/overseer-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
 than the API's own, and every preflight. Behind those guards, `POST /api/commands`, `POST /api/pictures` and
-`POST /api/session-codes` need the bearer token from the file the Baton names. The six data routes
+`POST /api/session-codes` need the bearer token from the file the Baton names. The seven data routes
 (`GET /api/session-token`, `/api/state`, `/api/events`, `/api/jobs/<J>/stream`, `/api/jobs/<J>/files/<name>`,
-`/api/pictures/<id>`) need that token or the HttpOnly, SameSite=Strict
+`/api/pictures/<id>`, `/api/profiles/<P>/stream`) need that token or the HttpOnly, SameSite=Strict
 session cookie that one code from `open` buys once at `POST /api/session`, and answer 401 otherwise; no request header a
 local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open.
 

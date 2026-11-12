@@ -1,14 +1,19 @@
 /**
  * The Overseer's gate profiles: each run User queued is one gate in one phase, run once in a fresh detached worktree of main, under its
  * confinement and with no `writes` granted, holding a gate run slot that no waiting real gate wants. The process runs outside the hold;
- * the hold is taken only to record `running` and the end. Its output is appended to its own file as it arrives. A Stop ends the process
- * tree through the port. At an Overseer's start, a run an earlier Overseer left running reads `stopped` and every profile worktree goes.
+ * the hold is taken only to record `running` and the end. Its output is appended to its own file as it arrives, which the profile stream
+ * follows. A Stop ends the process tree through the port. At an Overseer's start, a run an earlier Overseer left running reads `stopped`
+ * and every profile worktree goes.
  */
 import {
   appendFileSync,
+  closeSync,
   existsSync,
+  fstatSync,
   mkdirSync,
-  readdirSync
+  openSync,
+  readdirSync,
+  readSync
 }                 from 'node:fs';
 import { join } from 'node:path';
 
@@ -32,6 +37,17 @@ export const GATE_PROFILE_WORKTREES_FOLDER = 'gate-profiles';
 
 /** The profiles' output under the data folder, one `<profileRunId>.ndjson` each, appended outside the hold. */
 export const GATE_PROFILE_RUNS_FOLDER = 'gate-profile-runs';
+
+/** One appended piece of a run's output, numbered from 1 in the order it was appended: the number is a stream client's cursor. */
+export interface GateProfileOutputLine {
+  lineNumber: number;
+  text:       string;
+}
+
+/** A run's output after a cursor, re-read from where the last call stopped on each call. */
+export type GateProfileOutputFollower = () => GateProfileOutputLine[];
+
+const LINE_FEED_BYTE = 0x0a;
 
 const OUTCOME_ENDINGS: Readonly<Record<GateOutcome, GateProfileRunEnding>> = {
   'passed':     'passed',
@@ -239,4 +255,53 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
   };
 }
 
-export const GateProfiling = Object.freeze({ createGateProfiling });
+function outputTextOf(lineText: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(lineText);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const { text } = parsed as { text?: unknown };
+    return typeof text === 'string' ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The bytes of the file from `offset` to its end; none when the file does not exist yet. */
+function bytesFrom(filePath: string, offset: number): Uint8Array {
+  if (!existsSync(filePath)) return new Uint8Array();
+  const descriptor = openSync(filePath, 'r');
+  try {
+    const length = Math.max(fstatSync(descriptor).size - offset, 0);
+    const bytes = new Uint8Array(length);
+    const read = readSync(descriptor, bytes, 0, length, offset);
+    return bytes.subarray(0, read);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+/**
+ * Follows `<data>/gate-profile-runs/<P>.ndjson` after line `afterLineNumber`. Each call reads only the bytes appended since the last one;
+ * an unterminated last line waits for its line feed, and a line that is no `{"text": …}` keeps its number and is not sent.
+ */
+function outputFollowerOf(trackerDirectory: string, profileRunId: string, afterLineNumber: number): GateProfileOutputFollower {
+  const outputFilePath = join(trackerDirectory, GATE_PROFILE_RUNS_FOLDER, `${profileRunId}.ndjson`);
+  const decoder = new TextDecoder();
+  let consumedBytes = 0;
+  let lineNumber = 0;
+  return () => {
+    const bytes = bytesFrom(outputFilePath, consumedBytes);
+    const lines: GateProfileOutputLine[] = [];
+    let lineStart = 0;
+    for (let lineEnd = bytes.indexOf(LINE_FEED_BYTE); lineEnd !== -1; lineEnd = bytes.indexOf(LINE_FEED_BYTE, lineStart)) {
+      lineNumber += 1;
+      const text = outputTextOf(decoder.decode(bytes.subarray(lineStart, lineEnd)));
+      if (text !== null && lineNumber > afterLineNumber) lines.push({ lineNumber, text });
+      lineStart = lineEnd + 1;
+    }
+    consumedBytes += lineStart;
+    return lines;
+  };
+}
+
+export const GateProfiling = Object.freeze({ createGateProfiling, outputFollowerOf });

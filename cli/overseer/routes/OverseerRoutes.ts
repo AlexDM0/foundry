@@ -1,7 +1,7 @@
 /**
  * The routes the Overseer's API serves, over the board, its job folders, its picture store and agent-dashboard's server record: the state
- * and summary read fresh each request, a job's transcript and served files, the pictures User uploads and the ones a transcript names, the
- * origins allowed to frame the Bridge, and the Bridge itself, whose HTML
+ * and summary read fresh each request, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones
+ * a transcript names, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML
  * import is the one place the command surface reaches `bridge/`, by path, for Bun to bundle.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -11,10 +11,12 @@ import bridgePage from '../../../bridge/index.html';
 
 import { LogFileIngestion }                                       from '../../../src/adapters/log/LogFileIngestion.ts';
 import { LogRecordMappingUtil }                                   from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
+import { GateProfilesFile }                                       from '../../../src/adapters/pipeline/GateProfilesFile.ts';
 import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { LogRecord }                                         from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { BoardStateAssembly }                                     from '../../../src/services/overseer/BoardState.ts';
 import type { EventBroker }                                       from '../../../src/services/overseer/EventBroker.ts';
+import { GateProfiling }                                          from '../../../src/services/overseer/GateProfiling.ts';
 import { JobTranscript }                                          from '../../../src/services/overseer/JobTranscript.ts';
 import type { OverseerRoutes, RouteAnswer, TranscriptFollower }   from '../../../src/services/overseer/OverseerServer.ts';
 import { WatcherFleet }                                           from '../../../src/services/overseer/WatcherFleet.ts';
@@ -53,6 +55,18 @@ export function dashboardFrameOriginsOf(homeDirectory: string): string[] {
   } catch {
     return [];
   }
+}
+
+/** No cursor, or empty text, starts at the first line; any text but a whole line number is no cursor. */
+function profileOutputCursorOf(after: string | null): number | null {
+  if (after === null || after === '') return 0;
+  return /^\d+$/.test(after) ? Number(after) : null;
+}
+
+/** A run the board's `gate-profiles.json` holds now; an unreadable file holds none. */
+function boardHoldsProfileRun(gateProfilesFilePath: string, profileRunId: string): boolean {
+  const reading = GateProfilesFile.read(gateProfilesFilePath);
+  return reading.verdict === 'readable' && reading.profiles.runs.some((run) => run.profileRunId === profileRunId);
 }
 
 function newestInstanceIn(jobFolder: string): number {
@@ -120,6 +134,11 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
         ({ cursor } = read);
         return read.entries;
       };
+    },
+    profileOutputOf: (profileRunId, after) => {
+      const afterLineNumber = profileOutputCursorOf(after);
+      if (afterLineNumber === null || !boardHoldsProfileRun(workspace.gateProfilesFilePath, profileRunId)) return null;
+      return GateProfiling.outputFollowerOf(workspace.trackerDirectory, profileRunId, afterLineNumber);
     },
     jobFileText: (jobId, fileName) => {
       const jobFolder = jobFolderOf(jobId);

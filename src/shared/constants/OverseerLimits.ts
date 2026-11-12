@@ -113,6 +113,9 @@ export const OVERSEER_NUDGE_TIMEOUT_MILLISECONDS = 500;
 /** How often an Overseer event stream sends its `: ping` comment: under Bun's 10-second idle timeout, which closes a quiet stream. */
 export const SSE_HEARTBEAT_SECONDS = 5;
 
+/** How often a gate profile's output stream reads the run's output file for appended lines; a schedule only, never a decision. */
+export const PROFILE_OUTPUT_FOLLOW_MILLISECONDS = 250;
+
 /** How long a Bridge session code `open` issues may still buy a session, and how long its owner-only redirect file stays. */
 export const SESSION_CODE_LIFETIME_SECONDS = 30;
 

@@ -5,7 +5,9 @@
  * and the Overseer; `/api/summary` has the fixture's shape; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
  * clickjacking of the Bridge's controls; an event-stream client sees a `board` event for a ticket move and a `job`
  * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
- * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`.
+ * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
+ * gate profile the board holds streams its output lines after the cursor, while a run it does not hold and a cursor that is no line number
+ * are 404.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -25,6 +27,8 @@ import {
   test
 } from 'bun:test';
 
+import { GateProfilesFile }                                                             from '../../src/adapters/pipeline/GateProfilesFile.ts';
+import { GATE_PROFILE_RUNS_FOLDER }                                                     from '../../src/services/overseer/GateProfiling.ts';
 import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }                         from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                                from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                      from '../../src/testing/ChildProcessCaseTimeout.ts';
@@ -225,6 +229,39 @@ describe('the Overseer API on a scratch board', () => {
     expect(((await blank.json()) as { refusal: string }).refusal).toContain('blank and carries no picture');
     const state = await (await fetch(new URL('api/state', url), { headers })).json() as Record<string, unknown>;
     expect(state['pictureLimits']).toMatchObject({ perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a gate profile the board holds streams its output after the cursor; another run and a cursor that is no line number are 404', async () => {
+    const dataFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
+    writeFileSync(join(dataFolder, 'gate-profiles.json'), GateProfilesFile.contentsOf({
+      formatVersion: 1,
+      nextRunNumber: 2,
+      runs:          [{
+        profileRunId:        'P1',
+        setupId:             null,
+        phase:               'merge',
+        gate:                { name: 'test', run: 'bun test' },
+        gateHash:            'example-gate-hash',
+        prepare:             [],
+        state:               'passed',
+        stopRequested:       false,
+        elapsedMilliseconds: 1200,
+      }],
+      extra: [],
+    }));
+    mkdirSync(join(dataFolder, GATE_PROFILE_RUNS_FOLDER));
+    writeFileSync(join(dataFolder, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), `${JSON.stringify({ text: 'first' })}\n${JSON.stringify({ text: 'second' })}\n`);
+    const overseer = await startOverseer();
+    const url = await overseer.firstOutputLine ?? '';
+    const headers = tokenHeaders();
+    const stream = await fetch(new URL('api/profiles/P1/stream?after=1', url), { headers });
+    expect(stream.headers.get('content-type')).toBe('text/event-stream');
+    const reader = stream.body?.getReader();
+    const firstChunk = await reader?.read();
+    await reader?.cancel();
+    expect(new TextDecoder().decode(firstChunk?.value)).toBe('id: 2\nevent: line\ndata: {"text":"second"}\n\n');
+    expect((await fetch(new URL('api/profiles/P2/stream', url), { headers })).status).toBe(404);
+    expect((await fetch(new URL('api/profiles/P1/stream?after=last', url), { headers })).status).toBe(404);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {

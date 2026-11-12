@@ -49,6 +49,7 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 | `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
 | `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
+| `GET /api/profiles/<P>/stream` | session cookie or bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | Bridge (the Gate dialog's log) |
 | `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
@@ -82,7 +83,7 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
 | Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, agent-dashboard's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
-| Reader | In the six data routes: session token, state, events, job stream, job files, pictures | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
+| Reader | In the seven data routes: session token, state, events, job stream, job files, pictures, profile stream | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
 | Bearer token | In `/api/commands`, `/api/pictures` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
 | Page CSP | On the answer | Every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | Injected script reaching out; a foreign page framing the Bridge's controls |
 | File CSP | On the answer | `sandbox` on a served job file and a served picture, which is also `nosniff` | None, it is a header | Agent text or a picture opened in a browser running as the API's origin |
@@ -235,8 +236,8 @@ The rules of one publish:
 
 *Notice that the first event is synthetic: its `live` counts are zero whatever the job did.*
 
-The stream also carries `: ping` every `SSE_HEARTBEAT_SECONDS` (5), and Bun's idle timeout is switched off for both
-streaming routes. On stop the server closes every open stream, then stops gracefully, so the answer to an
+The stream also carries `: ping` every `SSE_HEARTBEAT_SECONDS` (5), and Bun's idle timeout is switched off for every
+streaming route: this one, the transcript stream and the gate profile stream. On stop the server closes every open stream, then stops gracefully, so the answer to an
 `overseer-stop` still arrives.
 
 > **As built.** Each `board` carries every [ticket](../glossary.md#ticket) body and the whole question history, see
@@ -489,6 +490,25 @@ lines before it first.
 Each open transcript holds one browser connection. The Bridge opens one only for a transcript it shows: the Intake tab
 follows the selected session alone and reads every other session's last line from `BoardState`.
 
+## The gate profile stream
+
+`GET /api/profiles/<P>/stream` follows one [gate profile](../cli.md#gate-profiles) run's output, as the run appends it
+to `<data>/gate-profile-runs/<P>.ndjson`. Each piece of output is one line of that file, numbered from 1. A client gets
+a `line` event per line after its cursor, `data: {"text": …}` and the line number as its id, then a `line` event per line
+appended later.
+
+- The run must be one that `gate-profiles.json` holds now: an unknown id, a run that a newer run of the same gate and
+  phase replaced, and an unreadable file are 404. A queued run with no output yet streams nothing until its first line.
+- The cursor is a line number. `Last-Event-ID` beats `?after=`. Neither, or empty text, starts at line 1. Any other
+  text is 404.
+- The file is read again every `PROFILE_OUTPUT_FOLLOW_MILLISECONDS` (250), from where the last read stopped. An
+  unterminated last line waits for its line feed. A line that is not a `{"text": …}` record keeps its number and is not
+  sent.
+- The stream does not end when the run ends: the run's state is in `gate-profiles.json`, not in this stream. It sends
+  `: ping` every heartbeat, and Bun's idle timeout is off for it.
+- The output is never on [the event stream](#the-event-stream): the Overseer publishes no event for an output line, and
+  this stream sends no board event.
+
 ## The agent-dashboard contract
 
 agent-dashboard is a separate program outside this repository that lists boards and frames the Bridge. Four things bind
@@ -546,6 +566,7 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 8. A served job file is only a name in `SERVED_JOB_FILE_NAMES`.
 9. A read route takes no lock.
 10. A picture is known by the sha256 of its bytes and its type by its first bytes; no transcript entry carries its bytes.
+11. A gate profile's output reaches a client only through its profile stream, never through the event stream.
 
 ## In the code
 
@@ -563,6 +584,7 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 | The count against a budget | `src/services/overseer/JobLaunch.ts` | `sessionReadingOf` | |
 | Lost subagents | `src/services/overseer/ClaudeTranscripts.ts` | `ClaudeTranscripts.subagentFactsOf` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
 | Transcript | `src/services/overseer/JobTranscript.ts` | `JobTranscript` | `src/services/overseer/OverseerServer.integration.spec.ts` |
+| Gate profile stream | `src/services/overseer/OverseerServer.ts`, `src/services/overseer/GateProfiling.ts` | `profileOutputResponse`, `GateProfiling.outputFollowerOf` | `src/services/overseer/OverseerServer.spec.ts`, `src/services/overseer/GateProfiling.outputFollower.spec.ts` |
 | Transcript entry | `src/shared/@types/TranscriptEntry.ts` | `TranscriptEntry`, `TranscriptRole`, `TranscriptPicture` | |
 | Picture store | `src/services/tracker/PictureStore.ts` | `PictureStore` | `src/services/tracker/PictureStore.spec.ts` |
 | Clients | `bridge/api/` | `CommandClient`, `SessionTokenSource`, `PictureUploadClient`, `EventStreamClient`, `IdentityClient`, `TranscriptStreamClient` | the `.spec.ts` beside each |

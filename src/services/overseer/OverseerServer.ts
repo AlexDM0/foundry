@@ -10,14 +10,20 @@ import { timingSafeEqual } from 'node:crypto';
 
 import type { HTMLBundle } from 'bun';
 
-import { WATCHER_PROTOCOL_VERSION }                                               from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { TranscriptEntry }                                                   from '../../shared/@types/TranscriptEntry.ts';
-import { PICTURE_SIZE_LIMIT_BYTES, SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
-import { BrowserSessions }                                                        from './BrowserSessions.ts';
-import type { EventBroker, OverseerEvent }                                        from './EventBroker.ts';
-import { OverseerPort, type OverseerPortChoice }                                  from './OverseerPort.ts';
-import { MILLISECONDS_PER_SECOND }                                                from './constants/TimeUnits.ts';
+import { WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { TranscriptEntry }     from '../../shared/@types/TranscriptEntry.ts';
+import {
+  PICTURE_SIZE_LIMIT_BYTES,
+  PROFILE_OUTPUT_FOLLOW_MILLISECONDS,
+  SERVED_JOB_FILE_NAMES,
+  SSE_HEARTBEAT_SECONDS
+} from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
+import { BrowserSessions }                       from './BrowserSessions.ts';
+import type { EventBroker, OverseerEvent }       from './EventBroker.ts';
+import type { GateProfileOutputFollower }        from './GateProfiling.ts';
+import { OverseerPort, type OverseerPortChoice } from './OverseerPort.ts';
+import { MILLISECONDS_PER_SECOND }               from './constants/TimeUnits.ts';
 
 export interface OverseerIdentity {
   application:            string;
@@ -45,32 +51,34 @@ export type TranscriptFollower = () => TranscriptEntry[];
 
 export interface OverseerRoutes {
   /** Read at each request, so a token written after the Baton was won is the one checked. */
-  token:        () => string | null;
+  token:           () => string | null;
   /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
-  started:      () => boolean;
+  started:         () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
-  command:      (body: unknown) => Promise<RouteAnswer>;
+  command:         (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
-  onNudge:      () => void;
-  state:        () => unknown;
-  summary:      () => unknown;
+  onNudge:         () => void;
+  state:           () => unknown;
+  summary:         () => unknown;
   /** `null` until the first state was published. */
-  events:       () => EventBroker | null;
+  events:          () => EventBroker | null;
   /** `null` for an unknown job or a cursor that is no `<instance>.<sequence>`. */
-  transcriptOf: (jobId: string, after: string | null) => TranscriptFollower | null;
+  transcriptOf:    (jobId: string, after: string | null) => TranscriptFollower | null;
+  /** `null` for a run the board does not hold, or a cursor that is no whole line number. */
+  profileOutputOf: (profileRunId: string, after: string | null) => GateProfileOutputFollower | null;
   /** A served job file's text, `null` when the job or the file does not exist. */
-  jobFileText:  (jobId: string, fileName: string) => string | null;
+  jobFileText:     (jobId: string, fileName: string) => string | null;
   /** A non-empty `POST /api/pictures` body behind a valid token: 200 `{ pictureId, bytes, mediaType }`, or 413 or 415 worded. */
-  storePicture: (upload: PictureUpload) => RouteAnswer;
+  storePicture:    (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
-  picture:      (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
+  picture:         (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
   /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
-  frameOrigins: () => readonly string[];
+  frameOrigins:    () => readonly string[];
   /**
    * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through
    * `fetch`, so every file carries the page CSP: Bun's own HTML route takes no headers. Absent, `GET /` is a 404 like any unknown path.
    */
-  page?:        HTMLBundle;
+  page?:           HTMLBundle;
 }
 
 export interface OverseerServerRequest {
@@ -81,6 +89,8 @@ export interface OverseerServerRequest {
   now:                    () => Date;
   /** Overridden by specs, which cannot wait out the production heartbeat. */
   heartbeatMilliseconds?: number;
+  /** Overridden by specs, like the heartbeat. */
+  followMilliseconds?:    number;
 }
 
 export interface OverseerServer {
@@ -121,6 +131,12 @@ const BUILT_PAGE_INDEX_NAME = 'index.html';
 const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
 const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
 const PICTURE_PATH    = /^\/api\/pictures\/([0-9a-f]{64})$/;
+const PROFILE_STREAM_PATH = /^\/api\/profiles\/([\w.-]+)\/stream$/;
+
+/** A stream is quiet between events by design, so Bun's idle timeout is off for each of these routes rather than left to the heartbeat. */
+function isStreamPath(pathname: string): boolean {
+  return pathname === '/api/events' || JOB_STREAM_PATH.test(pathname) || PROFILE_STREAM_PATH.test(pathname);
+}
 
 function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
   const frameAncestors = frameOrigins.length === 0 ? '\'none\'' : frameOrigins.join(' ');
@@ -254,10 +270,20 @@ async function sessionExchangeResponse(request: Request, access: RouteAccess): P
   return response;
 }
 
-interface EventStreams {
+export interface EventStreams {
   /** Each open event stream's closer, so a stopping server ends them and its graceful stop is not held open by a client. */
   open:                  Set<() => void>;
   heartbeatMilliseconds: number;
+  /** How often a profile stream reads its run's output again; a schedule only. */
+  followMilliseconds:    number;
+}
+
+function eventStreamsOf(timing: { heartbeatMilliseconds?: number; followMilliseconds?: number }): EventStreams {
+  return {
+    open:                  new Set(),
+    heartbeatMilliseconds: timing.heartbeatMilliseconds ?? SSE_HEARTBEAT_SECONDS * MILLISECONDS_PER_SECOND,
+    followMilliseconds:    timing.followMilliseconds ?? PROFILE_OUTPUT_FOLLOW_MILLISECONDS,
+  };
 }
 
 /** An SSE response whose writer sends a `: ping` every heartbeat and runs `tick` with it, until the client or the server goes. */
@@ -318,6 +344,22 @@ function transcriptResponse(request: Request, routes: OverseerRoutes, jobId: str
     const sendNew = () => follow().forEach((entry) => write(`id: ${entry.cursor}\nevent: message\ndata: ${JSON.stringify(entry)}\n\n`));
     const unsubscribe = routes.events()?.subscribe(sendNew) ?? (() => undefined);
     return { tick: sendNew, stop: unsubscribe };
+  });
+}
+
+/**
+ * A gate profile's output: each line after the cursor, then each line appended later, as a `line` event with its line number as the id.
+ * The output is read on its own schedule, never from the board's events, so the board event stream carries no output line.
+ */
+function profileOutputResponse(request: Request, routes: OverseerRoutes, profileRunId: string, eventStreams: EventStreams): Response {
+  const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
+  const follow = routes.profileOutputOf(profileRunId, after);
+  if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
+  return eventStreamResponse(eventStreams, (write) => {
+    const sendNew = () => follow().forEach((line) => write(`id: ${line.lineNumber}\nevent: line\ndata: ${JSON.stringify({ text: line.text })}\n\n`));
+    sendNew();
+    const following = setInterval(sendNew, eventStreams.followMilliseconds);
+    return { tick: () => undefined, stop: () => clearInterval(following) };
   });
 }
 
@@ -385,6 +427,8 @@ function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: Eve
   if (pathname === '/api/events') return () => eventsResponse(request, routes, eventStreams);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
   if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
+  const profileRunId = PROFILE_STREAM_PATH.exec(pathname)?.[1];
+  if (profileRunId !== undefined) return () => profileOutputResponse(request, routes, profileRunId, eventStreams);
   const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
   if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
   const pictureId = PICTURE_PATH.exec(pathname)?.[1];
@@ -424,10 +468,7 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
 
 function start(serverRequest: OverseerServerRequest): OverseerServer {
   const { routes } = serverRequest;
-  const eventStreams: EventStreams = {
-    open:                  new Set(),
-    heartbeatMilliseconds: serverRequest.heartbeatMilliseconds ?? SSE_HEARTBEAT_SECONDS * MILLISECONDS_PER_SECOND,
-  };
+  const eventStreams = eventStreamsOf(serverRequest);
   const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
@@ -443,9 +484,7 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
       if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
         return withPagePolicy(jsonResponse({ status: HTTP_STATUS.FORBIDDEN, body: { refusal: 'forbidden' } }), frameOrigins);
       }
-      // A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing.
-      const { pathname } = new URL(request.url);
-      if (pathname === '/api/events' || JOB_STREAM_PATH.test(pathname)) ownServer.timeout(request, 0);
+      if (isStreamPath(new URL(request.url).pathname)) ownServer.timeout(request, 0);
       const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
       return withPagePolicy(await routeOf(request, access, identity, eventStreams, pageFiles), frameOrigins);
     },
@@ -462,4 +501,6 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
   };
 }
 
-export const OverseerServer = Object.freeze({ start, pictureUploadOf });
+export const OverseerServer = Object.freeze({
+  start, pictureUploadOf, dataRouteOf, eventStreamsOf, isStreamPath
+});

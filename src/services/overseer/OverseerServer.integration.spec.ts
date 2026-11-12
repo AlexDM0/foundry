@@ -3,11 +3,12 @@
  * pure function of the tracker id inside `OVERSEER_PORT_FIRST` and its count, so a board keeps it across restarts; a port in use moves the
  * bind upward while a given port is refused; the identity answers only once the start is done; a foreign Host, a foreign Origin, an
  * agent-dashboard frame Origin and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
- * routed; the five data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
+ * routed; the data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
  * program can forge, and the code is spent by one exchange; every answer carries the page CSP but a served job file, which is sandboxed
  * plain text and only `report.json` or `gate.log`; the event stream replays after a `Last-Event-ID` of its generation and pings; a
- * job stream sends its history then each new entry; a picture upload needs the token and a body, and a served picture is never sniffed,
- * never cached and sandboxed.
+ * job stream sends its history then each new entry; a gate profile stream sends each output line after the cursor, then each appended
+ * line, while the board event stream carries none, and an unknown run is a 404; a picture upload needs the token and a body, and a served
+ * picture is never sniffed, never cached and sandboxed.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -39,8 +40,8 @@ const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
 const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
 const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
-/** The five routes that answer board data, each of which takes the session cookie or the bearer token. */
-const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json'];
+/** The routes that answer board data, each of which takes the session cookie or the bearer token. */
+const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
 
 const SHORT_HEARTBEAT_MILLISECONDS = 20;
 
@@ -87,13 +88,14 @@ function startExampleServer(
       commands.push(body);
       return { status: 200, body: { outcome: 'done', result: null } };
     },
-    onNudge:      () => nudges.push('nudge'),
-    state:        () => ({ notices: [{ kind: 'install-version-changed' }] }),
-    summary:      () => ({ summaryVersion: 1 }),
-    events:       () => broker,
-    transcriptOf: (jobId) => (jobId === 'J1' ? () => [] : null),
-    jobFileText:  (_jobId, fileName) => `text of ${fileName}`,
-    storePicture: (upload) => {
+    onNudge:         () => nudges.push('nudge'),
+    state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
+    summary:         () => ({ summaryVersion: 1 }),
+    events:          () => broker,
+    transcriptOf:    (jobId) => (jobId === 'J1' ? () => [] : null),
+    profileOutputOf: (profileRunId) => (profileRunId === 'P1' ? () => [] : null),
+    jobFileText:     (_jobId, fileName) => `text of ${fileName}`,
+    storePicture:    (upload) => {
       if (upload.verdict === 'over-limit') return { status: 413, body: { refusal: 'too-large' } };
       pictureUploads.push(upload.bytes);
       return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: upload.bytes.length, mediaType: 'image/png' } };
@@ -452,6 +454,42 @@ describe('OverseerServer streams', () => {
     expect(text).toStartWith('id: 1.1\nevent: history\ndata: [{"cursor":"1.1"');
     expect(text).toContain('id: 2.1\nevent: message\ndata: {"cursor":"2.1","role":"tool-call"');
     expect(cursorsAsked).toEqual([null, '1.0']);
+  });
+});
+
+describe('OverseerServer gate profile streams', () => {
+  test('GET /api/profiles/<P>/stream sends each line after the cursor, then each appended line, with its number as the id', async () => {
+    const appended = [{ lineNumber: 2, text: 'second' }];
+    const cursorsAsked: (string | null)[] = [];
+    const { server, broker } = startExampleServer({
+      profileOutputOf: (profileRunId, after) => {
+        cursorsAsked.push(after);
+        return profileRunId === 'P1' ? () => appended.splice(0) : null;
+      },
+    });
+    broker.publishState(exampleState(1));
+    const events = await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS });
+    const response = await fetch(new URL('api/profiles/P1/stream', server.url), { headers: { ...TOKEN_HEADERS, 'last-event-id': '1' } });
+    expect(response.headers.get('content-type')).toBe('text/event-stream');
+    const text = await streamTextUntil(response, (soFar) => soFar.includes('id: 3\n'), {
+      whenFirstRead: () => {
+        appended.push({ lineNumber: 3, text: 'third' });
+        broker.publishState(exampleState(2));
+      },
+    });
+    expect(text).toStartWith('id: 2\nevent: line\ndata: {"text":"second"}\n\n');
+    expect(text).toContain('id: 3\nevent: line\ndata: {"text":"third"}\n\n');
+    expect(text).not.toContain('event: board');
+    const boardText = await streamTextUntil(events, (soFar) => soFar.includes('id: 1-2\n'));
+    expect(boardText).not.toContain('third');
+    expect(boardText).not.toContain('event: line');
+    expect(cursorsAsked).toEqual(['1']);
+  });
+
+  test('a run the routes do not know is a 404, behind the same reader check as every data route', async () => {
+    const { server } = startExampleServer();
+    expect((await fetch(new URL('api/profiles/P9/stream', server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
+    expect((await fetch(new URL('api/profiles/P9/stream', server.url))).status).toBe(401);
   });
 });
 
