@@ -1,6 +1,7 @@
 /**
  * Gaia's settings in memory, read once through the settings ingestion and written through its writer. The settings in memory change only
- * when the write succeeded, so what Gaia runs on is what the next start reads.
+ * when the write succeeded, so what Gaia runs on is what the next start reads. Changes are written one after another, so a change made
+ * from the current settings never writes over one that was on its way.
  */
 import type { SettingsReading }                      from '../adapters/gaia-files/SettingsFile.ts';
 import type { SettingsWriter, SettingsWriteVerdict } from '../adapters/gaia-files/SettingsWriter.ts';
@@ -9,6 +10,11 @@ import type { SettingsFileState }                    from '../shared/@types/Flee
 import type { GaiaSettings }                         from '../shared/@types/GaiaSettings.ts';
 
 export type SettingsListener = (settings: GaiaSettings) => void;
+
+/** The settings to write, made from the current ones; `null` when they already hold what was asked. */
+export type SettingsUpdate = (currentSettings: GaiaSettings) => GaiaSettings | null;
+
+export type SettingsUpdateVerdict = SettingsWriteVerdict | { readonly verdict: 'unchanged' };
 
 export interface SettingsStoreOptions {
   readonly settingsFile:   { readonly read: () => Promise<SettingsReading> };
@@ -22,6 +28,8 @@ export interface SettingsStore {
   readonly fileState: () => SettingsFileState;
   /** Writes the settings and keeps them in memory when they were written; any other verdict leaves memory as it was. */
   readonly change:    (settings: GaiaSettings) => Promise<SettingsWriteVerdict>;
+  /** Makes the settings to write from the current ones once every change before it is written, then writes them as `change` does. */
+  readonly update:    (settingsUpdate: SettingsUpdate) => Promise<SettingsUpdateVerdict>;
   /** Answers the function that ends the subscription. */
   readonly subscribe: (listener: SettingsListener) => () => void;
 }
@@ -37,6 +45,7 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
   let currentSettings: GaiaSettings = GAIA_SETTINGS_DEFAULTS;
   let currentFileState: SettingsFileState = 'absent';
   const listeners = new Set<SettingsListener>();
+  let changesOnTheirWay: Promise<unknown> = Promise.resolve();
 
   function keep(settings: GaiaSettings): void {
     currentSettings = settings;
@@ -50,12 +59,29 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
     return reading;
   }
 
-  async function change(settings: GaiaSettings): Promise<SettingsWriteVerdict> {
+  async function write(settings: GaiaSettings): Promise<SettingsWriteVerdict> {
     const writeVerdict = await options.settingsWriter.write(settings);
     if (writeVerdict.verdict !== 'written') return writeVerdict;
     currentFileState = 'read';
     keep(settings);
     return writeVerdict;
+  }
+
+  function afterTheChangesOnTheirWay<Verdict>(nextChange: () => Promise<Verdict>): Promise<Verdict> {
+    const verdict = changesOnTheirWay.then(nextChange);
+    changesOnTheirWay = verdict.catch(() => undefined);
+    return verdict;
+  }
+
+  function change(settings: GaiaSettings): Promise<SettingsWriteVerdict> {
+    return afterTheChangesOnTheirWay(() => write(settings));
+  }
+
+  function update(settingsUpdate: SettingsUpdate): Promise<SettingsUpdateVerdict> {
+    return afterTheChangesOnTheirWay(async (): Promise<SettingsUpdateVerdict> => {
+      const updatedSettings = settingsUpdate(currentSettings);
+      return updatedSettings === null ? { verdict: 'unchanged' } : write(updatedSettings);
+    });
   }
 
   function subscribe(listener: SettingsListener): () => void {
@@ -70,6 +96,7 @@ export function createSettingsStore(options: SettingsStoreOptions): SettingsStor
     settings:  () => currentSettings,
     fileState: () => currentFileState,
     change,
+    update,
     subscribe,
   };
 }

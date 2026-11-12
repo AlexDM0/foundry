@@ -1,10 +1,16 @@
 /**
  * The settings store over the real settings file and writer under a scratch home: it runs on the defaults until it has read the file and
  * whenever the file cannot be read, says which state the file is in, and keeps a change in memory only once it is written, so a newer
- * file or an unwritable folder leaves Gaia on what it ran on before.
+ * file or an unwritable folder leaves Gaia on what it ran on before. Updates started at once are made one after another, each from what the
+ * one before it wrote, so none is lost.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join }                          from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -122,5 +128,50 @@ describe('changing', () => {
 
     await store.change(DARK_AND_ONE_HIDDEN);
     expect(heard).toEqual([]);
+  });
+});
+
+describe('updating', () => {
+  function hiding(trackerId: string): (settings: GaiaSettings) => GaiaSettings {
+    return (settings) => ({ ...settings, hiddenTrackerIds: [...settings.hiddenTrackerIds, trackerId] });
+  }
+
+  test('makes updates started at once one after another, each from what the one before it wrote', async () => {
+    const store = storeInHome();
+    await store.load();
+
+    const verdicts = await Promise.all([store.update(hiding('example-storefront-7c41')), store.update(hiding('research-wiki-2b90'))]);
+    expect(verdicts).toEqual([{ verdict: 'written' }, { verdict: 'written' }]);
+    expect(store.settings().hiddenTrackerIds).toEqual(['example-storefront-7c41', 'research-wiki-2b90']);
+    expect((await new SettingsFile(homeDirectory).read()).settings.hiddenTrackerIds).toEqual(['example-storefront-7c41', 'research-wiki-2b90']);
+  });
+
+  test('makes an update from a change started before it', async () => {
+    const store = storeInHome();
+    await store.load();
+
+    const [changeVerdict, updateVerdict] = await Promise.all([store.change(DARK_AND_ONE_HIDDEN), store.update(hiding('research-wiki-2b90'))]);
+    expect([changeVerdict, updateVerdict]).toEqual([{ verdict: 'written' }, { verdict: 'written' }]);
+    expect(store.settings()).toEqual({ ...DARK_AND_ONE_HIDDEN, hiddenTrackerIds: ['example-hidden-forge', 'research-wiki-2b90'] });
+  });
+
+  test('answers unchanged and writes nothing when the settings already hold what was asked', async () => {
+    const store = storeInHome();
+    await store.load();
+    const heard: GaiaSettings[] = [];
+    store.subscribe((settings) => heard.push(settings));
+
+    expect(await store.update(() => null)).toEqual({ verdict: 'unchanged' });
+    expect(existsSync(settingsFilePathIn(homeDirectory))).toBe(false);
+    expect(heard).toEqual([]);
+  });
+
+  test('keeps a newer file untouched and answers so', async () => {
+    writeStoredFile({ version: 2, theme: 'dark' });
+    const store = storeInHome();
+    await store.load();
+
+    expect(await store.update(hiding('research-wiki-2b90'))).toEqual({ verdict: 'kept-newer-version', storedVersion: 2 });
+    expect(store.settings()).toEqual(GAIA_SETTINGS_DEFAULTS);
   });
 });
