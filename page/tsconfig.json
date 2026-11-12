@@ -1,0 +1,17 @@
+{
+  // DOM library and React's JSX, no Bun or Node types: a page module reaching for `Bun.file` or `node:fs` fails to compile.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": [],
+    "tsBuildInfoFile": "../node_modules/.cache/typecheck/page.tsbuildinfo"
+  },
+  // The page's own modules plus exactly the shared files it may reach, named one by one.
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../src/shared/constants/ProductNames.ts"
+  ],
+  "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./testing/**"]
+}

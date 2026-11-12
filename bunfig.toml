@@ -1,0 +1,3 @@
+[test]
+preload = ["./src/testing/TestRunPreload.ts"]
+pathIgnorePatterns = [".scratch/**", ".claude/**", "node_modules/**"]
