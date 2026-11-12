@@ -11,6 +11,7 @@ import {
   test
 } from 'bun:test';
 
+import type { ProcessRun }                                          from '../../lib/process-run/ProcessRun.ts';
 import { recordedRunsOf, runCallShapeOf, detachedStartCallShapeOf } from '../../testing/RecordedRuns.ts';
 import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
 
@@ -44,6 +45,27 @@ function registeredForge(program: string | null = EXAMPLE_FORGE_PROGRAM_PATH): F
 function forgeProgramAt(stage: ForgeProgramStage, settingsProgramPath: string | null = null) {
   const processRun = recordedForgeProgramRunOf(stage);
   return { processRun, forgeProgram: createForgeProgram({ processRun, settingsProgramPath: () => settingsProgramPath }) };
+}
+
+/** The recorded forge program, also noting the working directory of each call: the recorded call shape leaves it out. */
+function forgeProgramNotingWorkingDirectories(stage: ForgeProgramStage) {
+  const recordedRun = recordedForgeProgramRunOf(stage);
+  const workingDirectories: string[] = [];
+  const processRun: ProcessRun = {
+    run: (request) => {
+      workingDirectories.push(request.workingDirectory);
+      return recordedRun.run(request);
+    },
+    startDetached: (request) => {
+      workingDirectories.push(request.workingDirectory);
+      return recordedRun.startDetached(request);
+    },
+  };
+  return {
+    forgeProgram:       createForgeProgram({ processRun, settingsProgramPath: () => null }),
+    callShapesAnswered: recordedRun.callShapesAnswered,
+    workingDirectories,
+  };
 }
 
 /** The refusal document the authored recording holds for a call shape, read from the recording itself. */
@@ -126,7 +148,7 @@ describe('every verb done (authored from F8)', () => {
   });
 
   test('each verb runs the forge program with --json in the forge root, open alone detached and without it', async () => {
-    const { forgeProgram, processRun } = forgeProgramAt('every-verb-done');
+    const { forgeProgram, callShapesAnswered, workingDirectories } = forgeProgramNotingWorkingDirectories('every-verb-done');
     const forge = registeredForge();
     await forgeProgram.start(forge);
     await forgeProgram.stop(forge);
@@ -136,7 +158,7 @@ describe('every verb done (authored from F8)', () => {
     await forgeProgram.loginItem(forge, 'status');
     await forgeProgram.machineLimitSet(forge, 4);
     forgeProgram.openInBrowser(forge);
-    expect(processRun.callShapesAnswered()).toEqual([
+    expect(callShapesAnswered()).toEqual([
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['start', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['init', '--project', 'Example Project', '--json']),
@@ -146,6 +168,7 @@ describe('every verb done (authored from F8)', () => {
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json']),
       detachedStartCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['open']),
     ]);
+    expect(workingDirectories).toEqual(callShapesAnswered().map(() => forgeRoot));
   });
 });
 
