@@ -227,6 +227,22 @@ describe('switches', () => {
     });
     expect(controls.sent).toEqual([{ kind: 'pipeline-update-start' }]);
   });
+  test('after a refused start, a record opened elsewhere takes the next gesture\'s edit', async () => {
+    const { controls, handle } = renderFlow('A5');
+    controls.answerNextWith({ verdict: 'refused', refusal: 'Example: the pipeline moved.' });
+    await clickSettled(within(nodeOf('human-code-review')).getByRole('switch', { name: 'Human code review' }));
+    await act(async () => {
+      handle.showFacts(pipelineBoardStateOf('A6'));
+      await Promise.resolve();
+    });
+    await clickSettled(within(nodeOf('human-ticket-review')).getByRole('switch', { name: 'Human ticket review' }));
+    expect(controls.sent).toEqual([
+      { kind: 'pipeline-update-start' },
+      {
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:tickets', value: false }]
+      },
+    ]);
+  });
 });
 
 describe('arrows, marks and zoom', () => {

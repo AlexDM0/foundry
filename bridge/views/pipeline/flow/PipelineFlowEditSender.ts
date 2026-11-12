@@ -23,6 +23,8 @@ export interface PipelineFlowEditSender {
 interface HeldEdits {
   readonly gestureNumber: number;
   readonly edits:         readonly FlowDraftEdit[];
+  /** The gesture sent `pipeline-update-start`, so its edits go only if that start was not refused. */
+  readonly awaitsStart:   boolean;
 }
 
 /** `target` is the open record the edits go to; `null` on a live board, where the first gesture opens one. */
@@ -32,7 +34,7 @@ export function usePipelineFlowEditSender(target: DraftEditTarget | null): Pipel
   const editCommand = heldEdits === null || target === null ? null : PipelineFlowModel.draftEditCommandOf(target, heldEdits.edits);
   const editSender = useControlCommand(editCommand);
   const updateStartSender = useControlCommand(UPDATE_START_COMMAND);
-  const startWasRefused = updateStartSender.refusal !== null;
+  const startWasRefused = updateStartSender.refusal !== null && heldEdits?.awaitsStart === true;
 
   useEffect(() => {
     if (heldEdits === null || editCommand === null || startWasRefused || heldEdits.gestureNumber === sentGestureNumber.current) return;
@@ -43,7 +45,7 @@ export function usePipelineFlowEditSender(target: DraftEditTarget | null): Pipel
 
   const sendEdits = (edits: readonly FlowDraftEdit[]): void => {
     if (!updateStartSender.enabled) return;
-    setHeldEdits({ gestureNumber: (heldEdits?.gestureNumber ?? sentGestureNumber.current) + 1, edits });
+    setHeldEdits({ gestureNumber: (heldEdits?.gestureNumber ?? sentGestureNumber.current) + 1, edits, awaitsStart: target === null });
     if (target === null) void updateStartSender.send();
   };
 
