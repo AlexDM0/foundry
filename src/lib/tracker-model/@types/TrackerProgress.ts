@@ -25,6 +25,8 @@ export interface TrackerProgress {
   overseerState?:          OverseerState;
   /** The number the next draft takes, never wound back; absent on a tracker that never opened a draft. */
   nextDraftId?:            number;
+  /** The number the next pipeline setup record takes, never wound back; absent on a tracker that never opened one. */
+  nextSetupId?:            number;
   /** The number the next job takes, never wound back; absent on a tracker that never launched a job. */
   nextJobId?:              number;
   /** The unsettled jobs, in launch order; an ended job leaves in the hold that ended it. Absent on a tracker that never launched one. */

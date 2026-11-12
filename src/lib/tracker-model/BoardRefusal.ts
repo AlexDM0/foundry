@@ -1,7 +1,8 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
-import type { GatePhase }                        from './@types/GatePhase.ts';
-import type { JobKind, JobMoveTarget, JobState } from './@types/Job.ts';
-import type { TaskStatus }                       from './@types/Task.ts';
+import type { GatePhase }                            from './@types/GatePhase.ts';
+import type { JobKind, JobMoveTarget, JobState }     from './@types/Job.ts';
+import type { PipelineSetupMode, PipelineSetupStep } from './@types/PipelineSetup.ts';
+import type { TaskStatus }                           from './@types/Task.ts';
 import type {
   IncompleteTicket,
   AgentPair,
@@ -75,6 +76,31 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-gate-phase'; phase: string; phases: readonly GatePhase[] }
   | { reason: 'phase-order-not-a-reorder'; phase: GatePhase; names: readonly string[]; phaseGateNames: readonly string[] }
   | { reason: 'approval-without-pipeline'; approval: string }
+  | { reason: 'setup-in-progress'; setupId: string }
+  | { reason: 'no-setup-open'; setupId: string }
+  | { reason: 'pipeline-setup-unreadable'; problem: string }
+  | { reason: 'no-pipeline-to-update'; mode: PipelineSetupMode }
+  | { reason: 'pipeline-apply-pending'; setupId: string }
+  | { reason: 'billing-cap-not-positive'; maxBudgetUsd: number }
+  | { reason: 'setup-step-not-current'; setupId: string; step: PipelineSetupStep; currentStep: PipelineSetupStep }
+  | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }
+  | { reason: 'setup-step-not-continued'; setupId: string; step: PipelineSetupStep }
+  | { reason: 'unknown-setup-question'; setupId: string; questionId: string }
+  | { reason: 'setup-question-option-count'; optionCount: number; minimum: number; maximum: number }
+  | { reason: 'setup-question-without-recommendation' }
+  | { reason: 'unknown-setup-option-letters'; unknownLetters: readonly string[]; optionLetters: readonly string[] }
+  | { reason: 'several-letters-on-single-select-setup-question'; letters: readonly string[] }
+  | { reason: 'constitution-empty' }
+  | { reason: 'constitution-too-long'; characterCount: number; limit: number }
+  | { reason: 'constitution-source-unanchored'; lineText: string; occurrence: number }
+  | { reason: 'constitution-source-repeated'; lineText: string; occurrence: number }
+  | { reason: 'constitution-draft-stale'; setupId: string; revision: number; currentRevision: number }
+  | { reason: 'pipeline-draft-stale'; setupId: string; revision: number; currentRevision: number }
+  | { reason: 'no-draft-edits'; setupId: string }
+  | { reason: 'draft-edit-name-mismatch'; field: string; name: string }
+  | { reason: 'prepare-order-not-a-reorder'; names: readonly string[]; prepareNames: readonly string[] }
+  | { reason: 'unknown-setup-edit'; setupId: string; editId: string }
+  | { reason: 'setup-edit-already-undone'; setupId: string; editId: string }
   | { reason: 'unknown-draft'; draftId: string }
   | { reason: 'draft-claimed-by-another-owner'; draftId: string; owner: string }
   | { reason: 'draft-closed-into-unknown-tickets'; draftId: string; missingTicketReferences: readonly string[] }

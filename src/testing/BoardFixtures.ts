@@ -6,6 +6,7 @@ import type { Draft }                     from '../lib/tracker-model/@types/Draf
 import type { Epic, EpicFrontmatter }     from '../lib/tracker-model/@types/Epic.ts';
 import type { LogRecord }                 from '../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                  from '../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupReading }      from '../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Task }                      from '../lib/tracker-model/@types/Task.ts';
 import type { Ticket, TicketFrontmatter } from '../lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }           from '../lib/tracker-model/@types/TrackerProgress.ts';
@@ -74,7 +75,13 @@ export function epicFixture(overrides: Partial<EpicFrontmatter> = {}): Epic {
 
 /** The next task id is one past the highest row handed in, as a tracker that filed those rows itself would hold. */
 export function boardFixture(contents: {
-  tasks?: Task[]; tickets?: Ticket[]; epics?: Epic[]; drafts?: Draft[]; concurrencyLimit?: number; pipeline?: Pipeline
+  tasks?:            Task[];
+  tickets?:          Ticket[];
+  epics?:            Epic[];
+  drafts?:           Draft[];
+  concurrencyLimit?: number;
+  pipeline?:         Pipeline;
+  pipelineSetup?:    PipelineSetupReading;
 } = {}): BoardFixture {
   const tasks      = contents.tasks ?? [];
   const tickets    = contents.tickets ?? [];
@@ -96,6 +103,7 @@ export function boardFixture(contents: {
     drafts: contents.drafts ?? [],
     logger: createLogger((record) => records.push(record)),
     ...(contents.pipeline === undefined ? {} : { pipeline: contents.pipeline }),
+    ...(contents.pipelineSetup === undefined ? {} : { pipelineSetup: contents.pipelineSetup }),
   });
   return {
     board,

@@ -34,6 +34,7 @@ Look a command up by its first word, or a stored file by its name.
 |---|---|
 | `<data>/progress.json` | [The board's state](#dataprogressjson) |
 | `<data>/pipeline.json` | [The gate pipeline](#datapipelinejson) |
+| `<data>/pipeline-setup.json` | [The pipeline setup record](#datapipeline-setupjson) |
 | `<data>/log.jsonl` | [The log and its kinds](#datalogjsonl) |
 | `<data>/pictures/` | [The pictures](#datapictures) |
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
@@ -104,11 +105,12 @@ The [tracker](glossary.md#tracker) lives in `<data>/` at the repository root, fo
 ### Locking
 
 Every mutating command takes the tracker's lock. It reads, changes and writes in one hold, in this order:
-`progress.json`, `pipeline.json` when it changed, the tickets, the epics, the filing drafts, then `log.jsonl` when it
-logged something. A ticket file is therefore never ahead of the progress file, and a log line never describes a change
-that was not stored. A file whose bytes on disk already are its new contents is left in place, judged inside the hold
-from the bytes alone, so a hold that changes nothing writes no tracker file and no journal. Nothing renders: the
-[Overseer](glossary.md#overseer) serves the Bridge from the store.
+`progress.json`, `pipeline.json` when it changed, the tickets, the epics, the filing drafts, `pipeline-setup.json` when
+a setup move changed or removed it, then `log.jsonl` when it logged something. A ticket file is therefore never ahead
+of the progress file, and a log line never describes a change that was not stored. A file whose bytes on disk already
+are its new contents is left in place, judged inside the hold from the bytes alone, so a hold that changes nothing
+writes no tracker file and no journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the
+store.
 [Storage](data-model/storage.md) holds the mechanics.
 
 | takes the lock | takes no lock |
@@ -1612,6 +1614,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `concurrencyLimit` | yes | Absent reads 2, above 10 reads 10. |
 | `overseerState` | yes | `running` or `paused`; absent reads paused. |
 | `nextDraftId` | yes | The number the next filing draft takes, written by the first `draft open`, never wound back. |
+| `nextSetupId` | yes | The number the next pipeline setup record takes (`S2`), written by the first opening, never wound back. |
 | `nextJobId` | yes | The number the next job takes (`J5`), written by the first launch, never wound back. |
 | `jobs` | yes | The unsettled jobs in launch order, written by the first launch. |
 | `nextDecisionId` | yes | The number the next decision takes (`E3`), written by the first opening, never wound back. |
@@ -1702,8 +1705,8 @@ Each of these reads as exit 2:
   its reason ends in `OLDER_FORMAT_ADVICE`;
 - a present `concurrencyLimit` that is not a whole number of at least 1;
 - an `overseerState` outside the two;
-- a `nextDraftId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or `nextIncidentId`
-  below 1;
+- a `nextDraftId`, `nextSetupId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or
+  `nextIncidentId` below 1;
 - a present optional row key of the wrong shape: `reviewRound` below 2, `reviewBarRound` below 1, a row `pipelineHash`
   or `greenTree` that is not text, a `greenPhase` other than `build`, `review` or `merge`, a `history` that is not a
   list of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
@@ -1826,14 +1829,76 @@ OS level, where the Overseer starts.
 
 The login item files themselves never hold the key.
 
+### `<data>/pipeline-setup.json`
+
+The one open pipeline setup record, beside `progress.json`: a first setup, an update or an advise session of the
+pipeline agent, saved as each answer, edit and finding happens, so every step can resume. Only an Apply writes
+`pipeline.json` from it. The setup moves write it through the lock, atomically; a start over removes it. No command
+verb writes it yet. This is format version 1.
+
+```jsonc
+{
+  "formatVersion": 1,                            // only this version is read
+  "setupId": "S1",                               // S<n>, from progress.json's nextSetupId, never reused
+  "mode": "setup",                               // setup | update | advise
+  "baseContentHash": null,                       // the stored pipeline's content hash when an update or advise opened
+  "stepStates": {                                // not-started | in-progress | done | needs-recheck
+    "billing": "done", "research": "in-progress", "constitution": "not-started", "design": "not-started",
+    "apply": "not-started"
+  },
+  "currentStep": "research",
+  "billing": { "mode": "subscription" },         // as pipeline.json's billing
+  "agentJobId": null,
+  "snapshotCommit": null,                        // the main commit the agent's snapshot holds
+  "readyToContinue": [],                         // the agent's suggestion; it never moves a step
+  "findings": [
+    { "findingId": "F1", "topic": "scripts", "label": "Tests", "value": "bun test", "sourcePaths": ["package.json"],
+      "script": null, "needsRecheck": false }   // topic: stack | scripts | conventions | continuous-integration | note
+  ],
+  "questions": [
+    { "questionId": "Q1", "step": "research", "subject": { "kind": "finding", "reference": "F1" },
+      "question": "Is the test run a gate?", "context": "", "options": [{ "letter": "a", "text": "Yes" },
+      { "letter": "b", "text": "No" }], "recommended": ["a"], "multiple": false, "answer": null }
+  ],
+  "constitution": null,                          // or { markdown, annotations, draftedFrom, baseBlob, revision }
+  "draft": null,                                 // or the whole version 2 pipeline being designed, as pipeline.json
+  "draftRevision": 0,
+  "edits": [],                                   // { editId, by: agent | user, field, summary, undone }
+  "replacesUnreadablePipeline": false,
+  "applyRequest": null,                          // or { draftRevision, resumesBoard, commitJobId, state, reason }
+  "nextNumbers": { "finding": 2, "question": 2, "edit": 1 }
+}
+```
+
+- The constitution's `markdown` is the whole text, as `CONSTITUTION.md` will hold it, kept byte for byte. Its sources
+  are `annotations` beside it, never in the text: each names one whole line (`lineText`, without its line ending), its
+  `occurrence` among equal lines (from 1), a `kind` (`contributing`, `research` or `installed-default`) and a `path` or
+  `null`. A source whose line the text does not hold that many times is refused (`constitution-source-unanchored`), and
+  so is a second source on one line. When User edits the text, each source stays while its line still occurs that many
+  times, so an edited line loses its source. `draftedFrom` holds the three SOURCES ticks; `baseBlob` is main's blob of
+  `CONSTITUTION.md` when the record opened, or `null`.
+- An edit's `field` is one of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `role:<role>`,
+  `review`, `airlock`, `approval:<approval>` and `constitution`. Undo writes the base pipeline's value of that field
+  back: the stored pipeline's, or the minimal one's for a first setup.
+- Only one record is open at a time: a second opening is refused (`setup-in-progress`). Reopening a step sets every
+  later `done` step to `needs-recheck`, never `not-started`; Continue on that step sets it `done`, the only way out of
+  a recheck. In a first setup, User's answer or edit at an earlier step reopens that step; the agent's moves never move
+  a step. While `applyRequest` is `committing` or `held`, every setup move is refused (`pipeline-apply-pending`).
+- Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
+  leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
+  wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move
+  refuses `pipeline-setup-unreadable` with the reason and nothing writes over the file, and every other command runs as
+  before.
+
 ### `<data>/log.jsonl`
 
 One record per line, each a JSON object ending in a newline: `at`, `kind`, then `taskId`, `ticketId`, `epicKey`,
-`draftId`, `jobId`, `decisionId` or `incidentId` where the kind names them, then `fields`. `status` and the Bridge word
-each record as a sentence; a note's sentence is its text.
+`draftId`, `setupId`, `jobId`, `decisionId` or `incidentId` where the kind names them, then `fields`. `status` and the
+Bridge word each record as a sentence; a note's sentence is its text.
 
 The kinds fall into families: [board](#board-records), [ticket](#ticket-records), [epic](#epic-records), [filing
-draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#pipeline-and-gate-records),
+draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [review](#review-records), [pipeline and
+gate](#pipeline-and-gate-records),
 [Overseer](#overseer-records), [job](#job-records), [merge](#merge-records), [decision](#decision-records) and
 [incident](#incident-records).
 
@@ -1887,6 +1952,23 @@ draft](#filing-draft-records), [review](#review-records), [pipeline and gate](#p
 | `draft-question-asked` | `draftId` | `questionId`, `underQuestionId` when it is a follow-up |
 | `draft-question-answered` | `draftId` | `questionId`, `answer`: the option letters joined by commas, or the free text |
 | `draft-item-dropped` | `draftId` | `itemId` |
+
+#### Pipeline setup records
+
+| kind | ids | fields |
+|---|---|---|
+| `pipeline-setup-opened` | `setupId` | `mode` (`setup`, `update` or `advise`), `replacesUnreadablePipeline` |
+| `pipeline-setup-billing-set` | `setupId` | `mode` (`subscription` or `api`), `maxBudgetUsd` only for a cap |
+| `pipeline-setup-step-moved` | `setupId` | `step`, its new `state`, the `currentStep`, and `needsRecheck`: the later steps a reopening sent back |
+| `pipeline-setup-resumed` | `setupId` | `snapshotCommit`, `changedPaths` (changed on main since the earlier snapshot) |
+| `pipeline-finding-recorded` | `setupId` | `findingId`, `topic` |
+| `pipeline-question-asked` | `setupId` | `questionId`, `step` |
+| `pipeline-question-answered` | `setupId` | `questionId`, `answer`: the option letters joined by commas, or the free text |
+| `pipeline-constitution-set` | `setupId` | `by` (`agent` or `user`), `revision` |
+| `pipeline-draft-edited` | `setupId` | `by`, the draft's new `revision`, `editIds` and their `fields`, in order |
+| `pipeline-draft-undone` | `setupId` | `editId`, `field`, `revision` |
+| `pipeline-draft-discarded` | `setupId` | `revision` |
+| `pipeline-setup-discarded` | `setupId` | none |
 
 #### Review records
 

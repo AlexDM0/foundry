@@ -51,3 +51,9 @@ test('the header is checked before the rows, and the rows name the first broken 
   expect(ProgressFileValidationUtil.documentProblemOf({ ...progress, tasks: brokenRows })).toBe('tasks[0].owner is not a string');
   expect(ProgressFileValidationUtil.documentProblemOf({ ...progress, nextTaskId: 0, tasks: brokenRows })).toContain('nextTaskId is 0');
 });
+
+test('a setup counter reads when it is a whole number of at least 1, and names itself otherwise', () => {
+  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), nextSetupId: 2 })).toBeNull();
+  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), nextSetupId: 0 }))
+    .toBe('nextSetupId is 0, and when present it has to be a whole number of at least 1');
+});

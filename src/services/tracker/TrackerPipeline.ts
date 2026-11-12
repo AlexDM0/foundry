@@ -1,8 +1,8 @@
 /**
  * The sequence every mutating command follows, written once and all inside the lock: read the tracker into a Board, mutate, write the progress
  * file, then the pipeline when a `gate` verb changed it, then the tickets the Board changed, then the epics it changed or removed, then the
- * drafts, then log.jsonl, so the progress file is never behind the tickets. The writes commit through the hold journal, fenced against a
- * takeover of the lock, and leave alone every file whose bytes would not change.
+ * drafts, then the setup record when a setup move changed or removed it, then log.jsonl, so the progress file is never behind the tickets.
+ * The writes commit through the hold journal, fenced against a takeover of the lock, and leave alone every file whose bytes would not change.
  */
 import { createDraftFileWriter }                                              from '../../adapters/drafts/DraftFileWriter.ts';
 import { createEpicFileWriter }                                               from '../../adapters/epics/EpicFileWriter.ts';
@@ -10,6 +10,7 @@ import type { JournaledFile }                                                 fr
 import { createLogFileWriter }                                                from '../../adapters/log/LogFileWriter.ts';
 import { createLogRecordCollector }                                           from '../../adapters/log/LogRecordCollector.ts';
 import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } from '../../adapters/pipeline/PipelineFile.ts';
+import { PipelineSetupFile }                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
 import type { LogRecord }                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -80,6 +81,7 @@ function openBoard(contents: TrackerContents): OpenBoard {
     logger:           createLogger(logRecordCollector.collect),
     storedLogRecords: contents.storedLog.records,
     pipeline:         contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
+    pipelineSetup:    contents.pipelineSetupReading,
   });
   return { contents, logRecordCollector, board };
 }
@@ -110,6 +112,9 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
   const draftFileWriter = createDraftFileWriter((draftId) => draftFilePathOf(workspace, draftId));
   for (const draft of board.changedDrafts()) files.push(written(draftFilePathOf(workspace, draft.id), draftFileWriter.contentsOf(draft)));
   for (const draft of board.removedDrafts()) files.push(removed(draftFilePathOf(workspace, draft.id)));
+  const setupWrite = board.pipelineSetupWrite();
+  if (setupWrite.write === 'record') files.push(written(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setupWrite.setup)));
+  if (setupWrite.write === 'removed') files.push(removed(workspace.pipelineSetupFilePath));
   const deletedTicketFilePaths = deletesEveryTicketFile ? everyTicketFilePathIn(workspace) : [];
   files.push(...deletedTicketFilePaths.map(removed));
   if (deletesEveryTicketFile) files.push(...everyEpicFilePathIn(workspace).map(removed));

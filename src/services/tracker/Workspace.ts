@@ -13,16 +13,17 @@ import { TRACKER_FILES }             from './constants/TrackerFiles.ts';
 
 /** Every path one tracker owns, all absolute: a relative one would resolve against a subagent's working directory. */
 export interface Workspace {
-  rootDirectory:     string;
-  trackerDirectory:  string;
-  progressFilePath:  string;
-  pipelineFilePath:  string;
-  logFilePath:       string;
-  htmlFilePath:      string;
-  ticketsDirectory:  string;
-  epicsDirectory:    string;
-  draftsDirectory:   string;
-  lockDirectoryPath: string;
+  rootDirectory:         string;
+  trackerDirectory:      string;
+  progressFilePath:      string;
+  pipelineFilePath:      string;
+  pipelineSetupFilePath: string;
+  logFilePath:           string;
+  htmlFilePath:          string;
+  ticketsDirectory:      string;
+  epicsDirectory:        string;
+  draftsDirectory:       string;
+  lockDirectoryPath:     string;
 }
 
 /** The paths a tracker would have whether or not it exists; touches no filesystem, because `init` needs the paths of one it is creating. */
@@ -30,16 +31,17 @@ export function workspacePathsFor(rootDirectory: string): Workspace {
   const absoluteRoot = resolve(rootDirectory);
   const trackerDirectory = join(absoluteRoot, TRACKER_FILES.TRACKER_DIRECTORY_NAME);
   return {
-    rootDirectory:     absoluteRoot,
+    rootDirectory:         absoluteRoot,
     trackerDirectory,
-    progressFilePath:  join(trackerDirectory, TRACKER_FILES.PROGRESS_FILE_NAME),
-    pipelineFilePath:  join(trackerDirectory, TRACKER_FILES.PIPELINE_FILE_NAME),
-    logFilePath:       join(trackerDirectory, TRACKER_FILES.LOG_FILE_NAME),
-    htmlFilePath:      join(trackerDirectory, TRACKER_FILES.HTML_FILE_NAME),
-    ticketsDirectory:  join(trackerDirectory, TRACKER_FILES.TICKETS_DIRECTORY_NAME),
-    epicsDirectory:    join(trackerDirectory, TRACKER_FILES.EPICS_DIRECTORY_NAME),
-    draftsDirectory:   join(trackerDirectory, TRACKER_FILES.DRAFTS_DIRECTORY_NAME),
-    lockDirectoryPath: join(trackerDirectory, TRACKER_FILES.LOCK_DIRECTORY_NAME),
+    progressFilePath:      join(trackerDirectory, TRACKER_FILES.PROGRESS_FILE_NAME),
+    pipelineFilePath:      join(trackerDirectory, TRACKER_FILES.PIPELINE_FILE_NAME),
+    pipelineSetupFilePath: join(trackerDirectory, TRACKER_FILES.PIPELINE_SETUP_FILE_NAME),
+    logFilePath:           join(trackerDirectory, TRACKER_FILES.LOG_FILE_NAME),
+    htmlFilePath:          join(trackerDirectory, TRACKER_FILES.HTML_FILE_NAME),
+    ticketsDirectory:      join(trackerDirectory, TRACKER_FILES.TICKETS_DIRECTORY_NAME),
+    epicsDirectory:        join(trackerDirectory, TRACKER_FILES.EPICS_DIRECTORY_NAME),
+    draftsDirectory:       join(trackerDirectory, TRACKER_FILES.DRAFTS_DIRECTORY_NAME),
+    lockDirectoryPath:     join(trackerDirectory, TRACKER_FILES.LOCK_DIRECTORY_NAME),
   };
 }
 

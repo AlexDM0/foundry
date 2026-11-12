@@ -3,11 +3,45 @@
  * than a hand-written copy of it. Test-only: nothing that ships may import `src/testing/`.
  */
 import type { LogRecord }                          from '../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                              from '../lib/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }             from './BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
+
+/** One setup record walked through every move but Apply's, each logging its own kind once. */
+function logEverySetupRecordKind(board: Board, at: string): void {
+  const { setup } = board.openSetup({
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, at);
+  const { setupId } = setup;
+  board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 5 }, at);
+  board.continueSetupStep(setupId, 'billing', at);
+  board.recordFinding(setupId, {
+    topic: 'scripts', label: 'Type check', value: 'bun run typecheck', sourcePaths: ['package.json'], script: null
+  }, at);
+  board.askSetupQuestion(setupId, {
+    step:               'research',
+    subject:            { kind: 'finding', reference: 'F1' },
+    question:           'Is the type check a gate?',
+    context:            'Example Agency runs it before each merge',
+    optionTexts:        ['Yes', 'No'],
+    recommendedLetters: ['a'],
+    multiple:           false,
+  }, at);
+  board.answerSetupQuestion(setupId, 'Q1', { letters: ['a'] }, at);
+  board.resumeSetup(setupId, 'e5f60718293a4b5c6d7e8f9012345678901234ab', ['package.json'], at);
+  board.setConstitution(setupId, { markdown: '# Example constitution\n\n- Keep every change small.\n', annotations: [] }, at);
+  board.editDraft(setupId, {
+    by:       'agent',
+    revision: null,
+    edits:    [{ edit: { target: 'review', value: { name: 'Review' } }, summary: 'Review every ticket.' }],
+  }, at);
+  board.undoDraftEdit(setupId, 'E1', at);
+  board.discardDraft(setupId, at);
+  board.startOverSetup(setupId, at);
+}
 
 export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   const { board, records } = boardFixture({
@@ -184,6 +218,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordOverseerStopped('stopped', at);
   board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'build-bundles', error: 'Example bundle error' }, at);
   board.recordHatchApplied('J1', { requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done' }, at);
+  logEverySetupRecordKind(board, at);
   board.clearTracker({ ticketsSurvive: true }, at);
   return records;
 }

@@ -5,10 +5,16 @@
 import type { DraftAnswer, DraftQuestionOption } from './Draft.ts';
 import type { GatePhase }                        from './GatePhase.ts';
 import type {
+  AgentStepSettings,
   Pipeline,
   PipelineAgentRole,
+  PipelineAirlock,
   PipelineApproval,
   PipelineBilling,
+  PipelineConstitution,
+  PipelineGate,
+  PipelineReview,
+  PipelineStep
 } from './Pipeline.ts';
 
 export type PipelineSetupStep = 'billing' | 'research' | 'constitution' | 'design' | 'apply';
@@ -177,4 +183,80 @@ export interface PipelineSetup {
   nextNumbers:                SetupNextNumbers;
   /** Keys this build does not know, kept in order so a round trip stays byte-identical. */
   extra:                      Array<[string, unknown]>;
+}
+
+/** `pipeline-setup.json` as read: no open record, the record, or a file the board cannot use, which nothing writes over. */
+export type PipelineSetupReading =
+  | { verdict: 'absent' }
+  | { verdict: 'readable'; setup: PipelineSetup }
+  | { verdict: 'malformed'; reason: string };
+
+/** Main's `CONSTITUTION.md` when a record opens: its text byte for byte and its blob id. */
+export interface MainConstitution {
+  markdown: string;
+  blob:     string;
+}
+
+/** What opens a record; the caller read main and the stored annotations, so the Board does no I/O. */
+export interface PipelineSetupOpening {
+  mode:                       PipelineSetupMode;
+  billing:                    PipelineBilling;
+  replacesUnreadablePipeline: boolean;
+  /** Null when main holds no `CONSTITUTION.md`. */
+  mainConstitution:           MainConstitution | null;
+  /** The stored annotations of main's text, only when their blob id is main's; else empty. */
+  storedAnnotations:          readonly SourceAnnotation[];
+}
+
+/** One edit of the draft, addressed as its field names it; a `null` value removes what the field names, or writes its default back. */
+export type PipelineDraftEdit =
+  | { target: 'gate'; name: string; value: PipelineGate | null }
+  | { target: 'phase-order'; phase: GatePhase; names: string[] }
+  | { target: 'prepare'; name: string; value: PipelineStep | null }
+  | { target: 'prepare-order'; names: string[] }
+  | { target: 'role'; role: PipelineAgentRole; value: AgentStepSettings | null }
+  | { target: 'review'; value: PipelineReview | null }
+  | { target: 'airlock'; value: PipelineAirlock | null }
+  | { target: 'approval'; approval: PipelineApproval; value: boolean | null }
+  | { target: 'constitution'; value: PipelineConstitution | null };
+
+/** One edit with its author's own sentence, which the edit list and the Changes tab show. */
+export interface SummarisedDraftEdit {
+  edit:    PipelineDraftEdit;
+  summary: string;
+}
+
+/** `revision` is the draft revision the author saw; null for the agent, whose edits never race a form. */
+export interface DraftEditRequest {
+  by:       SetupEditAuthor;
+  revision: number | null;
+  edits:    readonly SummarisedDraftEdit[];
+}
+
+export type ResearchFindingRecording = Omit<ResearchFinding, 'findingId' | 'needsRecheck'>;
+
+export interface SetupQuestionAsking {
+  step:               SetupQuestionStep;
+  subject:            SetupQuestionSubject | null;
+  question:           string;
+  context:            string;
+  optionTexts:        readonly string[];
+  recommendedLetters: readonly string[];
+  multiple:           boolean;
+}
+
+/** The chosen option letters, or free text. */
+export type SetupQuestionReply = { letters: readonly string[] } | { text: string };
+
+/** The agent's whole document and its sources, sent whole each time. */
+export interface ConstitutionSetting {
+  markdown:    string;
+  annotations: readonly SourceAnnotation[];
+}
+
+/** User's edit: the revision User saw, and the whole markdown, the SOURCES ticks, or both. */
+export interface ConstitutionEdit {
+  revision:     number;
+  markdown?:    string;
+  draftedFrom?: ConstitutionSources;
 }

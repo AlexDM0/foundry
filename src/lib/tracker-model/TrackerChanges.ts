@@ -9,7 +9,6 @@ import type {
 import { GATE_PHASES, type GatePhase } from './@types/GatePhase.ts';
 import type { LogRecordFieldsOf }      from './@types/LogRecord.ts';
 import {
-  PIPELINE_FORMAT_VERSION,
   type Pipeline,
   type PipelineApproval,
   type PipelineGate,
@@ -21,13 +20,6 @@ import { BoardRefusal }                  from './BoardRefusal.ts';
 import type { DispatchQueries }          from './DispatchQueries.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
-
-/** No review, no re-review and no gates: valid, and it counts as set. */
-function minimalPipelineOf(): Pipeline {
-  return {
-    version: PIPELINE_FORMAT_VERSION, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
-  };
-}
 
 export class TrackerChanges {
   constructor(
@@ -59,7 +51,7 @@ export class TrackerChanges {
    * judged by at its next gate run.
    */
   private changedPipelineOf(change: (pipeline: Pipeline) => void, logged: Logged['logged']): PipelineChanged {
-    const pipeline = this.records.pipeline ?? minimalPipelineOf();
+    const pipeline = this.records.pipeline ?? PipelineUtil.minimalPipelineOf();
     change(pipeline);
     this.records.pipeline        = pipeline;
     this.records.pipelineChanged = true;

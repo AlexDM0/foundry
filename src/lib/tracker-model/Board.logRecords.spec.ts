@@ -129,6 +129,19 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"baton-pass-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"build-bundles",'
     + '"error":"Example bundle error"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hatch-applied","jobId":"J1","fields":{"requestId":"request-5","commandKind":"ticket-add","outcome":"done"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-opened","setupId":"S1","fields":{"mode":"setup","replacesUnreadablePipeline":false}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-billing-set","setupId":"S1","fields":{"mode":"api","maxBudgetUsd":5}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-step-moved","setupId":"S1","fields":{"step":"billing","state":"done","currentStep":"research","needsRecheck":[]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-finding-recorded","setupId":"S1","fields":{"findingId":"F1","topic":"scripts"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-asked","setupId":"S1","fields":{"questionId":"Q1","step":"research"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-answered","setupId":"S1","fields":{"questionId":"Q1","answer":"a"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-resumed","setupId":"S1","fields":{"snapshotCommit":"e5f60718293a4b5c6d7e8f9012345678901234ab",'
+    + '"changedPaths":["package.json"]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-constitution-set","setupId":"S1","fields":{"by":"agent","revision":1}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-edited","setupId":"S1","fields":{"by":"agent","revision":1,"editIds":["E1"],"fields":["review"]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-undone","setupId":"S1","fields":{"editId":"E1","field":"review","revision":2}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-discarded","setupId":"S1","fields":{"revision":3}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-discarded","setupId":"S1","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"tracker-cleared","fields":{}}',
 ];
 

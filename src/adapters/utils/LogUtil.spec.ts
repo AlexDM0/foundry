@@ -416,3 +416,49 @@ describe('decisions, incidents and triage', () => {
     expect(identified.ticketIds).toEqual([...ticketIds]);
   });
 });
+
+// The setup record's kinds are newer than the frozen table, so these rows are this suite's own wording; none names a task or a ticket.
+test.each<[LogRecordContent, string]>([
+  [{ kind: 'pipeline-setup-opened', setupId: 'S1', fields: { mode: 'setup', replacesUnreadablePipeline: false } }, 'Pipeline setup S1 opened: setup'],
+  [
+    { kind: 'pipeline-setup-opened', setupId: 'S2', fields: { mode: 'update', replacesUnreadablePipeline: true } },
+    'Pipeline setup S2 opened: update, replacing the unreadable pipeline',
+  ],
+  [{ kind: 'pipeline-setup-billing-set', setupId: 'S1', fields: { mode: 'api', maxBudgetUsd: 5 } }, 'Pipeline setup S1 billing set to api, at most $5 a launch'],
+  [{ kind: 'pipeline-setup-billing-set', setupId: 'S1', fields: { mode: 'subscription' } }, 'Pipeline setup S1 billing set to subscription'],
+  [
+    {
+      kind:    'pipeline-setup-step-moved',
+      setupId: 'S1',
+      fields:  {
+        step: 'research', state: 'in-progress', currentStep: 'research', needsRecheck: ['constitution', 'design']
+      }
+    },
+    'Pipeline setup S1 step research in-progress, now at research; constitution, design need a recheck',
+  ],
+  [
+    { kind: 'pipeline-setup-resumed', setupId: 'S1', fields: { snapshotCommit: 'a1b2c3d', changedPaths: ['package.json'] } },
+    'Pipeline setup S1 resumed on a1b2c3d; changed on main: package.json',
+  ],
+  [{ kind: 'pipeline-finding-recorded', setupId: 'S1', fields: { findingId: 'F1', topic: 'scripts' } }, 'Pipeline setup S1 recorded finding F1 (scripts)'],
+  [{ kind: 'pipeline-question-asked', setupId: 'S1', fields: { questionId: 'Q1', step: 'design' } }, 'Pipeline setup S1 asked Q1 at the design step'],
+  [{ kind: 'pipeline-question-answered', setupId: 'S1', fields: { questionId: 'Q1', answer: 'a' } }, 'Pipeline setup S1 Q1 answered: a'],
+  [{ kind: 'pipeline-constitution-set', setupId: 'S1', fields: { by: 'user', revision: 2 } }, 'Pipeline setup S1 constitution revision 2 by the user'],
+  [
+    {
+      kind:    'pipeline-draft-edited',
+      setupId: 'S1',
+      fields:  {
+        by: 'agent', revision: 3, editIds: ['E1', 'E2'], fields: ['gate:test', 'review']
+      }
+    },
+    'Pipeline setup S1 draft revision 3 by the agent: E1 gate:test, E2 review',
+  ],
+  [{ kind: 'pipeline-draft-undone', setupId: 'S1', fields: { editId: 'E1', field: 'gate:test', revision: 4 } }, 'Pipeline setup S1 undid E1 (gate:test), draft revision 4'],
+  [{ kind: 'pipeline-draft-discarded', setupId: 'S1', fields: { revision: 5 } }, 'Pipeline setup S1 discarded the draft\'s changes, draft revision 5'],
+  [{ kind: 'pipeline-setup-discarded', setupId: 'S1', fields: {} }, 'Pipeline setup S1 discarded'],
+])('the setup record %o reads as its sentence and concerns no task or ticket', (record, sentence) => {
+  const identified = identifiedEntryOf({ ...record, at: '2026-11-12T10:00:00+01:00' });
+  expect(sentenceOf(record)).toBe(sentence);
+  expect({ taskIds: identified.taskIds, ticketIds: identified.ticketIds }).toEqual({ taskIds: [], ticketIds: [] });
+});

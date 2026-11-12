@@ -215,6 +215,62 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'approval-without-pipeline':
       return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
         + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-in-progress':
+      return `Pipeline setup ${detail.setupId} is open, and only one setup is open at a time. ${NOTHING_WAS_WRITTEN} Resume it, or start it over.`;
+    case 'no-setup-open':
+      return `Pipeline setup ${detail.setupId} is not open. ${NOTHING_WAS_WRITTEN}`;
+    case 'pipeline-setup-unreadable':
+      return `The pipeline setup record cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove pipeline-setup.json in the data folder.`;
+    case 'no-pipeline-to-update':
+      return `No pipeline is stored, so there is nothing to ${detail.mode === 'advise' ? 'advise on' : 'update'}: set the pipeline up first. ${NOTHING_WAS_WRITTEN}`;
+    case 'pipeline-apply-pending':
+      return `Pipeline setup ${detail.setupId} waits for its Apply to land, so it cannot change now: cancel the Apply first. ${NOTHING_WAS_WRITTEN}`;
+    case 'billing-cap-not-positive':
+      return `A budget cap of ${detail.maxBudgetUsd} USD is not above 0: give a positive cap, or none. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-step-not-current':
+      return `Pipeline setup ${detail.setupId} is at the ${detail.currentStep} step, not ${detail.step}, so ${detail.step} was not continued. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-step-not-reached':
+      return `Pipeline setup ${detail.setupId} has not reached the ${detail.step} step, so it cannot go back to it. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-step-not-continued':
+      return `The ${detail.step} step of pipeline setup ${detail.setupId} ends with an Apply, not a Continue. ${NOTHING_WAS_WRITTEN}`;
+    case 'unknown-setup-question':
+      return `Pipeline setup ${detail.setupId} has no question ${detail.questionId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-question-option-count':
+      return `A setup question takes ${detail.minimum} to ${detail.maximum} options, and ${detail.optionCount} ${detail.optionCount === 1 ? 'was' : 'were'} given. `
+        + NOTHING_WAS_WRITTEN;
+    case 'setup-question-without-recommendation':
+      return `A setup question needs the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;
+    case 'unknown-setup-option-letters':
+      return `There is no option ${detail.unknownLetters.join(', ')}: the options are ${detail.optionLetters.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
+    case 'several-letters-on-single-select-setup-question':
+      return `${detail.letters.join(', ')} names several options, and the setup question takes one. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-empty':
+      return `The constitution has no text. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-too-long':
+      return `The constitution holds ${detail.characterCount} characters, and it may hold at most ${detail.limit}. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-source-unanchored':
+      return `A source names the line ${JSON.stringify(detail.lineText)} (occurrence ${detail.occurrence}), and the constitution does not hold `
+        + `that line that many times. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-source-repeated':
+      return `Two sources name the line ${JSON.stringify(detail.lineText)} (occurrence ${detail.occurrence}); a line takes one source. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-draft-stale':
+      return `The constitution of pipeline setup ${detail.setupId} is at revision ${detail.currentRevision}, not ${detail.revision}: `
+        + `it changed since it was read. ${NOTHING_WAS_WRITTEN} Read it again, then edit.`;
+    case 'pipeline-draft-stale':
+      return `The draft pipeline of pipeline setup ${detail.setupId} is at revision ${detail.currentRevision}, not ${detail.revision}: `
+        + `it changed since it was read. ${NOTHING_WAS_WRITTEN} Read it again, then edit.`;
+    case 'no-draft-edits':
+      return `The edit of pipeline setup ${detail.setupId} names no change. ${NOTHING_WAS_WRITTEN}`;
+    case 'draft-edit-name-mismatch':
+      return `The edit of ${detail.field} names ${detail.name}: a gate or prepare step keeps the name its field gives it. ${NOTHING_WAS_WRITTEN}`;
+    case 'prepare-order-not-a-reorder':
+      return 'The prepare steps were not reordered: '
+        + `${detail.prepareNames.length === 0 ? 'there is none' : `name each of ${detail.prepareNames.join(', ')} once, and no other step`}. `
+        + NOTHING_WAS_WRITTEN;
+    case 'unknown-setup-edit':
+      return `Pipeline setup ${detail.setupId} has no edit ${detail.editId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-edit-already-undone':
+      return `Edit ${detail.editId} of pipeline setup ${detail.setupId} is already undone. ${NOTHING_WAS_WRITTEN}`;
     case 'dependency-loop':
       return `That would make tickets wait on each other in a circle: ${detail.loopTicketIds.map((ticketId) => `#${ticketId}`).join(' → ')}.`;
     case 'priority-unchanged':

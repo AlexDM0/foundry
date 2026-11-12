@@ -91,6 +91,13 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'optional-flag':          sameValue,
   'optional-cost-usd':      sameValue,
   'optional-pictures':      picturesCopyOf,
+  'setup-mode':             sameValue,
+  'billing-mode':           sameValue,
+  'setup-step':             sameValue,
+  'setup-step-state':       sameValue,
+  'setup-steps':            listCopyOf,
+  'setup-item-ids':         listCopyOf,
+  'draft-fields':           listCopyOf,
 };
 
 const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = ['optional-text', 'optional-size', 'optional-flag', 'optional-cost-usd', 'optional-pictures'];

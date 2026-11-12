@@ -7,6 +7,7 @@ import type { Incident }                     from './Incident.ts';
 import type { Job }                          from './Job.ts';
 import type { LogRecord, LogRecordFieldsOf } from './LogRecord.ts';
 import type { Pipeline }                     from './Pipeline.ts';
+import type { PipelineSetup }                from './PipelineSetup.ts';
 import type { PlaybookStep }                 from './PlaybookStep.ts';
 import type { Task, TaskStatus }             from './Task.ts';
 import type {
@@ -217,6 +218,11 @@ export interface OverseerStateSet extends Logged {
 
 export interface PipelineChanged extends Logged {
   pipeline: Pipeline;
+}
+
+/** The record as the move left it; after a start over, the record that was removed. */
+export interface PipelineSetupChanged extends Logged {
+  setup: Readonly<PipelineSetup>;
 }
 
 export interface TrackerCleared extends Logged {

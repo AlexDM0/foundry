@@ -17,9 +17,11 @@ import type {
   OverseerStopReason,
   PictureReference
 }                                                                        from './Job.ts';
-import type { ReviewClaim, ReviewFinding, ReviewVerdict } from './ReviewRecord.ts';
-import type { AgentPair, TicketPriority, TicketSize }     from './Ticket.ts';
-import type { OverseerState, ViewRange }                  from './TrackerProgress.ts';
+import type { PipelineBilling }                                              from './Pipeline.ts';
+import type { PipelineSetupMode, PipelineSetupStep, PipelineSetupStepState } from './PipelineSetup.ts';
+import type { ReviewClaim, ReviewFinding, ReviewVerdict }                    from './ReviewRecord.ts';
+import type { AgentPair, TicketPriority, TicketSize }                        from './Ticket.ts';
+import type { OverseerState, ViewRange }                                     from './TrackerProgress.ts';
 
 /** The states the retired Workflow dispatcher logged in its `dispatcher-set` records, which an older log still holds. */
 export type RetiredDispatcherState = 'running' | 'finished' | 'stopped';
@@ -70,6 +72,13 @@ interface ValueOfFieldShape {
   'optional-flag':          boolean;
   'optional-cost-usd':      number;
   'optional-pictures':      readonly PictureReference[];
+  'setup-mode':             PipelineSetupMode;
+  'billing-mode':           PipelineBilling['mode'];
+  'setup-step':             PipelineSetupStep;
+  'setup-step-state':       PipelineSetupStepState;
+  'setup-steps':            readonly PipelineSetupStep[];
+  'setup-item-ids':         readonly string[];
+  'draft-fields':           readonly string[];
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;

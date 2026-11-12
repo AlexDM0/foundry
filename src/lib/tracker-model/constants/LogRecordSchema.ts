@@ -4,7 +4,7 @@
  * new kind is one entry here plus its wording and its emitter.
  */
 
-export type LogRecordSubject = 'board' | 'ticket' | 'epic' | 'draft' | 'review-bar' | 'job' | 'decision' | 'incident';
+export type LogRecordSubject = 'board' | 'ticket' | 'epic' | 'draft' | 'pipeline-setup' | 'review-bar' | 'job' | 'decision' | 'incident';
 
 export type LogFieldShape =
   | 'text'
@@ -51,7 +51,14 @@ export type LogFieldShape =
   | 'flag'
   | 'optional-flag'
   | 'optional-cost-usd'
-  | 'optional-pictures';
+  | 'optional-pictures'
+  | 'setup-mode'
+  | 'billing-mode'
+  | 'setup-step'
+  | 'setup-step-state'
+  | 'setup-steps'
+  | 'setup-item-ids'
+  | 'draft-fields';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -62,14 +69,15 @@ const NO_FIELDS = {} as const;
 
 /** The ids each subject sets beside `kind`, in stored order: a review bar carries its task id before its ticket id. */
 export const LOG_RECORD_SUBJECT_IDS = {
-  'board':      NO_FIELDS,
-  'ticket':     { ticketId: 'text' },
-  'epic':       { epicKey: 'text' },
-  'draft':      { draftId: 'text' },
-  'review-bar': { taskId: 'task-id', ticketId: 'text' },
-  'job':        { jobId: 'text' },
-  'decision':   { decisionId: 'text' },
-  'incident':   { incidentId: 'text' },
+  'board':          NO_FIELDS,
+  'ticket':         { ticketId: 'text' },
+  'epic':           { epicKey: 'text' },
+  'draft':          { draftId: 'text' },
+  'pipeline-setup': { setupId: 'text' },
+  'review-bar':     { taskId: 'task-id', ticketId: 'text' },
+  'job':            { jobId: 'text' },
+  'decision':       { decisionId: 'text' },
+  'incident':       { incidentId: 'text' },
 } as const satisfies Readonly<Record<LogRecordSubject, Readonly<Record<string, LogFieldShape>>>>;
 
 export const LOG_RECORD_SCHEMA = {
@@ -132,11 +140,39 @@ export const LOG_RECORD_SCHEMA = {
   'draft-question-answered':         { subject: 'draft', fields: { questionId: 'text', answer: 'text' } },
   // A dropped question's follow-ups are dropped too, one record each after it.
   'draft-item-dropped':              { subject: 'draft', fields: { itemId: 'text' } },
+  'pipeline-setup-opened':           { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
+  // `maxBudgetUsd` is set only on API billing with a cap.
+  'pipeline-setup-billing-set':      { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
+  // `step` took `state`; `currentStep` is where the setup now stands; `needsRecheck` the later steps a reopening sent back.
+  'pipeline-setup-step-moved':       {
+    subject: 'pipeline-setup',
+    fields:  {
+      step: 'setup-step', state: 'setup-step-state', currentStep: 'setup-step', needsRecheck: 'setup-steps'
+    },
+  },
+  // The snapshot moved to `snapshotCommit`; `changedPaths` changed on main since the earlier one.
+  'pipeline-setup-resumed':     { subject: 'pipeline-setup', fields: { snapshotCommit: 'text', changedPaths: 'file-paths' } },
+  'pipeline-finding-recorded':  { subject: 'pipeline-setup', fields: { findingId: 'text', topic: 'text' } },
+  'pipeline-question-asked':    { subject: 'pipeline-setup', fields: { questionId: 'text', step: 'setup-step' } },
+  // `answer` is the option letters joined by commas, or the free text.
+  'pipeline-question-answered': { subject: 'pipeline-setup', fields: { questionId: 'text', answer: 'text' } },
+  // `by` is `agent` or `user`; `revision` is the constitution's new revision.
+  'pipeline-constitution-set':  { subject: 'pipeline-setup', fields: { by: 'text', revision: 'count' } },
+  // One record for the edits of one move, in order; `revision` is the draft's new revision.
+  'pipeline-draft-edited':      {
+    subject: 'pipeline-setup',
+    fields:  {
+      by: 'text', revision: 'count', editIds: 'setup-item-ids', fields: 'draft-fields'
+    },
+  },
+  'pipeline-draft-undone':    { subject: 'pipeline-setup', fields: { editId: 'text', field: 'text', revision: 'count' } },
+  'pipeline-draft-discarded': { subject: 'pipeline-setup', fields: { revision: 'count' } },
+  'pipeline-setup-discarded': { subject: 'pipeline-setup', fields: NO_FIELDS },
   // A review bar's `name` is carried because the sentence prints the row's stored name, which an edit may have made anything.
-  'review-bar-started':              { subject: 'review-bar', fields: { name: 'text' } },
-  'review-bar-closed':               { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-started':       { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-closed':        { subject: 'review-bar', fields: { name: 'text' } },
   // One reviewer pass: the rework is code lines only, the fix and rebase parts apart, and the builder's change is measured at the review's start.
-  'review-recorded':                 {
+  'review-recorded':          {
     subject: 'review-bar',
     fields:  {
       round:                   'review-bar-round',

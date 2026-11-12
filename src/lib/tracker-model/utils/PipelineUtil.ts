@@ -12,6 +12,7 @@ import type {
   PipelineGate,
   PipelineStep
 } from '../@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION }      from '../@types/Pipeline.ts';
 import { DEFAULT_INSTRUCTIONS_OF_ROLE } from '../constants/PipelineDefaults.ts';
 import { TicketBodyHashUtil }           from './TicketBodyHashUtil.ts';
 
@@ -103,6 +104,13 @@ function resolvedInstructionsOf(pipeline: Readonly<Pipeline> | null, role: Pipel
   return pipeline?.agents?.[role]?.instructions ?? DEFAULT_INSTRUCTIONS_OF_ROLE[role];
 }
 
+/** No review, no re-review and no gates: valid, and it counts as set. */
+function minimalPipelineOf(): Pipeline {
+  return {
+    version: PIPELINE_FORMAT_VERSION, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  };
+}
+
 function writablePathsOf(pipeline: Readonly<Pipeline>): string[] {
   return [...new Set(gateCatalogueOf(pipeline).flatMap(({ gate }) => gate.writes ?? []))];
 }
@@ -111,6 +119,7 @@ export const PipelineUtil = Object.freeze({
   contentHashOf,
   gateCatalogueOf,
   gatesOfPhase,
+  minimalPipelineOf,
   phaseHashOf,
   resolvedInstructionsOf,
   writablePathsOf,

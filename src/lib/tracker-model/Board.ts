@@ -21,6 +21,7 @@ import type {
   LifecycleAdvanced,
   Logged,
   PipelineChanged,
+  PipelineSetupChanged,
   ReviewBarRequest,
   ReviewBarStarted,
   ReviewRecorded,
@@ -85,9 +86,22 @@ import type { QuestionOptionNotes }                      from './@types/OptionCo
 import type {
   Pipeline,
   PipelineApproval,
+  PipelineBilling,
   PipelineGate,
   PipelineStep
 } from './@types/Pipeline.ts';
+import type {
+  ConstitutionEdit,
+  ConstitutionSetting,
+  DraftEditRequest,
+  PipelineSetup,
+  PipelineSetupOpening,
+  PipelineSetupReading,
+  PipelineSetupStep,
+  ResearchFindingRecording,
+  SetupQuestionAsking,
+  SetupQuestionReply
+} from './@types/PipelineSetup.ts';
 import type {
   DecisionDraft,
   DecisionWording,
@@ -134,6 +148,7 @@ import type { SteppedJobState }          from './Jobs.ts';
 import { Jobs }                          from './Jobs.ts';
 import type { Logger }                   from './Logger.ts';
 import { MergeQueueMarks }               from './MergeQueueMarks.ts';
+import { PipelineSetups }                from './PipelineSetups.ts';
 import type { PlaybookFacts }            from './Playbook.ts';
 import { Playbook }                      from './Playbook.ts';
 import { ReviewBars }                    from './ReviewBars.ts';
@@ -166,6 +181,8 @@ export interface BoardInput {
   storedLogRecords?: readonly LogRecord[];
   /** The stored pipeline; absent or `null` when none is stored or it could not be read, which reads as no gates set. */
   pipeline?:         Pipeline | null;
+  /** `pipeline-setup.json` as read; absent reads as no open record. */
+  pipelineSetup?:    PipelineSetupReading;
 }
 
 export class Board {
@@ -205,6 +222,8 @@ export class Board {
 
   private readonly draftContents: DraftContents;
 
+  private readonly pipelineSetups: PipelineSetups;
+
   private readonly jobRules: Jobs;
 
   private readonly mergeQueueMarks: MergeQueueMarks;
@@ -226,7 +245,8 @@ export class Board {
   private readonly ticketForecasts: TicketForecasts;
 
   constructor(input: BoardInput) {
-    this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null);
+    this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
+      input.pipelineSetup ?? { verdict: 'absent' });
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);
@@ -244,6 +264,7 @@ export class Board {
     this.epicRules          = new Epics(this.records, this.displayQueries);
     this.draftRules         = new Drafts(this.records);
     this.draftContents      = new DraftContents(this.records, this.draftRules);
+    this.pipelineSetups     = new PipelineSetups(this.records);
     this.jobRules           = new Jobs(this.records);
     this.mergeQueueMarks    = new MergeQueueMarks(this.records);
     this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
@@ -795,6 +816,63 @@ export class Board {
     return this.draftContents.dropDraftItem(draftId, itemId, at);
   }
 
+  /** Refuses `setup-in-progress` beside an open record, and `no-pipeline-to-update` for an update or advise with no stored pipeline. */
+  openSetup(opening: PipelineSetupOpening, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.openSetup(opening, at);
+  }
+
+  setSetupBilling(setupId: string, billing: PipelineBilling, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.setSetupBilling(setupId, billing, at);
+  }
+
+  continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.continueSetupStep(setupId, step, at);
+  }
+
+  reopenSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.reopenSetupStep(setupId, step, at);
+  }
+
+  resumeSetup(setupId: string, snapshotCommit: string, changedPaths: readonly string[], at: string): PipelineSetupChanged {
+    return this.pipelineSetups.resumeSetup(setupId, snapshotCommit, changedPaths, at);
+  }
+
+  recordFinding(setupId: string, recording: ResearchFindingRecording, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.recordFinding(setupId, recording, at);
+  }
+
+  askSetupQuestion(setupId: string, asking: SetupQuestionAsking, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.askSetupQuestion(setupId, asking, at);
+  }
+
+  answerSetupQuestion(setupId: string, questionId: string, reply: SetupQuestionReply, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.answerSetupQuestion(setupId, questionId, reply, at);
+  }
+
+  setConstitution(setupId: string, setting: ConstitutionSetting, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.setConstitution(setupId, setting, at);
+  }
+
+  editConstitution(setupId: string, edit: ConstitutionEdit, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.editConstitution(setupId, edit, at);
+  }
+
+  editDraft(setupId: string, request: DraftEditRequest, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.editDraft(setupId, request, at);
+  }
+
+  undoDraftEdit(setupId: string, editId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.undoDraftEdit(setupId, editId, at);
+  }
+
+  discardDraft(setupId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.discardDraft(setupId, at);
+  }
+
+  startOverSetup(setupId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.startOverSetup(setupId, at);
+  }
+
   /** Abandoning a ticket hands its unstarted findings to User's review in the same hold. */
   moveTicket(ticketId: string, targetStatus: TicketStatus, request: TicketMoveRequest, at: string): TicketMoved {
     const moved = this.ticketMoves.moveTicket(ticketId, targetStatus, request, at);
@@ -964,6 +1042,18 @@ export class Board {
   /** Whether the hold has a changed pipeline to write. */
   pipelineChanged(): boolean {
     return this.records.pipelineChanged;
+  }
+
+  /** The open setup record; `null` when none is open or the stored one could not be read. */
+  pipelineSetup(): Readonly<PipelineSetup> | null {
+    return this.pipelineSetups.openSetupRecord();
+  }
+
+  /** What the hold writes for the record: the record, `removed` after a start over, or `unchanged`. */
+  pipelineSetupWrite(): { write: 'record'; setup: PipelineSetup } | { write: 'removed' } | { write: 'unchanged' } {
+    if (!this.records.pipelineSetupChanged) return { write: 'unchanged' };
+    const reading = this.records.pipelineSetupReading;
+    return reading.verdict === 'readable' ? { write: 'record', setup: reading.setup } : { write: 'removed' };
   }
 
   gateWritablePaths(): readonly string[] {

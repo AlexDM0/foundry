@@ -4,6 +4,7 @@ import { GATE_PHASES }                                       from '../../../lib/
 import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                   from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { FIRST_DRAFT_NUMBER }                                from '../../../lib/tracker-model/constants/DraftFields.ts';
 import { OVERSEER_STATES }                                   from '../../../lib/tracker-model/constants/OverseerStates.ts';
+import { FIRST_SETUP_NUMBER }                                from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../../lib/tracker-model/constants/ReviewRounds.ts';
 import { TASK_STATUSES }                                     from '../../../lib/tracker-model/constants/Statuses.ts';
 import { FIRST_TASK_ID }                                     from '../../../lib/tracker-model/constants/TaskIds.ts';
@@ -126,6 +127,9 @@ function documentHeaderProblemOf(candidate: unknown): string | null {
   if (retiredKey !== undefined) return `${retiredKey} is present, and the gate pipeline lives in pipeline.json; ${OLDER_FORMAT_ADVICE}`;
   if (candidate['nextDraftId'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(candidate['nextDraftId'], FIRST_DRAFT_NUMBER)) {
     return `nextDraftId is ${JSON.stringify(candidate['nextDraftId'])}, and when present it has to be a whole number of at least ${FIRST_DRAFT_NUMBER}`;
+  }
+  if (candidate['nextSetupId'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(candidate['nextSetupId'], FIRST_SETUP_NUMBER)) {
+    return `nextSetupId is ${JSON.stringify(candidate['nextSetupId'])}, and when present it has to be a whole number of at least ${FIRST_SETUP_NUMBER}`;
   }
   if (candidate['overseerFirstStartedAt'] !== undefined && !textFieldIsPresent(candidate, 'overseerFirstStartedAt')) {
     return `overseerFirstStartedAt is ${JSON.stringify(candidate['overseerFirstStartedAt'])}, and when present it has to be a timestamp`;

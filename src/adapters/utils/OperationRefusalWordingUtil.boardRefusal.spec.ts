@@ -459,3 +459,69 @@ test.each<[BoardRefusalDetail, string]>([
 ])('the gate phase refusal %o words as its sentence', (detail, message) => {
   expect(messageOf(detail)).toBe(namingThisProgram(message));
 });
+
+// No earlier command refused a pipeline setup move, so these rows are this suite's own wording.
+test.each<[BoardRefusalDetail, string]>([
+  [{ reason: 'setup-in-progress', setupId: 'S1' }, 'Pipeline setup S1 is open, and only one setup is open at a time. Nothing was written. Resume it, or start it over.'],
+  [{ reason: 'no-setup-open', setupId: 'S2' }, 'Pipeline setup S2 is not open. Nothing was written.'],
+  [
+    { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' },
+    'The pipeline setup record cannot be read: setupId is missing. Nothing was written. Repair or remove pipeline-setup.json in the data folder.',
+  ],
+  [{ reason: 'no-pipeline-to-update', mode: 'update' }, 'No pipeline is stored, so there is nothing to update: set the pipeline up first. Nothing was written.'],
+  [{ reason: 'pipeline-apply-pending', setupId: 'S1' }, 'Pipeline setup S1 waits for its Apply to land, so it cannot change now: cancel the Apply first. Nothing was written.'],
+  [{ reason: 'billing-cap-not-positive', maxBudgetUsd: 0 }, 'A budget cap of 0 USD is not above 0: give a positive cap, or none. Nothing was written.'],
+  [
+    {
+      reason: 'setup-step-not-current', setupId: 'S1', step: 'design', currentStep: 'research'
+    },
+    'Pipeline setup S1 is at the research step, not design, so design was not continued. Nothing was written.',
+  ],
+  [{ reason: 'setup-step-not-reached', setupId: 'S1', step: 'design' }, 'Pipeline setup S1 has not reached the design step, so it cannot go back to it. Nothing was written.'],
+  [{ reason: 'setup-step-not-continued', setupId: 'S1', step: 'apply' }, 'The apply step of pipeline setup S1 ends with an Apply, not a Continue. Nothing was written.'],
+  [{ reason: 'unknown-setup-question', setupId: 'S1', questionId: 'Q9' }, 'Pipeline setup S1 has no question Q9. Nothing was written.'],
+  [
+    {
+      reason: 'setup-question-option-count', optionCount: 1, minimum: 2, maximum: 4
+    },
+    'A setup question takes 2 to 4 options, and 1 was given. Nothing was written.',
+  ],
+  [{ reason: 'setup-question-without-recommendation' }, 'A setup question needs the option Claude recommends. Nothing was written.'],
+  [{ reason: 'unknown-setup-option-letters', unknownLetters: ['c'], optionLetters: ['a', 'b'] }, 'There is no option c: the options are a, b. Nothing was written.'],
+  [{ reason: 'several-letters-on-single-select-setup-question', letters: ['a', 'b'] }, 'a, b names several options, and the setup question takes one. Nothing was written.'],
+  [{ reason: 'constitution-empty' }, 'The constitution has no text. Nothing was written.'],
+  [{ reason: 'constitution-too-long', characterCount: 20_001, limit: 20_000 }, 'The constitution holds 20001 characters, and it may hold at most 20000. Nothing was written.'],
+  [
+    { reason: 'constitution-source-unanchored', lineText: '- Keep it small.', occurrence: 2 },
+    'A source names the line "- Keep it small." (occurrence 2), and the constitution does not hold that line that many times. Nothing was written.',
+  ],
+  [
+    { reason: 'constitution-source-repeated', lineText: '- Keep it small.', occurrence: 1 },
+    'Two sources name the line "- Keep it small." (occurrence 1); a line takes one source. Nothing was written.',
+  ],
+  [
+    {
+      reason: 'constitution-draft-stale', setupId: 'S1', revision: 1, currentRevision: 2
+    },
+    'The constitution of pipeline setup S1 is at revision 2, not 1: it changed since it was read. Nothing was written. Read it again, then edit.',
+  ],
+  [
+    {
+      reason: 'pipeline-draft-stale', setupId: 'S1', revision: 3, currentRevision: 4
+    },
+    'The draft pipeline of pipeline setup S1 is at revision 4, not 3: it changed since it was read. Nothing was written. Read it again, then edit.',
+  ],
+  [{ reason: 'no-draft-edits', setupId: 'S1' }, 'The edit of pipeline setup S1 names no change. Nothing was written.'],
+  [
+    { reason: 'draft-edit-name-mismatch', field: 'gate:test', name: 'lint' },
+    'The edit of gate:test names lint: a gate or prepare step keeps the name its field gives it. Nothing was written.',
+  ],
+  [
+    { reason: 'prepare-order-not-a-reorder', names: ['build'], prepareNames: ['install', 'build'] },
+    'The prepare steps were not reordered: name each of install, build once, and no other step. Nothing was written.',
+  ],
+  [{ reason: 'unknown-setup-edit', setupId: 'S1', editId: 'E9' }, 'Pipeline setup S1 has no edit E9. Nothing was written.'],
+  [{ reason: 'setup-edit-already-undone', setupId: 'S1', editId: 'E1' }, 'Edit E1 of pipeline setup S1 is already undone. Nothing was written.'],
+])('the pipeline setup refusal %o words as its sentence', (detail, message) => {
+  expect(messageOf(detail)).toBe(message);
+});

@@ -22,13 +22,19 @@ import {
 import type { LogFieldShape }                                                   from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS, RETIRED_DISPATCHER_STATES } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import { OVERSEER_STATES }                                                      from '../../lib/tracker-model/constants/OverseerStates.ts';
-import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND }                    from '../../lib/tracker-model/constants/ReviewRounds.ts';
-import { TICKET_PRIORITIES, TICKET_SIZES }                                      from '../../lib/tracker-model/constants/TicketFields.ts';
-import { BoardSettingsUtil }                                                    from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { VocabularyUtil }                                                       from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { StoredValueUtil }                                                      from '../utils/StoredValueUtil.ts';
-import { LogRecordMappingUtil }                                                 from './utils/LogRecordMappingUtil.ts';
-import { ReviewRecordFieldsUtil }                                               from './utils/ReviewRecordFieldsUtil.ts';
+import {
+  PIPELINE_BILLING_MODES,
+  PIPELINE_SETUP_MODES,
+  PIPELINE_SETUP_STEP_STATES,
+  PIPELINE_SETUP_STEPS
+} from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../lib/tracker-model/constants/ReviewRounds.ts';
+import { TICKET_PRIORITIES, TICKET_SIZES }                   from '../../lib/tracker-model/constants/TicketFields.ts';
+import { BoardSettingsUtil }                                 from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { VocabularyUtil }                                    from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { StoredValueUtil }                                   from '../utils/StoredValueUtil.ts';
+import { LogRecordMappingUtil }                              from './utils/LogRecordMappingUtil.ts';
+import { ReviewRecordFieldsUtil }                            from './utils/ReviewRecordFieldsUtil.ts';
 
 type UnknownObject = Record<string, unknown>;
 
@@ -47,6 +53,12 @@ function listOfTextProblem(value: unknown, path: string, itemsAre: string): stri
 function vocabularyProblem(value: unknown, path: string, vocabulary: readonly string[]): string | null {
   if (typeof value === 'string' && vocabulary.includes(value)) return null;
   return `${path} is ${JSON.stringify(value)}, which is not one of ${vocabulary.join(', ')}`;
+}
+
+function setupStepsProblem(value: unknown, path: string): string | null {
+  const steps: readonly unknown[] = PIPELINE_SETUP_STEPS;
+  const isListOfSteps = Array.isArray(value) && value.every((item) => steps.includes(item));
+  return isListOfSteps ? null : `${path} is not a list of setup steps, each one of ${PIPELINE_SETUP_STEPS.join(', ')}`;
 }
 
 function costIsWellFormed(value: unknown): boolean {
@@ -153,6 +165,13 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'optional-flag':          (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-cost-usd':      (value, path) => (value === undefined || costIsWellFormed(value) ? null : `${path} is not a cost of at least 0`),
   'optional-pictures':      picturesProblem,
+  'setup-mode':             (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_MODES),
+  'billing-mode':           (value, path) => vocabularyProblem(value, path, PIPELINE_BILLING_MODES),
+  'setup-step':             (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEPS),
+  'setup-step-state':       (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEP_STATES),
+  'setup-steps':            setupStepsProblem,
+  'setup-item-ids':         (value, path) => listOfTextProblem(value, path, 'setup item ids'),
+  'draft-fields':           (value, path) => listOfTextProblem(value, path, 'draft fields'),
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

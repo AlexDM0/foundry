@@ -79,6 +79,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 - [Filing drafts](#filing-drafts) (10)
 - [Decisions and incidents](#decisions-and-incidents) (13)
 - [Gates and pipeline](#gates-and-pipeline) (2)
+- [Pipeline setup](#pipeline-setup) (25)
 - [Airlocks and landing](#airlocks-and-landing) (7)
 - [Overseer and Baton](#overseer-and-baton) (12)
 - [Hatch and roles](#hatch-and-roles) (11)
@@ -271,6 +272,41 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `There is no phase <phase>` | `unknown-gate-phase` | A gate command named a phase other than `build`, `review` or `merge`. | Name one of the three phases. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `cannot be read as a pipeline` | `malformed-pipeline` | `pipeline.json` is malformed. Every `gate` verb but `gate retry` refuses, so no `gate` verb overwrites a hand edit. An accepted proposal does: [known gap](known-gaps.md#gap-proposal-overwrites-malformed-pipeline). | Repair or delete the file. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again. Until the pipeline set-up exists, delete the file and add the gates again. | [Customs and gates](../architecture/customs-and-gates.md) |
+
+</details>
+
+### Pipeline setup
+
+<details open>
+<summary>25 sentences</summary>
+
+| Printed words | Code | Cause | What to do | Home |
+| --- | --- | --- | --- | --- |
+| `Pipeline setup <id> is open, and only one setup is open at a time` | `setup-in-progress` | A second setup opened beside the open record. Never printed: no verb sends a setup move yet. | Resume the open setup, or start it over. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `Pipeline setup <id> is not open` | `no-setup-open` | A setup move named a record that is not the open one, or none is open. Never printed: no verb sends a setup move yet. | Read the open record's id again. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The pipeline setup record cannot be read` | `pipeline-setup-unreadable` | `pipeline-setup.json` is malformed; nothing writes over it. Never printed: no verb sends a setup move yet. | Repair or remove the file. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `No pipeline is stored, so there is nothing to update` | `no-pipeline-to-update` | An update or advise opened with no readable `pipeline.json`. Never printed: no verb sends a setup move yet. | Set the pipeline up first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `waits for its Apply to land` | `pipeline-apply-pending` | A setup move while the record's Apply request is `committing` or `held`. Never printed: no verb sends a setup move yet. | Cancel the Apply first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `A budget cap of <n> USD is not above 0` | `billing-cap-not-positive` | A setup's API billing cap is 0 or below. Never printed: no verb sends a setup move yet. | Give a positive cap, or none. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `so <step> was not continued` | `setup-step-not-current` | Continue named a step other than the current one. Never printed: no verb sends a setup move yet. | Continue the current step. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `has not reached the <step> step` | `setup-step-not-reached` | A reopening named a step that never started. Never printed: no verb sends a setup move yet. | Go back only to a step already reached. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `ends with an Apply, not a Continue` | `setup-step-not-continued` | Continue named the `apply` step. Never printed: no verb sends a setup move yet. | Apply instead. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `has no question <id>` | `unknown-setup-question` | An answer named a question the record does not hold. Never printed: no verb sends a setup move yet. | Read the record's questions again. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `A setup question takes 2 to 4 options` | `setup-question-option-count` | A setup question with too few or too many options. Never printed: no verb sends a setup move yet. | Give two to four options. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `needs the option Claude recommends` | `setup-question-without-recommendation` | A setup question with no recommended option. Never printed: no verb sends a setup move yet. | Name the recommended option. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `There is no option <letter>` | `unknown-setup-option-letters` | A recommendation or answer named a letter the question does not have. Never printed: no verb sends a setup move yet. | Name one of its letters. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `the setup question takes one` | `several-letters-on-single-select-setup-question` | Several letters on a question that takes one. Never printed: no verb sends a setup move yet. | Name one letter. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The constitution has no text` | `constitution-empty` | The agent sent an empty constitution. Never printed: no verb sends a setup move yet. | Send the whole document. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `may hold at most <n>` | `constitution-too-long` | The constitution is longer than the limit. Never printed: no verb sends a setup move yet. | Shorten it. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `the constitution does not hold that line that many times` | `constitution-source-unanchored` | A source names a line the text does not hold, or not that often. Never printed: no verb sends a setup move yet. | Name a whole line of the text, without its line ending. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `a line takes one source` | `constitution-source-repeated` | Two sources name the same line. Never printed: no verb sends a setup move yet. | Name one source per line. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The constitution of pipeline setup <id> is at revision` | `constitution-draft-stale` | User's edit carried an older revision. Never printed: no verb sends a setup move yet. | Read it again, then edit. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The draft pipeline of pipeline setup <id> is at revision` | `pipeline-draft-stale` | A draft edit carried an older revision. Never printed: no verb sends a setup move yet. | Read it again, then edit. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `names no change` | `no-draft-edits` | A draft edit with no change in it. Never printed: no verb sends a setup move yet. | Name at least one change. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `keeps the name its field gives it` | `draft-edit-name-mismatch` | A gate or prepare step edit whose value names another name than its field. Never printed: no verb sends a setup move yet. | Use the field's name. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The prepare steps were not reordered` | `prepare-order-not-a-reorder` | A prepare order that does not name each prepare step once. Never printed: no verb sends a setup move yet. | Name each prepare step once. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `has no edit <id>` | `unknown-setup-edit` | Undo named an edit the record does not hold. Never printed: no verb sends a setup move yet. | Read the record's edits again. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `is already undone` | `setup-edit-already-undone` | Undo named an edit that is already undone. Never printed: no verb sends a setup move yet. | Nothing to do. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 
 </details>
 

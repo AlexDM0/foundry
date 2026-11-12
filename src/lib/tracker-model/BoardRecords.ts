@@ -8,6 +8,7 @@ import type { Epic }                 from './@types/Epic.ts';
 import type { Incident }             from './@types/Incident.ts';
 import type { LogRecord }            from './@types/LogRecord.ts';
 import type { Pipeline }             from './@types/Pipeline.ts';
+import type { PipelineSetupReading } from './@types/PipelineSetup.ts';
 import type { Task, TaskStatus }     from './@types/Task.ts';
 import type { Ticket, TicketStatus } from './@types/Ticket.ts';
 import type { TrackerProgress }      from './@types/TrackerProgress.ts';
@@ -53,6 +54,9 @@ export class BoardRecords {
   /** Set once a `gate` verb changed the pipeline, so the hold writes `pipeline.json`. */
   pipelineChanged = false;
 
+  /** Set once a setup move changed the record or removed it, so the hold writes or removes `pipeline-setup.json`. */
+  pipelineSetupChanged = false;
+
   constructor(
     readonly progress: TrackerProgress,
     readonly ticketRecords: Ticket[],
@@ -62,6 +66,8 @@ export class BoardRecords {
     readonly storedLogRecords: readonly LogRecord[],
     /** `null` when no pipeline is stored, or the stored one could not be read. */
     public pipeline: Pipeline | null,
+    /** A malformed record stays as read: every setup move refuses rather than write over it. */
+    public pipelineSetupReading: PipelineSetupReading,
   ) {}
 
   markChanged(ticket: Ticket): void {

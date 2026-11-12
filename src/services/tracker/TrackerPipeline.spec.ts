@@ -301,3 +301,48 @@ describe('the pipeline a hold hands the Board', () => {
     });
   });
 });
+
+describe('the setup record a hold reads and writes', () => {
+  const FIRST_SETUP = {
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  } as const;
+
+  test('a setup move writes pipeline-setup.json before log.jsonl, and a start over removes it', async () => {
+    writeReadableTracker(workspace);
+    const writtenPaths: string[] = [];
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
+    });
+
+    expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.pipelineSetupFilePath, workspace.logFilePath]);
+    expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
+    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, setupId: 'S1', currentStep: 'billing' });
+    const written = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipelineSetup()?.setupId
+    });
+    expect(written.result).toBe('S1');
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startOverSetup('S1', change.at)
+    });
+    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+  });
+
+  test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {
+    writeReadableTracker(workspace);
+    writeFileSync(workspace.pipelineSetupFilePath, '{ "formatVersion": 1 }\n');
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: addExampleRow
+    });
+    const refusal = await thrownFailureOf(() => writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at)
+    }));
+
+    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
+    const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
+    expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
+    expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
+  });
+});

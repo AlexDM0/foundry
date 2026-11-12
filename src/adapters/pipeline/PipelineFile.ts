@@ -394,4 +394,6 @@ function contentsOf(pipeline: Readonly<Pipeline>): string {
   return JsonTextUtil.storedFileTextOf(reading.verdict === 'readable' ? reading.pipeline : pipeline);
 }
 
-export const PipelineFile = Object.freeze({ read, contentsOf });
+export const PipelineFile = Object.freeze({
+  read, contentsOf, documentReadingOf, billingOf
+});

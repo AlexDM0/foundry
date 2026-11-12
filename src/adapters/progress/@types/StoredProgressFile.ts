@@ -102,6 +102,7 @@ export interface StoredProgressFile {
   concurrencyLimit?:       number;
   overseerState?:          OverseerState;
   nextDraftId?:            number;
+  nextSetupId?:            number;
   nextJobId?:              number;
   jobs?:                   StoredJob[];
   nextDecisionId?:         number;

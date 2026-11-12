@@ -159,6 +159,34 @@ function sentenceOf(record: LogRecordContent): string {
       return `Draft ${record.draftId} ${record.fields.questionId} answered: ${record.fields.answer}`;
     case 'draft-item-dropped':
       return `Draft ${record.draftId} dropped ${record.fields.itemId}`;
+    case 'pipeline-setup-opened':
+      return `Pipeline setup ${record.setupId} opened: ${record.fields.mode}${record.fields.replacesUnreadablePipeline ? ', replacing the unreadable pipeline' : ''}`;
+    case 'pipeline-setup-billing-set':
+      return `Pipeline setup ${record.setupId} billing set to ${record.fields.mode}`
+        + `${record.fields.maxBudgetUsd === undefined ? '' : `, at most $${record.fields.maxBudgetUsd} a launch`}`;
+    case 'pipeline-setup-step-moved':
+      return `Pipeline setup ${record.setupId} step ${record.fields.step} ${record.fields.state}, now at ${record.fields.currentStep}`
+        + `${record.fields.needsRecheck.length === 0 ? '' : `; ${record.fields.needsRecheck.join(', ')} need a recheck`}`;
+    case 'pipeline-setup-resumed':
+      return `Pipeline setup ${record.setupId} resumed on ${record.fields.snapshotCommit}`
+        + `${record.fields.changedPaths.length === 0 ? '' : `; changed on main: ${record.fields.changedPaths.join(', ')}`}`;
+    case 'pipeline-finding-recorded':
+      return `Pipeline setup ${record.setupId} recorded finding ${record.fields.findingId} (${record.fields.topic})`;
+    case 'pipeline-question-asked':
+      return `Pipeline setup ${record.setupId} asked ${record.fields.questionId} at the ${record.fields.step} step`;
+    case 'pipeline-question-answered':
+      return `Pipeline setup ${record.setupId} ${record.fields.questionId} answered: ${record.fields.answer}`;
+    case 'pipeline-constitution-set':
+      return `Pipeline setup ${record.setupId} constitution revision ${record.fields.revision} by the ${record.fields.by}`;
+    case 'pipeline-draft-edited':
+      return `Pipeline setup ${record.setupId} draft revision ${record.fields.revision} by the ${record.fields.by}: `
+        + record.fields.editIds.map((editId, index) => `${editId} ${record.fields.fields[index] ?? ''}`.trimEnd()).join(', ');
+    case 'pipeline-draft-undone':
+      return `Pipeline setup ${record.setupId} undid ${record.fields.editId} (${record.fields.field}), draft revision ${record.fields.revision}`;
+    case 'pipeline-draft-discarded':
+      return `Pipeline setup ${record.setupId} discarded the draft's changes, draft revision ${record.fields.revision}`;
+    case 'pipeline-setup-discarded':
+      return `Pipeline setup ${record.setupId} discarded`;
     case 'review-bar-started':
       return `Review row #${record.taskId} started: ${record.fields.name}`;
     case 'review-bar-closed':
