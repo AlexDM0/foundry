@@ -133,6 +133,14 @@
  *                           .bridge-change-row-values (.bridge-change-row-before, .bridge-change-row-after), .bridge-change-row-note
  *   .bridge-activity-row[data-status]  a link to a running step or check: .bridge-activity-row-mark, -id, -step, a meter, -elapsed
  *   .bridge-typing          .bridge-typing-dots of three .bridge-typing-dot, then the .bridge-typing-text line
+ *   .bridge-flow-node[data-variant][data-mark?][data-conditional?][data-selected?][data-tone?]  one box of a flow: its
+ *                           .bridge-flow-node-head (.bridge-flow-node-title, the .bridge-flow-node-tag[data-variant] inline after it,
+ *                           the .bridge-flow-node-meter at the end), .bridge-flow-node-detail, .bridge-flow-node-chips and the
+ *                           .bridge-flow-node-end control beside them; .bridge-flow-frame a labelled group of nodes under its
+ *                           .bridge-flow-frame-label
+ *   .bridge-flow-arrows[data-still?]  the arrow layer over a flow: one .bridge-flow-arrow[data-tone][data-active?] group per arrow,
+ *                           its .bridge-flow-arrow-line, .bridge-flow-arrow-head and optional .bridge-flow-arrow-label
+ *   .bridge-zoom            a flow's zoom: .bridge-zoom-steps (two .bridge-zoom-step buttons around the .bridge-zoom-value), then Fit
  *   @keyframes bridge-rise, -pop, -glow, -bar, -sheen, -modal, -fade, -menu, -ring, -flowdash, -edge, -grow, -spin,
  *                           -indeterminate, -line, -blink, -caret, -mark, -draw, -toast, -shrink, -shimmer: the parts' shared motion
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
@@ -1481,6 +1489,111 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   .bridge-listed-file,
   .bridge-change-row[data-density="card"],
   .bridge-activity-row { transition: none; }
+}
+
+/* One box of a flow: the head row (title, inline tag, meter at the end), the detail and chip rows, and an end slot that holds a control
+   beside them all. Selected and marked nodes add rings and change colours only, so the border keeps its 1px width. Each node rises in,
+   --rise-order set by its holder; a proposed or changed node glows. */
+.bridge-flow-node {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; column-gap: var(--sp-3); row-gap: var(--sp-1);
+  box-sizing: border-box; width: var(--flow-node-width); min-height: 48px; padding: var(--sp-2) var(--sp-3);
+  color: var(--ink-1); font-size: var(--fs-body); line-height: 1.3;
+  background: var(--surface-panel); border: 1px solid var(--line-control); border-radius: 10px;
+  animation: bridge-rise var(--motion-rise) var(--ease-out) calc(var(--rise-order, 0) * var(--rise-step)) both;
+  transition: var(--feedback-transition);
+}
+.bridge-flow-node[aria-haspopup] { cursor: default; }
+.bridge-flow-node[aria-haspopup]:hover { background-color: var(--surface-info); }
+.bridge-flow-node:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-flow-node-head { display: flex; grid-column: 1; align-items: center; gap: var(--sp-2); min-width: 0; }
+.bridge-flow-node-title { min-width: 0; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-flow-node-tag {
+  flex: none; padding: 1px 6px; color: var(--ink-2); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  border: 1px dashed var(--line-conditional); border-radius: 4px;
+}
+.bridge-flow-node-meter { display: inline-flex; flex: none; margin-inline-start: auto; }
+.bridge-flow-node-detail { grid-column: 1; min-width: 0; color: var(--ink-3); font-size: var(--fs-small); }
+.bridge-flow-node-chips { display: flex; grid-column: 1; flex-wrap: wrap; gap: var(--sp-1); }
+.bridge-flow-node-end { display: inline-flex; grid-row: 1 / span 3; grid-column: 2; align-items: center; align-self: center; }
+.bridge-flow-node[data-variant="outcome"] { background: var(--surface-raised); border-color: var(--line-hairline); }
+.bridge-flow-node[data-variant="target"] {
+  justify-content: center; justify-items: center; min-height: 28px; padding: 0 var(--sp-3);
+  color: var(--ink-2); background: var(--surface-raised); border-color: var(--line-hairline); border-radius: 14px;
+}
+.bridge-flow-node[data-conditional] { border-style: dashed; border-color: var(--line-conditional); }
+.bridge-flow-node[data-tone="highlight"] { background: var(--human-review-fill); border-color: var(--human-review-edge); }
+.bridge-flow-node[data-tone="highlight"] .bridge-flow-node-detail { color: var(--human-review-ink); }
+.bridge-flow-node[data-mark="proposed"] {
+  --glow-ring: color-mix(in oklch, var(--question-accent) 14%, transparent);
+  border-style: dashed; border-color: var(--question-edge);
+}
+.bridge-flow-node[data-mark="changed"] {
+  --glow-ring: color-mix(in oklch, var(--change-changed-dot) 16%, transparent);
+  border-color: var(--change-changed-edge);
+}
+.bridge-flow-node[data-mark="proposed"],
+.bridge-flow-node[data-mark="changed"] {
+  animation:
+    bridge-rise var(--motion-rise) var(--ease-out) calc(var(--rise-order, 0) * var(--rise-step)) both,
+    bridge-glow var(--glow-period) ease-in-out infinite;
+}
+.bridge-flow-node[data-mark="new"] { border-color: var(--change-new-edge); box-shadow: inset 0 0 0 1px var(--change-new-edge); }
+.bridge-flow-node[data-mark="removed"] { border-style: dashed; border-color: var(--change-removed-row-edge); opacity: 0.55; }
+.bridge-flow-node[data-mark="removed"] .bridge-flow-node-title { text-decoration: line-through; }
+.bridge-flow-node[data-selected] { border-color: var(--link); box-shadow: inset 0 0 0 1px var(--link), 0 0 0 4px var(--accent-ring); }
+
+/* A labelled frame around nodes that run together, its label in small capitals at the top. */
+.bridge-flow-frame {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 11px; box-sizing: border-box; padding: 10px var(--sp-4) var(--sp-3);
+  background: var(--flow-group-fill); border: 1px solid var(--line-hairline); border-radius: var(--r-group);
+}
+.bridge-flow-frame-label { color: var(--ink-3); font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* The arrows over a flow: 2px round lines, their heads filled in the line's colour. A solid arrow draws in when it appears; an active one
+   runs its dashes while the event stream is live; rollback, loop, conditional and insert arrows are dashed. */
+.bridge-flow-arrows { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.bridge-flow-arrow { --arrow-tone: var(--line-arrow); }
+.bridge-flow-arrow[data-tone="rollback"] { --arrow-tone: var(--flow-rollback); }
+.bridge-flow-arrow:is([data-tone="loop"], [data-tone="conditional"]) { --arrow-tone: var(--line-conditional); }
+.bridge-flow-arrow[data-tone="insert"] { --arrow-tone: var(--line-control); }
+.bridge-flow-arrow-line { fill: none; stroke: var(--arrow-tone); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bridge-flow-arrow:not([data-tone="forward"]) .bridge-flow-arrow-line { stroke-dasharray: 6 6; }
+.bridge-flow-arrow[data-tone="insert"] .bridge-flow-arrow-line { stroke-dasharray: 2 6; }
+.bridge-flow-arrow[data-tone="forward"]:not([data-active]) .bridge-flow-arrow-line {
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: bridge-arrow-draw 420ms var(--ease-out) forwards;
+}
+.bridge-flow-arrow[data-active] .bridge-flow-arrow-line { stroke-dasharray: 5 7; }
+:root[data-freshness="live"] .bridge-flow-arrow[data-active] .bridge-flow-arrow-line {
+  animation: bridge-flowdash var(--flow-dash-period) linear infinite;
+}
+.bridge-flow-arrow-head { fill: var(--arrow-tone); stroke: none; animation: bridge-fade 140ms ease-out both; }
+.bridge-flow-arrow-label { fill: var(--ink-3); font-size: var(--fs-small); }
+.bridge-flow-arrow[data-tone="rollback"] .bridge-flow-arrow-label { fill: var(--flow-rollback-label); }
+.bridge-flow-arrow[data-tone="loop"] .bridge-flow-arrow-label { font-size: var(--fs-micro); }
+.bridge-flow-arrows[data-still] .bridge-flow-arrow[data-tone] :is(.bridge-flow-arrow-line, .bridge-flow-arrow-head) { animation: none; stroke-dashoffset: 0; }
+
+/* A flow's zoom: the − and + steps in one bordered box around the zoom text, then the Fit button. */
+.bridge-zoom { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); }
+.bridge-zoom-steps { display: inline-flex; align-items: center; overflow: hidden; border: 1px solid var(--line-hairline); border-radius: 6px; }
+.bridge-zoom-step {
+  width: 28px; height: 26px; padding: 0; color: var(--ink-2); font: inherit; background: var(--surface-panel); border: 0; cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.bridge-zoom-step:not(:disabled):hover { color: var(--ink-1); filter: brightness(1.15); }
+.bridge-zoom-step:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.bridge-zoom-step:disabled { color: var(--ink-4); cursor: not-allowed; }
+.bridge-zoom-value { min-width: 40px; padding: 0 var(--sp-2); color: var(--ink-2); font-size: var(--fs-small); text-align: center; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-flow-node,
+  .bridge-flow-node[data-mark="proposed"],
+  .bridge-flow-node[data-mark="changed"] { animation: none; transition: none; }
+  .bridge-flow-node[data-mark="proposed"],
+  .bridge-flow-node[data-mark="changed"] { box-shadow: 0 0 0 4px var(--glow-ring); }
+  .bridge-flow-arrows .bridge-flow-arrow[data-tone] :is(.bridge-flow-arrow-line, .bridge-flow-arrow-head),
+  :root[data-freshness="live"] .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { animation: none; stroke-dashoffset: 0; }
+  .bridge-flow-arrow[data-active] .bridge-flow-arrow-line { stroke-dasharray: none; }
+  .bridge-zoom-step { transition: none; }
 }
 
 /* The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets
