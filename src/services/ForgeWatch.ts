@@ -10,9 +10,9 @@ import type { ForgeIdentity, ForgeRegistryFacts } from '../adapters/forge-api/@t
 import { BoardSummaryIngestion }                  from '../adapters/forge-api/BoardSummaryIngestion.ts';
 import { IdentityIngestion }                      from '../adapters/forge-api/IdentityIngestion.ts';
 import { MonitorSnapshotIngestion }               from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
+import { OverseerTokenFile }                      from '../adapters/forge-api/OverseerTokenFile.ts';
 import type { RegisteredForge }                   from '../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { RegistryReading }                   from '../adapters/forge-registry/RegistryFile.ts';
-import { AtomicFile }                             from '../lib/atomic-file/AtomicFile.ts';
 import type { MonitorFollow }                     from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                       from '../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }                      from '../shared/@types/ForgeReading.ts';
@@ -88,14 +88,6 @@ async function rootIsAFolder(root: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/** The Overseer's token, fresh at each of its starts, so it is read again at every round; `null` when the file cannot be read. */
-async function tokenAt(tokenPath: string): Promise<string | null> {
-  const stored = await AtomicFile.read(tokenPath);
-  if (stored.verdict !== 'readable') return null;
-  const token = stored.contents.trim();
-  return token === '' ? null : token;
 }
 
 function contentHashOf(value: unknown): string {
@@ -191,7 +183,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     }
 
     async function followMonitor(round: WatchRound, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity, tokenPath: string): Promise<void> {
-      const bearerToken = await tokenAt(tokenPath);
+      const bearerToken = await new OverseerTokenFile(tokenPath).read();
       if (!round.isCurrent()) return;
       if (bearerToken === null) return failedTry();
       const ingestion = new MonitorSnapshotIngestion(registryFacts, identity);
