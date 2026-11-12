@@ -55,7 +55,7 @@ function orderOf<Candidate extends MergeQueueCandidate>(candidates: readonly Can
     || a.ticketId.localeCompare(b.ticketId, 'en', { numeric: true }));
 }
 
-/** With merge approval on: User's press order alone, the earliest accept first, then ticket id (Q6 of the pipeline plan). */
+/** With merge approval on: User's press order alone, the earliest accept first, then ticket id. */
 function pressOrderOf<Candidate extends Pick<MergeQueueCandidate, 'ticketId' | 'queuedLogPosition'>>(candidates: readonly Candidate[]): Candidate[] {
   return [...candidates].sort((a, b) => a.queuedLogPosition - b.queuedLogPosition || a.ticketId.localeCompare(b.ticketId, 'en', { numeric: true }));
 }
