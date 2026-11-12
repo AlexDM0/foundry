@@ -1,7 +1,8 @@
 /**
  * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
- * does not know reading as itself; and the warnings name a failed Baton pass and an Assistant that cannot come up, and nothing else.
+ * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
+ * Assistant that cannot come up, and nothing else.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -38,6 +39,11 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
       'landings on main wait: the main checkout\'s changes to README.md, docs/cli.md block the fast-forward',
       'example-kind',
     ]);
+  });
+
+  test('a missing instruction file names its job and its path, never the bare kind', () => {
+    expect(NoticeWordingUtil.noticeSentenceOf({ kind: 'instructions-missing', jobId: 'J7', path: 'briefs/defaults/builder.md' }))
+      .toBe('job J7 is not launched: the instruction file briefs/defaults/builder.md its pipeline names is missing');
   });
 });
 

@@ -59,6 +59,8 @@ function noticeTextOf(notice: NoticeFacts): string {
       return `landings on ${factOf(notice, 'target')} wait: another process holds ${factOf(notice, 'heldFiles')} open, so git cannot replace what is held`;
     case 'cleanup-declined':
       return `git declined the ${factOf(notice, 'cleanup')} cleanup of ${factOf(notice, 'groupBranch')}: ${factOf(notice, 'reason')}`;
+    case 'instructions-missing':
+      return `job ${factOf(notice, 'jobId')} is not launched: the instruction file ${factOf(notice, 'path')} its pipeline names is missing`;
     case 'agent-program-refused':
       return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
     case 'watcher-endpoint-does-not-fit':

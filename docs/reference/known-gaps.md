@@ -141,7 +141,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-queued-ticket-display-word](#gap-queued-ticket-display-word) | Bridge | misleading text | A queued ticket's status word contradicts its lane |
 | [gap-waiting-on-links-run-together](#gap-waiting-on-links-run-together) | Bridge | bug | Waiting-on links show with no separator |
 | [gap-stored-tab-never-restored](#gap-stored-tab-never-restored) | Bridge | bug | The remembered tab is erased at load |
-| [gap-header-notice-bare-kind](#gap-header-notice-bare-kind) | Bridge | bug | A header notice falls through to its kind |
 | [gap-reconnect-reload-check-skipped](#gap-reconnect-reload-check-skipped) | Bridge | bug | A reconnect can keep a Bridge on old code |
 | [gap-init-marker-window](#gap-init-marker-window) | Install and CLI | misleading text | `init` writes its install marker ninth, not first |
 | [gap-help-text-stale](#gap-help-text-stale) | Install and CLI | misleading text | Help says low tickets wait; they do not |
@@ -1650,17 +1649,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `bridge/shell/HashRouter.ts` `useHashRoute`; `bridge/shell/BridgeApp.tsx`.
 - **Established:** probed under happy-dom with fake services: stored `agents` on a bare URL gave `kanban` and an empty
   key. **Severity:** bug.
-
-<a id="gap-header-notice-bare-kind"></a>
-
-### The header shows `instructions-missing` as a bare word
-
-- **Expected:** every notice reads as a sentence.
-- **Does:** `NoticeWordingUtil.noticeTextOf` has no case for `instructions-missing`, so its default returns the kind.
-- **Effect:** the header says `instructions-missing`, naming neither the job nor the path.
-- **Instead:** run `forge oversee status`, whose wording names both.
-- **Evidence:** `src/shared/monitor/utils/NoticeWordingUtil.ts` `noticeTextOf`; `cli/overseer/OverseerWording.ts` `noticeTextOf`.
-- **Established:** read. **Severity:** bug.
 
 <a id="gap-reconnect-reload-check-skipped"></a>
 

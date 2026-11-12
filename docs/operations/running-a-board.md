@@ -250,8 +250,7 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
 - **Notices.** Open [notices](../glossary.md#notice), each with its kind, the id it is about and the sentence the header
   words it in. They take no answer. The Bridge shows them too: warnings and notices as banners above the header,
-  `new-code` in its state line. `instructions-missing` shows in both places as its bare kind; see the
-  [notice table](../architecture/questions-and-incidents.md).
+  `new-code` in its state line. The [notice table](../architecture/questions-and-incidents.md) lists every kind.
 
 ![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, each followed, when the asking agent noted them, by what it touches, its trade-off and its effect on the Acceptance. Then a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
 

@@ -170,6 +170,12 @@ and all of those edges go to `tracker-model`.
 - `@types/ControlCommand.ts` is the shape of a command `ControlService` applies, and `@types/PagePayload.ts` the payload
   the Bridge receives.
 - `rework/` classifies diff lines as code or comment, for `src/services/lifecycle/ReviewOutcome.ts`.
+- `monitor/` holds what the Overseer's monitor snapshot and the Bridge compute alike, so both show the same thing: the
+  `MonitorSnapshot` shape, the Waiting on User list (`AttentionEntries.ts`), today's figures, the notice and warning
+  sentences, the open decisions in answering order, a filing draft's state line and how a Bridge route is written. The
+  Bridge compiles it, so it stays DOM-safe.
+- `constants/OverseerApiContracts.ts` holds the identity's version and the version of each API contract the Overseer
+  serves.
 
 ## `src/adapters/`
 
