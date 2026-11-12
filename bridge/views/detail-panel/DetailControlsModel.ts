@@ -1,20 +1,27 @@
 /** The Bridge's own controls on a ticket's detail: which moves its stored status offers, and the merge approval a ticket waiting for merge shows. */
+import type { TicketPriority }                         from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import { DEFAULT_TICKET_PRIORITY }                     from '../../../src/lib/tracker-model/constants/TicketFields.ts';
 import type { DetailBoardState, DetailTicketDocument } from '../../@types/DetailBoardState.ts';
+
+/** The order the Priority… row lists its choices in, the highest first. */
+const PRIORITY_CHOICE_ORDER: readonly TicketPriority[] = ['high', 'normal', 'low'];
 
 /** What the panel offers; each is a `ControlCommand` the Overseer applies or refuses. */
 export interface DetailControlsModel {
   /** A draft ticket: `ticket-ready`. */
-  readonly readies:     boolean;
+  readonly readies:         boolean;
   /** An open ticket: `ticket-hold` while unheld and not yet started, `ticket-unhold` while held, `null` otherwise. */
-  readonly holdMove:    'hold' | 'unhold' | null;
+  readonly holdMove:        'hold' | 'unhold' | null;
   /** Any open ticket: `ticket-park`. */
-  readonly parks:       boolean;
+  readonly parks:           boolean;
   /** Only while `draft` or `pending`: `ticket-network`. */
-  readonly setsNetwork: boolean;
+  readonly setsNetwork:     boolean;
   /** The domains stored now, which the network control starts from. */
-  readonly network:     readonly string[];
+  readonly network:         readonly string[];
+  /** Only while `pending`: the priorities `ticket-priority` may move the ticket to, every one but its own; empty otherwise. */
+  readonly priorityChoices: readonly TicketPriority[];
   /** Written only while the ticket waits for merge (merge approval on): `merge-accept` and `merge-update`. */
-  readonly mergeWait?:  MergeWaitModel;
+  readonly mergeWait?:      MergeWaitModel;
 }
 
 /** Git's prediction of the waiting ticket's merge into its target's current tip, and whether Accept may be pressed. */
@@ -50,18 +57,20 @@ function controlsOf(ticket: DetailTicketDocument, mergeQueue: DetailBoardState['
   let holdMove: DetailControlsModel['holdMove'] = null;
   if (isOpen && ticket.hold !== undefined) holdMove = 'unhold';
   else if (notYetStarted) holdMove = 'hold';
+  const currentPriority = ticket.priority ?? DEFAULT_TICKET_PRIORITY;
   return {
-    readies:     awaitsReady,
+    readies:         awaitsReady,
     holdMove,
-    parks:       isOpen,
-    setsNetwork: notYetStarted,
-    network:     ticket.network ?? [],
+    parks:           isOpen,
+    setsNetwork:     notYetStarted,
+    network:         ticket.network ?? [],
+    priorityChoices: ticket.status === 'pending' ? PRIORITY_CHOICE_ORDER.filter((priority) => priority !== currentPriority) : [],
     ...mergeWaitOf(mergeQueue, ticket.id),
   };
 }
 
 function offersAnyTicketControl(controls: DetailControlsModel): boolean {
-  return controls.readies || controls.holdMove !== null || controls.parks || controls.setsNetwork;
+  return controls.readies || controls.holdMove !== null || controls.parks || controls.setsNetwork || controls.priorityChoices.length > 0;
 }
 
 /** The domains a viewer typed, split at commas and white space. */

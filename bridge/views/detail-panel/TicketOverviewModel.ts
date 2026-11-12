@@ -6,6 +6,7 @@
  * and the Overseer's, and the hold a stop leaves is the Board's own phrase (`JobStopHolds.ts`).
  */
 import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
+import type { TicketPriority }       from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { jobStopHoldOf }             from '../../../src/lib/tracker-model/constants/JobStopHolds.ts';
 import { FIRST_REPEAT_REVIEW_ROUND } from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
 import type {
@@ -62,7 +63,7 @@ const USER_PARK_HOLD = 'parked:user';
 
 const QUEUED_NOTE = 'In the queue.';
 
-export type TicketMove = 'ready' | 'merge-accept' | 'unhold' | 'merge-update' | 'hold' | 'park' | 'network';
+export type TicketMove = 'ready' | 'merge-accept' | 'unhold' | 'merge-update' | 'hold' | 'priority' | 'park' | 'network';
 
 export type TextPartModel =
   | { readonly kind: 'text'; readonly text: string }
@@ -93,13 +94,15 @@ export interface NowCardModel {
 
 /** A move the panel offers; `opens` a field to fill before the move is sent, `sendable` false where the Overseer would refuse it. */
 export interface MoveModel {
-  readonly move:     TicketMove;
-  readonly label:    string;
-  readonly effect:   readonly TextPartModel[];
-  readonly opens:    'reason' | 'domains' | null;
-  readonly sendable: boolean;
+  readonly move:        TicketMove;
+  readonly label:       string;
+  readonly effect:      readonly TextPartModel[];
+  readonly opens:       'reason' | 'domains' | 'priorities' | null;
+  readonly sendable:    boolean;
   /** Set network…'s field starts from the domains stored now. */
-  readonly domains?: readonly string[];
+  readonly domains?:    readonly string[];
+  /** Priority…'s row: one button per priority the ticket may move to. */
+  readonly priorities?: readonly TicketPriority[];
 }
 
 export type LeadActionModel =
@@ -369,6 +372,16 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Detai
       effect:   [textOf('Holds '), emphasisOf(id), textOf(': the Overseer launches no builder or reviewer for it until it is unheld.')],
       opens:    'reason',
       sendable: true,
+    });
+  }
+  if (controls.priorityChoices.length > 0) {
+    moves.push({
+      move:       'priority',
+      label:      'Priority…',
+      effect:     [textOf('Changes where '), emphasisOf(id), textOf(' waits in Ready: a higher priority is taken first.')],
+      opens:      'priorities',
+      sendable:   true,
+      priorities: controls.priorityChoices,
     });
   }
   if (controls.parks) moves.push(parkMoveOf(ticketId, liveJob));

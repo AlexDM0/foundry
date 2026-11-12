@@ -1,6 +1,6 @@
 /**
- * The Kanban: the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card with its marks and the
- * controls its lane offers in a quiet row shown while the card is hovered or focused. A card opens the ticket or draft form of the detail
+ * The Kanban: the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card with its marks and
+ * no controls but its links and waiting-on buttons: its moves are the ticket panel's. A card opens the ticket or draft form of the detail
  * panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains scroll room
  * the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header figure
  * points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per board.
@@ -15,7 +15,6 @@ import {
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 
 import type { KanbanBoardState }                                          from '../../@types/KanbanBoardState.ts';
-import { ChipFilterUtil }                                                 from '../../chips/ChipFilterUtil.ts';
 import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                                                      from '../../chips/EpicChips.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark }                          from '../../chips/TicketMarks.tsx';
@@ -24,7 +23,6 @@ import { MonoId }                                                         from '
 import { Tag }                                                            from '../../design-system/Tag.tsx';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
-import { CommandButton }                                                  from '../../shell/CommandButton.tsx';
 import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
 import { DetailRoute, type DetailItem }                                   from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
@@ -80,7 +78,7 @@ export interface KanbanViewProps {
 const NOTHING_CHANGED: ReadonlySet<string> = new Set();
 
 /** Inside these a click is the control's own, never the card's. */
-const CARD_CONTROL_SELECTOR = 'a, button, input, label';
+const CARD_CONTROL_SELECTOR = 'a, button';
 
 /** As long as the `bridge-changed` wash lasts in `board.css`; reduced motion holds its outline as long. */
 export const CHANGE_HIGHLIGHT_MILLISECONDS = 1200;
@@ -104,40 +102,14 @@ function detailItemOf(card: KanbanCardModel): DetailItem | null {
 interface KanbanCardProps {
   readonly card:          KanbanCardModel;
   readonly isChanged:     boolean;
-  readonly isSelected:    boolean | null;
   /** A card the hovered card directly depends on. */
   readonly isNeededFirst: boolean;
-  readonly onSelect:      (ticketId: string) => void;
   /** Brings the card of a ticket this one waits on into view; `true` when the board shows it. */
   readonly onFollow:      (ticketId: string) => boolean;
 }
 
-function KanbanCardControls({ card, isSelected, onSelect }: Pick<KanbanCardProps, 'card' | 'isSelected' | 'onSelect'>) {
-  const { ticketId, actions } = card;
-  if (ticketId === null || (!actions.readies && actions.holdMove === null && isSelected === null)) return null;
-  return (
-    <div className="bridge-kanban-actions">
-      {isSelected === null
-        ? null
-        : <input type="checkbox" className="bridge-kanban-select" aria-label={`Select ${card.idText}`} checked={isSelected} onChange={() => onSelect(ticketId)} />}
-      {actions.readies ? <CommandButton label="Ready" command={{ kind: 'ticket-ready', ticketReferences: [ticketId] }} /> : null}
-      {actions.holdMove === 'hold' ? <CommandButton label="Hold" command={{ kind: 'ticket-hold', ticketReference: ticketId, reason: '' }} /> : null}
-      {actions.holdMove === 'unhold' ? <CommandButton label="Unhold" command={{ kind: 'ticket-unhold', ticketReference: ticketId }} /> : null}
-      {actions.priorityChoices.length === 0 ? null : <span className="bridge-kanban-actions-label" aria-hidden="true">Priority</span>}
-      {actions.priorityChoices.map((priority) => (
-        <CommandButton
-          key={priority}
-          label={priority}
-          accessibleName={`Priority ${priority}`}
-          command={{ kind: 'ticket-priority', ticketReference: ticketId, priority }}
-        />
-      ))}
-    </div>
-  );
-}
-
 function KanbanCard({
-  card, isChanged, isSelected, isNeededFirst, onSelect, onFollow
+  card, isChanged, isNeededFirst, onFollow
 }: KanbanCardProps) {
   const routing = useDetailRouting();
   const { heldCount, stamp } = card;
@@ -220,7 +192,6 @@ function KanbanCard({
       {stamp === null
         ? null
         : <span className="bridge-kanban-stamp" title={stamp.fullText === stamp.shortText ? undefined : stamp.fullText}>{stamp.shortText}</span>}
-      <KanbanCardControls card={card} isSelected={isSelected} onSelect={onSelect} />
     </article>
   );
 }
@@ -229,8 +200,6 @@ interface KanbanLaneProps {
   readonly lane:                KanbanLaneModel;
   readonly changedCardKeys:     ReadonlySet<string>;
   readonly neededFirstCardKeys: ReadonlySet<string>;
-  readonly selectedTicketIds:   readonly string[];
-  readonly onSelect:            (ticketId: string) => void;
   readonly onFollow:            (ticketId: string) => boolean;
   /** The outline's colour while a header figure points at the lane, else `null`. */
   readonly highlightEdge:       string | null;
@@ -298,11 +267,8 @@ function groupHeadOf(group: KanbanCardGroupModel) {
 }
 
 function KanbanLane({
-  lane, changedCardKeys, neededFirstCardKeys, selectedTicketIds, onSelect, onFollow, highlightEdge, mergeQueueHref, onToggleCollapse, onShowCount,
-  onShowAllFinished
+  lane, changedCardKeys, neededFirstCardKeys, onFollow, highlightEdge, mergeQueueHref, onToggleCollapse, onShowCount, onShowAllFinished
 }: KanbanLaneProps) {
-  const selectable = new Set(lane.readyableTicketIds);
-  const selectedHere = lane.readyableTicketIds.filter((ticketId) => selectedTicketIds.includes(ticketId));
   const isCollapsed = lane.collapse?.isCollapsed === true;
   const cardsElementId = `bridge-lane-${lane.key}-cards`;
   const cardOf = (card: KanbanCardModel) => (
@@ -310,13 +276,10 @@ function KanbanLane({
       key={card.key}
       card={card}
       isChanged={changedCardKeys.has(card.key)}
-      isSelected={card.ticketId !== null && selectable.has(card.ticketId) ? selectedHere.includes(card.ticketId) : null}
       isNeededFirst={neededFirstCardKeys.has(card.key)}
-      onSelect={onSelect}
       onFollow={onFollow}
     />
   );
-  const hasHeadControls = lane.key === 'merge-queue' || selectable.size > 0;
   return (
     <section
       className="bridge-lane"
@@ -348,13 +311,10 @@ function KanbanLane({
               <span className="bridge-lane-count">{lane.count}</span>
             </button>
           )}
-        {hasHeadControls
+        {lane.key === 'merge-queue'
           ? (
             <div className="bridge-lane-head-end">
-              {lane.key === 'merge-queue' ? <a className="bridge-lane-head-link" href={mergeQueueHref} aria-label="Merge queue details">details</a> : null}
-              {selectable.size === 0
-                ? null
-                : <CommandButton label="Ready selected" command={{ kind: 'ticket-ready', ticketReferences: selectedHere }} hasNothingToSend={selectedHere.length === 0} />}
+              <a className="bridge-lane-head-link" href={mergeQueueHref} aria-label="Merge queue details">details</a>
             </div>
           )
           : null}
@@ -480,7 +440,6 @@ export function KanbanView({
   const clock = useBridgeClock();
   const routing = useDetailRouting();
   const finishedWork = useFinishedWorkWindow();
-  const [selectedTicketIds, setSelectedTicketIds] = useState<readonly string[]>([]);
   const [shownBoardState, setShownBoardState] = useState(boardState);
   const [shownFilters, setShownFilters] = useState(filters);
   const [shownNow, setShownNow] = useState(() => clock.now().getTime());
@@ -604,9 +563,6 @@ export function KanbanView({
     cancelLaneHighlight.current = clock.after(LANE_HIGHLIGHT_MILLISECONDS, () => setShownLaneHighlight(null));
   }, [laneHighlight, onLaneHighlightTaken, clock]);
 
-  const toggleSelection = (ticketId: string): void => {
-    setSelectedTicketIds((selected) => ChipFilterUtil.toggledChips(selected, ticketId));
-  };
   const toggleAbandonedLane = (): void => {
     const laneIsOpen = !layout.abandonedLaneIsOpen;
     setAbandonedLaneIsOpenChoice(laneIsOpen);
@@ -666,8 +622,6 @@ export function KanbanView({
               lane={lane}
               changedCardKeys={changedCardKeys}
               neededFirstCardKeys={neededFirstCardKeys}
-              selectedTicketIds={selectedTicketIds}
-              onSelect={toggleSelection}
               onFollow={followToCard}
               highlightEdge={shownLaneHighlight?.laneKey === lane.key ? shownLaneHighlight.edge : null}
               mergeQueueHref={mergeQueueHref}

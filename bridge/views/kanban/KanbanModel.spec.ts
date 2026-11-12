@@ -1,13 +1,12 @@
 /**
  * The Kanban's view model against small synthetic boards. What matters: each ticket lands in the lane its status and the merge queue put
- * it in, what waits on User leads its lane (the tickets for review, then the drafts, on top of Ready; the tickets waiting for User's merge
- * accept on top of the Merge queue), ready tickets keep the Board's order, closed lanes read newest first; a draft ticket offers Ready and
- * the Ready lane a multi-select of exactly its draft tickets and tickets for review, a ready ticket offers Hold or Unhold and the other
- * priorities, and no other card offers anything; the card carries its marks (size, priority, type, tokens, epics, waiting-on, hold), a
- * draft's priority mark too; filing drafts keep their own card; and the filter menu's epic rows filter, count, name the line's epic part
- * and drop a stored row whose epic went. Also: "needed first" and `↦ N` (closed lanes none, heavy from five), the hover arrows' links
- * (skipping a card not shown), the Ready lane by wave (filed on a board without dependencies), a closed lane's pages with their clamping,
- * the Abandoned lane folded by default, and the asks pill naming the first open decision on the ticket in the order User answers them.
+ * it in, what waits on User leads its lane (the tickets for review, then the drafts, on top of Ready; the tickets waiting for User's
+ * merge accept on top of the Merge queue), ready tickets keep the Board's order, closed lanes read newest first; the card carries its
+ * marks (size, priority, type, tokens, epics, waiting-on, hold), a draft's priority mark too; filing drafts keep their own card; and the
+ * filter menu's epic rows filter, count, name the line's epic part and drop a stored row whose epic went. Also: "needed first" and `↦ N`
+ * (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave (filed on a board
+ * without dependencies), a closed lane's pages with their clamping, the Abandoned lane folded by default, and the asks pill naming the
+ * first open decision on the ticket in the order User answers them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -113,16 +112,6 @@ describe('the lanes', () => {
     expect(mergeQueue?.subtitle).toBe('1 for User\'s accept · by priority');
   });
 
-  test('a ticket ready for review offers Ready, and the Ready lane offers Ready selected over it', () => {
-    const board = exampleBoard({ filingDrafts: [], tickets: [exampleTicket('009', { status: 'ready-for-review' }), exampleTicket('010', { status: 'ready-for-review' })] });
-    const lane = modelOf(board, []).lanes.find((candidate) => candidate.key === 'ready');
-    expect(lane?.cards.map((card) => card.actions)).toEqual([
-      { readies: true, holdMove: null, priorityChoices: [] },
-      { readies: true, holdMove: null, priorityChoices: [] },
-    ]);
-    expect(lane?.readyableTicketIds).toEqual(['009', '010']);
-  });
-
   test('ready tickets keep the Board\'s order to take them, then the waiting ones by priority; closed lanes read newest first', () => {
     const board = exampleBoard({
       filingDrafts: [],
@@ -143,36 +132,6 @@ describe('the lanes', () => {
   test('an empty lane says so in its own words', () => {
     const building = modelOf(exampleBoard({ tickets: [] }), []).lanes.find((lane) => lane.key === 'building');
     expect(building?.emptyText).toBe('Nothing being built.');
-  });
-});
-
-describe('the actions', () => {
-  const board = exampleBoard({
-    tickets: [
-      exampleTicket('030', { status: 'draft' }),
-      exampleTicket('031', { status: 'draft' }),
-      exampleTicket('032', { priority: 'low' }),
-      exampleTicket('033', { hold: 'waiting on the example vendor' }),
-      exampleTicket('034', { status: 'in-progress' }),
-    ],
-  });
-  const model = modelOf(board, []);
-  const cardOf = (idText: string) => model.lanes.flatMap((lane) => lane.cards).find((card) => card.idText === idText);
-
-  test('a draft ticket offers Ready, and the Ready lane may ready exactly its draft tickets, never a filing draft or a ready ticket', () => {
-    expect(cardOf('#030')?.actions).toEqual({ readies: true, holdMove: null, priorityChoices: [] });
-    expect(model.lanes.find((lane) => lane.key === 'ready')?.readyableTicketIds).toEqual(['030', '031']);
-    expect(cardOf('D7')?.actions).toEqual({ readies: false, holdMove: null, priorityChoices: [] });
-    expect(model.lanes.filter((lane) => lane.readyableTicketIds.length > 0).map((lane) => lane.key)).toEqual(['ready']);
-  });
-
-  test('a ready ticket offers Hold, or Unhold once held, and every priority but its own', () => {
-    expect(cardOf('#032')?.actions).toEqual({ readies: false, holdMove: 'hold', priorityChoices: ['high', 'normal'] });
-    expect(cardOf('#033')?.actions).toEqual({ readies: false, holdMove: 'unhold', priorityChoices: ['high', 'low'] });
-  });
-
-  test('a card in any other lane offers nothing', () => {
-    expect(cardOf('#034')?.actions).toEqual({ readies: false, holdMove: null, priorityChoices: [] });
   });
 });
 
@@ -208,7 +167,6 @@ describe('the card', () => {
       reviewedTitle:      null,
       stamp:              { shortText: 'filed 10-01 09:00', fullText: 'filed 2026-10-01 09:00', ticks: false },
       ariaLabel:          '#040 Example ticket 040, To do, high priority',
-      actions:            { readies: false, holdMove: 'unhold', priorityChoices: ['normal', 'low'] },
       hasNeededFirst:     false,
       heldCount:          null,
       dependsOnTicketIds: [],

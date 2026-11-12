@@ -111,16 +111,6 @@ export interface KanbanEpicChip {
   readonly slot:  number;
 }
 
-/** What a card offers; each is a `ControlCommand` the Overseer applies or refuses. */
-export interface KanbanCardActions {
-  /** A draft ticket or a ticket ready for review: `ticket-ready`. */
-  readonly readies:         boolean;
-  /** A ready-lane ticket: `ticket-hold` or `ticket-unhold`, `null` elsewhere. */
-  readonly holdMove:        'hold' | 'unhold' | null;
-  /** A ready-lane ticket: the priorities `ticket-priority` may move it to, every one but its own. */
-  readonly priorityChoices: readonly TicketPriority[];
-}
-
 /** `↦ N`: how many open tickets wait on an unfinished one, directly or further down the chain. */
 export interface KanbanHeldCount {
   readonly count:   number;
@@ -160,7 +150,6 @@ export interface KanbanCardModel {
   readonly reviewedTitle:      string | null;
   readonly stamp:              KanbanCardStamp | null;
   readonly ariaLabel:          string;
-  readonly actions:            KanbanCardActions;
   /** Another ticket depends on this one: its card can show "needed first" while a dependent is hovered. */
   readonly hasNeededFirst:     boolean;
   readonly heldCount:          KanbanHeldCount | null;
@@ -231,23 +220,21 @@ export interface KanbanLaneCollapse {
 }
 
 export interface KanbanLaneModel {
-  readonly key:                KanbanLaneKey;
-  readonly title:              string;
-  readonly dotState:           string;
+  readonly key:       KanbanLaneKey;
+  readonly title:     string;
+  readonly dotState:  string;
   /** Every card in the lane the finished-work window lets through, paged or not. */
-  readonly count:              number;
+  readonly count:     number;
   /** The head's hover: the lane's own counts and order, `null` when it has none to tell. */
-  readonly subtitle:           string | null;
+  readonly subtitle:  string | null;
   /** The cards shown, in order: a closed lane's current pages, the Ready lane in wave order when it is ordered by wave. */
-  readonly cards:              readonly KanbanCardModel[];
+  readonly cards:     readonly KanbanCardModel[];
   /** `cards` divided under their group heads. */
-  readonly groups:             readonly KanbanCardGroupModel[];
-  readonly footer:             KanbanLaneFooter | null;
+  readonly groups:    readonly KanbanCardGroupModel[];
+  readonly footer:    KanbanLaneFooter | null;
   /** The Abandoned lane's fold; `null` on every other lane. */
-  readonly collapse:           KanbanLaneCollapse | null;
-  readonly emptyText:          string;
-  /** The ids a multi-select Ready may send: the Ready lane's draft tickets and tickets for User's review, empty on every other lane. */
-  readonly readyableTicketIds: readonly string[];
+  readonly collapse:  KanbanLaneCollapse | null;
+  readonly emptyText: string;
 }
 
 /** `filed` is the Board's order to take the ready tickets. */
@@ -336,8 +323,6 @@ export interface KanbanFilterModel {
   readonly lineEpic:             KanbanFilterLineEpic | null;
 }
 
-const NO_ACTIONS: KanbanCardActions = { readies: false, holdMove: null, priorityChoices: [] };
-
 /** Within one pixel the board counts as scrolled to that edge, so rounding never leaves a fade over a card. */
 const OVERFLOW_TOLERANCE_PIXELS = 1;
 
@@ -383,17 +368,6 @@ function heldTitleOf(hold: string | undefined): string | null {
  */
 function readinessStateOf(ticket: KanbanTicketDocument): DisplayState | null {
   return ticket.status === 'draft' || ticket.status === 'ready-for-review' ? ticket.status : null;
-}
-
-function actionsOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey): KanbanCardActions {
-  if (readinessStateOf(ticket) !== null) return { ...NO_ACTIONS, readies: true };
-  if (lane !== 'ready') return NO_ACTIONS;
-  const priority = priorityOf(ticket);
-  return {
-    readies:         false,
-    holdMove:        ticket.hold === undefined ? 'hold' : 'unhold',
-    priorityChoices: PRIORITY_ORDER.filter((choice) => choice !== priority),
-  };
 }
 
 type TicketFacts = KanbanBoardState['page']['payload']['boardFacts']['tickets'][number];
@@ -463,7 +437,6 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     ariaLabel: readinessState === null
       ? `#${ticket.id} ${ticket.title}, ${DisplayStateWordingUtil.stateLabelOf(displayState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND)}, ${priority} priority`
       : `#${ticket.id} ${ticket.title}, ${readinessState === 'draft' ? 'draft ticket' : wordOf(readinessState)}`,
-    actions:            actionsOf(ticket, lane),
     hasNeededFirst:     sources.dependedOnTicketIds.has(ticket.id),
     heldCount:          heldCountOf(ticket.id, lane, sources.graph),
     dependsOnTicketIds: ticket.dependsOn ?? [],
@@ -494,7 +467,6 @@ function filingDraftCardOf(draft: KanbanFilingDraft): KanbanCardModel {
     reviewedTitle:      null,
     stamp:              null,
     ariaLabel:          `Draft ${draft.id} ${draft.title}, ${stateLine}`,
-    actions:            NO_ACTIONS,
     hasNeededFirst:     false,
     heldCount:          null,
     dependsOnTicketIds: [],
@@ -792,17 +764,16 @@ function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layo
     const subtitleParts = [...leadingCountsTextOf(leadingGroups), ...laneSubtitlePartsOf(lane, otherCards, readyByWave)];
     const design = LANE_DESIGN[lane];
     return {
-      key:                lane,
-      title:              design.title,
-      dotState:           design.dotState,
-      count:              laneTickets.length + filingDraftCards.length,
-      subtitle:           subtitleParts.length === 0 ? null : subtitleParts.join(' · '),
-      cards:              groups.flatMap((group) => group.cards),
+      key:       lane,
+      title:     design.title,
+      dotState:  design.dotState,
+      count:     laneTickets.length + filingDraftCards.length,
+      subtitle:  subtitleParts.length === 0 ? null : subtitleParts.join(' · '),
+      cards:     groups.flatMap((group) => group.cards),
       groups,
-      footer:             laneIsClosed(lane) ? laneFooterOf(shownCount, laneTickets.length, members.length - windowed.length) : null,
-      collapse:           lane === 'abandoned' ? abandonedLaneCollapseOf(layout.abandonedLaneIsOpen) : null,
-      emptyText:          emptyTextOf(lane, surroundings.finishedWorkChoice),
-      readyableTicketIds: ticketCards.flatMap((card) => (card.actions.readies && card.ticketId !== null ? [card.ticketId] : [])),
+      footer:    laneIsClosed(lane) ? laneFooterOf(shownCount, laneTickets.length, members.length - windowed.length) : null,
+      collapse:  lane === 'abandoned' ? abandonedLaneCollapseOf(layout.abandonedLaneIsOpen) : null,
+      emptyText: emptyTextOf(lane, surroundings.finishedWorkChoice),
     };
   });
   const hasTickingStamp = lanes.some((lane) => lane.collapse?.isCollapsed !== true && lane.cards.some((card) => card.stamp?.ticks === true));

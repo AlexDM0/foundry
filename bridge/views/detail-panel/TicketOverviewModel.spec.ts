@@ -3,11 +3,12 @@
  * session naming the ticket and a partial record are passed over; the state card says what that job does (calls against budget, the last
  * tool call, since when, the elapsed time left off for a stamp later than now), or with no job why nothing works on the ticket; the lead
  * is Watch for a live job, else Accept, Ready or Unhold by state, Accept never sendable on a prediction that is not clean; the other moves
- * keep their order without the lead, and Park names the running job only while one runs; Next words each forecast step, marks exactly the
- * current one (none while nothing runs), links the tickets the landing lets start and says what still holds the others, and is absent
- * without a forecast; the facts carry their second lines; the live job's controls offer a message while it takes one and Wind down, Stop
- * and Fresh agent by its kind (Stop alone while only watched, nothing while stopping), each worded with the ticket, its branch and the
- * Board's own hold phrase, a ticket already held keeping its hold; and the newest open incident listing the ticket heads the Overview.
+ * keep their order without the lead, Park names the running job only while one runs, and Priority… opens the other priorities only for a
+ * pending ticket; Next words each forecast step, marks exactly the current one (none while nothing runs), links the tickets the landing
+ * lets start and says what still holds the others, and is absent without a forecast; the facts carry their second lines; the live job's
+ * controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (Stop alone while only watched, nothing
+ * while stopping), each worded with the ticket, its branch and the Board's own hold phrase, a ticket already held keeping its hold; and
+ * the newest open incident listing the ticket heads the Overview.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -298,6 +299,26 @@ describe('the other moves', () => {
     );
     expect(wordsOf(parkOf([])?.effect ?? [])).toBe('Holds #004 as parked:user and puts the reason to User as a parked decision.');
     expect(parkOf([])?.opens).toBe('reason');
+  });
+
+  test('a pending ticket offers Priority… after Hold…, opening a row of the other priorities, and says it changes its place in Ready', () => {
+    const board = exampleDetailBoard({ tickets: [exampleDetailTicket('030', { status: 'pending', priority: 'high' })] });
+    const { otherMoves } = overviewOf(board, '030');
+    expect(otherMoves.map((move) => move.label)).toEqual(['Hold…', 'Priority…', 'Park…', 'Set network…']);
+    const priority = otherMoves.find((move) => move.move === 'priority');
+    expect([priority?.opens, priority?.priorities, priority?.sendable]).toEqual(['priorities', ['normal', 'low'], true]);
+    expect(wordsOf(priority?.effect ?? [])).toBe('Changes where #030 waits in Ready: a higher priority is taken first.');
+  });
+
+  test('a draft, a ticket ready for review or one in progress offers no Priority…', () => {
+    const board = exampleDetailBoard({
+      tickets: [
+        exampleDetailTicket('031', { status: 'draft' }),
+        exampleDetailTicket('032', { status: 'ready-for-review' }),
+        exampleDetailTicket('033', { status: 'in-progress' }),
+      ],
+    });
+    expect(['031', '032', '033'].flatMap((ticketId) => overviewOf(board, ticketId).otherMoves.filter((move) => move.move === 'priority'))).toEqual([]);
   });
 });
 

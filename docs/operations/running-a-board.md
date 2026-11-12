@@ -42,8 +42,8 @@ its own. Esc, Close or a second click on the open item closes it. The filter lin
 
 ![The Kanban tab of Example Storefront under the header and its activity strip: lanes Ready, with the draft tickets first, Building, In review, Merge queue and Done, with Abandoned folded; cards carry their epic, waiting-on and asks chips.](../images/bridge-kanban.png)
 
-*Each card's controls depend on its lane: Ready on a draft ticket, Hold and Priority on a Ready card, none elsewhere. They
-show in a quiet row while the card is hovered or has keyboard focus.*
+*A card holds no controls but its links: its epic chips and its waiting-on ids. Press the card to open its ticket form,
+where Ready, Hold, Unhold and Priority are. A card never grows on hover or keyboard focus.*
 
 Kanban shows every ticket in one of six lanes: Ready, Building, In review, [Merge queue](../glossary.md#merge-queue),
 Done and Abandoned. What waits on User leads its lane: the tickets ready for review, then the drafts, each under its own
@@ -69,9 +69,9 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | You can | How |
 | --- | --- |
 | Open a ticket | press its card, or Enter on it: the detail panel opens in place on the ticket's Overview; a filing draft opens read-only |
-| Ready a draft ticket | Ready on the card, or tick several and press Ready selected |
-| Hold or lift a hold | Hold or Unhold on a Ready card |
-| Change a priority | Priority high, normal or low on a Ready card |
+| Ready a draft ticket | open its card; Ready leads the ticket form's Overview for a draft or a ticket ready for review |
+| Hold or lift a hold | open its card; Hold… is under Other moves, and Unhold leads for a held ticket |
+| Change a priority | open a pending ticket's card; Priority… under Other moves opens the other priorities |
 | Filter by [epic](../glossary.md#epic) | tick its row under Epic in the filter line's menu; the filter line names it, and the choice is kept in the browser |
 | See the Ready order by [wave](../glossary.md#wave) | filed or by wave under Order Ready in the same menu, offered once any ticket has a dependency |
 | Clear the filters | Reset filters in that menu: every epic row, the Ready order and the finished-work window go back |
@@ -180,14 +180,16 @@ Status names below are stored values: `draft` shows in the Drafts group at the t
 
 | Control | Offered while | What it does |
 | --- | --- | --- |
-| Ready | `draft` | moves it to Ready, if it passes the [readiness check](#file-work) |
-| Hold, with an optional Reason | `draft` or `pending`, unheld | keeps the ticket from its next launch |
+| Ready | `draft` or `ready-for-review` | moves it to Ready, if it passes the [readiness check](#file-work) |
+| Hold, with an optional Reason | `draft`, `ready-for-review` or `pending`, unheld | keeps the ticket from its next launch |
+| Priority, high, normal or low | `pending` | changes where the ticket waits in Ready; the row offers the two priorities it does not have |
 | Unhold | any open ticket with a hold | lifts the hold |
 | Park, with the same Reason box | any open ticket | holds it and opens a `parked` decision |
 | Set network | `draft` or `pending` | sets the public domains this ticket's agents may reach |
 
-On the ticket form Hold… and Park… ask for the reason only after you choose them, and Set network… opens its domains
-field the same way; Cancel closes the field with nothing sent. Each move states its effect beside its button.
+On the ticket form Hold… and Park… ask for the reason only after you choose them, Set network… opens its domains
+field the same way, and Priority… opens a row of the other priorities, which closes once one applies; Cancel closes the
+field with nothing sent. Each move states its effect beside its button.
 
 While a job works on the ticket, the ticket form also holds that job's controls under Watch, the same ones the Agents
 tab offers: a message box with Send message, and More, a menu of Wind down, Stop and Fresh agent. No item there acts on
@@ -468,9 +470,9 @@ Three doors lead to the same draft ticket, and nothing builds until you ready it
 | A Claude Code session, asked to file a ticket | you are at a terminal; the `forge-po` skill runs the filing |
 | `forge ticket add "<title>" --type ticket` | you already know what to write |
 
-Press Ready on Kanban: a ticket without what [`ticket ready`](../cli.md#tickets) requires is refused, and the refusal
-beside the button says what is missing. A `ready-drafts` decision offers only complete draft tickets and names the rest
-as not readiable.
+Open the ticket from Kanban and press Ready on its form: a ticket without what [`ticket ready`](../cli.md#tickets)
+requires is refused, and the refusal beside the button says what is missing. A `ready-drafts` decision offers only
+complete draft tickets and names the rest as not readiable.
 
 ### Answer questions
 
@@ -601,10 +603,9 @@ Agents tab.
 | Kept across tabs and reloads, in the browser | Lost on a tab change |
 | --- | --- |
 | Last tab, theme | Tickets search, chips and sort |
-| Kanban epic filter, Ready order, closed-lane pages, Abandoned fold | Cards ticked for Ready selected |
-| Chart range, folds, row options, finished-work span | Half-picked answers, half-typed messages and reasons |
+| Kanban epic filter, Ready order, closed-lane pages, Abandoned fold | Half-picked answers, half-typed messages and reasons |
+| Chart range, folds, row options, finished-work span | Agents' open transcripts, replayed from history when reopened |
 | Tickets grouping | |
-| | Agents' open transcripts, replayed from history when reopened |
 
 A page reload loses everything in the Lost column too, and the Bridge reloads itself after a reconnect to an Overseer on
 other code. Send a long answer before you wander off.

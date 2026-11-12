@@ -4,7 +4,8 @@
  * DOM; the arrow keys, Home and End open a section; Activity counts and lists the lines naming the ticket or its row, or says none does;
  * the Overview's state card names the live job and its calls, and leads with Watch, a link no stream outage disables, else with Ready,
  * Unhold or Accept by state, Accept disabled unless the prediction is clean; Park… and Hold… open their reason row before anything is sent,
- * Cancel sending nothing; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
+ * Cancel sending nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once
+ * applied and showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
  * forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live job's controls
  * sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind down, Stop and
  * Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until confirmed, Cancel and Esc
@@ -274,6 +275,51 @@ describe('the Overview', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Hold' }));
     expect(draft.sent).toEqual([{ kind: 'ticket-hold', ticketReference: '013', reason: 'waiting on the example vendor' }]);
+  });
+
+  test('a ticket ready for review leads with Ready; a pending ticket offers Hold…, whose Hold with no reason posts ticket-hold', async () => {
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('016', { status: 'ready-for-review' }), exampleDetailTicket('017', { status: 'pending' })], });
+    const forReview = renderTicket({ form: 'ticket', ticketId: '016' }, { boardState });
+    await clicked(screen.getByRole('button', { name: 'Ready' }));
+    expect(forReview.sent).toEqual([{ kind: 'ticket-ready', ticketReferences: ['016'] }]);
+    cleanup();
+    const pending = renderTicket({ form: 'ticket', ticketId: '017' }, { boardState });
+    expect(screen.queryByRole('button', { name: 'Ready' })).toBeNull();
+    await clicked(region('Other moves').getByRole('button', { name: 'Hold…' }));
+    await clicked(screen.getByRole('button', { name: 'Hold' }));
+    expect(pending.sent).toEqual([{ kind: 'ticket-hold', ticketReference: '017', reason: '' }]);
+  });
+
+  test('a pending ticket\'s Priority… opens one row of the two other priorities; each posts ticket-priority, and the row closes once applied', async () => {
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'pending', priority: 'low' })] });
+    const pending = renderTicket({ form: 'ticket', ticketId: '018' }, { boardState });
+    expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
+    await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
+    const row = within(screen.getByRole('group', { name: 'Priority' }));
+    expect(row.getAllByRole('button').map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual(['Priority high', 'Priority normal', 'Cancel']);
+    await clicked(row.getByRole('button', { name: 'Priority high' }));
+    expect(pending.sent).toEqual([{ kind: 'ticket-priority', ticketReference: '018', priority: 'high' }]);
+    expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
+  });
+
+  test('a refused priority shows verbatim in its row, which stays open; Cancel closes it with nothing more sent', async () => {
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('019', { status: 'pending' })] });
+    const pending = renderTicket({ form: 'ticket', ticketId: '019' }, { boardState });
+    pending.answerWith({ verdict: 'refused', refusal: 'Ticket 019 is already at priority low.' });
+    await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
+    await clicked(screen.getByRole('button', { name: 'Priority low' }));
+    expect(within(screen.getByRole('group', { name: 'Priority' })).getByRole('status').textContent).toBe('Ticket 019 is already at priority low.');
+    await clicked(within(screen.getByRole('group', { name: 'Priority' })).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
+    expect(pending.sent).toEqual([{ kind: 'ticket-priority', ticketReference: '019', priority: 'low' }]);
+  });
+
+  test('a draft, a held ticket under review or a ticket in progress offers no Priority…', () => {
+    for (const ticketId of ['013', '004', '020']) {
+      renderTicket({ form: 'ticket', ticketId });
+      expect(screen.queryByRole('button', { name: 'Priority…' })).toBeNull();
+      cleanup();
+    }
   });
 
   test('Next lists the forecast\'s steps with exactly one current, its ticket links opening the ticket form on the same tab', () => {

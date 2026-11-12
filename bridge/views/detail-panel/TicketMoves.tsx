@@ -1,7 +1,7 @@
 /**
- * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…) or domains (Set
- * network…) only opens its field row under itself, one row at a time; the row's button posts the `ControlCommand` and Cancel closes it with
- * nothing sent. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
+ * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…), domains (Set
+ * network…) or a choice (Priority…) only opens its row under itself, one row at a time; the row's button posts the `ControlCommand`, and
+ * Cancel closes it with nothing sent. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
  */
 import { Fragment, useState } from 'react';
 
@@ -77,6 +77,23 @@ function DomainsRow({ ticketId, move, onClose }: FieldRowProps) {
   );
 }
 
+function PrioritiesRow({ ticketId, move, onClose }: FieldRowProps) {
+  return (
+    <div className="bridge-detail-reason" role="group" aria-label="Priority">
+      {(move.priorities ?? []).map((priority) => (
+        <CommandButton
+          key={priority}
+          label={priority}
+          accessibleName={`Priority ${priority}`}
+          command={{ kind: 'ticket-priority', ticketReference: ticketId, priority }}
+          onApplied={onClose}
+        />
+      ))}
+      <Button label="Cancel" onPress={onClose} />
+    </div>
+  );
+}
+
 export function TicketMoves({ ticketId, moves }: { readonly ticketId: string; readonly moves: readonly MoveModel[] }) {
   const [openMove, setOpenMove] = useState<TicketMove | null>(null);
   const close = (): void => setOpenMove(null);
@@ -92,6 +109,7 @@ export function TicketMoves({ ticketId, moves }: { readonly ticketId: string; re
           </div>
           {openMove === move.move && move.opens === 'reason' ? <ReasonRow ticketId={ticketId} move={move} onClose={close} /> : null}
           {openMove === move.move && move.opens === 'domains' ? <DomainsRow ticketId={ticketId} move={move} onClose={close} /> : null}
+          {openMove === move.move && move.opens === 'priorities' ? <PrioritiesRow ticketId={ticketId} move={move} onClose={close} /> : null}
         </Fragment>
       ))}
     </>

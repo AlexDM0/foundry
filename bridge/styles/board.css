@@ -130,7 +130,7 @@
  *                           Abandoned lane, whose head is its .bridge-lane-toggle
  *   .bridge-kanban-card[data-state][data-row?][data-live?][data-selected?]  a ticket or filing draft, opening its detail;
  *                           [data-changed] once its state moved since the previous board; [data-needed-first] while the hovered card
- *                           depends on it; its .bridge-kanban-actions show while it is hovered or keyboard-focused
+ *                           depends on it; it holds no control but its links: its moves are in the ticket panel
  * Tickets (bridge/views/tickets/)
  *   .bridge-tickets         the Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
  *                           .bridge-tickets-toolbar (.bridge-search, a .bridge-toolbar-group[data-own-line?] per chip group) and
@@ -1166,7 +1166,7 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-kanban-card {
   position: relative;
   display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: var(--sp-2);
-  grid-template-areas: "head head" "title title" "epics epics" "marks marks" "note note" "state stamp" "actions actions";
+  grid-template-areas: "head head" "title title" "epics epics" "marks marks" "note note" "state stamp";
   padding: var(--sp-2) var(--sp-3);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1240,22 +1240,9 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
   grid-area: stamp; justify-self: end; margin-top: 8px;
   font: var(--fs-micro)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap;
 }
-/* The card's controls, one quiet row shown while it is hovered or keyboard-focused, so a card at rest keeps its height; a checked
-   selection and a refusal keep it shown. */
-.bridge-kanban-actions { grid-area: actions; display: none; flex-wrap: wrap; align-items: center; gap: var(--sp-1); margin-top: 6px; }
-.bridge-kanban-card:is(:hover, :focus-visible, :has(:focus-visible)) .bridge-kanban-actions,
-.bridge-kanban-actions:has(:checked, .bridge-refusal) { display: flex; }
-.bridge-kanban-actions .bridge-button {
-  padding: 2px 6px; font: 500 var(--fs-micro)/1.4 var(--font-ui); color: var(--ink-muted);
-  background: transparent; border-color: var(--line); border-radius: var(--r-1);
-}
-.bridge-kanban-actions .bridge-button:not(:disabled):hover { color: var(--ink); border-color: var(--line-strong); }
-.bridge-kanban-actions .bridge-refusal { font-size: var(--fs-micro); }
-.bridge-kanban-actions-label { margin-left: var(--sp-1); font-size: var(--fs-micro); color: var(--ink-muted); }
-.bridge-kanban-select { width: 12px; height: 12px; margin: 0 var(--sp-1) 0 0; accent-color: var(--link); cursor: pointer; }
 @container (max-width: 250px) {
   .bridge-kanban-card {
-    grid-template-areas: "head head" "title title" "epics epics" "marks marks" "note note" "state state" "stamp stamp" "actions actions";
+    grid-template-areas: "head head" "title title" "epics epics" "marks marks" "note note" "state state" "stamp stamp";
   }
   .bridge-kanban-card .bridge-kanban-stamp { margin-top: 6px; }
   .bridge-kanban-state:empty { display: none; }

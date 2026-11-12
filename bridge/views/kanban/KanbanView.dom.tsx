@@ -1,16 +1,15 @@
 /**
- * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts;
- * the card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text,
- * a planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a
- * click ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while
- * the stream is live and holds still while it is down; a draft's Ready, the Ready lane's multi-select Ready, and a ready card's Hold,
- * Unhold and priority each post their `ControlCommand`; a refusal shows verbatim; the controls are disabled while the stream is down; the
- * filter menu's pressed epics narrow the lanes; a card whose state moved on the next board is marked changed for a moment; a header
- * figure's lane is outlined for a moment; a card's asks pill opens the question panel at its decision; and while a detail or the question
- * panel is open the board carries its panel room. Also: the lanes' priority and
- * state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom lays nothing out), the
- * Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's fold, each choice stored
- * under its key.
+ * The Kanban against a fake command client and a fake clock, in a happy-dom document. What matters: the six lanes with their counts; the
+ * card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text, a
+ * planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a click
+ * ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while the
+ * stream is live and holds still while it is down; a card offers no move of its own (no button, no checkbox, no Ready selected: the
+ * ticket panel holds the moves), and hovering or focusing it adds no element; the filter menu's pressed epics narrow the lanes; a card
+ * whose state moved on the next board is marked changed for a moment; a header figure's lane is outlined for a moment; a card's asks pill
+ * opens the question panel at its decision; and while a detail or the question panel is open the board carries its panel room. Also: the
+ * lanes' priority and state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom
+ * lays nothing out), the Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's
+ * fold, each choice stored under its key.
  */
 import {
   act,
@@ -281,64 +280,52 @@ describe('the lanes and the cards', () => {
   });
 });
 
-describe('the controls', () => {
-  test('a draft ticket\'s Ready posts ticket-ready for it, and a filing draft offers no Ready', async () => {
-    const kanban = renderKanban();
-    await clicked(within(cardNamed('#001')).getByRole('button', { name: 'Ready' }));
-    expect(kanban.sent).toEqual([{ kind: 'ticket-ready', ticketReferences: ['001'] }]);
-    expect(within(cardNamed('Draft D7')).queryByRole('button')).toBeNull();
+describe('the card\'s controls', () => {
+  const REMOVED_ACTION_ROW_SELECTOR = '.bridge-kanban-actions, .bridge-kanban-select, .bridge-kanban-actions-label';
+  const ACTIONABLE_SELECTOR = 'a, button, input, select, textarea, [tabindex]';
+  const BOARD_OF_EVERY_READY_STATUS = exampleBoard({
+    tickets: [
+      exampleTicket('001', { status: 'draft' }),
+      exampleTicket('003', { epics: ['checkout'] }),
+      exampleTicket('004', { hold: 'waiting on the example vendor' }),
+      exampleTicket('005', { status: 'in-progress' }),
+      exampleTicket('011', { status: 'ready-for-review' }),
+    ],
+    waitingOn: { '004': ['003'] },
   });
 
-  test('the Ready lane\'s Ready selected waits for a selection, then posts one ticket-ready for every selected draft ticket', async () => {
-    const kanban = renderKanban();
-    const readySelected = within(laneNamed('Ready')).getByRole<HTMLButtonElement>('button', { name: 'Ready selected' });
-    expect(readySelected.disabled).toBe(true);
-    await clicked(screen.getByRole('checkbox', { name: 'Select #002' }));
-    await clicked(screen.getByRole('checkbox', { name: 'Select #001' }));
-    expect(readySelected.disabled).toBe(false);
-    await clicked(readySelected);
-    expect(kanban.sent).toEqual([{ kind: 'ticket-ready', ticketReferences: ['001', '002'] }]);
-    expect(screen.queryAllByRole('checkbox').map((checkbox) => checkbox.getAttribute('aria-label'))).toEqual(['Select #001', 'Select #002']);
+  test('no card renders a button, a checkbox or an action-row element, and no lane head offers Ready selected', () => {
+    renderKanban('enabled', [], BOARD_OF_EVERY_READY_STATUS);
+    const cards = screen.getAllByRole('article');
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.flatMap((card) => [...card.querySelectorAll(`button, input, ${REMOVED_ACTION_ROW_SELECTOR}`)])).toEqual([]);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByText('Ready selected')).toBeNull();
   });
 
-  test('a ticket for review offers Ready on its card and in the Ready lane\'s Ready selected, each posting ticket-ready', async () => {
-    const reviewTickets = [exampleTicket('011', { status: 'ready-for-review' }), exampleTicket('012', { status: 'ready-for-review' })];
-    const kanban = renderKanban('enabled', [], exampleBoard({ tickets: reviewTickets }));
-    await clicked(within(cardNamed('#011')).getByRole('button', { name: 'Ready' }));
-    await clicked(screen.getByRole('checkbox', { name: 'Select #012' }));
-    await clicked(within(laneNamed('Ready')).getByRole('button', { name: 'Ready selected' }));
-    expect(kanban.sent).toEqual([
-      { kind: 'ticket-ready', ticketReferences: ['011'] },
-      { kind: 'ticket-ready', ticketReferences: ['012'] },
-    ]);
+  test('a card\'s only controls are its links: its epic chips and its waiting-on ids', () => {
+    renderKanban('enabled', [], BOARD_OF_EVERY_READY_STATUS);
+    const controls = screen.getAllByRole('article').flatMap((card) => [...card.querySelectorAll(ACTIONABLE_SELECTOR)]);
+    expect(controls.map((control) => control.className)).toContain('bridge-waiting-on-link');
+    expect(controls.every((control) => control.tagName === 'A')).toBe(true);
   });
 
-  test('a ready card posts ticket-hold, ticket-unhold and ticket-priority', async () => {
-    const kanban = renderKanban();
-    await clicked(within(cardNamed('#003')).getByRole('button', { name: 'Hold' }));
-    await clicked(within(cardNamed('#004')).getByRole('button', { name: 'Unhold' }));
-    await clicked(within(cardNamed('#003')).getByRole('button', { name: 'Priority low' }));
-    expect(kanban.sent).toEqual([
-      { kind: 'ticket-hold', ticketReference: '003', reason: '' },
-      { kind: 'ticket-unhold', ticketReference: '004' },
-      { kind: 'ticket-priority', ticketReference: '003', priority: 'low' },
-    ]);
-    expect(within(cardNamed('#003')).queryByRole('button', { name: 'Priority high' })).toBeNull();
-    expect(within(cardNamed('#005')).queryAllByRole('button')).toEqual([]);
-  });
-
-  test('a refusal shows verbatim beside the control that drew it', async () => {
-    const kanban = renderKanban();
-    kanban.answerWith({ verdict: 'refused', refusal: 'Ticket 001 has no Brief: it cannot be readied.' });
-    await clicked(within(cardNamed('#001')).getByRole('button', { name: 'Ready' }));
-    expect(within(cardNamed('#001')).getByRole('status').textContent).toBe('Ticket 001 has no Brief: it cannot be readied.');
-  });
-
-  test('every card control is disabled while the stream is down', () => {
-    renderKanban('stream-down');
-    const buttons = screen.getAllByRole<HTMLButtonElement>('button').filter((button) => button.closest('.bridge-kanban-card') !== null);
-    expect(buttons.length).toBeGreaterThan(0);
-    expect(buttons.every((button) => button.disabled)).toBe(true);
+  test('hovering or focusing a card adds or shows no element in it', async () => {
+    renderKanban();
+    const card = cardNamed('#004');
+    const childElementsOf = (): string[] => [...card.querySelectorAll('*')].map((element) => `${element.tagName} ${element.className} ${element.getAttribute('hidden') ?? ''}`);
+    const atRest = childElementsOf();
+    expect(atRest.length).toBeGreaterThan(0);
+    fireEvent.pointerEnter(card);
+    fireEvent.mouseOver(card);
+    expect(childElementsOf()).toEqual(atRest);
+    await act(async () => {
+      card.focus();
+      fireEvent.focus(card);
+      await Promise.resolve();
+    });
+    expect(document.activeElement).toBe(card);
+    expect(childElementsOf()).toEqual(atRest);
   });
 });
 
@@ -569,11 +556,10 @@ describe('opening a card', () => {
     expect(kanban.navigatedRoutes()).toEqual([{ tab: 'kanban', item: 'draft/D7' }, { tab: 'kanban', item: null }]);
   });
 
-  test('a control, an epic chip or a key pressed inside a card opens nothing', async () => {
+  test('an epic chip, or Enter on a card\'s own control, opens nothing', () => {
     const kanban = renderKanban();
-    await clicked(within(cardNamed('#003')).getByRole('button', { name: 'Hold' }));
     fireEvent.click(cardNamed('#003').querySelector('.bridge-epic-chip') ?? document.body);
-    fireEvent.keyDown(within(cardNamed('#003')).getByRole('button', { name: 'Hold' }), { key: 'Enter' });
+    fireEvent.keyDown(within(cardNamed('#004')).getByRole('link', { name: '#003' }), { key: 'Enter' });
     expect(kanban.navigatedRoutes()).toEqual([]);
   });
 
