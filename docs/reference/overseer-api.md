@@ -49,7 +49,7 @@ route adds. An answer is JSON unless the row says otherwise. A refusal is `{refu
 | `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
 | `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
-| `GET /api/profiles/<P>/stream` | session cookie or bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | Bridge (the Gate dialog's log) |
+| `GET /api/profiles/<P>/stream` | session cookie or bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | no caller in this repository yet |
 | `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
@@ -237,8 +237,8 @@ The rules of one publish:
 *Notice that the first event is synthetic: its `live` counts are zero whatever the job did.*
 
 The stream also carries `: ping` every `SSE_HEARTBEAT_SECONDS` (5), and Bun's idle timeout is switched off for every
-streaming route: this one, the transcript stream and the gate profile stream. On stop the server closes every open stream, then stops gracefully, so the answer to an
-`overseer-stop` still arrives.
+streaming route: this one, the transcript stream and the gate profile stream. On stop the server closes every open
+stream, then stops gracefully, so the answer to an `overseer-stop` still arrives.
 
 > **As built.** Each `board` carries every [ticket](../glossary.md#ticket) body and the whole question history, see
 > [gap-scaling-whole-log-and-bodies](known-gaps.md#gap-scaling-whole-log-and-bodies).
