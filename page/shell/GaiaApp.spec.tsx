@@ -20,6 +20,7 @@ import { Button }                                                               
 import { TextField }                                                                from '../design-system/TextField.tsx';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
+import { shellSurroundingsAt }                                                      from '../testing/ShellSurroundingsAt.ts';
 import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
 import { createFleetSource, type FleetSource }                                      from './FleetSource.ts';
@@ -27,7 +28,6 @@ import {
   GaiaApp,
   type GaiaAppProps,
   GaiaShell,
-  type ShellSurroundings,
   viewPartsOf,
 } from './GaiaApp.tsx';
 import { DEFAULT_ROUTE, HashRouter } from './HashRouter.ts';
@@ -51,24 +51,8 @@ const NEWLY_REGISTERED: FleetDocumentForge = {
   attention: [],
 };
 
-function surroundingsAt(fragment: string, storedThemeChoice: string | null = null): ShellSurroundings {
-  return {
-    hash:  { currentFragment: () => fragment, followFragment: () => () => undefined, goTo: () => undefined },
-    theme: {
-      setRootAttribute:   () => undefined,
-      readStoredChoice:   () => storedThemeChoice,
-      storeChoice:        () => undefined,
-      systemPrefersDark:  () => false,
-      followSystemScheme: () => () => undefined,
-    },
-    setWindowTitle:  () => undefined,
-    markMotionReady: () => undefined,
-    now:             () => Date.parse(FLEET_FIXTURES_READ_AT),
-  };
-}
-
 function appAt(fleetSource: FleetSource, fragment: string, fleetStream: GaiaAppProps['fleetStream'] = LIVE_STREAM, storedThemeChoice: string | null = null) {
-  return <GaiaApp fleetSource={fleetSource} fleetStream={fleetStream} commandSender={SENDER_OF_NOTHING} surroundings={surroundingsAt(fragment, storedThemeChoice)} />;
+  return <GaiaApp fleetSource={fleetSource} fleetStream={fleetStream} commandSender={SENDER_OF_NOTHING} surroundings={shellSurroundingsAt(fragment, storedThemeChoice)} />;
 }
 
 /** The labels of the rail's forge rows in the markup, in order: every rail row after the four views. */
@@ -336,7 +320,11 @@ describe('the Agents view in the shell', () => {
   test('a filter press goes to the Agents fragment holding the new filter and the selected agent', () => {
     const visited: string[] = [];
     const route = HashRouter.routeOf(`${J12_ROUTE}?role=builders`);
-    const parts = viewPartsOf(route, FLEET_FIVE_FORGES, { readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), goTo: (fragment) => visited.push(fragment) });
+    const parts = viewPartsOf(route, FLEET_FIVE_FORGES, {
+      readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
+      timeZone:           'UTC',
+      goTo:               (fragment) => visited.push(fragment),
+    });
     const needsALook = tree.onlyHostElementIn(tree.unfolded(parts.content), (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
     tree.dispatch(needsALook, 'onClick');
     expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);

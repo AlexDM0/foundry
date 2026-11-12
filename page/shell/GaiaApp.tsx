@@ -21,9 +21,11 @@ import { FleetStreamClient, type FleetStreamState }          from '../api/FleetS
 import { ACTIVITY_STATUS_LINE, ActivityView }                from '../views/activity/ActivityView.tsx';
 import { AgentsModel }                                       from '../views/agents/AgentsModel.ts';
 import { AgentsView }                                        from '../views/agents/AgentsView.tsx';
+import { attentionViewPartsOf }                              from '../views/attention/AttentionView.tsx';
 import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
 import type { FleetSource }                                  from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings } from './HashRouter.ts';
+import { PageClock }                                         from './PageClock.ts';
 import { Rail }                                              from './Rail.tsx';
 import { RailModel }                                         from './RailModel.ts';
 import {
@@ -59,8 +61,8 @@ export interface ShellSurroundings {
   readonly setWindowTitle:  (title: string) => void;
   /** Lets motion run once the first fleet document has painted; until then every state shows at once. */
   readonly markMotionReady: () => void;
-  /** The page's clock in milliseconds, for a running time or an age shown and never compared. */
-  readonly now:             () => number;
+  /** The page's clock, for a running time, an age or a clock time shown and never compared; it ticks while the page shows. */
+  readonly clock:           PageClock;
 }
 
 export interface GaiaAppProps {
@@ -74,12 +76,16 @@ const NO_VIEW_PARTS: ShellViewParts = { status: null, actions: null, content: nu
 
 export interface ViewSurroundings {
   readonly readAtMilliseconds: number;
+  /** The time zone a clock time is printed in; `undefined` is the browser's own. */
+  readonly timeZone:           string | undefined;
   readonly goTo:               (fragment: string) => void;
 }
 
 /** The parts of the view the route names; before the first fleet document a view shows at most its status line. */
-export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, { readAtMilliseconds, goTo }: ViewSurroundings): ShellViewParts {
+export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, { readAtMilliseconds, timeZone, goTo }: ViewSurroundings): ShellViewParts {
   switch (route.view) {
+    case 'attention':
+      return fleetDocument === null ? NO_VIEW_PARTS : attentionViewPartsOf(fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone });
     case 'agents': {
       if (fleetDocument === null) return NO_VIEW_PARTS;
       const { selectedAgent, query } = route;
@@ -124,12 +130,13 @@ export function GaiaApp({
   fleetSource, fleetStream, commandSender, surroundings
 }: GaiaAppProps) {
   const {
-    hash, theme, setWindowTitle, markMotionReady, now
+    hash, theme, setWindowTitle, markMotionReady, clock
   } = surroundings;
   const fleetDocument = useSyncExternalStore(fleetSource.subscribe, fleetSource.current, fleetSource.current);
   const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
   const fragment = useSyncExternalStore(hash.followFragment, hash.currentFragment, hash.currentFragment);
   const route = useMemo(() => HashRouter.routeOf(fragment), [fragment]);
+  const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
 
   const [themeState, setThemeState] = useState<ThemeChoiceState>(() => ({
     shown:          ThemeBootstrap.themeChoiceOf(theme.readStoredChoice()),
@@ -160,7 +167,7 @@ export function GaiaApp({
         streamState={streamState}
         route={route}
         viewTitle={viewTitle}
-        view={viewPartsOf(route, fleetDocument, { readAtMilliseconds: now(), goTo: hash.goTo })}
+        view={viewPartsOf(route, fleetDocument, { readAtMilliseconds, timeZone: clock.timeZone, goTo: hash.goTo })}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
       />
@@ -176,6 +183,6 @@ export function browserShellSurroundings(): ShellSurroundings {
       document.title = title;
     },
     markMotionReady: () => document.documentElement.setAttribute('data-motion', 'ready'),
-    now:             () => Date.now(),
+    clock:           PageClock.create(PageClock.browserSurroundings()),
   };
 }

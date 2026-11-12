@@ -8,15 +8,11 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import type { CommandAnswerDocument, CommandBody } from '../@types/CommandDocument.ts';
-import { Refusal }                                 from '../design-system/Refusal.tsx';
-import { FLEET_FIVE_FORGES_TRACKER_IDS }           from '../testing/fixtures/fleet-five-forges.ts';
-import {
-  type CommandRequestSender,
-  CommandSender,
-  CommandSenderContext,
-  useCommandSender,
-} from './CommandSender.ts';
+import type { CommandAnswerDocument, CommandBody }               from '../@types/CommandDocument.ts';
+import { Refusal }                                               from '../design-system/Refusal.tsx';
+import { answerResponse, senderOver, type SentRequest }          from '../testing/CommandServer.ts';
+import { FLEET_FIVE_FORGES_TRACKER_IDS }                         from '../testing/fixtures/fleet-five-forges.ts';
+import { CommandSender, CommandSenderContext, useCommandSender } from './CommandSender.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
@@ -36,31 +32,7 @@ const DONE: CommandAnswerDocument = {
   answerVersion: 1, outcome: 'done', refusal: null, text: null
 };
 
-const HTTP_OK = 200;
 const HTTP_CONFLICT = 409;
-
-interface SentRequest {
-  readonly path:           string;
-  readonly requestOptions: RequestInit;
-}
-
-function answerResponse(answer: unknown, status = HTTP_OK): Response {
-  return new Response(JSON.stringify(answer), { status, headers: { 'content-type': 'application/json' } });
-}
-
-/** A server that answers each request with the next of the given responses, in order; a request beyond them fails the spec. */
-function serverAnswering(responses: readonly (() => Promise<Response>)[], sent: SentRequest[] = []): CommandRequestSender {
-  return (path, requestOptions) => {
-    const answer = responses[sent.length];
-    sent.push({ path, requestOptions });
-    if (answer === undefined) throw new Error(`The spec has no answer for request ${sent.length}.`);
-    return answer();
-  };
-}
-
-function senderOver(responses: readonly (() => Promise<Response>)[], sent: SentRequest[] = []) {
-  return CommandSender.create({ sendRequest: serverAnswering(responses, sent), controlsMayAct: () => true });
-}
 
 describe('sending one command', () => {
   test('the command goes as one JSON body to /api/commands, at the known commandVersion, with the page\'s own cookie', async () => {

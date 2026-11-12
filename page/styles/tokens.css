@@ -60,6 +60,17 @@
   --hairline:            1px;
   --focus-ring-width:    2px;
 
+  --attention-figures-gap:        48px;
+  --attention-head-gap:           10px;
+  --attention-aside-width:        368px;
+  --attention-forge-column:       168px;
+  --attention-kind-column:        92px;
+  --attention-id-column:          52px;
+  --attention-recent-clock-column: 44px;
+  --attention-no-forge-width:     640px;
+  /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
+  --stale-opacity:                0.62;
+
   --motion-fast: 120ms;
   --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
   /* Feedback moves no box: only colours, borders, shadows and opacity change, and the focus outline appears at once. */

@@ -751,3 +751,160 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: calc(-1 * var(--focus-ring-width));
 }
+
+/* ── Attention ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-attention { display: flex; flex-direction: column; min-height: 100%; }
+.gaia-attention-banner-stamp { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-attention-refusal { padding: var(--sp-2) var(--sp-6) 0; }
+.gaia-attention-figures {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--sp-4) var(--attention-figures-gap);
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: var(--hairline) solid var(--line);
+}
+.gaia-attention-body { display: flex; flex: 1; gap: var(--sp-6); padding: var(--sp-5) var(--sp-6); }
+.gaia-attention-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-5); min-width: 0; }
+.gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
+.gaia-attention-section { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
+.gaia-attention-nothing { margin: 0; color: var(--ink-muted); }
+.gaia-attention-link { font-size: var(--fs-small); color: var(--link); text-decoration: none; }
+.gaia-attention-link:hover { text-decoration: underline; }
+.gaia-attention-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* What waits on User: one grid per row */
+.gaia-attention-row {
+  display: grid;
+  grid-template-columns: var(--attention-forge-column) var(--attention-kind-column) var(--attention-id-column) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--sp-3);
+}
+.gaia-attention-row[data-stale] { opacity: var(--stale-opacity); }
+.gaia-attention-row-forge { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.gaia-attention-row-forge-text { display: flex; flex-direction: column; min-width: 0; }
+.gaia-attention-row-project,
+.gaia-attention-row-subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-attention-row-project { font-weight: var(--weight-strong); }
+.gaia-attention-row-condition { font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-attention-row-kind { display: inline-flex; }
+.gaia-attention-row-id { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-attention-row-text { display: flex; flex-direction: column; min-width: 0; }
+.gaia-attention-row-meta { font-family: var(--font-mono); font-size: var(--fs-micro); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+
+/* Forges that need a look: a callout, and the refusal of its command under it */
+.gaia-attention-look { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* What Gaia reads of each forge */
+.gaia-attention-readings {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-attention-reading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: var(--hairline) solid var(--line);
+}
+.gaia-attention-reading:last-child { border-bottom: 0; }
+.gaia-attention-reading-forge { font-weight: var(--weight-strong); }
+.gaia-attention-reading-contract { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-attention-reading-text,
+.gaia-attention-reading-totals { grid-column: 1 / -1; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-attention-reading[data-totals-cannot-vouch] .gaia-attention-reading-totals { color: var(--ink); }
+
+/* Running forges: each card a link to the forge in place */
+.gaia-attention-running-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-3);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition: var(--feedback-transition);
+}
+.gaia-attention-running-card:hover { border-color: var(--line-strong); }
+.gaia-attention-running-card[data-stale] { opacity: var(--stale-opacity); }
+.gaia-attention-running-head { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-attention-running-name { overflow: hidden; font-weight: var(--weight-strong); text-overflow: ellipsis; white-space: nowrap; }
+.gaia-attention-running-condition { flex: 1; font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-attention-running-slots { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-attention-running-jobs { display: flex; flex-wrap: wrap; gap: calc(var(--sp-1) + var(--sp-half)) var(--sp-3); }
+.gaia-attention-running-job {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sp-1) + var(--sp-half));
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+}
+.gaia-attention-running-waiting { font-size: var(--fs-small); color: var(--attn-ink); }
+
+/* Just happened */
+.gaia-attention-recent-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.gaia-attention-recent { margin: 0; padding: 0; list-style: none; }
+.gaia-attention-recent-entry {
+  display: grid;
+  grid-template-columns: var(--attention-recent-clock-column) minmax(0, 1fr);
+  column-gap: var(--attention-head-gap);
+  padding: calc(var(--sp-1) + var(--sp-half)) 0;
+  border-bottom: var(--hairline) solid var(--line);
+  font-size: var(--fs-small);
+}
+.gaia-attention-recent-at { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-attention-recent-what { min-width: 0; }
+.gaia-attention-recent-forge { font-weight: var(--weight-strong); }
+.gaia-attention-recent-text { color: var(--ink-muted); }
+
+/* No forge yet */
+.gaia-attention-no-forge {
+  display: flex;
+  box-sizing: border-box;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6);
+}
+.gaia-attention-no-forge-column { display: flex; flex-direction: column; gap: var(--sp-5); width: var(--attention-no-forge-width); max-width: 100%; }
+.gaia-attention-no-forge-intro { display: flex; flex-direction: column; gap: var(--sp-2); }
+.gaia-attention-no-forge-title { margin: 0; font-size: var(--fs-page); font-weight: var(--weight-page-title); letter-spacing: var(--page-title-tracking); }
+.gaia-attention-no-forge-line { margin: 0; color: var(--ink-muted); }
+.gaia-attention-add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--attention-head-gap);
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-attention-add-line { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-attention-add-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-attention-program-missing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) dashed var(--line-strong);
+  border-radius: var(--r-3);
+}
+.gaia-attention-program-missing-text { flex: 1; min-width: 0; }
+.gaia-attention-program-missing-title { font-weight: var(--weight-strong); }
+.gaia-attention-program-missing-why { color: var(--ink-muted); }
+
+/* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
+.gaia-attention-link:focus-visible,
+.gaia-attention-running-card:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: var(--focus-ring-width);
+}
