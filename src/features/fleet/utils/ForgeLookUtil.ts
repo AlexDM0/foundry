@@ -9,30 +9,30 @@ export const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 export const NEW_CODE_NOTICE_KIND = 'new-code';
 
 /** Warnings, notices, a held state and machine slots come from the current monitor snapshot, which only a forge read in full has. */
-function readInFull(reading: ForgeReading): boolean {
+function forgeIsReadInFull(reading: ForgeReading): boolean {
   return reading.fidelity === 'full';
 }
 
 function batonPassFailed(reading: ForgeReading): boolean {
-  return readInFull(reading) && reading.warnings.some((warning) => warning.kind === BATON_PASS_FAILED_WARNING_KIND);
+  return forgeIsReadInFull(reading) && reading.warnings.some((warning) => warning.kind === BATON_PASS_FAILED_WARNING_KIND);
 }
 
 /** The monitor ingestion reads `overseer.state` `held-by-install-change` as the condition `held`. */
 function launchesAreHeld(reading: ForgeReading): boolean {
-  return readInFull(reading) && reading.condition === 'held';
+  return forgeIsReadInFull(reading) && reading.condition === 'held';
 }
 
 function newCodeWaits(reading: ForgeReading): boolean {
-  return readInFull(reading) && reading.notices.some((notice) => notice.kind === NEW_CODE_NOTICE_KIND);
+  return forgeIsReadInFull(reading) && reading.notices.some((notice) => notice.kind === NEW_CODE_NOTICE_KIND);
 }
 
 /** A dormant forge Gaia read nothing of in this run has no ready count, and so no look: Gaia never reads a board's files. */
-function dormantWithReadyTickets(reading: ForgeReading): boolean {
+function dormantForgeHasReadyTickets(reading: ForgeReading): boolean {
   return reading.fidelity === 'dormant' && (reading.readyTicketCount ?? 0) > 0;
 }
 
 function ticketsWaitForAMachineSlot(reading: ForgeReading): boolean {
-  return readInFull(reading) && (reading.concurrency?.ticketsWaitingForMachineSlot ?? 0) > 0;
+  return forgeIsReadInFull(reading) && (reading.concurrency?.ticketsWaitingForMachineSlot ?? 0) > 0;
 }
 
 /** PLAN 7.2's table, in its order. */
@@ -43,7 +43,7 @@ const LOOK_RULES: readonly { readonly kind: ForgeLookKind; readonly applies: (re
   { kind: 'launches-held', applies: launchesAreHeld },
   { kind: 'new-code', applies: newCodeWaits },
   { kind: 'counts-only', applies: (reading) => reading.fidelity === 'counts-only' },
-  { kind: 'dormant-with-ready-tickets', applies: dormantWithReadyTickets },
+  { kind: 'dormant-with-ready-tickets', applies: dormantForgeHasReadyTickets },
   { kind: 'machine-limit-reached', applies: ticketsWaitForAMachineSlot },
 ];
 
