@@ -1,6 +1,6 @@
 /**
  * The page's clock. What matters: a reading stays the same between ticks, so React's external-store hook sees one value per render; it
- * ticks only while a view listens, and the last listener leaving cancels the schedule, so a page with no age on screen runs no timer.
+ * ticks only while someone listens, and the last listener leaving cancels the schedule, so no timer outlives the page's root.
  */
 import { describe, expect, test } from 'bun:test';
 
