@@ -48,7 +48,7 @@ export interface HeadlessBridgeReading {
   readonly pictureWidth:             number | null;
   /** Each argument the stub browser opener got. */
   readonly openerArguments:          readonly string[];
-  /** The code in the URL `open` printed, `null` when it printed none. */
+  /** The code in the redirect file `open` handed its opener, `null` when it held none. */
   readonly sessionCodeOfOpen:        string | null;
   readonly redirectFileWasOwnerOnly: boolean;
   /** Read once `open` ended on its stop signal. */
@@ -77,7 +77,7 @@ const UPLOAD_AND_SHOW_A_PICTURE_AS_THE_BRIDGE_DOES = 'fetch(\'/api/session-token
   + '(character) => character.charCodeAt(0)) })).then((answer) => answer.json()).then(({ pictureId }) => { const picture = new Image(); '
   + 'picture.src = `/api/pictures/${pictureId}`; return picture.decode().then(() => picture.naturalWidth); })';
 const EXECUTABLE_FILE_MODE = 0o755;
-const SESSION_CODE_IN_OUTPUT = /#session=([0-9a-f]+)/;
+const SESSION_CODE_IN_REDIRECT_FILE = /#session=([0-9a-f]+)/;
 
 /** The isolation check here asks git for the root of the scratch home, which holds no tracker and lies in no repository. */
 const HOME_ISOLATION_CHECK: RecordedGitStage = [COMMON_FOLDER_OUTSIDE];
@@ -240,6 +240,8 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     for (const domain of ['Runtime', 'Log', 'Network', 'Page']) await devTools.send(`${domain}.enable`);
     const opened = await startOpen(recordedGit, repositoryDirectory, homeDirectory, openerStubDirectory);
     runningOpen = opened;
+    // Read before the page spends the code: `open` prints only the Overseer's address once it hands the code to a browser.
+    const redirectFileText = readFileSync(opened.redirectFilePath, 'utf8');
     await devTools.send('Page.navigate', { url: pathToFileURL(opened.redirectFilePath).href });
     const evaluate = async (expression: string): Promise<unknown> => {
       const answer = await devTools?.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
@@ -273,7 +275,7 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
       commandStatus:          typeof commandStatus === 'number' ? commandStatus : null,
       pictureWidth:           typeof pictureWidth === 'number' ? pictureWidth : null,
       openerArguments:        opened.openerArguments,
-      sessionCodeOfOpen:      SESSION_CODE_IN_OUTPUT.exec(openEnding.standardOutput)?.[1] ?? null,
+      sessionCodeOfOpen:      SESSION_CODE_IN_REDIRECT_FILE.exec(redirectFileText)?.[1] ?? null,
       redirectFileWasOwnerOnly,
       redirectFileWasRemoved: !existsSync(opened.redirectFilePath),
     };

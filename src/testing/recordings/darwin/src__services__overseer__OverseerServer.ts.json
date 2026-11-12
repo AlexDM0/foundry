@@ -46,13 +46,17 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
+          "identityVersion": 1,
           "application": "forge",
           "trackerId": "example-tracker-id",
           "project": "Example Agency",
           "codeVersion": "code-example",
           "installVersion": 17,
           "processId": 4242,
-          "watcherProtocolVersion": 2
+          "watcherProtocolVersion": 2,
+          "contracts": {
+            "embed": 1
+          }
         }
       }
     },
