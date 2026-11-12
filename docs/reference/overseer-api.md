@@ -155,8 +155,23 @@ server.
 
 ## Commands
 
-`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 47 kinds at commit
-029f32c9. What each does is in [Control](../architecture/control-and-hatch.md).
+`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 71 kinds at commit
+e408bd50. What each does is in [Control](../architecture/control-and-hatch.md).
+
+The pipeline kinds each name the CLI verb that sends the same command, and the [CLI reference](../cli.md) says what
+each does:
+
+| Kinds | CLI verbs |
+| --- | --- |
+| `pipeline-setup-start`, `pipeline-update-start`, `pipeline-setup-billing`, `pipeline-setup-step`, `pipeline-setup-answer`, `pipeline-constitution-edit`, `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-draft-discard`, `pipeline-check`, `pipeline-setup-start-over`, `pipeline-setup-resume`, `pipeline-apply`, `pipeline-apply-cancel` | The `pipeline` verbs of [Pipeline setup](../cli.md#pipeline-setup) |
+| `gate-profile-start`, `gate-profile-stop` | `pipeline profile`, `pipeline profile-stop` ([Gate profiles](../cli.md#gate-profiles)) |
+| `pipeline-agent-advise` | `advise` |
+| `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gate-order`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | The `gate` writes of [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready` | The [pipeline agent's verbs](../cli.md#the-pipeline-agents-verbs), relayed through its job's Hatch |
+
+The route checks only `kind`; each setup, profile and pipeline agent applier reads its own fields and refuses a
+missing or misshapen one `malformed-setup-command`, naming the field. A pipeline agent's job may relay only its five verbs and
+`question options`; `gate-profile-start` and `pipeline-check` come only from User.
 
 ![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/overseer-api/command-route.png)
 

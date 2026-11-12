@@ -73,18 +73,18 @@ These lines come from a session's relayed command or from a hook, and each exits
 
 ## Every printed refusal
 
-- [Tickets and rows](#tickets-and-rows) (49)
-- [Jobs and worktrees](#jobs-and-worktrees) (12)
+- [Tickets and rows](#tickets-and-rows) (53)
+- [Jobs and worktrees](#jobs-and-worktrees) (22)
 - [Epics](#epics) (4)
 - [Filing drafts](#filing-drafts) (10)
 - [Decisions and incidents](#decisions-and-incidents) (13)
-- [Gates and pipeline](#gates-and-pipeline) (2)
+- [Gates and pipeline](#gates-and-pipeline) (7)
 - [Pipeline setup](#pipeline-setup) (40)
-- [Airlocks and landing](#airlocks-and-landing) (7)
-- [Overseer and Baton](#overseer-and-baton) (12)
+- [Airlocks and landing](#airlocks-and-landing) (12)
+- [Overseer and Baton](#overseer-and-baton) (17)
 - [Hatch and roles](#hatch-and-roles) (11)
 - [Install and version](#install-and-version) (6)
-- [Tracker, lock and journal](#tracker-lock-and-journal) (5)
+- [Tracker, lock and journal](#tracker-lock-and-journal) (6)
 - [Stored files](#stored-files) (5)
 - [Refusals with no code](#refusals-with-no-code) (10)
 
@@ -102,7 +102,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 [Customs](../glossary.md#customs).
 
 <details open>
-<summary>49 sentences</summary>
+<summary>53 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -153,6 +153,10 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `belongs to no group, so it cannot be a group's release ticket` | `release-mark-of-an-ungrouped-ticket` | The ticket has no group. | File it in the group. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `already has its release ticket` | `group-already-has-a-release-ticket` | A group has one open release ticket. The other form reads `is already the release ticket of group`. | Clear the mark the sentence names first, or nothing. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `is not its group's release ticket` | `ticket-is-not-a-release-ticket` | `release-of --clear` on an unmarked ticket. | Nothing. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
+| `is not a usable group name` | `malformed-group-name` | `ticket add --group` named a group that is not lower-case letters and digits in words joined by single hyphens. | Name the group as `checkout-redesign` is named. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
+| `only in case, and a case-insensitive file system gives both one branch and one worktree` | `group-name-case-twin` | `ticket add --group` named a group that differs from an existing one only in case. | Use the existing group's name. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
+| `and no move takes a ticket to ready for review` | `move-to-ready-for-review` | `ticket status <ticket> ready-for-review`, or another move to that status. | Close the draft with `ticket submit` or `intake close`. | [state machines](../data-model/state-machines.md) |
+| `is ready for review, so it was not moved` | `move-of-a-ticket-ready-for-review` | A move of a `ready-for-review` ticket other than `ticket abandon`. | User reviews it and runs `ticket ready <ticket>`. | [state machines](../data-model/state-machines.md) |
 | `and carries the release mark of group <group>` | `reopen-beside-an-open-release-ticket` | Reopening would leave two open release tickets. | Clear the other mark first. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `There is no readable ticket <reference>` | `no-readable-ticket` | No ticket has that id. A file that does not parse shows in `ticket list`. | Read the ids with `ticket list`. | [cli.md](../cli.md) |
 
@@ -262,7 +266,7 @@ Words here: [decision](../glossary.md#decision), [incident](../glossary.md#incid
 Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 
 <details open>
-<summary>2 sentences</summary>
+<summary>7 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -271,7 +275,8 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `must run in at least one phase` | `gate-without-phase` | A `pipeline-gate-add` command sent an empty `phases` list. `gate add --phases` refuses that as usage first. | Name at least one phase. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `There is no phase <phase>` | `unknown-gate-phase` | A gate command named a phase other than `build`, `review` or `merge`. | Name one of the three phases. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `cannot be read as a pipeline` | `malformed-pipeline` | `pipeline.json` is malformed. Every `gate` verb but `gate retry` refuses, so no `gate` verb overwrites a hand edit. | Repair or delete the file. | [Customs and gates](../architecture/customs-and-gates.md) |
-| `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again. Until the pipeline set-up exists, delete the file and add the gates again. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again with `pipeline setup --replace-unreadable`, and Apply over the older file. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `No gate pipeline is stored, so approval <approval> was not set` | `approval-without-pipeline` | `gate approval` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 
 </details>
 
@@ -332,11 +337,18 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 [incident](../glossary.md#incident).
 
 <details open>
-<summary>7 sentences</summary>
+<summary>12 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `so it was not queued to merge` | `merge-queue-of-a-ticket-not-in-review` | Never printed: only an Overseer step queues a ticket, right after a passing review. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
+| `was not queued to merge: the Overseer's last green gate run was not on its HEAD tree` | `merge-queue-without-a-current-green` | Never printed: only an Overseer step queues a ticket, and each one checks first that the ticket's green is current on its tree and phase. | Nothing to do. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `Merge approval is off, so ticket #<ticket> needs no accept` | `merge-approval-off` | `merge accept` or `merge update` with merge approval off. | Switch it on with `gate approval merge on`, or let the ticket land. | [Merge approval](../cli.md#merge-approval) |
+| `and does not wait for merge: only a ticket in review whose review passed on a green tree, with no job on it, does` | `merge-accept-of-a-ticket-not-waiting` | `merge accept` named a ticket that does not wait for merge. | Run `merges` and accept a waiting ticket. | [Merge approval](../cli.md#merge-approval) |
+| `was not accepted: its branch conflicts with <target> in <files>` | `merge-accept-would-conflict` | `merge accept` on a ticket whose branch git predicts to conflict with its target. | Run `merge update <ticket>` first. | [Merge approval](../cli.md#merge-approval) |
+| `was not accepted: git could not predict its merge into <target>` | `merge-accept-prediction-failed` | `merge accept` when git could not predict the merge. | Check the repository with git, then accept again. | [Merge approval](../cli.md#merge-approval) |
+| `and does not wait for merge, so its branch was not updated` | `merge-update-of-a-ticket-not-waiting` | `merge update` named a ticket that does not wait for merge. | Run `merges` and name a waiting ticket. | [Merge approval](../cli.md#merge-approval) |
+| `The merge of <target> into ticket #<ticket>'s worktree failed` | `merge-update-failed` | `merge update`'s merge of the target into the ticket's worktree failed; the tail is git's reason. | Check the worktree with git, then run it again. | [Merge approval](../cli.md#merge-approval) |
 | `holds the <target> Airlock, and a target merges one ticket at a time` | `airlock-held` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `is not queued to merge into <target>` | `merge-candidate-not-queued` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | `queued to merge first` | `higher-priority-queued` | Never printed: the Airlock sweep in a Pass tries this claim, drops a refusal, and derives the claim again later in the sweep or in the next Pass. | Nothing to do. | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
@@ -351,11 +363,13 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>15 sentences</summary>
+<summary>17 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `must be a positive whole number of milliseconds` | `malformed-overseer-poll-interval` | The test setting `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | [Baton](../architecture/baton.md) |
+| `Gates and install lines cannot run confined here, so the Overseer did not start` | `gate-confinement-unavailable` | `oversee` or `open` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | [Confinement](../architecture/confinement.md) |
+| `needs git <version> or newer` | `git-below-floor` | `init`, `oversee` or `open` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | [Baton](../architecture/baton.md) |
 | `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | [Baton](../architecture/baton.md) |
 | `No Overseer serves this board` | `overseer-down` | The Overseer that `open` started was gone again before `open` read its Baton. | Run `open` again, or read `overseer.log`. | [Baton](../architecture/baton.md) |
@@ -381,7 +395,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 [reviewer](../glossary.md#reviewer), [Handoff](../glossary.md#handoff).
 
 <details open>
-<summary>12 sentences</summary>
+<summary>11 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -421,7 +435,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 [hold journal](../glossary.md#hold-journal). Recipe: [Lock refusals](../operations/runbook.md#lock-refusals).
 
 <details open>
-<summary>5 sentences</summary>
+<summary>6 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -498,18 +512,18 @@ These rows print as listed above, and the sentence is not the whole truth.
 
 ## Coverage
 
-At commit 70ce56de a one-off script, not kept in the repository, matched every `case` in
+At commit e408bd50 a one-off script, not kept in the repository, matched every `case` in
 `src/adapters/utils/OperationRefusalWordingUtil.ts`, every `reason` in `src/lib/tracker-model/BoardRefusal.ts` and every
 key of `RoleCommandRefusalReason` to a `Code` cell here, and every code here to the source. No spec keeps this page in
 step; rerun the comparison after changing a wording.
 
 | Measure | Count |
 | --- | --- |
-| `reason` values in `BoardRefusalDetail` | 97 |
-| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 140 (97, 38, 5) |
-| `RoleCommandRefusalReason` values | 7 |
-| Sentences with a code, in the families above | 146 |
-| Of those, marked "Never printed" | 20 |
+| `reason` values in `BoardRefusalDetail` | 147 |
+| `case` labels in the wording util: Board reasons, detail kinds, install mismatches | 200 (147, 48, 5) |
+| `RoleCommandRefusalReason` values | 8 |
+| Sentences with a code, in the families above | 206 |
+| Of those, marked "Never printed" | 22 |
 | Sentences with no code, under [Refusals with no code](#refusals-with-no-code) | 10 |
 
 `board-refusal` is the wrapper around every Board reason, so it has no row of its own. `role-command-refused` has one

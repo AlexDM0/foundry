@@ -252,7 +252,10 @@ or no user service manager, and on Windows with no absolute `SystemRoot`, setup 
 - `left alone` under the item's opt-out.
 
 The session instructions' `updated` adds "re-read it before your next brief", so a session that read them at its start
-learns its copy is stale. A first `init` prints the session instructions' path instead.
+learns its copy is stale. A first `init` prints the session instructions' path instead, and ends with three next steps:
+run `forge open`, which starts the Overseer and opens the board; ask a Claude session to file a ticket; and set the
+pipeline up, as the board opens on Pipeline setup: choose who pays, let the pipeline agent read the repository, and
+Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the board.
 
 ### The seven items
 

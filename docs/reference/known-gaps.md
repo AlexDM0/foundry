@@ -77,7 +77,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-quiet-job-decisions-stack](#gap-quiet-job-decisions-stack) | Lifecycle | bug | A silent job opens one more decision per quiet cycle |
 | [gap-install-hold-lets-merges-land](#gap-install-hold-lets-merges-land) | Lifecycle | misleading text | Airlocks keep landing while launches are held |
 | [gap-customs-fail-open-edges](#gap-customs-fail-open-edges) | Lifecycle | bug | Two Customs and gate reads pass when git fails |
-| [gap-twice-run-judges-a-changed-snapshot](#gap-twice-run-judges-a-changed-snapshot) | Lifecycle | bug | A proposal's prepare output lands on its first gate |
+| [gap-twice-run-judges-a-changed-snapshot](#gap-twice-run-judges-a-changed-snapshot) | Lifecycle | bug | A pipeline check's prepare output lands on its first gate |
 | [gap-clear-keeps-live-jobs](#gap-clear-keeps-live-jobs) | Lifecycle | bug | `clear` leaves live jobs without their log records |
 | [gap-row-with-ticket-and-review-of](#gap-row-with-ticket-and-review-of) | Lifecycle | bug | A row can hold both `ticket` and `reviewOf` |
 | [gap-incident-answer-not-delivered](#gap-incident-answer-not-delivered) | Agents and control | bug | An incident's answer never reaches the session |
@@ -525,9 +525,10 @@ named in the [Glossary](../glossary.md#reading-names).
   `gate` write refuse it with `older-pipeline`.
 - **Effect:** the board holds new work and resumes, as with no pipeline, until it is set up again. The owner accepted
   this hold.
-- **Instead:** set the pipeline up again: delete `<data>/pipeline.json`, then add its gates again with the `gate` verbs.
+- **Instead:** set the pipeline up again: run `forge pipeline setup --replace-unreadable`, and Apply the new draft
+  over the older file.
 - **Evidence:** `src/adapters/pipeline/PipelineFile.ts` `documentReadingOf`; `src/services/control/SettingControls.ts`
-  `requireReadablePipeline`.
+  `requireReadablePipeline`; `src/lib/tracker-model/PipelineSetups.ts`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-overseer-decisions-have-no-options"></a>
@@ -535,8 +536,7 @@ named in the [Glossary](../glossary.md#reading-names).
 ### Most Overseer decisions offer no options
 
 - **Expected:** `decide <E> <letters>` answers a decision, as `cli/HelpText.ts` describes.
-- **Does:** `decisionWordingOf` gives every kind but `ready-drafts` and `pipeline-proposal` one question with
-  `options: []`, so a letter has nothing to name.
+- **Does:** `decisionWordingOf` gives every kind one question with `options: []`, so a letter has nothing to name.
 - **Effect:** `decide E1 a` prints `Question 1 of decision E1 has 0 options` and answers nothing. Help does not warn of
   this.
 - **Instead:** answer such a decision with `forge decide <E> -- <text>`.
@@ -606,15 +606,16 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-twice-run-judges-a-changed-snapshot"></a>
 
-### The twice-run judges a snapshot its own lines changed
+### The twice-run judges a checkout its own lines changed
 
-- **Expected:** `ProposalTwiceRun` judges each gate on the snapshot as committed, as the comment on `restoreSnapshot`
-  says.
+- **Expected:** a [pipeline check](../cli.md#pipeline-checks) and a [gate profile](../cli.md#gate-profiles) judge each
+  gate on the checkout of main as committed, as the comment on `restoreCheckout` says.
 - **Does:** nothing restores tracked files after a prepare step, so a prepare step that changes one fails the first
-  gate. `restoreSnapshot` runs `git checkout -- .`, so untracked output of a gate stays for the next one.
-- **Effect:** a proposal can read `red` for a change its prepare step made, or `green` on output an earlier gate left.
-- **Instead:** read the gate output in the `pipeline-proposal` decision before accepting it.
-- **Evidence:** `src/services/lifecycle/ProposalTwiceRun.ts` `runOnce`, `restoreSnapshot`.
+  gate. `restoreCheckout` runs `git checkout -- .`, so untracked output of a gate stays for the next one.
+- **Effect:** a check can read `red` for a change its prepare step made, or `green` on output an earlier gate left.
+- **Instead:** read each gate's output in the check's result before applying the draft.
+- **Evidence:** `src/services/lifecycle/GateLineRun.ts` `runOnce`, `restoreCheckout`;
+  `src/services/lifecycle/ProposalTwiceRun.ts` `runProposalTwice`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-clear-keeps-live-jobs"></a>
@@ -1917,7 +1918,7 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/lib/tracker-model/utils/TicketChartUtil.ts`, `seededFilingOf` | A draft is never seeded | `clearTracker` seeds a draft with a linked row |
 | `src/services/overseer/OverseerServer.ts`, `OverseerRoutes.events` | `null` until the first state was published | `startServing` assigns the broker first, so `/api/events` answers 200 and stays silent in between |
 | `src/services/overseer/JobLiveFactsReader.ts`, `JobLiveFacts.calls` | The count its call budget is held against | False after a red handoff: `JobLaunch.sessionReadingOf` restarts at the attempt's instance |
-| `src/services/lifecycle/ProposalTwiceRun.ts`, `restoreSnapshot` | The next gate judges the snapshot as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |
+| `src/services/lifecycle/GateLineRun.ts`, `restoreCheckout` | The next gate judges the checkout as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |
 | `src/services/tracker/Workspace.ts`, `src/testing/TrackerIsolation.ts`, `TrackerIsolation.spec.ts`, `cli/InitRootOverride.integration.spec.ts` headers | `AGENT_PROGRESS_ROOT` | This build reads `FORGE_ROOT` |
 | `src/services/tracker/MonitorRegistration.ts`, `cli/RegisterWrittenTracker.integration.spec.ts` headers | `~/.agent-progress-monitor/projects.json` | The folder follows `PRODUCT_NAMES.MONITOR_FOLDER` |
 | `cli/MonitorRegistryIsolation.integration.spec.ts`, its default-context test | Checks the home's registry path | It names `.agent-progress-monitor`, not `MONITOR_FOLDER`, so under this build the assertion cannot fail |
