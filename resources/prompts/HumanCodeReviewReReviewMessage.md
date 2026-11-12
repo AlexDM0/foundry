@@ -6,8 +6,8 @@ these files. The last worker of the ticket resolved them and committed the merge
 
 {{conflictedFiles}}
 
-The resolution changed more lines than the threshold of the merge train. For this reason, the Overseer started this
-re-review.
+The resolution changed more lines than the threshold of the merge train, or git cannot count the lines that it
+changed. For this reason, the Overseer started this re-review.
 
 - Examine the merge commit. Make sure that it keeps the change of the ticket and the change of the target.
 - Make sure that each Acceptance item of the ticket is true after the merge.
