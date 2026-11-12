@@ -7,7 +7,7 @@
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
-import ts                         from 'typescript';
+import typescript                 from 'typescript';
 
 import { RECORDING_SPEC_SUFFIX } from './testing/BoundaryRecordings.ts';
 
@@ -33,63 +33,63 @@ interface ProgramReaches {
   readonly realBoundaryUses: readonly string[];
 }
 
-function isChildProcessModule(node: ts.Node | undefined): boolean {
-  return node !== undefined && ts.isStringLiteralLike(node) && CHILD_PROCESS_MODULE.test(node.text);
+function isChildProcessModule(node: typescript.Node | undefined): boolean {
+  return node !== undefined && typescript.isStringLiteralLike(node) && CHILD_PROCESS_MODULE.test(node.text);
 }
 
-function importsOnlyTypes(declaration: ts.ImportDeclaration): boolean {
+function importsOnlyTypes(declaration: typescript.ImportDeclaration): boolean {
   const clause = declaration.importClause;
   if (clause === undefined) return false;
   if (clause.isTypeOnly) return true;
   const bindings = clause.namedBindings;
-  return clause.name === undefined && bindings !== undefined && ts.isNamedImports(bindings) && bindings.elements.every((element) => element.isTypeOnly);
+  return clause.name === undefined && bindings !== undefined && typescript.isNamedImports(bindings) && bindings.elements.every((element) => element.isTypeOnly);
 }
 
-function importedNamesOf(declaration: ts.ImportDeclaration): string[] {
+function importedNamesOf(declaration: typescript.ImportDeclaration): string[] {
   const bindings = declaration.importClause?.namedBindings;
-  if (bindings === undefined || !ts.isNamedImports(bindings)) return [];
+  if (bindings === undefined || !typescript.isNamedImports(bindings)) return [];
   return bindings.elements.filter((element) => !element.isTypeOnly).map((element) => (element.propertyName ?? element.name).text);
 }
 
-function directStartOf(node: ts.Node): string | null {
-  if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Bun' && BUN_PROCESS_STARTS.has(node.name.text)) {
+function directStartOf(node: typescript.Node): string | null {
+  if (typescript.isPropertyAccessExpression(node) && typescript.isIdentifier(node.expression) && node.expression.text === 'Bun' && BUN_PROCESS_STARTS.has(node.name.text)) {
     return `Bun.${node.name.text}`;
   }
-  if (ts.isElementAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Bun'
-    && ts.isStringLiteralLike(node.argumentExpression) && BUN_PROCESS_STARTS.has(node.argumentExpression.text)) {
+  if (typescript.isElementAccessExpression(node) && typescript.isIdentifier(node.expression) && node.expression.text === 'Bun'
+    && typescript.isStringLiteralLike(node.argumentExpression) && BUN_PROCESS_STARTS.has(node.argumentExpression.text)) {
     return `Bun.${node.argumentExpression.text}`;
   }
-  if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer !== undefined
-    && ts.isIdentifier(node.initializer) && node.initializer.text === 'Bun') {
+  if (typescript.isVariableDeclaration(node) && typescript.isObjectBindingPattern(node.name) && node.initializer !== undefined
+    && typescript.isIdentifier(node.initializer) && node.initializer.text === 'Bun') {
     const taken = node.name.elements.map((element) => (element.propertyName ?? element.name).getText()).filter((name) => BUN_PROCESS_STARTS.has(name));
     return taken.length > 0 ? `Bun.${taken.join(', Bun.')}` : null;
   }
-  if (ts.isImportDeclaration(node) && !importsOnlyTypes(node)) {
+  if (typescript.isImportDeclaration(node) && !importsOnlyTypes(node)) {
     if (isChildProcessModule(node.moduleSpecifier)) return 'child_process';
-    if (ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === 'bun' && importedNamesOf(node).includes('$')) return 'Bun.$';
+    if (typescript.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === 'bun' && importedNamesOf(node).includes('$')) return 'Bun.$';
   }
-  if (ts.isCallExpression(node)) {
-    const isModuleLoad = node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require');
+  if (typescript.isCallExpression(node)) {
+    const isModuleLoad = node.expression.kind === typescript.SyntaxKind.ImportKeyword || (typescript.isIdentifier(node.expression) && node.expression.text === 'require');
     if (isModuleLoad && isChildProcessModule(node.arguments[0])) return 'child_process';
   }
   return null;
 }
 
-function realBoundaryUseOf(node: ts.Node): string | null {
-  if (!ts.isImportDeclaration(node) || importsOnlyTypes(node)) return null;
+function realBoundaryUseOf(node: typescript.Node): string | null {
+  if (!typescript.isImportDeclaration(node) || importsOnlyTypes(node)) return null;
   return importedNamesOf(node).includes(REAL_BOUNDARY_EXPORT) ? REAL_BOUNDARY_EXPORT : null;
 }
 
 function programReachesIn(path: string, sourceText: string): ProgramReaches {
-  const sourceFile = ts.createSourceFile(path, sourceText, ts.ScriptTarget.Latest, true);
+  const sourceFile = typescript.createSourceFile(path, sourceText, typescript.ScriptTarget.Latest, true);
   const directStarts     = new Set<string>();
   const realBoundaryUses = new Set<string>();
-  const visit = (node: ts.Node): void => {
+  const visit = (node: typescript.Node): void => {
     const directStart     = directStartOf(node);
     const realBoundaryUse = realBoundaryUseOf(node);
     if (directStart !== null) directStarts.add(directStart);
     if (realBoundaryUse !== null) realBoundaryUses.add(realBoundaryUse);
-    ts.forEachChild(node, visit);
+    typescript.forEachChild(node, visit);
   };
   visit(sourceFile);
   return { directStarts: [...directStarts].sort(), realBoundaryUses: [...realBoundaryUses] };
