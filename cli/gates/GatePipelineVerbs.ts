@@ -1,9 +1,14 @@
 /**
- * `gate prepare|add|none|remove|approval|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one control command
+ * `gate prepare|add|order|none|remove|approval|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one control command
  * applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
  */
-import { PipelineFile }                                   from '../../src/adapters/pipeline/PipelineFile.ts';
-import type { Pipeline, PipelineGate }                    from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { PipelineFile } from '../../src/adapters/pipeline/PipelineFile.ts';
+import {
+  GATE_PHASES,
+  type GatePhase,
+  type Pipeline,
+  type PipelineGate
+}                                                         from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
 import { ControlService }                                 from '../../src/services/control/ControlService.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
@@ -25,14 +30,15 @@ const { PROGRAM } = PRODUCT_NAMES;
 export const GATE_PIPELINE_USAGE = {
   prepare: `${PROGRAM} gate prepare <name> [--json] -- <command>`,
   add:     `${PROGRAM} gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… `
-    + '[--overseer-only] [--json] -- <command>',
+    + '[--overseer-only] [--phases <phase>,…] [--json] -- <command>',
+  order:    `${PROGRAM} gate order build|review|merge <name>… [--json]`,
   none:     `${PROGRAM} gate none [--json]`,
   remove:   `${PROGRAM} gate remove <name> [--json]`,
   list:     `${PROGRAM} gate list [--json]`,
   approval: `${PROGRAM} gate approval tickets|merge on|off [--json]`,
 } as const;
 
-const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'overseer-only', 'json'];
+const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'overseer-only', 'phases', 'json'];
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
@@ -67,12 +73,39 @@ function refuseUnwritableFolder(path: string, context: CommandContext, usage: st
   if (refusal !== null) refuseUsage(`The folder ${path} ${UNWRITABLE_FOLDER_WORDING[refusal]}, so a gate may never write it; nothing was stored.`, usage);
 }
 
+function phaseOf(word: string | undefined, usage: string): GatePhase {
+  const phase = GATE_PHASES.find((candidate) => candidate === word);
+  if (phase === undefined) refuseUsage(`Name a phase: ${GATE_PHASES.join(', ')}.`, usage);
+  return phase;
+}
+
+/** `--phases build,merge`: each phase once; absent, the Board keeps a replaced gate's phases and runs a new one in every phase. */
+function phasesFrom(commandArguments: ArgumentParser, usage: string): GatePhase[] | null {
+  const phasesText = commandArguments.option('phases');
+  if (phasesText === undefined) return null;
+  const phases = phasesText.split(',').map((word) => phaseOf(word.trim(), usage));
+  if (new Set(phases).size !== phases.length) refuseUsage('Name each phase once in --phases.', usage);
+  return phases;
+}
+
+/** The content hash guards a whole-pipeline edit; a phase hash is what a green gate run in that phase is judged by. */
+function hashesOf(pipeline: Readonly<Pipeline>): { contentHash: string; phaseHashes: Record<GatePhase, string> } {
+  return {
+    contentHash: PipelineUtil.contentHashOf(pipeline),
+    phaseHashes: {
+      build:  PipelineUtil.phaseHashOf(pipeline, 'build'),
+      review: PipelineUtil.phaseHashOf(pipeline, 'review'),
+      merge:  PipelineUtil.phaseHashOf(pipeline, 'merge'),
+    },
+  };
+}
+
 async function applyPipelineChange(commandArguments: ArgumentParser, context: CommandContext, command: ControlCommand): Promise<void> {
   await hatchWhenUnderJob(context, command);
   const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
   if (!('pipeline' in changed)) return;
   const { logged, pipeline } = changed;
-  OutputUtil.printEntity(commandArguments, context, { pipeline, pipelineHash: PipelineUtil.pipelineHashOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));
+  OutputUtil.printEntity(commandArguments, context, { pipeline, ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));
 }
 
 export async function prepareStep(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -98,7 +131,17 @@ export async function addGate(commandArguments: ArgumentParser, context: Command
   for (const path of writes) refuseUnwritableFolder(path, context, usage);
   if (writes.length > 0) gate.writes = writes;
   if (commandArguments.flag('overseer-only')) gate.overseerOnly = true;
-  await applyPipelineChange(commandArguments, context, { kind: 'pipeline-gate-add', gate });
+  const phases = phasesFrom(commandArguments, usage);
+  await applyPipelineChange(commandArguments, context, { kind: 'pipeline-gate-add', gate, ...(phases === null ? {} : { phases }) });
+}
+
+export async function orderPhaseGates(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE.order;
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  const [, phaseWord, ...names] = commandArguments.positionals();
+  const phase = phaseOf(phaseWord, usage);
+  if (names.length === 0) refuseUsage(`Name every gate the ${phase} phase runs, in the new order.`, usage);
+  await applyPipelineChange(commandArguments, context, { kind: 'pipeline-gate-order', phase, names });
 }
 
 export async function setNoGates(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -149,7 +192,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
   const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
   const entity = {
     pipelineIsSet: pipeline !== null,
-    pipelineHash:  pipeline === null ? null : PipelineUtil.pipelineHashOf(pipeline),
+    ...(pipeline === null ? { contentHash: null, phaseHashes: null } : hashesOf(pipeline)),
     ...(pipeline === null ? {} : { version: pipeline.version }),
     prepare:       pipeline?.prepare ?? [],
     gates:         pipeline?.gates ?? [],

@@ -472,30 +472,35 @@ never carries it.
 
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints
-                              {pipelineIsSet, pipelineHash, prepare, gates} and review,
-                              constitution, agents and approvals when stored; with no pipeline pipelineIsSet
-                              is false, pipelineHash null and both lists empty. A malformed file
-                              is refused at exit 1 with its reason.
+                              {pipelineIsSet, contentHash, phaseHashes, prepare, gates}, and
+                              version, phases, review, airlock, constitution, agents and approvals
+                              when stored; with no pipeline pipelineIsSet is false, both hashes null
+                              and both lists empty. A malformed or older file is refused at exit 1.
 
   gate prepare <name> [--json] -- <command>
                               Set the prepare step <name>, run before a gate in a fresh worktree;
                               a step of the same name is replaced where it stands. One log line.
   gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]
-           [--network <domain>] [--writes <path>] [--overseer-only] [--json] -- <command>
+           [--network <domain>] [--writes <path>] [--overseer-only] [--phases <phase>,…]
+           [--json] -- <command>
                               Add the gate <name>, run last, or replace one of the same name where
-                              it stands; --defined-by, --network and --writes repeat.
+                              it stands; --defined-by, --network and --writes repeat. --phases
+                              (build, review, merge) sets the phases it runs in: a new gate runs in
+                              every phase without it, a replaced one keeps its phases.
                               --in runs it in a folder of the worktree; --defined-by
                               names the files that define it (git pathspec-style patterns), which
                               a job may change only when its ticket body names them; --writes a
                               folder it may write besides the worktree and temp. One log line.
                               On this machine a line is written in ${LINE_GRAMMAR_WORDING[lineGrammar]}.
+  gate order build|review|merge <name>… [--json]
+                              Set the run order of the gates the phase runs: name each once.
   gate none [--json]          Store an empty gate list on purpose: the board counts it as set, so
                               no checks-not-set decision opens, and a landing runs no gate.
   gate remove <name> [--json] Remove the gate <name>; an unknown one is refused at exit 1.
                               Every write takes the lock, is accepted with tickets in flight, and
-                              refuses a malformed pipeline.json at exit 1 rather than overwrite it.
-                              Each row records the content hash of the pipeline at its next gate
-                              run. --json prints {pipeline, pipelineHash}.
+                              refuses a malformed or older pipeline.json at exit 1 rather than
+                              overwrite it. Each row records the hash of the pipeline at its next
+                              gate run. --json prints {pipeline, contentHash, phaseHashes}.
   gate approval tickets|merge on|off [--json]
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's

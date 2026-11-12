@@ -23,7 +23,14 @@ export const SETTING_CONTROLS = {
     change,
     () => change.board.setPrepareStep(command.step, change.at),
   ),
-  'pipeline-gate-add':    (command: CommandOf<'pipeline-gate-add'>, change: TrackerChange) => inReadablePipeline(change, () => change.board.addGate(command.gate, change.at)),
+  'pipeline-gate-add': (command: CommandOf<'pipeline-gate-add'>, change: TrackerChange) => inReadablePipeline(
+    change,
+    () => change.board.addGate(command.gate, change.at, command.phases ?? null),
+  ),
+  'pipeline-gate-order': (command: CommandOf<'pipeline-gate-order'>, change: TrackerChange) => inReadablePipeline(
+    change,
+    () => change.board.orderPhaseGates(command.phase, command.names, change.at),
+  ),
   'pipeline-gates-none':  (_command: CommandOf<'pipeline-gates-none'>, change: TrackerChange) => inReadablePipeline(change, () => change.board.setNoGates(change.at)),
   'pipeline-gate-remove': (command: CommandOf<'pipeline-gate-remove'>, change: TrackerChange) => inReadablePipeline(
     change,

@@ -204,6 +204,14 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'unknown-gate':
       return `There is no gate ${detail.gateName}: ${detail.gateNames.length === 0 ? 'none is stored' : `the gates are ${detail.gateNames.join(', ')}`}. `
         + NOTHING_WAS_WRITTEN;
+    case 'gate-without-phase':
+      return `The gate ${detail.gateName} must run in at least one phase: build, review or merge. ${NOTHING_WAS_WRITTEN}`;
+    case 'unknown-gate-phase':
+      return `There is no phase ${detail.phase}: the phases are ${detail.phases.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
+    case 'phase-order-not-a-reorder':
+      return `The ${detail.phase} phase was not reordered: `
+        + `${detail.phaseGateNames.length === 0 ? 'it runs no gate' : `name each of ${detail.phaseGateNames.join(', ')} once, and no other gate`}. `
+        + `Nothing was written; \`${PRODUCT_NAMES.PROGRAM} gate add <name> --phases\` changes the phases a gate runs in.`;
     case 'approval-without-pipeline':
       return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
         + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;

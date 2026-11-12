@@ -82,6 +82,7 @@ import type { LifecycleLimits }                          from './@types/Lifecycl
 import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
 import type { QuestionOptionNotes }                      from './@types/OptionConsequences.ts';
 import type {
+  GatePhase,
   Pipeline,
   PipelineApproval,
   PipelineGate,
@@ -658,8 +659,12 @@ export class Board {
     return this.trackerChanges.setPrepareStep(step, at);
   }
 
-  addGate(gate: PipelineGate, at: string): PipelineChanged {
-    return this.trackerChanges.addGate(gate, at);
+  addGate(gate: PipelineGate, at: string, phases: readonly GatePhase[] | null = null): PipelineChanged {
+    return this.trackerChanges.addGate(gate, at, phases);
+  }
+
+  orderPhaseGates(phase: GatePhase, names: readonly string[], at: string): PipelineChanged {
+    return this.trackerChanges.orderPhaseGates(phase, names, at);
   }
 
   setNoGates(at: string): PipelineChanged {

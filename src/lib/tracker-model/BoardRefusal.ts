@@ -1,5 +1,6 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
 import type { JobKind, JobMoveTarget, JobState } from './@types/Job.ts';
+import type { GatePhase }                        from './@types/Pipeline.ts';
 import type { TaskStatus }                       from './@types/Task.ts';
 import type {
   IncompleteTicket,
@@ -70,6 +71,9 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-epic'; missingEpicKeys: readonly string[] }
   | { reason: 'epic-still-named'; epicKey: string; ticketIds: readonly string[] }
   | { reason: 'unknown-gate'; gateName: string; gateNames: readonly string[] }
+  | { reason: 'gate-without-phase'; gateName: string }
+  | { reason: 'unknown-gate-phase'; phase: string; phases: readonly GatePhase[] }
+  | { reason: 'phase-order-not-a-reorder'; phase: GatePhase; names: readonly string[]; phaseGateNames: readonly string[] }
   | { reason: 'approval-without-pipeline'; approval: string }
   | { reason: 'unknown-draft'; draftId: string }
   | { reason: 'draft-claimed-by-another-owner'; draftId: string; owner: string }

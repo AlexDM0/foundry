@@ -84,6 +84,8 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'incident-default-cause': sameValue,
   'gate-outcome':           sameValue,
   'file-paths':             listCopyOf,
+  'gate-phase':             sameValue,
+  'gate-names':             listCopyOf,
   'landing-kind':           sameValue,
   'flag':                   sameValue,
   'optional-flag':          sameValue,

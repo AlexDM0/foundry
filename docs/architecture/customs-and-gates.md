@@ -426,8 +426,9 @@ The hash is a record of what judged a row; no decision reads it.
 sorted by role. A hand edit that only reorders keys or reindents keeps the hash. Reordering gates changes it, because
 run order means something.
 
-The hash appears in `gate list --json` and in a [row's](../glossary.md#row) `pipelineHash`, set by
-`recordPipelineJudgedBy` when a build or review job settles its gates. Nothing compares the two.
+The hash appears in a [row's](../glossary.md#row) `pipelineHash`, set by `recordPipelineJudgedBy` when a build or
+review job settles its gates. `gate list --json` and the `gate` writes print `PipelineUtil.contentHashOf` and one
+`PipelineUtil.phaseHashOf` per phase in its place ([the pipeline hashes](../cli.md#the-pipeline-hashes)).
 
 ## The pipeline agent
 

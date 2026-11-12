@@ -265,7 +265,10 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
-| `There is no gate <gate>` | `unknown-gate` | `gate remove` named no gate. The tail reads `none is stored` or lists the gates. | Run `gate list`. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `There is no gate <gate>` | `unknown-gate` | `gate remove` or `gate order` named no gate. The tail reads `none is stored` or lists the gates. | Run `gate list`. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `phase was not reordered` | `phase-order-not-a-reorder` | `gate order` did not name each gate the phase runs once, or named another gate. | Name each gate of the phase once; use `gate add <name> --phases` to change the phases a gate runs in. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `must run in at least one phase` | `gate-without-phase` | A `pipeline-gate-add` command sent an empty `phases` list. `gate add --phases` refuses that as usage first. | Name at least one phase. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `There is no phase <phase>` | `unknown-gate-phase` | A gate command named a phase other than `build`, `review` or `merge`. | Name one of the three phases. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `cannot be read as a pipeline` | `malformed-pipeline` | `pipeline.json` is malformed. Every `gate` verb but `gate retry` refuses, so no `gate` verb overwrites a hand edit. An accepted proposal does: [known gap](known-gaps.md#gap-proposal-overwrites-malformed-pipeline). | Repair or delete the file. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again. Until the pipeline set-up exists, delete the file and add the gates again. | [Customs and gates](../architecture/customs-and-gates.md) |
 

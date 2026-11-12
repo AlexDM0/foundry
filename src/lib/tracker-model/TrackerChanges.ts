@@ -8,6 +8,7 @@ import type {
 } from './@types/BoardChanges.ts';
 import type { LogRecordFieldsOf } from './@types/LogRecord.ts';
 import {
+  GATE_PHASES,
   type GatePhase,
   PIPELINE_FORMAT_VERSION,
   type Pipeline,
@@ -21,8 +22,6 @@ import { BoardRefusal }                  from './BoardRefusal.ts';
 import type { DispatchQueries }          from './DispatchQueries.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
-
-const GATE_PHASES: readonly GatePhase[] = ['build', 'review', 'merge'];
 
 /** No review, no re-review and no gates: valid, and it counts as set. */
 function minimalPipelineOf(): Pipeline {
@@ -78,17 +77,50 @@ export class TrackerChanges {
     }, logged);
   }
 
-  /** A gate of the same name is replaced where it stands, keeping its place and its phases; a new one runs last in every phase. */
-  addGate(gate: PipelineGate, at: string): PipelineChanged {
+  /**
+   * A gate of the same name is replaced where it stands. With no `phases`, a new gate runs last in every phase and a replaced one keeps its
+   * phases; with them, the gate runs in exactly those phases, keeping its place in a phase it was in and running last in one it joins.
+   */
+  addGate(gate: PipelineGate, at: string, phases: readonly GatePhase[] | null = null): PipelineChanged {
+    if (phases !== null) this.refuseUnusablePhases(gate.name, phases);
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-added', fields: { name: gate.name, run: gate.run } }, at)];
     return this.changedPipelineOf((pipeline) => {
-      const index = pipeline.gates.findIndex((candidate) => candidate.name === gate.name);
-      if (index !== -1) {
-        pipeline.gates[index] = { ...gate };
-        return;
+      const index    = pipeline.gates.findIndex((candidate) => candidate.name === gate.name);
+      const replaced = index !== -1;
+      if (replaced) pipeline.gates[index] = { ...gate };
+      else pipeline.gates.push({ ...gate });
+      if (phases === null && replaced) return;
+      for (const phase of GATE_PHASES) {
+        const runsInPhase = phases === null || phases.includes(phase);
+        const isInPhase   = pipeline.phases[phase].includes(gate.name);
+        if (runsInPhase && !isInPhase) pipeline.phases[phase].push(gate.name);
+        if (!runsInPhase && isInPhase) pipeline.phases[phase] = pipeline.phases[phase].filter((gateName) => gateName !== gate.name);
       }
-      pipeline.gates.push({ ...gate });
-      for (const phase of GATE_PHASES) pipeline.phases[phase].push(gate.name);
+    }, logged);
+  }
+
+  /** A gate in no phase would never run and leave the file unreadable, and a phase the pipeline does not know has no place to run it. */
+  private refuseUnusablePhases(gateName: string, phases: readonly GatePhase[]): void {
+    if (phases.length === 0) throw new BoardRefusal({ reason: 'gate-without-phase', gateName });
+    const unknownPhase = phases.find((phase) => !GATE_PHASES.includes(phase));
+    if (unknownPhase !== undefined) throw new BoardRefusal({ reason: 'unknown-gate-phase', phase: unknownPhase, phases: GATE_PHASES });
+  }
+
+  /** Only a new order of the gates the phase already runs: a gate joins or leaves a phase through `addGate`, so no gate is left in none. */
+  orderPhaseGates(phase: GatePhase, names: readonly string[], at: string): PipelineChanged {
+    if (!GATE_PHASES.includes(phase)) throw new BoardRefusal({ reason: 'unknown-gate-phase', phase, phases: GATE_PHASES });
+    const gateNames   = this.records.pipeline?.gates.map((gate) => gate.name) ?? [];
+    const unknownName = names.find((name) => !gateNames.includes(name));
+    if (unknownName !== undefined) throw new BoardRefusal({ reason: 'unknown-gate', gateName: unknownName, gateNames });
+    const phaseGateNames = this.records.pipeline?.phases[phase] ?? [];
+    const namesEachOnce  = names.length > 0 && new Set(names).size === names.length;
+    const isReorder      = namesEachOnce && names.length === phaseGateNames.length && names.every((name) => phaseGateNames.includes(name));
+    if (!isReorder) throw new BoardRefusal({
+      reason: 'phase-order-not-a-reorder', phase, names, phaseGateNames
+    });
+    const logged = [this.records.logger.log({ kind: 'pipeline-gates-ordered', fields: { phase, names: [...names] } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      pipeline.phases[phase] = [...names];
     }, logged);
   }
 

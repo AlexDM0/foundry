@@ -16,6 +16,7 @@ import type {
   OverseerStopReason,
   PictureReference
 }                                                                        from './Job.ts';
+import type { GatePhase }                                 from './Pipeline.ts';
 import type { ReviewClaim, ReviewFinding, ReviewVerdict } from './ReviewRecord.ts';
 import type { AgentPair, TicketPriority, TicketSize }     from './Ticket.ts';
 import type { OverseerState, ViewRange }                  from './TrackerProgress.ts';
@@ -62,6 +63,8 @@ interface ValueOfFieldShape {
   'incident-default-cause': IncidentDefaultCause;
   'gate-outcome':           GateOutcome;
   'file-paths':             readonly string[];
+  'gate-phase':             GatePhase;
+  'gate-names':             readonly string[];
   'landing-kind':           LandingKind;
   'flag':                   boolean;
   'optional-flag':          boolean;

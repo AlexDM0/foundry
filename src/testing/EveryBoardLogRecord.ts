@@ -62,6 +62,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.moveTicket('001', 'in-progress', { checksLegality: true }, at);
   board.setPrepareStep({ name: 'install', run: 'bun install --frozen-lockfile' }, at);
   board.addGate({ name: 'checks', run: 'bun run example-checks' }, at);
+  board.orderPhaseGates('merge', ['checks'], at);
   board.removeGate('checks', at);
   board.setNoGates(at);
   board.setApproval('tickets', false, at);

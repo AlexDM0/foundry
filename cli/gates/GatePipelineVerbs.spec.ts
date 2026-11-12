@@ -1,8 +1,9 @@
 /**
  * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
- * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write version 2 with every gate in every
- * phase; a malformed file is refused, never overwritten, and a refused write leaves the progress file, the pipeline and the log as they
- * were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
+ * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write version 2, a gate in every phase
+ * unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per phase, the
+ * content hash moving on any change and a phase hash only on its own phase's; a malformed file is refused, never overwritten, and a
+ * refused write leaves the progress file, the pipeline and the log as they were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
   existsSync,
@@ -49,7 +50,15 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
-async function listed(): Promise<{ pipelineIsSet: boolean; pipelineHash: string | null; prepare: unknown[]; gates: { name: string; run: string }[] }> {
+interface ListedPipeline {
+  pipelineIsSet: boolean;
+  contentHash:   string | null;
+  phaseHashes:   Record<'build' | 'review' | 'merge', string> | null;
+  prepare:       unknown[];
+  gates:         { name: string; run: string }[];
+}
+
+async function listed(): Promise<ListedPipeline> {
   return JSON.parse((await run(['gate', 'list', '--json'])).outputText()) as Awaited<ReturnType<typeof listed>>;
 }
 
@@ -71,7 +80,7 @@ afterEach(() => {
 describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   test('with no pipeline gate list prints it unset with no gates, and writes no file', async () => {
     expect(await listed()).toEqual({
-      pipelineIsSet: false, pipelineHash: null, prepare: [], gates: []
+      pipelineIsSet: false, contentHash: null, phaseHashes: null, prepare: [], gates: []
     });
     expect((await run(['gate', 'list'])).outputText()).toContain('checks-not-set');
     expect(existsSync(pipelineFilePath())).toBe(false);
@@ -155,17 +164,53 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     });
   });
 
-  test('a gate added while a ticket is in progress is accepted, and the hash gate list prints follows the pipeline', async () => {
+  test('a gate added while a ticket is in progress is accepted, and the hashes gate list prints follow the pipeline', async () => {
     await run(['gate', 'add', 'test', '--', 'bun test']);
-    const hashBefore = (await listed()).pipelineHash;
+    const before = await listed();
     const added = JSON.parse((await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example checkout page', '--json'])).outputText()) as { id: string };
     await run(['ticket', 'start', added.id]);
 
-    await run(['gate', 'add', 'lint', '--', 'bun run lint']);
+    await run(['gate', 'add', 'lint', '--phases', 'merge', '--', 'bun run lint']);
 
-    const hashAfter = (await listed()).pipelineHash;
-    expect(hashAfter).not.toBeNull();
-    expect(hashAfter).not.toBe(hashBefore);
+    const after = await listed();
+    expect(after.contentHash).not.toBeNull();
+    expect(after.contentHash).not.toBe(before.contentHash);
+    expect(after.phaseHashes?.merge).not.toBe(before.phaseHashes?.merge);
+    expect([after.phaseHashes?.build, after.phaseHashes?.review]).toEqual([before.phaseHashes?.build, before.phaseHashes?.review]);
+  });
+
+  test('gate add --phases writes a version 2 file with the gate in those phases, and gate order reorders one phase', async () => {
+    await run(['gate', 'add', 'types', '--', 'bun run typecheck']);
+    await run(['gate', 'add', 'test', '--phases', 'build,merge', '--', 'bun test']);
+    await run(['gate', 'add', 'lint', '--phases', 'merge', '--', 'bun run lint']);
+
+    const ordered = JSON.parse((await run(['gate', 'order', 'merge', 'lint', 'types', 'test', '--json'])).outputText()) as { pipeline: unknown; contentHash: string | null };
+
+    const stored = JSON.parse(readFileSync(pipelineFilePath(), 'utf8')) as { version: number; phases: unknown };
+    expect(stored.version).toBe(2);
+    expect(stored.phases).toEqual({ build: ['types', 'test'], review: ['types'], merge: ['lint', 'types', 'test'] });
+    expect(ordered.pipeline).toEqual(stored);
+    expect(ordered.contentHash).toBe((await listed()).contentHash);
+    expect(storedLogTextOf(repositoryDirectory)).toContain('"kind":"pipeline-gates-ordered","fields":{"phase":"merge","names":["lint","types","test"]}');
+  });
+
+  test.each([
+    ['an unknown phase', ['gate', 'add', 'lint', '--phases', 'build,deploy', '--', 'bun run lint'], 'Name a phase: build, review, merge.'],
+    ['a phase named twice', ['gate', 'add', 'lint', '--phases', 'merge,merge', '--', 'bun run lint'], 'Name each phase once in --phases.'],
+    ['an order with no phase', ['gate', 'order', 'deploy', 'test'], 'Name a phase: build, review, merge.'],
+    ['an order with no gate', ['gate', 'order', 'merge'], 'Name every gate the merge phase runs, in the new order.'],
+    ['an order leaving a gate out', ['gate', 'order', 'merge', 'test'], 'The merge phase was not reordered: name each of types, test once, and no other gate.'],
+    ['an order naming an unknown gate', ['gate', 'order', 'merge', 'test', 'lint'], 'There is no gate lint: the gates are types, test.'],
+  ])('%s is refused at exit 1 with every file left as it was', async (_case, commandLine, named) => {
+    await run(['gate', 'add', 'types', '--', 'bun run typecheck']);
+    await run(['gate', 'add', 'test', '--', 'bun test']);
+    const before = storedFiles();
+
+    const refused = await runWithExitCode(commandLine);
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain(named);
+    expect(storedFiles()).toEqual(before);
   });
 
   test('an unknown gate, and a write over a malformed pipeline.json, are refused at exit 1 with every file left as it was', async () => {

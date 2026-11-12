@@ -181,6 +181,8 @@ function sentenceOf(record: LogRecordContent): string {
       return 'No gates, on purpose';
     case 'pipeline-gate-removed':
       return `Gate ${record.fields.name} removed`;
+    case 'pipeline-gates-ordered':
+      return `Gates of the ${record.fields.phase} phase ordered: ${record.fields.names.join(', ')}`;
     case 'pipeline-approval-set':
       return `Approval ${record.fields.approval} set ${record.fields.state}`;
     case 'check-command-set':

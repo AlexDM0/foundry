@@ -57,6 +57,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-started","ticketId":"001","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-prepare-step-set","fields":{"name":"install","run":"bun install --frozen-lockfile"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gate-added","fields":{"name":"checks","run":"bun run example-checks"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gates-ordered","fields":{"phase":"merge","names":["checks"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gate-removed","fields":{"name":"checks"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gates-none","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-approval-set","fields":{"approval":"tickets","state":"off"}}',

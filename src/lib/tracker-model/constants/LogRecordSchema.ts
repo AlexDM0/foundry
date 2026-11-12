@@ -45,6 +45,8 @@ export type LogFieldShape =
   | 'incident-default-cause'
   | 'gate-outcome'
   | 'file-paths'
+  | 'gate-phase'
+  | 'gate-names'
   | 'landing-kind'
   | 'flag'
   | 'optional-flag'
@@ -158,6 +160,8 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-gate-added':         { subject: 'board', fields: { name: 'text', run: 'text' } },
   'pipeline-gates-none':         { subject: 'board', fields: NO_FIELDS },
   'pipeline-gate-removed':       { subject: 'board', fields: { name: 'text' } },
+  // `names` is the whole new run order of the gates `phase` runs.
+  'pipeline-gates-ordered':      { subject: 'board', fields: { phase: 'gate-phase', names: 'gate-names' } },
   // `state` is `on` or `off`: whether User approves what `approval` names, such as `tickets`, before it moves on.
   'pipeline-approval-set':       { subject: 'board', fields: { approval: 'text', state: 'text' } },
   // This kind and the four after it are in `RETIRED_LOG_RECORD_KINDS`: read, never logged.

@@ -100,6 +100,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'concurrency-set':           ['concurrency', '3'],
   'pipeline-prepare-step-set': ['gate', 'prepare', 'install', '--', 'bun install'],
   'pipeline-gate-add':         ['gate', 'add', 'test', '--defined-by', 'bunfig.toml', '--', 'bun test'],
+  'pipeline-gate-order':       ['gate', 'order', 'merge', 'test'],
   'pipeline-gates-none':       ['gate', 'none'],
   'pipeline-gate-remove':      ['gate', 'remove', 'test'],
   'pipeline-approval-set':     ['gate', 'approval', 'tickets', 'off'],

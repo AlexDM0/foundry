@@ -267,3 +267,37 @@ describe('writeTracker', () => {
     expect(readFileSync(ticketFilePath(), 'utf8')).toContain('Waiting on Alex Example');
   });
 });
+
+// The Board's `pipelineIsSet` is "a pipeline was handed in", so the hold of resumes and new work rests on this mapping of the reading.
+describe('the pipeline a hold hands the Board', () => {
+  test.each<[string, string | null, 'older' | 'malformed' | null]>([
+    ['no file', null, null],
+    ['an older file', '{ "prepare": [], "gates": [] }\n', 'older'],
+    ['a malformed file', '{ "version": 2, "prepare": [], "gates": [] }\n', 'malformed'],
+  ])('%s gives the Board no pipeline, as unset, and names the unreadable verdict to the change', async (_case, pipelineText, verdict) => {
+    writeReadableTracker(workspace);
+    if (pipelineText !== null) writeFileSync(workspace.pipelineFilePath, pipelineText);
+
+    const written = await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => ({ pipeline: change.board.pipeline(), unreadableVerdict: change.unreadablePipeline?.verdict ?? null }),
+    });
+
+    expect(written.result).toEqual({ pipeline: null, unreadableVerdict: verdict });
+  });
+
+  test('a readable minimal file gives the Board that pipeline, which counts as set', async () => {
+    writeReadableTracker(workspace);
+    writeFileSync(workspace.pipelineFilePath, '{ "version": 2, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
+
+    const written = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipeline()
+    });
+
+    expect(written.result).toEqual({
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
+  });
+});

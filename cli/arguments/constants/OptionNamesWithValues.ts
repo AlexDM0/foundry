@@ -9,6 +9,7 @@ export const OPTION_NAMES_WITH_VALUES = new Set<string>([
   'in',
   'defined-by',
   'writes',
+  'phases',
   'root',
   'owner',
   'note',

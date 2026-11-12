@@ -1,6 +1,7 @@
 /** Whether one parsed log.jsonl line is a well-formed record of a known kind, and if not, the reason naming the offending field. */
 import { JsonRecordUtil }     from '../../lib/json-record/JsonRecordUtil.ts';
 import type { LogRecordKind } from '../../lib/tracker-model/@types/LogRecord.ts';
+import { GATE_PHASES }        from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   DECISION_KINDS,
   INCIDENT_DEFAULT_CAUSES,
@@ -145,6 +146,8 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'incident-default-cause': (value, path) => vocabularyProblem(value, path, INCIDENT_DEFAULT_CAUSES),
   'gate-outcome':           (value, path) => vocabularyProblem(value, path, GATE_OUTCOMES),
   'file-paths':             (value, path) => listOfTextProblem(value, path, 'file paths'),
+  'gate-phase':             (value, path) => vocabularyProblem(value, path, GATE_PHASES),
+  'gate-names':             (value, path) => listOfTextProblem(value, path, 'gate names'),
   'landing-kind':           (value, path) => vocabularyProblem(value, path, LANDING_KINDS),
   'flag':                   (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
   'optional-flag':          (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),

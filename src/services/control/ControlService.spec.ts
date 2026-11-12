@@ -102,6 +102,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
   'pipeline-prepare-step-set': { kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install' } },
   'pipeline-gate-add':         { kind: 'pipeline-gate-add', gate: { name: 'test', run: 'bun test', definedBy: ['bunfig.toml'] } },
+  'pipeline-gate-order':       { kind: 'pipeline-gate-order', phase: 'merge', names: ['test'] },
   'pipeline-gates-none':       { kind: 'pipeline-gates-none' },
   'pipeline-gate-remove':      { kind: 'pipeline-gate-remove', name: 'test' },
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },

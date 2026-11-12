@@ -77,6 +77,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'concurrency-set':           'concurrency',
   'pipeline-prepare-step-set': 'gate prepare',
   'pipeline-gate-add':         'gate add',
+  'pipeline-gate-order':       'gate order',
   'pipeline-gates-none':       'gate none',
   'pipeline-gate-remove':      'gate remove',
   'pipeline-approval-set':     'gate approval',

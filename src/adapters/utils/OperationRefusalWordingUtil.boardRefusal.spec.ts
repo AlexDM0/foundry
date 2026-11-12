@@ -434,3 +434,28 @@ test.each<[BoardRefusalDetail, string]>([
 ])('the decision or incident refusal %o words as its sentence', (detail, message) => {
   expect(messageOf(detail)).toBe(message);
 });
+
+// No earlier command placed a gate in a phase, so these rows are this suite's own wording; a reorder names the gates the phase runs.
+test.each<[BoardRefusalDetail, string]>([
+  [{ reason: 'gate-without-phase', gateName: 'lint' }, 'The gate lint must run in at least one phase: build, review or merge. Nothing was written.'],
+  [
+    { reason: 'unknown-gate-phase', phase: 'deploy', phases: ['build', 'review', 'merge'] },
+    'There is no phase deploy: the phases are build, review, merge. Nothing was written.',
+  ],
+  [
+    {
+      reason: 'phase-order-not-a-reorder', phase: 'merge', names: ['test'], phaseGateNames: ['types', 'test']
+    },
+    'The merge phase was not reordered: name each of types, test once, and no other gate. Nothing was written; '
+    + '`agent-progress gate add <name> --phases` changes the phases a gate runs in.',
+  ],
+  [
+    {
+      reason: 'phase-order-not-a-reorder', phase: 'review', names: ['test'], phaseGateNames: []
+    },
+    'The review phase was not reordered: it runs no gate. Nothing was written; `agent-progress gate add <name> --phases` changes the phases a '
+    + 'gate runs in.',
+  ],
+])('the gate phase refusal %o words as its sentence', (detail, message) => {
+  expect(messageOf(detail)).toBe(namingThisProgram(message));
+});

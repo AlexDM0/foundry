@@ -53,6 +53,8 @@ describeWhenGitIsRecorded('a pipeline.json an earlier release wrote', () => {
 
     for (const verb of [
       ['gate', 'add', 'lint', '--', 'bun run lint'],
+      ['gate', 'add', 'lint', '--phases', 'build,merge', '--', 'bun run lint'],
+      ['gate', 'order', 'merge', 'test'],
       ['gate', 'prepare', 'install', '--', 'bun install'],
       ['gate', 'remove', 'test'],
       ['gate', 'none'],

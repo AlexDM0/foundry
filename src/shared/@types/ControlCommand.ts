@@ -3,11 +3,16 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
-import type { JobStopMode, PictureReference }                from '../../lib/tracker-model/@types/Job.ts';
-import type { OptionNote }                                   from '../../lib/tracker-model/@types/OptionConsequences.ts';
-import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
+import type { JobStopMode, PictureReference }      from '../../lib/tracker-model/@types/Job.ts';
+import type { OptionNote }                         from '../../lib/tracker-model/@types/OptionConsequences.ts';
+import type {
+  GatePhase,
+  PipelineApproval,
+  PipelineGate,
+  PipelineStep
+} from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -120,7 +125,10 @@ export type ControlCommand =
   | { kind: 'question-options'; jobId?: string; question: string; options: OptionNote[] }
   | { kind: 'concurrency-set'; limit: number }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
-  | { kind: 'pipeline-gate-add'; gate: PipelineGate }
+  /** With no `phases`, a new gate runs in every phase and a replaced one keeps its phases. */
+  | { kind: 'pipeline-gate-add'; gate: PipelineGate; phases?: GatePhase[] }
+  /** `names` is the whole new run order of the gates `phase` already runs. */
+  | { kind: 'pipeline-gate-order'; phase: GatePhase; names: string[] }
   | { kind: 'pipeline-gates-none' }
   | { kind: 'pipeline-gate-remove'; name: string }
   | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
