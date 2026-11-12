@@ -174,5 +174,6 @@ export const RailModel = {
   railContentOf,
   attentionCountOf,
   canOpenInPlace,
+  machineOf,
   VIEW_LABELS,
 } as const;

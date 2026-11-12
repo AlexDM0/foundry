@@ -1,9 +1,9 @@
 /**
  * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
- * keeps the window title and the document's theme in step with them, and provides the command sender to the views; `GaiaShell` lays out
- * the rail, the top bar, the connection banner and the view from those values alone. While the stream is lost one disabled fieldset
- * disables every button and field of the top bar and the view, so a view's control needs no word of the stream; a link, as every rail
- * row is, still navigates.
+ * keeps the window title and the document's theme in step with them, picks the view the route names, and provides the command sender to
+ * the views; `GaiaShell` lays out the rail, the top bar, the connection banner and the view from those values alone. While the stream is
+ * lost one disabled fieldset disables every button and field of the top bar and the view, so a view's control needs no word of the
+ * stream; a link, as every rail row is, still navigates.
  */
 import {
   type ReactNode,
@@ -19,6 +19,8 @@ import type { FleetDocument }                                from '../@types/Fle
 import { type CommandSender, CommandSenderContext }          from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }          from '../api/FleetStreamClient.ts';
 import { ACTIVITY_STATUS_LINE, ActivityView }                from '../views/activity/ActivityView.tsx';
+import { AgentsModel }                                       from '../views/agents/AgentsModel.ts';
+import { AgentsView }                                        from '../views/agents/AgentsView.tsx';
 import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
 import type { FleetSource }                                  from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings } from './HashRouter.ts';
@@ -57,6 +59,8 @@ export interface ShellSurroundings {
   readonly setWindowTitle:  (title: string) => void;
   /** Lets motion run once the first fleet document has painted; until then every state shows at once. */
   readonly markMotionReady: () => void;
+  /** The page's clock in milliseconds, for a running time or an age shown and never compared. */
+  readonly now:             () => number;
 }
 
 export interface GaiaAppProps {
@@ -68,8 +72,26 @@ export interface GaiaAppProps {
 
 const NO_VIEW_PARTS: ShellViewParts = { status: null, actions: null, content: null };
 
-function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null): ShellViewParts {
+export interface ViewSurroundings {
+  readonly readAtMilliseconds: number;
+  readonly goTo:               (fragment: string) => void;
+}
+
+/** The parts of the view the route names; before the first fleet document a view shows at most its status line. */
+export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, { readAtMilliseconds, goTo }: ViewSurroundings): ShellViewParts {
   switch (route.view) {
+    case 'agents': {
+      if (fleetDocument === null) return NO_VIEW_PARTS;
+      const { selectedAgent, query } = route;
+      const content = AgentsModel.agentsContentOf({
+        fleetDocument, selectedAgent, query, readAtMilliseconds
+      });
+      return {
+        status:  { condition: null, text: AgentsModel.statusTextOf(fleetDocument) },
+        actions: null,
+        content: <AgentsView content={content} onFiltersChange={(filters) => goTo(AgentsModel.agentsFragmentOf(selectedAgent, filters))} />,
+      };
+    }
     case 'activity':
       return {
         status:  { condition: null, text: ACTIVITY_STATUS_LINE },
@@ -102,7 +124,7 @@ export function GaiaApp({
   fleetSource, fleetStream, commandSender, surroundings
 }: GaiaAppProps) {
   const {
-    hash, theme, setWindowTitle, markMotionReady
+    hash, theme, setWindowTitle, markMotionReady, now
   } = surroundings;
   const fleetDocument = useSyncExternalStore(fleetSource.subscribe, fleetSource.current, fleetSource.current);
   const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
@@ -138,7 +160,7 @@ export function GaiaApp({
         streamState={streamState}
         route={route}
         viewTitle={viewTitle}
-        view={viewPartsOf(route, fleetDocument)}
+        view={viewPartsOf(route, fleetDocument, { readAtMilliseconds: now(), goTo: hash.goTo })}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
       />
@@ -154,5 +176,6 @@ export function browserShellSurroundings(): ShellSurroundings {
       document.title = title;
     },
     markMotionReady: () => document.documentElement.setAttribute('data-motion', 'ready'),
+    now:             () => Date.now(),
   };
 }

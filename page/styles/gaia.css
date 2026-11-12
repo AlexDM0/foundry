@@ -628,3 +628,126 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }
+
+/* ── Agents ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-agents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+}
+.gaia-agents-filters { display: flex; align-items: center; gap: var(--sp-4); }
+.gaia-agents-order { flex: 1; text-align: end; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-agents-no-match { margin: 0; color: var(--ink-muted); }
+
+/* A row selects itself: the forge's link stretches over the whole row, and the job's link sits above it. */
+.gaia-agents .gaia-table-row { position: relative; transition: var(--feedback-transition); }
+.gaia-agents .gaia-table-row:not([data-head]):not([data-selected]):hover { background: var(--surface-2); }
+.gaia-agents-select {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gaia-agents-select::after { content: ""; position: absolute; inset: 0; }
+.gaia-agents-job {
+  position: relative;
+  z-index: 1;
+  color: var(--link);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+.gaia-agents-job:hover { text-decoration: underline; }
+.gaia-agents-select,
+.gaia-agents-ticket,
+.gaia-agents-last-tool-call { display: block; }
+.gaia-agents-role,
+.gaia-agents-not-reported { color: var(--ink-muted); }
+.gaia-agents-ticket { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-agents-ticket-ids { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-agents-state { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
+.gaia-agents-machine-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-agents-machine-value[data-tone="muted"] { color: var(--ink-muted); }
+.gaia-agents-calls { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.gaia-agents-calls-meter { flex: none; width: var(--agents-calls-meter-width); }
+.gaia-agents-calls-text { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-agents-last-tool-call {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Selected agent */
+.gaia-agents-panel {
+  display: flex;
+  flex: 1;
+  gap: var(--sp-5);
+  min-height: 0;
+  padding: var(--sp-4) var(--sp-5);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-agents-panel-column { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-agents-panel-column[data-column="facts"] { flex: none; width: var(--agents-panel-facts-width); }
+.gaia-agents-panel-column[data-column="last-line"] { flex: 1; gap: var(--sp-2); min-width: 0; }
+.gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-title); font-weight: var(--weight-strong); }
+.gaia-agents-panel-job { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-agents-panel-subject { color: var(--ink-muted); }
+.gaia-agents-panel-actions { display: flex; gap: var(--sp-2); margin-top: auto; }
+.gaia-agents-panel-last-line {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--sp-3) var(--sp-3);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--bg);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  white-space: pre-wrap;
+}
+.gaia-agents-panel-last-line[data-reported="no"] { font-family: var(--font-ui); }
+.gaia-agents-panel-sentence { margin: 0; }
+.gaia-agents-panel-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* No agent runs */
+.gaia-agents-empty { display: flex; flex-direction: column; gap: var(--sp-4); }
+.gaia-agents-empty-sentence { margin: 0; font-size: var(--fs-title); }
+.gaia-agents-machine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  box-sizing: border-box;
+  width: var(--agents-panel-facts-width);
+  padding: var(--sp-4) var(--sp-5);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-agents-machine-agents { display: flex; align-items: baseline; gap: calc(var(--sp-1) + var(--sp-half)); }
+.gaia-agents-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-agents-machine-figure {
+  font-family: var(--font-mono);
+  font-size: var(--fs-figure);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-figure);
+}
+.gaia-agents-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-agents-machine[data-at-the-limit] .gaia-agents-machine-line { color: var(--warn-ink); }
+
+.gaia-agents-select:focus-visible,
+.gaia-agents-job:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}

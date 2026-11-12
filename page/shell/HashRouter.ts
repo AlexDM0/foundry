@@ -16,10 +16,11 @@ export interface SelectedAgent {
   readonly jobId:     string;
 }
 
-/** Where the page reads its fragment and hears it change, so a spec can drive both. */
+/** Where the page reads its fragment, hears it change and changes it, so a spec can drive all three. */
 export interface HashSurroundings {
   readonly currentFragment: () => string;
   readonly followFragment:  (listener: () => void) => () => void;
+  readonly goTo:            (fragment: string) => void;
 }
 
 export const DEFAULT_ROUTE: GaiaRoute = { view: 'attention' };
@@ -113,6 +114,9 @@ function browserHashSurroundings(): HashSurroundings {
     followFragment:  (listener) => {
       window.addEventListener('hashchange', listener);
       return () => window.removeEventListener('hashchange', listener);
+    },
+    goTo: (fragment) => {
+      window.location.hash = fragment;
     },
   };
 }

@@ -3,7 +3,9 @@
  * rail from the fleet source's next document, with no reload; Tab meets every control in visual order, the rail top to bottom and then
  * the top bar from its view's buttons to the theme switch, and every control, an icon-only one included, has a name. Also: the route is
  * read from the fragment, and the settings' theme choice shows on the switch from the first document. And (W4.3): a lost event stream
- * shows the connection banner under the top bar and disables every control until the stream opens again.
+ * shows the connection banner under the top bar and disables every control until the stream opens again. And (W5.2): the Agents route
+ * shows the Agents view under its status line, its selected agent survives the source's next document, and a filter press goes to the
+ * fragment that keeps it.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
  * would paint for the source's current document; `GaiaShell` takes no hooks and unfolds to its host elements.
@@ -11,23 +13,24 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import type { FleetDocument, FleetDocumentForge }           from '../@types/FleetDocument.ts';
-import { CommandSender }                                    from '../api/CommandSender.ts';
-import type { FleetStreamState }                            from '../api/FleetStreamClient.ts';
-import { Button }                                           from '../design-system/Button.tsx';
-import { TextField }                                        from '../design-system/TextField.tsx';
-import { GaiaStylesheet }                                   from '../testing/GaiaStylesheet.ts';
-import { type HostElement, ReactElementTree }               from '../testing/ReactElementTree.ts';
-import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
-import { createFleetSource, type FleetSource }              from './FleetSource.ts';
+import type { FleetDocument, FleetDocumentForge }                                   from '../@types/FleetDocument.ts';
+import { CommandSender }                                                            from '../api/CommandSender.ts';
+import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
+import { Button }                                                                   from '../design-system/Button.tsx';
+import { TextField }                                                                from '../design-system/TextField.tsx';
+import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
+import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
+import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
+import { createFleetSource, type FleetSource }                                      from './FleetSource.ts';
 import {
   GaiaApp,
   type GaiaAppProps,
   GaiaShell,
   type ShellSurroundings,
+  viewPartsOf,
 } from './GaiaApp.tsx';
-import { DEFAULT_ROUTE } from './HashRouter.ts';
+import { DEFAULT_ROUTE, HashRouter } from './HashRouter.ts';
 
 const tree = ReactElementTree;
 
@@ -50,7 +53,7 @@ const NEWLY_REGISTERED: FleetDocumentForge = {
 
 function surroundingsAt(fragment: string, storedThemeChoice: string | null = null): ShellSurroundings {
   return {
-    hash:  { currentFragment: () => fragment, followFragment: () => () => undefined },
+    hash:  { currentFragment: () => fragment, followFragment: () => () => undefined, goTo: () => undefined },
     theme: {
       setRootAttribute:   () => undefined,
       readStoredChoice:   () => storedThemeChoice,
@@ -60,6 +63,7 @@ function surroundingsAt(fragment: string, storedThemeChoice: string | null = nul
     },
     setWindowTitle:  () => undefined,
     markMotionReady: () => undefined,
+    now:             () => Date.parse(FLEET_FIXTURES_READ_AT),
   };
 }
 
@@ -294,5 +298,47 @@ describe('a lost stream shows the banner and disables every control', () => {
       expect(tree.onlyWithTag(shell, 'fieldset').props['disabled']).toBe(false);
       expect(tree.hostElementsIn(shell, tree.withClass('gaia-banner'))).toEqual([]);
     }
+  });
+});
+
+describe('the Agents view in the shell', () => {
+  const J12_ROUTE = `#agents/${TRACKER_IDS.invoiceService}/J12`;
+
+  test('the Agents route shows A2\'s status line over the view\'s table', () => {
+    const source = createFleetSource();
+    source.publish(FLEET_FIVE_FORGES);
+    const markup = renderToStaticMarkup(appAt(source, '#agents'));
+    expect(markup).toContain('<span class="gaia-top-bar-status">10 working across 4 forges · 821,300 tokens in flight</span>');
+    expect(markup).toContain('<div class="gaia-table" role="table" aria-label="Agents">');
+  });
+
+  test('before the first document the Agents route shows no status line and no view', () => {
+    const markup = renderToStaticMarkup(appAt(createFleetSource(), '#agents'));
+    expect(markup).not.toContain('gaia-top-bar-status');
+    expect(markup).not.toContain('gaia-agents');
+  });
+
+  test('the selected agent survives the source\'s next document, and the panel says so once its job has ended', () => {
+    const source = createFleetSource();
+    const app = appAt(source, J12_ROUTE);
+    source.publish(FLEET_FIVE_FORGES);
+    expect(renderToStaticMarkup(app)).toContain('aria-current="true"');
+    source.publish({ ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, tokens: row.tokens + 1 })) });
+    const next = renderToStaticMarkup(app);
+    expect(next).toMatch(/aria-current="true"><div class="gaia-table-cells"[^>]*><span class="gaia-table-cell"[^>]*><a class="gaia-agents-select"[^>]*>Invoice Service</);
+    expect(next).toContain('Open J12 in its forge');
+    source.publish({ ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.filter((row) => !(row.trackerId === TRACKER_IDS.invoiceService && row.jobId === 'J12')) });
+    const ended = renderToStaticMarkup(app);
+    expect(ended).not.toContain('aria-current="true"');
+    expect(ended).toContain('This agent is no longer running.');
+  });
+
+  test('a filter press goes to the Agents fragment holding the new filter and the selected agent', () => {
+    const visited: string[] = [];
+    const route = HashRouter.routeOf(`${J12_ROUTE}?role=builders`);
+    const parts = viewPartsOf(route, FLEET_FIVE_FORGES, { readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), goTo: (fragment) => visited.push(fragment) });
+    const needsALook = tree.onlyHostElementIn(tree.unfolded(parts.content), (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
+    tree.dispatch(needsALook, 'onClick');
+    expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);
   });
 });

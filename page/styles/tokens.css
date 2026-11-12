@@ -54,6 +54,9 @@
   --activity-at-width:   48px;
   --activity-forge-width: 168px;
   --activity-kind-width: 104px;
+  --agents-table-columns: 160px 44px 72px minmax(0, 1fr) 196px 72px 132px 76px 208px;
+  --agents-calls-meter-width: 64px;
+  --agents-panel-facts-width: 320px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 
