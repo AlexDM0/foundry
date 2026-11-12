@@ -2,7 +2,8 @@
  * A2Proposal, the design step: the proposed flow and its gates area beside the pipeline agent's aside, whose tabs are the agent's chat
  * with the design questions and the change list. The agent's newest change shows under its chat with a link that shows the step on the
  * flow and its Undo. The footer counts the proposed steps and gates, and offers Discard proposal and Apply pipeline, which waits while a
- * question is open. Until the agent proposes a draft, the flow says that it is designing.
+ * question is open and opens the apply dialog, also on its own while an Apply is pending. Until the agent proposes a draft, the flow says
+ * that it is designing.
  */
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ import { FlowWorkspace, useFlowSelection } from '../FlowWorkspace.tsx';
 import type { FlowSelection }              from '../FlowWorkspace.tsx';
 import type { PipelineViewFacts }          from '../PipelineViewModel.ts';
 import { PipelineAgentPanel }              from '../agent-panel/PipelineAgentPanel.tsx';
+import { ApplyDialog }                     from '../apply/ApplyDialog.tsx';
 import { ChangeList }                      from '../apply/ChangeList.tsx';
 import { ChangeListModel }                 from '../apply/ChangeListModel.ts';
 import { BillingStepModel }                from './BillingStepModel.ts';
@@ -68,7 +70,7 @@ export function DesignStep({
 }: DesignStepProps) {
   const selection = useFlowSelection();
   const [asideTab, setAsideTab] = useState<AsideTab>('agent');
-  const [applyIsAsked, setApplyIsAsked] = useState(false);
+  const [applyIsAsked, setApplyIsAsked] = useState(setup.applyState !== null);
   const { record } = setup;
   const now = useTickingNow(clock, false);
   const agentState = DesignStepModel.agentStateOf(setup);
@@ -165,6 +167,16 @@ export function DesignStep({
           </>
         )}
       />
+      {applyIsAsked
+        ? (
+          <ApplyDialog
+            setup={setup}
+            pendingTicketCount={BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? [])}
+            concurrencyLimit={facts.concurrency?.limit ?? null}
+            onClose={() => setApplyIsAsked(false)}
+          />
+        )
+        : null}
     </div>
   );
 }

@@ -73,6 +73,14 @@ question instead of its settings until you answer. The footer counts the propose
 **Discard proposal** (`pipeline-draft-discard`) drops the proposal and keeps the agent; **Apply pipeline** stays
 disabled while any question is open. Nothing profiles a gate until you press its stopwatch.
 
+**Apply pipeline** asks first: "Resume the board" (on by default) says how many pending tickets start building and
+how many at a time. Apply commits `CONSTITUTION.md` to main first, so the dialog stays open while the commit waits for
+the merge train, and shows why when main holds it (for example uncommitted changes to `CONSTITUTION.md`) or git refused
+it. **Cancel apply** drops the pending request; after a signing failure, **View CONSTITUTION.md** shows the exact text
+to commit by hand, signed, before you press Apply again. On a running board, **Apply changes** lists each change with
+where it is and its kind, the version it makes, and the tickets in flight, which take the new version at their next
+gate run; it never resumes a paused board.
+
 Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
 left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
 to open its settings; the merge of main before review has none, since the builder's settings drive it. An agent step's

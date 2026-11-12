@@ -82,9 +82,9 @@ describe('a pending Apply', () => {
         ...pending, state: 'held', reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md']
       },
     };
-    expect(stepOf(held, 'apply').summary).toBe('Held: the main checkout holds changes to CONSTITUTION.md (CONSTITUTION.md)');
+    expect(stepOf(held, 'apply').summary).toBe('Held. Main has uncommitted changes to CONSTITUTION.md.');
     const refused: PipelineSetupFacts = { ...setup, applyState: { ...pending, state: 'refused', reason: 'constitution-commit-unsigned' } };
-    expect(stepOf(refused, 'apply').summary).toBe('Refused: git could not sign the commit');
+    expect(stepOf(refused, 'apply').summary).toBe('Refused. Git could not sign the commit, and nothing commits unsigned.');
   });
 });
 

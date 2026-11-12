@@ -5,11 +5,12 @@
  */
 import type { JobState }                                              from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineBilling }                                       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { ApplyStateFacts, PipelineSetupFacts }                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { ApplyRequestReason, PipelineSetupStep }                 from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineSetupFacts }                                    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetupStep }                                     from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                                    from '../../../api/CommandClient.ts';
 import type { StepperStatus }                                         from '../../../design-system/Stepper.tsx';
 import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../PipelineViewModel.ts';
+import { ApplyPendingStateModel }                                     from '../apply/ApplyPendingStateModel.ts';
 
 export type ResumeChipTone = 'question' | 'neutral';
 
@@ -45,16 +46,6 @@ const JOB_STATE_WORDS: Readonly<Record<JobState, string>> = {
   'stopping':           'stopping',
 };
 
-const APPLY_REASON_WORDS: Readonly<Record<ApplyRequestReason, string>> = {
-  'not-on-target-branch':                 'the main checkout is not on the main branch',
-  'dirty-checkout':                       'the main checkout holds changes to CONSTITUTION.md',
-  'target-file-held':                     'a file of the main checkout is held',
-  'git-failed':                           'git failed',
-  'constitution-commit-unsigned':         'git could not sign the commit',
-  'constitution-commit-unexpected-paths': 'the commit changed more than CONSTITUTION.md',
-  'constitution-moved':                   'CONSTITUTION.md changed on main since the draft',
-};
-
 function countText(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -62,17 +53,6 @@ function countText(count: number, singular: string, plural: string): string {
 function billingTextOf(billing: PipelineBilling): string {
   if (billing.mode === 'subscription') return 'Subscription';
   return billing.maxBudgetUsd === undefined ? 'API key' : `API key · cap $${billing.maxBudgetUsd} per launch`;
-}
-
-function applyTextOf(applyState: ApplyStateFacts): string {
-  if (applyState.state === 'committing') {
-    return applyState.ticketIdHoldingMain === null
-      ? 'Committing CONSTITUTION.md to main'
-      : `Waiting for the merge train: ${applyState.ticketIdHoldingMain} is landing`;
-  }
-  const reason = applyState.reason === null ? '' : `: ${APPLY_REASON_WORDS[applyState.reason]}`;
-  const blockingFiles = applyState.blockingFiles.length === 0 ? '' : ` (${applyState.blockingFiles.join(', ')})`;
-  return `${applyState.state === 'held' ? 'Held' : 'Refused'}${reason}${blockingFiles}`;
 }
 
 /** The step's summary once it was reached; a step not started has none, except Apply's "not yet". */
@@ -103,7 +83,7 @@ function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string |
         : `${proposal} ${countText(summary.userEditsKeptCount, 'change', 'changes')} by User kept.`;
     }
     case 'apply':
-      return facts.applyState === null ? 'not yet' : applyTextOf(facts.applyState);
+      return facts.applyState === null ? 'not yet' : ApplyPendingStateModel.summaryTextOf(facts.applyState);
   }
 }
 

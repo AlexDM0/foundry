@@ -288,6 +288,15 @@ summary and keeps Apply disabled while `openQuestionCount` is above zero; the Ov
 node whose `questionIds` name an open question shows a marker and opens on the question (`NodeQuestionDialog`) in place
 of its own dialog.
 
+Apply opens one of two dialogs in `bridge/views/pipeline/apply/`: `ApplyDialog` for the first Apply (the "Resume the
+board" checkbox, whose value `pipeline-apply` carries as `resumesBoard`) and `ApplyChangesDialog` on a running board (the
+change rows with a changed constitution named as committed to main on Apply, the version line, the tickets in flight,
+and `pipeline-apply` with `resumesBoard: false`). Both read the setup's `applyState` and, while it is set, show
+`ApplyPendingState`: the constitution commit under way, or the stored reason it holds or was refused, worded by
+`ApplyPendingStateModel` (which the resume summary also uses), with Cancel apply (`pipeline-apply-cancel`) in place of
+the dialog's Cancel. A dialog stays open on a refusal and shows it verbatim. Once the facts show the pipeline applied,
+the record is gone, the view draws the live flow, and a `#pipeline/setup/<step>` route goes back to `#pipeline`.
+
 A node, a gate or a + opens its dialog through `PipelineDialogs` (`bridge/views/pipeline/dialogs/`): the agent step,
 review step, merge step and gate dialogs, each a design-system `Dialog`. A dialog's form is local until Save, which
 sends the edits through the same sender as the flow (on a live board, `pipeline-update-start` first); the dialog closes

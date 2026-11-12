@@ -45,8 +45,10 @@ export interface PipelineViewFacts {
   readonly pipelineFlow?:    PipelineFlowFacts | null;
   readonly profileRuns?:     readonly GateProfileRunFacts[];
   readonly pipelineChoices?: PipelineChoices;
-  /** The setup landing counts the pending tickets in it. */
+  /** The setup landing and the first Apply count the pending tickets in it. */
   readonly page?:            { readonly tickets: readonly { readonly status: string }[] };
+  /** The first Apply says how many tickets start building at a time. */
+  readonly concurrency?:     { readonly limit: number };
 }
 
 export type UnreadablePipeline =
@@ -139,6 +141,21 @@ function unreadableTextOf(unreadable: UnreadablePipeline): string {
   return `pipeline.json cannot be read: ${reason}. A new setup replaces the file when it is applied.`;
 }
 
+/** The live flow under a `#pipeline/setup/<step>` route: the setup was applied, so the route goes back to `#pipeline`. */
+function setupRouteIsLeftOf(screen: PipelineScreen, route: BridgeRoute): boolean {
+  return screen.screen === 'flow' && screen.stage === 'live' && route.item?.startsWith(SETUP_ITEM_PREFIX) === true;
+}
+
+const LIVE_ROUTE: BridgeRoute = Object.freeze({ tab: 'pipeline', item: null });
+
 export const PipelineViewModel = Object.freeze({
-  screenOf, setupStepStatusOf, setupStepRouteOf, setupStepFragmentOf, constitutionFragmentOf, screenTitleOf, unreadableTextOf,
+  liveRoute: LIVE_ROUTE,
+  setupRouteIsLeftOf,
+  screenOf,
+  setupStepStatusOf,
+  setupStepRouteOf,
+  setupStepFragmentOf,
+  constitutionFragmentOf,
+  screenTitleOf,
+  unreadableTextOf,
 });

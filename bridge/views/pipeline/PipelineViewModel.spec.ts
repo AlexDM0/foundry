@@ -3,7 +3,8 @@
  * shows, and an unreadable `pipeline.json` lands there too with its reason; a record in `setup` mode opens the route's step only while
  * the record has reached it, and the resume summary on the bare `#pipeline` or an unknown or unreached step; a record in `update` or
  * `advise` mode is the flow being edited, or the constitution at `#pipeline/edit/constitution`; a readable pipeline is the live flow; an
- * Overseer that serves no pipeline facts lands on setup. A step's route is `#pipeline/setup/<step>`.
+ * Overseer that serves no pipeline facts lands on setup. A step's route is `#pipeline/setup/<step>`; once the setup is applied, the live
+ * flow leaves a setup route for `#pipeline`, and only a setup route.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -63,6 +64,15 @@ describe('the screen the facts and the route pick', () => {
 });
 
 describe('the words and routes', () => {
+  test('the live flow leaves a setup route for #pipeline, and no other route', () => {
+    const live = screenOf(pipelineBoardStateOf('A5'), pipelineRoute(null));
+    expect(PipelineViewModel.setupRouteIsLeftOf(live, pipelineRoute('setup/design'))).toBe(true);
+    expect(PipelineViewModel.setupRouteIsLeftOf(live, pipelineRoute('edit'))).toBe(false);
+    expect(PipelineViewModel.setupRouteIsLeftOf(live, pipelineRoute(null))).toBe(false);
+    expect(PipelineViewModel.setupRouteIsLeftOf({ screen: 'setup-step', step: 'design' }, pipelineRoute('setup/design'))).toBe(false);
+    expect(PipelineViewModel.liveRoute).toEqual(pipelineRoute(null));
+  });
+
   test('a setup step reopens at its own route', () => {
     expect(PipelineViewModel.setupStepFragmentOf('design')).toBe('#pipeline/setup/design');
   });

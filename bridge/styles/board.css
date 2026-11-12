@@ -68,6 +68,11 @@
  *                           the -latest-change block, its -latest-change-text and -latest-change-links; or the
  *                           .bridge-pipeline-change-list of -change-list-item cards, or the -change-list-empty line); the footer's
  *                           -summary, the -hint[data-tone] with its -hint-dot, and the -apply holder of Apply pipeline
+ *   .bridge-pipeline-apply[data-kind?] the apply dialogs (A4Confirm; A6bApplyChanges with data-kind="changes"): the -note, the
+ *                           -resume checkbox label (-resume-text, -resume-detail), the -changes-rows list of -changes-row change rows,
+ *                           the in-flight callout (.bridge-pipeline-in-flight-text, -tickets of -ticket chips), and the
+ *                           -pending[data-state] block of a pending Apply (-pending-line with its busy ring and -pending-text,
+ *                           -pending-next, -pending-actions)
  *   .bridge-pipeline-dialog-body the step and gate dialogs (A3, A3c, A3d, A2b): -settings[data-size] of -field rows (-label, segments,
  *                           -hint), the -instructions group (-instructions-head, -instruction-rows of listed files and the dashed
  *                           -constitution-off row with its -constitution-off-text and -constitution-off-label, the -add-file field,
@@ -3864,3 +3869,32 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-pipeline-design-hint[data-tone="answered"],
   .bridge-pipeline-design-latest-change { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
 }
+
+/* The apply dialogs (A4Confirm, A6bApplyChanges): the constitution note, the "Resume the board" checkbox on an info surface, the change
+ * rows (a removed one struck through), the in-flight note's ticket chips and the pending Apply's state, amber while held and red once
+ * refused. */
+.bridge-pipeline-apply { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-apply-note { margin: 0; line-height: 19px; color: var(--ink-3); }
+.bridge-pipeline-apply-resume {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; line-height: 18px;
+  background: var(--surface-info); border-radius: var(--r-2); cursor: pointer;
+}
+.bridge-pipeline-apply-resume > input { margin: 2px 0 0; accent-color: var(--link); }
+.bridge-pipeline-apply-resume-text { display: flex; flex-direction: column; gap: 2px; }
+.bridge-pipeline-apply-resume-detail { color: var(--ink-3); }
+.bridge-pipeline-apply-changes-rows { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-apply-changes-row { display: block; }
+.bridge-pipeline-apply-changes-row .bridge-change-row[data-change="removed"] .bridge-change-row-title { text-decoration: line-through; }
+.bridge-pipeline-in-flight-text { margin: 0; }
+.bridge-pipeline-in-flight-tickets { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+.bridge-pipeline-in-flight-ticket { display: inline-flex; }
+.bridge-pipeline-apply-pending {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 10px 12px; line-height: 19px;
+  color: var(--ink-2); background: var(--surface-info); border-radius: var(--r-2);
+}
+.bridge-pipeline-apply-pending[data-state="held"] { color: var(--change-changed-ink); background: var(--change-changed-fill); }
+.bridge-pipeline-apply-pending[data-state="refused"] { color: var(--change-removed-ink); background: var(--change-removed-fill); }
+.bridge-pipeline-apply-pending-line { display: flex; align-items: center; gap: 10px; margin: 0; }
+.bridge-pipeline-apply-pending-text { font-weight: 600; }
+.bridge-pipeline-apply-pending-next { margin: 0; }
+.bridge-pipeline-apply-pending-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
