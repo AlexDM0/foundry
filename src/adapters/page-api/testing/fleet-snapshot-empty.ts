@@ -1,5 +1,9 @@
-/** The internal model of the fleet that `page/testing/fixtures/fleet-empty.ts` shows: what the page mapper is held against. */
-import type { FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
+/**
+ * The internal model of the fleet that `page/testing/fixtures/fleet-empty.ts` shows: what the page mapper is held against. No settings file
+ * is stored, so its settings are the defaults Gaia runs on.
+ */
+import type { FleetSnapshot }     from '../../../shared/@types/FleetSnapshot.ts';
+import { GAIA_SETTINGS_DEFAULTS } from '../../gaia-files/constants/GaiaSettingsDefaults.ts';
 
 export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
   forges:     [],
@@ -18,25 +22,8 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     openIncidents:  0,
     incompleteFor:  [],
   },
-  settings: {
-    theme:            'auto',
-    hiddenTrackerIds: [],
-    forgeProgramPath: null,
-    notifications:    {
-      enabled: true,
-      kinds:   {
-        'escalated-questions':        true,
-        'questions':                  true,
-        'reviews-and-merge-accepts':  true,
-        'forges-held-or-unreachable': true,
-        'quiet-agents':               true,
-        'machine-at-agent-limit':     false,
-        'draft-tickets':              false,
-      },
-    },
-    startForgesAtLogin: false,
-  },
-  gaia: {
+  settings: GAIA_SETTINGS_DEFAULTS,
+  gaia:     {
     gaiaVersion:       '0.1.0',
     address:           'http://127.0.0.1:4790',
     homeFolder:        '/Users/alexexample',
