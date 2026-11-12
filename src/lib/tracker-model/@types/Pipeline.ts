@@ -6,6 +6,9 @@ export const PIPELINE_FORMAT_VERSION = 2;
 /** Build is what a builder passes to be reviewed, review what a reviewer keeps green, merge what runs after main is merged in. */
 export type GatePhase = 'build' | 'review' | 'merge';
 
+/** The phases in the order a ticket meets them. */
+export const GATE_PHASES: readonly GatePhase[] = Object.freeze(['build', 'review', 'merge']);
+
 export interface PipelineStep {
   name: string;
   run:  string;
@@ -39,6 +42,11 @@ export type PipelineAgentRole =
   | 'conflictReReviewer'
   | 'pipelineAgent'
   | 'assistant';
+
+/** The roles in the order the flow draws their steps. */
+export const PIPELINE_AGENT_ROLES: readonly PipelineAgentRole[] = Object.freeze([
+  'productOwner', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant',
+]);
 
 export type InstructionEntry =
   | { kind: 'constitution' }
@@ -102,3 +110,18 @@ export interface Pipeline {
   /** Absent bills by subscription; not part of the pipeline hash, as `approvals` is not. */
   billing?:      PipelineBilling;
 }
+
+/**
+ * One field of a pipeline that an edit addresses and a change list names: a gate's definition, a phase's run order, a prepare step, the
+ * prepare steps' order, a role's settings, the review, the merge train, an approval or the constitution.
+ */
+export type PipelineDraftField =
+  | `gate:${string}`
+  | `phase-order:${GatePhase}`
+  | `prepare:${string}`
+  | 'prepare-order'
+  | `role:${PipelineAgentRole}`
+  | 'review'
+  | 'airlock'
+  | `approval:${PipelineApproval}`
+  | 'constitution';

@@ -103,6 +103,7 @@
     "../src/lib/tracker-model/utils/NetworkDomainUtil.ts",
     "../src/lib/tracker-model/utils/NumberedIdUtil.ts",
     "../src/lib/tracker-model/utils/OptionConsequencesUtil.ts",
+    "../src/lib/tracker-model/utils/PipelineChangeUtil.ts",
     "../src/lib/tracker-model/utils/PipelineUtil.ts",
     "../src/lib/tracker-model/utils/ReleaseBundleUtil.ts",
     "../src/lib/tracker-model/utils/RoundVerdictUtil.ts",
