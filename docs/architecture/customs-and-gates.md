@@ -410,8 +410,9 @@ picks it up, and a malformed edit stops ticket work.
   build to merge in the same lock hold, and the Airlock skips `Landing.ticketRefusalOf`, since only a review accounts
   for Acceptance. See `src/services/overseer/Airlocks.ts`. This is the default of a fitted board; see
   [what acceptance writes](#the-decision-and-what-acceptance-writes).
-- With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `agents.reviewer.model` and `effort`
-  set the reviewer's launch. A `reReview` threshold is stored and read, and no lifecycle step acts on it yet.
+- With `review`, `name` labels each [review bar](../glossary.md#review-bar). A `reReview` threshold is stored and
+  read, and no lifecycle step acts on it yet. Each role's `agents.<role>.model` and `effort` set its launch, with or
+  without `review`.
 - `constitution.path` replaces the default constitution file. A listed `agents.<role>.instructions` list replaces the
   role's default list (`DEFAULT_INSTRUCTIONS_OF_ROLE`); keep its `constitution` and `default-brief` entries to extend it.
 - An Airlock agent reads its builder or reviewer files. By default only builder and reviewer read the constitution.
