@@ -1,13 +1,8 @@
 /** The board's pipeline, stored in `pipeline.json` beside the progress file: absent until a `gate` verb first writes it. */
+import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
 
 export const PIPELINE_FORMAT_VERSION = 2;
-
-/** Build is what a builder passes to be reviewed, review what a reviewer keeps green, merge what runs after main is merged in. */
-export type GatePhase = 'build' | 'review' | 'merge';
-
-/** The phases in the order a ticket meets them. */
-export const GATE_PHASES: readonly GatePhase[] = Object.freeze(['build', 'review', 'merge']);
 
 export interface PipelineStep {
   name: string;

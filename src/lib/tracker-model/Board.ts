@@ -59,6 +59,7 @@ import type {
   EpicEdit,
   EpicRollup
 }                                                           from './@types/Epic.ts';
+import type { GatePhase } from './@types/GatePhase.ts';
 import type {
   Incident,
   IncidentDefaultCause,
@@ -82,7 +83,6 @@ import type { LifecycleLimits }                          from './@types/Lifecycl
 import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
 import type { QuestionOptionNotes }                      from './@types/OptionConsequences.ts';
 import type {
-  GatePhase,
   Pipeline,
   PipelineApproval,
   PipelineGate,
@@ -416,8 +416,12 @@ export class Board {
     return this.mergeQueueMarks.ticketIsMergeQueued(ticketId);
   }
 
-  greenIsCurrent(ticketId: string, headTree: string | null): boolean {
-    return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree);
+  greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null): boolean {
+    return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree, phase);
+  }
+
+  greenPhaseOf(ticketId: string): GatePhase | null {
+    return this.mergeQueueMarks.greenPhaseOf(ticketId);
   }
 
   setTicketMergeAccepted(ticketId: string, accepted: boolean, at: string): Logged & { changed?: false } {
@@ -679,8 +683,8 @@ export class Board {
     return this.trackerChanges.setApproval(approval, on, at);
   }
 
-  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, at: string): void {
-    this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, at);
+  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, phase: GatePhase, at: string): void {
+    this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, phase, at);
   }
 
   recordWorktreeRepaired(ticketId: string, fields: LogRecordFieldsOf<'worktree-repaired'>, at: string): Logged {

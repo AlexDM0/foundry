@@ -335,7 +335,7 @@ describe('a stale green', () => {
     harness.settings.gateOutcome = 'failed';
     await harness.slots.sweep();
     expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
-    expect(harness.board.greenIsCurrent('001', MOVED_BRANCH_TREE)).toBe(false);
+    expect(harness.board.greenIsCurrent('001', MOVED_BRANCH_TREE, harness.board.greenPhaseOf('001'))).toBe(false);
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
     expect(kindsLogged(harness, 'merge-started')).toEqual([]);
     expect(existsSync(join(harness.repository, '.example-tracker', 'jobs', review.job.id, 'stale-green', 'red-handoff.json'))).toBe(true);

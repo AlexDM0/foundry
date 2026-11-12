@@ -30,6 +30,7 @@
     "../src/lib/tracker-model/@types/LifecycleLimits.ts",
     "../src/lib/tracker-model/@types/PlaybookStep.ts",
     "../src/lib/tracker-model/@types/LogRecord.ts",
+    "../src/lib/tracker-model/@types/GatePhase.ts",
     "../src/lib/tracker-model/@types/Pipeline.ts",
     "../src/lib/tracker-model/@types/PipelineFacts.ts",
     "../src/lib/tracker-model/@types/PipelineSetup.ts",

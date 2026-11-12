@@ -3,6 +3,7 @@
  * log record carries. A field compares by its stored value, with the defaults the tracker model owns filled in: an absent approval or
  * instruction list equals its default, so writing a default out is no change.
  */
+import { GATE_PHASES } from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
   Pipeline,
@@ -13,10 +14,10 @@ import type {
   PipelineDraftField,
   PipelineGate,
   PipelineReview,
-  PipelineStep,
+  PipelineStep
 } from '../@types/Pipeline.ts';
-import { GATE_PHASES, PIPELINE_AGENT_ROLES } from '../@types/Pipeline.ts';
-import { PipelineUtil }                      from './PipelineUtil.ts';
+import { PIPELINE_AGENT_ROLES } from '../@types/Pipeline.ts';
+import { PipelineUtil }         from './PipelineUtil.ts';
 
 export type PipelineChangeKind = 'changed' | 'new' | 'removed';
 

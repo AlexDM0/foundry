@@ -2,13 +2,9 @@
  * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
  * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
-import type { JobState } from './Job.ts';
-import type {
-  GatePhase,
-  InstructionEntry,
-  Pipeline,
-  PipelineAgentRole
-} from './Pipeline.ts';
+import type { GatePhase }                                     from './GatePhase.ts';
+import type { JobState }                                      from './Job.ts';
+import type { InstructionEntry, Pipeline, PipelineAgentRole } from './Pipeline.ts';
 import type {
   ApplyRequest,
   PipelineDraftField,

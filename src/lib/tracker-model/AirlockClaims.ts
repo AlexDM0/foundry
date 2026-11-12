@@ -98,7 +98,7 @@ export class AirlockClaims {
     });
     return this.queuedOrAwaitingTicketsOf(target, targetOf)
       .filter((ticket) => this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true)
-      .filter(({ frontmatter }) => this.mergeQueueMarks.greenIsCurrent(frontmatter.id, branchTreeOf(frontmatter.id)))
+      .filter(({ frontmatter }) => this.ownGreenIsCurrent(frontmatter.id, branchTreeOf))
       .filter((ticket) => this.releaseBundleIsIntegrated(ticket, targetOf))
       .map((ticket) => ({
         ticketId:  ticket.frontmatter.id,
@@ -119,7 +119,12 @@ export class AirlockClaims {
       .filter(({ frontmatter }) => !incidents.some((incident) => incident.ticketIds.includes(frontmatter.id)))
       .filter(({ frontmatter }) => !decisions.some((decision) => decision.ticketIds.includes(frontmatter.id)))
       .map((ticket) => ({ ticketId: ticket.frontmatter.id, queued: this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true }))
-      .filter(({ ticketId, queued }) => (queued ? !this.mergeQueueMarks.greenIsCurrent(ticketId, branchTreeOf(ticketId)) : !reviewIsSet));
+      .filter(({ ticketId, queued }) => (queued ? !this.ownGreenIsCurrent(ticketId, branchTreeOf) : !reviewIsSet));
+  }
+
+  /** The ticket's green is current on its branch tree in the phase it was taken in. */
+  private ownGreenIsCurrent(ticketId: string, branchTreeOf: BranchTreeOf): boolean {
+    return this.mergeQueueMarks.greenIsCurrent(ticketId, branchTreeOf(ticketId), this.mergeQueueMarks.greenPhaseOf(ticketId));
   }
 
   /** In review on the target, with no hold, no job and no decision that keeps it out of its slot. */

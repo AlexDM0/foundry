@@ -151,6 +151,7 @@ test('every other missing or mistyped field is named too', () => {
     { prefix: 'store-written-bar-round', document: { ...progress, tasks: [{ ...progress.tasks[0], reviewBarRound: '2' }] }, named: 'tasks[0].reviewBarRound' },
     { prefix: 'store-retired-stamp', document: { ...progress, tasks: [{ ...progress.tasks[0], checkCommand: 'bun test' }] }, named: 'tasks[0].checkCommand' },
     { prefix: 'store-numeric-pipeline-hash', document: { ...progress, tasks: [{ ...progress.tasks[0], pipelineHash: 3 }] }, named: 'tasks[0].pipelineHash' },
+    { prefix: 'store-unknown-green-phase', document: { ...progress, tasks: [{ ...progress.tasks[0], greenPhase: 'deploy' }] }, named: 'tasks[0].greenPhase' },
     { prefix: 'store-numeric-green-tree', document: { ...progress, tasks: [{ ...progress.tasks[0], greenTree: 3 }] }, named: 'tasks[0].greenTree' },
   ];
   for (const { prefix, document, named } of cases) {

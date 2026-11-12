@@ -13,6 +13,7 @@ import { GitProcess }                  from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
 import { predictMerge, predictMerges } from '../../lib/git/MergeTree.ts';
 import type { DecisionKind }           from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase }              from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   Job,
@@ -109,7 +110,7 @@ function mergedTreeWasLastPassed(board: Board, worktree: string, job: Readonly<J
   const [ticketId] = job.ticketIds;
   if (branchTip === undefined || ticketId === undefined || treeOfCommit(worktree, branchTip) !== treeId) return false;
   const newestRunOnTheTree = board.logRecordsSoFar().findLast((record) => record.kind === 'gate-ran' && record.fields.tree === treeId);
-  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId);
+  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, board.greenPhaseOf(ticketId));
 }
 
 /** The ticket's most recent agent, whom a conflict or a red merged tree goes back to. */
@@ -188,6 +189,14 @@ const LANDING_REFUSED_DECISION: DecisionKind = 'landing-refused';
 
 /** A refused refresh names no ticket: its `merge-refused` context starts with the group's target, which keeps the next refresh waiting. */
 const REFRESH_REFUSAL_SEPARATOR = ': ';
+
+/**
+ * The phase a stale green is gated again in: the one it was taken in, or, on a row that names none, the phase whose green queues the
+ * ticket (review with a review phase, build without one).
+ */
+function regatePhaseOf(board: Board, ticketId: string): GatePhase {
+  return board.greenPhaseOf(ticketId) ?? (board.pipeline()?.review === undefined ? 'build' : 'review');
+}
 
 function reportFieldOf(report: unknown, field: string): unknown {
   return typeof report === 'object' && report !== null && Object.hasOwn(report, field) ? (report as Record<string, unknown>)[field] : undefined;
@@ -334,7 +343,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
     if (!stillWaits) return;
     if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome: gate.outcome, cached: false }, hold.at);
-    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, hold.at);
+    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, regatePhaseOf(hold.board, ticketId), hold.at);
     if (gate.outcome === 'passed') {
       hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
       return;
@@ -367,7 +376,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     for (const { ticketId } of awaiting) {
       const settled = await context.hold((hold) => {
         const branchTree = branchTreeOf(ticketId);
-        if (!hold.board.greenIsCurrent(ticketId, branchTree)) {
+        if (!hold.board.greenIsCurrent(ticketId, branchTree, hold.board.greenPhaseOf(ticketId))) {
           const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
           if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
           return { greenIsCurrent: false, changed: wasQueued };

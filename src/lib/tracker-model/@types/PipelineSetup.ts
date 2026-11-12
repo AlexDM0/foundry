@@ -3,12 +3,12 @@
  * edit and finding happens so every step can resume. Only an Apply writes `pipeline.json` from it.
  */
 import type { DraftAnswer, DraftQuestionOption } from './Draft.ts';
+import type { GatePhase }                        from './GatePhase.ts';
 import type {
-  GatePhase,
   Pipeline,
   PipelineAgentRole,
   PipelineApproval,
-  PipelineBilling
+  PipelineBilling,
 } from './Pipeline.ts';
 
 export type PipelineSetupStep = 'billing' | 'research' | 'constitution' | 'design' | 'apply';

@@ -1,5 +1,6 @@
 /** Whether a parsed progress.json is a document in the current format this build can read, and if not, the reason naming the offending field. */
 import { JsonRecordUtil }                                    from '../../../lib/json-record/JsonRecordUtil.ts';
+import { GATE_PHASES }                                       from '../../../lib/tracker-model/@types/GatePhase.ts';
 import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                   from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { FIRST_DRAFT_NUMBER }                                from '../../../lib/tracker-model/constants/DraftFields.ts';
 import { OVERSEER_STATES }                                   from '../../../lib/tracker-model/constants/OverseerStates.ts';
@@ -39,6 +40,10 @@ function reviewRoundIsWellFormed(value: unknown): value is number {
 
 function reviewBarRoundIsWellFormed(value: unknown): value is number {
   return StoredValueUtil.wholeNumberIsAtLeast(value, FIRST_REVIEW_BAR_ROUND);
+}
+
+function gatePhaseIsKnown(value: unknown): boolean {
+  return typeof value === 'string' && GATE_PHASES.some((phase) => phase === value);
 }
 
 function taskStatusIsKnown(value: unknown): boolean {
@@ -85,6 +90,9 @@ function taskProblem(value: unknown, index: number): string | null {
     return `tasks[${index}].checkCommand is present, and a row records the hash of the pipeline it was gated by instead; ${OLDER_FORMAT_ADVICE}`;
   }
   if (task['pipelineHash'] !== undefined && !textFieldIsPresent(task, 'pipelineHash')) return `tasks[${index}].pipelineHash is present and is not a hash`;
+  if (task['greenPhase'] !== undefined && !gatePhaseIsKnown(task['greenPhase'])) {
+    return `tasks[${index}].greenPhase is present and is not one of ${GATE_PHASES.join(', ')}`;
+  }
   if (task['greenTree'] !== undefined && !textFieldIsPresent(task, 'greenTree')) return `tasks[${index}].greenTree is present and is not a tree`;
   if (task['mergeQueued'] !== undefined && task['mergeQueued'] !== true) return `tasks[${index}].mergeQueued is present and is not true`;
   if (task['mergeAccepted'] !== undefined && task['mergeAccepted'] !== true) return `tasks[${index}].mergeAccepted is present and is not true`;

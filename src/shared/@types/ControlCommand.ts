@@ -3,16 +3,12 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
-import type { JobStopMode, PictureReference }      from '../../lib/tracker-model/@types/Job.ts';
-import type { OptionNote }                         from '../../lib/tracker-model/@types/OptionConsequences.ts';
-import type {
-  GatePhase,
-  PipelineApproval,
-  PipelineGate,
-  PipelineStep
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
+import type { GatePhase }                                    from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { JobStopMode, PictureReference }                from '../../lib/tracker-model/@types/Job.ts';
+import type { OptionNote }                                   from '../../lib/tracker-model/@types/OptionConsequences.ts';
+import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AgentEffort,
   AgentModel,

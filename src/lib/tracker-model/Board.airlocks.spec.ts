@@ -1,12 +1,15 @@
 /**
  * The Airlock's claim on the board. What matters: the queue is re-derived inside the hold, so a strictly higher priority queued since
- * the prediction is never jumped, a held slot is never claimed twice, and a claim writes the slot on the merge job it launches.
+ * the prediction is never jumped, a held slot is never claimed twice, and a claim writes the slot on the merge job it launches. A green
+ * is current only under the phase hash it was recorded with and with its phase stored: a row from before the phase existed fails closed.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }      from '../../testing/GreenQueue.ts';
+import { GATE_PHASES }                                  from './@types/GatePhase.ts';
 import type { BranchTreeOf, MergeTargetOf }             from './AirlockClaims.ts';
+import { PipelineUtil }                                 from './utils/PipelineUtil.ts';
 
 const AT = '2026-10-28T10:00:00+01:00';
 
@@ -37,22 +40,61 @@ describe('admitting only a current green to the Airlock', () => {
     board.setTicketMergeQueued('001', false, AT);
     const refusal = refusalDetailOf(() => board.queueTicketForMerge('001', 'main', OTHER_TREE, AT));
     expect(refusal).toEqual({ reason: 'merge-queue-without-a-current-green', ticketId: '001', headTree: OTHER_TREE });
-    board.recordPipelineJudgedBy('001', null, AT);
-    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE)).toBe(false);
+    board.recordPipelineJudgedBy('001', null, 'review', AT);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(false);
     expect(refusalDetailOf(() => board.queueTicketForMerge('001', 'main', EXAMPLE_GREEN_TREE, AT))).toMatchObject({ reason: 'merge-queue-without-a-current-green' });
   });
 });
 
+describe('the phase of a green', () => {
+  test('a gate run records its phase and that phase\'s hash on the row, and no pipeline removes both with the green', () => {
+    const { board, progress } = queuedFixture();
+    const pipeline            = board.pipeline();
+    if (pipeline === null) throw new Error('the fixture stores a pipeline');
+    expect(progress.tasks[0]).toMatchObject({ greenPhase: 'review', pipelineHash: PipelineUtil.phaseHashOf(pipeline, 'review'), greenTree: EXAMPLE_GREEN_TREE });
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, 'merge', AT);
+    expect(progress.tasks[0]).toMatchObject({ greenPhase: 'merge', pipelineHash: PipelineUtil.phaseHashOf(pipeline, 'merge') });
+  });
+
+  test('a row with a pipelineHash and no greenPhase is stale: it is no candidate, it waits for a gate run, and it cannot be queued', () => {
+    const { board, progress } = queuedFixture();
+    const [row]               = progress.tasks;
+    if (row === undefined) throw new Error('the fixture files a row for each ticket');
+    delete row.greenPhase;
+
+    expect(board.greenPhaseOf('001')).toBeNull();
+    for (const phase of GATE_PHASES) expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, phase)).toBe(false);
+    expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf).map((candidate) => candidate.ticketId)).toEqual(['002', '003']);
+    expect(board.ticketsAwaitingGreenOf('main', targetOf, branchTreeOf)).toEqual([{ ticketId: '001', queued: true }]);
+    board.setTicketMergeQueued('001', false, AT);
+    expect(refusalDetailOf(() => board.queueTicketForMerge('001', 'main', EXAMPLE_GREEN_TREE, AT))).toMatchObject({ reason: 'merge-queue-without-a-current-green' });
+  });
+
+  test('a green stays current in a phase whose gates are the ones it passed, and goes stale only where the gates changed', () => {
+    const { board } = queuedFixture();
+    board.addGate({ name: 'smoke', run: 'bun run smoke' }, AT, ['merge']);
+
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(true);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'build')).toBe(true);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'merge')).toBe(false);
+  });
+});
+
 function queuedBoard(): ReturnType<typeof boardFixture>['board'] {
-  const { board } = boardFixture({
+  return queuedFixture().board;
+}
+
+function queuedFixture(): ReturnType<typeof boardFixture> {
+  const fixture = boardFixture({
     tickets: [
       ticketFixture({ id: '001', status: 'in-review' }),
       ticketFixture({ id: '002', status: 'in-review', priority: 'high' }),
       ticketFixture({ id: '003', status: 'in-review', priority: 'low' }),
     ],
   });
-  for (const ticketId of ['001', '002', '003']) queueOnCurrentGreen(board, ticketId, 'main', AT);
-  return board;
+  for (const ticketId of ['001', '002', '003']) queueOnCurrentGreen(fixture.board, ticketId, 'main', AT);
+  return fixture;
 }
 
 function claimOf(ticketId: string): Parameters<ReturnType<typeof boardFixture>['board']['claimAirlock']>[0] {

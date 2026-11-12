@@ -3,10 +3,10 @@
  * that cannot be read whole is `malformed` with the reason, and a file an earlier release wrote is `older`, never a throw.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
+import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   type ConditionalReReview,
-  type GatePhase,
   type InstructionEntry,
   PIPELINE_FORMAT_VERSION,
   type Pipeline,

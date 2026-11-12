@@ -1,6 +1,6 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
+import type { GatePhase }                        from './@types/GatePhase.ts';
 import type { JobKind, JobMoveTarget, JobState } from './@types/Job.ts';
-import type { GatePhase }                        from './@types/Pipeline.ts';
 import type { TaskStatus }                       from './@types/Task.ts';
 import type {
   IncompleteTicket,

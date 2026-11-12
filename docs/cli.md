@@ -796,8 +796,8 @@ before the first listing is out of reach, as it is on POSIX.
 Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json`
 atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
 `pipeline.json` at exit 1 rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal
-pipeline, version 2 with no gates. A ticket's row records the hash of the pipeline it was gated by (`pipelineHash`) at
-its next gate run, which reads the pipeline afresh. `--json` on these writes prints
+pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
+(`pipelineHash`) at its next gate run, which reads the pipeline afresh. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.
 
 #### The pipeline hashes
@@ -811,8 +811,10 @@ FNV-1a hash over a canonical form, so key order and a gate list option written o
   in run order, every gate option filled. It moves only when a prepare step or that phase's gates or their order change;
   agent settings, instructions, the constitution, re-review, approvals and billing leave it as it was.
 
-Neither is the row's `pipelineHash`, which the Overseer still computes over the whole pipeline but approvals and
-billing.
+A row's `pipelineHash` is the phase hash of its `greenPhase`, taken at its last gate run. A green is current in a phase
+while the row has a `greenPhase` and its `pipelineHash` equals that phase's hash now: an edit outside a phase's prepare
+steps and gates never makes a green stale. A row with a `pipelineHash` and no `greenPhase` has no current green, so the
+Overseer gates its ticket again.
 
 #### `gate add`
 
@@ -1347,16 +1349,17 @@ is merged in by the Airlock.
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target |
 
 Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
-`greenTree` is the tree of the branch HEAD under the current `pipelineHash`; with no review phase the same rule applies
-to the builder's report. A reviewer that left the tree as it was skips its gate run only while that green is current;
-under a changed pipeline its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its
-branch HEAD's tree and its `pipelineHash` the current pipeline's, and lands a merged tree ungated only when it is that
-green tree. Before each allocation the Airlocks take a stale green (the tree or the pipeline changed) out of the queue,
-clearing `mergeQueued`, and gate the ticket's worktree with no slot held: green records the tree and queues the ticket
-again; red leaves it unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder
-of the last session that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`),
-and the next session of that kind takes it over; a gate that cannot run opens its incident on the ticket. With no review
-phase, a ticket in review that is not queued is queued there once its green is current.
+`greenTree` is the tree of the branch HEAD and its `pipelineHash` the current hash of its `greenPhase` ([the pipeline
+hashes](#the-pipeline-hashes)); with no review phase the same rule applies to the builder's report. A reviewer that left
+the tree as it was skips its gate run only while that green is current for the review phase's gates; under changed gates
+its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its branch HEAD's tree and its
+`pipelineHash` the current hash of its `greenPhase`, and lands a merged tree ungated only when it is that green tree.
+Before each allocation the Airlocks take a stale green (the tree or the pipeline changed) out of the queue, clearing
+`mergeQueued`, and gate the ticket's worktree with no slot held: green records the tree and queues the ticket again; red
+leaves it unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder of the last
+session that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`), and the next
+session of that kind takes it over; a gate that cannot run opens its incident on the ticket. With no review phase, a
+ticket in review that is not queued is queued there once its green is current.
 
 ### The Assistant
 
@@ -1576,7 +1579,8 @@ The board's state. The example shows the shape; the tables below give each key's
       "tokens": null,
       "reviewOf": "003",
       "reviewBarRound": 1,
-      "pipelineHash": "0f871814e52ef878"
+      "pipelineHash": "0f871814e52ef878",
+      "greenPhase": "review"
     }
   ]
 }
@@ -1670,8 +1674,9 @@ explorer](interactive/state-explorer.html) walks them.
 | `history` | yes | Every status the row reached, oldest first, starting with its filing; absent on a row filed before the field existed. |
 | `reviewOf` | yes | The ticket this row reviews. A row is a review bar by this key alone, never by its name. |
 | `reviewBarRound` | yes | Which review of that ticket this bar is, from 1. |
-| `pipelineHash` | yes | The content hash of the pipeline the row's ticket was last gated by. |
-| `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
+| `pipelineHash` | yes | The phase hash of the gates the row's ticket was last gated by, in `greenPhase` ([the pipeline hashes](#the-pipeline-hashes)). |
+| `greenPhase` | yes | `build`, `review` or `merge`: the phase of that gate run, written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green and is gated again; a read adds none. |
+| `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash` in `greenPhase`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
 
 </details>
 
@@ -1686,8 +1691,8 @@ Each of these reads as exit 2:
 - a `nextDraftId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or `nextIncidentId`
   below 1;
 - a present optional row key of the wrong shape: `reviewRound` below 2, `reviewBarRound` below 1, a row `pipelineHash`
-  or `greenTree` that is not text, a `history` that is not a list of known statuses with their stamps, or a
-  `mergeQueued` or `mergeAccepted` that is not `true`;
+or `greenTree` that is not text, a `greenPhase` other than `build`, `review` or `merge`, a `history` that is not a list
+of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
 - a job, decision or incident whose field is missing, outside its vocabulary or of the wrong shape;
 - an `overseerFirstStartedAt` that is not text;
 - a row or history phase in a status the file format does not know, the retired `running` or `finished` included, with

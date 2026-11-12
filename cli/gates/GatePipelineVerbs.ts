@@ -2,13 +2,9 @@
  * `gate prepare|add|order|none|remove|approval|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one control command
  * applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
  */
-import { PipelineFile } from '../../src/adapters/pipeline/PipelineFile.ts';
-import {
-  GATE_PHASES,
-  type GatePhase,
-  type Pipeline,
-  type PipelineGate
-}                                                         from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { PipelineFile }                                   from '../../src/adapters/pipeline/PipelineFile.ts';
+import { GATE_PHASES, type GatePhase }                    from '../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { Pipeline, PipelineGate }                    from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
 import { ControlService }                                 from '../../src/services/control/ControlService.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';

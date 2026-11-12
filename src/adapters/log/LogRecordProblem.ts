@@ -1,7 +1,7 @@
 /** Whether one parsed log.jsonl line is a well-formed record of a known kind, and if not, the reason naming the offending field. */
 import { JsonRecordUtil }     from '../../lib/json-record/JsonRecordUtil.ts';
+import { GATE_PHASES }        from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { LogRecordKind } from '../../lib/tracker-model/@types/LogRecord.ts';
-import { GATE_PHASES }        from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   DECISION_KINDS,
   INCIDENT_DEFAULT_CAUSES,

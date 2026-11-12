@@ -2,6 +2,7 @@
  * The tracker-model building block: the records of a board and their vocabularies and rules. It imports nothing outside its own
  * folder and no Node builtin, because it is also compiled under DOM-only options.
  */
+import type { GatePhase } from './GatePhase.ts';
 
 export type TaskStatus = 'pending' | 'in-progress' | 'paused' | 'in-review' | 're-review' | 'reviewed' | 'delivered' | 'abandoned';
 
@@ -47,11 +48,16 @@ export interface Task {
   reviewOf?:       string;
   /** Which review of the `reviewOf` ticket this bar is, from 1, fixed when the bar is filed; unlike `reviewRound`, no transition moves it. */
   reviewBarRound?: number;
-  /** The content hash of the pipeline the row's ticket was last gated by; absent before its first gate run, or when none was stored then. */
-  pipelineHash?:   string;
   /**
-   * The tree OID the Overseer's last gate run on the row's ticket passed, judged by `pipelineHash`; absent before a green run, and removed by
-   * a run that was not green.
+   * The phase hash of the gates the row's ticket was last gated by, in `greenPhase`; absent before its first gate run, or when no pipeline
+   * was stored then.
+   */
+  pipelineHash?:   string;
+  /** The phase of that gate run; written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green. */
+  greenPhase?:     GatePhase;
+  /**
+   * The tree OID the Overseer's last gate run on the row's ticket passed, judged by `pipelineHash` in `greenPhase`; absent before a green
+   * run, and removed by a run that was not green.
    */
   greenTree?:      string;
   /** On a ticket's row once its review passed, until it lands or leaves in-review; absent on every other row. */

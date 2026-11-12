@@ -128,7 +128,7 @@ testWhenGitIsRecorded('merge update: merges the target into the worktree with no
   expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', ticketId: '001', fields: { target: 'main', outcome: 'merged' } }] });
   expect(board.jobs()).toEqual([]);
   expect(board.ticketIsMergeQueued('001')).toBe(true);
-  expect(board.greenIsCurrent('001', MERGED_TREE)).toBe(false);
+  expect(board.greenIsCurrent('001', MERGED_TREE, board.greenPhaseOf('001'))).toBe(false);
 });
 
 testWhenGitIsRecorded('merge update: a conflict is aborted, the worktree put back at its tip, and the ticket loses its review done and its accept', async () => {

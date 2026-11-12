@@ -3,16 +3,16 @@
  * phase, the instruction list a role reads, and the folders its gates write. The steps stay structured: each runs as its own process,
  * and a display line is the shell grammar's to render.
  */
+import type { GatePhase } from '../@types/GatePhase.ts';
+import { GATE_PHASES }    from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
-  GatePhase,
   InstructionEntry,
   Pipeline,
   PipelineAgentRole,
   PipelineGate,
-  PipelineStep,
+  PipelineStep
 } from '../@types/Pipeline.ts';
-import { GATE_PHASES }                  from '../@types/Pipeline.ts';
 import { DEFAULT_INSTRUCTIONS_OF_ROLE } from '../constants/PipelineDefaults.ts';
 import { TicketBodyHashUtil }           from './TicketBodyHashUtil.ts';
 
@@ -67,11 +67,6 @@ function canonicalShapeOf(pipeline: Readonly<Pipeline>): object {
   };
 }
 
-/** A hand edit that only reorders keys or reindents keeps the hash. */
-function pipelineHashOf(pipeline: Readonly<Pipeline>): string {
-  return TicketBodyHashUtil.bodyHashOf(JSON.stringify(canonicalShapeOf(pipeline)));
-}
-
 /** The gates a phase runs, in its order; a name with no definition is left out, which a readable file never holds. */
 function gatesOfPhase(pipeline: Readonly<Pipeline>, phase: GatePhase): PipelineGate[] {
   return pipeline.phases[phase].flatMap((name) => pipeline.gates.filter((gate) => gate.name === name));
@@ -118,7 +113,6 @@ export const PipelineUtil = Object.freeze({
   gateCatalogueOf,
   gatesOfPhase,
   phaseHashOf,
-  pipelineHashOf,
   resolvedInstructionsOf,
   writablePathsOf,
 });

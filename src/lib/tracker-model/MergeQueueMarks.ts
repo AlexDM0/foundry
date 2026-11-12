@@ -3,6 +3,7 @@
  * waits in review to land. Leaving in-review clears it.
  */
 import type { Logged }       from './@types/BoardChanges.ts';
+import type { GatePhase }    from './@types/GatePhase.ts';
 import type { Task }         from './@types/Task.ts';
 import type { BoardRecords } from './BoardRecords.ts';
 import { BoardRefusal }      from './BoardRefusal.ts';
@@ -31,10 +32,10 @@ export class MergeQueueMarks {
 
   /**
    * A passing review's queuing: the mark, and the `merge-queued` record whose place in the log is the ticket's readiness to land. Refused
-   * unless the ticket's green is current on `headTree`, the tree of its branch HEAD as git read it.
+   * unless the ticket's green is current in its own phase on `headTree`, the tree of its branch HEAD as git read it.
    */
   queueTicketForMerge(ticketId: string, target: string, headTree: string | null, at: string): Logged {
-    if (!this.greenIsCurrent(ticketId, headTree)) throw new BoardRefusal({ reason: 'merge-queue-without-a-current-green', ticketId, headTree });
+    if (!this.greenIsCurrent(ticketId, headTree, this.greenPhaseOf(ticketId))) throw new BoardRefusal({ reason: 'merge-queue-without-a-current-green', ticketId, headTree });
     this.setTicketMergeQueued(ticketId, true, at);
     return { logged: [this.records.logger.log({ kind: 'merge-queued', ticketId, fields: { target } }, at)] };
   }
@@ -74,11 +75,24 @@ export class MergeQueueMarks {
     return ticket !== undefined && this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true;
   }
 
-  /** The row's `greenTree` is `headTree` and its `pipelineHash` the stored pipeline's: the Overseer gated exactly this tree under these gates. */
-  greenIsCurrent(ticketId: string, headTree: string | null): boolean {
-    const ticket = this.records.ticketRecordById(ticketId);
-    const row    = ticket === undefined ? undefined : this.records.linkedTaskRecordOf(ticket);
+  /**
+   * The row's `greenTree` is `headTree` and its `pipelineHash` the stored pipeline's hash of `phase`: the Overseer gated exactly this tree
+   * under the gates `phase` runs now, in whichever phase that run was. A row without `greenPhase`, or a `null` phase, is never current.
+   */
+  greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null): boolean {
+    const row          = this.rowOf(ticketId);
     const { pipeline } = this.records;
-    return headTree !== null && pipeline !== null && row?.greenTree === headTree && row.pipelineHash === PipelineUtil.pipelineHashOf(pipeline);
+    return headTree !== null && phase !== null && pipeline !== null && row?.greenPhase !== undefined && row.greenTree === headTree
+      && row.pipelineHash === PipelineUtil.phaseHashOf(pipeline, phase);
+  }
+
+  /** The phase whose gates the row's `pipelineHash` hashes; `null` before its first gate run, and on a row stored without one. */
+  greenPhaseOf(ticketId: string): GatePhase | null {
+    return this.rowOf(ticketId)?.greenPhase ?? null;
+  }
+
+  private rowOf(ticketId: string): Readonly<Task> | undefined {
+    const ticket = this.records.ticketRecordById(ticketId);
+    return ticket === undefined ? undefined : this.records.linkedTaskRecordOf(ticket);
   }
 }

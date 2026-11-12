@@ -70,12 +70,6 @@ import { storedLogTextOf }                                      from '../testing
 import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
 import { OverseerWording }                                      from './OverseerWording.ts';
 
-/**
- * `PipelineUtil.pipelineHashOf` of the pipeline the case below stores, the row's hash: `gate list` prints other hashes, and no `cli/` file
- * calls it. Retake it from `src/lib/tracker-model/utils/PipelineUtil.ts` when its canonical form changes.
- */
-const CHECKS_AND_TYPES_ROW_HASH = '672d81a8a742e45f';
-
 const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
@@ -402,16 +396,17 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(Object.keys(progress.tasks.find((task) => task.ticket === '001') ?? {})).not.toContain('greenTree');
   });
 
-  test('a changed pipeline is gated without a restart, and the row records the hash of the pipeline it was judged by', async () => {
+  test('a changed pipeline is gated without a restart, and the row records the build phase and the hash of its gates', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'add', 'types', '--', 'true']);
+    const listed = JSON.parse((await run(['gate', 'list', '--json'])).outputText()) as { phaseHashes: { build: string } };
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
 
     expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
-    type StoredRow = { ticket: string | null; pipelineHash?: string; greenTree?: string };
+    type StoredRow = { ticket: string | null; pipelineHash?: string; greenPhase?: string; greenTree?: string };
     const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: StoredRow[] };
-    expect(progress.tasks.find((task) => task.ticket === '001')?.pipelineHash).toBe(CHECKS_AND_TYPES_ROW_HASH);
+    expect(progress.tasks.find((task) => task.ticket === '001')).toMatchObject({ pipelineHash: listed.phaseHashes.build, greenPhase: 'build' });
     const gatedTree = loggedEntries('gate-ran').at(-1)?.fields['tree'];
     expect(gatedTree).toEqual(expect.any(String));
     expect(progress.tasks.find((task) => task.ticket === '001')?.greenTree).toBe(gatedTree as string);

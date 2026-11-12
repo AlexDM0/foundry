@@ -166,7 +166,7 @@ ticket and its own row point at each other.
 | Job | Job | many to 0..1 | `parentJobId` | A [merge agent](../glossary.md#merge-agent)'s job names the `merge` or `refresh` job that launched it, and a fresh product owner names the one it took over from. `null` otherwise. |
 | Decision, Incident | Ticket | many to many | `ticketIds` | |
 | Decision, Incident | Job | many to 0..1 | `jobId` | `null` when no job is behind it. A build or review job ending `replaced` or `stopped` hands its open `agent-question` decisions to the ticket: `jobId` becomes `null` and the answer goes to `## Questions`. |
-| Row | Pipeline | many to 0..1 | `pipelineHash` | A content hash, not a pointer: the pipeline the ticket was last gated by. |
+| Row | Pipeline | many to 0..1 | `pipelineHash`, `greenPhase` | A phase hash, not a pointer: the prepare steps and gates of the phase the ticket was last gated in. |
 | Filing draft | Ticket | 1 to many | `draft-closed` log record | Stored in the log only. |
 
 ## Identity
@@ -218,7 +218,7 @@ what else each side adds.
 | --- | --- |
 | Title, type, body, priority, size, `model`, `effort`, `network` | Bar span `start` and `end`, `owner`, `note` |
 | `filed`, `updated`, `started`, `finished`, `delivered`, `abandonedAt` | `tokens`, `history`, `reviewed`, `reviewRound` |
-| `hold`, `group`, `branch`, `commit`, `reason`, `dependsOn`, `epics` | `mergeQueued`, `pipelineHash`, `agent` |
+| `hold`, `group`, `branch`, `commit`, `reason`, `dependsOn`, `epics` | `mergeQueued`, `pipelineHash`, `greenPhase`, `agent` |
 
 > **As built.** No command sets a row's `agent` key; see
 > [dead code and unused states](../reference/known-gaps.md#gap-dead-code-and-unused-states).

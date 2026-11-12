@@ -418,17 +418,21 @@ picks it up, and a malformed edit stops ticket work.
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
 
-### `pipelineHashOf`
+### `phaseHashOf`
 
-The hash is a record of what judged a row; no decision reads it.
+The phase hash says which gates judged a row's green, and whether that green is still current.
 
-`PipelineUtil.pipelineHashOf` hashes a canonical form: every key in a fixed order, missing options filled, `agents`
-sorted by role. A hand edit that only reorders keys or reindents keeps the hash. Reordering gates changes it, because
-run order means something.
+`PipelineUtil.phaseHashOf` hashes a canonical form of the prepare steps and one phase's gates in run order, missing
+options filled. A hand edit that only reorders keys or reindents keeps the hash. Reordering a phase's gates changes it,
+because run order means something; agent settings, instructions, the constitution, re-review, approvals and billing
+leave it as it was, so editing them never makes a green stale.
 
-The hash appears in a [row's](../glossary.md#row) `pipelineHash`, set by `recordPipelineJudgedBy` when a build or
-review job settles its gates. `gate list --json` and the `gate` writes print `PipelineUtil.contentHashOf` and one
-`PipelineUtil.phaseHashOf` per phase in its place ([the pipeline hashes](../cli.md#the-pipeline-hashes)).
+A [row](../glossary.md#row) holds the hash as `pipelineHash` beside the phase it was taken in, `greenPhase`, both set by
+`recordPipelineJudgedBy` when a gate run settles. `MergeQueueMarks.greenIsCurrent` holds a green current in a phase while
+the row has a `greenPhase`, its `greenTree` is the tree and its `pipelineHash` equals that phase's hash now; a row
+stored before `greenPhase` existed is never current, so its ticket is gated again. `gate list --json` and the `gate`
+writes print `PipelineUtil.contentHashOf` and one `phaseHashOf` per phase
+([the pipeline hashes](../cli.md#the-pipeline-hashes)).
 
 ## The pipeline agent
 
@@ -584,8 +588,8 @@ interprets them.
 | Reuse of a passed tree | `src/services/overseer/Airlocks.ts` | `mergedTreeWasLastPassed` | `src/services/overseer/Airlocks.spec.ts` |
 | What a session gets of the gates | `src/services/overseer/WorkerProfiles.ts` | `workerToolchainOf` | |
 | Pipeline file | `src/adapters/pipeline/PipelineFile.ts` | `read`, `contentsOf` | `src/adapters/pipeline/PipelineFile.spec.ts` |
-| Pipeline hash | `src/lib/tracker-model/utils/PipelineUtil.ts` | `pipelineHashOf` | |
-| Row's pipeline hash | `src/lib/tracker-model/TrackerChanges.ts` | `recordPipelineJudgedBy` | |
+| Pipeline hashes | `src/lib/tracker-model/utils/PipelineUtil.ts` | `phaseHashOf`, `contentHashOf` | `src/lib/tracker-model/utils/PipelineUtil.spec.ts` |
+| Row's phase hash and green phase | `src/lib/tracker-model/TrackerChanges.ts`, `src/lib/tracker-model/MergeQueueMarks.ts` | `recordPipelineJudgedBy`, `greenIsCurrent`, `greenPhaseOf` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `trackedInstructionPathsOf`, `DEFAULT_INSTRUCTIONS_OF_ROLE` (`src/lib/tracker-model/constants/PipelineDefaults.ts`) | |
 | Pipeline agent job | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `pipelineAgentFactsOf`, `pipelineAgentProfileOf`, `settleEndedPipelineAgents` | |
 | Twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice`, `verdictOf` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |

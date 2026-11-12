@@ -2,7 +2,7 @@
  * The model does not hold the format's `version`, so the mapping strips it and puts `version` 2 back first on the way out. Keys the tool
  * does not know are the owner's, so they survive both ways, at the top level, on rows and on a row's phases, in the file's order. A property
  * the model carries that is neither mapped nor read from the file is what a model field added without a stored form looks like at runtime,
- * and it never reaches the file.
+ * and it never reaches the file. An optional row key such as `greenPhase` is written only once set, so a file without it keeps its bytes.
  */
 import { expect, test } from 'bun:test';
 
@@ -116,4 +116,24 @@ test('a progress built in memory, with no file behind it, is written with only t
   fileRow(progress, { name: 'Example build' });
   Object.assign(progress.tasks[0] ?? {}, { addedModelField: 'unmapped' });
   expect(JSON.stringify(ProgressFileMappingUtil.storedDocumentOf(progress))).not.toContain('addedModelField');
+});
+
+test('a row\'s greenPhase is written only once set: a row stored without it is written back byte for byte, and one with it keeps it', () => {
+  const progress = emptyProgress();
+  fileRow(progress, { name: 'Example build' });
+  const [row]       = progress.tasks;
+  const gatedRow    = { ...row, pipelineHash: '0f871814e52ef878', greenTree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904' };
+  const textOf      = (tasks: object[]): string => JsonTextUtil.storedFileTextOf({
+    version: 2, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: progress.nextTaskId, tasks,
+  });
+  const withoutPhase = textOf([gatedRow]);
+  const withPhase    = textOf([{ ...gatedRow, greenPhase: 'review' }]);
+
+  const mappedWithout = ProgressFileMappingUtil.progressOf(storedDocumentOf(withoutPhase));
+  expect(Object.keys(mappedWithout.tasks[0] ?? {})).not.toContain('greenPhase');
+  expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mappedWithout))).toBe(withoutPhase);
+
+  const mappedWith = ProgressFileMappingUtil.progressOf(storedDocumentOf(withPhase));
+  expect(mappedWith.tasks[0]?.greenPhase).toBe('review');
+  expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mappedWith))).toBe(withPhase);
 });

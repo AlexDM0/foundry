@@ -18,6 +18,7 @@ import { PORTABLE_GIT_SETTINGS } from '../../lib/git/constants/GitConventions.ts
 import { GitArgumentsUtil }      from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { PlatformPorts }    from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellExitReport }  from '../../lib/shell-line/ShellLine.ts';
+import type { GatePhase }        from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   Job,
@@ -736,17 +737,23 @@ function redHandoffCauseOf(context: Pick<JobLaunchContext, 'workspace'>, job: Re
 /** The Customs checks a resumed session can put right in its own worktree: a dirty worktree, no commit, missing or stale gate claims. */
 const RESUMABLE_CUSTOMS_CHECKS: readonly string[] = ['V3', 'V4', 'V15'];
 
+/** The phase whose gates judge a job's worktree: a review job's are the review phase's, a build job's the build phase's. */
+function gatePhaseOfJob(job: Readonly<Job>): GatePhase {
+  return job.kind === REVIEW_JOB_KIND ? 'review' : 'build';
+}
+
 function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
   const { gate } = observation;
   if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
   const { board, at } = hold.change;
-  if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId)) {
+  const phase = gatePhaseOfJob(job);
+  if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId, phase)) {
     const jobFolder = jobFolderOf(hold.context.workspace, job);
     mkdirSync(jobFolder, { recursive: true });
     writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
-  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, at);
+  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, phase, at);
   if (gate.outcome === 'setup-failed') {
     openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });

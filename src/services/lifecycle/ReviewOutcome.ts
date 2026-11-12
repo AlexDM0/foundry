@@ -287,7 +287,7 @@ function answerWaiver(
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, allowsPastPending: true }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
-  if (board.greenIsCurrent(ticketId, headTree)) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
+  if (board.greenIsCurrent(ticketId, headTree, board.greenPhaseOf(ticketId))) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
   return { answer: answered.answer, logged };
 }
 

@@ -4,6 +4,7 @@
  */
 import type { LogFieldShape, LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS } from '../constants/LogRecordSchema.ts';
 import type { DecisionAnswer, DecisionKind }                             from './Decision.ts';
+import type { GatePhase }                                                from './GatePhase.ts';
 import type { IncidentDefaultCause, IncidentKind, IncidentMove }         from './Incident.ts';
 import type {
   GateOutcome,
@@ -16,7 +17,6 @@ import type {
   OverseerStopReason,
   PictureReference
 }                                                                        from './Job.ts';
-import type { GatePhase }                                 from './Pipeline.ts';
 import type { ReviewClaim, ReviewFinding, ReviewVerdict } from './ReviewRecord.ts';
 import type { AgentPair, TicketPriority, TicketSize }     from './Ticket.ts';
 import type { OverseerState, ViewRange }                  from './TrackerProgress.ts';

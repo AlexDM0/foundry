@@ -3,6 +3,7 @@
  * compile instead of silently changing the format.
  */
 import type { DecisionAsker, DecisionKind } from '../../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase }                   from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { IncidentKind, IncidentMove }  from '../../../lib/tracker-model/@types/Incident.ts';
 import type {
   InterruptionCause,
@@ -40,6 +41,7 @@ export interface StoredTask {
   reviewOf?:       string;
   reviewBarRound?: number;
   pipelineHash?:   string;
+  greenPhase?:     GatePhase;
   greenTree?:      string;
   mergeQueued?:    true;
   mergeAccepted?:  true;
