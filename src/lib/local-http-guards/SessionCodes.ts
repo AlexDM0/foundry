@@ -41,13 +41,15 @@ function freshSecret(): string {
   return randomBytes(SECRET_BYTES).toString('hex');
 }
 
-function cookieValueIn(request: Request, cookieName: string): string | null {
+/** Every value under the name: a page on another port of 127.0.0.1 can set a cookie of the same name on a longer path, which comes first. */
+function cookieValuesIn(request: Request, cookieName: string): string[] {
   const cookieHeader = request.headers.get('cookie') ?? '';
+  const cookieValues: string[] = [];
   for (const pair of cookieHeader.split(COOKIE_PAIR_SEPARATOR)) {
     const separatorIndex = pair.indexOf(COOKIE_NAME_VALUE_SEPARATOR);
-    if (separatorIndex > 0 && pair.slice(0, separatorIndex).trim() === cookieName) return pair.slice(separatorIndex + 1).trim();
+    if (separatorIndex > 0 && pair.slice(0, separatorIndex).trim() === cookieName) cookieValues.push(pair.slice(separatorIndex + 1).trim());
   }
-  return null;
+  return cookieValues;
 }
 
 export function createSessionCodes(options: SessionCodesOptions): SessionCodes {
@@ -77,9 +79,7 @@ export function createSessionCodes(options: SessionCodesOptions): SessionCodes {
       sessionDigests.add(digestOf(sessionSecret));
       return { verdict: 'exchanged', setCookieHeader: `${options.cookieName}=${sessionSecret}; Path=/; HttpOnly; SameSite=Strict` };
     },
-    requestHoldsSession: (request) => {
-      const sessionSecret = cookieValueIn(request, options.cookieName);
-      return sessionSecret !== null && sessionSecret !== '' && sessionDigests.has(digestOf(sessionSecret));
-    },
+    requestHoldsSession: (request) => cookieValuesIn(request, options.cookieName)
+      .some((sessionSecret) => sessionSecret !== '' && sessionDigests.has(digestOf(sessionSecret))),
   };
 }

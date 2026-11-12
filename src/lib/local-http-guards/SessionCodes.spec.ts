@@ -96,6 +96,12 @@ describe('a session', () => {
     expect(sessionCodes.requestHoldsSession(requestWithCookie(`theme=dark; ${cookiePair}`))).toBe(true);
   });
 
+  test('is held by the cookie a code bought behind a cookie of the same name that another port\'s page set on a longer path', () => {
+    const { sessionCodes } = sessionCodesOnAClock();
+    const cookiePair = cookiePairOf(exchangedSetCookieHeader(sessionCodes));
+    expect(sessionCodes.requestHoldsSession(requestWithCookie(`${COOKIE_NAME}=${'0'.repeat(64)}; ${cookiePair}`))).toBe(true);
+  });
+
   test('outlives the code\'s life', () => {
     const { sessionCodes, advanceClock } = sessionCodesOnAClock();
     const cookiePair = cookiePairOf(exchangedSetCookieHeader(sessionCodes));
