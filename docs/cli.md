@@ -913,8 +913,8 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 `status`, the Next line, `concurrency`, the Bridge header and the Overseer's launch gate read one count: the live
 `build` and `review` jobs (`LaunchSlotUtil`). A job keeps its launch slot in every state, waiting for an answer and
 interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
-kind decides, never the role: a merge agent runs as its ticket's builder or reviewer and still takes none. No row takes
-a launch slot: a `task add --start` row or a review bar with no live job counts nothing.
+kind decides, never the role: a merge agent runs as its ticket's last worker or as a conflict re-reviewer and still
+takes none. No row takes a launch slot: a `task add --start` row or a review bar with no live job counts nothing.
 
 ### Pipeline setup
 

@@ -182,8 +182,8 @@ a ticket, a `merge` job holding a target's Airlock (with a `merge-agent` job: th
 for a conflict or a red merged tree, or a conflict re-reviewer of a large resolution), a `product-owner` job running an
 intake, and the one `assistant` job, the Assistant. `{{program}} jobs` lists them with their state (`launching`,
 `preparing`, `running`, `in-customs`, `gating`, `waiting-for-answer`, `stopping`, …); `job show` and `job attach` read
-one. A job is verified by code before
-anything it reports counts: its report, its commits and the checks line run on its tree.
+one. A job is verified by code before anything it reports counts: its report, its commits and the checks line run on its
+tree.
 
 **A decision** is a question for User, kept on the board until answered: an agent's own question (`agent-question`),
 a parked ticket, a proposed waiver, a refused landing or merge, and the other kinds

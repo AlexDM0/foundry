@@ -189,8 +189,8 @@ build or review job, read from the log whatever the pipeline says now (`JobResum
 it is the reviewer, or the builder when the pipeline has no review step. The Airlock launches a `merge-agent` job with
 that job's [role](../glossary.md#role) (`airlockAgentRoleOf`) in the Airlock's worktree. It resumes that job's session,
 so the agent keeps its own record of the branch. Merge approval changes none of this: an accepted ticket runs the same
-train. A conflict's first message names
-the target tip and the conflicted files; a red gate's is the [red handoff](../glossary.md#red-handoff) message.
+train. A conflict's first message names the target tip and the conflicted files; a red gate's is the
+[red handoff](../glossary.md#red-handoff) message.
 
 The agent may not ask a person: the question tool is off while the Airlock slot is held. It is bounded by the red
 handoff's [call budget](../glossary.md#call-budget) and reports `resolved` or `cannot-resolve`. The report's optional
@@ -429,7 +429,7 @@ next refresh until the decision closes.
 4. A landing moves the target and then the ticket in one lock hold. A crash between those two writes is finished later
    through `already-landed`.
 5. Every exit from an Airlock restores the worktree to its recorded start, except a landing.
-6. No Airlock agent asks a person, and an Airlock agent is always the ticket's own builder or reviewer.
+6. No Airlock agent asks a person, and an Airlock agent is always the ticket's last worker or a conflict re-reviewer.
 7. A refresh and a release of one group never run at once.
 8. No removal in a group's cleanup is forced.
 
