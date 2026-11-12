@@ -7,7 +7,6 @@ import type {
   GatePhase,
   Pipeline,
   PipelineAgentRole,
-  PipelineApproval,
   PipelineDraftField
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { GATE_PHASES, PIPELINE_FORMAT_VERSION } from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -74,9 +73,6 @@ const PIPELINE_INSERT_SLOT_IDS = Object.freeze({
 
 const NODE_IDS = PIPELINE_FLOW_NODE_IDS;
 
-/** An absent `tickets` approval is on; an absent `merge` approval is off. */
-const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({ tickets: true, merge: false });
-
 /** Where a node stands in the flow and what it is, before its settings and marks are filled in. */
 interface NodePlace {
   nodeId:         string;
@@ -104,10 +100,6 @@ function minimalPipelineOf(): Pipeline {
   };
 }
 
-function approvalIsOn(pipeline: Pipeline, approval: PipelineApproval): boolean {
-  return pipeline.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];
-}
-
 function placeOf(nodeId: string, nodeKind: PipelineNodeKind, changes: Partial<NodePlace> = {}): NodePlace {
   return {
     nodeId, nodeKind, role: null, phase: null, mergePlacement: null, derivedFrom: null, thresholdLines: null, ...changes,
@@ -121,7 +113,7 @@ function placeOf(nodeId: string, nodeKind: PipelineNodeKind, changes: Partial<No
 function nodePlacesOf(pipeline: Pipeline, phaseIsDrawn: (phase: GatePhase) => boolean): NodePlace[] {
   const { review }                 = pipeline;
   const airlockReReview            = pipeline.airlock?.reReview;
-  const humanCodeReviewIsOn        = approvalIsOn(pipeline, 'merge');
+  const humanCodeReviewIsOn        = PipelineChangeUtil.approvalIsOn(pipeline, 'merge');
   const lastWorker                 = review === undefined ? 'builder' : 'last-worker';
   const phaseBeforeHumanCodeReview = review === undefined ? 'build' : 'review';
   const gatesPlaceOf = (nodeId: string, phase: GatePhase): NodePlace[] => (phaseIsDrawn(phase) ? [placeOf(nodeId, 'gates', { phase })] : []);
@@ -262,8 +254,8 @@ function gateChipsOfPlace(context: GraphContext, place: NodePlace): PipelineGate
 }
 
 function switchStateOf(context: GraphContext, place: NodePlace): PipelineFlowNode['switchState'] {
-  if (place.nodeKind === 'human-ticket-review') return approvalIsOn(context.draft, 'tickets') ? 'on' : 'off';
-  if (place.nodeKind === 'human-code-review') return approvalIsOn(context.draft, 'merge') ? 'on' : 'off';
+  if (place.nodeKind === 'human-ticket-review') return PipelineChangeUtil.approvalIsOn(context.draft, 'tickets') ? 'on' : 'off';
+  if (place.nodeKind === 'human-code-review') return PipelineChangeUtil.approvalIsOn(context.draft, 'merge') ? 'on' : 'off';
   return null;
 }
 
@@ -328,7 +320,7 @@ function slotOf(slotId: string, after: string, offeredSteps: PipelineInsertableS
  */
 function insertSlotsOf(draft: Pipeline, drawn: ReadonlySet<string>): PipelineInsertSlot[] {
   const { review } = draft;
-  const humanCodeReviewIsOn = approvalIsOn(draft, 'merge');
+  const humanCodeReviewIsOn = PipelineChangeUtil.approvalIsOn(draft, 'merge');
   const buildGatesMissing   = draft.phases.build.length === 0;
   const afterBuilderSteps: PipelineInsertableStep[] = [
     ...(buildGatesMissing ? ['build-gates' as const] : []),

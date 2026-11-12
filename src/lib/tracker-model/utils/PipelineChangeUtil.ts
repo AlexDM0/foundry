@@ -49,6 +49,10 @@ const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
 /** An absent `tickets` approval is on; an absent `merge` approval is off. */
 const APPROVAL_IS_ON_WHEN_ABSENT: Readonly<Record<PipelineApproval, boolean>> = Object.freeze({ tickets: true, merge: false });
 
+function approvalIsOn(pipeline: Readonly<Pipeline>, approval: PipelineApproval): boolean {
+  return pipeline.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];
+}
+
 /** Object keys sorted and absent keys dropped, so a hand edit that only reorders keys compares equal; array order counts. */
 function comparableTextOf(value: unknown): string {
   return JSON.stringify(value, (_key, nested: unknown) => {
@@ -137,8 +141,8 @@ function roleChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): Pip
 
 function approvalChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
   return PIPELINE_APPROVALS.flatMap((approval) => {
-    const before = base.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];
-    const after  = draft.approvals?.[approval] ?? APPROVAL_IS_ON_WHEN_ABSENT[approval];
+    const before = approvalIsOn(base, approval);
+    const after  = approvalIsOn(draft, approval);
     return before === after ? [] : [{
       field: `approval:${approval}` as const, change: 'changed' as const, before, after
     }];
@@ -178,6 +182,7 @@ function changedFieldNamesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>
 }
 
 export const PipelineChangeUtil = Object.freeze({
+  approvalIsOn,
   changedFieldNamesOf,
   changesBetween,
 });

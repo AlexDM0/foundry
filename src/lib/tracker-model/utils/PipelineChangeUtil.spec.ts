@@ -145,6 +145,13 @@ describe('the change list', () => {
     expect(PipelineChangeUtil.changesBetween(BASE, draft, false)).toEqual([]);
   });
 
+  test('approvalIsOn reads an absent ticket review as on and an absent merge approval as off, and a stored value as stored', () => {
+    expect(PipelineChangeUtil.approvalIsOn(BASE, 'tickets')).toBe(true);
+    expect(PipelineChangeUtil.approvalIsOn(BASE, 'merge')).toBe(false);
+    expect(PipelineChangeUtil.approvalIsOn({ ...BASE, approvals: { tickets: false, merge: true } }, 'tickets')).toBe(false);
+    expect(PipelineChangeUtil.approvalIsOn({ ...BASE, approvals: { tickets: false, merge: true } }, 'merge')).toBe(true);
+  });
+
   test('names an approval only when its effect changes, an absent ticket review being on and an absent merge approval off', () => {
     expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, approvals: { tickets: true, merge: false } }, false)).toEqual([]);
     expect(PipelineChangeUtil.changesBetween(BASE, { ...BASE, approvals: { merge: true } }, false)).toEqual([
