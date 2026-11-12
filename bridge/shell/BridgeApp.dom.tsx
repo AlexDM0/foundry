@@ -687,6 +687,18 @@ describe('the Gaia embed channel', () => {
     expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
   });
 
+  test('navigate that moves the address bar but leaves the route shown is answered with the route shown', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents/'
+    });
+    expect(window.location.hash).toBe('#agents/');
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
   test('a message of another channel version, another channel or agent-dashboard\'s shape is ignored and answered by nothing', async () => {
     window.location.hash = '#agents';
     const { bridge, posted, parent } = gaiaBridge();

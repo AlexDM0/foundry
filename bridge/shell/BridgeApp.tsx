@@ -63,6 +63,7 @@ import {
   DEFAULT_TAB,
   HashRouter,
   TAB_CHOICE_NAME,
+  type BridgeRoute,
   type BridgeTab
 } from './HashRouter.ts';
 import { Header }                                               from './Header.tsx';
@@ -220,7 +221,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   }, [services]);
 
   const routeFragment = HashRouter.fragmentOf({ tab: routeTab, item: routeItem });
-  useGaiaEmbedChannel(services, routeFragment, sessionLoss !== null);
+  useGaiaEmbedChannel(services, addressedRoute, routeFragment, sessionLoss !== null);
 
   // `#questions/<id>` opens that open question's panel, when the route arrives and when the question does.
   const routedQuestionId = routeTab === 'questions' ? routeItem : null;
@@ -483,12 +484,14 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 
 /**
  * Gaia's side of the versioned embed channel: `ready` once per load after the shell painted and listens, `route` whenever the shown route
- * changes, `session-lost` when the session goes, and a parent's `navigate` followed; a `navigate` to the route shown answers `route` at once.
+ * changes, `session-lost` when the session goes, and a parent's `navigate` followed and always answered with the route shown: at once when
+ * the address bar does not move, else once the route it moved to is shown, also when that is the route shown before.
  */
-function useGaiaEmbedChannel(services: BridgeServices, routeFragment: string, sessionIsLost: boolean): void {
+function useGaiaEmbedChannel(services: BridgeServices, addressedRoute: BridgeRoute, routeFragment: string, sessionIsLost: boolean): void {
   const readyWasPosted = useRef(false);
   const postedRouteFragment = useRef<string | null>(null);
   const shownRouteFragment = useRef(routeFragment);
+  const navigationAwaitsAnswer = useRef(false);
   const isGaia = services.embeddingHost === 'gaia';
 
   useEffect(() => {
@@ -500,8 +503,10 @@ function useGaiaEmbedChannel(services: BridgeServices, routeFragment: string, se
     const surroundings = services.embeddedSurroundings();
     const follower = VersionedEmbedChannel.followParent(surroundings, {
       onNavigate: (fragment) => {
-        if (fragment === shownRouteFragment.current) VersionedEmbedChannel.post(surroundings, { kind: 'route', fragment });
-        else window.location.hash = fragment;
+        const addressedFragmentBefore = window.location.hash;
+        window.location.hash = fragment;
+        if (window.location.hash === addressedFragmentBefore) VersionedEmbedChannel.post(surroundings, { kind: 'route', fragment: shownRouteFragment.current });
+        else navigationAwaitsAnswer.current = true;
       },
     });
     if (!readyWasPosted.current) {
@@ -511,11 +516,13 @@ function useGaiaEmbedChannel(services: BridgeServices, routeFragment: string, se
     return () => follower.close();
   }, [services, isGaia]);
 
+  // A moved address bar always gives a new addressed route, so a navigation is answered even where the route shown stays the same.
   useEffect(() => {
-    if (!isGaia || postedRouteFragment.current === routeFragment) return;
+    if (!isGaia || (postedRouteFragment.current === routeFragment && !navigationAwaitsAnswer.current)) return;
+    navigationAwaitsAnswer.current = false;
     postedRouteFragment.current = routeFragment;
     VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'route', fragment: routeFragment });
-  }, [services, isGaia, routeFragment]);
+  }, [services, isGaia, routeFragment, addressedRoute]);
 
   useEffect(() => {
     if (isGaia && sessionIsLost) VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'session-lost' });
