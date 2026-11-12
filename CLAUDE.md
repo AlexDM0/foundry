@@ -56,7 +56,8 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the s
 | The clock | an injected `now` and injected timers |
 
 Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers (`src/testing/RecordedRuns.ts` for
-process-run, `src/testing/RecordedAnswers.ts` for overseer-fetch, one answer set per situation of the forge). A fixture for a forge contract
+process-run, `src/testing/RecordedAnswers.ts` for overseer-fetch, one answer set per situation of the forge), and the clock's timers with
+`src/testing/ManualTimers.ts`, which a spec fires by hand, so no spec waits a real interval. A fixture for a forge contract
 that does not exist yet is authored by hand and stamped `source: 'authored'` until it is recorded from a real forge.
 
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
