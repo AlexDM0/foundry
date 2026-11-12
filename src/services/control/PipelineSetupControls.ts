@@ -3,8 +3,8 @@
  * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and
  * refuses `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over
  * stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and a check also message the agent in the
- * same hold, in the caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the
- * context.
+ * same hold, in the caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's
+ * `CONSTITUTION.md` through the context.
  */
 import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                             from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
