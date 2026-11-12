@@ -45,7 +45,7 @@ after the [wind-down](../glossary.md#wind-down) message.
 | Back-to-back crashes on different tickets | 2 | `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` | [Overseer](../glossary.md#overseer) pauses, `outage` [decision](../glossary.md#decision) | [Failure and recovery](../architecture/failure-and-recovery.md) |
 | Failed Assistant boots in a row | 2 | `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` | Incidents default until one answers | [Assistant and intake](../architecture/assistant-and-intake.md) |
 | [Target](../glossary.md#target) moves in a row under a merge | 2 | `TARGET_MOVED_MERGES_BEFORE_PARKING` | Parks `target-moved` | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
-| [Review rounds](../glossary.md#review-round) | No fixed count | None; `nextRoundVerdictOf` grants each repeat. Each repeat needs rework above `REWORK_ROUND_THRESHOLD_LINES`; from round 3 on, findings must also converge | The next round is refused with a reason and no further review round runs: the ticket queues to merge or waits on a waiver | [Build and review](../architecture/build-and-review.md) |
+| [Review rounds](../glossary.md#review-round) | No fixed count | None; `nextRoundVerdictOf` grants each repeat. Each repeat needs rework above the pipeline's `review.reReview.thresholdLines` (none without `reReview`); from round 3 on, findings must also converge | The next round is refused with a reason and no further review round runs: the ticket queues to merge or waits on a waiver | [Build and review](../architecture/build-and-review.md) |
 | [Findings](../glossary.md#finding) a worker may file | 10 | `WORKER_FILINGS_PER_JOB` | Refused `worker-filing-limit` | [Control and Hatch](../architecture/control-and-hatch.md) |
 
 ![A builder's first attempt has 150 calls plus 10 of grace, and a red handoff resumes the same session with 30 plus 10,
@@ -129,7 +129,7 @@ groups](../architecture/airlocks-and-groups.md), [Control and Hatch](../architec
 | Is a ticket move legal? | `src/lib/tracker-model/utils/TicketMoveUtil.ts`, `ticketMoveIsLegal` | `LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS` | `TicketMoves` | `src/lib/tracker-model/constants/TicketMoveLegality.spec.ts`, `src/lib/tracker-model/Board.ticketMoves.spec.ts` |
 | Is a job move legal? | `src/lib/tracker-model/constants/JobMoveLegality.ts`, `LEGAL_SOURCE_STATES_FOR_JOB_MOVE` | Job state, target state | `Jobs` | `src/lib/tracker-model/Board.jobs.spec.ts` |
 | Does a report clear [Customs](../glossary.md#customs)? | `src/services/lifecycle/Customs.ts`, `clearCustoms`, `CHECKS_OF_ROLE` | `CustomsSubject`: report, git range, launch snapshot, log | `JobLaunch.verifyAndRoute`, `PipelineAgentSessions` | `src/services/lifecycle/Customs.spec.ts`, `src/services/lifecycle/Customs.verification.spec.ts`, `src/services/lifecycle/Customs.provenance.spec.ts`, `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
-| Did a gate pass? | `src/services/lifecycle/GateRun.ts`, `gateOutcomeOf` | Exit code, tracked changes | `runPipeline`, `JobLaunch.stepVerdictOf`, `ProposalTwiceRun` | `src/services/lifecycle/GateRun.integration.spec.ts` |
+| Did a gate pass? | `src/services/lifecycle/GateRun.ts`, `gateOutcomeOf` | Exit code, tracked changes | `runPipeline`, `JobLaunch.stepVerdictOf`, `GateLineRun` (for `ProposalTwiceRun` and gate profiles) | `src/services/lifecycle/GateRun.integration.spec.ts` |
 | What follows a review? | `src/services/lifecycle/ReviewOutcome.ts`, `settleReviewPass` | Report, rework count, recorded rounds | Itself; called by `JobLaunch` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | Is another review round granted? | `src/lib/tracker-model/utils/RoundVerdictUtil.ts`, `nextRoundVerdictOf` | Earlier rounds, this round's findings and rework, `RoundLimits` | `settleReviewPass` | `src/lib/tracker-model/utils/RoundVerdictUtil.spec.ts` |
 | Which tickets may land on a target? | `src/lib/tracker-model/AirlockClaims.ts`, `mergeCandidatesOf` | Tickets, `mergeQueued`, decisions, jobs, [release bundle](../glossary.md#release-bundle) | `Airlocks.allocate` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
@@ -243,8 +243,8 @@ Home: [Build and review](../architecture/build-and-review.md), which holds what 
 
 | Constant | Value | Unit | At the bound | Read from | File |
 | --- | --- | --- | --- | --- | --- |
-| `REWORK_ROUND_THRESHOLD_LINES` | 750 | reworked code lines | Above it: another round is possible | Git, logged per round | `DispatchProtocol.ts` |
-| `ROUND_GRANTED_ON_REWORK_ALONE` | 2 | round number | Round 2 needs only rework over `REWORK_ROUND_THRESHOLD_LINES`; later rounds also need converging findings | Job attempt | `LifecycleLimits.ts` |
+| `REWORK_ROUND_THRESHOLD_LINES` | 750 | reworked code lines | Only with no readable `pipeline.json`: above it, another round is possible. A pipeline sets the threshold in `review.reReview.thresholdLines`, and a review with no `reReview` grants no round | Git, logged per round | `DispatchProtocol.ts` |
+| `ROUND_GRANTED_ON_REWORK_ALONE` | 2 | round number | Round 2 needs only rework over the threshold; later rounds also need converging findings | Job attempt | `LifecycleLimits.ts` |
 | `FINDINGS_SHRINK_FACTOR_PER_ROUND` | 2 | factor | This round's findings must be at most half the last round's, or refused `findings-not-halved` | Log | `LifecycleLimits.ts` |
 | `FIRST_REPEAT_REVIEW_ROUND` | 2 | round number | First `reviewRound` stored on a [row](../glossary.md#row); round 1 stores none | Stored | `src/lib/tracker-model/constants/ReviewRounds.ts` |
 | `FIRST_REVIEW_BAR_ROUND` | 1 | round number | First [review bar](../glossary.md#review-bar)'s round | Stored | `ReviewRounds.ts` |
@@ -349,8 +349,8 @@ Home: [Customs and gates](../architecture/customs-and-gates.md).
 | --- | --- | --- | --- | --- | --- |
 | `GATE_RUNS_AT_ONCE` | 2 | gates, machine-wide | The rest queue | `<monitor>` gate slot files | `OverseerLimits.ts` |
 | `GATE_SLOT_RETRY_MILLISECONDS` | 500 | ms | Spacing of an in-process wait | Schedule | `OverseerLimits.ts` |
-| `SLOW_GATE_MILLISECONDS` | 30000 | ms | A gate this slow is worth a cache: a suggestion | Twice-run timing | `src/services/lifecycle/CachingChecks.ts` |
-| `PROPOSAL_RUN_COUNT` | 2 | runs | A proposed pipeline runs this many times | Constant | `src/services/lifecycle/ProposalTwiceRun.ts` |
+| `SLOW_GATE_MILLISECONDS` | 30000 | ms | A gate this slow is worth a cache: a suggestion | The durations gate profiles recorded | `src/services/lifecycle/CachingChecks.ts` |
+| `PROPOSAL_RUN_COUNT` | 2 | runs | A [pipeline check](../glossary.md#pipeline-check) runs each changed or added gate this many times | Constant | `src/services/lifecycle/ProposalTwiceRun.ts` |
 | `GATE_HISTORY_RECORDS` | 200 | records | Newest gate runs an `advise` [pipeline agent](../glossary.md#pipeline-agent) reads | Log | `src/services/overseer/PipelineAgentSessions.ts` |
 
 [Prepare steps](../glossary.md#prepare-step) take no gate slot (`GateRun.runPipeline`).
@@ -515,7 +515,7 @@ Changes what the system does:
 | `createQuietJobWatch` in `src/services/overseer/IncidentRouter.ts` | A count of timed sweeps opens `quiet-job` | Docblock on the function | A quiet job opens `quiet-job` by counted sweeps |
 | `createAssistantQuietWatch` in `src/services/overseer/AssistantSession.ts` | The same count ends a quiet Assistant | Docblock on the function | None |
 | `generationIsFree` in `src/services/tracker/TrackerLock.ts` | Lock staleness, against a time the tool wrote | File header | None |
-| `millisecondsNow` in `src/services/lifecycle/ProposalTwiceRun.ts` | A gate's duration; `CachingChecks` suggests from it | Field docblock, also in `src/services/overseer/PipelineAgentSessions.ts` | None |
+| `millisecondsNow` in `src/services/lifecycle/GateLineRun.ts` | A gate's duration in a pipeline check or gate profile; `CachingChecks` suggests from a profile's | Field docblock, also in `src/services/overseer/PipelineChecking.ts` and `src/services/overseer/GateProfiling.ts` | None |
 
 Changes only what a person reads:
 

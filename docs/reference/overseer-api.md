@@ -73,7 +73,7 @@ Three guards run before routing, in this order: Host, Origin and no preflight. T
 answers, and the bind is set at the socket. No route trusts a request header a local program can forge, such as
 `Sec-Fetch-Site`, as proof of who is asking.
 
-![A request reaches the socket bound to 127.0.0.1, then the Host, Origin and not-OPTIONS checks, each failing with 403. The data routes (session-token, state, events, a job's stream and its files) then require the session cookie or the bearer token or answer 401, the session-code and commands routes require the bearer token or answer 401, the session route requires a one-time code or answers 401, and identity, summary, nudge and the page ask for no token. Every returned answer carries a content security policy, the 403s included. A session is held by its confinement instead.](../figures/overseer-api/request-guards.png)
+![A request reaches the socket bound to 127.0.0.1, then the Host, Origin and not-OPTIONS checks, each failing with 403. The data routes (session-token, state, events, a job's stream, a gate profile's stream, a job's files and a stored picture) then require the session cookie or the bearer token or answer 401, the session-code, commands and picture upload routes require the bearer token or answer 401, the session route requires a one-time code or answers 401, and identity, summary, nudge and the page ask for no token. Every returned answer carries a content security policy, the 403s included. A session is held by its confinement instead.](../figures/overseer-api/request-guards.png)
 
 *Notice the last box: a browser's headers can be trusted and a process's cannot, so a session is held another way.*
 

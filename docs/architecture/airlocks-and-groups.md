@@ -74,7 +74,7 @@ Four things here are called holds:
 The phase is the Airlock's whole state machine. Each sweep runs the function for the phase and acts on its result. The
 [State explorer](../interactive/state-explorer.html#machine=airlock) walks it.
 
-![State diagram of the phases. The normal path is merge-in, gating, landing, landed; a conflict detours through resolving, and a red gate through fixing. Incident waits sit inside gating.](../figures/airlocks-and-groups/airlock-phases.png)
+![State diagram of seven phases. The normal path is merge-in, gating, landing, landed; a conflict detours through resolving, a large resolution through re-reviewing, and a red gate through fixing. The same Airlock agent works the resolving and fixing detours; a conflict re-reviewer works re-reviewing. Incident waits sit inside gating, and a red tree with its resumes spent parks the ticket. A constitution commit runs committing, then landing.](../figures/airlocks-and-groups/airlock-phases.png)
 
 *Detours rejoin the normal path or leave through the exits below.*
 
@@ -85,11 +85,12 @@ The phase is the Airlock's whole state machine. Each sweep runs the function for
 | `re-reviewing` | `runAirlockAgent`, `settleConflictReReview` | A conflict re-reviewer judges a resolution above `airlock.reReview.thresholdLines`<br>Holds: `gating`, its job waiting in `gating` as a resolver's does<br>A claim that does not hold: refused `re-review-failed`<br>No agent left: requeue `orphaned` |
 | `gating` | `runGate` | Waits while an incident names the job<br>Gate passes, or the tree is the branch's own and last passed: `landing`<br>Red: see [The merged-tree gate](#the-merged-tree-gate) |
 | `fixing` | `runAirlockAgent`, `settleAirlockAgent` | The Airlock agent fixes the red tree<br>`resolved`: phase returns to `gating`; the agent's job stays alive in its own job state `gating`, so a red gate can resume it |
-| `landing` | `runLanding` | See [Landing](#landing) |
+| `committing` | `runConstitutionCommit` | A [constitution commit](#the-constitution-commit) only: commits `CONSTITUTION.md` on the main line's tip<br>Committed: `landing`<br>A leftover worktree: ends `stopped` `orphaned`<br>The Apply was cancelled: ends `stopped` `apply-cancelled`<br>A commit git refuses: ends `failed`, the Apply is refused |
+| `landing` | `runLanding`, `runConstitutionLanding` | See [Landing](#landing) and [The constitution commit](#the-constitution-commit) |
 
 Every phase can also leave the Airlock. A landing is one way out, and the grid shows the others by phase.
 
-![Grid of phases by exit, each cell naming the job's cause. Refused opens a merge-refused decision from every phase; parked opens a parked decision from gating, fixing and landing. Only landing holds the target or the ticket.](../figures/airlocks-and-groups/airlock-exits.png)
+![Grid of phases by exit, each cell naming the job's cause. Refused opens a merge-refused decision from every phase, re-reviewing included, where a claim that does not hold refuses re-review-failed; parked opens a parked decision from gating and landing. Only landing holds the target or the ticket.](../figures/airlocks-and-groups/airlock-exits.png)
 
 *Gray exits cost a retry: the ticket's work survives, though an Airlock agent's merge is redone on the next claim.
 Amber stops for a person: the ticket or, for a held target, the whole target.*
@@ -226,18 +227,20 @@ A group refresh has no ticket agent: a conflict in its merge-in aborts the refre
 [The overview](../concepts/overview.md#an-airlock-gates-the-merged-tree) gives the idea in one figure; this section
 gives the rules.
 
-The gate judges the tree the target would receive, not the branch's. `runGate` skips it in one case: the merged tree
-equals the tree of `branchTip`, and the newest `gate-ran` record on that tree passed
-(`mergedTreeWasLastPassed`). The merge then changed nothing the gates judged.
+The gate judges the tree the target would receive, not the branch's, in the `merge`
+[gate phase](customs-and-gates.md#gate-phases). `runGate` skips it in one case: the merged tree equals the tree of
+`branchTip`, the newest `gate-ran` record on that tree passed, and the ticket's row holds that tree green in the
+`merge` phase (`mergedTreeWasLastPassed`). The merge then changed nothing the merge phase's gates judged.
 
-Otherwise `gateMergedTree` reads `pipeline.json` afresh and runs the prepare steps and gates in the merge's worktree,
+Otherwise `gateMergedTree` reads `pipeline.json` afresh and runs the `merge` phase's prepare steps and gates in the
+merge's worktree,
 each gate taking a [gate slot](../glossary.md#gate-slot). What a gate outcome means lives in
 [customs-and-gates.md](customs-and-gates.md), and where it runs in
 [Where a gate runs](customs-and-gates.md#where-a-gate-runs). `gateMergedTree` ends in one of four outcomes.
 
 | Outcome | With | Result |
 | --- | --- | --- |
-| `passed` | | Logged, any Airlock agent ended `resolved`, phase `landing`. |
+| `passed` | | Logged, any Airlock agent ended `resolved`, phase `landing`. When the merged tree is the branch's own tree, the row records it green in the `merge` phase (`recordPipelineJudgedBy`); a tree with a merge commit is not the row's. |
 | `failed` | resumes left | `resumeOrSpendTheAgent` writes a [red handoff](../glossary.md#red-handoff) and resumes the [Airlock agent](#airlock-agents), or launches it when none waits: phase `fixing`, with `RED_HANDOFF_RESUME_CALL_BUDGET` calls. |
 | `failed` | resumes spent | Past `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes, counted per merge job, the agent ends `failed`, the merge aborts and the ticket parks `merge-gate-red`. A refresh is refused instead. |
 | `cannot-run` | | Incident `gate-cannot-run`, default `gate-retry`. An older or malformed `pipeline.json` ends the run here too, with the gate `pipeline.json`, so the tree never lands ungated. |
@@ -245,6 +248,27 @@ each gate taking a [gate slot](../glossary.md#gate-slot). What a gate outcome me
 
 > **As built.** This gate is awaited inside `airlocks.sweep()`, so no Pass runs meanwhile. See
 > [A merged-tree gate blocks the Pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
+
+## The constitution commit
+
+An Apply that changes `CONSTITUTION.md` needs one commit on the [main line](../glossary.md#main-line). The record's Apply
+request names a `constitution-commit` job, and the main line's Airlock runs it before any ticket, also while the board is
+paused or has no pipeline yet ([Apply](customs-and-gates.md#apply)). The job has no role, no agent and no Customs, and
+runs no gate.
+
+1. **`committing`.** `ConstitutionCommits.commitConstitution` makes a detached worktree of the main line's tip under
+   `<worktrees>/constitution-commits/<J>`, checks main's blob of the file against the one the record opened on, writes
+   the draft's text byte for byte and commits with hooks off and the repository's own signing. A commit that changes
+   any other path is refused, and so is the Apply. A worktree already there is one a cut-short run left: the job ends
+   `stopped` `orphaned` and the next allocation starts a fresh one.
+2. **`landing`.** `runConstitutionLanding` lands the commit by the same compare-and-swap fast-forward a ticket uses. The
+   hold that records the landing ends the job `committed` and runs `finishApply`, Apply's stage 2. A stored pipeline
+   that moved meanwhile refuses the Apply `pipeline-moved`.
+
+A main line that moved ends the job `stopped`, and a fresh job commits again on the new tip. A main checkout that stops
+the fast-forward (`not-on-target-branch`, `dirty-checkout`, `target-file-held`, `git-failed`) holds the target and the
+Apply request with the reason; the request is never refused for it. An Apply User cancels ends the job `stopped`
+`apply-cancelled`. When main already holds the draft's text, stage 2 runs with no commit.
 
 ## Incidents on a merge job
 
@@ -423,9 +447,10 @@ next refresh until the decision closes.
 
 ## Invariants
 
-1. A target has at most one live `merge` or `refresh` job.
+1. A target has at most one live `merge`, `refresh` or `constitution-commit` job.
 2. A merge merges the recorded tip, never the moving name.
-3. The target moves only by fast-forward, to a commit whose tree a gate passed or a merge left equal to one that did.
+3. The target moves only by fast-forward, to a commit whose tree a gate passed or a merge left equal to one that did,
+   or to a constitution commit, which changes `CONSTITUTION.md` alone.
 4. A landing moves the target and then the ticket in one lock hold. A crash between those two writes is finished later
    through `already-landed`.
 5. Every exit from an Airlock restores the worktree to its recorded start, except a landing.
@@ -449,6 +474,7 @@ next refresh until the decision closes.
 | Merge steps | `src/services/lifecycle/MergeRun.ts` | `mergeInOnce`, `restoreBranchTip`, `resolutionIsSound` | `src/services/overseer/Airlocks.spec.ts` |
 | Compare and swap | `src/services/lifecycle/Landing.ts` | `landOnTarget`, `LANDING_OUTCOME_OF_REFUSAL` | `src/services/lifecycle/Landing.spec.ts` |
 | Bundle | `src/lib/tracker-model/GroupReleases.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.ts` | `releaseBundleOf`, `markReleaseTicket` | `src/lib/tracker-model/Board.groupReleases.spec.ts`, `src/lib/tracker-model/utils/ReleaseBundleUtil.spec.ts` |
+| Constitution commit | `src/services/overseer/ConstitutionCommits.ts`, `src/services/overseer/Airlocks.ts` | `commitConstitution`, `runConstitutionCommit`, `runConstitutionLanding` | `src/services/overseer/ConstitutionCommits.spec.ts`, `src/services/overseer/Airlocks.constitutionCommit.spec.ts` |
 | Group worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
 | Bounds | `src/shared/constants/AirlockLimits.ts` | `AIRLOCK_LIMITS` | [deciders-and-bounds.md](../reference/deciders-and-bounds.md) |
 

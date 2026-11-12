@@ -44,6 +44,7 @@ job folder. Most rows last one or more Passes; `in-customs` normally lasts less 
 | `running` | The session's Watcher spawns. `start.json` is written once per job. A `result` event, the session's closing structured message that carries its report, moves the job to `in-customs`. | `jobsNeedingAWatcher`, `recordJobStart`, `applyWatcherEvents` |
 | `in-customs` | Inside the lock hold that read the `result`, `verifyAndRoute` routes the job, so the state is normally not stored past that lock hold. | `applyObservation`, `verifyAndRoute` |
 | `gating` | After the lock hold, the Overseer closes the session's input once. The prepare steps run again, then each gate, one step per Pass, each gate behind a [gate slot](../glossary.md#gate-slot). A judged run settles the job. | `deliverBuildJobFrames`, `spawnNextGateStep`, `settleGate` |
+| `merging-main` | With merge approval on, a green build with no review phase, and likewise a green review, brings its worktree up to the target's tip before User's Merge: a merge in a process Watcher, a conflict re-review when its resolution is large, then the job's phase's gates. Green ends the job and marks the ticket `mergeQueued` for User's Merge; a conflict or a red gate goes back to the job's own session. [Merge approval](../cli.md#merge-approval) has each round. | `settleGate`, `settleMainMerge`, `finishMainMerge` |
 | `stopping` | The [call budget](../glossary.md#call-budget) ran out, or User stopped the job. Once the agent has ended, the job ends, or a session on a red handoff takes another red handoff. | `applyObservation` |
 
 Three states sit outside this table. `waiting-for-answer` keeps its process while a question is open ([Questions and
@@ -54,7 +55,7 @@ it holds no process, except after a Customs red, whose input was never closed (s
 full legality table is in [State machines](../data-model/state-machines.md).
 
 A few effects run inside the lock hold: a [review round](../glossary.md#review-round)'s no-changes commit, the
-job-folder files for a red handoff and a waiver, the `git worktree remove` of `PipelineAgentSessions.applySettledPipelineAgents`, and
+job-folder files for a red handoff and a waiver, and
 the git step of `src/services/control/RepairControls.ts`. If a no-changes commit lands and the store write does not,
 the job is still `gating`, so the next Pass settles it again and commits a second empty commit. The branch shows the
 round twice; the store records it once.
@@ -111,7 +112,7 @@ default move is `worktree-repair`; the repair steps are in [the CLI reference](.
 | `group-<name>`, branch `group-<name>` | `GroupWorktrees.prepareGroupWorktree`, at the group's first launch or Airlock target lookup | The folder exists. An existing branch is checked out as it stands. | `GroupWorktrees.removeGroup`, after the release |
 | `refresh-group-<name>`, detached | `GroupWorktrees.prepareRefreshWorktree`, in a refresh's merge-in | A leftover at the group tip, or moved there by `detachLeftoverAt`. One holding a merge or uncommitted changes refuses. | `removeRefreshWorktree` |
 | `sessions/<J>`, a plain folder | `workingDirectoryOf`, for a job with no ticket worktree: the Assistant and each [product owner](../glossary.md#product-owner) | `mkdir` is idempotent, so a resumed instance finds it. | Nothing |
-| `pipeline-agent/<J>`, detached | `PipelineAgentSessions.prepareSnapshot`, at the main line's tip, for a [pipeline agent](../glossary.md#pipeline-agent) | The folder exists. | `applySettledPipelineAgents` |
+| `pipeline-agent/<S>`, detached | `PipelineAgentSessions.prepareSnapshot`, before each launch of a [pipeline agent](../glossary.md#pipeline-agent), at its [setup record](../glossary.md#setup-record)'s `snapshotCommit` (main's tip, pinned in the hold that attaches the agent) | The folder exists; one setup record keeps it across its pipeline agents, and a launch resets it to `snapshotCommit` when HEAD moved. | `PipelineAgentSessions.removeUnheldSnapshots`, an effect after the hold, once no pipeline agent job is left and no open record holds it |
 
 <details>
 <summary>How each is removed</summary>
@@ -508,7 +509,7 @@ and intake](assistant-and-intake.md#the-findings-path).
 | --- | --- | --- | --- |
 | Group and refresh worktrees | `src/services/overseer/GroupWorktrees.ts` | `prepareGroupWorktree`, `prepareRefreshWorktree`, `removeGroup` | `src/services/overseer/GroupWorktrees.spec.ts` |
 | Worktree repair | `src/services/control/WorktreeRepair.ts` | `repair` | `src/services/control/WorktreeRepair.spec.ts` |
-| Pipeline agent snapshot | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `applySettledPipelineAgents` | None of its own; `src/services/lifecycle/Customs.pipelineAgent.spec.ts` holds its Customs |
+| Pipeline agent snapshot | `src/services/overseer/PipelineAgentSessions.ts` | `pinSnapshotCommit`, `prepareSnapshot`, `removeUnheldSnapshots` | `src/services/overseer/PipelineAgentSessions.spec.ts`; `src/services/lifecycle/Customs.pipelineAgent.spec.ts` holds its Customs |
 | Red handoff | `src/services/overseer/RedHandoff.ts` | `writeRedHandoff`, `outputExcerptOf`, `adoptRedHandoff` | `src/services/overseer/RedHandoff.spec.ts`, `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | Resuming | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `resumeLineOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA`, `REVIEWER_REPORT_SCHEMA` | `src/adapters/reports/ReportSchemas.spec.ts` |

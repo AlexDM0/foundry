@@ -46,10 +46,10 @@ The assets are few. Each row names an asset and what must not happen to it.
 
 Untrusted text enters the code at these named crossings.
 
-![An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by a pipeline agent's proposal, which runs as the Overseer, twice, unchecked. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.](../figures/confinement/trust-boundaries.png)
+![An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by a pipeline agent's draft pipeline, which is only stored: its lines run on User's press, as a pipeline check under each gate's confinement. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.](../figures/confinement/trust-boundaries.png)
 
-*Notice that no arrow runs from the left zone to the right one without passing the Overseer, and that the proposal runs
-text as code with no sandbox. Git config is an unplanned side door: see [Git hooks](#git-hooks).*
+*Notice that no arrow runs from the left zone to the right one without passing the Overseer, and that the pipeline
+agent's draft runs as code only on User's press, under the gate profile. Git config is an unplanned side door: see [Git hooks](#git-hooks).*
 
 Agent text that reaches a screen is covered in [Bridge](bridge.md); the guards on the HTTP API are in
 [Overseer API](../reference/overseer-api.md#request-guards).
@@ -70,7 +70,7 @@ afterwards.
 | Permission rules | The file and web tools, which the sandbox never sees; denied git verbs | `permissions`, `allowRulesOf`, `denyRulesOf` |
 | Guard hook | Domains auto mode's classifier would grant off the list | `hooks.PreToolUse`, `forge hook bash-domains` |
 | Removed tools | What the session cannot call at all | `--disallowedTools`, `disallowedToolsOf`; `--disable-slash-commands` |
-| Seatbelt | Gate, [prepare](../glossary.md#prepare-step) and install processes, which run outside any session; a proposal's lines excepted | `src/services/overseer/ProcessWatcherSandbox.ts`, `profileTextOf` |
+| Seatbelt | Gate, [prepare](../glossary.md#prepare-step) and install processes, which run outside any session, a pipeline check's and a gate profile's included | `src/services/overseer/ProcessWatcherSandbox.ts`, `profileTextOf` |
 | Customs | What leaked past the others | `CHECKS_OF_ROLE`, `clearCustoms` |
 
 The standing reply exists because a session runs unattended. Every `can_use_tool` request but `AskUserQuestion` gets an
@@ -171,7 +171,8 @@ Three profile builders run, not one. `launchProfileOf` in `src/services/overseer
 | Commits sign | tries to, if an agent socket exists | tries to, if an agent socket exists | unsigned | unsigned | unsigned |
 | Customs | yes | no | no | no | yes |
 
-An Airlock agent is the ticket's own builder or reviewer, resumed in the Airlock worktree as a `merge-agent` job. It
+An Airlock agent is the ticket's [last worker](../glossary.md#last-worker) (its builder, reviewer or re-reviewer),
+resumed in the Airlock worktree as a `merge-agent` job, or a fresh conflict re-reviewer after a large resolution. It
 takes its role's profile with the Airlock worktree as its worktree, and `launchProfileOf` turns asking off.
 
 > **As built.** The Assistant, product owner and pipeline agent deny far less than a builder. See
@@ -183,16 +184,18 @@ the repository, which the sandbox and the `Edit` allow rule both permit. Customs
 changed tracked or untracked, non-ignored file, V16 any moved `HEAD`, V14 any moved ref. See
 [Customs and gates](customs-and-gates.md).
 
-The pipeline agent proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline), and the Overseer runs them
-twice to test them ([Customs and gates](customs-and-gates.md)). Each line runs under the confinement a merge gate gets,
-on the snapshot, in the gates' narrowed environment.
+The pipeline agent proposes prepare and gate lines for the [pipeline](../glossary.md#pipeline) into the setup record's
+draft; nothing runs them then. On User's [pipeline check](../glossary.md#pipeline-check) the Overseer runs the draft's
+prepare steps and the changed gates twice ([Customs and gates](customs-and-gates.md)), and a gate profile runs one gate
+once. Each line runs under the confinement a merge gate gets, in a fresh detached worktree of main under
+`<worktrees>/pipeline-checks/` or `<worktrees>/gate-profiles/`, in the gates' narrowed environment.
 
 ## Who may write what
 
 No session writes `<data>`; each reaches the board through its own Hatch folder. Each cell names what stops the
 attempt, not what a prompt asks. The [atlas](../data-model/on-disk-atlas.md) gives every path.
 
-![A matrix of attempts against six columns grouped by real profile. Every session is refused the data folder and allowed its own Hatch folder, and full profiles hold most other rows. The weaker session profiles, the file tools on unnamed paths and the proposed gate line get through in the coral cells.](../figures/confinement/attempt-matrix.png)
+![A matrix of attempts against six columns grouped by real profile. Every session is refused the data folder and allowed its own Hatch folder, and full profiles hold most other rows. The weaker session profiles and the file tools on unnamed paths get through in the coral cells. A proposed gate line goes through the Hatch and runs only on User's press, confined.](../figures/confinement/attempt-matrix.png)
 
 *Notice the two outlined rows: `<data>` is shut to every session, and its own Hatch folder is what each session gets
 instead. The strong coral cells get through some path.*
@@ -235,15 +238,16 @@ it.
   serves, an `advise` record included.
 - **A gate's `git reset`.** A gate may write the worktree and its admin folder. The branch's ref lives in the shared
   `.git`, outside that list, so no reset moves it. Under a profile of this shape every `git reset` on a branch exited 1
-  at the ref lock, and a reset to `HEAD` had by then rewritten the tree and index. A refresh gate and a proposal's gates
-  run on a detached `HEAD`, which lives in the admin folder: there `git reset --hard HEAD~1` exited 0 and moved `HEAD`,
-  and no ref moved.
+  at the ref lock, and a reset to `HEAD` had by then rewritten the tree and index. A refresh gate and a pipeline
+  check's gates run on a detached `HEAD`, which lives in the admin folder: there `git reset --hard HEAD~1` exited 0 and
+  moved `HEAD`, and no ref moved.
 - **Shared git config.** The builder cell comes from [one scratch
   run](../development/overseer-claude-probe.md#a-scratch-run-outside-the-probe-record) under hand-written settings. The
   other session cells follow from the same rules and were not run.
 - **A gate's mutating verb.** `GateRun.gateEnvironmentOf` strips the job's variables, so a gate that runs one meets
   `<data>` directly and fails there.
-- **Propose a gate.** Its lines run under the gate profile, on the snapshot.
+- **Propose a gate.** Nothing runs it until User presses a check or a profile; then its lines run under the gate
+  profile, in a fresh worktree of main.
 
 </details>
 
@@ -337,7 +341,7 @@ on each OS.
 | Network | a list of domains | on or off; on reaches any address |
 | When unusable | macOS and Linux: `failIfUnavailable: true`, the session does not run; Windows: no sandbox, the session runs | the step runs unconfined |
 
-A process Watcher, a merged-tree gate and a pipeline agent's proposal all take their line from `confinedLineOf`, which
+A process Watcher, a merged-tree gate, a pipeline check and a gate profile all take their line from `confinedLineOf`, which
 refuses it where the `GateConfinement` port answers `unavailable`: the line never starts and the job opens a
 `sandbox-unavailable` incident. `oversee` refuses at its start on the same answer. On Windows the port answers
 `unconfined-by-design`, so the per-job ref denies do not hold there and a moved target opens a `target-moved` decision.
@@ -369,7 +373,7 @@ a folder, a branch could replace `bun` and run as the Overseer, outside every sa
 The rule runs twice. `refusalOf` refuses at `forge gate add`, checking the `PATH` of the shell running that
 command, so nothing is stored. `writableCachePathsOf` runs at each profile build, checks the Overseer's `PATH` and drops
 the folder from that profile. The second run is needed because the two `PATH`s may differ, a folder may have gained a
-`bin` since, and a folder can be stored another way, such as an accepted pipeline agent proposal.
+`bin` since, and a folder can be stored another way, such as a draft pipeline that an Apply stored.
 
 `resolvedPathOf` in `src/services/overseer/ResolvedPath.ts` resolves symbolic links first, because Seatbelt matches
 resolved paths: `/var` must read as `/private/var`, and a path not there yet resolves through its nearest folder.
@@ -505,7 +509,7 @@ the next launch is the only check left, and V14 does not run.
 | Airlock agent profile | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Session profile, choice of profile | `src/services/overseer/DrivePass.ts` | `profileOf`, `launchProfileOf` | none |
 | Product owner, pipeline agent | `src/services/overseer/IntakeSessions.ts`, `src/services/overseer/PipelineAgentSessions.ts` | `productOwnerProfileOf`, `pipelineAgentProfileOf` | `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
-| Proposal twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
+| Pipeline check twice-run | `src/services/lifecycle/ProposalTwiceRun.ts`, called by `src/services/overseer/PipelineChecking.ts` | `runProposalTwice` | `src/services/lifecycle/ProposalTwiceRun.spec.ts`, `src/services/overseer/PipelineChecking.spec.ts` |
 | Rendering to settings and flags | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `settingsOf`, `sandboxOf`, `disallowedToolsOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Standing reply | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
 | Network guard | `cli/hooks/BashDomainsHook.ts` | `guardTheNetworkDomains`, `domainIsAllowed` | `cli/hooks/BashDomainsHook.spec.ts` |

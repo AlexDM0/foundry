@@ -23,7 +23,7 @@ Readers take no lock. Each file is whole, yet two files can disagree during a co
 until the next lock holder replays. The log is also an input: counts, order and once-only guards are derived from it,
 so `forge clear`, which cuts the log back to its own record, resets them.
 
-![A vertical sequence of one lock hold. Take the lock, read into a Board, mutate, write the journal to a temporary file, then the commit point where hold-journal.json lands whole, followed by progress.json, then pipeline.json, tickets, epics, filing drafts and log.jsonl when changed, journal removal and release. A process crash above the commit point leaves tracker files unchanged; one below it is finished by the next lock holder. A refusal during mutate writes nothing.](../figures/storage/hold-write-order.png)
+![One lock hold in order. Take the lock, read into a Board, mutate, write the journal to a temporary file, then the commit point: the rename that lands hold-journal.json whole. After it come progress.json, then pipeline.json and constitution-sources.json, tickets, epics, filing drafts and gate-profiles.json, log.jsonl and last pipeline-setup.json, each when the lock hold changed it, then the journal is removed and the lock released. A fence stops the holder if a higher generation exists, before the journal and before each write after it. A crash above the line leaves every tracker file unchanged; a crash below it is finished by the next lock holder; a refusal in mutate writes nothing.](../figures/storage/hold-write-order.png)
 *Every tracker change above the line is lost by a process crash. Everything below the line is finished by whoever comes
 next.*
 
@@ -205,6 +205,8 @@ spends the lock's time.
 | The landing of a constitution commit on the [main line](../glossary.md#main-line), whose hold runs Apply's stage 2 | `runConstitutionLanding` in `src/services/overseer/Airlocks.ts` |
 | Reading main's `CONSTITUTION.md` and its blob id for an Apply's stage 1 | `applySetup` in `src/services/control/PipelineSetupControls.ts` |
 | A worktree repair | `repairWorktree` in `src/services/control/RepairControls.ts` |
+| Customs' git reads on a [pipeline agent](../glossary.md#pipeline-agent)'s ended turn | `verifyTurnEnds` in `src/services/overseer/PipelineAgentSessions.ts` |
+| Resolving main's tip, the commit a setup record's snapshot is made at | `pinSnapshotCommit` in `src/services/overseer/PipelineAgentSessions.ts` |
 | Reading each [Watcher instance](../glossary.md#watcher-instance)'s [event log](../glossary.md#event-log) for token credit | `creditEndedJob` in `src/services/overseer/EndedJobTokens.ts` |
 
 ![Three lanes: holder, tracker files, git. Inside a lock hold, mutate runs a git command and the commit lands on the target at once, while Board changes stay in memory. A crash or tripped fence before the journal loses the Board changes and leaves the files unchanged, and the commit stays. A later lock hold repeats the step, landOnTarget answers already-landed, and the journal records the landing.](../figures/storage/git-outside-the-transaction.png)
@@ -370,6 +372,7 @@ its lock hold opens. `progress.json` and `log.jsonl` are the exception to the St
 | `overseer.log` | Append in place | Nothing parses it | None | Not applicable | Everything. |
 | `projects.json` | Atomic, under `<monitor>/.lock` | Keeps unknown keys | Supported version | Readable entries written back, reported on stderr | The command keeps its exit code. |
 | `usage-limit.json` | Atomic | Strict | None | Read as no [marker](../glossary.md#usage-marker), logged by the Pass | Launches go on. |
+| `usage-windows.json` | Atomic, only when a value changes | Keeps unknown keys | None | Read as no observed window | Everything; the next observation writes it whole. |
 
 </details>
 

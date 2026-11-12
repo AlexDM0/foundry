@@ -272,16 +272,14 @@ forge intake -- Double-click a role to edit it
 Expect `Job J3 launched: product-owner`, where `J3` is its [job](../glossary.md#job) (your number differs). A product
 owner session then works through your request in the Intake tab, asks its questions there, and files draft tickets.
 
-The product owner closes the intake itself when it is done, proposing sets of draft tickets. Press Close intake, or run
-`forge intake close J3`, to end it sooner. Once its session ends, the Overseer opens the `ready-drafts`
-decision in Questions, listing the draft tickets it filed. If it filed none, no decision opens.
-
-Pick the set to ready, or None to leave them in the Drafts group at the top of the Kanban tab's Ready lane. A draft
-ticket there also has its own Ready button, and `forge ticket ready <id>` does the same.
+The product owner closes the intake itself when it is done. Press Close intake, or run `forge intake close J3`, to end
+it sooner. Closing submits the complete draft tickets it filed: with ticket review on, the default, they wait in the
+Ready for review group at the top of the Kanban tab's Ready lane. Open each and press Ready on its form, or run
+`forge ticket ready <id>`; a draft ticket left in the Drafts group has the same Ready button.
 
 Readiness demands two things of the ticket body, and each door treats a gap its own way.
 
-![Three doors lead a draft ticket to ready: the ready-drafts decision, the Ready button and ticket ready, all behind one check for numbered Acceptance and a non-blank Brief. With no gap the ticket becomes pending. With a gap the Ready button and ticket ready refuse it by name, while ready-drafts leaves it out of its options and it stays in the Drafts lane.](../figures/getting-started/draft-ticket-to-ready.png)
+![Three doors lead a draft ticket on: the filer's submit, intake close or ticket submit, the Ready button on the ticket form, and ticket ready. All three apply one readiness check: numbered Acceptance and a non-blank Brief. With no gap the Ready button and ticket ready make the ticket pending, and a submit puts it in ready-for-review while ticket review is on. With a gap the Ready button and ticket ready refuse it by name, while a submit leaves it a draft ticket in the Drafts group.](../figures/getting-started/draft-ticket-to-ready.png)
 
 *Notice the left exit: no refusal appears, and the draft ticket stays in Drafts until its body is fixed.*
 
@@ -414,5 +412,5 @@ Anything else is in the [Runbook](runbook.md), which also has
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
 | Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/overseer/OverseerWording.intake.spec.ts` |
-| What `ready-drafts` offers | `src/lib/tracker-model/JobControls.ts` | `readyDraftsDraftOf` | `src/services/control/JobControls.spec.ts` |
+| What `intake close` submits | `src/lib/tracker-model/Board.ts`, `src/lib/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
 | How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |

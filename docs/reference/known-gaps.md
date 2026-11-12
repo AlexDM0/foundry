@@ -997,7 +997,7 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** a `resume-failed` incident's default brings a fresh session.
 - **Does:** the job ends `replaced` before the incident opens. `IncidentMoves.freshAgentFor` finds no job and does
-  nothing, and no `ready-drafts` decision opens. A message to the job is refused.
+  nothing, and nothing submits its draft tickets. A message to the job is refused.
 - **Effect:** the intake stops, and its draft tickets stay in the Kanban's Drafts group with nothing offering them.
 - **Instead:** ready the drafts by hand with `forge ticket ready <id>`, or start a fresh `intake`.
 - **Evidence:** `src/lib/tracker-model/IncidentMoves.ts` `freshAgentFor`, `defaultIncident`;

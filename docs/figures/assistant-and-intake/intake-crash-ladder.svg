@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="540" viewBox="0 0 680 540" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>A crashed intake climbs from resume to refresh</title>
-  <desc>An interrupted product owner resumes by session id once any open question is answered, and each crash counts one. If the vendor refuses the resume, the job ends replaced with cause resume-failed, no ready-drafts opens and the draft tickets stay in the Drafts lane. Another crash past JOB_RESUMES_BEFORE_FRESH ends the resuming. With a question open the job waits in awaiting-answer and refreshes once answered; with none, a fresh job naming it as parentJobId takes the intake over.</desc>
+  <desc>An interrupted product owner resumes by session id once any open question is answered, and each crash counts one. If the vendor refuses the resume, the job ends replaced with cause resume-failed, nothing is submitted and the draft tickets stay in the Drafts lane. Another crash past JOB_RESUMES_BEFORE_FRESH ends the resuming. With a question open the job waits in awaiting-answer and refreshes once answered; with none, a fresh job naming it as parentJobId takes the intake over.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="678" height="538" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A crashed intake climbs from resume to refresh</text>
@@ -16,7 +16,7 @@
   <text x="540.0" y="226.0" font-size="11" font-family="ui-monospace,Menlo,Consolas,monospace" fill="#A32D2D" text-anchor="middle">replaced, resume-failed</text>
   <rect x="440" y="272" width="200" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="540.0" y="296.0" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Intake ends</text>
-  <text x="540.0" y="314.0" font-size="12" fill="#5F5E5A" text-anchor="middle">no ready-drafts decision</text>
+  <text x="540.0" y="314.0" font-size="12" fill="#5F5E5A" text-anchor="middle">nothing is submitted</text>
   <rect x="130" y="368" width="240" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
   <text x="250.0" y="392.0" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Question open?</text>
   <text x="250.0" y="410.0" font-size="12" fill="#185FA5" text-anchor="middle">never resumed again</text>

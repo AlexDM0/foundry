@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="410" viewBox="0 0 680 410" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>Each board has its own Overseer; three things are machine-wide</title>
-  <desc>Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Watchers. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board, projects.json lists every board for a monitor to read.</desc>
+  <desc>Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Watchers. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board and usage-windows.json keeps the plan's usage windows, projects.json lists every board for a monitor to read.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="678" height="408" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" fill="#3d3d3a" font-weight="500">Each board has its own Overseer; three things are machine-wide</text>
@@ -29,8 +29,9 @@
   <text x="144" y="335" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">gate-slots/</text>
   <text x="144" y="353" font-size="12" fill="#5F5E5A" text-anchor="middle">at most GATE_RUNS_AT_ONCE</text>
   <rect x="248" y="302" width="184" height="72" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
-  <text x="340" y="335" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">usage-limit.json</text>
-  <text x="340" y="353" font-size="12" fill="#5F5E5A" text-anchor="middle">a limit holds every board</text>
+  <text x="340" y="327" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">usage-limit.json</text>
+  <text x="340" y="344" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">usage-windows.json</text>
+  <text x="340" y="362" font-size="12" fill="#5F5E5A" text-anchor="middle">a limit holds every board</text>
   <rect x="444" y="302" width="184" height="72" rx="8" fill="#FAF9F5" stroke="#E1DDD0" stroke-width="1"/>
   <text x="536" y="335" font-size="13" fill="#444441" font-weight="500" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">projects.json</text>
   <text x="536" y="353" font-size="12" fill="#5F5E5A" text-anchor="middle">the registry a monitor reads</text>

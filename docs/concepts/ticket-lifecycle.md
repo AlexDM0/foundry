@@ -58,7 +58,7 @@ the worktree clean, the report must account for every Acceptance item with evide
 and gates](../architecture/customs-and-gates.md).
 
 **Gates.** Each gate of the [pipeline](../glossary.md#pipeline) runs in order under a Watcher, on the builder's commit.
-The Overseer runs every gate itself, so the report's claim that a gate passed counts for nothing here.
+The Overseer runs the gates of the job's phase itself, so the report's claim that a gate passed counts for nothing here.
 
 **[Handoff](../glossary.md#handoff).** When the gates pass, code writes the ticket's `## Handoff` from the verified
 report, ends the job `built` and moves the ticket `in-review`, all in one [lock hold](../glossary.md#lock-hold): one

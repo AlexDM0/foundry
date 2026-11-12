@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="820" height="704" viewBox="0 0 820 704" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="732" viewBox="0 0 820 732" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
 <title>Only three roles clear Customs; the Airlock agent gets V10 alone</title>
-<desc>Sixteen checks V1 to V16 against four roles. Builder, reviewer and pipeline agent columns run through clearCustoms in production. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
-<rect x="1" y="1" width="818" height="702" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+<desc>Sixteen checks V1 to V16 against four roles. Builder, reviewer and pipeline agent columns run through clearCustoms in production; the pipeline agent's is V16, V4, V5, V13 and V14, at each turn end, and its refusal opens setup-snapshot-touched while the session goes on. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.</desc>
+<rect x="1" y="1" width="818" height="730" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
 <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only three roles clear Customs; the Airlock agent gets V10 alone</text>
-<text x="40" y="68" font-size="14" fill="#73726c">Each role owes its own column, in this order except the pipeline agent, which runs V16 second</text>
+<text x="40" y="68" font-size="14" fill="#73726c">Each role owes its own column, in this order except the pipeline agent, which runs V16 first</text>
 <text x="570.5" y="108" font-size="13" fill="#185FA5" text-anchor="middle">run by clearCustoms</text>
 <path d="M446,116 L687,116" stroke="#CFE2F6" stroke-width="1.6" fill="none"/>
 <text x="740.5" y="108" font-size="13" fill="#5F5E5A" text-anchor="middle">declared, not reached</text>
 <path d="M707,116 L774,116" stroke="#E1DDD0" stroke-width="1.6" fill="none"/>
 <text x="479.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">builder</text>
 <text x="566.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">reviewer</text>
-<text x="653.5" y="148" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline agent</text>
+<text x="653.5" y="140" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">pipeline</text>
+<text x="653.5" y="156" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent</text>
 <text x="740.5" y="140" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">airlock-</text>
 <text x="740.5" y="156" font-size="13" font-weight="500" fill="#3d3d3a" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">agent</text>
 <rect x="32" y="170" width="756" height="28" rx="5" fill="#F4F2EB"/>
@@ -18,7 +19,6 @@
 <text x="90" y="189" font-size="14" fill="#444441">Report valid, names HEAD</text>
 <rect x="448.5" y="174" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="535.5" y="174" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="622.5" y="174" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="709.5" y="174" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
 <line x1="713.5" y1="191" x2="727.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="721.5" y1="191" x2="735.5" y2="177.0" stroke="#BDB9AA" stroke-width="1.2"/>
@@ -58,7 +58,7 @@
 <text x="90" y="273" font-size="14" fill="#444441">Worktree is clean</text>
 <rect x="448.5" y="258" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
 <rect x="535.5" y="258" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
-<rect x="622.5" y="258" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
+<rect x="622.5" y="258" width="62" height="20" rx="4" fill="#FAEEDA" stroke="#E0B868"/>
 <rect x="709.5" y="258" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
 <line x1="713.5" y1="275" x2="727.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="721.5" y1="275" x2="735.5" y2="261.0" stroke="#BDB9AA" stroke-width="1.2"/>
@@ -73,7 +73,7 @@
 <text x="90" y="301" font-size="14" fill="#444441">Data folder untouched</text>
 <rect x="448.5" y="286" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="535.5" y="286" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="622.5" y="286" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
+<rect x="622.5" y="286" width="62" height="20" rx="4" fill="#FAEEDA" stroke="#E0B868"/>
 <rect x="709.5" y="286" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
 <line x1="713.5" y1="303" x2="727.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="721.5" y1="303" x2="735.5" y2="289.0" stroke="#BDB9AA" stroke-width="1.2"/>
@@ -139,13 +139,12 @@
 <text x="44" y="497" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V12</text>
 <text x="90" y="497" font-size="14" fill="#444441">Filed findings are this job's</text>
 <rect x="535.5" y="482" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="622.5" y="482" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="32" y="506" width="756" height="28" rx="5" fill="#F4F2EB"/>
 <text x="44" y="525" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V13</text>
 <text x="90" y="525" font-size="14" fill="#444441">Agent configuration untouched</text>
 <rect x="448.5" y="510" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="535.5" y="510" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="622.5" y="510" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
+<rect x="622.5" y="510" width="62" height="20" rx="4" fill="#FAEEDA" stroke="#E0B868"/>
 <rect x="709.5" y="510" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
 <line x1="713.5" y1="527" x2="727.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="721.5" y1="527" x2="735.5" y2="513.0" stroke="#BDB9AA" stroke-width="1.2"/>
@@ -159,7 +158,7 @@
 <text x="90" y="553" font-size="14" fill="#444441">Only own refs moved</text>
 <rect x="448.5" y="538" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
 <rect x="535.5" y="538" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
-<rect x="622.5" y="538" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
+<rect x="622.5" y="538" width="62" height="20" rx="4" fill="#FAEEDA" stroke="#E0B868"/>
 <rect x="709.5" y="538" width="62" height="20" rx="4" fill="#F1EFE8" stroke="#D5D1C3"/>
 <line x1="713.5" y1="555" x2="727.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
 <line x1="721.5" y1="555" x2="735.5" y2="541.0" stroke="#BDB9AA" stroke-width="1.2"/>
@@ -175,7 +174,7 @@
 <rect x="448.5" y="566" width="62" height="20" rx="4" fill="#F0C4B0" stroke="#D98E6E"/>
 <text x="44" y="609" font-size="13" font-weight="500" fill="#3d3d3a" font-family="ui-monospace,Menlo,Consolas,monospace">V16</text>
 <text x="90" y="609" font-size="14" fill="#444441">HEAD unmoved</text>
-<rect x="622.5" y="594" width="62" height="20" rx="4" fill="#BBD6F0" stroke="#7FB0E0"/>
+<rect x="622.5" y="594" width="62" height="20" rx="4" fill="#FAEEDA" stroke="#E0B868"/>
 <rect x="40" y="634" width="30" height="16" rx="3" fill="#BBD6F0" stroke="#7FB0E0"/>
 <text x="78" y="647" font-size="13" fill="#5F5E5A">runs; a refusal ends the job</text>
 <rect x="340" y="634" width="30" height="16" rx="3" fill="#F0C4B0" stroke="#D98E6E"/>
@@ -184,4 +183,6 @@
 <text x="78" y="675" font-size="13" fill="#5F5E5A">run by hand by the Airlock; a refusal refuses the merge</text>
 <rect x="500" y="662" width="30" height="16" rx="3" fill="#F1EFE8" stroke="#D5D1C3"/>
 <text x="538" y="675" font-size="13" fill="#5F5E5A">never run</text>
+<rect x="40" y="690" width="30" height="16" rx="3" fill="#FAEEDA" stroke="#E0B868"/>
+<text x="78" y="703" font-size="13" fill="#5F5E5A">runs at a turn end; a refusal opens setup-snapshot-touched, the session goes on</text>
 </svg>

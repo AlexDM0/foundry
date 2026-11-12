@@ -18,7 +18,7 @@ Questions, and watch the header. The Overseer does the rest: it launches AI [age
 [sessions](../glossary.md#session) that build and review each [ticket](../glossary.md#ticket), then merges the result,
 without being asked.
 
-![A strip from left to right. You file on Intake and press Ready on Kanban. The Overseer then launches agents that build and review, merges unasked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch.](../figures/running-a-board/your-day-on-the-bridge.png)
+![You file work on Intake and ready it on Kanban. The Overseer then launches AI agents that build and review the ticket, merges the result without being asked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch throughout.](../figures/running-a-board/your-day-on-the-bridge.png)
 
 *Notice the blue middle: once a ticket is Ready, you act only if a question appears.*
 
@@ -178,9 +178,11 @@ press it to go back.
 
 *#002 waits clean for a free Airlock. A ticket holding the Airlock has a job and no line; its card stays in the lane.*
 
-![A schematic of the merge queue view. The order rule sits at the top. Under the target main come who holds the Airlock and in which phase, why landings wait, the candidates in landing order with priority and forecast, and the predicted conflicts between them.](../figures/running-a-board/merge-queue-view.png)
+![A schematic of the merge queue view. The order rule sits at the top: five keys, or User's Merge presses when merge approval is on. Under the target main come who holds the Airlock and in which phase, why landings wait, the candidates in landing order with priority and forecast, and git's predicted conflicts between candidates.](../figures/running-a-board/merge-queue-view.png)
 
-*Read the candidates from the top: that is the order they land in, which the Kanban lane does not show.*
+*Read the candidates from the top: that is the order they land in, which the Kanban lane does not show. With merge
+approval on, the order line reads "Ordered by User's Merge presses, earliest first, then ticket id." instead of the five
+keys.*
 
 The queue holds the tickets cleared to land, and an [Airlock](../glossary.md#airlock) lets one of them land on a target
 at a time. The view lists only candidates that can land. A queued ticket that is held, waits on a `waiver` or
@@ -269,7 +271,7 @@ Status names below are stored values: `draft` shows in the Drafts group at the t
 | Priority, high, normal or low | `pending` | changes where the ticket waits in Ready; the row offers the two priorities it does not have |
 | Unhold | any open ticket with a hold | lifts the hold |
 | Park, with the same Reason box | any open ticket | holds it and opens a `parked` decision |
-| Set network | `draft` or `pending` | sets the public domains this ticket's agents may reach |
+| Set network | `draft`, `ready-for-review` or `pending` | sets the public domains this ticket's agents may reach |
 
 On the ticket form Hold… and Park… ask for the reason only after you choose them, Set network… opens its domains
 field the same way, and Priority… opens a row of the other priorities, which closes once one applies; Cancel closes the
@@ -411,9 +413,9 @@ chat; the address becomes `#intake/<J>`.
 
 The chat reads like the Assistant's: your request first, then the product owner's turns, each with its tool calls
 folded, and each open decision docked where it was asked, with Answer in place. Beside the chat are the draft tickets
-the session filed, each linking to its card, the pictures sent in it, and Close intake. Once the session ends, and if it
-filed draft tickets, Close intake opens the `ready-drafts` decision; its caption names the draft tickets it offers to
-ready. A closed session keeps its chat, and a message resumes it.
+the session filed, each linking to its card, the pictures sent in it, and Close intake. Close intake submits the complete draft
+tickets the session filed: with ticket review on, the default, they wait in Ready for review at the top of the Ready
+lane until you press Ready on each. A closed session keeps its chat, and a message resumes it.
 
 New chat opens an empty composer (`#intake/new`). Its first message starts the session, and the tab moves to the new
 session once the Overseer has started it.
@@ -547,7 +549,7 @@ A normal day is a loop: file and ready work, answer Questions, glance at notices
 
 Three doors lead to the same draft ticket, and nothing builds until you ready it.
 
-![Intake, a Claude Code session and ticket add converge on a draft ticket. You press Ready, the Overseer checks for a numbered Acceptance and a Brief, and the ticket reaches the Ready lane. A ticket that fails is refused, and the refusal says what is missing.](../figures/running-a-board/three-doors.png)
+![Intake, a Claude Code session and ticket add all end at a draft ticket, which a filer's submit puts in the Ready for review group. You press Ready on its form, and the Overseer checks for a numbered Acceptance and a Brief. A ticket that passes reaches the Ready lane. One that fails is refused, and the refusal says what is missing.](../figures/running-a-board/three-doors.png)
 
 *The gate is the check, not the button: Ready can come back refused.*
 
@@ -558,8 +560,8 @@ Three doors lead to the same draft ticket, and nothing builds until you ready it
 | `forge ticket add "<title>" --type ticket` | you already know what to write |
 
 Open the ticket from Kanban and press Ready on its form: a ticket without what [`ticket ready`](../cli.md#tickets)
-requires is refused, and the refusal beside the button says what is missing. A `ready-drafts` decision offers only
-complete draft tickets and names the rest as not readiable.
+requires is refused, and the refusal beside the button says what is missing. A filer's submit, `ticket submit` or
+`intake close`, moves only complete draft tickets to Ready for review and leaves the rest in Drafts.
 
 ### Answer questions
 
@@ -702,7 +704,7 @@ other code. Send a long answer before you wander off.
 Each repository has its own [tracker](../glossary.md#tracker), Overseer, port and Bridge tab, and preferences are kept
 per board. Three things are shared across the machine.
 
-![Two boards, Example Storefront and Example Agency, each with its own data folder, Overseer and Bridge URL. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs, usage-limit.json holds launches on every board, projects.json lists every board.](../figures/running-a-board/several-boards.png)
+![Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Watchers. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board and usage-windows.json keeps the plan's usage windows, projects.json lists every board for a monitor to read.](../figures/running-a-board/several-boards.png)
 
 *So one busy board can make another's gates wait, and one usage limit stops launches on all of them.*
 

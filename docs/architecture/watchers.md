@@ -38,7 +38,7 @@ does not reach the next. A signal to an agent reaches its recorded group and sto
 command as the leader of [a second group](../development/overseer-claude-probe.md#process-groups), which the signal
 misses.
 
-![A login item or shell starts the Overseer. The Overseer spawns an agent Watcher, whose agent starts Bash tool commands that lead a process group of their own; a process Watcher with an install or gate child; an Airlock or pipeline agent gate child with no Watcher; and during a Baton pass a successor Overseer. Each sits in an operating-system session and process group of its own. Every Watcher and its child outlive the Overseer; the gate child with no Watcher has its output pipe close and loses its result.](../figures/watchers/process-tree.png)
+![A login item or shell starts the Overseer. The Overseer spawns an agent Watcher, whose agent starts Bash tool commands that lead a process group of their own; a process Watcher with an install or gate child; an Airlock, pipeline check or gate profile gate child with no Watcher; and during a Baton pass a successor Overseer. Each sits in an operating-system session and process group of its own. Every Watcher and its child outlive the Overseer; the gate child with no Watcher has its output pipe close and loses its result.](../figures/watchers/process-tree.png)
 
 *Everything with a Watcher keeps running when the Overseer dies; the gate child with no Watcher loses its result.*
 
@@ -439,8 +439,8 @@ A build or review job's install and gates run under the same binary with `kind: 
 Overseer too. `JobLaunch.spawnProcessWatcher` writes a launch with no standing replies, sandboxes the argv when the
 sandbox is usable, see [Confinement](confinement.md), and uses instance 1 of a folder of its own.
 
-Airlock and pipeline agent gate runs have no Watcher, record or event log. The Overseer spawns them itself through
-`GateRun.runGate` and reads their output through pipes, so their result dies with it. See
+Airlock gate runs, pipeline checks and gate profiles have no Watcher, record or event log. The Overseer spawns them
+itself through `GateRun.runGate` and reads their output through pipes, so their result dies with it. See
 [Customs and gates](customs-and-gates.md) for where each gate runs and
 [Failure and recovery](failure-and-recovery.md) for what follows.
 

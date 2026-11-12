@@ -7,7 +7,7 @@
 
 ## In one screen
 
-![Two groups of zones. In the repository: the data folder for one board, with one folder per job; the worktrees folder with the code agents change and each job's Hatch files; and the installed .claude items. In the home folder: the monitor folder for the whole machine, the vendor transcripts this system only reads, and the optional login item. A job's record is in the data folder, not the worktrees folder.](../figures/on-disk-atlas/three-zones.png)
+![Files live in two places. Inside the repository: the data folder for one board, shared by every worktree, with one folder per job; the worktrees folder with the code agents change, each job's Hatch files and the pipeline setup's snapshot, check, profile and constitution commit worktrees; and the installed .claude items. In the home folder: the monitor folder for the whole machine, the optional login item, and the vendor transcripts, which this system reads and never writes. Each zone has one scope, a board, a repository or the machine: a job's record is in the data folder, not the worktrees folder.](../figures/on-disk-atlas/three-zones.png)
 
 *Notice the scope line under each folder name: `<data>` is one board, `<monitor>` the whole machine.*
 
@@ -395,7 +395,7 @@ Most coordination files end with the span that needs them; job records have no e
 
 Most files may not be deleted by hand, and the rest depend on a condition or on `update`.
 
-![Four classes of file, by whether a person may delete it. Yes: progress.html, overseer.log and projects.json. update restores: session-instructions.md, reference.md, briefs/defaults/ and the skills. With a condition: Baton pass files, merge gate profiles, old Watcher bundles, the usage marker and the job folders of delivered tickets. Never: progress.json, log.jsonl, pipeline.json, tickets, epics, hold-journal.json and baton files.](../figures/on-disk-atlas/safe-to-delete.png)
+![Four classes of file, by whether a person may delete it. Yes: progress.html, overseer.log, projects.json and usage-windows.json. update restores: session-instructions.md, reference.md, briefs/defaults/ and the skills. With a condition: Baton pass files, merge gate profiles, old Watcher bundles, the usage marker and the job folders of delivered tickets. Never: progress.json, log.jsonl, pipeline.json, tickets, epics, hold-journal.json and baton files.](../figures/on-disk-atlas/safe-to-delete.png)
 
 *Notice that the amber column names the condition under each file; the path tables above say what breaks.*
 

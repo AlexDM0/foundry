@@ -48,30 +48,26 @@ Commands below omit the `forge` prefix ([cli.md](../cli.md) has them all). A mov
 value logged and checked, and `job fresh <J>` is the verb that makes it; `<J>` is a [job](../glossary.md#job) id. The
 runbook's [Decisions](../operations/runbook.md#decisions) gives the follow-up for each kind.
 
-`DECISION_KINDS` holds 13 kinds. Three run code on the answer, in `DecisionControls.answerDecision` and
-`AgentQuestions.afterAnswer`. Seven are read while open, so closing them frees something, and most need a further step
-from User: see the last column. `outage`, `checks-not-set`, `waiver` and `landing-refused` need a further command, and
-`quiet-job` needs one only to act on the job. For the other three, the answer changes nothing.
+`DECISION_KINDS` holds 16 kinds. Only `agent-question` runs code on the answer, in
+`DecisionControls.answerDecision` and `AgentQuestions.afterAnswer`. Ten are read while open, so closing them frees
+something, and most need a further step from User: see the last column. `merge-refused`, `outage`, `checks-not-set`,
+`waiver`, `landing-refused`, `forced-stop-refused` and `api-authentication-failed` need a further step, and
+`quiet-job` needs one only to act on the job. For `parked`, `leftover-worktree`, `api-key-not-set` and `target-moved`
+the answer changes nothing, and `pipeline-proposal` is a retired kind that the next Pass withdraws.
 
 One rule covers every kind. When the last open decision naming a waiting job closes, `afterAnswer` moves that job from
 `waiting-for-answer` back to `running`.
 
-![Of thirteen decision kinds, the answer runs code for agent-question, ready-drafts and pipeline-proposal. Seven are read while open, so closing them frees something, and outage, checks-not-set, waiver and landing-refused need a further command too. Answering parked, leftover-worktree or target-moved moves nothing.](../figures/questions-and-incidents/answer-effects.png)
+![Sixteen decision kinds in three columns. The answer runs code only for agent-question. Ten are read while open, so closing them frees something, and merge-refused, outage, checks-not-set, waiver, landing-refused, forced-stop-refused and api-authentication-failed leave User a further step. Answering parked, leftover-worktree, api-key-not-set or target-moved moves nothing, and a retired pipeline-proposal is withdrawn at the next Pass.](../figures/questions-and-incidents/answer-effects.png)
 
 *Amber marks a step the answer does not take. In the right column the answer only records a sentence in the log.*
 
-A `pipeline-proposal` is never answered as the figure draws it: an open one, left by an earlier release, is withdrawn
-at the next Pass (row below).
-
-Most decisions offer no options, so User answers with free text (`decide E7 -- <text>`), which nothing reads.
-`ready-drafts` has options of its own, and free text is read the same way on it, so `decide E7 -- #12` readies a
-draft. A `parked` decision keeps the options
-of any agent's questions it carries.
+Most decisions offer no options, so User answers with free text (`decide E7 -- <text>`), which nothing reads. A
+`parked` decision keeps the options of any agent's questions it carries.
 
 | Kind | Means | Opened by | What the answer does in code | What User must do besides |
 | --- | --- | --- | --- | --- |
 | `agent-question` | An agent asked what only User can settle | `QuestionRouting.openQuestion`, or an incident's escalation | Moves the job from `waiting-for-answer` back to `running`; the next Pass sends the answer. For an ended job, writes `## Questions` and lifts the hold (see [Answer delivery](#answer-delivery)) | Nothing |
-| `ready-drafts` | An intake closed and left draft tickets | `Board.endIntakeJob` | Readies each `#<id>` in the answer that the decision lists, that is still a draft and has no readiness gaps | Nothing |
 | `pipeline-proposal` | An earlier release's one-shot [pipeline](../glossary.md#pipeline) proposal, still open in `progress.json` | Nothing in this release opens it | Not answered: the next Pass withdraws it (`Playbook` `retiredDecisionStepsOf`) | Set the pipeline up with `pipeline setup` |
 | `branch-touches-agent-config` | A branch changes the agents' own configuration, so a person reads it first | `JobLaunch` `openAgentConfigDecision`, [Customs](../glossary.md#customs) V13 or the check before a launch | No kind-specific code. As with any decision naming a job, the last answer moves a waiting job back to `running`. Open, it holds the ticket, and `agentConfigHitIsSettled` counts any answer as settled until another job on the ticket ends | Read the branch first: "no" releases it too |
 | `outage` | Agents died in a row across tickets, so the Overseer paused | `Playbook.nextStepsOf`, with `pause-overseer`, past `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` | No code. Open, it holds every launch and resume, so closing it lets interrupted jobs resume | `oversee resume`: the Overseer stays paused for new work |
@@ -82,6 +78,10 @@ of any agent's questions it carries.
 | `quiet-job` | A silent job's incident took its default | `IncidentMoves.defaultIncident`, the `quiet-job` default | No kind-specific code. As with any decision naming a job, the last answer moves a waiting job back to `running`. Open, it holds an interrupted job's resume; a running job is untouched | `job message <J>`, `job fresh <J>` or `job stop <J>`, and answer it |
 | `parked` | A ticket stopped until User looks | `IncidentMoves` `parkUnder`, the Playbook's `park` step, `Airlocks` `abortAndPark`, `Airlocks` `settleMovedTarget` | None, even when it carries the agent's questions | `ticket unhold <id>` |
 | `leftover-worktree` | A [worktree](../glossary.md#worktree) folder stands that nothing owns | `DrivePass` `openLeftoverWorktreeDecisions`, one per folder [Regrouping](../glossary.md#regrouping) reports | None; the next Regrouping opens another if the folder stands | Remove the folder |
+| `forced-stop-refused` | A lost [Watcher](../glossary.md#watcher)'s process tree kept refusing its forced stop | `RefusedForcedStops.settle`, past `FORCED_STOP_TRIES_BEFORE_BLOCKING` tries; the job ends `blocked` | No code. Open, it holds a launch on its tickets | End the processes its context names, then answer |
+| `api-key-not-set` | API billing is set, and the Overseer's environment holds no `ANTHROPIC_API_KEY` | `DrivePass` `openApiKeyDecisionOnce`, when a launch finds no key | No code. A Pass withdraws it once the key is set or billing is no longer API | Set the key in the Overseer's environment and restart it |
+| `api-authentication-failed` | The vendor refused the API key | `ApiBillingStops` `interruptOnRefusedKey`; the job is interrupted | No code. Open, it holds every launch, resume and Assistant boot, as an outage does | Fix the key, then answer |
+| `budget-reached` | A session stopped at the billing's `--max-budget-usd` | `ApiBillingStops` `endAtBudget`; the job ends `blocked` | No code. Open, it holds a launch on its tickets; one naming no ticket, an Assistant's, holds every Assistant boot | Raise the budget, or accept the stop, then answer |
 | `target-moved` | A [target](../glossary.md#target) kept moving under its merges | `Airlocks` `settleMovedTarget`, only while `TARGET_REF_DENIES_HOLD` is false, and it is true | None | Nothing: this kind does not open as built |
 
 > **As built.** Answering a `parked` decision does not lift the hold, and its answer reaches nobody:
@@ -336,12 +336,12 @@ fires. Two board states stop both, and in them it waits for a person:
 
 If nobody acts, every kind falls to one of four ends.
 
-![Ten incident kinds grouped by what their default does. Question kinds and quiet-job ask User, blocked and job-lost park the ticket, out-of-calls and resume-failed get a fresh agent, and setup-failed, gate-cannot-run and sandbox-unavailable only close. The four kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
+![Eleven incident kinds grouped by what their default does. Question kinds and quiet-job ask User; blocked and job-lost park the ticket; out-of-calls and resume-failed get a fresh agent; setup-failed, gate-cannot-run, sandbox-unavailable and setup-snapshot-touched only close. The four kinds marked once park on their next default, so a retry cannot loop.](../figures/questions-and-incidents/what-silence-does.png)
 
 *A failing ticket reaches User on the second default, so a retry cannot loop.*
 
-The figure leaves out `setup-snapshot-touched`, which names no ticket: its default only records a note, and the setup
-record stays held until User starts it over or resumes it once main moved.
+`setup-snapshot-touched` names no ticket: its default, `incident-note`, only closes it, and the setup record stays held
+until User starts it over or resumes it once main moved.
 
 `IncidentMoves.defaultIncident` applies these in order, and the first that fits wins.
 

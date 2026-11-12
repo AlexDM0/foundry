@@ -36,7 +36,7 @@ Eleven entries are defined here; the rest link their home.
 
 | Machine | Stored in | States | Home |
 | --- | --- | --- | --- |
-| Ticket | ticket file, `status` | 7 | [below](#ticket) |
+| Ticket | ticket file, `status` | 8 | [below](#ticket) |
 | Hold | ticket file, `hold` | present or absent | [below](#hold-an-overlay-on-any-status) |
 | Row | `progress.json`, `tasks` | 8 stored, 2 [display](../glossary.md#display-state) | [below](#row) |
 | Job | `progress.json`, `jobs` | 12 plus `ended` | [below](#job) |
@@ -54,7 +54,7 @@ Eleven entries are defined here; the rest link their home.
 
 ## Ticket
 
-A ticket has seven statuses and one legality table. The named verbs and the Overseer's own moves keep the table;
+A ticket has eight statuses and one legality table. The named verbs and the Overseer's own moves keep the table;
 `ticket status` skips it on purpose. Commands in this document omit the `forge` prefix. What each move does
 to the row, stamps and log line is in [Ticket moves and their rows](../cli.md#ticket-moves-and-their-rows).
 
@@ -64,12 +64,13 @@ From `src/lib/tracker-model/constants/TicketMoveLegality.ts`, `LEGAL_SOURCE_STAT
 | Target | Means | Legal sources |
 | --- | --- | --- |
 | `draft` | filed and not ready; nothing launches it | none |
-| `pending` | ready, waiting for a launch | `draft`, `in-progress`, `in-review`, `reviewed`, `delivered`, `abandoned` |
+| `ready-for-review` | submitted by its filer, waiting for User's `ticket ready`; no row yet | `draft` |
+| `pending` | ready, waiting for a launch | `draft`, `ready-for-review`, `in-progress`, `in-review`, `reviewed`, `delivered`, `abandoned` |
 | `in-progress` | a [builder](../glossary.md#builder) has the work, or has it next | `pending`, `in-review` |
 | `in-review` | the build's [gate](../glossary.md#gate) passed; review and the merge queue both happen here | `in-progress` |
 | `reviewed` | landed on a group branch, not yet on the main line | `in-progress`, `in-review` |
 | `delivered` | on the main line | `reviewed` |
-| `abandoned` | given up, with a reason | `draft`, `pending`, `in-progress`, `in-review`, `reviewed` |
+| `abandoned` | given up, with a reason | `draft`, `ready-for-review`, `pending`, `in-progress`, `in-review`, `reviewed` |
 
 No status lists itself as a legal source, so a move to the current status is never legal.
 
@@ -87,7 +88,9 @@ abandoning its own draft ticket. Filing is the only way into `draft`; a worker's
 | Edge | Moved by | Function |
 | --- | --- | --- |
 | into `draft` | `ticket add`, or a job's filing | `fileTicket` |
-| `draft` to `pending` | `ticket ready`, a `ready-drafts` answer, or a worker's complete finding with ticket review off | `readyDraftTickets`, `submitDraftTickets` |
+| `draft` to `pending` | `ticket ready`, or the filer's `ticket submit` or `intake close`, or a worker's complete finding, with ticket review off | `readyDraftTickets`, `submitDraftTickets` |
+| `draft` to `ready-for-review` | the filer's `ticket submit` or `intake close`, or a worker's complete finding, with ticket review on | `submitDraftTickets`, `putBeforeReview` |
+| `ready-for-review` to `pending` | `ticket ready`: User's ticket review | `readyDraftTickets` |
 | `pending` to `in-progress` | a build job leaves `launching` | `applyObservation` in `src/services/overseer/JobLaunch.ts` |
 | `in-progress` to `in-review` | the build's gate passed | `settleGate` |
 | `in-review` to `in-progress` | a [reviewer](../glossary.md#reviewer)'s claim proves false | `settleReviewPass`, review move `fixer`, which sends the ticket back to a builder |
@@ -95,7 +98,7 @@ abandoning its own draft ticket. Filing is the only way into `draft`; a worker's
 | `in-review` to `reviewed` to `delivered` | a merge landed on the main line | `landOnTheBoard`, `releaseTickets` |
 | `reviewed` to `delivered` | the [release bundle](../glossary.md#release-bundle)'s [release ticket](../glossary.md#release-ticket) landed | `releaseTickets` |
 | any open status to `abandoned` | `ticket abandon`, reason required | `moveTicket` through `abandonTicket` |
-| any status but `draft` or `pending`, to `pending` | `ticket reopen` | `moveTicket` |
+| any status but `draft`, `ready-for-review` or `pending`, to `pending` | `ticket reopen` | `moveTicket` |
 
 `releaseTickets` calls `applyTicketMove`, which checks nothing: its caller refuses first through `ticketIsReleasable`.
 
@@ -104,8 +107,9 @@ abandoning its own draft ticket. Filing is the only way into `draft`; a worker's
 `moveTicket` runs these in this order, and a refusal writes nothing.
 
 1. `ticket-already-in-status`: the target is the current status.
-2. `move-to-draft`: the target is `draft`.
-3. `move-of-a-draft`: the ticket is `draft` and the target is not `abandoned`.
+2. `move-to-draft`, then `move-to-ready-for-review`: the target is `draft`, or `ready-for-review`.
+3. `move-of-a-draft`, then `move-of-a-ticket-ready-for-review`: the ticket is `draft`, or `ready-for-review`, and the
+   target is not `abandoned`.
 4. `illegal-ticket-move`: the table refuses, only when `checksLegality` is true.
 5. `abandon-without-reason`: the target is `abandoned` and the reason is blank.
 6. `reopen-beside-an-open-release-ticket`: from `refuseReopeningBesideAnOpenReleaseTicket`.
@@ -115,9 +119,9 @@ abandoning its own draft ticket. Filing is the only way into `draft`; a worker's
 
 *Read column 4: it is the only check an override removes, and three routes never reach `moveTicket` at all.*
 
-`ticket status <id> <status>` passes `checksLegality: false`. So it never moves a ticket into `draft`, never moves a
-`draft` ticket anywhere but `abandoned`, and still needs a reason to abandon. Moving to `in-progress` this way warns on
-standard error when the ticket is held or waits on a dependency, and moves it anyway.
+`ticket status <id> <status>` passes `checksLegality: false`. So it never moves a ticket into `draft` or
+`ready-for-review`, never moves a `draft` or `ready-for-review` ticket anywhere but `abandoned`, and still needs a
+reason to abandon. Moving to `in-progress` this way warns on standard error when the ticket is held or waits on a dependency, and moves it anyway.
 
 `ticket deliver --by-hand` is the same override toward `delivered`. It is refused while a [Baton](../glossary.md#baton)
 is live (`overseer-owns-the-lifecycle`) or a job of the ticket is live (`ticket-has-live-job`).
@@ -367,7 +371,7 @@ has nothing to wait for, so it ends in the same [lock hold](../glossary.md#lock-
 session needs its Watcher to finish first. `job fresh` asks for a replacement agent, so it writes no hold and needs a
 ticket. A [wind-down](../glossary.md#wind-down) asks the agent to finish and report, and changes no state.
 
-![Three rows, stop, fresh and wind-down, against no session, build or review in any other state, and session job. A stop or fresh ends a job with no session at once, and fresh needs a ticket. A build or review otherwise goes to stopping and ends. A product owner, or an Assistant in any other state, goes to stopping on a stop, ends closed, and refuses fresh. wind-down changes no state. stop and wind-down write a hold where the job has a ticket. A merge or refresh carries on from stopping; a merge-agent or pipeline agent stays stopping.](../figures/state-machines/stop-modes.png)
+![A stop or fresh of a job in a state with no session, launching, preparing, interrupted or awaiting-answer, ends it at once, stopped or replaced; fresh needs a ticket. A build or review in any other state goes to stopping and ends once its Watcher is gone. A product owner in any state, and an Assistant or pipeline agent in any other, go to stopping on a stop and end closed, and they refuse fresh. wind-down changes no state. A merge or refresh moves to stopping and the merge carries on. A merge-agent stays stopping. A pipeline agent acts as an Assistant, and with no session a stop ends it closed at once.](../figures/state-machines/stop-modes.png)
 
 *Only `stop` and `wind-down` write the ticket hold; `fresh` never does. The last two lines under the grid are the kinds
 the grid's columns do not cover.*
@@ -375,8 +379,8 @@ the grid's columns do not cover.*
 <details>
 <summary>How the other kinds read <code>stopping</code></summary>
 
-- An Assistant or a pipeline agent ends `closed` once its Watcher is gone, though the figure keeps a pipeline agent in
-  `stopping`; User's next message, answer or edit opens a closed pipeline agent again.
+- An Assistant or a pipeline agent ends `closed` once its Watcher is gone; User's next message, answer or edit opens a
+  closed pipeline agent again.
 - A `merge` or `refresh` job moves to `stopping` and a merge's ticket takes the hold, but the Airlock does not read that
   state, so the merge carries on ([gap-job-stop-misses-merge](../reference/known-gaps.md#gap-job-stop-misses-merge)).
 - A merge agent receives no stop frame and stays `stopping`. Its merge stalls with it, until the merge gives up its
@@ -393,19 +397,20 @@ through `messageJob` or a setup move that messages the agent.
 
 ### Which kinds use which states
 
-![Eight job kinds against eleven states. All use launching, stopping and ended. build and review add preparing, running, waiting-for-answer, interrupted, in-customs and gating, and review adds awaiting-answer. merge and refresh add only merging. merge-agent adds running, interrupted, in-customs and gating. assistant adds running and interrupted, product-owner adds both question states, and pipeline agent adds in-customs.](../figures/state-machines/kinds-by-state.png)
+![Nine job kinds against twelve states. All use launching, stopping and ended. build and review use preparing, running, waiting-for-answer, interrupted, in-customs, gating and merging-main; review adds awaiting-answer. merge, refresh and constitution-commit use only merging between. merge-agent uses running, interrupted, in-customs and gating, where a resolved agent waits while the merged tree is gated. assistant and pipeline agent use running and interrupted. product-owner adds both question states.](../figures/state-machines/kinds-by-state.png)
 
-*Read a column to see who reaches a state: `merging` belongs to two kinds, and `preparing` to the two worktree kinds.*
+*Read a column to see who reaches a state: `merging` belongs to three kinds, and `preparing` and `merging-main` to the
+two worktree kinds.*
 
-![Left: a session job moves launching, running, stopping, ended closed, and a result leaves it running. Right: a merge job moves launching, merging, ended, and stays merging while airlock.phase moves through its six phases.](../figures/state-machines/session-and-merge-job-states.png)
+![Left: an assistant or product-owner job stays running after a result and ends closed only once its input was closed and its Watcher is gone. Right: a merge job moves launching to merging and stays merging while airlock.phase moves, through its seven phases, then ends landed, integrated, refreshed, committed, failed or stopped. A constitution commit job takes the same shape, in committing and landing only.](../figures/state-machines/session-and-merge-job-states.png)
 
 *These two shapes sit furthest from the build path. For a merge job, read `airlock.phase` for progress: the job state
 says nothing more than `merging`.*
 
-The two figures leave out three entries. A `pipeline-agent` is a session job like the Assistant: it uses `launching`,
-`running`, `interrupted`, `stopping` and `ended`, and never `in-customs`, since it owes no report. A
-`constitution-commit` job is `merging` like a merge, in the phases `committing` and then `landing`, never `merge-in`,
-`gating` or `fixing`. A build or review job adds `merging-main` with merge approval on.
+A `pipeline-agent` is a session job like the Assistant and never reaches `in-customs`, since it owes no report: its
+turn ends meet Customs while it stays `running`. A `constitution-commit` job is `merging` like a merge, in the phases
+`committing` and then `landing`, never `merge-in`, `gating` or `fixing`. A build or review job reaches `merging-main`
+only with merge approval on.
 
 An interrupted `assistant` ends in the next lock hold, `replaced` or `failed`. An interrupted `product-owner` past its
 crash bound waits in `awaiting-answer` if a question is open, and otherwise a fresh session takes its intake over.

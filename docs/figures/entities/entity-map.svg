@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="682" viewBox="0 0 1000 682" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>Records point at each other through fields</title>
-  <desc>Ticket is the centre. A task row links to it by task and ticket for its own row, and by reviewOf for review bars. Jobs, decisions and incidents name tickets by ticketIds, and decisions and incidents name a job by jobId. Tickets name epics. Rows name the pipeline by content hash. Rows, jobs, decisions and incidents share progress.json. A filing draft reaches tickets only through its draft-closed log record, and closed records and merge-queued are log records too. Group, merge queue and Airlock are dashed: each is what a field amounts to, with no record of its own.</desc>
+  <desc>Ticket is the centre. A task row links to it by task and ticket for its own row, and by reviewOf for review bars. Jobs, decisions and incidents name tickets by ticketIds, and decisions and incidents name a job by jobId. Tickets name epics. Rows name the pipeline by its phase hash and the phase it was green in, greenPhase. Rows, jobs, decisions and incidents share progress.json. A filing draft reaches tickets only through its draft-closed log record, and closed records and merge-queued are log records too. Group, merge queue and Airlock are dashed: each is what a field amounts to, with no record of its own.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker>
   </defs>
@@ -57,7 +57,8 @@
     <text x="705" y="296" text-anchor="middle">many to 0..1</text>
     <text x="532" y="396" text-anchor="end" font-family="ui-monospace,Menlo,Consolas,monospace">parentJobId</text>
     <text x="532" y="412" text-anchor="end">many to 0..1</text>
-    <text x="182" y="318" font-family="ui-monospace,Menlo,Consolas,monospace">pipelineHash</text>
+    <text x="182" y="301" font-family="ui-monospace,Menlo,Consolas,monospace">pipelineHash</text>
+    <text x="182" y="318" font-family="ui-monospace,Menlo,Consolas,monospace">greenPhase</text>
     <text x="182" y="346">many to 0..1</text>
     <text x="363" y="448" font-family="ui-monospace,Menlo,Consolas,monospace">mergeQueued</text>
     <text x="613" y="436" font-family="ui-monospace,Menlo,Consolas,monospace">airlock</text>

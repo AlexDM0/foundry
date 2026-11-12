@@ -182,9 +182,9 @@ The product owner is the path from a sentence of User's to a ticket a builder ca
 the filing procedure in `skills/agent-po/SKILL.md`, installed as the skill `forge-po`; this section covers what the
 Overseer does around it.
 
-![User asks for work and the Overseer launches a session. The session files draft tickets, which the Bouncer admits; a ticket ready from it is refused. The session closes intake, and the Overseer ends the job and opens a ready-drafts decision. User picks a set, which moves those draft tickets to pending in the answering lock hold, with or without a running Overseer, or None, which leaves them draft tickets User can ready later.](../figures/assistant-and-intake/intake-to-ready.png)
+![User makes a request and the Overseer launches a product-owner session. The session researches in a filing draft and files draft tickets, which the Bouncer admits. A ticket ready from the session, should it try, is refused. The session runs intake close, which in the same lock hold submits every complete draft ticket the intake filed: with ticket review on, the default, each goes to ready-for-review; an incomplete one stays a draft. User reviews them and runs ticket ready, with or without a running Overseer, which moves each named ticket to pending; the others stay in review until User readies them.](../figures/assistant-and-intake/intake-to-ready.png)
 
-*Notice that nothing reaches `pending` here except through User's answer.*
+*Notice that nothing reaches `pending` here except through User's `ticket ready`, unless ticket review is off.*
 
 ### Starting and talking
 
@@ -225,42 +225,27 @@ It produces draft tickets and is not a ticket. Its states and its claim are in
 
 ### Closing
 
-Closing ends the session and opens the `ready-drafts` decision for User. The session runs `intake close --set <id,id>`,
-naming no job because the Bouncer fills in its own. Each `--set` proposes one group of draft tickets to ready together,
-stored as `proposedDraftSets` on the job. User can close it with `intake close <J>` or the Bridge's Close intake button.
+Closing ends the session and submits what it filed. The session runs `intake close --set <id,id>`, naming no job because
+the Bouncer fills in its own. Each `--set` proposes one group of draft tickets, stored as `proposedDraftSets` on the
+job; nothing reads the sets now. User can close it with `intake close <J>` or the Bridge's Close intake button.
 `job stop` closes it too, and also withdraws its open questions.
 
-Closing moves the job to `stopping`, and the Overseer closes its input. Once no Watcher of the job is live,
-`endClosedIntakes` ends it `closed` and opens the decision in the same lock hold.
-
-> **Why.** The decision opens after the session ends, so a draft ticket filed in its last turn is on it.
-
-### The `ready-drafts` decision
-
-`readyDraftsDraftOf` lists every draft ticket the intake filed, across the sessions that took it over, except those
-offered before a reopening. With none, nothing opens.
-
-![Two examples over draft tickets 101, 102 and 103, where 103 is incomplete. With sets 101,103 and 102, the completeness filter trims the first set and leaves the options 101 and 102. With only the set 103, no set survives, so one option covers every complete draft ticket, 101 102. Both times 103 is listed as not readiable, and None is always offered.](../figures/assistant-and-intake/ready-drafts-options.png)
-
-*Notice that a set never offers an incomplete draft ticket, whatever the session proposed.*
-
-Each proposed set keeps only its complete draft tickets and an emptied set is dropped; with no set left, or none
-proposed, one option covers every complete draft ticket.
-
-Complete means a numbered [Acceptance](../glossary.md#acceptance) and a [Brief](../glossary.md#brief). The incomplete
-draft tickets are listed in the decision's context as not readiable.
-
-The answer readies the tickets its option names, in the answering lock hold, and only listed draft tickets that are
-still complete. "None" leaves them in the Kanban's Drafts group, where User can ready them later with `ticket ready`.
+`Board.closeIntake` moves the job to `stopping` and, in the same lock hold, submits every draft ticket the intake filed
+across the sessions that took it over (`draftsFiledByIntakeOf`), as `ticket submit` does. A complete draft ticket, one
+with a numbered [Acceptance](../glossary.md#acceptance) and a [Brief](../glossary.md#brief), goes to `ready-for-review`
+with ticket review on, the default, and waits for User's `ticket ready`; with ticket review off
+(`gate approval tickets off`) it becomes `pending` at once. An incomplete one stays a draft ticket in the Kanban's
+Drafts group. The Overseer then closes the session's input, and once no Watcher of the job is live,
+`endClosedIntakes` ends it `closed`.
 
 > **Careful.** A User running `skills/agent-po/SKILL.md` in their own session is a different case: no job, no Hatch, no
-> Bouncer. That session asks "Ready these to build?" and runs `ticket ready` on User's yes.
+> Bouncer. That session submits its drafts with `ticket submit`, and User readies them with `ticket ready`.
 
 ### Reopening
 
 A message to a closed product owner reopens it. `messageJob` brings the same job id back to `running` on a new
 [Watcher instance](../glossary.md#watcher-instance), resuming its session with the text as its first line. It records
-every ticket the intake filed so far as offered, so its next `ready-drafts` lists only tickets filed after that. A job
+every ticket the intake filed so far as offered (`offeredTicketIds`, logged only). A job
 that ended any other way refuses the message. The reopening message replaces the stored intake text and clears the
 proposed sets.
 
@@ -272,10 +257,10 @@ id once any open question is answered, and only a crash counts toward the bound,
 If the vendor refuses the resume, the intake ends. The session exits without starting, so `JobResumption.resumeFailed`
 holds, and the job ends `replaced` with cause `resume-failed` and a `resume-failed` incident.
 
-> **Careful.** That incident's default, `job-fresh`, finds no job left, so no fresh session comes and no `ready-drafts`
-> opens. A message to the job is refused. Its draft tickets stay in the Kanban's Drafts group for User.
+> **Careful.** That incident's default, `job-fresh`, finds no job left, so no fresh session comes and nothing is
+> submitted. A message to the job is refused. Its draft tickets stay in the Kanban's Drafts group for User.
 
-![An interrupted product owner resumes by session id once any open question is answered, and each crash counts one. If the vendor refuses the resume, the job ends replaced with cause resume-failed, no ready-drafts opens and the draft tickets stay in the Drafts lane. Another crash past JOB_RESUMES_BEFORE_FRESH ends the resuming: with a question open the job waits in awaiting-answer and refreshes once answered, and with none it refreshes at once.](../figures/assistant-and-intake/intake-crash-ladder.png)
+![An interrupted product owner resumes by session id once any open question is answered, and each crash counts one. If the vendor refuses the resume, the job ends replaced with cause resume-failed, nothing is submitted and the draft tickets stay in the Drafts lane. Another crash past JOB_RESUMES_BEFORE_FRESH ends the resuming. With a question open the job waits in awaiting-answer and refreshes once answered; with none, a fresh job naming it as parentJobId takes the intake over.](../figures/assistant-and-intake/intake-crash-ladder.png)
 
 *Notice that `awaiting-answer` is the same wait as `waiting-for-answer` with no session running, and that it ends in a
 refresh, never a resume.*
@@ -284,15 +269,14 @@ refresh, never a resume.*
 [attempt](../glossary.md#attempt) number is one higher. Its first message holds the intake text, the draft tickets the
 intake filed that are still draft (`draftsFiledByIntakeOf`) and the answers User gave the session it replaces
 (`carriedAnswers`). After a reopening, that text is the reopening message, not the original request. The chain of
-parents is how the final `ready-drafts` finds every draft ticket. The job states are in
+parents is how the final `intake close` finds every draft ticket to submit. The job states are in
 [State machines](../data-model/state-machines.md).
 
 > **Careful.** Only the replaced session's answers carry, so a second refresh loses the answers given before the first.
 
-![One intake across three runs. J4 files 101 and 102 and closes, and ready-drafts lists both. A job message reopens J4 on a new Watcher instance and records 101 and 102 as offered. J4 files 103, goes over the crash bound and ends replaced. J6, with J4 as its parent, files 104 and closes, and ready-drafts lists only 103 and 104.](../figures/assistant-and-intake/intake-chain.png)
+![One intake across three runs. J4 files #101 and #102 and closes, and its intake close submits both. A job message reopens the same job J4 on a new Watcher instance and records offeredTicketIds #101 and #102. J4 files #103, goes over the crash bound and ends replaced. J6, whose parentJobId is J4, files #104 and closes, and its intake close submits #103 and #104, the draft tickets the chain filed that are still drafts.](../figures/assistant-and-intake/intake-chain.png)
 
-*Notice that the chain finds #103 from an earlier job, and `offeredTicketIds` keeps #101 and #102 off the second
-decision.*
+*Notice that the chain finds #103 from an earlier job, and that #101 and #102 are no longer drafts by the second close.*
 
 ## What each session may do through its Hatch
 
@@ -333,7 +317,8 @@ The product owner cannot ready, start or merge anything, and its filings reach o
 6. Under the Overseer, no product-owner session readies a ticket. The Bouncer admits no `ticket-ready` for its role.
 7. A worker's finding builds only after each finder is `reviewed` or `delivered`, and no finding waits on an abandoned
    finder.
-8. A `ready-drafts` answer readies only tickets the decision lists that are still complete draft tickets.
+8. An intake close submits only complete draft tickets the intake filed; with ticket review on, only User's
+   `ticket ready` makes one `pending`.
 
 ## In the code
 
@@ -347,7 +332,7 @@ The product owner cannot ready, start or merge anything, and its filings reach o
 | First-run leftovers | `src/lib/tracker-model/Findings.ts` | `submitFirstRunLeftovers` | `src/lib/tracker-model/Findings.spec.ts` |
 | Role admission | `src/services/control/Bouncer.ts` | `workerVerdictOf`, `productOwnerVerdictOf`, `assistantVerdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Intake end | `src/services/overseer/IntakeSessions.ts` | `endClosedIntakes`, `intakeFactsOf`, `productOwnerProfileOf` | `src/services/overseer/CrashMatrix.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
-| Intake on the board | `src/lib/tracker-model/JobControls.ts` | `closeIntake`, `readyDraftsDraftOf`, `messageJob`, `refreshIntake` | `src/services/control/JobControls.spec.ts` |
+| Intake on the board | `src/lib/tracker-model/JobControls.ts` | `closeIntake`, `messageJob`, `refreshIntake`; `Board.closeIntake` submits the drafts | `src/services/control/JobControls.spec.ts` |
 | Intake on the Bridge | `bridge/views/intake/IntakeModel.ts`, `bridge/views/intake/IntakeView.tsx` | `IntakeModelUtil`, `IntakeView` | `bridge/views/intake/IntakeModel.spec.ts`, `bridge/views/intake/IntakeView.dom.tsx` |
 | Pictures with an intake or a message | `src/services/tracker/PictureStore.ts`, `bridge/views/intake/PictureAttachments.ts` | `PictureStore`, `usePictureAttachments` | `src/services/tracker/PictureStore.spec.ts`, `bridge/views/intake/PictureAttachments.dom.tsx` |
 | Crash bound | `src/lib/tracker-model/Playbook.ts` | `productOwnerStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |

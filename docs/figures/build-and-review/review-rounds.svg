@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="352" viewBox="0 0 1000 352" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>A round is earned by rework and restarts when the builder returns</title>
-  <desc>One ticket across five jobs. J1 builds. Review J2, round 1, reworks past REWORK_ROUND_THRESHOLD_LINES and is granted round 2. Review J3, round 2, reports a claim that does not hold, so the ticket goes back. J4 resumes the builder session and the ticket re-enters review. Review J5 starts again at round 1, reports no failed claim and stays under the threshold, so the ticket queues for its Airlock.</desc>
+  <desc>One ticket across five jobs. J1 builds. Review J2, round 1, reworks past the threshold, the pipeline's review.reReview.thresholdLines, and is granted round 2. Review J3, round 2, reports a claim that does not hold, so the ticket goes back. J4 resumes the builder session and the ticket re-enters review. Review J5 starts again at round 1, reports no failed claim and stays under the threshold, so the ticket queues for its Airlock.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="998" height="350" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" fill="#3d3d3a" text-anchor="start" font-weight="500">A round is earned by rework and restarts when the builder returns</text>

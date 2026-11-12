@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="970" viewBox="0 0 1000 970" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>No session writes data; the Hatch is its only way past</title>
-  <desc>Every session is refused the data folder and is allowed its own Hatch folder. Full profiles hold most rows; the weaker session profiles and a proposed gate line get through in the coral cells. Bash is held where Edit and Write meet no deny rule.</desc>
+  <desc>Every session is refused the data folder and is allowed its own Hatch folder. Full profiles hold most rows; the weaker session profiles get through in the coral cells, and a proposed gate line goes through the Hatch and runs only on User's press, confined. Bash is held where Edit and Write meet no deny rule.</desc>
   <rect x="1" y="1" width="998" height="968" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">No session writes &lt;data&gt;; the Hatch is its only way past</text>
   <text x="40" y="68" font-size="13" fill="#73726c">each cell names what stops the attempt, as built; roles are grouped by the profile they really run</text>
@@ -260,8 +260,8 @@
 <rect x="583" y="748" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
 <text x="644" y="762" font-size="13" fill="#0C447C" text-anchor="middle">draft tickets,</text>
 <text x="644" y="777" font-size="13" fill="#0C447C" text-anchor="middle">intake</text>
-<rect x="710" y="748" width="123" height="34" rx="5" fill="#FCEBEB" stroke="#F3D2D2" stroke-width="1"/>
-<text x="771" y="770" font-size="13" fill="#791F1F" text-anchor="middle">Bouncer refuses all</text>
+<rect x="710" y="748" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
+<text x="771" y="770" font-size="13" fill="#0C447C" text-anchor="middle">moves its setup</text>
 <rect x="837" y="748" width="123" height="34" rx="5" fill="#FCEBEB" stroke="#F3D2D2" stroke-width="1"/>
 <text x="898" y="770" font-size="13" fill="#791F1F" text-anchor="middle">no Hatch folder</text>
 <text x="40" y="808" font-size="13" font-weight="500" fill="#3d3d3a">Propose a gate line</text>
@@ -273,9 +273,9 @@
 <text x="517" y="808" font-size="13" fill="#5F5E5A" text-anchor="middle">no such report</text>
 <rect x="583" y="786" width="123" height="34" rx="5" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
 <text x="644" y="808" font-size="13" fill="#5F5E5A" text-anchor="middle">no such report</text>
-<rect x="710" y="786" width="123" height="34" rx="5" fill="#F5C4B3" stroke="#D85A30" stroke-width="1.5"/>
-<text x="771" y="800" font-size="13" fill="#712B13" text-anchor="middle">runs unconfined,</text>
-<text x="771" y="815" font-size="13" fill="#712B13" text-anchor="middle">twice</text>
+<rect x="710" y="786" width="123" height="34" rx="5" fill="#E6F1FB" stroke="#CFE2F6" stroke-width="1"/>
+<text x="771" y="800" font-size="13" fill="#0C447C" text-anchor="middle">Hatch; runs on</text>
+<text x="771" y="815" font-size="13" fill="#0C447C" text-anchor="middle">User's press</text>
 <rect x="837" y="786" width="123" height="34" rx="5" fill="#F1EFE8" stroke="#E1DDD0" stroke-width="1"/>
 <text x="898" y="808" font-size="13" fill="#5F5E5A" text-anchor="middle">not an agent</text>
 <rect x="32" y="214" width="933" height="38" rx="8" fill="none" stroke="#185FA5" stroke-width="1.5"/>
@@ -293,5 +293,5 @@
 <text x="40" y="882" font-size="13" fill="#73726c"><tspan font-weight="500" fill="#5F5E5A">Bash held; Edit open:</tspan> the Claude sandbox stops Bash; the Edit and Write tools meet no deny rule.</text>
 <text x="40" y="902" font-size="13" fill="#73726c"><tspan font-weight="500" fill="#5F5E5A">Bash: sandbox:</tspan> only Bash can try this, and the sandbox stops it.</text>
 <text x="40" y="922" font-size="13" fill="#73726c"><tspan font-weight="500" fill="#5F5E5A">one level only:</tspan> a process Watcher's launch file stays readable.</text>
-<text x="40" y="942" font-size="13" fill="#73726c"><tspan font-weight="500" fill="#5F5E5A">runs unconfined:</tspan> a proposed line runs as the Overseer, so the &lt;data&gt; row binds sessions, not that line.</text>
+<text x="40" y="942" font-size="13" fill="#73726c"><tspan font-weight="500" fill="#5F5E5A">runs on User's press:</tspan> a proposed line is stored in the draft; a pipeline check or gate profile runs it, confined.</text>
 </svg>

@@ -43,7 +43,7 @@ The two stages answer different questions, so neither can stand in for the other
 | Trusts the report | Tests it | Never reads it |
 
 A builder also runs the gates itself and claims each one in its report. That claim buys nothing: check V15 only compares
-the claim with HEAD, and the Overseer then runs every gate again. An agent's green run is never a gate result.
+the claim with HEAD, and the Overseer then runs the gates of the job's phase again. An agent's green run is never a gate result.
 
 > **Why.** A report is written by the party being judged. Customs turns each claim into something git can answer, and
 > a gate result comes from a process the agent did not start, on a tree it can no longer change.
@@ -54,7 +54,7 @@ A [role](../glossary.md#role) owes a column: an ordered list of checks. `clearCu
 stops at the first [refusal](../glossary.md#refusal), so the Overseer acts on one reason. A check answers passed, or a
 reason code with facts and no prose; the facts are paths, commits or labels.
 
-![A grid of sixteen checks by four roles. Builder, reviewer and pipeline agent columns run through clearCustoms. The airlock-agent column is declared but not reached, except V10, which the Airlock runs by hand. V3, V4 and V15 for a builder and V4 for a reviewer resume the session.](../figures/customs-and-gates/customs-matrix.png)
+![Sixteen checks V1 to V16 against four roles. Builder, reviewer and pipeline agent columns run through clearCustoms in production; the pipeline agent's is V16, V4, V5, V13 and V14, at each turn end, and its refusal opens setup-snapshot-touched while the session goes on. The airlock-agent column is declared but no production path runs it; the Airlock runs V10 alone by hand through MergeRun.resolutionIsSound, and a refusal there refuses the merge. V3, V4 and V15 for a builder and V4 for a reviewer resume the same session.](../figures/customs-and-gates/customs-matrix.png)
 
 *Notice the hatched column: `CHECKS_OF_ROLE` declares it, and no production path walks it.*
 
@@ -214,7 +214,7 @@ follows. Objects are closed, so an extra key is invalid. An Acceptance item is i
 | --- | --- | --- |
 | `BUILDER_REPORT_SCHEMA` | builder | `outcome`, `headCommit`, Acceptance evidence, `alsoFixed`, gate claims, [Handoff](../glossary.md#handoff) text |
 | `REVIEWER_REPORT_SCHEMA` | reviewer | `headCommit`, a claim per Acceptance item, findings fixed or filed, review text |
-| `AIRLOCK_AGENT_REPORT_SCHEMA` | a builder or reviewer in the Airlock | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
+| `AIRLOCK_AGENT_REPORT_SCHEMA` | an Airlock agent: the ticket's [last worker](../glossary.md#last-worker) (builder, reviewer or re-reviewer), or a conflict re-reviewer past its re-review | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
 
 </details>
 
@@ -360,7 +360,7 @@ Across jobs only the `gate-ran` log record is read, with three readers.
 
 | Reader | Reads | For |
 | --- | --- | --- |
-| `mergedTreeWasLastPassed` | The newest run on the tree | An Airlock whose merged tree equals the branch's tree lands without gating again, because the merge changed nothing the gates judged |
+| `mergedTreeWasLastPassed` | The newest run on the tree, and the row's green in the `merge` phase | An Airlock whose merged tree equals the branch's tree, green in the `merge` phase, lands without gating again, because the merge changed nothing the merge phase's gates judged |
 | `landMerge` | Any passing run on the tree | The legality of `merge-land`; see [Airlocks and groups](airlocks-and-groups.md) |
 | `pipelineAgentFactsOf` | The newest runs | History shown to the pipeline agent, capped by `GATE_HISTORY_RECORDS` |
 
@@ -451,7 +451,7 @@ malformed edit stops ticket work.
   read from the main line at each launch; with no key, `<data>/briefs/defaults/constitution.md`. A listed
   `agents.<role>.instructions` list replaces the role's default list (`DEFAULT_INSTRUCTIONS_OF_ROLE`); keep its
   `constitution` and `default-brief` entries to extend it.
-- An Airlock agent reads its builder or reviewer files. By default the builder, reviewer, re-reviewer and conflict
+- An Airlock agent reads the files of the role it stands in for: the last worker's, or the conflict re-reviewer's. By default the builder, reviewer, re-reviewer and conflict
   re-reviewer read the constitution.
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11

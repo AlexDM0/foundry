@@ -291,8 +291,9 @@ later removes that layout, spelled with the active names.
 | `FrozenInstalledSurface.json` | `cli/`, read by `cli/InstalledSurface.spec.ts` | One key per install version, 1 to 19, carrying retired names | Retake it; see [Stored formats](#stored-formats) |
 | `FrozenClaudeInstall.json` | `cli/adoption/`, read by `TrackerRefresh.claudeInstall.spec.ts` | Installed text, spelled with the active names | Retake it after any rename; the spec's header says how |
 
-The live budgets and `REWORK_ROUND_THRESHOLD_LINES` are read by `cli/overseer/OverseerWording.ts`, `JobLaunch.ts`,
-`AirlockLimits.ts` and `LifecycleLimits.ts`. `OLDER_FORMAT_ADVICE` targets a `progress.json` version, a row status,
+The live budgets are read by `cli/overseer/OverseerWording.ts`, `JobLaunch.ts`, `AirlockLimits.ts` and
+`LifecycleLimits.ts`. `REWORK_ROUND_THRESHOLD_LINES` reaches `LifecycleLimits.ts` only as the fallback with no
+pipeline: a pipeline's `review.reReview.thresholdLines` sets the round threshold (`RoundVerdictUtil.roundLimitsOf`). `OLDER_FORMAT_ADVICE` targets a `progress.json` version, a row status,
 `history`, `checkCommand`, `RETIRED_PIPELINE_KEYS`, a ticket status and a [filing draft](../glossary.md#filing-draft)
 version.
 

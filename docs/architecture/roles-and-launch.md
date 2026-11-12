@@ -35,7 +35,7 @@ picks the profile; the first match wins: product owner, pipeline agent, any [`me
 any other job without a [worktree](../glossary.md#worktree), then builder or reviewer. A
 [`<worktrees>`](../glossary.md#reading-names) path below is a folder under the repository.
 
-![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and pipeline agent at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer, in a ticket worktree or as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
+![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and pipeline agent at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer in a ticket worktree, and the ticket's last worker as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
 
 *Hatch rights go by role, not by profile. Short `profileOf` is the one in `DrivePass.ts`.*
 
@@ -69,7 +69,7 @@ pipeline whose `model` or `effort` is outside the vocabulary is malformed, so it
 | --- | --- | --- | --- | --- |
 | `builder` | `BUILDER_API_CALL_BUDGET` (150); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a [red handoff](../glossary.md#red-handoff) | [Wind-down](../glossary.md#wind-down) message, `WIND_DOWN_GRACE_CALLS` (10) more calls, stop; after a red handoff the session goes red again instead | `BUILDER_REPORT_SCHEMA` | `builder` |
 | `reviewer` | `REVIEWER_API_CALL_BUDGET` (75); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a red handoff | Same | `REVIEWER_REPORT_SCHEMA` | `reviewer` |
-| `builder` or `reviewer` in the Airlock | `RED_HANDOFF_RESUME_CALL_BUDGET` (30) per resume; a fresh replacement its role's full budget until its first resume | Stopped, merge refused | `AIRLOCK_AGENT_REPORT_SCHEMA` | `airlock-agent` |
+| `builder`, `reviewer` or `re-reviewer` in the Airlock, the ticket's last worker | `RED_HANDOFF_RESUME_CALL_BUDGET` (30) per resume; a fresh replacement its role's full budget until its first resume | Stopped, merge refused | `AIRLOCK_AGENT_REPORT_SCHEMA` | `airlock-agent` |
 | `conflict-re-reviewer` | `REVIEWER_API_CALL_BUDGET` (75) | Stopped; the re-review fails | `REVIEWER_REPORT_SCHEMA` while it re-reviews | `airlock-agent` |
 | `product-owner` | None | | None | None |
 | `assistant` | `ASSISTANT_TURN_CALL_BUDGET` (40) per turn | Interrupted, the turn's open [incidents](../glossary.md#incident) take their default | None | None |
@@ -100,7 +100,8 @@ Web: `none` turns WebFetch off, a list allows those domains, `any` allows every 
 summarises [Control](control-and-hatch.md), which holds the rules. What each profile denies is in
 [Confinement](confinement.md#what-each-role-really-gets).
 
-Every `merge-agent` gets the profile of its role, builder or reviewer, in the Airlock worktree, with asking off.
+Every `merge-agent` gets the profile of its role, the last worker's or the conflict re-reviewer's, in the Airlock
+worktree, with asking off.
 
 > **As built.** Three commands a prompt tells a session to run fail. A worker's prompt omits `--type`, which
 > `ticket add` requires: [gap-worker-filing-omits-type](../reference/known-gaps.md#gap-worker-filing-omits-type). The
@@ -306,7 +307,7 @@ What each line defends is in [Confinement](confinement.md).
 **A session is told two things, and which file lands in which text differs by role.** `roleBrief` becomes `role.md` and
 the system prompt; it is rewritten at every launch, resumes included. `firstMessage` is the first user line, sent once.
 
-![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. A builder or reviewer in the Airlock gets fixed prompts and one code line. For the product owner, Assistant and pipeline agent the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
+![Three sources feed launch text: instruction files from the data folder or git show of the main line, fixed prompts from resources/prompts, and lines worded in code. The ticket branch fills no slot. For builder and reviewer the instruction files are the firstMessage and roleBrief is one code line. The ticket's last worker in the Airlock gets fixed prompts and one code line naming the role it stands in for. For the product owner, Assistant and pipeline agent the instruction files are the roleBrief.](../figures/roles-and-launch/instruction-resolution.png)
 
 *Notice the dark cells swap columns: customising a builder's brief changes its first user message, so a resumed builder
 keeps the text it started with.*

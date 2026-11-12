@@ -61,7 +61,7 @@
   <text x="696" y="239" font-size="13" fill="#444441" text-anchor="start" font-weight="400" font-family="ui-monospace,Menlo,Consolas,monospace">overseer-owns-the-lifecycle</text>
   <text x="696" y="256" font-size="13" fill="#444441" text-anchor="start" font-weight="400" font-family="ui-monospace,Menlo,Consolas,monospace">ticket-has-live-job</text>
   <text x="40" y="281" font-size="13" fill="#3d3d3a" text-anchor="start" font-weight="500" font-family="ui-monospace,Menlo,Consolas,monospace">readyDraftTickets</text>
-  <text x="40" y="298" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">readies a draft ticket</text>
+  <text x="40" y="298" font-size="13" fill="#73726c" text-anchor="start" font-weight="400">readies a draft or review ticket</text>
   <rect x="296" y="272" width="42" height="26" rx="6" fill="#FAF9F5" stroke="#ECE7DC"/>
   <rect x="352" y="272" width="42" height="26" rx="6" fill="#FAF9F5" stroke="#ECE7DC"/>
   <rect x="408" y="272" width="42" height="26" rx="6" fill="#FAF9F5" stroke="#ECE7DC"/>
@@ -91,4 +91,5 @@
   <rect x="576" y="356" width="42" height="26" rx="6" fill="#FAF9F5" stroke="#ECE7DC"/>
   <rect x="632" y="356" width="42" height="26" rx="6" fill="#FAF9F5" stroke="#ECE7DC"/>
   <text x="696" y="374" font-size="13" fill="#444441" text-anchor="start" font-weight="400" font-family="ui-monospace,Menlo,Consolas,monospace">refuseAnUnworkableDependencyList</text>
+  <text x="40" y="414" font-size="13" fill="#73726c">Checks 2 and 3 cover ready-for-review the same way as draft.</text>
 </svg>

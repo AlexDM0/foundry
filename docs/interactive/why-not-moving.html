@@ -502,9 +502,9 @@ const MODEL = {
     'pipeline-unset': {
       stage: 'board', actor: 'User', walk: 'A pipeline is stored',
       title: 'No pipeline is stored', symbol: 'pipelineIsSet', source: 'src/lib/tracker-model/Playbook.ts',
-      rule: 'Without `pipeline.json` launches and resumes hold, a `checks-not-set` decision opens and, on a running board, the [pipeline agent](../glossary.md#pipeline-agent) starts.',
+      rule: 'Without `pipeline.json` launches and resumes hold and a `checks-not-set` decision opens. No agent starts by itself: User opens a setup with `pipeline setup`, and its [pipeline agent](../glossary.md#pipeline-agent) designs the pipeline with User.',
       confirm: ['forge gate list', 'forge decisions'], shows: '`pipelineIsSet` false in `gate list --json`',
-      clears: 'Accept the [pipeline agent](../glossary.md#pipeline-agent)\'s `pipeline-proposal`, or `forge gate add <name> -- <command>`, or `forge gate none` on purpose.', runbook: 'Not moving'
+      clears: 'Apply the setup record with `forge pipeline apply`, or `forge gate add <name> -- <command>`, or `forge gate none` on purpose.', runbook: 'Not moving'
     },
     'outage-open': {
       stage: 'board', actor: 'User', walk: 'No outage decision is open',

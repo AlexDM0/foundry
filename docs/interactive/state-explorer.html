@@ -320,7 +320,7 @@ const MODEL = {
  "tables": {
   "TICKET_STATUSES": {
    "source": "src/lib/tracker-model/constants/Statuses.ts",
-   "value": ["draft", "pending", "in-progress", "in-review", "reviewed", "delivered", "abandoned"]
+   "value": ["draft", "ready-for-review", "pending", "in-progress", "in-review", "reviewed", "delivered", "abandoned"]
   },
   "TASK_STATUSES": {
    "source": "src/lib/tracker-model/constants/Statuses.ts",
@@ -334,25 +334,26 @@ const MODEL = {
    "source": "src/lib/tracker-model/constants/TicketMoveLegality.ts",
    "value": {
     "draft": [],
-    "pending": ["draft", "in-progress", "in-review", "reviewed", "delivered", "abandoned"],
+    "ready-for-review": ["draft"],
+    "pending": ["draft", "ready-for-review", "in-progress", "in-review", "reviewed", "delivered", "abandoned"],
     "in-progress": ["pending", "in-review"],
     "in-review": ["in-progress"],
     "reviewed": ["in-progress", "in-review"],
     "delivered": ["reviewed"],
-    "abandoned": ["draft", "pending", "in-progress", "in-review", "reviewed"]
+    "abandoned": ["draft", "ready-for-review", "pending", "in-progress", "in-review", "reviewed"]
    }
   },
   "JOB_STATES": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging", "landing", "stopping"]
+   "value": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging-main", "merging", "landing", "stopping"]
   },
   "JOB_KINDS": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["build", "review", "merge", "merge-agent", "refresh", "assistant", "product-owner", "pipeline-agent"]
+   "value": ["build", "review", "merge", "merge-agent", "refresh", "constitution-commit", "assistant", "product-owner", "pipeline-agent"]
   },
   "JOB_OUTCOMES": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["built", "reviewed", "round-granted", "does-not-hold", "resolved", "cannot-resolve", "landed", "integrated", "refreshed", "wound-down", "failed", "blocked", "replaced", "stopped", "closed"]
+   "value": ["built", "reviewed", "round-granted", "does-not-hold", "resolved", "cannot-resolve", "landed", "integrated", "refreshed", "committed", "wound-down", "failed", "blocked", "replaced", "stopped", "closed"]
   },
   "LEGAL_SOURCE_STATES_FOR_JOB_MOVE": {
    "source": "src/lib/tracker-model/constants/JobMoveLegality.ts",
@@ -361,14 +362,15 @@ const MODEL = {
     "preparing": ["launching"],
     "running": ["launching", "preparing", "waiting-for-answer", "interrupted", "awaiting-answer"],
     "waiting-for-answer": ["running"],
-    "interrupted": ["preparing", "running", "waiting-for-answer", "stopping", "in-customs", "gating"],
+    "interrupted": ["preparing", "running", "waiting-for-answer", "stopping", "in-customs", "gating", "merging-main"],
     "awaiting-answer": ["interrupted", "gating"],
     "in-customs": ["running"],
     "gating": ["in-customs", "merging"],
+    "merging-main": ["gating"],
     "merging": ["launching"],
     "landing": ["gating"],
-    "stopping": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging", "landing"],
-    "ended": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging", "landing", "stopping"]
+    "stopping": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging-main", "merging", "landing"],
+    "ended": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging-main", "merging", "landing", "stopping"]
    }
   },
   "PROCESSLESS_JOB_STATES": {
@@ -377,11 +379,11 @@ const MODEL = {
   },
   "AIRLOCK_PHASES": {
    "source": "src/lib/tracker-model/constants/JobStates.ts",
-   "value": ["merge-in", "resolving", "gating", "fixing", "landing"]
+   "value": ["merge-in", "resolving", "re-reviewing", "gating", "fixing", "committing", "landing"]
   },
   "INCIDENT_KINDS": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
-   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "quiet-job"]
+   "value": ["system-question", "malformed-ticket", "setup-failed", "out-of-calls", "blocked", "job-lost", "resume-failed", "gate-cannot-run", "sandbox-unavailable", "quiet-job", "setup-snapshot-touched"]
   },
   "INCIDENT_DEFAULT_CAUSES": {
    "source": "src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
@@ -398,7 +400,9 @@ const MODEL = {
     "job-lost": ["job-fresh", "ticket-park", "incident-note"],
     "resume-failed": ["job-fresh", "ticket-park"],
     "gate-cannot-run": ["gate-retry", "worktree-repair", "ticket-park"],
-    "quiet-job": ["job-message", "job-fresh", "incident-note"]
+    "sandbox-unavailable": ["gate-retry", "ticket-park"],
+    "quiet-job": ["job-message", "job-fresh", "incident-note"],
+    "setup-snapshot-touched": ["job-message", "incident-note"]
    }
   },
   "FIRST_REPEAT_REVIEW_ROUND": {
@@ -471,7 +475,12 @@ const MODEL = {
     {
      "id": "draft",
      "who": "person",
-     "gloss": "Filed, no row at any priority. It waits for `ticket ready` or for User to answer a `ready-drafts` [[decision]]."
+     "gloss": "Filed, no row at any priority. Its filer closes it with `ticket submit`, or `intake close` under the Overseer: with ticket review on, the default, it goes to `ready-for-review`; with it off, straight to `pending`. User may also ready it with `ticket ready`."
+    },
+    {
+     "id": "ready-for-review",
+     "who": "person",
+     "gloss": "Submitted by its filer, still with no row. It waits for User's ticket review: `ticket ready` moves it to `pending`, and only `ticket abandon` moves it otherwise."
     },
     {
      "id": "pending",
@@ -506,7 +515,7 @@ const MODEL = {
    ],
    "edges": {
     "draft>pending": {
-     "moves": "`ticket ready <id>`, or a `ready-drafts` answer.",
+     "moves": "`ticket ready <id>`, or the filer's `ticket submit` or `intake close` with ticket review off (`gate approval tickets off`).",
      "actor": "User",
      "by": "TicketMoves.readyDraftTickets",
      "at": "src/lib/tracker-model/TicketMoves.ts",
@@ -518,7 +527,7 @@ const MODEL = {
       "verb": "`ticket ready`",
       "wouldRefuse": "move-of-a-draft"
      },
-     "actors": ["User", "Assistant"]
+     "actors": ["User", "Agent"]
     },
     "draft>abandoned": {
      "moves": "`ticket abandon <id> --reason <text>`.",
@@ -622,6 +631,41 @@ const MODEL = {
      "actor": "User",
      "by": "TicketMoves.moveTicket",
      "at": "src/lib/tracker-model/TicketMoves.ts"
+    },
+    "draft>ready-for-review": {
+     "moves": "The filer's `ticket submit <id>`, or a product owner's `intake close`, with ticket review on, the default.",
+     "actor": "User",
+     "by": "TicketMoves.submitDraftTickets",
+     "at": "src/lib/tracker-model/TicketMoves.ts",
+     "stampsInstead": "Only `updated`.",
+     "rowInstead": "No row.",
+     "logInstead": ["ticket-submitted-for-review"],
+     "note": "This edge never runs through `moveTicket`, which refuses `move-to-ready-for-review`, even past the legality table.",
+     "outsideMoveTicket": {
+      "verb": "`ticket submit`",
+      "wouldRefuse": "move-to-ready-for-review"
+     },
+     "actors": ["User", "Agent"]
+    },
+    "ready-for-review>pending": {
+     "moves": "`ticket ready <id>`: User's ticket review. No role an agent runs under may relay it.",
+     "actor": "User",
+     "by": "TicketMoves.readyDraftTickets",
+     "at": "src/lib/tracker-model/TicketMoves.ts",
+     "stampsInstead": "Only `updated`. All named tickets move or none does.",
+     "rowInstead": "Row created `pending`, at any priority.",
+     "logInstead": ["ticket-readied"],
+     "note": "This edge never runs through `moveTicket`, which refuses `move-of-a-ticket-ready-for-review`, even past the legality table.",
+     "outsideMoveTicket": {
+      "verb": "`ticket ready`",
+      "wouldRefuse": "move-of-a-ticket-ready-for-review"
+     }
+    },
+    "ready-for-review>abandoned": {
+     "moves": "`ticket abandon <id> --reason <text>`.",
+     "actor": "User",
+     "by": "TicketMoves.moveTicket",
+     "at": "src/lib/tracker-model/TicketMoves.ts"
     }
    },
    "selfEdges": [
@@ -671,6 +715,11 @@ const MODEL = {
      "stamps": "`abandonedAt`, always; `reason` stored.",
      "row": "Row `abandoned`, `end` if it had started; no row is created for a ticket off the chart.",
      "log": ["ticket-abandoned"]
+    },
+    "ready-for-review": {
+     "stamps": "Only `updated`.",
+     "row": "No row.",
+     "log": ["ticket-submitted-for-review"]
     }
    },
    "everyMove": "Every move stamps `updated` and removes the row's `mergeQueued` unless the target is `in-review`. A move to anything but `in-review` closes the ticket's in-progress [[review bar|review bars]], one `review-bar-closed` each.",
@@ -688,10 +737,22 @@ const MODEL = {
      "when": "The target is `draft`. Filing is the only way in."
     },
     {
+     "reason": "move-to-ready-for-review",
+     "test": "toReadyForReview",
+     "holdsPastOverride": true,
+     "when": "The target is `ready-for-review`. The filer's close is the only way in."
+    },
+    {
      "reason": "move-of-a-draft",
      "test": "ofDraft",
      "holdsPastOverride": true,
-     "when": "A draft ticket goes anywhere but `abandoned`. `ticket ready` is the way on."
+     "when": "A draft ticket goes anywhere but `abandoned`. `ticket ready` and `ticket submit` are the ways on."
+    },
+    {
+     "reason": "move-of-a-ticket-ready-for-review",
+     "test": "ofReadyForReview",
+     "holdsPastOverride": true,
+     "when": "A ticket in `ready-for-review` goes anywhere but `abandoned`. User's `ticket ready` is the way on."
     },
     {
      "reason": "illegal-ticket-move",
@@ -968,6 +1029,11 @@ const MODEL = {
      "gloss": "The [[gate|gates]] run on the worktree under process Watchers, while the session waits with its input closed."
     },
     {
+     "id": "merging-main",
+     "who": "code",
+     "gloss": "With merge approval on, a green build with no review phase, or a passed review, brings its worktree up to the target's tip before User's Merge: the merge, a conflict re-review when one is due, and the gates again. A conflict or red gate goes back to the job's own session."
+    },
+    {
      "id": "waiting-for-answer",
      "who": "person",
      "gloss": "The agent asked a question. The job keeps its launch slot until no open [[decision]] or question incident names it."
@@ -1004,7 +1070,7 @@ const MODEL = {
      "gloss": "The session is being closed. The Overseer ends the job once the session is gone.",
      "kindNotes": {
       "merge-agent": "Only `job stop` or `job fresh` puts this kind here, and no code sends it a stop frame; its merge job ends it when the Airlock is freed.",
-      "pipeline-agent": "Only `job stop` puts this kind here, and no code sends it a stop frame. It ends only if its outcome was already stored.",
+      "pipeline-agent": "`job stop` puts this kind here, and its input is closed. Once its Watcher is gone it ends `closed`, and User's next message opens it again.",
       "merge": "Only `job stop` or `job fresh` puts this kind here. The Airlock goes on by phase and ends the job.",
       "refresh": "Only `job stop` puts this kind here. The Airlock goes on by phase and ends the job."
      }
@@ -1018,12 +1084,12 @@ const MODEL = {
    ],
    "kinds": {
     "build": {
-     "states": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "in-customs", "gating", "stopping", "ended"],
+     "states": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "in-customs", "gating", "merging-main", "stopping", "ended"],
      "outcomes": ["built", "blocked", "wound-down", "failed", "stopped", "replaced"],
      "mainPath": ["launching", "preparing", "running", "in-customs", "gating", "ended"]
     },
     "review": {
-     "states": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "stopping", "ended"],
+     "states": ["launching", "preparing", "running", "waiting-for-answer", "interrupted", "awaiting-answer", "in-customs", "gating", "merging-main", "stopping", "ended"],
      "outcomes": ["reviewed", "round-granted", "does-not-hold", "blocked", "wound-down", "failed", "stopped", "replaced"],
      "mainPath": ["launching", "preparing", "running", "in-customs", "gating", "ended"]
     },
@@ -1053,9 +1119,14 @@ const MODEL = {
      "mainPath": ["launching", "running", "stopping", "ended"]
     },
     "pipeline-agent": {
-     "states": ["launching", "running", "interrupted", "in-customs", "stopping", "ended"],
+     "states": ["launching", "running", "interrupted", "stopping", "ended"],
      "outcomes": ["closed", "failed", "stopped", "replaced"],
-     "mainPath": ["launching", "running", "in-customs", "ended"]
+     "mainPath": ["launching", "running", "stopping", "ended"]
+    },
+    "constitution-commit": {
+     "states": ["launching", "merging", "stopping", "ended"],
+     "outcomes": ["committed", "failed", "stopped"],
+     "mainPath": ["launching", "merging", "ended"]
     }
    },
    "outcomeNote": "`cannot-resolve` is in `JOB_OUTCOMES`, and no production code ends a job with it.",
@@ -1098,7 +1169,7 @@ const MODEL = {
      "actor": "Airlock",
      "by": "AirlockClaims.holdSlot",
      "at": "src/lib/tracker-model/AirlockClaims.ts",
-     "kinds": ["merge", "refresh"],
+     "kinds": ["merge", "refresh", "constitution-commit"],
      "changes": ["`airlock` set, phase `merge-in`"],
      "log": ["merge-started"]
     },
@@ -1271,7 +1342,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "applyWatcherEvents",
      "at": "src/services/overseer/DrivePass.ts",
-     "kinds": ["build", "review", "merge-agent", "pipeline-agent"]
+     "kinds": ["build", "review", "merge-agent"]
     },
     "running>stopping": {
      "actor": "Overseer",
@@ -1677,7 +1748,7 @@ const MODEL = {
      "actor": "User",
      "by": "JobControls.requestJobStop",
      "at": "src/lib/tracker-model/JobControls.ts",
-     "kinds": ["build", "review", "merge-agent", "pipeline-agent"],
+     "kinds": ["build", "review", "merge-agent"],
      "cases": [
       {
        "moves": "`job stop`.",
@@ -1687,14 +1758,6 @@ const MODEL = {
        "at": "src/lib/tracker-model/JobControls.ts",
        "log": ["job-stop-requested", "ticket-held"],
        "changes": ["Sets ticket hold `stopped by User (J<n>)`"]
-      },
-      {
-       "moves": "`job stop` on a job with no ticket.",
-       "actor": "User",
-       "kinds": ["pipeline-agent"],
-       "by": "JobControls.requestJobStop",
-       "at": "src/lib/tracker-model/JobControls.ts",
-       "log": ["job-stop-requested"]
       },
       {
        "moves": "`job fresh`, by User. Sets no ticket hold.",
@@ -1711,7 +1774,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "JobLaunch.verifyAndRoute",
      "at": "src/services/overseer/JobLaunch.ts",
-     "kinds": ["build", "review", "merge-agent", "pipeline-agent"],
+     "kinds": ["build", "review", "merge-agent"],
      "cases": [
       {
        "moves": "The report is refused or says `cannot-build`, or Customs refuses with a check no session can fix: outcome `failed`.",
@@ -1760,17 +1823,8 @@ const MODEL = {
        "by": "createAirlocks.freeSlot",
        "at": "src/services/overseer/Airlocks.ts",
        "log": ["job-ended"]
-      },
-      {
-       "moves": "The pipeline agent's run is settled: outcome `closed`, or `failed` if refused. A setup proposal opens `pipeline-proposal`.",
-       "actor": "Overseer",
-       "kinds": ["pipeline-agent"],
-       "by": "PipelineAgentSessions.applySettledPipelineAgents",
-       "at": "src/services/overseer/PipelineAgentSessions.ts",
-       "log": ["decision-opened", "job-ended"]
       }
-     ],
-     "logNote": "`decision-opened` on the pipeline agent only with a setup proposal."
+     ]
     },
     "gating>interrupted": {
      "actor": "Overseer",
@@ -1919,7 +1973,7 @@ const MODEL = {
      "actor": "User",
      "by": "JobControls.requestJobStop",
      "at": "src/lib/tracker-model/JobControls.ts",
-     "kinds": ["merge", "refresh"],
+     "kinds": ["merge", "refresh", "constitution-commit"],
      "cases": [
       {
        "moves": "`job stop`.",
@@ -1954,7 +2008,7 @@ const MODEL = {
      "actor": "Airlock",
      "by": "createAirlocks.freeSlot",
      "at": "src/services/overseer/Airlocks.ts",
-     "kinds": ["merge", "refresh"],
+     "kinds": ["merge", "refresh", "constitution-commit"],
      "cases": [
       {
        "moves": "The merge lands: outcome `landed`, `integrated` or `refreshed`.",
@@ -2002,7 +2056,7 @@ const MODEL = {
      "actor": "Overseer",
      "by": "JobLaunch.applyObservation",
      "at": "src/services/overseer/JobLaunch.ts",
-     "kinds": ["build", "review", "merge", "refresh", "merge-agent", "assistant", "product-owner", "pipeline-agent"],
+     "kinds": ["build", "review", "merge", "refresh", "merge-agent", "assistant", "product-owner", "pipeline-agent", "constitution-commit"],
      "cases": [
       {
        "moves": "The session is gone: outcome `stopped`, or `replaced` after `job fresh`.",
@@ -2021,12 +2075,12 @@ const MODEL = {
        "log": ["job-ended"]
       },
       {
-       "moves": "The Watcher is gone: outcome `closed`, and a `ready-drafts` [[decision]] lists what it filed.",
+       "moves": "The Watcher is gone: outcome `closed`. Its drafts were submitted at `intake close`.",
        "actor": "Overseer",
        "kinds": ["product-owner"],
        "by": "IntakeSessions.endClosedIntakes",
        "at": "src/services/overseer/IntakeSessions.ts",
-       "log": ["job-ended", "decision-opened"]
+       "log": ["job-ended"]
       },
       {
        "moves": "The Airlock ends its own job as it lands, requeues, refuses or [[park|parks]].",
@@ -2045,15 +2099,42 @@ const MODEL = {
        "log": ["job-ended"]
       },
       {
-       "moves": "Its outcome was already stored when `job stop` landed: outcome `closed`, or `failed` if refused.",
+       "moves": "Its Watcher is gone after `job stop`: outcome `closed`, so User's next message opens a pipeline agent again with its conversation.",
        "actor": "Overseer",
        "kinds": ["pipeline-agent"],
-       "by": "PipelineAgentSessions.applySettledPipelineAgents",
-       "at": "src/services/overseer/PipelineAgentSessions.ts",
+       "by": "applyWatcherEvents",
+       "at": "src/services/overseer/DrivePass.ts",
        "log": ["job-ended"]
       }
-     ],
-     "logNote": "`decision-opened` on a product owner only when it filed something to offer."
+     ]
+    },
+    "gating>merging-main": {
+     "moves": "With merge approval on, a green build with no review phase or a settled review pass merges main into its worktree before User's Merge.",
+     "actor": "Overseer",
+     "by": "JobLaunch.settleGate",
+     "at": "src/services/overseer/JobLaunch.ts",
+     "kinds": ["build", "review"]
+    },
+    "merging-main>interrupted": {
+     "moves": "The merge of main conflicts, or its gates go red: the job's own session resumes to fix it.",
+     "actor": "Overseer",
+     "by": "JobLaunch.settleMainMerge",
+     "at": "src/services/overseer/JobLaunch.ts",
+     "kinds": ["build", "review"]
+    },
+    "merging-main>stopping": {
+     "moves": "`job stop` or a forced stop.",
+     "actor": "User",
+     "by": "JobControls.requestJobStop",
+     "at": "src/lib/tracker-model/JobControls.ts",
+     "kinds": ["build", "review"]
+    },
+    "merging-main>ended": {
+     "moves": "The worktree is up to the target's tip and its gates pass: the job ends `built` or `reviewed`, and the ticket waits for User's Merge.",
+     "actor": "Overseer",
+     "by": "JobLaunch.finishMainMerge",
+     "at": "src/services/overseer/JobLaunch.ts",
+     "kinds": ["build", "review"]
     }
    },
    "selfEdges": [
@@ -2162,12 +2243,22 @@ const MODEL = {
     {
      "id": "resolving",
      "who": "agent",
-     "gloss": "The ticket's own builder or reviewer, resumed as an Airlock agent, settles the conflicts in the merge left on disk. An unfinished agent keeps the Airlock, interrupted or not."
+     "gloss": "The ticket's last worker, its newest ended build or review session, resumed as an Airlock agent, settles the conflicts in the merge left on disk. An unfinished agent keeps the Airlock, interrupted or not."
     },
     {
      "id": "fixing",
      "who": "agent",
      "gloss": "The Airlock agent fixes the red merged tree, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes. A red fix resumes the same session."
+    },
+    {
+     "id": "re-reviewing",
+     "who": "agent",
+     "gloss": "A fresh conflict re-reviewer judges a resolution that changed more lines than the merge train's `airlock.reReview.thresholdLines`, against the reviewer's report schema."
+    },
+    {
+     "id": "committing",
+     "who": "code",
+     "gloss": "A constitution commit job only: the Overseer commits an Apply's `CONSTITUTION.md` on the main line's tip in a worktree of its own, with no agent and no gate."
     },
     {
      "id": "freed",
@@ -2221,6 +2312,33 @@ const MODEL = {
      "by": "createAirlocks.settleAirlockAgent",
      "at": "src/services/overseer/Airlocks.ts",
      "log": ["job-ended"]
+    },
+    {
+     "from": "resolving",
+     "to": "re-reviewing",
+     "moves": "The resolution is sound but changed more lines than `airlock.reReview.thresholdLines`, or git cannot measure it: a fresh conflict re-reviewer launches.",
+     "actor": "Airlock",
+     "by": "createAirlocks.settleAirlockAgent",
+     "at": "src/services/overseer/Airlocks.ts",
+     "log": ["job-launched"]
+    },
+    {
+     "from": "re-reviewing",
+     "to": "gating",
+     "moves": "Every claim of the re-review holds. The re-reviewer waits in `gating`, so a red gate can resume it.",
+     "actor": "Airlock",
+     "by": "createAirlocks.settleConflictReReview",
+     "at": "src/services/overseer/Airlocks.ts"
+    },
+    {
+     "from": "re-reviewing",
+     "to": "freed",
+     "moves": "A claim does not hold, or no agent is left.",
+     "actor": "Airlock",
+     "by": "createAirlocks.settleConflictReReview",
+     "at": "src/services/overseer/Airlocks.ts",
+     "exits": ["`failed`, cause `re-review-failed`: `merge-refused` [[decision]]", "`stopped`, cause `orphaned`: the ticket stays queued"],
+     "log": ["job-ended", "decision-opened"]
     },
     {
      "from": "resolving",
@@ -2285,7 +2403,7 @@ const MODEL = {
     {
      "from": "landing",
      "to": "freed",
-     "moves": "The target moved to the merged commit, or the landing was refused.",
+     "moves": "The target moved to the merged commit, or the landing was refused. A constitution commit lands the same way, ends `committed` and runs Apply's stage 2 in that hold.",
      "actor": "Airlock",
      "by": "createAirlocks.runLanding",
      "at": "src/services/overseer/Airlocks.ts",
@@ -2294,6 +2412,24 @@ const MODEL = {
      "note": "`TARGET_REF_DENIES_HOLD` is true in production, so a moved target ends the job and the `target-moved` decision branch of `settleMovedTarget` is unused. [Known gaps](../reference/known-gaps.md#gap-dead-code-and-unused-states).",
      "gap": "gap-landed-worktrees-stay",
      "logNote": "`merge-landed` only on a landing; `ticket-held` with a park or a held refusal; `decision-opened` with a decision named above."
+    },
+    {
+     "from": "committing",
+     "to": "landing",
+     "moves": "The commit changes `CONSTITUTION.md` alone and the Apply still names the job.",
+     "actor": "Airlock",
+     "by": "createAirlocks.runConstitutionCommit",
+     "at": "src/services/overseer/Airlocks.ts"
+    },
+    {
+     "from": "committing",
+     "to": "freed",
+     "moves": "A leftover worktree, a cancelled Apply, or a commit git refuses.",
+     "actor": "Airlock",
+     "by": "createAirlocks.runConstitutionCommit",
+     "at": "src/services/overseer/Airlocks.ts",
+     "exits": ["`stopped`, cause `orphaned` or `apply-cancelled`", "`failed`: the Apply is refused"],
+     "log": ["job-ended"]
     }
    ],
    "refusals": [
@@ -2938,11 +3074,25 @@ const MODEL = {
      "alsoOpenedBy": "createAirlocks.runGate",
      "alsoAt": "src/services/overseer/Airlocks.ts"
     },
+    "sandbox-unavailable": {
+     "defaultMove": "gate-retry",
+     "openedBy": "JobLaunch.applyObservation",
+     "at": "src/services/overseer/JobLaunch.ts",
+     "when": "The confinement a gate, prepare step or session needs could not start; the job ends `stopped`. An Airlock agent whose worktree root could not be made opens it too.",
+     "alsoOpenedBy": "AirlockSandboxIncident.openOnce",
+     "alsoAt": "src/services/overseer/AirlockSandboxIncident.ts"
+    },
     "quiet-job": {
      "defaultMove": "open-quiet-job-decision",
      "openedBy": "IncidentRouter.openQuietJobIncidents",
      "at": "src/services/overseer/IncidentRouter.ts",
      "when": "A running build or review job's cursor stood still for `QUIET_JOB_SWEEPS` [[sweep|sweeps]]."
+    },
+    "setup-snapshot-touched": {
+     "defaultMove": "incident-note",
+     "openedBy": "PipelineAgentSessions.verifyTurnEnds",
+     "at": "src/services/overseer/PipelineAgentSessions.ts",
+     "when": "A [[pipeline agent]]'s turn end failed Customs: it changed a file or moved `HEAD` or a ref in its setup snapshot. Apply refuses until User starts the setup over, or resumes it once main moved."
     }
    },
    "refusals": [
@@ -3377,6 +3527,8 @@ function ticketWalk(from, to, override) {
     same: from === to,
     toDraft: to === 'draft',
     ofDraft: from === 'draft' && to !== 'abandoned',
+    toReadyForReview: to === 'ready-for-review',
+    ofReadyForReview: from === 'ready-for-review' && to !== 'abandoned',
     illegal: !legal,
     toAbandoned: to === 'abandoned',
     unsettling: settled.includes(from) && !settled.includes(to),

@@ -199,9 +199,16 @@ conversation itself matters. Home: [Roles and launch](architecture/roles-and-lau
 The code that lets one merge at a time into a [target](#target) and lands it, `src/services/overseer/Airlocks.ts`.
 Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
+### Airlock phase
+
+`airlock.phase`, the step a job holding an [Airlock slot](#airlock-slot) is at: `merge-in`, `resolving`, `re-reviewing`,
+`gating`, `fixing`, `committing` (a [constitution commit](#constitution-commit) only) or `landing`. The job state stays
+`merging`. Home: [Airlocks and groups](architecture/airlocks-and-groups.md#the-phases).
+
 ### Airlock slot
 
-The one place per [target](#target) in its [Airlock](#airlock), held by a merge or refresh job through `Job.airlock`
+The one place per [target](#target) in its [Airlock](#airlock), held by a merge, refresh or constitution commit job
+through `Job.airlock`
 (`slotHolderOf`). Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
 ### Airlock sweep
@@ -368,7 +375,8 @@ launch](architecture/roles-and-launch.md).
 
 The job of kind `constitution-commit` that commits an Apply's `CONSTITUTION.md` to the [main line](#main-line) through
 its [Airlock](#airlock): no role, no agent, no gate, and no path but that file. It is the one write of the program to
-the main line outside a ticket's [landing](#landing). Home: [CLI reference](cli.md#the-constitution-commit).
+the main line outside a ticket's [landing](#landing). Home: [CLI reference](cli.md#the-constitution-commit); its phases
+are in [Airlocks and groups](architecture/airlocks-and-groups.md#the-constitution-commit).
 
 ### context roll-over
 
@@ -649,7 +657,7 @@ that changes a tracked one unless its ticket names it. Home: [Roles and launch](
 ### intake
 
 A [product owner](#product-owner)'s filing conversation, started by `forge intake -- <text>` or the Bridge's
-Intake view. It ends with a `ready-drafts` decision. Home: [Assistant and intake](architecture/assistant-and-intake.md).
+Intake view. Its close submits the complete draft tickets it filed for User's ticket review. Home: [Assistant and intake](architecture/assistant-and-intake.md).
 
 ### integrated
 
@@ -670,6 +678,13 @@ merge or refresh job runs no agent of its own. Home: [Watchers](architecture/wat
 
 `JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner` or
 `pipeline-agent`. It differs from a job's [role](#role). Home: [Entities](data-model/entities.md).
+
+### job state
+
+`JobState`: `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`,
+`gating`, `merging-main`, `merging`, `landing` or `stopping`, and `ended` once it leaves the board. `merging-main` is a
+build or review job's merge of the target's tip before User's Merge, with merge approval on. Home: [State
+machines](data-model/state-machines.md#job).
 
 ### landing
 
@@ -1001,7 +1016,8 @@ launch](architecture/roles-and-launch.md).
 ### rework
 
 The code lines a reviewer's own fixes changed, counted by `ReworkCountUtil` from the review's start commit to its head.
-It decides the [round verdict](#round-verdict), against `REWORK_ROUND_THRESHOLD_LINES`. Home: [Build and
+It decides the [round verdict](#round-verdict), against the pipeline's `review.reReview.thresholdLines`
+(`REWORK_ROUND_THRESHOLD_LINES` only with no pipeline). Home: [Build and
 review](architecture/build-and-review.md).
 
 ### role

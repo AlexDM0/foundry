@@ -72,7 +72,7 @@ reports which rung stopped a ticket, so you check them yourself.
 | --- | --- | --- | --- |
 | `forge oversee status` | `overseer: down` | No Overseer, so no [Pass](../glossary.md#pass) runs. | `forge oversee --detach` |
 | `forge oversee status` | `; paused` at the end of the first line (`status` adds it to the [Next line](../glossary.md#next-line)) | Someone paused, or the board never left its default: a fresh board is paused (`DEFAULT_OVERSEER_STATE`). | `forge oversee resume` |
-| `forge gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open and a [pipeline agent](../glossary.md#pipeline-agent) starts unless the board is paused or held. | Answer its proposal, or run `forge gate add <name> -- <command>` or `forge gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
+| `forge gate list` | no pipeline | No [pipeline](../glossary.md#pipeline), or a malformed one. A `checks-not-set` decision is open; no agent starts by itself. | Run `forge pipeline setup` and Apply its record, or run `forge gate add <name> -- <command>` or `forge gate none`; see [Stored file damage](#stored-file-damage) for a malformed file. |
 | `jq -r .resetsAt ~/.forge-monitor/usage-limit.json` | a time ahead of the clock | A [usage limit](#usage-limit). | Wait for the reset. |
 | `forge oversee status` | [`notice: the install version changed`](../glossary.md#notice) | The program on disk has another [install version](../glossary.md#install-version). | [Update](#updating). |
 | `forge decisions` | `outage` | Crashes on different tickets in a row paused the board. | [Outage](#outage). |
@@ -354,17 +354,20 @@ forge decisions
 | Kind | What the answer does | What you do |
 | --- | --- | --- |
 | `agent-question` | Delivered to the session, or written under `## Questions` and lifts `awaiting answer` | Answer. |
-| `ready-drafts` | Readies the chosen draft tickets | Answer. |
-| `pipeline-proposal` | An `Accept` answer writes the prepare steps and gates | Answer. Its review and agent settings are shown, never written. |
+| `pipeline-proposal` | Nothing: a retired kind, withdrawn at the next Pass | Set the pipeline up with `forge pipeline setup`. |
 | `parked` | Closes it | `ticket unhold`, as in [A parked ticket](#a-parked-ticket). |
 | `outage` | Closes it; closing is required but not enough | Follow [Outage](#outage). |
-| `checks-not-set` | Closes it | Set the pipeline first with `gate add`, `gate none` or an accepted proposal, then answer; answered with no pipeline, it opens again on the next Pass. |
+| `checks-not-set` | Closes it | Set the pipeline with `forge pipeline setup` and its Apply, which withdraws it; or with `gate add` or `gate none`, then answer. Answered with no pipeline, it opens again on the next Pass. |
 | `merge-refused` | Closes it | Read its context, fix the branch. With a review phase a review relaunches regardless ([gap-refused-merge-relaunches-review](../reference/known-gaps.md#gap-refused-merge-relaunches-review)); `ticket hold` first if you want it to wait. Without one, the ticket queues again once answered. |
 | `landing-refused` | Closes it | Fix `## Acceptance`, then `ticket unhold`. |
 | `waiver` | Closes it, lifting the launch block ([gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect)) | The review job stays `awaiting-answer` and keeps its launch slot. Run `forge job fresh J7` for another review. |
 | `branch-touches-agent-config` | Closes it, lifting the launch block until another job on the ticket ends | Revert the `.claude/`, `.mcp.json` or hooks change on the ticket's branch first, or the next verification refuses it again. |
 | `quiet-job` | Closes it | Follow [An agent looks stuck](#an-agent-looks-stuck). |
 | `leftover-worktree` | Closes it | Inspect the folder its context names, remove it, then answer. A folder still there opens the decision again at the next Overseer start. |
+| `forced-stop-refused` | Closes it, lifting the launch block on its tickets | End the processes its context names, then answer. |
+| `api-key-not-set` | Nothing: a Pass withdraws it once the key is set | Set `ANTHROPIC_API_KEY` in the Overseer's environment and restart it. |
+| `api-authentication-failed` | Closes it, lifting the hold on every launch, resume and Assistant boot | Fix the API key, then answer. |
+| `budget-reached` | Closes it, lifting the launch block on its tickets, or on the Assistant's boot | Raise the budget, or accept the stop, then answer. |
 
 ## A merge is stuck
 

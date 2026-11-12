@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="560" viewBox="0 0 680 560" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-  <title>Untrusted text crosses at named places, all but one checked by code</title>
-  <desc>An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by a pipeline agent's proposal, which runs as the Overseer, twice, unchecked. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.</desc>
+  <title>Untrusted text crosses at named places, each checked by code or by User</title>
+  <desc>An agent session and a gate process sit on the untrusted side, the Overseer in the middle, and the Bridge and User on the right. The agent crosses by the Hatch, its branch, its report and the event log, each checked by code, and by a pipeline agent's draft pipeline, which is only stored: its lines run on User's press, as a pipeline check under each gate's confinement. Agent HTML reaches the Bridge only through srcdoc, and the Bridge reaches the Overseer through the guarded API.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="678" height="558" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
-  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Untrusted text crosses at named places, all but one checked by code</text>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Untrusted text crosses at named places, each checked by code or by User</text>
   <text x="40" y="68" font-size="13" fill="#73726c">nothing on the left can reach the right except through the middle</text>
 
   <text x="110" y="100" font-size="12" fill="#73726c" text-anchor="middle">untrusted</text>
@@ -36,10 +36,10 @@
   <path d="M170,320 L298,320" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
   <text x="238" y="300" font-size="11" fill="#73726c" text-anchor="middle">event log</text>
   <text x="238" y="313" font-size="11" fill="#73726c" text-anchor="middle">mapped, not obeyed</text>
-  <path d="M170,376 L298,376" fill="none" stroke="#D85A30" stroke-width="1.6" marker-end="url(#ah)"/>
-  <text x="240" y="343" font-size="11" fill="#993C1D" text-anchor="middle">proposal: runs as</text>
-  <text x="240" y="356" font-size="11" fill="#993C1D" text-anchor="middle">the Overseer, twice,</text>
-  <text x="240" y="369" font-size="11" fill="#993C1D" text-anchor="middle">unchecked</text>
+  <path d="M170,376 L298,376" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="240" y="343" font-size="11" fill="#73726c" text-anchor="middle">draft: stored, runs</text>
+  <text x="240" y="356" font-size="11" fill="#73726c" text-anchor="middle">on User's press,</text>
+  <text x="240" y="369" font-size="11" fill="#73726c" text-anchor="middle">confined</text>
   <path d="M170,480 L298,480" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
   <text x="238" y="460" font-size="11" fill="#73726c" text-anchor="middle">exit code, tree diff</text>
   <text x="238" y="473" font-size="11" fill="#73726c" text-anchor="middle">gate output as text</text>

@@ -45,7 +45,7 @@ quiet, a reset reached, a restart. No clock reading enters the fingerprint.
 | The usage limit's reset time | yes | `src/services/overseer/DrivePass.ts`, `scheduleThePassAtTheReset` |
 | [Regrouping](../glossary.md#regrouping) finished at start | yes | `src/services/overseer/DrivePass.ts`, `regroup` |
 | A failed [Baton pass](../glossary.md#baton-pass), after which the old Overseer keeps driving | yes | `cli/overseer/OverseerForeground.ts`, the `kept-driving` branch, `serving.drivePass.wake(true)` |
-| A Pass that settled a [pipeline agent](../glossary.md#pipeline-agent), or left a job awaiting another Pass | yes | `src/services/overseer/DrivePass.ts`, `runOnePass` |
+| A Pass that left a build job awaiting another Pass, or saw a Watcher of a job its hold did not hold, as one the Airlock sweep launched | yes | `src/services/overseer/DrivePass.ts`, `runOnePass` |
 
 ![File events in a burst produce one debounced wake and Pass 1. Three wakes during Pass 1 collapse into exactly one more Pass. The writes of a Pass and a later sweep are wakes too, and both end at the fingerprint as skipped.](../figures/the-pass/wake-coalescing.png)
 
@@ -137,7 +137,7 @@ A module named in this table or in the effects table is `src/services/overseer/<
 | 1 | One `leftover-worktree` decision per folder Regrouping named | `openLeftoverWorktreeDecisions` |
 | 2 | Hatch requests through the [Bouncer](../glossary.md#bouncer) and control commands, each logged `hatch-applied` | `HatchInbox.applyPendingRequests` |
 | 3 | Watcher events: start, question, usage refusal, closing `result`, and what a gone Watcher means. The cursor moves here | `applyWatcherEvents` |
-| 4 | Closed [intakes](assistant-and-intake.md) (a product owner's filing conversations) and settled pipeline agents | `IntakeSessions.endClosedIntakes`, `PipelineAgentSessions.applySettledPipelineAgents` |
+| 4 | Closed [intakes](assistant-and-intake.md) (a product owner's filing conversations), Customs on each pipeline agent turn that ended, and the main commit a new setup snapshot is pinned to | `IntakeSessions.endClosedIntakes`, `PipelineAgentSessions.verifyTurnEnds`, `PipelineAgentSessions.pinSnapshotCommit` |
 | 5 | Quiet-job [incidents](../glossary.md#incident) and down Assistants | `IncidentRouter.openQuietJobIncidents`, `AssistantSession.endDownAssistants` |
 | 6 | Build observations: launching to preparing, Customs, gates | `JobLaunch.applyBuildJobObservations` |
 | 7 | Agent-configuration hits | `JobLaunch.holdAgentConfigHits` |
@@ -161,7 +161,7 @@ never drive. [How a write commits](../data-model/storage.md) says why readers ta
 Before any effect, `Baton.requireNewestGeneration` runs. If a newer Overseer took the Baton, this one is overtaken: it
 stops `baton-taken` and runs no effect at all. The main hold does not check the Baton inside `mutate`, so an overtaken
 Overseer can commit one more hold; each Airlock hold does check. What it skipped is a lost effect: the newer Overseer's
-Passes derive it again, except the three marked **Not derived** in [the effects table](#effects-come-after-the-commit)
+Passes derive it again, except the four marked **Not derived** in [the effects table](#effects-come-after-the-commit)
 ([gap-pass-memory-effects-lost](../reference/known-gaps.md#gap-pass-memory-effects-lost)).
 
 ## Effects come after the commit
@@ -186,18 +186,20 @@ Effects run in this order. Most read the board the hold wrote, so the next Pass 
 | --- | --- | --- | --- |
 | 1 | Hatch replies, `HatchInbox.writeReplies` | Nothing: only the Pass's memory | **Not derived.** The request is logged applied, so it is never replied to. The verb prints `queued <requestId>` after `HATCH_REPLY_TRIES`; the command itself stands |
 | 2 | Usage marker and stop frames, `stopLimitedJobs` | Nothing: only the Pass's memory | **Not derived.** The job stays `interrupted` and the next Overseer resumes it with no usage block; its next usage refusal marks the limit |
-| 3 | Reset timer, `scheduleThePassAtTheReset` | The usage marker | Scheduled again at every Pass |
-| 4 | Worktree, the Watcher running the install line, wind-down, close-input and stop frames, next gate step, `JobLaunch.runBuildJobEffects` | Job state, the worktree on disk, one marker per frame and instance, step verdict files | Repeated |
-| 5 | Pipeline agent settling, which awaits the twice-run of the proposal's gates, `PipelineAgentSessions.settleEndedPipelineAgents` | Job state, stored outcome file | Repeated until the outcome is stored |
-| 6 | Stop frames to Assistants ended down, in `runOnePass` | Nothing: only the Pass's memory | **Not derived.** The job is off the board, and neither Regrouping nor a later Pass looks at it |
-| 7 | First messages, `JobResumption.deliverFirstMessages` | Stored first-message file, marker | Repeated |
-| 8 | Assistant chats, `AssistantSession.deliverChats` | Chat file written before sending, marker per chat | Repeated |
-| 9 | Job controls, `JobControlDelivery.deliverJobControls` | `job-messaged` records and stop requests, marker per frame | Repeated, in order |
-| 10 | Watcher spawns, `launchWatcher` | Job state, `unclaimed` liveness, exclusive claim | Repeated by the next Overseer |
-| 11 | Resume lines, `JobResumption.deliverResumeMessages` | Job state, marker | Repeated |
-| 12 | Answers, `AnswerDelivery.deliverAnswers` | `answeredRequestIds`, the log, marker per request | Repeated |
-| 13 | [Airlock](../glossary.md#airlock) sweep, `Airlocks.sweep`, only with a pipeline; [its rounds](airlocks-and-groups.md#one-airlock-per-target) | Airlock phase stored on the merge job; the sweep takes short holds of its own | Picks up at the stored phase |
-| 14 | Reap, `WatcherFleet.reapEndedWatchers` | The job folders | Repeated |
+| 3 | Usage windows, `UsageLimits.recordWindowObservations`, to `<monitor>/usage-windows.json` | Nothing: only the Pass's memory | **Not derived.** The windows stay as last written until the next observation |
+| 4 | Reset timer, `scheduleThePassAtTheReset` | The usage marker | Scheduled again at every Pass |
+| 5 | Worktree, the Watcher running the install line, wind-down, close-input and stop frames, next gate step, `JobLaunch.runBuildJobEffects` | Job state, the worktree on disk, one marker per frame and instance, step verdict files | Repeated |
+| 6 | Removal of a setup snapshot no open setup record holds, `PipelineAgentSessions.removeUnheldSnapshots` | The setup records, the snapshot folders on disk | Repeated |
+| 7 | Stop frames to Assistants ended down, in `runOnePass` | Nothing: only the Pass's memory | **Not derived.** The job is off the board, and neither Regrouping nor a later Pass looks at it |
+| 8 | First messages, `JobResumption.deliverFirstMessages` | Stored first-message file, marker | Repeated |
+| 9 | Assistant chats, `AssistantSession.deliverChats` | Chat file written before sending, marker per chat | Repeated |
+| 10 | Job controls, `JobControlDelivery.deliverJobControls` | `job-messaged` records and stop requests, marker per frame | Repeated, in order |
+| 11 | Watcher spawns, `launchWatcher` | Job state, `unclaimed` liveness, exclusive claim | Repeated by the next Overseer |
+| 12 | Resume lines, `JobResumption.deliverResumeMessages` | Job state, marker | Repeated |
+| 13 | Answers, `AnswerDelivery.deliverAnswers` | `answeredRequestIds`, the log, marker per request | Repeated |
+| 14 | [Airlock](../glossary.md#airlock) sweep, `Airlocks.sweep`, only with a pipeline; [its rounds](airlocks-and-groups.md#one-airlock-per-target) | Airlock phase stored on the merge job; the sweep takes short holds of its own | Picks up at the stored phase |
+| 15 | Gate profile runs and pipeline checks User pressed, `GateProfiling.followRuns`, `PipelineChecking.followChecks`; each runs in the background | The profile records and the setup record's `check` | A run left `running` reads `stopped` at the next Overseer's start (`settleAtStart`); User presses again |
+| 16 | Reap, `WatcherFleet.reapEndedWatchers` | The job folders | Repeated |
 
 A frame with a marker is sent first and marked after, by `WatcherFleet.sendFramesOnce` or the same two lines in
 `JobResumption` and `AnswerDelivery`, so an Overseer crash between the two repeats the frame;
@@ -237,15 +239,17 @@ The Playbook is one pure function, `nextStepsOf(facts, limits)`. `Board.followPl
 records, and observations passed in as values. Nothing else reaches it. The one time it compares is the usage reset,
 which the vendor gives as a time, against the `now` passed in `limits`.
 
-![Nine groups of steps in order, from outage down to incident defaults, with five columns of board-wide blocks; resumesAreHeld spans the first four and newWorkIsHeld all five. Paused blocks the outage check, the pipeline agent and new work, and does not block resume-job. Replacing, parking and incident defaults run under every block.](../figures/the-pass/playbook-order.png)
+![The Playbook derives steps in fixed order: outage, missing pipeline decision, withdrawal of a retired pipeline-proposal decision, resumes and replacements, Assistant boot, parking and job-lost, merge queue and launches, then incident defaults. Five columns show which board-wide blocks stop each step; resumesAreHeld spans the first four and newWorkIsHeld all five. Paused stops only the outage check and new work, so it does not stop a resume on its own; withdrawing, parking, replacing and incident defaults run under every block.](../figures/the-pass/playbook-order.png)
 
 *Notice which rows have no amber dot: trouble is always settled, even when nothing new may start.*
 
 The five columns are the board-wide blocks; two derived flags carry them.
 
 - `resumesAreHeld` is a usage limit, a changed install version, no pipeline, or an outage. An outage is a run of crashes
-  across different tickets (`outageIsDue`, bound `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING`), or an `outage` decision
-  still open; see [Failure and recovery](failure-and-recovery.md).
+  across different tickets (`outageIsDue`, bound `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING`), an `outage` decision
+  still open, or an open `api-authentication-failed` decision; see [Failure and recovery](failure-and-recovery.md). A
+  pipeline agent's resume is held only by the usage limit, the install change and the outage: it sets the pipeline
+  up, so neither the missing pipeline nor the pause holds it.
 - `newWorkIsHeld` is `resumesAreHeld` or a `paused` board.
 
 **Pausing alone does not stop a resume.** `paused` is in `newWorkIsHeld` only, because a resume continues work User
@@ -277,7 +281,7 @@ What each step kind does when `applyPlaybookStep` applies it, in the figure's or
 | --- | --- |
 | `pause-overseer` | On an outage, sets the stored state `paused` |
 | `open-decision` | Opens the decision the step carries |
-| `launch-pipeline-agent` | Starts the one pipeline agent |
+| `withdraw-retired-decision` | Withdraws an open decision of a retired kind, `pipeline-proposal`, with `RETIRED_DECISION_REASON` |
 | `resume-job` | Moves the job to `running`, next Watcher instance |
 | `replace-job` | Ends the job `replaced` |
 | `await-answer` | Moves a [product owner](../glossary.md#product-owner) to `awaiting-answer` |

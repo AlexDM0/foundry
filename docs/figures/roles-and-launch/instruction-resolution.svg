@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="608" viewBox="0 0 1000 608" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>No text slot is ever filled from the ticket branch</title>
-  <desc>Top row: three sources feed launch text. Instruction files come from the data folder default or, for a tracked path, from git show of the main line. Fixed prompts come from resources/prompts. Short lines are worded in code. The ticket branch fills no slot. Below, a grid of six role rows and two columns. Builder and reviewer get the instruction files as firstMessage and one code line as roleBrief. A builder or reviewer in the Airlock gets fixed prompts as firstMessage and one code line as roleBrief. The product owner, the Assistant and the pipeline agent get the instruction files as roleBrief and something else as firstMessage.</desc>
+  <desc>Top row: three sources feed launch text. Instruction files come from the data folder default or, for a tracked path, from git show of the main line. Fixed prompts come from resources/prompts. Short lines are worded in code. The ticket branch fills no slot. Below, a grid of six role rows and two columns. Builder and reviewer get the instruction files as firstMessage and one code line as roleBrief. The ticket's last worker in the Airlock gets fixed prompts as firstMessage and one code line, naming the role it stands in for, as roleBrief. The product owner, the Assistant and the pipeline agent get the instruction files as roleBrief and something else as firstMessage.</desc>
   <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
   <rect x="1" y="1" width="998" height="606" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
   <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">No text slot is ever filled from the ticket branch</text>
@@ -33,13 +33,13 @@
   <rect x="610" y="274" width="350" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
   <text x="785.0" y="307.0" font-size="13" fill="#0C447C" text-anchor="middle">one line: You are the reviewer</text>
   <rect x="40" y="338" width="196" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
-  <text x="138.0" y="362" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">builder, reviewer</text>
+  <text x="138.0" y="362" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">last worker</text>
   <text x="138.0" y="380" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">in the Airlock</text>
   <rect x="250" y="338" width="346" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="423.0" y="362.0" font-size="13" fill="#444441" text-anchor="middle">AirlockConflictMessage, or the red</text>
   <text x="423.0" y="380.0" font-size="13" fill="#444441" text-anchor="middle">handoff; then AirlockReportMessage</text>
   <rect x="610" y="338" width="350" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-  <text x="785.0" y="371.0" font-size="13" fill="#0C447C" text-anchor="middle">one line: You are the builder or reviewer</text>
+  <text x="785.0" y="371.0" font-size="13" fill="#0C447C" text-anchor="middle">one line: You are the role it stands in for</text>
   <rect x="40" y="402" width="196" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="138.0" y="435.04" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">product owner</text>
   <rect x="250" y="402" width="346" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
