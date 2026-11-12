@@ -68,6 +68,8 @@ export function Toast({
       ref={toast}
       className="bridge-toast"
       role="status"
+      // A toast holds no control, so it takes the focus itself: a keyboard reader can then pause it.
+      tabIndex={0}
       data-paused={isPaused ? '' : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

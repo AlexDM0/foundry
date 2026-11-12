@@ -1,9 +1,9 @@
 /**
  * The toast, in a happy-dom document, which runs no CSS animation: a spec ends one by dispatching `animationend`, or fires the injected
  * timer. What matters: the toast is a status region with its title and text, and its check glyph only when asked; `onExpired` comes on the
- * end of the timer bar's own animation and not on one that bubbles from inside; with motion the injected timer is never started; a pointer
- * over the toast or the focus in it pauses it, and leaving resumes it; under reduced motion `onExpired` comes from the injected timer after
- * the toast's duration, and a pause cancels that timer and the resume starts it again.
+ * end of the timer bar's own animation and not on one that bubbles from inside; with motion the injected timer is never started; the toast
+ * takes the focus, and a pointer over it or the focus in it pauses it, and leaving resumes it; under reduced motion `onExpired` comes from
+ * the injected timer after the toast's duration, and a pause cancels that timer and the resume starts it again.
  */
 import {
   act,
@@ -80,7 +80,7 @@ describe('the toast', () => {
   test('a pointer over the toast or the focus in it pauses it, and leaving resumes it', () => {
     render(<Toast title="Pipeline applied" text="Board resumed." onExpired={jest.fn()} />);
     const toast = screen.getByRole('status');
-    expect(toast.hasAttribute('data-paused')).toBe(false);
+    expect([toast.tabIndex, toast.hasAttribute('data-paused')]).toEqual([0, false]);
     fireEvent.mouseEnter(toast);
     expect(toast.hasAttribute('data-paused')).toBe(true);
     fireEvent.mouseLeave(toast);

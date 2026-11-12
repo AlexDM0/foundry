@@ -1353,6 +1353,7 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   box-shadow: var(--shadow-toast);
   animation: bridge-toast calc(var(--toast-duration) * 1.2) var(--ease-out) 300ms both;
 }
+.bridge-toast:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .bridge-toast-body { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) 14px; }
 .bridge-toast-check {
   display: flex; flex: none; align-items: center; justify-content: center;
@@ -1380,7 +1381,7 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   border-radius: var(--r-2);
 }
 .bridge-log-tail:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.bridge-log-tail-line { white-space: pre-wrap; overflow-wrap: anywhere; animation: bridge-line 300ms ease-out both; }
+.bridge-log-tail-line { white-space: pre-wrap; overflow-wrap: anywhere; animation: bridge-line 300ms var(--ease-out) both; }
 .bridge-log-tail-line[data-kind="command"]::before { content: "$ "; color: var(--ink-4); }
 .bridge-log-tail-line[data-kind="output"] { padding-left: 2ch; }
 
