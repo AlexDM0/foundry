@@ -18,6 +18,7 @@ import type { OverseerState, ViewRange } from './@types/TrackerProgress.ts';
 import type { BoardRecords }             from './BoardRecords.ts';
 import { BoardRefusal }                  from './BoardRefusal.ts';
 import type { DispatchQueries }          from './DispatchQueries.ts';
+import { PENDING_APPLY_REQUEST_STATES }  from './constants/PipelineSetupVocabulary.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
 
@@ -47,10 +48,22 @@ export class TrackerChanges {
   }
 
   /**
+   * While an Apply waits for its constitution commit, a `gate` verb would change the pipeline the request was checked against, so it
+   * refuses, and the request's `pipeline-moved` check stays true until its stage 2.
+   */
+  private refusePendingApply(): void {
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict !== 'readable' || reading.setup.applyRequest === null) return;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (pendingStates.includes(reading.setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId: reading.setup.setupId });
+  }
+
+  /**
    * Every pipeline change is accepted with tickets in flight: no row is stamped here, and each row records the hash of the pipeline it is
    * judged by at its next gate run.
    */
   private changedPipelineOf(change: (pipeline: Pipeline) => void, logged: Logged['logged']): PipelineChanged {
+    this.refusePendingApply();
     const pipeline = this.records.pipeline ?? PipelineUtil.minimalPipelineOf();
     change(pipeline);
     this.records.pipeline        = pipeline;
@@ -73,6 +86,7 @@ export class TrackerChanges {
    * phases; with them, the gate runs in exactly those phases, keeping its place in a phase it was in and running last in one it joins.
    */
   addGate(gate: PipelineGate, at: string, phases: readonly GatePhase[] | null = null): PipelineChanged {
+    this.refusePendingApply();
     if (phases !== null) this.refuseUnusablePhases(gate.name, phases);
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-added', fields: { name: gate.name, run: gate.run } }, at)];
     return this.changedPipelineOf((pipeline) => {
@@ -99,6 +113,7 @@ export class TrackerChanges {
 
   /** Only a new order of the gates the phase already runs: a gate joins or leaves a phase through `addGate`, so no gate is left in none. */
   orderPhaseGates(phase: GatePhase, names: readonly string[], at: string): PipelineChanged {
+    this.refusePendingApply();
     if (!GATE_PHASES.includes(phase)) throw new BoardRefusal({ reason: 'unknown-gate-phase', phase, phases: GATE_PHASES });
     const gateNames   = this.records.pipeline?.gates.map((gate) => gate.name) ?? [];
     const unknownName = names.find((name) => !gateNames.includes(name));
@@ -115,6 +130,12 @@ export class TrackerChanges {
     }, logged);
   }
 
+  /** Apply's write of the whole pipeline, which replaces the stored one; Apply logs the change itself. */
+  applyPipeline(pipeline: Pipeline): void {
+    this.records.pipeline        = structuredClone(pipeline);
+    this.records.pipelineChanged = true;
+  }
+
   /** No gates on purpose: an empty list stored, which counts as set, unlike no pipeline at all. */
   setNoGates(at: string): PipelineChanged {
     const logged = [this.records.logger.log({ kind: 'pipeline-gates-none', fields: {} }, at)];
@@ -125,6 +146,7 @@ export class TrackerChanges {
   }
 
   removeGate(name: string, at: string): PipelineChanged {
+    this.refusePendingApply();
     const gateNames = this.records.pipeline?.gates.map((gate) => gate.name) ?? [];
     if (!gateNames.includes(name)) throw new BoardRefusal({ reason: 'unknown-gate', gateName: name, gateNames });
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-removed', fields: { name } }, at)];
@@ -136,6 +158,7 @@ export class TrackerChanges {
 
   /** Refused with no stored pipeline: a file holding only the switch would read as no gates on purpose and lift `checks-not-set`. */
   setApproval(approval: PipelineApproval, on: boolean, at: string): PipelineChanged {
+    this.refusePendingApply();
     if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'approval-without-pipeline', approval });
     const logged = [this.records.logger.log({ kind: 'pipeline-approval-set', fields: { approval, state: on ? 'on' : 'off' } }, at)];
     return this.changedPipelineOf((pipeline) => {

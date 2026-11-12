@@ -231,8 +231,8 @@ it.
   reviewer, in the Airlock too, files low-priority tickets. The
   Assistant moves delivered incidents, and its job-targeting moves are refused at the Hatch: see
   [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
-  product owner runs intake and draft tickets. The pipeline agent's filing is refused: see
-  [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
+  product owner runs intake and draft tickets. The pipeline agent files nothing: it moves the open setup record it
+  serves, an `advise` record included.
 - **A gate's `git reset`.** A gate may write the worktree and its admin folder. The branch's ref lives in the shared
   `.git`, outside that list, so no reset moves it. Under a profile of this shape every `git reset` on a branch exited 1
   at the ref lock, and a reset to `HEAD` had by then rewritten the tree and index. A refresh gate and a proposal's gates

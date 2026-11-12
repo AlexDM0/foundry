@@ -3,8 +3,9 @@
  * order; a `constitution` entry is the pipeline's constitution path or the installed default; a `default-brief` entry is that role's
  * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
  * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading;
- * and V11 protects every tracked path any role's resolved list names. Data-folder files are read from disk; a tracked path is asked of git,
- * which answers from the recorded answers of `src/testing/RecordedGit.ts`.
+ * and V11 protects every tracked path any role's resolved list names. Main's `CONSTITUTION.md` is read with its blob id from one commit of
+ * the main line, absent when that commit holds none, and unreadable, never absent, when the main line does not resolve. Data-folder files
+ * are read from disk; a tracked path is asked of git, which answers from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -184,6 +185,40 @@ describeWhenGitIsRecorded('a constitution entry', () => {
 
     expect(paths).toEqual(['CONSTITUTION.md', defaultInstructionPathOf('builder')]);
     expect(pathsReadFor(MINIMAL_PIPELINE, jobOf('build', 'builder'))).toEqual([CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('builder')]);
+  });
+});
+
+describeWhenGitIsRecorded('main\'s CONSTITUTION.md', () => {
+  const MAIN_TIP = '1'.repeat(40);
+  const BLOB = '2'.repeat(40);
+  const tipRead = {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_LINE}^{commit}`],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MAIN_TIP },
+  };
+  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:CONSTITUTION.md`];
+
+  test('is its text and its blob id, both read from the main line\'s tip', async () => {
+    const reading = await recordedGit.playStage([
+      tipRead,
+      { gitArguments: blobArguments, answeredAs: GIT_CALL_SHAPES.BLOB_OF_A_PATH, filledIn: { [RECORDED_PLACEHOLDERS.BLOB]: BLOB } },
+      {
+        gitArguments: ['show', `${MAIN_TIP}:CONSTITUTION.md`],
+        answeredAs:   GIT_CALL_SHAPES.FILE_ON_BRANCH,
+        filledIn:     { [RECORDED_PLACEHOLDERS.TEXT]: '# Example Agency' },
+      },
+    ], async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE));
+
+    expect(reading).toEqual({ verdict: 'read', constitution: { path: 'CONSTITUTION.md', markdown: '# Example Agency\n', blob: BLOB } });
+  });
+
+  test('is absent when the tip holds no such file, and unreadable when the main line does not resolve', async () => {
+    const readMain = async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE);
+    const absent = await recordedGit.playStage([tipRead, { gitArguments: blobArguments, answeredAs: GIT_CALL_SHAPES.BLOB_OF_A_MISSING_PATH }], readMain);
+    const unresolved = await recordedGit.playStage([{ ...tipRead, answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION }], readMain);
+
+    expect(absent).toEqual({ verdict: 'absent' });
+    expect(unresolved.verdict).toBe('unreadable');
   });
 });
 

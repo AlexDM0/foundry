@@ -65,6 +65,7 @@ const EXAMPLE_ORIGIN = 'https://example.invalid/example-agency.git';
 const EXAMPLE_MISSING_FILE = 'CLAUDE.md';
 const EXAMPLE_FILE_TEXT = 'Example Agency rule: name things fully.';
 const NOT_IGNORED_EXIT_CODE = 1;
+const NO_SUCH_OBJECT_EXIT_CODE = 1;
 const NO_SUCH_REMOTE_EXIT_CODE = 2;
 const OUTSIDE_EXIT_CODE = 128;
 const CHECK_FOUND_EXIT_CODE = 2;
@@ -309,6 +310,21 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(answer).toEqual({ exitCode: 0, standardOutput: `${EXAMPLE_FILE_TEXT}\n`, standardError: '' });
     if (answer === null) return;
     recordAnswer(GIT_CALL_SHAPES.FILE_ON_BRANCH, { ...answer, standardOutput: answer.standardOutput.replace(EXAMPLE_FILE_TEXT, RECORDED_PLACEHOLDERS.TEXT) });
+  });
+
+  test('a path on a commit answers its blob id, and a path not on it answers nothing, recorded with the commit and the blob as placeholders', () => {
+    const repositoryDirectory = scratchRepository();
+    const commit = commitFile(repositoryDirectory, 'example-rule.md', `${EXAMPLE_FILE_TEXT}\n`).trim();
+    const blob   = gitOutputIn(repositoryDirectory, ['rev-parse', `${commit}:example-rule.md`]).trim();
+    const blobArgumentsOf = (path: string): string[] => ['rev-parse', '--verify', '--quiet', '--end-of-options', `${commit}:${path}`];
+
+    const found = GitProcess.run(repositoryDirectory, blobArgumentsOf('example-rule.md'));
+    expect(found).toEqual({ exitCode: 0, standardOutput: `${blob}\n`, standardError: '' });
+    const missing = GitProcess.run(repositoryDirectory, blobArgumentsOf(EXAMPLE_MISSING_FILE));
+    expect(missing).toEqual({ exitCode: NO_SUCH_OBJECT_EXIT_CODE, standardOutput: '', standardError: '' });
+    if (found === null || missing === null) return;
+    recordAnswer(GIT_CALL_SHAPES.BLOB_OF_A_PATH, { ...found, standardOutput: found.standardOutput.replace(blob, RECORDED_PLACEHOLDERS.BLOB) });
+    recordAnswer(GIT_CALL_SHAPES.BLOB_OF_A_MISSING_PATH, missing);
   });
 
   test('the tips of a target and two branches answer one id per line, and a last branch that does not resolve fails the whole call', () => {

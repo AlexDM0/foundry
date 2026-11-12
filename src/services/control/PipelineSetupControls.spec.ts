@@ -12,12 +12,12 @@ import { describe, expect, test } from 'bun:test';
 
 import type { UnreadablePipelineReading }                         from '../../adapters/pipeline/PipelineFile.ts';
 import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { MainConstitution, PipelineSetup }                   from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
+import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }       from '../../testing/EchoedControlContext.ts';
 import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
@@ -145,6 +145,11 @@ const MALFORMED_COMMANDS: readonly [string, Record<string, unknown>][] = [
   }],
   ['editId', { kind: 'pipeline-draft-undo', setupId: 'S1' }],
   ['setupId', { kind: 'pipeline-draft-discard', setupId: '  ' }],
+  ['draftRevision', { kind: 'pipeline-apply', setupId: 'S1', resumesBoard: false }],
+  ['resumesBoard', {
+    kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: 'yes'
+  }],
+  ['setupId', { kind: 'pipeline-apply-cancel' }],
 ];
 
 describe('a misshapen body', () => {
@@ -458,5 +463,124 @@ describe('a resume', () => {
     expect(fixture.board.jobs().map((job) => job.kind)).toEqual(['pipeline-agent']);
     const thrown = thrownBy(() => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S9' }));
     expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-setup-open', setupId: 'S9' });
+  });
+});
+
+describe('Apply', () => {
+  const MAIN_CONSTITUTION: MainConstitution = { path: 'CONSTITUTION.md', markdown: '# Example Agency\n\n- Keep the basket page fast.\n', blob: 'c'.repeat(40) };
+  const MAIN_HOLDS_THE_TEXT = echoedControlContextWith({ verdict: 'read', constitution: MAIN_CONSTITUTION });
+
+  function applyIn(fixture: BoardFixture, command: ControlCommand, context = ECHOED_CONTROL_CONTEXT, unreadablePipeline: UnreadablePipelineReading | null = null): unknown {
+    return ControlService.apply(command, changeOf(fixture, unreadablePipeline), context).result;
+  }
+
+  test('an update opens on main\'s CONSTITUTION.md with its blob id and the stored sources of that very blob', () => {
+    const annotation = {
+      lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null
+    } as const;
+    const fixture = boardFixture({
+      pipeline:            STORED_PIPELINE,
+      constitutionSources: {
+        verdict: 'readable',
+        sources: {
+          formatVersion: 1, blob: MAIN_CONSTITUTION.blob, annotations: [annotation], extra: []
+        }
+      },
+    });
+
+    applyIn(fixture, { kind: 'pipeline-update-start' }, MAIN_HOLDS_THE_TEXT);
+
+    expect(fixture.board.pipelineSetup()?.constitution).toMatchObject({ markdown: MAIN_CONSTITUTION.markdown, baseBlob: MAIN_CONSTITUTION.blob, annotations: [annotation] });
+  });
+
+  test('the stored sources of another text never reach the record', () => {
+    const fixture = boardFixture({
+      pipeline:            STORED_PIPELINE,
+      constitutionSources: {
+        verdict: 'readable',
+        sources: {
+          formatVersion: 1,
+          blob:          'd'.repeat(40),
+          annotations:   [{
+            lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null
+          }],
+          extra: []
+        }
+      },
+    });
+
+    applyIn(fixture, { kind: 'pipeline-update-start' }, MAIN_HOLDS_THE_TEXT);
+
+    expect(fixture.board.pipelineSetup()?.constitution?.annotations).toEqual([]);
+  });
+
+  test('advise opens an advise record on the stored pipeline and launches its pipeline agent', () => {
+    const fixture = boardFixture({ pipeline: STORED_PIPELINE });
+
+    applyIn(fixture, { kind: 'pipeline-agent-advise' }, MAIN_HOLDS_THE_TEXT);
+
+    expect(fixture.board.pipelineSetup()).toMatchObject({
+      mode: 'advise', agentJobId: 'J1', draft: STORED_PIPELINE, constitution: { baseBlob: MAIN_CONSTITUTION.blob }
+    });
+    expect(fixture.board.jobs().map((job) => job.kind)).toEqual(['pipeline-agent']);
+  });
+
+  test('a gate verb after an update opened makes its Apply refuse pipeline-moved; a changed CONSTITUTION.md refuses constitution-moved', () => {
+    const fixture = boardFixture({ pipeline: STORED_PIPELINE });
+    applyIn(fixture, { kind: 'pipeline-update-start' }, MAIN_HOLDS_THE_TEXT);
+    const changedOnMain = echoedControlContextWith({ verdict: 'read', constitution: { ...MAIN_CONSTITUTION, markdown: '# Another text\n', blob: 'e'.repeat(40) } });
+
+    const movedConstitution = thrownBy(() => applyIn(fixture, {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    }, changedOnMain));
+    applyIn(fixture, { kind: 'pipeline-gate-add', gate: { name: 'lint', run: 'bun run lint' } });
+    const movedPipeline = thrownBy(() => applyIn(fixture, {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    }, MAIN_HOLDS_THE_TEXT));
+
+    expect(movedConstitution instanceof BoardRefusal ? movedConstitution.detail : movedConstitution).toMatchObject({ reason: 'constitution-moved' });
+    expect(movedPipeline instanceof BoardRefusal ? movedPipeline.detail : movedPipeline).toMatchObject({ reason: 'pipeline-moved' });
+  });
+
+  test('an unreadable pipeline.json is replaced only by a record opened to replace it', () => {
+    const older: UnreadablePipelineReading = { verdict: 'older' };
+    const keeping = boardFixture();
+    applyIn(keeping, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+    const replacing = boardFixture();
+    applyIn(replacing, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: true });
+    const command: ControlCommand = {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    };
+
+    expect(operationRefusalOf(() => applyIn(keeping, command, ECHOED_CONTROL_CONTEXT, older)).detail).toMatchObject({ kind: 'older-pipeline' });
+    expect(applyIn(replacing, command, ECHOED_CONTROL_CONTEXT, older)).toMatchObject({ outcome: 'applied' });
+    expect(replacing.board.pipelineChanged()).toBe(true);
+  });
+
+  test('a main whose CONSTITUTION.md git cannot read refuses main-constitution-unreadable, with the Board untouched', () => {
+    const fixture = boardAtDesign();
+    const unreadable = echoedControlContextWith({ verdict: 'unreadable', reason: 'git could not be started' });
+
+    const refusal = operationRefusalOf(() => applyIn(fixture, {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    }, unreadable));
+
+    expect(refusal.detail).toEqual({ kind: 'main-constitution-unreadable', reason: 'git could not be started' });
+    expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
+  });
+
+  test('apply-cancel clears a waiting request, and with none refuses no-apply-pending', () => {
+    const fixture = boardAtDesign();
+    fixture.board.setConstitution('S1', { markdown: MAIN_CONSTITUTION.markdown, annotations: [] }, CHANGED_AT);
+    applyIn(fixture, {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    });
+    expect(fixture.board.pipelineSetup()?.applyRequest?.state).toBe('committing');
+
+    applyIn(fixture, { kind: 'pipeline-apply-cancel', setupId: 'S1' });
+
+    expect(fixture.board.pipelineSetup()?.applyRequest).toBeNull();
+    const thrown = thrownBy(() => applyIn(fixture, { kind: 'pipeline-apply-cancel', setupId: 'S1' }));
+    expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-apply-pending', setupId: 'S1' });
   });
 });

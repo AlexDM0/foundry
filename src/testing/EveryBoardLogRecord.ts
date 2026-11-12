@@ -10,7 +10,10 @@ import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
 
-/** One setup record walked through every move but Apply's, each logging its own kind once. */
+/**
+ * One setup record walked through every move, each logging its own kind once, its Apply request held, refused and cancelled before it is
+ * started over; a second record, with no constitution, is applied at once.
+ */
 function logEverySetupRecordKind(board: Board, at: string): void {
   const { setup } = board.openSetup({
     mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
@@ -42,7 +45,16 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   }, at);
   board.undoDraftEdit(setupId, 'E1', at);
   board.discardDraft(setupId, at);
+  // The edit, its Undo and the discard each took the draft one revision further.
+  board.requestApply(setupId, { draftRevision: 3, resumesBoard: false, mainConstitution: null }, at);
+  board.holdApply(setupId, 'dirty-checkout', at);
+  board.refuseApply(setupId, 'git-failed', at);
+  board.cancelApply(setupId, at);
   board.startOverSetup(setupId, at);
+  const applied = board.openSetup({
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, at);
+  board.requestApply(applied.setup.setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, at);
 }
 
 /** One gate profile that ends by itself, and one User stops while it waits, each logging its own kind once. */

@@ -2,19 +2,19 @@
  * A Board over synthetic records, with a logger that keeps every record in a list, for the Board's specs to assert reason codes, records
  * and changed tickets against. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { Draft }                     from '../lib/tracker-model/@types/Draft.ts';
-import type { Epic, EpicFrontmatter }     from '../lib/tracker-model/@types/Epic.ts';
-import type { GateProfilesReading }       from '../lib/tracker-model/@types/GateProfile.ts';
-import type { LogRecord }                 from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                  from '../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetupReading }      from '../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Task }                      from '../lib/tracker-model/@types/Task.ts';
-import type { Ticket, TicketFrontmatter } from '../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }           from '../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                          from '../lib/tracker-model/Board.ts';
-import type { BoardRefusalDetail }        from '../lib/tracker-model/BoardRefusal.ts';
-import { refusalIsBoardRefusal }          from '../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                   from '../lib/tracker-model/Logger.ts';
+import type { Draft }                                            from '../lib/tracker-model/@types/Draft.ts';
+import type { Epic, EpicFrontmatter }                            from '../lib/tracker-model/@types/Epic.ts';
+import type { GateProfilesReading }                              from '../lib/tracker-model/@types/GateProfile.ts';
+import type { LogRecord }                                        from '../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                         from '../lib/tracker-model/@types/Pipeline.ts';
+import type { ConstitutionSourcesReading, PipelineSetupReading } from '../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Task }                                             from '../lib/tracker-model/@types/Task.ts';
+import type { Ticket, TicketFrontmatter }                        from '../lib/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }                                  from '../lib/tracker-model/@types/TrackerProgress.ts';
+import { Board }                                                 from '../lib/tracker-model/Board.ts';
+import type { BoardRefusalDetail }                               from '../lib/tracker-model/BoardRefusal.ts';
+import { refusalIsBoardRefusal }                                 from '../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }                                          from '../lib/tracker-model/Logger.ts';
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
@@ -76,14 +76,15 @@ export function epicFixture(overrides: Partial<EpicFrontmatter> = {}): Epic {
 
 /** The next task id is one past the highest row handed in, as a tracker that filed those rows itself would hold. */
 export function boardFixture(contents: {
-  tasks?:            Task[];
-  tickets?:          Ticket[];
-  epics?:            Epic[];
-  drafts?:           Draft[];
-  concurrencyLimit?: number;
-  pipeline?:         Pipeline;
-  pipelineSetup?:    PipelineSetupReading;
-  gateProfiles?:     GateProfilesReading;
+  tasks?:               Task[];
+  tickets?:             Ticket[];
+  epics?:               Epic[];
+  drafts?:              Draft[];
+  concurrencyLimit?:    number;
+  pipeline?:            Pipeline;
+  pipelineSetup?:       PipelineSetupReading;
+  gateProfiles?:        GateProfilesReading;
+  constitutionSources?: ConstitutionSourcesReading;
 } = {}): BoardFixture {
   const tasks      = contents.tasks ?? [];
   const tickets    = contents.tickets ?? [];
@@ -107,6 +108,7 @@ export function boardFixture(contents: {
     ...(contents.pipeline === undefined ? {} : { pipeline: contents.pipeline }),
     ...(contents.pipelineSetup === undefined ? {} : { pipelineSetup: contents.pipelineSetup }),
     ...(contents.gateProfiles === undefined ? {} : { gateProfiles: contents.gateProfiles }),
+    ...(contents.constitutionSources === undefined ? {} : { constitutionSources: contents.constitutionSources }),
   });
   return {
     board,

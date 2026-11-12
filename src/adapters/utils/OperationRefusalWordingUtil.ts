@@ -232,6 +232,21 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `No pipeline is stored, so there is nothing to ${detail.mode === 'advise' ? 'advise on' : 'update'}: set the pipeline up first. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-apply-pending':
       return `Pipeline setup ${detail.setupId} waits for its Apply to land, so it cannot change now: cancel the Apply first. ${NOTHING_WAS_WRITTEN}`;
+    case 'no-apply-pending':
+      return `Pipeline setup ${detail.setupId} has no Apply to cancel or settle. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-question-open':
+      return `Pipeline setup ${detail.setupId} still asks ${detail.questionIds.join(', ')}: answer every question before the Apply. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-step-needs-recheck':
+      return `Pipeline setup ${detail.setupId} needs a recheck of ${detail.steps.join(', ')}: continue each before the Apply. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-snapshot-touched':
+      return `The pipeline agent of pipeline setup ${detail.setupId} changed its snapshot, so its findings cannot be trusted: resume the setup `
+        + `to check the snapshot out again, then apply. ${NOTHING_WAS_WRITTEN}`;
+    case 'pipeline-moved':
+      return `The stored pipeline changed since pipeline setup ${detail.setupId} opened (content hash ${detail.contentHash ?? 'none'}, not `
+        + `${detail.baseContentHash ?? 'none'}), so the Apply would overwrite that change. ${NOTHING_WAS_WRITTEN} Start the update again.`;
+    case 'constitution-moved':
+      return `CONSTITUTION.md on the main line changed since pipeline setup ${detail.setupId} opened (blob ${detail.mainBlob ?? 'none'}, not `
+        + `${detail.baseBlob ?? 'none'}), so the Apply would overwrite that change. ${NOTHING_WAS_WRITTEN} Start the update again.`;
     case 'billing-cap-not-positive':
       return `A budget cap of ${detail.maxBudgetUsd} USD is not above 0: give a positive cap, or none. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-current':
@@ -607,6 +622,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `The ${detail.commandKind} command's ${detail.field} is missing or is not of its shape. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-draft-invalid':
       return `The edit would leave pipeline setup ${detail.setupId}'s draft a pipeline that cannot be stored: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
+    case 'main-constitution-unreadable':
+      return `CONSTITUTION.md on the main line could not be read: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'picture-unknown':
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':

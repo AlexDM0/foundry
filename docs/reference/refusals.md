@@ -278,7 +278,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 ### Pipeline setup
 
 <details open>
-<summary>30 sentences</summary>
+<summary>37 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -286,7 +286,14 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `Pipeline setup <id> is not open` | `no-setup-open` | A setup move named a record that is not the open one, or none is open. | Read the open record's id again. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `The pipeline setup record cannot be read` | `pipeline-setup-unreadable` | `pipeline-setup.json` is malformed; nothing writes over it. | Repair or remove the file. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `No pipeline is stored, so there is nothing to update` | `no-pipeline-to-update` | An update or advise opened with no readable `pipeline.json`. | Set the pipeline up first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
-| `waits for its Apply to land` | `pipeline-apply-pending` | A setup move while the record's Apply request is `committing` or `held`. | Cancel the Apply first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `waits for its Apply to land` | `pipeline-apply-pending` | A setup move, a `gate` write, or an Apply of another revision while the record's Apply request is `committing` or `held`. | Cancel the Apply first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `has no Apply to cancel or settle` | `no-apply-pending` | `pipeline apply-cancel` with no Apply request. | Nothing to do. | [Apply](../cli.md#apply) |
+| `still asks <ids>: answer every question before the Apply` | `setup-question-open` | An Apply while a setup question has no answer. | Answer each question named. | [Apply](../cli.md#apply) |
+| `needs a recheck of <steps>` | `setup-step-needs-recheck` | An Apply while a step before Apply needs a recheck. | Continue each step named. | [Apply](../cli.md#apply) |
+| `changed its snapshot, so its findings cannot be trusted` | `setup-snapshot-touched` | An Apply after a turn end of the pipeline agent found its snapshot changed. | Resume the setup, then apply. | [Apply](../cli.md#apply) |
+| `The stored pipeline changed since pipeline setup <id> opened` | `pipeline-moved` | An Apply after a `gate` write changed the stored pipeline since the record opened. | Start the update again. | [Apply](../cli.md#apply) |
+| `CONSTITUTION.md on the main line changed since pipeline setup <id> opened` | `constitution-moved` | An Apply after main's `CONSTITUTION.md` changed since the record opened, to a text other than the draft's. | Start the update again. | [Apply](../cli.md#apply) |
+| `CONSTITUTION.md on the main line could not be read` | `main-constitution-unreadable` | An Apply, `pipeline update` or `advise` whose read of main's `CONSTITUTION.md` git could not answer; exit 2. | Check the repository with git, then run it again. | [Apply](../cli.md#apply) |
 | `A budget cap of <n> USD is not above 0` | `billing-cap-not-positive` | A setup's API billing cap is 0 or below. | Give a positive cap, or none. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `so <step> was not continued` | `setup-step-not-current` | Continue, or the pipeline agent's `pipeline ready`, named a step other than the current one. | Name the current step. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `has not reached the <step> step` | `setup-step-not-reached` | A reopening named a step that never started, or one after the current step. Never printed: no verb reopens a step yet, and an edit reopens only an earlier step. | Go back only to a step at or before the current one. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
@@ -297,7 +304,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `needs the option Claude recommends` | `setup-question-without-recommendation` | A setup question with no recommended option. | Name the recommended option. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `There is no option <letter>` | `unknown-setup-option-letters` | A recommendation or answer named a letter the question does not have. | Name one of its letters. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `the setup question takes one` | `several-letters-on-single-select-setup-question` | Several letters on a question that takes one. | Name one letter. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
-| `The constitution has no text` | `constitution-empty` | The agent sent an empty constitution. | Send the whole document. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
+| `The constitution has no text` | `constitution-empty` | The agent sent an empty constitution, or an Apply of a draft with no constitution text while main holds a `CONSTITUTION.md`. | Send the whole document. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `may hold at most <n>` | `constitution-too-long` | The constitution is longer than the limit. | Shorten it. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `the constitution does not hold that line that many times` | `constitution-source-unanchored` | A source names a line the text does not hold, or not that often. | Name a whole line of the text, without its line ending. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `a line takes one source` | `constitution-source-repeated` | Two sources name the same line. | Name one source per line. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |

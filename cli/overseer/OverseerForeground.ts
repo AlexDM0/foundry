@@ -21,6 +21,7 @@ import type { ProcessIdentity }                           from '../../src/lib/pr
 import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
+import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import {
@@ -62,6 +63,7 @@ import {
   OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
 import type { CommandContext }                               from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                           from '../CommandControlContext.ts';
 import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
@@ -480,6 +482,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         change.board.submitFirstRunLeftovers(change.at);
         // In the hold, so no command names a picture between the read of the references and the sweep.
         PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(change.board.logRecordsSoFar(), change.board.jobs()));
+        finishHalfAppliedSetup(change, COMMAND_CONTROL_CONTEXT);
         return change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
       });
       log(`Overseer serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);

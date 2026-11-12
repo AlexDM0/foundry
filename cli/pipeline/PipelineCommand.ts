@@ -1,11 +1,13 @@
 /**
- * `pipeline setup|billing|continue|start-over|resume|answer|constitution|update|edit|undo|discard`: User's verbs of the pipeline setup record;
- * `pipeline profile|profile-stop`: User's gate profiles; `pipeline finding|ask|draft-constitution|propose|ready`: the pipeline agent's,
- * relayed under its job.
+ * `pipeline setup|billing|continue|start-over|resume|answer|constitution|update|edit|undo|discard|apply|apply-cancel`: User's verbs of the
+ * pipeline setup record; `pipeline profile|profile-stop`: User's gate profiles; `pipeline finding|ask|draft-constitution|propose|ready`:
+ * the pipeline agent's, relayed under its job.
  */
 import type { CommandHandler }                       from '../CommandHandler.ts';
 import { refuseUsage }                               from '../RecordedIncidentMove.ts';
 import { answerPipelineQuestion }                    from './PipelineAnswer.ts';
+import { applyPipelineSetup }                        from './PipelineApply.ts';
+import { cancelPipelineApply }                       from './PipelineApplyCancel.ts';
 import { askPipelineQuestion }                       from './PipelineAsk.ts';
 import { setPipelineBilling }                        from './PipelineBilling.ts';
 import { editPipelineConstitution }                  from './PipelineConstitution.ts';
@@ -41,6 +43,8 @@ const SUBCOMMANDS: Readonly<Record<PipelineSubcommand, CommandHandler>> = {
   'discard':            discardPipelineDraft,
   'profile':            profilePipelineGate,
   'profile-stop':       stopPipelineGateProfile,
+  'apply':              applyPipelineSetup,
+  'apply-cancel':       cancelPipelineApply,
   'finding':            recordPipelineFinding,
   'ask':                askPipelineQuestion,
   'draft-constitution': draftPipelineConstitution,

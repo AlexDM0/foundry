@@ -21,6 +21,7 @@ import type {
   JobChanged,
   LifecycleAdvanced,
   Logged,
+  PipelineApplyChanged,
   PipelineChanged,
   PipelineSetupChanged,
   ReviewBarRequest,
@@ -100,9 +101,14 @@ import type {
   PipelineStep
 } from './@types/Pipeline.ts';
 import type {
+  ApplyFinishing,
+  ApplyRequestReason,
+  ApplyRequesting,
   ConstitutionEdit,
   ConstitutionSetting,
+  ConstitutionSourcesReading,
   DraftEditRequest,
+  MainConstitution,
   PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupReading,
@@ -111,7 +117,8 @@ import type {
   SetupQuestionAsking,
   SetupQuestionReply,
   SetupQuestionStep,
-  SnapshotRefusal
+  SnapshotRefusal,
+  StoredConstitutionSources
 } from './@types/PipelineSetup.ts';
 import type {
   DecisionDraft,
@@ -183,20 +190,22 @@ import { OptionConsequencesUtil }                      from './utils/OptionConse
 import { PipelineUtil }                                from './utils/PipelineUtil.ts';
 
 export interface BoardInput {
-  progress:          TrackerProgress;
-  tickets:           Ticket[];
-  epics:             Epic[];
+  progress:             TrackerProgress;
+  tickets:              Ticket[];
+  epics:                Epic[];
   /** Absent for a caller that reads no drafts, which reads as none. */
-  drafts?:           Draft[];
-  logger:            Logger;
+  drafts?:              Draft[];
+  logger:               Logger;
   /** The log as stored, which orders the ready tickets by readiness; absent reads as an empty log. */
-  storedLogRecords?: readonly LogRecord[];
+  storedLogRecords?:    readonly LogRecord[];
   /** The stored pipeline; absent or `null` when none is stored or it could not be read, which reads as no gates set. */
-  pipeline?:         Pipeline | null;
+  pipeline?:            Pipeline | null;
   /** `pipeline-setup.json` as read; absent reads as no open record. */
-  pipelineSetup?:    PipelineSetupReading;
+  pipelineSetup?:       PipelineSetupReading;
   /** `gate-profiles.json` as read; absent reads as no run. */
-  gateProfiles?:     GateProfilesReading;
+  gateProfiles?:        GateProfilesReading;
+  /** `constitution-sources.json` as read; absent reads as none stored. */
+  constitutionSources?: ConstitutionSourcesReading;
 }
 
 export class Board {
@@ -262,7 +271,7 @@ export class Board {
 
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
-      input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' });
+      input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' });
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);
@@ -280,12 +289,12 @@ export class Board {
     this.epicRules          = new Epics(this.records, this.displayQueries);
     this.draftRules         = new Drafts(this.records);
     this.draftContents      = new DraftContents(this.records, this.draftRules);
-    this.pipelineSetups     = new PipelineSetups(this.records);
     this.gateProfiles       = new GateProfiles(this.records);
     this.jobRules           = new Jobs(this.records);
     this.mergeQueueMarks    = new MergeQueueMarks(this.records);
     this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
     this.decisionRules      = new Decisions(this.records);
+    this.pipelineSetups     = new PipelineSetups(this.records, this.trackerChanges, this.decisionRules);
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
@@ -941,6 +950,47 @@ export class Board {
   gateProfilesWrite(): { write: 'profiles'; profiles: StoredGateProfiles } | { write: 'unchanged' } {
     const reading = this.records.gateProfilesReading;
     return this.records.gateProfilesChanged && reading.verdict === 'readable' ? { write: 'profiles', profiles: reading.profiles } : { write: 'unchanged' };
+  }
+
+  /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
+  requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
+    return this.pipelineSetups.requestApply(setupId, requesting, at);
+  }
+
+  /** Stage 2 of an Apply: the pipeline, the constitution's sources, the board's settings and the log, and last the record's close. */
+  finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
+    return this.pipelineSetups.finishApply(setupId, finishing, at);
+  }
+
+  /** At the Overseer's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
+  finishHalfAppliedSetup(mainConstitution: MainConstitution | null, at: string): PipelineApplyChanged | null {
+    return this.pipelineSetups.finishHalfAppliedSetup(mainConstitution, at);
+  }
+
+  holdApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.holdApply(setupId, reason, at);
+  }
+
+  refuseApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.refuseApply(setupId, reason, at);
+  }
+
+  /** Clears the record's Apply request, which leaves it editable at the design step; refused `no-apply-pending` with none. */
+  cancelApply(setupId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.cancelApply(setupId, at);
+  }
+
+  /** The stored sources of the constitution main holds; `null` when none are stored or the file could not be read. */
+  storedConstitutionSources(): Readonly<StoredConstitutionSources> | null {
+    const reading = this.records.constitutionSourcesReading;
+    return reading.verdict === 'readable' ? reading.sources : null;
+  }
+
+  /** What the hold writes to `constitution-sources.json`: the sources an Apply stored, or nothing. */
+  constitutionSourcesWrite(): { write: 'sources'; sources: StoredConstitutionSources } | { write: 'unchanged' } {
+    const reading = this.records.constitutionSourcesReading;
+    if (!this.records.constitutionSourcesChanged || reading.verdict !== 'readable') return { write: 'unchanged' };
+    return { write: 'sources', sources: reading.sources };
   }
 
   /** Abandoning a ticket hands its unstarted findings to User's review in the same hold. */

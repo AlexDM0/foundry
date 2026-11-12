@@ -15,16 +15,20 @@ import {
   type Pipeline,
   type PipelineAgentRole
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }       from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { resourceFilePathOf } from '../../shared/ResourceFilePath.ts';
-import { PRODUCT_NAMES }      from '../../shared/constants/ProductNames.ts';
-import { PathNestingUtil }    from '../../shared/utils/PathNestingUtil.ts';
-import { AssistantBoot }      from './AssistantBoot.ts';
-import { LaunchSettings }     from './LaunchSettings.ts';
+import type { MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { resourceFilePathOf }           from '../../shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
+import { PathNestingUtil }              from '../../shared/utils/PathNestingUtil.ts';
+import { AssistantBoot }                from './AssistantBoot.ts';
+import { LaunchSettings }               from './LaunchSettings.ts';
 
 export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/defaults`;
 
 export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constitution.md`;
+
+/** The tracked constitution at the repository root, which an Apply commits to the main line and points `constitution.path` at. */
+export const CONSTITUTION_FILE_PATH = 'CONSTITUTION.md';
 
 const CONTENT_HASH_LENGTH_CHARACTERS = 16;
 
@@ -122,4 +126,23 @@ function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<
   return { verdict: 'read', text: texts.join('\n'), files };
 }
 
-export const InstructionFiles = Object.freeze({ readingFor, trackedInstructionPathsOf, instructionRoleOf });
+/**
+ * Main's `CONSTITUTION.md`, its text and its blob id read from one commit of the main line, so the two always belong together. A main
+ * line that does not resolve, or a git that cannot answer, is unreadable, never absent.
+ */
+function mainConstitutionOf(rootDirectory: string, mainLine: string): MainConstitutionReading {
+  const mainTip = GitProcess.resolvedCommitOf(rootDirectory, mainLine);
+  if (mainTip === null) return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
+  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${CONSTITUTION_FILE_PATH}`];
+  const blobRun = GitProcess.run(rootDirectory, blobArguments);
+  if (blobRun === null) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(blobRun, blobArguments) };
+  if (!GitProcess.succeeded(blobRun)) return { verdict: 'absent' };
+  const showArguments = ['show', `${mainTip}:${CONSTITUTION_FILE_PATH}`];
+  const shown = GitProcess.run(rootDirectory, showArguments);
+  if (!GitProcess.succeeded(shown)) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(shown, showArguments) };
+  return { verdict: 'read', constitution: { path: CONSTITUTION_FILE_PATH, markdown: shown.standardOutput, blob: blobRun.standardOutput.trim() } };
+}
+
+export const InstructionFiles = Object.freeze({
+  readingFor, trackedInstructionPathsOf, instructionRoleOf, mainConstitutionOf
+});

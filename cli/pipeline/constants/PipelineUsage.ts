@@ -20,6 +20,8 @@ export const PIPELINE_USAGE = {
   discard:        `${PROGRAM} pipeline discard <S> [--json]`,
   profile:        `${PROGRAM} pipeline profile <gate> build|review|merge [<S>] [--json]`,
   'profile-stop': `${PROGRAM} pipeline profile-stop <P> [--json]`,
+  apply:          `${PROGRAM} pipeline apply <S> --revision <n> [--resume] [--json]`,
+  'apply-cancel': `${PROGRAM} pipeline apply-cancel <S> [--json]`,
 } as const;
 
 export const PIPELINE_AGENT_USAGE = {

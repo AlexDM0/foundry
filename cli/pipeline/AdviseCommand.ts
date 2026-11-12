@@ -1,4 +1,7 @@
-/** `advise` records a pipeline agent job on demand, which the Overseer launches on a main-line snapshot to advise on the stored pipeline. */
+/**
+ * `advise` opens an advise record on the stored pipeline and records its pipeline agent job, which the Overseer launches on a main-line
+ * snapshot to propose edits of the record's draft.
+ */
 import { ControlService }          from '../../src/services/control/ControlService.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
@@ -16,7 +19,9 @@ export const adviseCommand: CommandHandler = async (commandArguments, context) =
   commandArguments.rejectExtraPositionals(1, ADVISE_USAGE);
   const command = { kind: 'pipeline-agent-advise' } as const;
   await hatchWhenUnderJob(context, command);
-  const { job, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
-  OutputUtil.printEntity(commandArguments, context, { jobId: job.id, logged }, OutputUtil.loggedSentencesOf(logged));
-  context.standardError(`The Overseer launches the pipeline agent of job ${job.id}; follow it with \`${PROGRAM} job attach ${job.id}\`.`);
+  const { setup, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const jobId = setup.agentJobId ?? '';
+  OutputUtil.printEntity(commandArguments, context, { setupId: setup.setupId, jobId, logged }, OutputUtil.loggedSentencesOf(logged));
+  context.standardError(`The Overseer launches the pipeline agent of job ${jobId} for pipeline setup ${setup.setupId}; follow it with `
+    + `\`${PROGRAM} job attach ${jobId}\`.`);
 };

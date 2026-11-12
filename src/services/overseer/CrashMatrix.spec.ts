@@ -9,6 +9,10 @@
  * it starts is a failed resume. A gate profile left running by a stopped Overseer reads `stopped` after the next start, is never run
  * again, and its worktree goes.
  *
+ * An Apply cut short anywhere in its hold is finished by the next holder's journal replay, so a retried Apply of the same revision finds
+ * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; the Overseer's start hold leaves no record
+ * open either.
+ *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
  */
@@ -23,6 +27,7 @@ import { basename, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test,
 } from 'bun:test';
@@ -45,7 +50,7 @@ import { LIMITS }                                           from '../../shared/c
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../testing/DrivePassHarness.ts';
-import { ECHOED_CONTROL_CONTEXT }                           from '../../testing/EchoedControlContext.ts';
+import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith } from '../../testing/EchoedControlContext.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -64,6 +69,7 @@ import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../test
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                            from '../../testing/WaitUntil.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
+import { finishHalfAppliedSetup }                               from '../control/PipelineSetupControls.ts';
 import { holdJournalFilePathOf, readHoldJournal }               from '../tracker/HoldJournal.ts';
 import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker/TrackerLock.ts';
 import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
@@ -336,6 +342,97 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves p
     expect(loggedKinds(), 'the cut-short hold\'s record is in the log once, before the next holder\'s note').toEqual(['note', 'ticket-held', 'note']);
     expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
     expect(statSync(workspace.progressFilePath).ino).toBe(progressInodeBefore);
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+});
+
+describe('an Apply cut short', () => {
+  const MAIN_CONSTITUTION = { path: 'CONSTITUTION.md', markdown: '# Example Agency\n\n- Keep the basket page fast.\n', blob: 'c'.repeat(40) };
+  const MAIN_HOLDS_THE_TEXT = echoedControlContextWith({ verdict: 'read', constitution: MAIN_CONSTITUTION });
+  const APPLY_COMMAND: ControlCommand = {
+    kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: true
+  };
+
+  /** A first setup S1 with its constitution drafted, at the apply step. */
+  async function openSetupAtApply(): Promise<void> {
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => {
+        const { setupId } = change.board.openSetup({
+          mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+        }, change.at).setup;
+        change.board.setConstitution(setupId, {
+          markdown:    MAIN_CONSTITUTION.markdown,
+          annotations: [{
+            lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null
+          }]
+        }, change.at);
+        for (const step of ['billing', 'research', 'constitution', 'design'] as const) change.board.continueSetupStep(setupId, step, change.at);
+      },
+    });
+  }
+
+  async function applyCutAfter(cutFilePath: string, context: typeof MAIN_HOLDS_THE_TEXT): Promise<void> {
+    const crash = new Error('the holder crashed');
+    const failure = await failureOf(() => writeTracker({
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           (change) => ControlService.apply(APPLY_COMMAND, change, context),
+      afterFileWritten: (filePath) => { if (filePath === cutFilePath) throw crash; },
+    }));
+    expect(failure).toBe(crash);
+  }
+
+  test('after the request, a retried Apply of the same revision answers with the waiting request and never refuses pipeline-apply-pending', async () => {
+    await openSetupAtApply();
+    await applyCutAfter(workspace.logFilePath, ECHOED_CONTROL_CONTEXT);
+
+    const retried = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(APPLY_COMMAND, change, ECHOED_CONTROL_CONTEXT).result
+    });
+
+    expect(retried.result).toMatchObject({ outcome: 'committing', logged: [] });
+    expect(retried.board.pipelineSetup()?.applyRequest).toMatchObject({ state: 'committing', draftRevision: 0 });
+    expect(loggedKinds().filter((kind) => kind === 'pipeline-apply-requested')).toHaveLength(1);
+  });
+
+  test.each([
+    ['progress.json', () => workspace.progressFilePath],
+    ['pipeline.json', () => workspace.pipelineFilePath],
+    ['the sources file', () => workspace.constitutionSourcesFilePath],
+    ['the log', () => workspace.logFilePath],
+  ])('after %s, a retried Apply finishes every missing write once and never refuses pipeline-moved', async (_cutPoint, cutFilePathOf) => {
+    await openSetupAtApply();
+    await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
+
+    const retried = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(APPLY_COMMAND, change, MAIN_HOLDS_THE_TEXT).result
+    });
+
+    expect(retried.result).toMatchObject({ outcome: 'already-applied' });
+    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(workspace.constitutionSourcesFilePath, 'utf8'))).toMatchObject({ blob: MAIN_CONSTITUTION.blob });
+    expect(requireProgressFile(workspace).overseerState).toBe('running');
+    expect(loggedKinds().filter((kind) => kind === 'pipeline-applied')).toHaveLength(1);
+  });
+
+  test.each([
+    ['pipeline.json', () => workspace.pipelineFilePath],
+    ['the log', () => workspace.logFilePath],
+  ])('after %s, the Overseer\'s start hold finishes the Apply and leaves no record open', async (_cutPoint, cutFilePathOf) => {
+    await openSetupAtApply();
+    await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => finishHalfAppliedSetup(change, MAIN_HOLDS_THE_TEXT)
+    });
+
+    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+    expect(loggedKinds().filter((kind) => kind === 'pipeline-applied')).toHaveLength(1);
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
   });
 });

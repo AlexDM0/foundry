@@ -13,6 +13,7 @@ import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/Over
 import { PictureStore }                        from '../tracker/PictureStore.ts';
 import type { TrackerChange }                  from '../tracker/TrackerPipeline.ts';
 import { handledUnder, requireIncidentAllows } from './IncidentControls.ts';
+import { startAdvice }                         from './PipelineSetupControls.ts';
 
 function isPictureReference(value: unknown): value is PictureReference {
   return JsonRecordUtil.valueIsAPlainObject(value) && typeof value['pictureId'] === 'string' && typeof value['name'] === 'string';
@@ -75,7 +76,7 @@ export const JOB_CONTROLS = {
   'intake-start': (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(
     command.text, storedPicturesOf(command.pictures, change), change.at
   ),
-  'pipeline-agent-advise': (_command: ControlCommandOf<'pipeline-agent-advise'>, change: TrackerChange) => change.board.startPipelineAgent(change.at),
+  'pipeline-agent-advise': startAdvice,
   'intake-close':          closeIntake,
   'intake-title':          titleIntake,
   'question-options':      noteQuestionOptions,

@@ -1,8 +1,10 @@
 /**
  * What the control service takes from its caller besides the command and the hold: the wording of the messages a User setup move sends to
- * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`.
+ * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, and the reading of main's `CONSTITUTION.md`,
+ * which the Overseer's instruction files own.
  */
 import type {
+  MainConstitutionReading,
   PipelineDraftField,
   PipelineSetupMode,
   PipelineSetupStep,
@@ -21,4 +23,6 @@ export type SetupMessage =
 
 export interface ControlContext {
   setupMessageWordingOf: (message: SetupMessage) => string;
+  /** Main's `CONSTITUTION.md` in the repository at `rootDirectory`, as git answers for it on the main line. */
+  mainConstitutionOf:    (rootDirectory: string) => MainConstitutionReading;
 }

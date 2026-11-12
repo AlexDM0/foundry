@@ -197,11 +197,49 @@ export type PipelineSetupReading =
   | { verdict: 'readable'; setup: PipelineSetup }
   | { verdict: 'malformed'; reason: string };
 
-/** Main's `CONSTITUTION.md` when a record opens: its text byte for byte and its blob id. */
+/** Main's `CONSTITUTION.md`: its repository path, its text byte for byte and its blob id. */
 export interface MainConstitution {
+  path:     string;
   markdown: string;
   blob:     string;
 }
+
+/** Main's `CONSTITUTION.md` as git answers for it: no such file, its text and blob, or a read git could not answer. */
+export type MainConstitutionReading =
+  | { verdict: 'absent' }
+  | { verdict: 'read'; constitution: MainConstitution }
+  | { verdict: 'unreadable'; reason: string };
+
+/** Stage 1 of an Apply: the draft revision User saw, whether the board resumes, and main's constitution as the caller read it. */
+export interface ApplyRequesting {
+  draftRevision:    number;
+  resumesBoard:     boolean;
+  /** Null when main holds no `CONSTITUTION.md`. */
+  mainConstitution: MainConstitution | null;
+}
+
+/** Stage 2 of an Apply: what main holds once the constitution is there, and the commit that put it there, null when none was made. */
+export interface ApplyFinishing {
+  draftRevision:      number;
+  resumesBoard:       boolean;
+  mainConstitution:   MainConstitution | null;
+  constitutionCommit: string | null;
+}
+
+/** `<data>/constitution-sources.json`: the agent's sources of the constitution main holds, valid only for the text whose blob id is `blob`. */
+export interface StoredConstitutionSources {
+  formatVersion: 1;
+  blob:          string;
+  annotations:   SourceAnnotation[];
+  /** Keys this build does not know, kept in order so a round trip stays byte-identical. */
+  extra:         Array<[string, unknown]>;
+}
+
+/** `constitution-sources.json` as read: none stored, the sources, or a file that shows no tags and that only an Apply writes over. */
+export type ConstitutionSourcesReading =
+  | { verdict: 'absent' }
+  | { verdict: 'readable'; sources: StoredConstitutionSources }
+  | { verdict: 'malformed'; reason: string };
 
 /** What opens a record; the caller read main and the stored annotations, so the Board does no I/O. */
 export interface PipelineSetupOpening {

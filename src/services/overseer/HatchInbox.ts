@@ -38,12 +38,15 @@ const HATCH_READABLE_STATES: ReadonlySet<JobState> = new Set([
 ]);
 
 /**
- * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message; one that did is a Bouncer
- * defect, which fails the hold rather than send a message nobody worded.
+ * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message or reads main's constitution;
+ * one that did is a Bouncer defect, which fails the hold rather than send a message nobody worded.
  */
 const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   setupMessageWordingOf: (message: SetupMessage): string => {
     throw new Error(`A relayed command reached the setup message ${message.kind}, which only User's own commands send.`);
+  },
+  mainConstitutionOf: (): never => {
+    throw new Error('A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.');
   },
 });
 

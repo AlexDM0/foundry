@@ -18,7 +18,7 @@
       "callShape": "branch -d <branch>, the branch merged",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Deleted branch <branch> (was 9e79320).\n",
+        "standardOutput": "Deleted branch <branch> (was 4c4b675).\n",
         "standardError": ""
       }
     },
@@ -2226,7 +2226,7 @@
       "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 2a0b590 Change CLAUDE.md\n",
+        "standardOutput": "HEAD is now at b1eab14 Change CLAUDE.md\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -3130,7 +3130,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "?? .gitignore\u0000",
+        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
         "standardError": ""
       }
     },
@@ -3154,7 +3154,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at d5cf038 Change .gitattributes\n",
+        "standardOutput": "HEAD is now at 84e6ace Change .gitattributes\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -4410,7 +4410,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git diff --no-ext-diff HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..af01fbb 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..d6d5fd9 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
         "standardError": ""
       }
     },
@@ -5167,6 +5167,14 @@
       }
     },
     {
+      "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options <main tip>:CONSTITUTION.md",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
@@ -5274,12 +5282,12 @@
       "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/pipeline-agent/J1\nHEAD <main tip>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/pipeline-agent/S1\nHEAD <main tip>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git worktree remove --force <repository>/.forge-worktrees/pipeline-agent/J1",
+      "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git worktree remove --force <repository>/.forge-worktrees/pipeline-agent/S1",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -5330,7 +5338,7 @@
       "callShape": "flow stage \"pipeline agent worktree made\", in the pipeline agent worktree: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/pipeline-agent/J1\nHEAD <main tip>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/.forge-worktrees/pipeline-agent/S1\nHEAD <main tip>\ndetached\n\n",
         "standardError": ""
       }
     },
@@ -6255,18 +6263,18 @@
       }
     },
     {
-      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.forge-worktrees/pipeline-agent/J1 master",
+      "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --quiet --detach <repository>/.forge-worktrees/pipeline-agent/S1 <main tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD f1aaf75)"
+        "standardOutput": "",
+        "standardError": ""
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
+        "standardOutput": "HEAD is now at b635b3b Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -7322,7 +7330,7 @@
       "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "?? .gitignore\u0000",
+        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
         "standardError": ""
       }
     },
@@ -8271,6 +8279,22 @@
       }
     },
     {
+      "callShape": "rev-parse --verify --quiet --end-of-options <commit>:<path>, the path not on the commit",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "rev-parse --verify --quiet --end-of-options <commit>:<path>, the path on the commit as <blob>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<blob>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision",
       "answer": {
         "exitCode": 1,
@@ -8623,7 +8647,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames fce7197962cd276423c225a5bb3fbd7a576f934d HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames 69f6ed737084bc7d2d5d0589488be4c80c479fad HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "target.ts\n",
@@ -8695,7 +8719,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 8ee7909828bd7bb623b24c11a2493e2ab51f98ed",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 49656ac79e7cbfb24617c0216efef79c5d9676b7",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -8703,7 +8727,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 978f52826de4b724b1caf5867b153e6a9911017e",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 9df18262d2b3d31a1b9e2a92f5d67270e3a8931e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -8762,7 +8786,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "fce7197962cd276423c225a5bb3fbd7a576f934d\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "69f6ed737084bc7d2d5d0589488be4c80c479fad\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -8810,7 +8834,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\n8ee7909828bd7bb623b24c11a2493e2ab51f98ed\n",
+        "standardOutput": "<head>\n<target tip>\n49656ac79e7cbfb24617c0216efef79c5d9676b7\n",
         "standardError": ""
       }
     },
@@ -8834,7 +8858,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n978f52826de4b724b1caf5867b153e6a9911017e\n8ee7909828bd7bb623b24c11a2493e2ab51f98ed\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n9df18262d2b3d31a1b9e2a92f5d67270e3a8931e\n49656ac79e7cbfb24617c0216efef79c5d9676b7\n",
         "standardError": ""
       }
     },
@@ -9255,15 +9279,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 19b283ca776a81d783522f4aabdd2189fafd382c",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change .forge/progress.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 48885ad605abdb5fcd5ad29dae004ab0a2170bc6",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 1336792a5b0bdaa6c51b9988932de0a89d64df01",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -9271,7 +9287,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B ff1227145c14c81c1749d31a499cb9c62a9f7f16",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 23d2e0a4ec65a6b8522cdb2a86c21a8a5e0f6564",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .forge/progress.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 27fef9ebd9832d772ff3218234d62269bd78b69c",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9378,7 +9402,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\n48885ad605abdb5fcd5ad29dae004ab0a2170bc6\n19b283ca776a81d783522f4aabdd2189fafd382c\nff1227145c14c81c1749d31a499cb9c62a9f7f16\n",
+        "standardOutput": "<head>\n<target tip>\n1336792a5b0bdaa6c51b9988932de0a89d64df01\n23d2e0a4ec65a6b8522cdb2a86c21a8a5e0f6564\n27fef9ebd9832d772ff3218234d62269bd78b69c\n",
         "standardError": ""
       }
     },
@@ -9402,7 +9426,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n48885ad605abdb5fcd5ad29dae004ab0a2170bc6\n19b283ca776a81d783522f4aabdd2189fafd382c\nff1227145c14c81c1749d31a499cb9c62a9f7f16\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n1336792a5b0bdaa6c51b9988932de0a89d64df01\n23d2e0a4ec65a6b8522cdb2a86c21a8a5e0f6564\n27fef9ebd9832d772ff3218234d62269bd78b69c\n",
         "standardError": ""
       }
     },
@@ -9551,15 +9575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 7b948a6098a84d6a46d811615ff63da973f9c0e7",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change .claude/settings.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 0383b20879e546756c37eed7b9fedf3687d9042e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9567,7 +9583,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B b1cacd52b0d64ad84ce6cca65ddcd419c0217d50",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 9a917085a1c7e28053356ed9aab37eeaa9925919",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .claude/settings.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B dac507f3c360ada3c3a596faa0231a15c49900e7",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Merge the example target\n\n",
@@ -9575,7 +9599,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B dc7a5c449fbbc8f2b2222160039b171d90509ec1",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B f8a39833fa967ccd8548caddf68b7e8644320b0a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -9642,7 +9666,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
+        "standardOutput": "dac507f3c360ada3c3a596faa0231a15c49900e7\n",
         "standardError": ""
       }
     },
@@ -9650,7 +9674,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
+        "standardOutput": "dac507f3c360ada3c3a596faa0231a15c49900e7\n",
         "standardError": ""
       }
     },
@@ -9658,7 +9682,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
+        "standardOutput": "dac507f3c360ada3c3a596faa0231a15c49900e7\n",
         "standardError": ""
       }
     },
@@ -9666,15 +9690,15 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
+        "standardOutput": "dac507f3c360ada3c3a596faa0231a15c49900e7\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 b1cacd52b0d64ad84ce6cca65ddcd419c0217d50",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 dac507f3c360ada3c3a596faa0231a15c49900e7",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50 <branch tip> <target tip>\n",
+        "standardOutput": "dac507f3c360ada3c3a596faa0231a15c49900e7 <branch tip> <target tip>\n",
         "standardError": ""
       }
     },
@@ -9682,7 +9706,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n<target tip>\n7b948a6098a84d6a46d811615ff63da973f9c0e7\ndc7a5c449fbbc8f2b2222160039b171d90509ec1\n912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d\n",
+        "standardOutput": "<head>\ndac507f3c360ada3c3a596faa0231a15c49900e7\n<target tip>\n9a917085a1c7e28053356ed9aab37eeaa9925919\nf8a39833fa967ccd8548caddf68b7e8644320b0a\n0383b20879e546756c37eed7b9fedf3687d9042e\n",
         "standardError": ""
       }
     },
@@ -9690,7 +9714,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
+        "standardOutput": "<head>\ndac507f3c360ada3c3a596faa0231a15c49900e7\n",
         "standardError": ""
       }
     },
@@ -9706,7 +9730,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n<branch tip>\n<target tip>\n7b948a6098a84d6a46d811615ff63da973f9c0e7\ndc7a5c449fbbc8f2b2222160039b171d90509ec1\n912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d\n",
+        "standardOutput": "<head>\ndac507f3c360ada3c3a596faa0231a15c49900e7\n<branch tip>\n<target tip>\n9a917085a1c7e28053356ed9aab37eeaa9925919\nf8a39833fa967ccd8548caddf68b7e8644320b0a\n0383b20879e546756c37eed7b9fedf3687d9042e\n",
         "standardError": ""
       }
     },
@@ -9831,7 +9855,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 1ad1381a82e09364b4188b30c7ff7d31ae779848",
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B b5de16f0b94b184e5f65e60c2040f3b5b3547ad1",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9882,7 +9906,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1ad1381a82e09364b4188b30c7ff7d31ae779848\n",
+        "standardOutput": "<head>\nb5de16f0b94b184e5f65e60c2040f3b5b3547ad1\n",
         "standardError": ""
       }
     },
@@ -9898,7 +9922,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1ad1381a82e09364b4188b30c7ff7d31ae779848\n<feature>\n",
+        "standardOutput": "<head>\nb5de16f0b94b184e5f65e60c2040f3b5b3547ad1\n<feature>\n",
         "standardError": ""
       }
     },
@@ -10423,7 +10447,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 8749897b414677045bb314e7359c1db7461076e9",
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B fbc8b1997bfba9d587d763b935dfdc32d9433f71",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10474,7 +10498,7 @@
       "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n8749897b414677045bb314e7359c1db7461076e9\n",
+        "standardOutput": "<head>\nfbc8b1997bfba9d587d763b935dfdc32d9433f71\n",
         "standardError": ""
       }
     },
@@ -10575,7 +10599,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 45699f0deabb29937fda57d5e0f3c7069b4f70a9",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 8e80cedbce4ee19d10e1ab3290093e34c14e57fb",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10626,7 +10650,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n45699f0deabb29937fda57d5e0f3c7069b4f70a9\n",
+        "standardOutput": "<head>\n8e80cedbce4ee19d10e1ab3290093e34c14e57fb\n",
         "standardError": ""
       }
     },
@@ -10751,7 +10775,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B 45699f0deabb29937fda57d5e0f3c7069b4f70a9",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B 8e80cedbce4ee19d10e1ab3290093e34c14e57fb",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10818,7 +10842,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<honest start>\n45699f0deabb29937fda57d5e0f3c7069b4f70a9\n",
+        "standardOutput": "<head>\n<honest start>\n8e80cedbce4ee19d10e1ab3290093e34c14e57fb\n",
         "standardError": ""
       }
     },
@@ -10919,7 +10943,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 2535e58c610e5ce6601032163bbe3e82e91eddab",
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 8caee72682b39f2610f44281021a565d4f9e4da0",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10970,7 +10994,7 @@
       "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n2535e58c610e5ce6601032163bbe3e82e91eddab\n",
+        "standardOutput": "<head>\n8caee72682b39f2610f44281021a565d4f9e4da0\n",
         "standardError": ""
       }
     },
@@ -11071,7 +11095,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 8385f02eb074c1027ee0aeff14fda042a08612bf",
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 50aaca6d5fc961f3228c8fa14441c6ad71e2ef9a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11122,7 +11146,7 @@
       "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n8385f02eb074c1027ee0aeff14fda042a08612bf\n",
+        "standardOutput": "<head>\n50aaca6d5fc961f3228c8fa14441c6ad71e2ef9a\n",
         "standardError": ""
       }
     },
@@ -11223,7 +11247,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 4e176485c130f9aa3fdfb1326fc99ca82b1a01cd",
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B b79de7ab04b2b22b25d0527fc93b0b4cec310c6f",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11274,7 +11298,7 @@
       "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n4e176485c130f9aa3fdfb1326fc99ca82b1a01cd\n",
+        "standardOutput": "<head>\nb79de7ab04b2b22b25d0527fc93b0b4cec310c6f\n",
         "standardError": ""
       }
     },
@@ -11375,15 +11399,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 8749897b414677045bb314e7359c1db7461076e9",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 334f83076ea6f855794acf06b033614c1baafe02",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change feature.ts\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B b8f5ba3a4b83ba3b4742f2add9f25b2c4ae7c331",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 9d99bdd87dc6bdd01556e2512f29ac0215525b85",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -11391,10 +11415,10 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B c9821462a7e5f2bd3c7d78aeec40419418947410",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B f8c3e82c6ed64092dbd0b611e18e9c503f49c951",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .forge/progress.json\n\n",
+        "standardOutput": "Change feature.ts\n\n",
         "standardError": ""
       }
     },
@@ -11442,7 +11466,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb8f5ba3a4b83ba3b4742f2add9f25b2c4ae7c331\nc9821462a7e5f2bd3c7d78aeec40419418947410\n8749897b414677045bb314e7359c1db7461076e9\n",
+        "standardOutput": "<head>\n9d99bdd87dc6bdd01556e2512f29ac0215525b85\n334f83076ea6f855794acf06b033614c1baafe02\nf8c3e82c6ed64092dbd0b611e18e9c503f49c951\n",
         "standardError": ""
       }
     },
@@ -11543,7 +11567,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B d54a1f71065cd09b27f410c780498e6704e55c8a",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B 435eeb0bbb665810caec98a866f65b9b1502adf9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11594,7 +11618,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nd54a1f71065cd09b27f410c780498e6704e55c8a\n",
+        "standardOutput": "<head>\n435eeb0bbb665810caec98a866f65b9b1502adf9\n",
         "standardError": ""
       }
     },
@@ -11695,7 +11719,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B d54a1f71065cd09b27f410c780498e6704e55c8a",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B e0a1f6ee2d8e68687b9e6bdb9a47cf0e36f09f87",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11746,7 +11770,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nd54a1f71065cd09b27f410c780498e6704e55c8a\n",
+        "standardOutput": "<head>\ne0a1f6ee2d8e68687b9e6bdb9a47cf0e36f09f87\n",
         "standardError": ""
       }
     },
@@ -14223,7 +14247,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 26a8d84f8984ebd168b72ee161ff6a84b3259b3e",
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 581647b7e20b91a084a9b593fab69baaf9188b9b",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -14274,7 +14298,7 @@
       "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n26a8d84f8984ebd168b72ee161ff6a84b3259b3e\n",
+        "standardOutput": "<head>\n581647b7e20b91a084a9b593fab69baaf9188b9b\n",
         "standardError": ""
       }
     },
@@ -14519,7 +14543,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 311ddb7acc103f9f8093d6f8c44defba7b4c508e",
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 775cd18aa286a0d20fed74ecc43839a958e53141",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change other-hooks/pre-commit\n\n",
@@ -14570,7 +14594,7 @@
       "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n311ddb7acc103f9f8093d6f8c44defba7b4c508e\n",
+        "standardOutput": "<head>\n775cd18aa286a0d20fed74ecc43839a958e53141\n",
         "standardError": ""
       }
     },
@@ -14959,7 +14983,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 74ce2ea99c59f737edc096f0ce3b6fc5555f270d",
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 339cf1fddf641f347586f8988e2f138944305516",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change Src/Example.ts\n\n",
@@ -15010,7 +15034,7 @@
       "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n74ce2ea99c59f737edc096f0ce3b6fc5555f270d\n",
+        "standardOutput": "<head>\n339cf1fddf641f347586f8988e2f138944305516\n",
         "standardError": ""
       }
     },
@@ -16999,7 +17023,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 5c31225a076415ca43090cb531e0ce836ca0dcf4",
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 042ff6c0d248f731a8e19fad205f3e0195c9faf9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change built.ts\n\n",
@@ -17050,7 +17074,7 @@
       "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<landed>\n5c31225a076415ca43090cb531e0ce836ca0dcf4\n",
+        "standardOutput": "<landed>\n042ff6c0d248f731a8e19fad205f3e0195c9faf9\n",
         "standardError": ""
       }
     },
@@ -17234,7 +17258,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
+        "standardOutput": "HEAD is now at b635b3b Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

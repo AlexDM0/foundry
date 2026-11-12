@@ -81,6 +81,12 @@ export type BoardRefusalDetail =
   | { reason: 'pipeline-setup-unreadable'; problem: string }
   | { reason: 'no-pipeline-to-update'; mode: PipelineSetupMode }
   | { reason: 'pipeline-apply-pending'; setupId: string }
+  | { reason: 'no-apply-pending'; setupId: string }
+  | { reason: 'setup-question-open'; setupId: string; questionIds: readonly string[] }
+  | { reason: 'setup-step-needs-recheck'; setupId: string; steps: readonly PipelineSetupStep[] }
+  | { reason: 'setup-snapshot-touched'; setupId: string }
+  | { reason: 'pipeline-moved'; setupId: string; baseContentHash: string | null; contentHash: string | null }
+  | { reason: 'constitution-moved'; setupId: string; baseBlob: string | null; mainBlob: string | null }
   | { reason: 'billing-cap-not-positive'; maxBudgetUsd: number }
   | { reason: 'setup-step-not-current'; setupId: string; step: PipelineSetupStep; currentStep: PipelineSetupStep }
   | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }

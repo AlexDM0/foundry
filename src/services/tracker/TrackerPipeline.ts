@@ -1,15 +1,17 @@
 /**
  * The sequence every mutating command follows, written once and all inside the lock: read the tracker into a Board, mutate, write the progress
- * file, then the pipeline when a `gate` verb changed it, then the tickets the Board changed, then the epics it changed or removed, then the
- * drafts, then the setup record when a setup move changed or removed it, then the gate profile runs when a profile move changed one, then
- * log.jsonl, so the progress file is never behind the tickets. The writes commit through the hold journal, fenced against a takeover of the
- * lock, and leave alone every file whose bytes would not change.
+ * file, then the pipeline when a `gate` verb or an Apply changed it, then the constitution's sources an Apply stored, then the tickets the
+ * Board changed, then the epics it changed or removed, then the drafts, then the gate profile runs when a profile move changed one, then
+ * log.jsonl, then the setup record when a setup move changed or removed it, so the progress file is never behind the tickets and an
+ * Apply closes its record last. The writes commit through the hold journal, fenced against a takeover of the lock, and leave alone
+ * every file whose bytes would not change.
  */
 import { createDraftFileWriter }                                              from '../../adapters/drafts/DraftFileWriter.ts';
 import { createEpicFileWriter }                                               from '../../adapters/epics/EpicFileWriter.ts';
 import type { JournaledFile }                                                 from '../../adapters/hold-journal/HoldJournalIngestion.ts';
 import { createLogFileWriter }                                                from '../../adapters/log/LogFileWriter.ts';
 import { createLogRecordCollector }                                           from '../../adapters/log/LogRecordCollector.ts';
+import { ConstitutionSourcesFile }                                            from '../../adapters/pipeline/ConstitutionSourcesFile.ts';
 import { GateProfilesFile }                                                   from '../../adapters/pipeline/GateProfilesFile.ts';
 import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } from '../../adapters/pipeline/PipelineFile.ts';
 import { PipelineSetupFile }                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
@@ -76,15 +78,16 @@ interface OpenBoard {
 function openBoard(contents: TrackerContents): OpenBoard {
   const logRecordCollector = createLogRecordCollector(contents.storedLog);
   const board              = new Board({
-    progress:         contents.progress,
-    tickets:          contents.listing.tickets,
-    epics:            contents.epicListing.epics,
-    drafts:           contents.draftListing.drafts,
-    logger:           createLogger(logRecordCollector.collect),
-    storedLogRecords: contents.storedLog.records,
-    pipeline:         contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
-    pipelineSetup:    contents.pipelineSetupReading,
-    gateProfiles:     contents.gateProfilesReading,
+    progress:            contents.progress,
+    tickets:             contents.listing.tickets,
+    epics:               contents.epicListing.epics,
+    drafts:              contents.draftListing.drafts,
+    logger:              createLogger(logRecordCollector.collect),
+    storedLogRecords:    contents.storedLog.records,
+    pipeline:            contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
+    pipelineSetup:       contents.pipelineSetupReading,
+    gateProfiles:        contents.gateProfilesReading,
+    constitutionSources: contents.constitutionSourcesReading,
   });
   return { contents, logRecordCollector, board };
 }
@@ -98,7 +101,10 @@ interface PlannedHold {
   deletedTicketCount: number;
 }
 
-/** Every file the hold writes, in the order it writes them; a log line never describes an unstored change, so the log goes last. */
+/**
+ * Every file the hold writes, in the order it writes them: a log line never describes an unstored change, so the log follows every file
+ * but the setup record, which goes last so an Apply's close follows everything it stored.
+ */
 function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEveryTicketFile: boolean): PlannedHold {
   const { contents, logRecordCollector, board } = openedBoard;
   const written = (filePath: string, fileContents: string): JournaledFile => ({ kind: 'written', filePath, contents: fileContents });
@@ -107,6 +113,8 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
   const files: JournaledFile[] = [written(workspace.progressFilePath, createProgressFileWriter(workspace.progressFilePath).contentsOf(contents.progress))];
   const changedPipeline = board.pipelineChanged() ? board.pipeline() : null;
   if (changedPipeline !== null) files.push(written(workspace.pipelineFilePath, PipelineFile.contentsOf(changedPipeline)));
+  const sourcesWrite = board.constitutionSourcesWrite();
+  if (sourcesWrite.write === 'sources') files.push(written(workspace.constitutionSourcesFilePath, ConstitutionSourcesFile.contentsOf(sourcesWrite.sources)));
   const ticketFileWriter = createTicketFileWriter();
   for (const ticket of board.changedTickets()) files.push(written(ticket.filePath, ticketFileWriter.contentsOf(ticket)));
   const epicFileWriter = createEpicFileWriter();
@@ -115,9 +123,6 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
   const draftFileWriter = createDraftFileWriter((draftId) => draftFilePathOf(workspace, draftId));
   for (const draft of board.changedDrafts()) files.push(written(draftFilePathOf(workspace, draft.id), draftFileWriter.contentsOf(draft)));
   for (const draft of board.removedDrafts()) files.push(removed(draftFilePathOf(workspace, draft.id)));
-  const setupWrite = board.pipelineSetupWrite();
-  if (setupWrite.write === 'record') files.push(written(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setupWrite.setup)));
-  if (setupWrite.write === 'removed') files.push(removed(workspace.pipelineSetupFilePath));
   const profilesWrite = board.gateProfilesWrite();
   if (profilesWrite.write === 'profiles') files.push(written(workspace.gateProfilesFilePath, GateProfilesFile.contentsOf(profilesWrite.profiles)));
   const deletedTicketFilePaths = deletesEveryTicketFile ? everyTicketFilePathIn(workspace) : [];
@@ -126,6 +131,9 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
 
   const logRecordsToWrite = logRecordCollector.recordsToWrite();
   if (logRecordsToWrite !== null) files.push(written(workspace.logFilePath, createLogFileWriter(workspace.logFilePath).contentsOf(logRecordsToWrite)));
+  const setupWrite = board.pipelineSetupWrite();
+  if (setupWrite.write === 'record') files.push(written(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setupWrite.setup)));
+  if (setupWrite.write === 'removed') files.push(removed(workspace.pipelineSetupFilePath));
   return { files, deletedTicketCount: deletedTicketFilePaths.length };
 }
 

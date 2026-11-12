@@ -123,6 +123,8 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-draft-discard':     ['pipeline', 'discard', 'S1'],
   'gate-profile-start':         ['pipeline', 'profile', 'test', 'merge', 'S1'],
   'gate-profile-stop':          ['pipeline', 'profile-stop', 'P1'],
+  'pipeline-apply':             ['pipeline', 'apply', 'S1', '--revision', '3', '--resume'],
+  'pipeline-apply-cancel':      ['pipeline', 'apply-cancel', 'S1'],
   'pipeline-finding-record':    ['pipeline', 'finding', '--', '{"topic": "scripts", "label": "Type check", "value": "bun run typecheck", "sourcePaths": ["package.json"]}'],
   'pipeline-question-ask':      [
     'pipeline', 'ask', '--', '{"step": "research", "question": "Is the type check a gate?", "options": ["Yes", "No"], "recommended": ["a"]}'

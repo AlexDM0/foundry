@@ -171,6 +171,9 @@ export type ControlCommand =
   /** User's press: one gate in one phase, from the open setup's draft, or with `setupId` `null` from the stored pipeline. */
   | { kind: 'gate-profile-start'; setupId: string | null; gateName: string; phase: GatePhase }
   | { kind: 'gate-profile-stop'; profileRunId: string }
+  /** Stage 1 of an Apply of the draft at `draftRevision`; `resumesBoard` resumes a paused board once the pipeline is stored. */
+  | { kind: 'pipeline-apply'; setupId: string; draftRevision: number; resumesBoard: boolean }
+  | { kind: 'pipeline-apply-cancel'; setupId: string }
   /**
    * The pipeline agent's moves on the setup record it serves. Relayed without `jobId` or `setupId`: the role policy stamps its own job and
    * that job's setup, from the Hatch folder and the record.

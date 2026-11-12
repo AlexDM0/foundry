@@ -231,6 +231,15 @@ export interface GateProfileChanged extends Logged {
   run: Readonly<GateProfileRun>;
 }
 
+/**
+ * An Apply's outcome: `committing` while the constitution commit waits, with the record; `applied` with the record it closed;
+ * `already-applied` with no record, when an earlier Apply of the same revision already closed it.
+ */
+export interface PipelineApplyChanged extends Logged {
+  outcome: 'committing' | 'applied' | 'already-applied';
+  setup:   Readonly<PipelineSetup> | null;
+}
+
 export interface TrackerCleared extends Logged {
   removedTaskCount:     number;
   survivingTicketCount: number;

@@ -1,20 +1,23 @@
 /**
- * User's kinds of the pipeline setup record: start and update, billing, Continue, start over, resume, an answer, the constitution, draft
- * edits, Undo and discard. A body is untrusted JSON, so each applier checks its nested payload and refuses `malformed-setup-command` before
- * the Board is touched. A start launches the record's pipeline agent, and a start over stops it. An answer, a constitution or draft edit, an
- * Undo, a discard, a Continue and a resume also message the agent in the same hold, in the caller's words, and open it again when a stop
- * closed it.
+ * User's kinds of the pipeline setup record: start, update and advise, billing, Continue, start over, resume, an answer, the constitution,
+ * draft edits, Undo, discard, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and refuses
+ * `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over stops
+ * it. An answer, a constitution or draft edit, an Undo, a discard, a Continue and a resume also message the agent in the same hold, in the
+ * caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the
+ * context.
  */
-import { PipelineFile }              from '../../adapters/pipeline/PipelineFile.ts';
-import { SetupPayloadSchemas }       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import { GitProcess }                from '../../lib/git/GitProcess.ts';
-import { commitCountAheadOf }        from '../../lib/git/MergeTree.ts';
-import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
-import type { PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { PipelineBilling }      from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
+import { SetupPayloadSchemas }                             from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
+import { GitProcess }                                      from '../../lib/git/GitProcess.ts';
+import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
+import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
+import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { PipelineBilling }                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
+  MainConstitution,
   PipelineDraftEdit,
+  PipelineSetupOpening,
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
@@ -150,13 +153,35 @@ function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerC
   return startedAgentOf(opened, change);
 }
 
-/** An update starts from the stored pipeline, so an older or malformed file refuses with its own reason; its billing is the stored one. */
-function startUpdate(_command: CommandOf<'pipeline-update-start'>, change: TrackerChange): PipelineSetupChanged {
+/** Main's `CONSTITUTION.md`, `null` when main holds none; a read git cannot answer refuses, since a guess would hide a change on main. */
+function mainConstitutionOf(change: TrackerChange, context: ControlContext): MainConstitution | null {
+  const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
+  if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+  return reading.verdict === 'read' ? reading.constitution : null;
+}
+
+/**
+ * An update or advise starts from the stored pipeline, so an older or malformed file refuses with its own reason; its billing is the
+ * stored one, and its constitution main's text with the stored sources of that very text.
+ */
+function updateOpeningOf(mode: 'update' | 'advise', change: TrackerChange, context: ControlContext): PipelineSetupOpening {
   requireReadablePipeline(change);
   const billing = change.board.pipeline()?.billing ?? { mode: 'subscription' };
-  return change.board.openSetup({
-    mode: 'update', billing, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
-  }, change.at);
+  const mainConstitution = change.board.pipeline() === null ? null : mainConstitutionOf(change, context);
+  const storedSources    = change.board.storedConstitutionSources();
+  const storedAnnotations = mainConstitution !== null && storedSources?.blob === mainConstitution.blob ? storedSources.annotations : [];
+  return {
+    mode, billing, replacesUnreadablePipeline: false, mainConstitution, storedAnnotations
+  };
+}
+
+function startUpdate(_command: CommandOf<'pipeline-update-start'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  return change.board.openSetup(updateOpeningOf('update', change, context), change.at);
+}
+
+/** `advise` opens an advise record on the stored pipeline and launches its pipeline agent, which proposes edits of the record's draft. */
+export function startAdvice(_command: CommandOf<'pipeline-agent-advise'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  return startedAgentOf(change.board.openSetup(updateOpeningOf('advise', change, context), change.at), change);
 }
 
 function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: TrackerChange): PipelineSetupChanged {
@@ -302,6 +327,39 @@ function discardDraft(command: CommandOf<'pipeline-draft-discard'>, change: Trac
   return messagedToTheAgent(changed, change, context, { kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision });
 }
 
+function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevision: number; resumesBoard: boolean } {
+  const draftRevision = revisionFieldOf(command, 'draftRevision');
+  const resumesBoard  = fieldOf(command, 'resumesBoard');
+  if (typeof resumesBoard !== 'boolean') refuseMalformedSetupCommand(command.kind, 'resumesBoard');
+  return { draftRevision, resumesBoard };
+}
+
+/**
+ * Stage 1 of an Apply. An unreadable `pipeline.json` is replaced only by a record opened to replace it; main's constitution is read for
+ * the Board, which refuses, waits for the constitution commit, or applies at once when main already holds the draft's text.
+ */
+function applySetup(command: CommandOf<'pipeline-apply'>, change: TrackerChange, context: ControlContext): PipelineApplyChanged {
+  const setupId = textFieldOf(command, 'setupId');
+  const { draftRevision, resumesBoard } = revisionAndResumeOf(command);
+  if (change.board.pipelineSetup()?.replacesUnreadablePipeline !== true) requireReadablePipeline(change);
+  return change.board.requestApply(setupId, { draftRevision, resumesBoard, mainConstitution: mainConstitutionOf(change, context) }, change.at);
+}
+
+/**
+ * At the Overseer's start, in its first hold: an Apply cut short after it stored the pipeline finishes. Main is read only while a record
+ * and a pipeline are both stored, and a read git cannot answer leaves the record for the next start.
+ */
+export function finishHalfAppliedSetup(change: TrackerChange, context: ControlContext): PipelineApplyChanged | null {
+  if (change.board.pipelineSetup() === null || change.board.pipeline() === null) return null;
+  const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
+  if (reading.verdict === 'unreadable') return null;
+  return change.board.finishHalfAppliedSetup(reading.verdict === 'read' ? reading.constitution : null, change.at);
+}
+
+function cancelApply(command: CommandOf<'pipeline-apply-cancel'>, change: TrackerChange): PipelineSetupChanged {
+  return change.board.cancelApply(textFieldOf(command, 'setupId'), change.at);
+}
+
 export const PIPELINE_SETUP_CONTROLS = {
   'pipeline-setup-start':       startSetup,
   'pipeline-setup-billing':     setBilling,
@@ -314,6 +372,8 @@ export const PIPELINE_SETUP_CONTROLS = {
   'pipeline-draft-edit':        editDraft,
   'pipeline-draft-undo':        undoDraftEdit,
   'pipeline-draft-discard':     discardDraft,
+  'pipeline-apply':             applySetup,
+  'pipeline-apply-cancel':      cancelApply,
 } as const;
 
 /** The kinds User sends about the setup record, each applied here. */

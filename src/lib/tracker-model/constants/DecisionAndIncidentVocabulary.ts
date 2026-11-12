@@ -56,6 +56,9 @@ export const DECISION_ID_PREFIX = 'E';
 /** Why an open decision of a retired kind is withdrawn at the next pass. */
 export const RETIRED_DECISION_REASON = 'its kind retired: the pipeline is set up through the setup record';
 
+/** Why an open `checks-not-set` decision is withdrawn when an Apply stores a pipeline. */
+export const PIPELINE_APPLIED_DECISION_REASON = 'a pipeline was applied';
+
 /** A ticket the lifecycle parks is held with this prefix before its park cause, as `parked:failed-passes`. */
 export const PARKED_HOLD_PREFIX = 'parked:';
 

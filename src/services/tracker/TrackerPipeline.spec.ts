@@ -1,7 +1,8 @@
 /**
  * The write pipeline on real tracker files: the mutation runs with the lock held, a Board refusal and any other throw leave every stored
- * file as it was, an unreadable tracker is refused before the mutation runs, and the write order holds (progress.json, the tickets, the
- * deletions and log.jsonl last), observed by breaking one write from inside the mutation, with no clock. A file whose bytes would not change
+ * file as it was, an unreadable tracker is refused before the mutation runs, and the write order holds (progress.json, the pipeline and the
+ * constitution's sources, the tickets, the deletions, log.jsonl, and the setup record last, so an Apply closes its record after everything
+ * it stored), observed by breaking one write from inside the mutation, with no clock. A file whose bytes would not change
  * is left in place, observed by its inode, so a hold that changes nothing writes no file.
  */
 import {
@@ -307,7 +308,7 @@ describe('the setup record a hold reads and writes', () => {
     mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   } as const;
 
-  test('a setup move writes pipeline-setup.json before log.jsonl, and a start over removes it', async () => {
+  test('a setup move writes pipeline-setup.json after log.jsonl, and a start over removes it', async () => {
     writeReadableTracker(workspace);
     const writtenPaths: string[] = [];
 
@@ -315,7 +316,7 @@ describe('the setup record a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
     });
 
-    expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.pipelineSetupFilePath, workspace.logFilePath]);
+    expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]);
     expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
     expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, setupId: 'S1', currentStep: 'billing' });
     const written = await writeTracker({
@@ -327,6 +328,42 @@ describe('the setup record a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startOverSetup('S1', change.at)
     });
     expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+  });
+
+  test('an Apply writes the pipeline and the constitution\'s sources after progress.json, then log.jsonl, and removes the record last', async () => {
+    writeReadableTracker(workspace);
+    const constitution = { path: 'CONSTITUTION.md', markdown: '# Example Agency\n\n- Keep the basket page fast.\n', blob: 'b'.repeat(40) };
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => {
+        const { setup } = change.board.openSetup(FIRST_SETUP, change.at);
+        change.board.setConstitution(setup.setupId, {
+          markdown:    constitution.markdown,
+          annotations: [{
+            lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null
+          }]
+        }, change.at);
+      },
+    });
+    const writtenPaths: string[] = [];
+
+    await writeTracker({
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           (change) => change.board.requestApply('S1', { draftRevision: 0, resumesBoard: true, mainConstitution: constitution }, change.at),
+      afterFileWritten: (filePath) => writtenPaths.push(filePath),
+    });
+
+    expect(writtenPaths).toEqual([
+      workspace.progressFilePath, workspace.pipelineFilePath, workspace.constitutionSourcesFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath
+    ]);
+    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ version: 2, constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(workspace.constitutionSourcesFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
+    expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ overseerState: 'running' });
   });
 
   test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {

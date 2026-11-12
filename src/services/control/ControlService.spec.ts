@@ -134,7 +134,11 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'gate-profile-start':     {
     kind: 'gate-profile-start', setupId: 'S1', gateName: 'test', phase: 'merge'
   },
-  'gate-profile-stop':       { kind: 'gate-profile-stop', profileRunId: 'P1' },
+  'gate-profile-stop': { kind: 'gate-profile-stop', profileRunId: 'P1' },
+  'pipeline-apply':    {
+    kind: 'pipeline-apply', setupId: 'S1', draftRevision: 2, resumesBoard: true
+  },
+  'pipeline-apply-cancel':   { kind: 'pipeline-apply-cancel', setupId: 'S1' },
   'pipeline-finding-record': {
     kind:        'pipeline-finding-record',
     jobId:       'J4',

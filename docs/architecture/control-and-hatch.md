@@ -29,7 +29,7 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 68 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 70 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
 resolved inside the hold by `ticketIdOfReference`. Twelve applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
@@ -48,11 +48,11 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `OverseerControls.ts` (4) | `overseer-pause`, `overseer-resume`, `overseer-stop`, `overseer-restart` | None |
 | `SettingControls.ts` (7) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gate-order`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
 | `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
-| `PipelineSetupControls.ts` (11) | `pipeline-setup-start`, `pipeline-setup-billing`, `pipeline-setup-step`, `pipeline-setup-start-over`, `pipeline-setup-resume`, `pipeline-setup-answer`, `pipeline-constitution-edit`, `pipeline-update-start`, `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-draft-discard` | None |
+| `PipelineSetupControls.ts` (13) | `pipeline-setup-start`, `pipeline-setup-billing`, `pipeline-setup-step`, `pipeline-setup-start-over`, `pipeline-setup-resume`, `pipeline-setup-answer`, `pipeline-constitution-edit`, `pipeline-update-start`, `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-draft-discard`, `pipeline-apply`, `pipeline-apply-cancel` | None |
 | `GateProfileControls.ts` (2) | `gate-profile-start`, `gate-profile-stop` | None |
 | `PipelineAgentControls.ts` (5) | `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready` | All, [pipeline agent](../glossary.md#pipeline-agent) only |
 
-So 30 of the 68 kinds can get through the Hatch at all, for some role. The other 38 are User's alone: their verbs
+So 30 of the 70 kinds can get through the Hatch at all, for some role. The other 40 are User's alone: their verbs
 still relay, and the Overseer refuses them in its hold.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and

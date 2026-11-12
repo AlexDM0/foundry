@@ -2,24 +2,24 @@
  * The rows and tickets one Board changes in place, the logger it logs through and which tickets it changed, with the lookups and row
  * filings every rule module of the Board shares.
  */
-import type { Decision }             from './@types/Decision.ts';
-import type { Draft }                from './@types/Draft.ts';
-import type { Epic }                 from './@types/Epic.ts';
-import type { GateProfilesReading }  from './@types/GateProfile.ts';
-import type { Incident }             from './@types/Incident.ts';
-import type { LogRecord }            from './@types/LogRecord.ts';
-import type { Pipeline }             from './@types/Pipeline.ts';
-import type { PipelineSetupReading } from './@types/PipelineSetup.ts';
-import type { Task, TaskStatus }     from './@types/Task.ts';
-import type { Ticket, TicketStatus } from './@types/Ticket.ts';
-import type { TrackerProgress }      from './@types/TrackerProgress.ts';
-import { BoardRefusal }              from './BoardRefusal.ts';
-import type { Logger }               from './Logger.ts';
-import { REQUEST_ID_FACT }           from './constants/DecisionAndIncidentVocabulary.ts';
-import type { TaskFiling }           from './utils/TaskRecordUtil.ts';
-import { TaskRecordUtil }            from './utils/TaskRecordUtil.ts';
-import { TicketChartUtil }           from './utils/TicketChartUtil.ts';
-import { TicketIdUtil }              from './utils/TicketIdUtil.ts';
+import type { Decision }                                         from './@types/Decision.ts';
+import type { Draft }                                            from './@types/Draft.ts';
+import type { Epic }                                             from './@types/Epic.ts';
+import type { GateProfilesReading }                              from './@types/GateProfile.ts';
+import type { Incident }                                         from './@types/Incident.ts';
+import type { LogRecord }                                        from './@types/LogRecord.ts';
+import type { Pipeline }                                         from './@types/Pipeline.ts';
+import type { ConstitutionSourcesReading, PipelineSetupReading } from './@types/PipelineSetup.ts';
+import type { Task, TaskStatus }                                 from './@types/Task.ts';
+import type { Ticket, TicketStatus }                             from './@types/Ticket.ts';
+import type { TrackerProgress }                                  from './@types/TrackerProgress.ts';
+import { BoardRefusal }                                          from './BoardRefusal.ts';
+import type { Logger }                                           from './Logger.ts';
+import { REQUEST_ID_FACT }                                       from './constants/DecisionAndIncidentVocabulary.ts';
+import type { TaskFiling }                                       from './utils/TaskRecordUtil.ts';
+import { TaskRecordUtil }                                        from './utils/TaskRecordUtil.ts';
+import { TicketChartUtil }                                       from './utils/TicketChartUtil.ts';
+import { TicketIdUtil }                                          from './utils/TicketIdUtil.ts';
 
 export type QuestionRequestStanding =
   | { standing: 'answered' }
@@ -60,6 +60,8 @@ export class BoardRecords {
 
   /** Set once a profile move changed a run, so the hold writes `gate-profiles.json`. */
   gateProfilesChanged = false;
+  /** Set once an Apply stored the sources of the constitution main holds, so the hold writes `constitution-sources.json`. */
+  constitutionSourcesChanged = false;
 
   constructor(
     readonly progress: TrackerProgress,
@@ -74,6 +76,8 @@ export class BoardRecords {
     public pipelineSetupReading: PipelineSetupReading,
     /** A malformed file stays as read: every profile move refuses rather than write over it. */
     public gateProfilesReading: GateProfilesReading,
+    /** A malformed file shows no source tags, and only an Apply writes over it. */
+    public constitutionSourcesReading: ConstitutionSourcesReading,
   ) {}
 
   markChanged(ticket: Ticket): void {

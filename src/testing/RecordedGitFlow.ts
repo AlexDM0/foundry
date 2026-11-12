@@ -54,7 +54,8 @@ export type RecordedFlowPlace = typeof RECORDED_FLOW_PLACES[keyof typeof RECORDE
 
 const WORKTREES = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, PRODUCT_NAMES.WORKTREES_FOLDER);
 const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
-const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'J1');
+/** Setup S1's snapshot, which its pipeline agent reads. */
+const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'S1');
 
 /** Each place's folder below the repository, longest first, so a folder is the place of the deepest one it lies in. */
 export const RECORDED_FLOW_PLACE_FOLDERS: readonly (readonly [RecordedFlowPlace, string])[] = [
@@ -233,10 +234,15 @@ function ticketWorktreeAddTo(nextStage: RecordedFlowStageName): RecordedFlowCall
 const TICKET_WORKTREE_ADD = ticketWorktreeAddTo('worktree made');
 
 const PIPELINE_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
-  gitArguments: ['worktree', 'add', '--detach', PIPELINE_AGENT_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
+  gitArguments: ['worktree', 'add', '--quiet', '--detach', PIPELINE_AGENT_WORKTREE_FOLDER, MAIN_TIP],
   nextStage:    'pipeline agent worktree made',
   leavesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
+
+/** An Apply reads main's constitution: the main line holds none. */
+const MAIN_CONSTITUTION_READ = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:CONSTITUTION.md`], exitCode: NEGATIVE },
+]);
 
 const PIPELINE_AGENT_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   gitArguments:  ['worktree', 'remove', '--force', PIPELINE_AGENT_WORKTREE_FOLDER],
@@ -375,7 +381,9 @@ const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ git
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
-  'pipeline agent worktree made': [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...PIPELINE_AGENT_WORKTREE_REMOVE],
+  'pipeline agent worktree made': [
+    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...MAIN_CONSTITUTION_READ, ...PIPELINE_AGENT_WORKTREE_REMOVE,
+  ],
   'worktree made':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
   'tree changed':                 [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
   'tree changed with trailer':    COMMITTED_STAGE_CALLS,

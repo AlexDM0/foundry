@@ -194,12 +194,31 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
   // User's Stop, or an Overseer start that found the run left running: no result.
-  'gate-profile-stopped': { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase' } },
+  'gate-profile-stopped':     { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase' } },
+  // Stage 1 of an Apply waits for the constitution commit of draft `revision`.
+  'pipeline-apply-requested': { subject: 'pipeline-setup', fields: { revision: 'count', resumesBoard: 'flag' } },
+  // The constitution commit waits, or was refused, for the stored `reason` code.
+  'pipeline-apply-held':      { subject: 'pipeline-setup', fields: { reason: 'text' } },
+  'pipeline-apply-refused':   { subject: 'pipeline-setup', fields: { reason: 'text' } },
+  // `state` is the one the request was in when User cancelled it.
+  'pipeline-apply-cancelled': { subject: 'pipeline-setup', fields: { revision: 'count', state: 'text' } },
+  // The draft of `revision` is the stored pipeline; `constitutionCommit` is null when no commit was made.
+  'pipeline-applied':         {
+    subject: 'pipeline-setup',
+    fields:  {
+      revision:           'count',
+      resumesBoard:       'flag',
+      changedFields:      'draft-fields',
+      newFields:          'draft-fields',
+      removedFields:      'draft-fields',
+      constitutionCommit: 'nullable-text',
+    },
+  },
   // A review bar's `name` is carried because the sentence prints the row's stored name, which an edit may have made anything.
-  'review-bar-started':   { subject: 'review-bar', fields: { name: 'text' } },
-  'review-bar-closed':    { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-started': { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-closed':  { subject: 'review-bar', fields: { name: 'text' } },
   // One reviewer pass: the rework is code lines only, the fix and rebase parts apart, and the builder's change is measured at the review's start.
-  'review-recorded':      {
+  'review-recorded':    {
     subject: 'review-bar',
     fields:  {
       round:                   'review-bar-round',

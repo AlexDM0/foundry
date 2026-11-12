@@ -37,6 +37,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/pipeline.json` | [The gate pipeline](#datapipelinejson) |
 | `<data>/pipeline-setup.json` | [The pipeline setup record](#datapipeline-setupjson) |
 | `<data>/gate-profiles.json`, `<data>/gate-profile-runs/` | [The gate profile runs](#datagate-profilesjson) |
+| `<data>/constitution-sources.json` | [The constitution's sources](#dataconstitution-sourcesjson) |
 | `<data>/log.jsonl` | [The log and its kinds](#datalogjsonl) |
 | `<data>/pictures/` | [The pictures](#datapictures) |
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
@@ -107,13 +108,13 @@ The [tracker](glossary.md#tracker) lives in `<data>/` at the repository root, fo
 ### Locking
 
 Every mutating command takes the tracker's lock. It reads, changes and writes in one hold, in this order:
-`progress.json`, `pipeline.json` when it changed, the tickets, the epics, the filing drafts, `pipeline-setup.json` when
-a setup move changed or removed it, `gate-profiles.json` when a profile move changed it, then `log.jsonl` when it logged
-something. A ticket file is therefore never ahead
-of the progress file, and a log line never describes a change that was not stored. A file whose bytes on disk already
-are its new contents is left in place, judged inside the hold from the bytes alone, so a hold that changes nothing
-writes no tracker file and no journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the
-store.
+`progress.json`, `pipeline.json` when it changed, `constitution-sources.json` when an Apply stored the constitution's
+sources, the tickets, the epics, the filing drafts, `gate-profiles.json` when a profile move changed it, `log.jsonl`
+when it logged something, then `pipeline-setup.json` when a setup move changed or removed it. A ticket file is
+therefore never ahead of the progress file, a log line never describes a change that was not stored, and an Apply
+closes its setup record after everything it stored. A file whose bytes on disk already are its new contents is left in
+place, judged inside the hold from the bytes alone, so a hold that changes nothing writes no tracker file and no
+journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the store.
 [Storage](data-model/storage.md) holds the mechanics.
 
 | takes the lock | takes no lock |
@@ -198,7 +199,9 @@ forge init
 ```
 
 `init` creates the tracker and installs everything a session needs to use it, the seven items below. `init` never writes
-`CLAUDE.md`: a repository's `CLAUDE.md` holds its own conventions only. [CLI and
+`CLAUDE.md`: a repository's `CLAUDE.md` holds its own conventions only. Nor does it write a pipeline: no ticket builds
+until [`pipeline setup`](#pipeline-setup) designs one with the pipeline agent and its [Apply](#apply) stores
+`pipeline.json`, committing the constitution to the main line as the tracked `CONSTITUTION.md` first. [CLI and
 install](architecture/cli-and-install.md) explains the install and its two version numbers; [the on-disk
 atlas](data-model/on-disk-atlas.md) names every path.
 
@@ -389,7 +392,7 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 
 | command | what it does |
 |---|---|
-| `init [--project <name>] [--root <path>] [--no-hooks]` | Create the tracker here and write the seven items in [Adopting a repository](#adopting-a-repository). `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered repository root. |
+| `init [--project <name>] [--root <path>] [--no-hooks]` | Create the tracker here and write the seven items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered repository root. |
 | `update [--no-hooks]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the SessionStart hook, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them, and removing once what earlier install versions wrote (item 6); then `version.json`. The tracker's own files are left alone, and the first line says so. |
 | `help` | The command reference. |
 
@@ -930,7 +933,7 @@ question and edit id is read in either case (`s1`, `S1`).
 | command | what it does |
 |---|---|
 | `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the billing step, billed by subscription unless `--billing api` says otherwise, with an optional cap, and launch its [pipeline agent](#advise) in the same hold, `launching`, billed as the record says; the record names it as `agentJobId`. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. Refused `setup-in-progress` beside an open record. |
-| `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step, with no agent until `pipeline resume` asks for one. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`. |
+| `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step, with no agent until `pipeline resume` asks for one. Its constitution starts from main's `CONSTITUTION.md` byte for byte (empty when main holds none), its `baseBlob` main's blob id of that file, with the sources of [`constitution-sources.json`](#dataconstitution-sourcesjson) only when they were stored for that same blob. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`; a main whose `CONSTITUTION.md` git cannot read is refused `main-constitution-unreadable` at exit 2. |
 | `pipeline billing <S> subscription\|api [--max-budget-usd <n>] [--json]` | Change the record's billing (`pipeline-setup-billing`), logged `pipeline-setup-billing-set`. A cap of 0 or below is refused `billing-cap-not-positive`. |
 | `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. |
 | `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
@@ -941,6 +944,8 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`, and stop its live agent in the same hold. The setup id is not used again. |
 | `pipeline profile <gate> build\|review\|merge [<S>] [--json]` | Queue a [gate profile](#gate-profiles) (`gate-profile-start`), logged `gate-profile-requested`: that one gate in that one phase, once, as setup `<S>`'s draft defines it, or with no `<S>` as the stored pipeline does. `--json` prints `{ run, logged }`. A gate the source does not define is refused `unknown-gate`, a setup that is not the open one `no-setup-open`, and a second press while that gate and phase have a run `queued` or `running` `gate-profile-running`. |
 | `pipeline profile-stop <P> [--json]` | Stop a gate profile (`gate-profile-stop`): a queued run is `stopped` at once, logged `gate-profile-stopped`; a running one is marked, and the Overseer ends its process tree and records it `stopped`, with no duration. An ended run is left as it is. An unknown id is refused `unknown-profile-run`. |
+| `pipeline apply <S> --revision <n> [--resume] [--json]` | Apply the draft at revision `n` (`pipeline-apply`) in [two stages](#apply). With `--resume` the board resumes once the pipeline is stored. `--json` prints `{ outcome, setup, logged }`: `outcome` is `committing` while the request waits for the constitution commit, `applied` once the pipeline is stored and the record closed, or `already-applied` for a revision an earlier Apply of the record already stored. |
+| `pipeline apply-cancel <S> [--json]` | Clear the record's Apply request (`pipeline-apply-cancel`), committing, held or refused, logged `pipeline-apply-cancelled`: the record is back at the design step and editable, and the stored pipeline stays as it was. With no request it is refused `no-apply-pending`. |
 | `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
 An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
@@ -975,6 +980,42 @@ An Overseer that stops ends the process tree of each running run and records it 
 is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
 `stopped`, logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is
 the Overseer's own, so the regrouping never names it as a leftover.
+
+#### Apply
+
+Apply turns the record's draft into `pipeline.json`. The constitution is the tracked file `CONSTITUTION.md` at the
+repository root, which only a commit on the main line can change, so Apply has two stages.
+
+Stage 1 is the `pipeline apply` hold. It reads main's `CONSTITUTION.md` and its blob id, and refuses, in this order:
+a revision other than the draft's (`pipeline-draft-stale`); an open setup question (`setup-question-open`, naming the
+questions); a step before Apply that needs a recheck (`setup-step-needs-recheck`); a snapshot a turn end found touched
+(`setup-snapshot-touched`); an older or malformed `pipeline.json`, unless the record was opened with
+`--replace-unreadable` (`older-pipeline`, `malformed-pipeline`); a `CONSTITUTION.md` on main that is not the one the
+record opened on (`constitution-moved`), unless main already holds the draft's text; a draft with no constitution
+text while main holds one (`constitution-empty`); and a stored pipeline whose content hash is neither the record's
+`baseContentHash` nor this draft's as applied (`pipeline-moved`). Then:
+
+- When main already holds the draft's text byte for byte as `CONSTITUTION.md`, or the draft has no text and main no
+  file, stage 2 runs in the same hold and no commit is made.
+- Otherwise the record stores `applyRequest`, state `committing`, logged `pipeline-apply-requested`, and nothing else is
+  written: the stored pipeline and the board stay as they are. Until stage 2 or a cancel, every other setup move and
+  every `gate` write is refused `pipeline-apply-pending`, so the revision being committed and the pipeline it was
+  checked against cannot change. The commit of `CONSTITUTION.md` to the main line is the Airlock's; until it lands the
+  request waits.
+
+Stage 2 writes, in the hold's order: `progress.json` (an open `checks-not-set` decision withdrawn, logged
+`decision-withdrawn`, and the board resumed with `--resume`, logged `overseer-set`); `pipeline.json`, the whole draft
+with `constitution.path` set to `CONSTITUTION.md` when the draft holds a constitution; `constitution-sources.json`, the
+agent's sources keyed by the blob id of the text main holds; `log.jsonl` (`pipeline-applied` with the changed, new and
+removed field names and the constitution commit, or `null`); and last the removal of `pipeline-setup.json`. Nothing is
+written under `<data>/briefs/defaults/`, and nothing writes `CONSTITUTION.md` in the main checkout.
+
+Apply is idempotent by setup and revision. A pipeline this draft already stored is no one else's move, so a retried
+Apply finishes what is missing and never refuses `pipeline-moved`; the same revision while its request waits answers
+with that request; and a revision the log already holds as applied answers `already-applied`. Every hold commits
+through the [hold journal](#datahold-journaljson), so an Apply cut short is finished by the next holder. At its start
+the Overseer also finishes an open record whose draft is already the stored pipeline, resuming the board only as its
+stored request asked.
 
 #### The pipeline agent's verbs
 
@@ -1279,7 +1320,10 @@ explorer](interactive/state-explorer.html) walks them.
 #### `advise`
 
 Nothing starts a pipeline agent by itself: with no pipeline stored the lifecycle opens `checks-not-set` and waits for
-User's `pipeline setup` or `advise`, and a paused board does not hold the launch. The agent is a session, like the
+User's `pipeline setup`, and a paused board does not hold the launch. `advise` opens an advise record on the stored
+pipeline, as `pipeline update` opens an update record, and launches its agent in the same hold; with no pipeline stored
+it is refused `no-pipeline-to-update`, and beside an open record `setup-in-progress`. `--json` prints `{ setupId,
+jobId, logged }`. The agent is a session, like the
 product owner: a turn's `result` never ends it, `job stop` closes it, and a message opens it again with its
 conversation. A crashed one resumes, also while no pipeline is stored.
 
@@ -1302,11 +1346,8 @@ the next pass (`decision-withdrawn`).
 The agent's first message holds its current step's instructions and the facts of its record: the findings, the
 questions with their answers, the constitution with its sources, the draft and its edits. A fresh session in place of
 a replaced one gets the same message, built again from the record, which is the agent's memory. User's Continue sends
-the next step's instructions as a message. An agent no record names reads the stored pipeline and the newest 200 gate
-runs, and is told to propose edits and to file no ticket.
-
-> **As built.** An `advise` run opens no record, so the Bouncer refuses each edit it proposes: [pipeline agent
-> advise](reference/known-gaps.md#gap-pipeline-agent-advise-filing).
+the next step's instructions as a message. An advise record's agent reads the stored pipeline and the newest 200 gate
+runs, and is told to propose edits of the record's draft and to file no ticket; User applies the edits User keeps.
 
 #### `intake close`
 
@@ -1900,9 +1941,9 @@ lives in [`pipeline.json`](#datapipelinejson).
 
 ### `<data>/pipeline.json`
 
-The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs write it
-through the lock. [The pipeline](architecture/customs-and-gates.md) says what it means, what `review`, `constitution`
-and `agents` change, and how to edit those three by hand. This is format version 2.
+The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
+[Apply](#apply) write it through the lock. [The pipeline](architecture/customs-and-gates.md) says what it means, what
+`review`, `constitution` and `agents` change, and how to edit those three by hand. This is format version 2.
 
 ```json
 {
@@ -1932,7 +1973,7 @@ and `agents` change, and how to edit those three by hand. This is format version
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
 | `airlock` | no | the merge train: `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after a conflict merge is on: see [The Airlocks](#the-airlocks) |
-| `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md` |
+| `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md`. An [Apply](#apply) sets it to `CONSTITUTION.md` when its draft holds a constitution |
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
@@ -2038,7 +2079,12 @@ the lock, atomically; a start over removes it. This is format version 1.
   never `not-started`; Continue on that step sets it `done`, the only way out of a recheck. In a first setup, User's
   answer or edit at a step before the current one reopens that step; the agent's moves never move a step. An answer
   with no letter and no text is refused (`empty-setup-answer`). While `applyRequest` is `committing` or `held`, every
-  setup move is refused (`pipeline-apply-pending`).
+  setup move but the Apply's own, and every `gate` write, is refused (`pipeline-apply-pending`).
+- `applyRequest` is [Apply](#apply)'s stage 1: `draftRevision`, `resumesBoard`, `commitJobId` (the Airlock's commit
+  job, or `null`), `state` (`committing`, `held` or `refused`) and `reason`, a stored code while `held` or `refused`:
+  `not-on-target-branch`, `dirty-checkout`, `target-file-held`, `git-failed`, `constitution-commit-unsigned`,
+  `constitution-commit-unexpected-paths` or `constitution-moved`. A refused request leaves the record editable, and a
+  new Apply replaces it. Apply's stage 2 removes the file.
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move
@@ -2079,6 +2125,29 @@ each gate and phase is kept: a new press drops an ended one. This is format vers
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key in a run is malformed: the board reads no run, every profile move refuses
   `gate-profiles-unreadable` with the reason and nothing writes over the file, and every other command runs as before.
+
+### `<data>/constitution-sources.json`
+
+The pipeline agent's sources of the constitution the main line holds, beside `pipeline.json`, never tracked. Only an
+[Apply](#apply)'s stage 2 writes it, through the lock and atomically; nothing ever writes a source into
+`CONSTITUTION.md`. This is format version 1.
+
+```json
+{
+  "formatVersion": 1,
+  "blob": "<the blob id of the CONSTITUTION.md text these sources belong to>",
+  "annotations": [
+    { "lineText": "- Keep the basket page fast.", "occurrence": 1, "kind": "research", "path": "package.json" }
+  ]
+}
+```
+
+An annotation is as the [setup record](#datapipeline-setupjson) holds it. The sources belong to one text: `pipeline
+update` and `advise` start their constitution with them only when `blob` is main's blob id of `CONSTITUTION.md`, so the
+sources of another text never show. Keys the CLI does not know are kept at the top level, in their stored order, so a
+read and a write leave the file byte for byte. A file that is not JSON, has another `formatVersion`, has no `blob` or a
+malformed annotation is malformed: its sources show nowhere, nothing but an Apply writes over it, and every command runs
+as before.
 
 ### `<data>/log.jsonl`
 
@@ -2160,6 +2229,11 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-draft-undone` | `setupId` | `editId`, `field`, `revision` |
 | `pipeline-draft-discarded` | `setupId` | `revision` |
 | `pipeline-setup-discarded` | `setupId` | none |
+| `pipeline-apply-requested` | `setupId` | `revision`, `resumesBoard`: the Apply waits for the constitution commit |
+| `pipeline-apply-held` | `setupId` | `reason`: the constitution commit waits, for this stored code |
+| `pipeline-apply-refused` | `setupId` | `reason`: the constitution commit was refused, for this stored code |
+| `pipeline-apply-cancelled` | `setupId` | `revision`, `state`: the request's state when User cancelled it |
+| `pipeline-applied` | `setupId` | `revision`, `resumesBoard`, `changedFields`, `newFields` and `removedFields` (draft field names), `constitutionCommit` (`null` when no commit was made) |
 
 #### Gate profile records
 

@@ -530,10 +530,8 @@ them.
 > **Careful.** The Board moves carry none of the verbs' checks. A proposed name or `writes` folder is written
 > unvalidated, and one the strict parser refuses makes the file malformed.
 
-> **As built.** `advise` asks for each optimisation to be filed through the Hatch, and the
-> [Bouncer](../glossary.md#bouncer) refuses every command from the pipeline agent role. An `advise` report with an
-> optimisation then fails V12, and one without ends `closed` with nothing shown. See
-> [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
+> **As built.** `advise` opens an advise setup record, and its pipeline agent proposes each optimisation as an edit of
+> that record's draft, which User applies.
 
 ## Why gates are opaque
 

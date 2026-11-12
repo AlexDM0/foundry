@@ -668,10 +668,12 @@ never carries it.
                               a later title replaces it (job-not-intake for another kind of job).
                               Under the product owner's own job it names no job.
 
-  advise [--json]             Record a pipeline agent job (no ticket, no build slot) the Overseer
-                              launches as a session on a main-line snapshot: it reads the
-                              repository and the gate history, and never writes it. Nothing starts
-                              one by itself; job stop closes it and job message opens it again.
+  advise [--json]             Open an advise record on the stored pipeline and record its pipeline
+                              agent job (no ticket, no build slot), which the Overseer launches as
+                              a session on a main-line snapshot: it reads the repository and the
+                              gate history, never writes it, and proposes edits of the record's
+                              draft. Nothing starts one by itself; job stop closes it and job
+                              message opens it again.
 
   pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]
   pipeline update [--json]
@@ -684,6 +686,8 @@ never carries it.
   pipeline discard <S> [--json]
   pipeline start-over <S> [--json]
   pipeline resume <S> [--json]
+  pipeline apply <S> --revision <n> [--resume] [--json]
+  pipeline apply-cancel <S> [--json]
                               The pipeline setup record, <data>/pipeline-setup.json, one open at a
                               time (setup-in-progress): setup opens a first one and starts its
                               pipeline agent (--replace-unreadable lets its Apply write over an
@@ -702,7 +706,10 @@ never carries it.
                               the snapshot to main's tip and sends research to a recheck. A stale
                               --revision is refused at exit 1. An answer, constitution, edit, undo,
                               discard or continue also messages the pipeline agent, and opens it
-                              again when a stop closed it.
+                              again when a stop closed it. apply stores the draft as pipeline.json
+                              once main holds its constitution as CONSTITUTION.md (--resume also
+                              resumes the board), and closes the record; until then the request
+                              waits for the constitution commit, and apply-cancel clears it.
   pipeline profile <gate> build|review|merge [<S>] [--json]
   pipeline profile-stop <P> [--json]
                               Profile one gate in one phase, once, from setup <S>'s draft or with

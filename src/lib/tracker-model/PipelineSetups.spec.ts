@@ -102,7 +102,7 @@ describe('opening a record', () => {
   test('main\'s constitution opens the draft byte for byte, with the stored sources whose lines it still holds', () => {
     const { board } = openedBoard({
       ...FIRST_SETUP,
-      mainConstitution:  { markdown: CONSTITUTION_TEXT, blob: 'a1b2c3d4' },
+      mainConstitution:  { path: 'CONSTITUTION.md', markdown: CONSTITUTION_TEXT, blob: 'a1b2c3d4' },
       storedAnnotations: [
         {
           lineText: '- Name things in full.', occurrence: 1, kind: 'contributing', path: 'CONTRIBUTING.md'

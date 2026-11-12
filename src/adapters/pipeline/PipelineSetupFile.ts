@@ -405,4 +405,4 @@ function contentsOf(setup: Readonly<PipelineSetup>): string {
   return JsonTextUtil.storedFileTextOf(documentOf(reading.verdict === 'readable' ? reading.setup : setup));
 }
 
-export const PipelineSetupFile = Object.freeze({ read, contentsOf });
+export const PipelineSetupFile = Object.freeze({ read, contentsOf, annotationOf });

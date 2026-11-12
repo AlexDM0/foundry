@@ -100,8 +100,7 @@ Every `merge-agent` gets the profile of its role, builder or reviewer, in the Ai
 > `ticket add` requires: [gap-worker-filing-omits-type](../reference/known-gaps.md#gap-worker-filing-omits-type). The
 > Assistant's job-targeting moves stop at the Hatch:
 > [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
-> pipeline agent's `advise` filing is always refused:
-> [gap-pipeline-agent-advise-filing](../reference/known-gaps.md#gap-pipeline-agent-advise-filing).
+> pipeline agent files nothing: under `advise` it proposes edits of an advise setup record's draft.
 
 ## The launch pipeline
 

@@ -82,6 +82,8 @@ export const GIT_CALL_SHAPES = {
   BRANCH_COMMIT_RESOLVED:              'rev-parse --verify --quiet --end-of-options <branch>^{commit}, the branch at <commit>',
   FILE_NOT_ON_BRANCH:                  'show <branch>:<path>, the path not on the branch',
   FILE_ON_BRANCH:                      'show <branch>:<path>, the path on the branch holding <text>',
+  BLOB_OF_A_PATH:                      'rev-parse --verify --quiet --end-of-options <commit>:<path>, the path on the commit as <blob>',
+  BLOB_OF_A_MISSING_PATH:              'rev-parse --verify --quiet --end-of-options <commit>:<path>, the path not on the commit',
   TIPS_ALL_RESOLVING:                  'rev-parse --end-of-options <branch> <revision> <revision>, all three resolving',
   TIPS_LAST_NOT_RESOLVING:             'rev-parse --end-of-options <branch> <revision> <revision>, the last one not resolving',
   TREE_OF_AN_EMPTY_COMMIT:             'rev-parse --verify --quiet <revision>^{tree}, a commit with no files',
@@ -179,6 +181,7 @@ export const RECORDED_PLACEHOLDERS = {
   FIRST_TIP:  '<first tip>',
   SECOND_TIP: '<second tip>',
   TREE:       '<tree>',
+  BLOB:       '<blob>',
 } as const;
 
 /**

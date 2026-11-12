@@ -52,6 +52,15 @@ function agentStoppedTextOf(usage: AgentUsage): string {
     + `output ${TokenCountUtil.formatTokenCount(usage.outputTokens)}`;
 }
 
+function pipelineAppliedTextOf(setupId: string, applied: LogRecordFieldsOf<'pipeline-applied'>): string {
+  const fieldGroups = [['changed', applied.changedFields], ['new', applied.newFields], ['removed', applied.removedFields]] as const;
+  const changes     = fieldGroups.filter(([, fields]) => fields.length > 0).map(([change, fields]) => `${change} ${fields.join(', ')}`);
+  return `Pipeline setup ${setupId} applied draft revision ${applied.revision}`
+    + `${changes.length === 0 ? ', no field changed' : `: ${changes.join('; ')}`}`
+    + `${applied.constitutionCommit === null ? '' : `; constitution committed as ${applied.constitutionCommit}`}`
+    + `${applied.resumesBoard ? '; the board resumes' : ''}`;
+}
+
 function reviewRecordedTextOf(ticketId: string, review: LogRecordFieldsOf<'review-recorded'>): string {
   const findingWord = review.findings.length === 1 ? 'finding' : 'findings';
   return `Review ${review.round} of #${ticketId} recorded: ${review.verdict}, ${review.findings.length} ${findingWord}, `
@@ -199,6 +208,17 @@ function sentenceOf(record: LogRecordContent): string {
         + `after ${record.fields.elapsedMilliseconds} ms`;
     case 'gate-profile-stopped':
       return `Gate profile ${record.profileRunId} of ${record.fields.gateName} in the ${record.fields.phase} phase stopped, with no result`;
+    case 'pipeline-apply-requested':
+      return `Pipeline setup ${record.setupId} Apply of draft revision ${record.fields.revision} waits for the constitution commit`
+        + `${record.fields.resumesBoard ? ', then resumes the board' : ''}`;
+    case 'pipeline-apply-held':
+      return `Pipeline setup ${record.setupId} Apply held: ${record.fields.reason}`;
+    case 'pipeline-apply-refused':
+      return `Pipeline setup ${record.setupId} Apply refused: ${record.fields.reason}`;
+    case 'pipeline-apply-cancelled':
+      return `Pipeline setup ${record.setupId} Apply of draft revision ${record.fields.revision} cancelled while ${record.fields.state}`;
+    case 'pipeline-applied':
+      return pipelineAppliedTextOf(record.setupId, record.fields);
     case 'review-bar-started':
       return `Review row #${record.taskId} started: ${record.fields.name}`;
     case 'review-bar-closed':

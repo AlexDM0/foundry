@@ -1,17 +1,23 @@
 /**
  * The setup record's moves: one open record at a time, its steps, the agent's findings, questions, constitution and draft edits, and
  * User's answers, edits and Undo. A User edit of an earlier step reopens it, and a step reopened sends every later done step to
- * `needs-recheck`, whose only exit is Continue. While an Apply request waits for its commit, every move here refuses. Apply's own moves
- * are not here.
+ * `needs-recheck`, whose only exit is Continue. While an Apply request waits for its commit, every move here refuses but Apply's own.
+ * Apply has two stages: the request checks the record and, while main lacks the draft's constitution, waits for its commit; the finish
+ * stores the pipeline, the constitution's sources and the board's settings, logs, and last closes the record. It is idempotent by setup
+ * and draft revision, so a retried Apply never refuses the pipeline it stored itself.
  */
-import type { PipelineSetupChanged }      from './@types/BoardChanges.ts';
-import type { LogRecord }                 from './@types/LogRecord.ts';
-import type { Pipeline, PipelineBilling } from './@types/Pipeline.ts';
+import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
+import type { LogRecord }                                  from './@types/LogRecord.ts';
+import type { Pipeline, PipelineBilling }                  from './@types/Pipeline.ts';
 import type {
+  ApplyFinishing,
+  ApplyRequestReason,
+  ApplyRequesting,
   ConstitutionDraft,
   ConstitutionEdit,
   ConstitutionSetting,
   DraftEditRequest,
+  MainConstitution,
   PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupStep,
@@ -25,8 +31,11 @@ import type {
   SnapshotRefusal,
   SourceAnnotation
 } from './@types/PipelineSetup.ts';
-import type { BoardRecords }      from './BoardRecords.ts';
-import { BoardRefusal }           from './BoardRefusal.ts';
+import type { BoardRecords }                from './BoardRecords.ts';
+import { BoardRefusal }                     from './BoardRefusal.ts';
+import type { Decisions }                   from './Decisions.ts';
+import type { TrackerChanges }              from './TrackerChanges.ts';
+import { PIPELINE_APPLIED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
 import {
   CONSTITUTION_LIMIT_CHARACTERS,
   DEFAULT_CONSTITUTION_SOURCES,
@@ -41,6 +50,7 @@ import {
   SETUP_QUESTION_ID_PREFIX,
   SETUP_QUESTION_OPTION_LETTERS
 } from './constants/PipelineSetupVocabulary.ts';
+import { PipelineChangeUtil }    from './utils/PipelineChangeUtil.ts';
 import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }          from './utils/PipelineUtil.ts';
 
@@ -71,8 +81,22 @@ function billingCopyOf(billing: PipelineBilling): PipelineBilling {
   return { ...billing };
 }
 
+/** The constitution text the draft holds, or `null` when it holds none, which main matches only by holding no file either. */
+function draftConstitutionTextOf(setup: Readonly<PipelineSetup>): string | null {
+  const markdown = setup.constitution?.markdown ?? '';
+  return markdown === '' ? null : markdown;
+}
+
+function mainHoldsTheDraftText(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null): boolean {
+  return draftConstitutionTextOf(setup) === (mainConstitution?.markdown ?? null);
+}
+
 export class PipelineSetups {
-  constructor(private readonly records: BoardRecords) {}
+  constructor(
+    private readonly records: BoardRecords,
+    private readonly trackerChanges: TrackerChanges,
+    private readonly decisionRules: Decisions,
+  ) {}
 
   /** Refuses `setup-in-progress` beside an open record; an update or advise record starts from the stored pipeline. */
   openSetup(opening: PipelineSetupOpening, at: string): PipelineSetupChanged {
@@ -394,9 +418,209 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-discarded', setupId, fields: {} }, at)], setup };
   }
 
+  /**
+   * Stage 1. The request of the revision already waiting answers with it, and the revision an earlier Apply closed answers
+   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, a stored pipeline that
+   * moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already holds the draft's text, stage 2 runs at
+   * once, else the request waits for the constitution commit and nothing else is written.
+   */
+  requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
+    const reading = this.records.pipelineSetupReading;
+    if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
+    if ((reading.verdict === 'absent' || reading.setup.setupId !== setupId) && this.revisionWasApplied(setupId, requesting.draftRevision)) {
+      return { logged: [], outcome: 'already-applied', setup: null };
+    }
+    const setup = this.requireOpenSetup(setupId);
+    const { applyRequest } = setup;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (applyRequest !== null && pendingStates.includes(applyRequest.state)) {
+      if (applyRequest.draftRevision === requesting.draftRevision) return { logged: [], outcome: 'committing', setup };
+      throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
+    }
+    this.refuseUnappliable(setup, requesting.draftRevision);
+    const mainHoldsText = mainHoldsTheDraftText(setup, requesting.mainConstitution);
+    this.refuseMovedConstitution(setup, requesting.mainConstitution, mainHoldsText);
+    this.refuseMovedPipeline(setup, this.appliedPipelineOf(setup, requesting.mainConstitution));
+    if (mainHoldsText) return this.finishApply(setupId, { ...requesting, constitutionCommit: null }, at);
+
+    setup.applyRequest = {
+      draftRevision: requesting.draftRevision, resumesBoard: requesting.resumesBoard, commitJobId: null, state: 'committing', reason: null
+    };
+    this.store(setup);
+    const fields = { revision: requesting.draftRevision, resumesBoard: requesting.resumesBoard };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-requested', setupId, fields }, at)], outcome: 'committing', setup };
+  }
+
+  /**
+   * Stage 2, in the hold that found main holding the draft's text: the whole pipeline with `constitution.path` on main's file, the
+   * constitution's sources keyed by its blob id, the withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied`, and
+   * last the record's close. A pipeline already stored from this draft is no move of anyone else's, so a retry finishes the rest.
+   */
+  finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
+    const setup = this.requireOpenSetup(setupId);
+    if (finishing.draftRevision !== setup.draftRevision) {
+      throw new BoardRefusal({
+        reason: 'pipeline-draft-stale', setupId, revision: finishing.draftRevision, currentRevision: setup.draftRevision
+      });
+    }
+    if (!mainHoldsTheDraftText(setup, finishing.mainConstitution)) {
+      throw new BoardRefusal({
+        reason: 'constitution-moved', setupId, baseBlob: setup.constitution?.baseBlob ?? null, mainBlob: finishing.mainConstitution?.blob ?? null
+      });
+    }
+    const applied = this.appliedPipelineOf(setup, finishing.mainConstitution);
+    this.refuseMovedPipeline(setup, applied);
+
+    const base   = this.records.pipeline ?? PipelineUtil.minimalPipelineOf();
+    const fields = PipelineChangeUtil.changedFieldNamesOf(base, applied, (setup.constitution?.baseBlob ?? null) !== (finishing.mainConstitution?.blob ?? null));
+    this.trackerChanges.applyPipeline(applied);
+    this.storeConstitutionSources(setup, finishing.mainConstitution);
+    const logged = this.decisionRules.decisions().filter((decision) => decision.kind === 'checks-not-set')
+      .flatMap((decision) => this.decisionRules.withdrawDecision(decision.id, PIPELINE_APPLIED_DECISION_REASON, at).logged);
+    if (finishing.resumesBoard) logged.push(...this.trackerChanges.setOverseerState('running', at).logged);
+    if (!this.revisionWasApplied(setupId, setup.draftRevision)) {
+      logged.push(this.records.logger.log({
+        kind:   'pipeline-applied',
+        setupId,
+        fields: {
+          revision:           setup.draftRevision,
+          resumesBoard:       finishing.resumesBoard,
+          changedFields:      fields.changedFields,
+          newFields:          fields.newFields,
+          removedFields:      fields.removedFields,
+          constitutionCommit: finishing.constitutionCommit,
+        },
+      }, at));
+    }
+    this.records.pipelineSetupReading = { verdict: 'absent' };
+    this.records.pipelineSetupChanged = true;
+    return { logged, outcome: 'applied', setup };
+  }
+
+  /**
+   * An open record whose draft, as applied, is already the stored pipeline while the record's base is not: an Apply stored it and was cut
+   * short before its close. The Overseer's start finishes it, resuming the board only as a stored request asked.
+   */
+  finishHalfAppliedSetup(mainConstitution: MainConstitution | null, at: string): PipelineApplyChanged | null {
+    const setup  = this.openSetupRecord();
+    const stored = this.records.pipeline;
+    if (setup === null || stored === null || !mainHoldsTheDraftText(setup, mainConstitution)) return null;
+    const storedHash = PipelineUtil.contentHashOf(stored);
+    if (storedHash === setup.baseContentHash || storedHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, mainConstitution))) return null;
+    return this.finishApply(setup.setupId, {
+      draftRevision: setup.draftRevision, resumesBoard: setup.applyRequest?.resumesBoard ?? false, mainConstitution, constitutionCommit: null
+    }, at);
+  }
+
+  /** The constitution commit waits, as the Airlock found main: the request stays, and so does every refusal of the other moves. */
+  holdApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+    const setup   = this.requireOpenSetup(setupId);
+    const request = setup.applyRequest;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (request === null || !pendingStates.includes(request.state)) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
+    setup.applyRequest = {
+      ...request, commitJobId: null, state: 'held', reason
+    };
+    this.store(setup);
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-held', setupId, fields: { reason } }, at)], setup };
+  }
+
+  /** The constitution commit cannot be made: the request stays, refused, and the record is editable again. */
+  refuseApply(setupId: string, reason: ApplyRequestReason, at: string): PipelineSetupChanged {
+    const setup   = this.requireOpenSetup(setupId);
+    const request = setup.applyRequest;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (request === null || !pendingStates.includes(request.state)) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
+    setup.applyRequest = {
+      ...request, commitJobId: null, state: 'refused', reason
+    };
+    this.store(setup);
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-refused', setupId, fields: { reason } }, at)], setup };
+  }
+
+  /** Clears a committing, held or refused request; the record is back at the design step, editable, and its pipeline is not stored. */
+  cancelApply(setupId: string, at: string): PipelineSetupChanged {
+    const setup   = this.requireOpenSetup(setupId);
+    const request = setup.applyRequest;
+    if (request === null) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
+    setup.applyRequest = null;
+    setup.currentStep  = 'design';
+    this.store(setup);
+    const fields = { revision: request.draftRevision, state: request.state };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-cancelled', setupId, fields }, at)], setup };
+  }
+
   openSetupRecord(): PipelineSetup | null {
     const reading = this.records.pipelineSetupReading;
     return reading.verdict === 'readable' ? reading.setup : null;
+  }
+
+  /** Stage 1's refusals that do not read main: a stale revision, an open question, a step to recheck, a touched snapshot, a moved pipeline. */
+  private refuseUnappliable(setup: Readonly<PipelineSetup>, draftRevision: number): void {
+    const { setupId } = setup;
+    if (draftRevision !== setup.draftRevision) {
+      throw new BoardRefusal({
+        reason: 'pipeline-draft-stale', setupId, revision: draftRevision, currentRevision: setup.draftRevision
+      });
+    }
+    const questionIds = setup.questions.filter((question) => question.answer === null).map((question) => question.questionId);
+    if (questionIds.length > 0) throw new BoardRefusal({ reason: 'setup-question-open', setupId, questionIds });
+    const steps = PIPELINE_SETUP_STEPS.filter((step) => step !== 'apply' && setup.stepStates[step] === 'needs-recheck');
+    if (steps.length > 0) throw new BoardRefusal({ reason: 'setup-step-needs-recheck', setupId, steps });
+    if (this.setupSnapshotIsTouched(setupId)) throw new BoardRefusal({ reason: 'setup-snapshot-touched', setupId });
+  }
+
+  /**
+   * Main's `CONSTITUTION.md` must be the one the record opened on, unless main already holds the draft's text, as after a hand commit of
+   * it. A draft with no text cannot remove a file main holds.
+   */
+  private refuseMovedConstitution(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null, mainHoldsText: boolean): void {
+    if (mainHoldsText) return;
+    const baseBlob = setup.constitution?.baseBlob ?? null;
+    const mainBlob = mainConstitution?.blob ?? null;
+    if (baseBlob !== mainBlob) throw new BoardRefusal({
+      reason: 'constitution-moved', setupId: setup.setupId, baseBlob, mainBlob
+    });
+    if (draftConstitutionTextOf(setup) === null) throw new BoardRefusal({ reason: 'constitution-empty' });
+  }
+
+  /** The stored pipeline must be the record's base, or this draft as applied: a `gate` verb since the record opened refuses. */
+  private refuseMovedPipeline(setup: Readonly<PipelineSetup>, applied: Readonly<Pipeline>): void {
+    const stored      = this.records.pipeline;
+    const contentHash = stored === null ? null : PipelineUtil.contentHashOf(stored);
+    if (contentHash === setup.baseContentHash || contentHash === PipelineUtil.contentHashOf(applied)) return;
+    throw new BoardRefusal({
+      reason: 'pipeline-moved', setupId: setup.setupId, baseContentHash: setup.baseContentHash, contentHash
+    });
+  }
+
+  /** The draft, or the base for a record with none, read with main's constitution file once main holds the draft's text. */
+  private appliedPipelineOf(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null): Pipeline {
+    const applied = structuredClone(setup.draft ?? this.basePipeline()) as Pipeline;
+    if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };
+    return applied;
+  }
+
+  /** The agent's sources of the text main now holds, keyed by its blob id; unknown keys of the stored file stay. */
+  private storeConstitutionSources(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null): void {
+    if (mainConstitution === null || setup.constitution === null) return;
+    const stored = this.records.constitutionSourcesReading;
+    this.records.constitutionSourcesReading = {
+      verdict: 'readable',
+      sources: {
+        formatVersion: 1,
+        blob:          mainConstitution.blob,
+        annotations:   setup.constitution.annotations.map((annotation) => ({ ...annotation })),
+        extra:         stored.verdict === 'readable' ? stored.sources.extra : [],
+      },
+    };
+    this.records.constitutionSourcesChanged = true;
+  }
+
+  /** Whether the log already holds this setup's `pipeline-applied` at this revision: the stored log, or this hold's. */
+  private revisionWasApplied(setupId: string, draftRevision: number): boolean {
+    return [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'pipeline-applied'
+      && record.setupId === setupId && record.fields.revision === draftRevision);
   }
 
   /** The stored pipeline, or the minimal one for a first setup: what the change list and Undo compare with. */
