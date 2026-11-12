@@ -19,6 +19,7 @@ import {
 const SCRATCH_ROOT_FOLDER_NAME = '.scratch';
 const RUN_FOLDER_PREFIX        = 'run-';
 const SCRATCH_HOME_FOLDER_NAME = 'home';
+const SCRATCH_TEMPORARY_FOLDER_NAME = 'temporary';
 
 let currentRunFolder: string | null = null;
 
@@ -32,6 +33,10 @@ export function runFolderPrefix(): string {
 
 export function scratchHomeFolderName(): string {
   return SCRATCH_HOME_FOLDER_NAME;
+}
+
+export function scratchTemporaryFolderName(): string {
+  return SCRATCH_TEMPORARY_FOLDER_NAME;
 }
 
 export function pathLiesInsideScratchRoot(candidatePath: string): boolean {
@@ -60,6 +65,13 @@ export function scratchHomeDirectory(): string {
   const home = join(runScratchFolder(), SCRATCH_HOME_FOLDER_NAME);
   mkdirSync(home, { recursive: true });
   return home;
+}
+
+/** The scratch `TMPDIR` every spec runs under, so what a spec leaves in the temporary folder is this run's to find. */
+export function scratchTemporaryDirectory(): string {
+  const temporary = join(runScratchFolder(), SCRATCH_TEMPORARY_FOLDER_NAME);
+  mkdirSync(temporary, { recursive: true });
+  return temporary;
 }
 
 export function createScratchDirectory(prefix: string): string {

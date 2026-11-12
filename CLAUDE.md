@@ -8,7 +8,8 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
 1. **Write only in this repository.** The forge (`~/development/forge`), agent-dashboard, agent-progress and books-explorer are read-only
    references. Never run a forge verb in the forge checkout.
 2. **Never touch the real home.** No spec reads or writes `~/.forge-monitor` or `~/.gaia` or talks to a running forge. The test preload
-   moves `HOME` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind.
+   moves `HOME` and `TMPDIR` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind. A
+   child process gets `environmentCopy()` as its `env`: without one, Bun hands it the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. The known numbers are
    `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper.
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself.

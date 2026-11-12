@@ -1,11 +1,17 @@
 /**
- * What a test run leaves behind, found after its last spec: an entry in the run's scratch folder or its scratch home, an entry put straight
- * in the scratch root, a new line in the repository's git status, and a Gaia or forge folder that appeared in the account's real home.
+ * What a test run leaves behind, found after its last spec: an entry in the run's scratch folder, its scratch home or its scratch temporary
+ * folder, an entry put straight in the scratch root, a new line in the repository's git status, and a Gaia or forge folder that appeared in
+ * the account's real home.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { join }                    from 'node:path';
 
-import { runFolderPrefix, scratchHomeFolderName, scratchRoot } from './ScratchRoot.ts';
+import {
+  runFolderPrefix,
+  scratchHomeFolderName,
+  scratchRoot,
+  scratchTemporaryFolderName,
+} from './ScratchRoot.ts';
 
 /** The home entries a spec reaching the real home would make; only their presence is looked at, never their contents. */
 const GUARDED_REAL_HOME_PATHS = ['.gaia', join('.forge-monitor', 'gaia')];
@@ -14,6 +20,7 @@ export interface TestRunBaseline {
   readonly scratchRootEntries:     ReadonlySet<string>;
   readonly gitStatusLines:         ReadonlySet<string> | null;
   readonly realHomeDirectory:      string;
+  readonly realTemporaryDirectory: string;
   readonly guardedHomePathsBefore: ReadonlySet<string>;
 }
 
@@ -35,26 +42,30 @@ function guardedHomePathsPresentIn(realHomeDirectory: string): Set<string> {
   return new Set(GUARDED_REAL_HOME_PATHS.filter((guardedPath) => existsSync(join(realHomeDirectory, guardedPath))));
 }
 
-export function takeTestRunBaseline(realHomeDirectory: string, gitStatusLinesNow: GitStatusReader): TestRunBaseline {
+export function takeTestRunBaseline(realHomeDirectory: string, realTemporaryDirectory: string, gitStatusLinesNow: GitStatusReader): TestRunBaseline {
   const gitStatusLines = gitStatusLinesNow();
   return {
     scratchRootEntries:     new Set(entriesOf(scratchRoot())),
     gitStatusLines:         gitStatusLines === null ? null : new Set(gitStatusLines),
     realHomeDirectory,
+    realTemporaryDirectory,
     guardedHomePathsBefore: guardedHomePathsPresentIn(realHomeDirectory),
   };
 }
 
-/** Before the run folder is removed: every entry a spec made in it, or in the scratch home, and did not remove. */
+/** Before the run folder is removed: every entry a spec made in it, in the scratch home or in the scratch temporary folder, and did not remove. */
 export function runFolderLeaksOf(runFolder: string | null): string[] {
   if (runFolder === null) return [];
-  const homeFolderName = scratchHomeFolderName();
+  const homeFolderName      = scratchHomeFolderName();
+  const temporaryFolderName = scratchTemporaryFolderName();
   const runFolderLeaks = entriesOf(runFolder)
-    .filter((entry) => entry !== homeFolderName)
+    .filter((entry) => entry !== homeFolderName && entry !== temporaryFolderName)
     .map((entry) => `${join(runFolder, entry)} was left in the run's scratch folder`);
   const scratchHomeLeaks = entriesOf(join(runFolder, homeFolderName))
     .map((entry) => `${join(runFolder, homeFolderName, entry)} was left in the scratch home`);
-  return [...runFolderLeaks, ...scratchHomeLeaks];
+  const scratchTemporaryLeaks = entriesOf(join(runFolder, temporaryFolderName))
+    .map((entry) => `${join(runFolder, temporaryFolderName, entry)} was left in the scratch temporary folder`);
+  return [...runFolderLeaks, ...scratchHomeLeaks, ...scratchTemporaryLeaks];
 }
 
 /** After the run folder is removed: an entry put straight in the scratch root, a changed git status, a guarded path in the real home. */

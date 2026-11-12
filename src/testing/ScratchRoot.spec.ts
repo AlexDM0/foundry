@@ -1,5 +1,4 @@
 /** The scratch helpers are the guard that keeps every spec off live data, so they must refuse any path outside the scratch root. */
-import { tmpdir }                 from 'node:os';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
@@ -13,7 +12,7 @@ import {
 
 describe('the scratch root', () => {
   test('refuses to remove a path outside the scratch root', () => {
-    expect(() => removeScratchPath(join(tmpdir(), 'gaia-not-scratch'))).toThrow('is not inside the scratch root');
+    expect(() => removeScratchPath(join(scratchRoot(), '..', 'gaia-not-scratch'))).toThrow('is not inside the scratch root');
   });
 
   test('refuses the scratch root itself and a path that climbs out of it', () => {
