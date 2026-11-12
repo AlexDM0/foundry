@@ -25,6 +25,7 @@ const REAL_BOUNDARY_USES_ALLOWED_IN_TESTING: Readonly<Record<string, string>> = 
 const BUN_PROCESS_STARTS: ReadonlySet<string> = new Set(['spawn', 'spawnSync', '$']);
 const CHILD_PROCESS_MODULE = /^(?:node:)?child_process$/;
 const REAL_BOUNDARY_EXPORT = 'realProcessRun';
+const REAL_BOUNDARY_MODULE = /(?:^|\/)process-run\/ProcessRun(?:\.ts)?$/;
 const SCANNED_FOLDERS = ['src', 'page'];
 const MINIMUM_SCANNED_SPEC_COUNT = 8;
 
@@ -75,9 +76,16 @@ function directStartOf(node: typescript.Node): string | null {
   return null;
 }
 
+function importsTheWholeBoundaryModule(declaration: typescript.ImportDeclaration): boolean {
+  const bindings = declaration.importClause?.namedBindings;
+  return bindings !== undefined && typescript.isNamespaceImport(bindings)
+    && typescript.isStringLiteral(declaration.moduleSpecifier) && REAL_BOUNDARY_MODULE.test(declaration.moduleSpecifier.text);
+}
+
 function realBoundaryUseOf(node: typescript.Node): string | null {
   if (!typescript.isImportDeclaration(node) || importsOnlyTypes(node)) return null;
-  return importedNamesOf(node).includes(REAL_BOUNDARY_EXPORT) ? REAL_BOUNDARY_EXPORT : null;
+  const reachesTheRealBoundary = importedNamesOf(node).includes(REAL_BOUNDARY_EXPORT) || importsTheWholeBoundaryModule(node);
+  return reachesTheRealBoundary ? REAL_BOUNDARY_EXPORT : null;
 }
 
 function programReachesIn(path: string, sourceText: string): ProgramReaches {
@@ -164,6 +172,11 @@ describe('the guard on program starts', () => {
       expect(programReachesIn('src/Planted.spec.ts', plantedSource).directStarts).toEqual([expectedForm]);
     });
   }
+
+  test('names the real process-run reached through a namespace import of its module', () => {
+    const namespaceImport = 'import * as processRunModule from "../lib/process-run/ProcessRun.ts";';
+    expect(programReachesIn('src/Planted.spec.ts', namespaceImport).realBoundaryUses).toEqual([REAL_BOUNDARY_EXPORT]);
+  });
 
   test('does not count a mention in a string, a comment or a type-only import', () => {
     const mentions = '// Bun.spawn\nconst sentence = "Bun.spawnSync and child_process";\nimport type { ChildProcess } from "node:child_process";';
