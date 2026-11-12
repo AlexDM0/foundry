@@ -22,8 +22,8 @@ import type {
   GaiaCommand,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
-import type { GaiaSettings }     from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }     from '../../shared/constants/ContractVersions.ts';
+import type { GaiaSettings } from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS } from '../../shared/constants/ContractVersions.ts';
 
 export interface ForgeControlOptions {
   /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */
