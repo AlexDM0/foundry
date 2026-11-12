@@ -170,13 +170,15 @@ describe('the token', () => {
     test(`is in no part of the answer and no log line when the outcome is ${outcome.name}`, async () => {
       const consoleSpies = CONSOLE_METHOD_NAMES.map((methodName) => spyOn(console, methodName));
       let answerText = '';
+      let loggedText = '';
       try {
         const answer = await frameSessionAnswerFor(STOREFRONT_TRACKER_ID, sourcesOver(outcome.forge(), overseerAnswering(outcome.situation)));
         answerText = `${[...answer.headers.entries()].flat().join('\n')}\n${await answer.text()}`;
+        // Read before the restore, which empties a spy's calls; inspected so a token inside a logged object is seen too.
+        loggedText = consoleSpies.flatMap((consoleSpy) => consoleSpy.mock.calls.flat().map((argument) => Bun.inspect(argument))).join('\n');
       } finally {
         for (const consoleSpy of consoleSpies) consoleSpy.mockRestore();
       }
-      const loggedText = consoleSpies.flatMap((consoleSpy) => consoleSpy.mock.calls.flat().map(String)).join('\n');
       expect(answerText).not.toContain(EXAMPLE_TOKEN);
       expect(loggedText).not.toContain(EXAMPLE_TOKEN);
     });
