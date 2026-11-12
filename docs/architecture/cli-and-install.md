@@ -353,6 +353,8 @@ changed default reaches the next one. A [pipeline](../glossary.md#pipeline) can 
 | `briefs/defaults/constitution.md` | `resources/templates/Constitution.md` | Builder and reviewer roles, first in their text |
 | `briefs/defaults/builder.md` | `resources/prompts/BuildPrompt.md` | Build jobs |
 | `briefs/defaults/reviewer.md` | `resources/prompts/ReviewPrompt.md` | Review jobs |
+| `briefs/defaults/reReviewer.md` | `resources/templates/ReReviewerBrief.md` | Review jobs past the first round, after `reviewer.md` |
+| `briefs/defaults/conflictReReviewer.md` | `resources/templates/ConflictReReviewerBrief.md` | The conflict re-reviewer in the merge train, after `reviewer.md` |
 | `briefs/defaults/productOwner.md` | `resources/prompts/ProductOwnerPrompt.md` | The [product owner](../glossary.md#product-owner) |
 | `briefs/defaults/pipelineAgent.md` | `resources/templates/PipelineAgentBrief.md` | The [pipeline agent](../glossary.md#pipeline-agent) |
 | `briefs/defaults/assistant.md` | `resources/templates/AssistantBrief.md` | The [Assistant](../glossary.md#assistant) |

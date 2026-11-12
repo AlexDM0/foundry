@@ -1,9 +1,9 @@
 /**
  * What a session is told comes from the pipeline's instruction files, read by the Overseer at launch. What matters: a builder's first
  * message holds the files of its instruction list in list order, each asked of git as the main line holds it; the
- * data-folder default is read from disk and filled; each file read leaves its content hash; and one missing file, named or default, refuses
- * the launch naming it. Git answers from the recorded answers of `src/testing/RecordedGit.ts`, and a git call with no recorded answer fails
- * the case.
+ * data-folder default is read from disk and filled; each file read leaves its content hash; an empty list gives the role's built-in brief,
+ * filled like a default; and one missing file, named or default, refuses the launch naming it. Git answers from the recorded answers of
+ * `src/testing/RecordedGit.ts`, and a git call with no recorded answer fails the case.
  */
 import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -142,6 +142,17 @@ describeWhenGitIsRecorded('the instruction files a launch reads', () => {
       { path: defaultInstructionPathOf('builder'), contentHash: contentHashOf(BUILDER_DEFAULT) },
       { path: 'example-builder-extra.md', contentHash: contentHashOf('Main line extra: run the example checks.\n') },
     ]);
+  });
+
+  test('an empty list gives a builder its built-in brief as the first message, filled with its ticket and gates, asking git nothing', async () => {
+    const pipeline: Pipeline = { ...PIPELINE, agents: { builder: { instructions: [] } } };
+    const reading = await recordedGit.playStage([], async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, pipeline, BUILD_JOB));
+    if (reading.verdict !== 'read') throw new Error(`the reading was ${reading.verdict}`);
+    const { firstMessage } = OverseerWording.launchTextOf(BUILD_JOB, { ...factsWith(reading.text), gates: [] });
+
+    expect(firstMessage).toContain('You are the builder of ticket #012, "Example basket total", job J4, attempt 1.');
+    expect(firstMessage).toContain('A1. Example basket adds up.');
+    expect(firstMessage).not.toMatch(/\{\{\w+\}\}/);
   });
 
   test('a named file the main line lacks refuses the launch naming it', async () => {

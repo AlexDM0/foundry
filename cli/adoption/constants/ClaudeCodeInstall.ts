@@ -84,6 +84,8 @@ export const CLAUDE_CODE_INSTALL: { parts: readonly InstalledPart[] } = {
         { name: 'constitutionDefault', templateFileName: 'Constitution.md' },
         { name: 'builderDefault', templateFileName: 'BuildPrompt.md', resourceFolder: 'prompts' },
         { name: 'reviewerDefault', templateFileName: 'ReviewPrompt.md', resourceFolder: 'prompts' },
+        { name: 'reReviewerDefault', templateFileName: 'ReReviewerBrief.md' },
+        { name: 'conflictReReviewerDefault', templateFileName: 'ConflictReReviewerBrief.md' },
         { name: 'productOwnerDefault', templateFileName: 'ProductOwnerPrompt.md', resourceFolder: 'prompts' },
         { name: 'pipelineAgentDefault', templateFileName: 'PipelineAgentBrief.md' },
         { name: 'assistantDefault', templateFileName: 'AssistantBrief.md' },

@@ -37,6 +37,8 @@ export const INSTALLED_TEMPLATE_PATHS = [
   'resources/templates/Reference.md',
   'resources/templates/Constitution.md',
   'resources/templates/PipelineAgentBrief.md',
+  'resources/templates/ReReviewerBrief.md',
+  'resources/templates/ConflictReReviewerBrief.md',
   'resources/prompts/BuildPrompt.md',
   'resources/prompts/ReviewPrompt.md',
   'resources/prompts/ProductOwnerPrompt.md',

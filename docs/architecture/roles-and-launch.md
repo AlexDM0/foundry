@@ -288,12 +288,14 @@ keeps the text it started with.*
 
 ### Instruction files
 
-`InstructionFiles.readingFor` resolves a list of paths per pipeline role; an Airlock agent reads its builder or
-reviewer files.
+`InstructionFiles.readingFor` resolves a list of paths per pipeline role; a review past its first round reads the
+`reReviewer` list, and an Airlock agent reads the list of the role it stands in for.
 
 1. The role reads the pipeline's `agents.<role>.instructions`, or the role's default list
-   (`DEFAULT_INSTRUCTIONS_OF_ROLE`): the constitution, then its default brief, for `builder` and `reviewer`; its default
-   brief alone for the others. A set list replaces the default list entirely.
+   (`DEFAULT_INSTRUCTIONS_OF_ROLE`): the constitution, then its default brief, for `builder` and `reviewer`; the
+   constitution, the reviewer's default brief, then its own, for `reReviewer` and `conflictReReviewer`; its default
+   brief alone for the others. A set list replaces the default list entirely. An empty list reads the role's built-in
+   brief, `resources/prompts/BuiltInBrief<Role>.md`, which is never installed.
 2. Each entry resolves to a path: `constitution` to the pipeline's `constitution.path`, or
    `<data>/briefs/defaults/constitution.md`; `default-brief` to `<data>/briefs/defaults/<role>.md`; `file` to its path.
 3. A path under `<data>/` reads from disk. Any other path is tracked and reads through `git show <mainLine>:<path>`.
@@ -343,6 +345,9 @@ in the pipeline's `agents`.
 | --- | --- | --- | --- |
 | `resources/prompts/BuildPrompt.md`, installed as `builder.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/prompts/ReviewPrompt.md`, installed as `reviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
+| `resources/templates/ReReviewerBrief.md`, installed as `reReviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
+| `resources/templates/ConflictReReviewerBrief.md`, installed as `conflictReReviewer.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
+| `resources/prompts/BuiltInBrief<Role>.md`, one per role | Nobody | `resources/prompts/` at a launch whose list is empty | The checkout changes |
 | `resources/prompts/ProductOwnerPrompt.md`, installed as `productOwner.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/PipelineAgentBrief.md`, installed as `pipelineAgent.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |

@@ -119,7 +119,10 @@ export interface CustomsSubject {
    * both pass.
    */
   gates?:            readonly Readonly<PipelineGate>[];
-  /** V11 also: the tracked instruction files the pipeline's arrays name, which a branch changes only where its ticket names them. */
+  /**
+   * V11 also: the tracked files each role's resolved instruction list names, the constitution's path among them, which a branch changes only
+   * where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
+   */
   instructionFiles?: readonly string[];
   /** V12: the job being verified, and the log as stored plus this hold's records. */
   jobId?:            string;

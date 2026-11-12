@@ -47,7 +47,7 @@ function defaultLaunchSettingsOf(role: PipelineAgentRole): SessionLaunchSettings
   return DEFAULT_SETTINGS_OF_ROLE[role];
 }
 
-/** The pipeline step whose settings the job's sessions read; `null` for a merge or refresh job, which runs no agent. */
+/** The pipeline step whose settings and instructions the job's sessions read; `null` for a merge or refresh job, which runs no agent. */
 function pipelineRoleOf(job: Readonly<Pick<Job, 'role'>>): PipelineAgentRole | null {
   return job.role === null ? null : PIPELINE_ROLE_OF_JOB_ROLE[job.role];
 }
@@ -69,4 +69,5 @@ function launchSettingsOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pic
 export const LaunchSettings = Object.freeze({
   defaultLaunchSettingsOf,
   launchSettingsOf,
+  pipelineRoleOf,
 });

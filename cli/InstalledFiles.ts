@@ -12,17 +12,19 @@ const SESSION_INSTRUCTIONS_FILE_NAME = 'session-instructions.md';
 
 export interface InstalledFilePaths {
   /** The file formats, the moves and the exit codes, which the skills cite for a session to read on demand. */
-  reference:            string;
+  reference:                 string;
   /** The default instruction files a pipeline's `constitution` and `agents` arrays name, generated and refreshed each version. */
-  constitutionDefault:  string;
-  builderDefault:       string;
-  reviewerDefault:      string;
-  productOwnerDefault:  string;
-  pipelineAgentDefault: string;
-  assistantDefault:     string;
+  constitutionDefault:       string;
+  builderDefault:            string;
+  reviewerDefault:           string;
+  reReviewerDefault:         string;
+  conflictReReviewerDefault: string;
+  productOwnerDefault:       string;
+  pipelineAgentDefault:      string;
+  assistantDefault:          string;
   /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */
-  sessionInstructions:  string;
-  installManifest:      string;
+  sessionInstructions:       string;
+  installManifest:           string;
 }
 
 /** Claude Code reads a project's skills from `.claude/skills/<name>/`, written with `/` as `.gitignore` takes it. */
@@ -32,14 +34,16 @@ export function installedSkillFolderInRepository(skillName: string): string {
 
 export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths {
   return {
-    reference:            join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, REFERENCE_FILE_NAME),
-    constitutionDefault:  join(rootDirectory, CONSTITUTION_DEFAULT_PATH),
-    builderDefault:       join(rootDirectory, defaultInstructionPathOf('builder')),
-    reviewerDefault:      join(rootDirectory, defaultInstructionPathOf('reviewer')),
-    productOwnerDefault:  join(rootDirectory, defaultInstructionPathOf('productOwner')),
-    pipelineAgentDefault: join(rootDirectory, defaultInstructionPathOf('pipelineAgent')),
-    assistantDefault:     join(rootDirectory, defaultInstructionPathOf('assistant')),
-    sessionInstructions:  join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, SESSION_INSTRUCTIONS_FILE_NAME),
-    installManifest:      join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, INSTALL_MANIFEST_FILE_NAME),
+    reference:                 join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, REFERENCE_FILE_NAME),
+    constitutionDefault:       join(rootDirectory, CONSTITUTION_DEFAULT_PATH),
+    builderDefault:            join(rootDirectory, defaultInstructionPathOf('builder')),
+    reviewerDefault:           join(rootDirectory, defaultInstructionPathOf('reviewer')),
+    reReviewerDefault:         join(rootDirectory, defaultInstructionPathOf('reReviewer')),
+    conflictReReviewerDefault: join(rootDirectory, defaultInstructionPathOf('conflictReReviewer')),
+    productOwnerDefault:       join(rootDirectory, defaultInstructionPathOf('productOwner')),
+    pipelineAgentDefault:      join(rootDirectory, defaultInstructionPathOf('pipelineAgent')),
+    assistantDefault:          join(rootDirectory, defaultInstructionPathOf('assistant')),
+    sessionInstructions:       join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, SESSION_INSTRUCTIONS_FILE_NAME),
+    installManifest:           join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, INSTALL_MANIFEST_FILE_NAME),
   };
 }

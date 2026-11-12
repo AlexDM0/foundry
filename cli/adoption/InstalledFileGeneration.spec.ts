@@ -29,9 +29,11 @@ describe('the installed texts', () => {
     expect(Object.keys(TEXTS).sort()).toEqual([
       'assistantDefault',
       'builderDefault',
+      'conflictReReviewerDefault',
       'constitutionDefault',
       'pipelineAgentDefault',
       'productOwnerDefault',
+      'reReviewerDefault',
       'reference',
       'reviewerDefault',
       'sessionInstructions',
@@ -40,6 +42,8 @@ describe('the installed texts', () => {
     expect(TEXTS.sessionInstructions).not.toContain('{{');
     expect(TEXTS.constitutionDefault).not.toContain('{{');
     expect(TEXTS.pipelineAgentDefault).not.toContain('{{');
+    expect(TEXTS.conflictReReviewerDefault).not.toContain('{{');
+    expect([...(TEXTS.reReviewerDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder)).toEqual(['{{round}}']);
     expect([...(TEXTS.assistantDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder).sort())
       .toEqual(PLACEHOLDERS_THE_OVERSEER_FILLS);
     expect(TEXTS.builderDefault).toContain('{{ticketBody}}');
