@@ -1,9 +1,9 @@
 /**
  * The Airlocks, one per target, run by the Overseer after each pass (design section 6): allocation, the one merge-in against the recorded
- * tip, the ticket's most recent agent resumed for a conflict or a red merged tree, the gate on the merged tree and the compare-and-swap
- * landing. The main line lands in the main checkout; a group's tickets and its refreshes land in the group's own worktree, and its release
- * ticket lands the bundle on the main line. Every phase is written on the merge job's slot in its own hold, and every outcome ends the job
- * or opens what User or the Assistant answers, so nothing loops.
+ * tip, the ticket's last worker resumed for a conflict or a red merged tree, the conditional conflict re-review of a large resolution, the
+ * gate on the merged tree and the compare-and-swap landing. The main line lands in the main checkout; a group's tickets and its refreshes
+ * land in the group's own worktree, and its release ticket lands the bundle on the main line. Every phase is written on the merge job's
+ * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -18,6 +18,7 @@ import type {
   GateOutcome,
   Job,
   JobEnding,
+  JobRole,
   Airlock,
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
@@ -35,6 +36,7 @@ import { RED_HANDOFF_RESUME_CALL_BUDGET }                   from '../../shared/c
 import { LANDING_OUTCOME_OF_REFUSAL, Landing }              from '../lifecycle/Landing.ts';
 import { MergeRun }                                         from '../lifecycle/MergeRun.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
+import { JobResumption }                                    from './JobResumption.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
 
 export interface AirlockHold {
@@ -69,6 +71,8 @@ export interface AirlocksContext {
    */
   gateMergedTree:        (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
   mergeAgentReadingOf:   (job: Readonly<Job>) => MergeAgentReading;
+  /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
+  resolutionLinesOf:     (worktreePath: string) => number | null;
   /** The job's own Watcher, an agent's or a process Watcher's, is alive. */
   watcherIsLive:         (job: Readonly<Job>) => boolean;
   stopMergeAgent:        (job: Readonly<Job>) => Promise<void>;
@@ -124,18 +128,18 @@ function mergedTreeWasLastPassed(board: Board, job: Readonly<Job>, treeId: strin
   return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, 'merge');
 }
 
-/** The ticket's most recent agent, whom a conflict or a red merged tree goes back to. */
-type AirlockAgentRole = 'builder' | 'reviewer';
-
 /** The parked hold a merged tree leaves when it is still red after the agent's resumes. */
 const MERGE_GATE_RED_PARK_CAUSE = 'merge-gate-red';
 
 /** The Airlock agents launched under one merge job, in launch order, and the newest one's ending. */
 interface AirlockAgentHistory {
-  /** The conflict or red handoff launches and the red resumes; a fresh agent in place of one that could not resume adds none. */
+  /**
+   * The conflict or red handoff launches and the red resumes; a fresh agent in place of one that could not resume adds none, and neither
+   * does a conflict re-reviewer, a fresh session of its own.
+   */
   resumes:       number;
   freshAgentIds: ReadonlySet<string>;
-  newestEnding:  { jobId: string; outcome: string; attempt: number } | null;
+  newestEnding:  { jobId: string; outcome: string; attempt: number; role: JobRole | null } | null;
 }
 
 export interface DeclinedCleanup {
@@ -169,6 +173,7 @@ const MERGE_REFUSED_CAUSES = {
   cannotResolve:      'cannot-resolve',
   unresolved:         'merge-unresolved',
   noReport:           'no-report',
+  reReviewFailed:     're-review-failed',
   gitFailed:          'git-failed',
   refreshConflicted:  'refresh-conflicted',
   releaseBehindGroup: 'release-behind-group',
@@ -178,12 +183,6 @@ const MERGE_REFUSED_CAUSES = {
 const REQUEUE_CAUSES = { orphaned: 'orphaned', targetMoved: 'target-moved', targetHeld: 'target-held' } as const;
 
 const MERGE_ABORTED_CAUSE = 'merge-aborted';
-
-/** With merge approval on: the accepted ticket's merge-in conflicted, and it waits for merge again. */
-const MERGE_ACCEPT_CONFLICTED_CAUSE = 'merge-accept-conflicted';
-
-/** With merge approval on: the merged tree was red, and the ticket went back to its reviewer. */
-const MERGE_GATE_RED_RETURNED_CAUSE = 'merge-gate-red-returned';
 
 const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
 
@@ -248,26 +247,28 @@ function uncommittedPathsOf(directory: string): string[] | null {
   return status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
 }
 
-/** The ticket's reviewer, or its builder with no review phase. */
-function airlockAgentRoleOf(board: Board): AirlockAgentRole {
-  return board.pipeline()?.review === undefined ? 'builder' : 'reviewer';
+/**
+ * The ticket's last worker from history, whatever the pipeline says now; with none ended, its reviewer, or its builder with no review
+ * step.
+ */
+function airlockAgentRoleOf(board: Board, ticketId: string): JobRole {
+  return JobResumption.lastWorkerOf(board.logRecordsSoFar(), ticketId)?.role ?? (board.pipeline()?.review === undefined ? 'builder' : 'reviewer');
 }
 
 function airlockAgentHistoryOf(board: Board, job: Readonly<Job>): AirlockAgentHistory {
-  const attemptByJobId = new Map<string, number>();
-  const freshAgentIds  = new Set<string>();
+  const launchByJobId = new Map<string, { attempt: number; role: JobRole | null }>();
+  const freshAgentIds = new Set<string>();
   let resumes = 0;
   let newestEnding: AirlockAgentHistory['newestEnding'] = null;
   for (const record of board.logRecordsSoFar()) {
     if (record.kind === 'job-launched' && record.fields.parentJobId === job.id) {
-      attemptByJobId.set(record.jobId, record.fields.attempt);
-      if (newestEnding?.outcome === 'replaced') freshAgentIds.add(record.jobId);
+      launchByJobId.set(record.jobId, { attempt: record.fields.attempt, role: record.fields.role });
+      if (newestEnding?.outcome === 'replaced' || record.fields.role === 'conflict-re-reviewer') freshAgentIds.add(record.jobId);
       else resumes += 1;
     }
-    if (record.kind === 'job-resumed' && attemptByJobId.has(record.jobId) && record.fields.cause === HANDOFF_RED_INTERRUPTION) resumes += 1;
-    if (record.kind === 'job-ended' && attemptByJobId.has(record.jobId)) {
-      newestEnding = { jobId: record.jobId, outcome: record.fields.outcome, attempt: attemptByJobId.get(record.jobId) ?? 1 };
-    }
+    if (record.kind === 'job-resumed' && launchByJobId.has(record.jobId) && record.fields.cause === HANDOFF_RED_INTERRUPTION) resumes += 1;
+    const launch = record.kind === 'job-ended' ? launchByJobId.get(record.jobId) : undefined;
+    if (record.kind === 'job-ended' && launch !== undefined) newestEnding = { jobId: record.jobId, outcome: record.fields.outcome, ...launch };
   }
   return { resumes, freshAgentIds, newestEnding };
 }
@@ -294,7 +295,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}`);
   const heldTargets = new Map<string, HeldTarget>();
 
-  /** The newest ended job of the agent the ticket's green came from: its reviewer, or its builder with no review phase. */
+  /**
+   * The newest ended job of the kind the policy launches next for a stale green outside the Airlock: its reviewer, or its builder with no
+   * review step. Unlike the Airlock's last worker, this follows the pipeline, since that next session is the one taking the handoff over.
+   */
   function newestAgentJobIdOf(board: Board, ticketId: string): string | null {
     const kind = board.pipeline()?.review === undefined ? 'build' : 'review';
     const agentJobIds = new Set<string>();
@@ -516,17 +520,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.refreshConflicted, `The merge of ${mainLine} conflicts in ${merge.conflictedFiles.join(', ')}.`);
       return true;
     }
-    if (merge.verdict === 'conflicted' && await mergeApprovalIsOn()) {
-      // User accepted a clean prediction; the target moved since. No agent resolves it: the ticket waits for merge again.
-      await freeSlot(job, { outcome: 'stopped', cause: MERGE_ACCEPT_CONFLICTED_CAUSE }, (hold) => {
-        hold.board.setTicketMergeAccepted(ticketIdOf(job), false, hold.at);
-      });
-      return true;
-    }
     if (merge.verdict === 'conflicted') {
       await context.hold((hold) => {
         context.keepAirlockFacts(job, { conflictedFiles: merge.conflictedFiles.join('\n') });
-        launchAirlockAgent(hold, job, 1);
+        launchAirlockAgent(hold, job, 1, airlockAgentRoleOf(hold.board, ticketIdOf(job)));
         setPhase(hold, job, 'resolving');
       });
       return true;
@@ -536,12 +533,12 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * The ticket's most recent agent goes into the Airlock worktree, its own session resumed; a fresh agent of the same role in place of one
-   * that could not resume carries the same attempt.
+   * The ticket's last worker goes into the Airlock worktree, its own session resumed, or a conflict re-reviewer as a fresh session; a fresh
+   * agent of the same role in place of one that could not resume carries the same attempt.
    */
-  function launchAirlockAgent(hold: AirlockHold, job: Readonly<Job>, attempt: number): void {
+  function launchAirlockAgent(hold: AirlockHold, job: Readonly<Job>, attempt: number, role: JobRole): void {
     hold.board.launchJob({
-      kind: 'merge-agent', role: airlockAgentRoleOf(hold.board), ticketIds: job.ticketIds, parentJobId: job.id, attempt, target: slotOf(job).target,
+      kind: 'merge-agent', role, ticketIds: job.ticketIds, parentJobId: job.id, attempt, target: slotOf(job).target,
     }, hold.at);
   }
 
@@ -563,7 +560,6 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const {
       outcome, step, output, stamp
     } = await context.gateMergedTree(worktree, treeId, 'merge');
-    if (outcome === 'failed' && !isRefresh(job) && await mergeApprovalIsOn()) return returnRedMergeToTheReviewer(job, treeId, { step: step ?? '', output, worktree });
     const resumesSpent = await context.hold((hold) => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
       const agent = mergeAgentOf(hold.board, job);
@@ -588,31 +584,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return true;
   }
 
-  async function mergeApprovalIsOn(): Promise<boolean> {
-    return context.hold((hold) => hold.board.mergeApprovalIsOn());
-  }
-
   /**
-   * With merge approval on, a red merged tree is never fixed in the Airlock: the slot frees, the ticket loses its review done and its accept,
-   * and its next reviewer takes the red handoff over; User accepts it again once it is green.
-   */
-  async function returnRedMergeToTheReviewer(job: Readonly<Job>, treeId: string, red: { step: string; output: string; worktree: string }): Promise<boolean> {
-    const ticketId = ticketIdOf(job);
-    const commit   = MergeRun.headOf(red.worktree) ?? '';
-    await freeSlot(job, { outcome: 'failed', cause: MERGE_GATE_RED_RETURNED_CAUSE }, (hold) => {
-      hold.board.recordGateRan({ tree: treeId, outcome: 'failed', cached: false }, hold.at);
-      hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-      returnStaleGreenRed(hold, ticketId, {
-        treeId, step: red.step, output: red.output, commit
-      });
-    });
-    return true;
-  }
-
-  /**
-   * A red merged tree goes back to the ticket's agent with the red handoff message: its session in the Airlock is resumed, or, with none
-   * there yet, the agent's own session is resumed into the Airlock. Past the resumes the agent ends `failed` and the merge parks. Returns
-   * whether the resumes are spent.
+   * A red merged tree goes back to the ticket's last worker with the red handoff message: its session in the Airlock is resumed (the
+   * conflict re-reviewer's after a re-review), or, with none there yet, the last worker's own session is resumed into the Airlock. Past the
+   * resumes the agent ends `failed` and the merge parks. Returns whether the resumes are spent.
    */
   function resumeOrSpendTheAgent(hold: AirlockHold, job: Readonly<Job>, agent: Readonly<Job> | undefined, red: { step: string; output: string; worktree: string }): boolean {
     const { resumes } = airlockAgentHistoryOf(hold.board, job);
@@ -638,7 +613,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         interruptedInstance: agent?.watcherInstance ?? 0,
       }, red.output);
     }
-    if (agent === undefined) launchAirlockAgent(hold, job, 1);
+    if (agent === undefined) launchAirlockAgent(hold, job, 1, airlockAgentRoleOf(hold.board, ticketIdOf(job)));
     else hold.board.interruptJob(agent.id, HANDOFF_RED_INTERRUPTION, hold.at);
     setPhase(hold, job, 'fixing');
     return false;
@@ -670,7 +645,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (agent !== undefined) return settleAirlockAgent(job, agent, history);
     const ending = history.newestEnding;
     if (ending?.outcome === 'replaced') {
-      await context.hold((hold) => launchAirlockAgent(hold, job, ending.attempt));
+      await context.hold((hold) => launchAirlockAgent(hold, job, ending.attempt, ending.role ?? airlockAgentRoleOf(hold.board, ticketIdOf(job))));
       return true;
     }
     await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
@@ -679,7 +654,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red
-   * one resumes the same session and a pass ends it `resolved`.
+   * one resumes the same session and a pass ends it `resolved`. A sound resolution that changed more lines than the merge train's re-review
+   * threshold goes to a conflict re-reviewer first.
    */
   async function settleAirlockAgent(job: Readonly<Job>, agent: Readonly<Job>, history: AirlockAgentHistory): Promise<boolean> {
     const reading = context.mergeAgentReadingOf(agent);
@@ -692,6 +668,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (agent.state !== 'in-customs') return false;
     // Its report is in: nothing else closes an Airlock agent's session, so the Overseer stops it before settling the slot.
     await context.stopMergeAgent(agent);
+    if (slotOf(job).phase === 're-reviewing') return settleConflictReReview(job, agent, reading.report);
     const notes   = String(reportFieldOf(reading.report, 'notes') ?? '');
     const outcome = reportFieldOf(reading.report, 'outcome');
     if (outcome !== 'resolved') {
@@ -704,6 +681,51 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const resolvedFileList = Array.isArray(resolvedFiles) ? resolvedFiles.map(String) : [];
     if (slotOf(job).phase === 'resolving' && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), resolvedFileList)) {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
+      return true;
+    }
+    const reReview = slotOf(job).phase === 'resolving' ? await context.hold((hold) => hold.board.pipeline()?.airlock?.reReview ?? null) : null;
+    // Fail closed: a resolution whose size git cannot tell is re-reviewed.
+    const resolutionLines = reReview === null ? null : context.resolutionLinesOf(worktree);
+    await context.hold((hold) => {
+      if (reReview !== null && (resolutionLines === null || resolutionLines > reReview.thresholdLines)) {
+        hold.board.endJob(agent.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? '' }, hold.at);
+        launchAirlockAgent(hold, job, 1, 'conflict-re-reviewer');
+        setPhase(hold, job, 're-reviewing');
+        return;
+      }
+      hold.board.moveJob(agent.id, 'gating', hold.at);
+      setPhase(hold, job, 'gating');
+    });
+    return true;
+  }
+
+  /** The commit the conflict re-reviewer started from: the resolution its merge job's resolver ended on. */
+  function resolutionCommitOf(board: Board, job: Readonly<Job>): string {
+    const resolverJobIds = new Set<string>();
+    let resolutionCommit = '';
+    for (const record of board.logRecordsSoFar()) {
+      if (record.kind === 'job-launched' && record.fields.parentJobId === job.id && record.fields.role !== 'conflict-re-reviewer') resolverJobIds.add(record.jobId);
+      if (record.kind === 'job-ended' && resolverJobIds.has(record.jobId) && record.fields.outcome === 'resolved') resolutionCommit = record.fields.commit ?? '';
+    }
+    return resolutionCommit;
+  }
+
+  /**
+   * A re-review whose report holds goes on to the gate of the merged tree, its agent waiting through it as a resolver does, so a red gate
+   * resumes it; an invalid report, a moved history or a claim that still does not hold refuses the merge.
+   */
+  async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
+    const worktree = slotWorktreeOf(job);
+    const resolutionCommit = await context.hold((hold) => resolutionCommitOf(hold.board, job));
+    const verdict = MergeRun.reReviewVerdictOf(worktree, resolutionCommit, report);
+    if (verdict.verdict === 'customs-refused') {
+      const cause = verdict.reason === 'report-invalid' ? MERGE_REFUSED_CAUSES.noReport : MERGE_REFUSED_CAUSES.reReviewFailed;
+      await refuseMerge(job, cause, `The conflict re-review of job ${agent.id} was refused: ${verdict.reason} ${verdict.facts.join(', ')}`.trim());
+      return true;
+    }
+    if (verdict.verdict === 'claims-refused') {
+      const reviewText = String(reportFieldOf(report, 'reviewText') ?? '');
+      await refuseMerge(job, MERGE_REFUSED_CAUSES.reReviewFailed, `${reviewText}\n\nDoes not hold: ${verdict.acceptanceItems.join(', ')}`.trim());
       return true;
     }
     await context.hold((hold) => {
@@ -848,6 +870,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       case 'merge-in':
         return runMergeIn(job);
       case 'resolving':
+      case 're-reviewing':
       case 'fixing':
         return runAirlockAgent(job, hasOpenIncident);
       case 'gating':

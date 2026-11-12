@@ -1,8 +1,9 @@
 /**
- * The first message of a ticket's builder or reviewer resumed into its Airlock. What matters: a conflict names the target tip, the branch
- * tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the agent cannot ask and
- * states its call budget; and a fresh agent in place of a session that could not resume is also given the ticket with its Handoff and
- * Review, and its role's full budget.
+ * The first message of a ticket's last worker resumed into its Airlock, and of a conflict re-reviewer. What matters: a conflict names the
+ * target tip, the branch tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the
+ * agent cannot ask and states its call budget; a fresh agent in place of a session that could not resume is also given the ticket with its
+ * Handoff and Review, and its role's full budget; and a conflict re-reviewer reads its instruction files, filled as a first review round's,
+ * before the re-review the Airlock asks of it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -44,7 +45,7 @@ const RED: AirlockFacts = {
 
 const TICKET_BODY = '## Acceptance\nA1. Example basket adds up.\n\n## Handoff\nExample handoff.\n\n## Review 1\nExample review.';
 
-function messageOf(airlock: AirlockFacts, role: 'builder' | 'reviewer' = 'reviewer'): string {
+function messageOf(airlock: AirlockFacts, role: Job['role'] = 'reviewer', instructions = ''): string {
   const facts = {
     tickets:                [{ id: '012', title: 'Example basket total', body: TICKET_BODY }],
     checksLine:             'bun run verify',
@@ -53,7 +54,7 @@ function messageOf(airlock: AirlockFacts, role: 'builder' | 'reviewer' = 'review
     intake:                 null,
     airlock,
     assistant:              null,
-    instructions:           '',
+    instructions,
     confinement:            'confined',
   } as JobLaunchFacts;
   const job = {
@@ -94,4 +95,22 @@ describe('a fresh agent in place of a session that could not resume', () => {
       for (const part of ['Example handoff.', 'Example review.', `You have ${callBudget} calls`]) expect(message).toContain(part);
     },
   );
+});
+
+describe('a conflict re-reviewer in the Airlock', () => {
+  const instructions = 'You review ticket #{{ticketId}}, round {{round}}, as job {{jobId}}, with {{callBudget}} calls.\n\n{{ticketBody}}';
+  const message = messageOf({ ...CONFLICT, phase: 're-reviewing', resumesSession: false }, 'conflict-re-reviewer', instructions);
+
+  test('reads its instruction files filled as a first review round\'s, the ticket among them, then the re-review of the resolution', () => {
+    expect(message).toContain(`You review ticket #012, round 1, as job J9, with ${DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET} calls.`);
+    expect(message).toContain('Example basket adds up.');
+    expect(message.indexOf('Example basket adds up.')).toBeLessThan(message.indexOf('conflict re-reviewer, job J9'));
+    for (const fact of [CONFLICT.targetTip, CONFLICT.branchTip, CONFLICT.worktree, '- basket.ts', '- checkout.ts']) expect(message).toContain(fact);
+    expect(message).not.toMatch(/\{\{\w+\}\}/);
+  });
+
+  test('is told it cannot ask User, proposes no waiver, and has the reviewer\'s budget', () => {
+    expect(message).toContain('AskUserQuestion is not available. Do not propose a waiver.');
+    expect(message).toContain(`You have ${DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET} calls`);
+  });
 });

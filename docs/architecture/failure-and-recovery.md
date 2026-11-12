@@ -262,9 +262,9 @@ where the phase says. The worktree is the other half of the state.
 | `merge-in` | Clean merge finished, phase not moved | `already-descends`, goes on to `gating` | read: `mergeIn` |
 | `merge-in` | Merge in progress, no live holder | `merge --abort`, reset to the recorded tip, ended `stopped` `orphaned`, requeued | CM `mid-merge with no live holder` |
 | `merge-in`, group [refresh](../glossary.md#refresh) | Merge in progress | Aborted, temporary worktree removed, never two refreshes | CM `a refresh mid-merge with no live holder` |
-| `resolving`, `fixing` | Airlock agent live or interrupted | Airlock slot kept; the agent resumes into the merge on disk | CM `restart during a live or interrupted Airlock agent` |
-| `resolving`, `fixing` | Airlock agent ended `replaced` | A fresh agent of the same role and attempt | read: `runAirlockAgent` |
-| `resolving`, `fixing` | Airlock agent ended otherwise | Airlock slot freed as `orphaned` | read: `runAirlockAgent` |
+| `resolving`, `re-reviewing`, `fixing` | Airlock agent live or interrupted | Airlock slot kept; the agent resumes into the merge on disk | CM `restart during a live or interrupted Airlock agent` |
+| `resolving`, `re-reviewing`, `fixing` | Airlock agent ended `replaced` | A fresh agent of the same role and attempt | read: `runAirlockAgent` |
+| `resolving`, `re-reviewing`, `fixing` | Airlock agent ended otherwise | Airlock slot freed as `orphaned` | read: `runAirlockAgent` |
 | `gating` | Merged tree | Gated again unless `mergedTreeWasLastPassed` | read: `runGate` |
 | [`landing`](../glossary.md#landing), [target](../glossary.md#target) moved first | Tip differs, not an ancestor | Requeued from the branch tip, never landed on the moved tip | CM `target moved by hand` |
 | `landing`, after the fast-forward | Commit in the target, board not written | Ancestry says `already-landed`, and the board side finishes | CM `crash after the fast-forward` |

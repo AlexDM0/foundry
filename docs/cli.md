@@ -1372,14 +1372,22 @@ row's green is current in the merge phase; a pass on the branch's own tree recor
 It is then landed by a compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of
 kind `integrated` and moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
 
+The ticket's last worker is its newest ended build or review job, read from the log whatever the pipeline says now, with
+that job's role: a review step removed since still gives the reviewer. With none ended, it is the reviewer, or the
+builder with no review step. A conflict re-reviewer is never a later merge's last worker: a freed Airlock slot puts the
+branch back at its own tip. With `airlock.reReview` absent no conflict re-review runs; a resolution of exactly
+`thresholdLines` lines goes straight to the gate.
+
 `merges` shows the queue. [Airlocks and groups](architecture/airlocks-and-groups.md) holds the order, the phases,
 refresh and release.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
-| a ticket's merge-in conflicts | the ticket's reviewer (its builder with no review phase) is resumed in the Airlock worktree with the target tip and the conflicted files; it commits the merge; the Airlock slot stays held | none: the agent cannot ask |
+| a ticket's merge-in conflicts | the ticket's last worker is resumed in the Airlock worktree with the target tip and the conflicted files; it commits the merge; the Airlock slot stays held | none: the agent cannot ask |
 | the agent in the Airlock cannot finish | the merge aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
-| the merged tree fails its gate | the same agent is resumed with the red handoff message, on the red handoff ladder (`RED_HANDOFF_RESUMES_BEFORE_PARKING`, `RED_HANDOFF_RESUME_CALL_BUDGET`) | none |
+| the resolution changed more lines than `airlock.reReview.thresholdLines`, or git cannot tell how many | the agent ends `resolved`, and a `conflict-re-reviewer` starts as a fresh session in the Airlock worktree, phase `re-reviewing`; it reports as a reviewer, fixes what does not hold, and the merged tree's gate follows | none |
+| the conflict re-review leaves a claim `does-not-hold` or `waiver-proposed`, or its HEAD is not the one it reports or does not descend from the resolution | the merge aborts, the Airlock slot frees (cause `re-review-failed`; `no-report` for an invalid report) and the `merge-refused` decision opens | answer the decision |
+| the merged tree fails its gate | the same agent is resumed with the red handoff message, the conflict re-reviewer after a re-review, on the red handoff ladder (`RED_HANDOFF_RESUMES_BEFORE_PARKING`, `RED_HANDOFF_RESUME_CALL_BUDGET`) | none |
 | the merged tree still fails its gate after the resumes | the merge aborts, the Airlock slot frees and the ticket parks `parked:merge-gate-red` with a `parked` decision | answer the decision |
 | the agent's session cannot be resumed | a fresh agent of the same role starts on the same worktree with the ticket's Handoff and Review, as the same attempt | none |
 | a group refresh's merge-in conflicts | the refresh aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
@@ -1401,10 +1409,13 @@ prompt tells the reviewer to merge the target into the branch as the last step o
 green rule on the merged tree. `merge update` merges the target into a waiting ticket's worktree with no Airlock held;
 the Overseer never runs it by itself. Clearing `mergeQueued`, or leaving in-review, clears `mergeAccepted` too.
 
+Once accepted, the ticket runs the same merge train as with merge approval off: a conflict, a large resolution and a red
+merged tree go as [The Airlocks](#the-airlocks) says, to its last worker and the conflict re-reviewer in the Airlock,
+and `mergeAccepted` stays set. After User's Merge, only the conditional re-review guards what the last worker changes.
+
 | what happens to an accepted ticket in its Airlock | what shows | moves for User |
 | --- | --- | --- |
-| its merge-in conflicts | the merge aborts, the slot frees (`job-ended` cause `merge-accept-conflicted`), `mergeAccepted` clears and the ticket waits for merge again; no agent is launched | `merge update`, then `merge accept` |
-| the merged tree fails its gate | the slot frees (cause `merge-gate-red-returned`), `mergeQueued` and `mergeAccepted` clear, and the ticket's next reviewer takes the red handoff; without a review phase the ticket goes back to `in-progress` and its builder takes it | `merge accept` once it is green again |
+| its merge-in conflicts, or the merged tree fails its gate | the ticket's last worker is resumed in the Airlock; the slot stays held, and the ticket keeps `mergeQueued` and `mergeAccepted` | none |
 | the merged tree passes | it lands, with no second approval | none |
 
 ### A review job
@@ -1718,7 +1729,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | no | `J<n>`. |
 | `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. |
-| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A review job past its first round has `re-reviewer`. A `merge-agent` job has its ticket's `builder` or `reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
+| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, else null. |
 | `attempt` | no | From 1. |
@@ -1729,7 +1740,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
-| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `gating`, `fixing` or `landing`. |
+| `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing` or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 | `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
@@ -1771,7 +1782,7 @@ explorer](interactive/state-explorer.html) walks them.
 | `reviewed` | yes | When the row first reached reviewed, kept through delivery. |
 | `reviewRound` | yes | The review round, from the second. |
 | `mergeQueued` | yes | `true` once the ticket's review passed, until it lands or leaves in-review. |
-| `mergeAccepted` | yes | With merge approval on, `true` once User's `merge accept` accepted the queued ticket; cleared with `mergeQueued` and by a conflicting merge-in. |
+| `mergeAccepted` | yes | With merge approval on, `true` once User's `merge accept` accepted the queued ticket; cleared with `mergeQueued`. |
 | `history` | yes | Every status the row reached, oldest first, starting with its filing; absent on a row filed before the field existed. |
 | `reviewOf` | yes | The ticket this row reviews. A row is a review bar by this key alone, never by its name. |
 | `reviewBarRound` | yes | Which review of that ticket this bar is, from 1. |
@@ -1864,7 +1875,7 @@ and `agents` change, and how to edit those three by hand. This is format version
 | `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose |
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
-| `airlock` | no | the merge train: `reReview` (`thresholdLines`) when a re-review after a conflict merge is on |
+| `airlock` | no | the merge train: `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after a conflict merge is on: see [The Airlocks](#the-airlocks) |
 | `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md` |
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
@@ -2113,7 +2124,7 @@ gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-rec
 | kind | ids | fields |
 |---|---|---|
 | `merge-queued` | `ticketId` | `target`: a passing review queued the ticket to land there |
-| `merge-acceptance-set` | `ticketId` | `state`: `accepted` by `merge accept`, or `cleared` when a conflicting merge-in in the Airlock took the accept back |
+| `merge-acceptance-set` | `ticketId` | `state`: `accepted` by `merge accept`, or `cleared` when the ticket's queue mark went |
 | `merge-updated` | `ticketId` | `target`, `outcome`: `merged` or `conflicted`, from `merge update` |
 | `merge-started` | `jobId` | `target`, `targetTip`, `branchTip`, `predictedConflictFiles` (empty for a clean prediction): the merge job took the target's Airlock slot |
 | `merge-landed` | `jobId` | `target`, `commit`, `kind` (`landed` on the main line, `integrated` on a group branch): the Overseer's list of tips it landed |

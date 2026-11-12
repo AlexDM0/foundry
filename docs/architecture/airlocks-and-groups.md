@@ -22,8 +22,9 @@ An [Airlock](../glossary.md#airlock) is the one way onto a [target](../glossary.
 
 A target that moved costs a retry: the branch returns to its claimed commit and the ticket requeues.
 
-A conflict or a red gate goes back to the ticket's most recent agent, its reviewer or, with no review phase, its
-builder; a merge that cannot finish is refused or [parked](../glossary.md#park) for a person, never landed.
+A conflict or a red gate goes back to the ticket's last worker, read from history; a large conflict resolution is
+re-reviewed first when the merge train asks for it; a merge that cannot finish is refused or
+[parked](../glossary.md#park) for a person, never landed.
 
 Done means merged: one [lock hold](../glossary.md#lock-hold) moves the target and then makes the ticket
 [delivered](../glossary.md#delivered), and a crash between those two writes is finished later.
@@ -81,6 +82,7 @@ The phase is the Airlock's whole state machine. Each sweep runs the function for
 | --- | --- | --- |
 | `merge-in` | `runMergeIn` | `merged`, `already-descends`: `gating`<br>`conflicted`: launches an [Airlock agent](#airlock-agents), `resolving`; a refresh is refused instead<br>A merge in progress, no live [Watcher](../glossary.md#watcher): requeue `orphaned`<br>A release behind its group: refused `release-behind-group`<br>Git failure: refused `git-failed` |
 | `resolving` | `runAirlockAgent`, `settleAirlockAgent` | At its budget: refused `out-of-calls`<br>[Report](../glossary.md#report) in: see [Airlock agents](#airlock-agents)<br>No agent left: requeue `orphaned` |
+| `re-reviewing` | `runAirlockAgent`, `settleConflictReReview` | A conflict re-reviewer judges a resolution above `airlock.reReview.thresholdLines`<br>Holds: `gating`, its job waiting in `gating` as a resolver's does<br>A claim that does not hold: refused `re-review-failed`<br>No agent left: requeue `orphaned` |
 | `gating` | `runGate` | Waits while an incident names the job<br>Gate passes, or the tree is the branch's own and last passed: `landing`<br>Red: see [The merged-tree gate](#the-merged-tree-gate) |
 | `fixing` | `runAirlockAgent`, `settleAirlockAgent` | The Airlock agent fixes the red tree<br>`resolved`: phase returns to `gating`; the agent's job stays alive in its own job state `gating`, so a red gate can resume it |
 | `landing` | `runLanding` | See [Landing](#landing) |
@@ -182,10 +184,12 @@ claim launches the job, moves it to `merging`, sets phase `merge-in` and logs `m
 
 ## Airlock agents
 
-A conflict in a ticket's merge-in, or a red gate on its merged tree, goes to the ticket's most recent agent: its
-reviewer, or its builder when the pipeline has no review phase. The Airlock launches a `merge-agent` job with that
-[role](../glossary.md#role) (`airlockAgentRoleOf`) in the Airlock's worktree. It resumes the session of the ticket's
-newest ended review or build job, so the agent keeps its own record of the branch. A conflict's first message names
+A conflict in a ticket's merge-in, or a red gate on its merged tree, goes to the ticket's last worker: its newest ended
+build or review job, read from the log whatever the pipeline says now (`JobResumption.lastWorkerOf`). With none ended,
+it is the reviewer, or the builder when the pipeline has no review step. The Airlock launches a `merge-agent` job with
+that job's [role](../glossary.md#role) (`airlockAgentRoleOf`) in the Airlock's worktree. It resumes that job's session,
+so the agent keeps its own record of the branch. Merge approval changes none of this: an accepted ticket runs the same
+train. A conflict's first message names
 the target tip and the conflicted files; a red gate's is the [red handoff](../glossary.md#red-handoff) message.
 
 The agent may not ask a person: the question tool is off while the Airlock slot is held. It is bounded by the red
@@ -204,7 +208,12 @@ worktree with the ticket's Handoff and Review, as the same attempt, with its rol
 3. In phase `resolving`, `MergeRun.resolutionIsSound` fails: refused, cause `merge-unresolved`. This runs
    [Customs](../glossary.md#customs) check V10 alone: no unmerged paths, no whitespace errors in the files the report
    lists as `resolvedFiles`, and the two recorded parents.
-4. Otherwise: `gating`.
+4. In phase `resolving`, with the merge train's `airlock.reReview` set, a resolution that changed more lines than its
+   `thresholdLines` (`MergeRun.resolutionLinesOf`), or one git cannot measure: the agent ends `resolved`, a
+   `conflict-re-reviewer` starts as a fresh session, and the phase is `re-reviewing`. It reports against the reviewer
+   schema; `settleConflictReReview` runs V1 and V2 as a reviewer's and refuses `re-review-failed` while a claim does
+   not hold or proposes a waiver. A red gate after it resumes the conflict re-reviewer.
+5. Otherwise: `gating`.
 
 A group refresh has no ticket agent: a conflict in its merge-in aborts the refresh, frees the Airlock and opens a
 `merge-refused` decision to User.

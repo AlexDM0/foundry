@@ -1,10 +1,11 @@
 /**
- * The ticket's most recent agent in its Airlock, with the harness's fake gate and fake launcher. What matters: a merge-in conflict and a
- * red merged tree each go to the ticket's reviewer (its builder with no review phase) as a `merge-agent` job, never to another role; a
- * conflict hands over the conflicted files; a red gate resumes the same session until the red handoff resumes are spent, and then the merge
- * aborts, the slot frees and the ticket parks; an agent that could not resume is replaced by a fresh one of its role and attempt, which
- * spends no resume; and a group refresh, which has no ticket agent, aborts on a conflict and asks User. The folders are real; git answers
- * from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository.
+ * The ticket's last worker in its Airlock, with the harness's fake gate and fake launcher. What matters: a merge-in conflict and a red merged
+ * tree each go to the ticket's last worker from history as a `merge-agent` job of that worker's role, even after the review step left the
+ * pipeline, and with no ended worker to its reviewer (its builder with no review step); a conflict hands over the conflicted files; a red
+ * gate resumes the same session until the red handoff resumes are spent, and then the merge aborts, the slot frees and the ticket parks; an
+ * agent that could not resume is replaced by a fresh one of its role and attempt, which spends no resume; and a group refresh, which has no
+ * ticket agent, aborts on a conflict and asks User. The folders are real; git answers from the recorded answer sets of
+ * `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository.
  */
 import { afterEach, expect, test } from 'bun:test';
 
@@ -67,7 +68,24 @@ describeWhenGitIsRecorded('a merge-in conflict', () => {
     expect(launchedRoles(harness)).toEqual(['reviewer']);
   });
 
-  test('goes to the builder when the pipeline has no review phase', async () => {
+  test.each([
+    ['review', 'reviewer', false],
+    ['review', 're-reviewer', true],
+    ['build', 'builder', true],
+  ] as const)('goes to the last worker from history, a %s job\'s %s, whatever the pipeline\'s review step', async (kind, role, hasReviewPhase) => {
+    harness = createRecordedAirlocksHarness([{ id: '001' }], {}, hasReviewPhase);
+    const worker = harness.board.launchJob({
+      kind, role, ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, HARNESS_AT);
+    harness.board.endJob(worker.job.id, { outcome: kind === 'build' ? 'built' : 'reviewed' }, HARNESS_AT);
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+
+    await harness.slots.sweep();
+
+    expect(harness.mergeAgent()).toMatchObject({ kind: 'merge-agent', role });
+  });
+
+  test('goes to the builder when no worker ended and the pipeline has no review phase', async () => {
     harness = createRecordedAirlocksHarness([{ id: '001' }], {}, false);
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
 

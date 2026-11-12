@@ -2,9 +2,10 @@
  * The merge rows of the crash, reboot and update matrix: an Airlock or a refresh cut short between git and the board, and what the next sweep
  * makes of it. What matters: a landing whose fast-forward git already made finishes the board side; a merge-in left with no live holder is
  * aborted, reset to its branch tip and requeued, never two refreshes on a group at once; a live or interrupted Airlock agent keeps its slot;
- * and a target moved by hand requeues and never lands on the moved tip. The other rows are in `CrashMatrix.integration.spec.ts`. The
- * folders are real; git answers from recorded answer sets, one for each state of the repository, and a crash after a git call is the case
- * entering the set of the state that call left.
+ * a conflict re-reviewer cut short keeps the slot while it lives, is relaunched as the same attempt once replaced, and frees the slot as
+ * orphaned once it ended otherwise; and a target moved by hand requeues and never lands on the moved tip. The other rows are in
+ * `CrashMatrix.integration.spec.ts`. The folders are real; git answers from recorded answer sets, one for each state of the repository, and
+ * a crash after a git call is the case entering the set of the state that call left.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 
@@ -18,7 +19,9 @@ import {
 import {
   ancestryAsked,
   commitResolved,
+  hardResetTo,
   linkedWorktreeRead,
+  revisionMissing,
   stepIn
 } from '../../testing/RecordedAirlockGit.ts';
 import {
@@ -144,6 +147,62 @@ describe('the main-line merge rows', () => {
     expect(landed).toEqual([MERGED_TIP]);
     expect(fastForwardsAsked()).toEqual([MERGED_TIP]);
     expect(recordedGit.flowCalls()).toContainEqual(['merge', '--no-ff', '--no-edit', '--quiet', MOVED_AIRLOCK_IDS.MOVED_MAIN_TIP]);
+  });
+});
+
+describe('the conflict re-review rows', () => {
+  /** A resolution past the merge train's threshold, its conflict re-reviewer launched in the Airlock's `re-reviewing` phase. */
+  async function reReviewing(): Promise<AirlocksHarness> {
+    const current = createRecordedAirlocksHarness([CHECKOUT_TICKET], {}, true, { reReview: { thresholdLines: 50 } });
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+    await current.slots.sweep();
+    current.settings.resolutionLines = 51;
+    recordedGit.answerFrom(AirlockAnswerSets.resolvedAndMerged());
+    finishMergeAgent(current, {
+      outcome: 'resolved', resolvedFiles: ['shared.txt'], notes: '', reportKind: null
+    });
+    await current.slots.sweep();
+    return current;
+  }
+
+  test('restart during a live or interrupted conflict re-reviewer: the slot is kept in re-reviewing and no agent is launched', async () => {
+    harness = await reReviewing();
+    const reReviewerId = harness.mergeAgent()?.id ?? '';
+    harness.board.moveJob(reReviewerId, 'running', HARNESS_AT);
+    harness.board.interruptJob(reReviewerId, 'reboot', HARNESS_AT);
+
+    recordedGit.answerFrom([]);
+    await harness.slots.sweep();
+
+    expect(harness.mergeJob()?.airlock?.phase).toBe('re-reviewing');
+    expect(harness.mergeAgent()?.id).toBe(reReviewerId);
+    expect(kindsLogged(harness, 'job-launched').filter((record) => (record['fields'] as { kind: string }).kind === 'merge-agent')).toHaveLength(2);
+  });
+
+  test('a conflict re-reviewer replaced after a failed resume is relaunched as a conflict re-reviewer of the same attempt', async () => {
+    harness = await reReviewing();
+    const replaced = harness.mergeAgent();
+    harness.board.endJob(replaced?.id ?? '', { outcome: 'replaced', cause: 'resume-failed' }, HARNESS_AT);
+
+    recordedGit.answerFrom([]);
+    await harness.slots.sweep();
+
+    expect(harness.mergeAgent()).toMatchObject({ role: 'conflict-re-reviewer', attempt: replaced?.attempt });
+    expect(harness.mergeAgent()?.id).not.toBe(replaced?.id);
+    expect(harness.mergeJob()?.airlock?.phase).toBe('re-reviewing');
+  });
+
+  test('a conflict re-reviewer that ended otherwise leaves the slot orphaned: reset to the branch tip and requeued', async () => {
+    harness = await reReviewing();
+    const mergeJobId = harness.mergeJob()?.id;
+    harness.board.endJob(harness.mergeAgent()?.id ?? '', { outcome: 'stopped', cause: 'example-stop' }, HARNESS_AT);
+
+    recordedGit.answerFrom([revisionMissing('MERGE_HEAD'), ...hardResetTo(TICKET_TIP), ...AirlockAnswerSets.conflictingMergeIn('001')]);
+    await harness.slots.sweep();
+
+    expect(endedCauseOf(harness, mergeJobId)).toBe('orphaned');
+    expect(recordedGit.flowCalls()).toContainEqual(['reset', '--hard', '--quiet', TICKET_TIP]);
+    expect(harness.board.ticketIsMergeQueued('001')).toBe(true);
   });
 });
 

@@ -8,6 +8,7 @@ import { join }      from 'node:path';
 
 import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
+import type { PipelineAirlock }               from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
@@ -56,12 +57,14 @@ export interface AirlocksHarness {
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
   keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
   settings:    {
-    gateOutcome:   MergedTreeGate['outcome'];
-    reading:       MergeAgentReading;
-    watcherIsLive: boolean;
-    refDeniesHold: boolean;
+    gateOutcome:     MergedTreeGate['outcome'];
+    reading:         MergeAgentReading;
+    /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
+    resolutionLines: number | null;
+    watcherIsLive:   boolean;
+    refDeniesHold:   boolean;
     /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
-    beforeGate:    () => void;
+    beforeGate:      () => void;
   };
   worktreeOf:   (ticketId: string) => string;
   tipOf:        (branch: string) => string;
@@ -91,9 +94,14 @@ function plantedTipOf(branch: string): string {
 /**
  * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
  * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
- * The repository holds the `.git` folder a recorded common-folder answer names.
+ * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set.
  */
-export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[], limits: Partial<AirlockLimits> = {}, hasReviewPhase = true): AirlocksHarness {
+export function createRecordedAirlocksHarness(
+  tickets: readonly HarnessTicket[],
+  limits: Partial<AirlockLimits> = {},
+  hasReviewPhase = true,
+  airlock: PipelineAirlock | null = null,
+): AirlocksHarness {
   const repository = createPlantedRepository('airlocks');
   const worktreesRoot = `${repository}-worktrees`;
   for (const ticket of tickets) {
@@ -104,7 +112,12 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
     pipeline: {
-      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, ...hasReviewPhase ? { review: { name: 'Review' } } : {}
+      version: 2,
+      prepare: [],
+      gates:   [],
+      phases:  { build: [], review: [], merge: [] },
+      ...hasReviewPhase ? { review: { name: 'Review' } } : {},
+      ...airlock === null ? {} : { airlock },
     },
     tickets: tickets.map((ticket) => ({
       ...ticketFixture({
@@ -127,7 +140,12 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
   const settings: AirlocksHarness['settings'] = {
-    gateOutcome: 'passed', reading: { calls: 0, report: undefined }, watcherIsLive: false, refDeniesHold: true, beforeGate: () => undefined,
+    gateOutcome:     'passed',
+    reading:         { calls: 0, report: undefined },
+    resolutionLines: 0,
+    watcherIsLive:   false,
+    refDeniesHold:   true,
+    beforeGate:      () => undefined,
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
@@ -156,6 +174,7 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
       });
     },
     mergeAgentReadingOf: () => settings.reading,
+    resolutionLinesOf:   () => settings.resolutionLines,
     watcherIsLive:       () => settings.watcherIsLive,
     stopMergeAgent:      (job) => {
       stopped.push(job.id);

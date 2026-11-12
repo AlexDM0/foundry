@@ -700,9 +700,10 @@ things](#words-that-mean-several-things).
 
 ### merge agent
 
-A job of kind `merge-agent`, with the role of the ticket's most recent agent, `builder` or `reviewer`, working under a
-merge job (`parentJobId`). It resolves a conflict or fixes a red merged tree in the [Airlock](#airlock), and resumes
-that agent's session when it can. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
+A job of kind `merge-agent`, with the role of the ticket's last worker, `builder`, `reviewer` or `re-reviewer`, working
+under a merge job (`parentJobId`). It resolves a conflict or fixes a red merged tree in the [Airlock](#airlock), and
+resumes that worker's session when it can. A `conflict-re-reviewer` is a merge agent too: a fresh session that
+re-reviews a large conflict resolution when the merge train asks for it. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
 
 ### merge job
 

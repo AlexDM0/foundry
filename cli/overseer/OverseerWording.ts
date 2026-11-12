@@ -192,6 +192,35 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['ticke
   return [...takeover, task, '', report].join('\n');
 }
 
+/**
+ * A conflict re-reviewer reads its role's instruction files, the reviewer's brief among them, filled as a first review round's, and then
+ * what the Airlock asks of it: the merge it re-reviews, with no question to User.
+ */
+function conflictReReviewMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['tickets'][number], facts: JobLaunchFacts, airlock: AirlockFacts): string {
+  const instructions = filledTemplateOf(facts.instructions, {
+    ticketId:          ticket.id,
+    ticketTitle:       ticket.title,
+    ticketBody:        ticket.body.trim(),
+    jobId:             job.id,
+    round:             String(job.attempt),
+    checksLine:        facts.checksLine ?? NO_CHECKS_LINE,
+    callBudget:        String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
+    program:           PRODUCT_NAMES.PROGRAM,
+    mergeApprovalStep: '',
+    sandboxRefusal:    CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
+  }).trim();
+  const task = filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockReReviewMessage.md'), 'utf8'), {
+    ticketId:        ticket.id,
+    jobId:           job.id,
+    targetTip:       airlock.targetTip,
+    branchTip:       airlock.branchTip,
+    airlockWorktree: airlock.worktree,
+    conflictedFiles: airlock.conflictedFiles.map((path) => `- ${path}`).join('\n'),
+    callBudget:      String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
+  }).trim();
+  return [instructions, '', task].join('\n');
+}
+
 function incidentTextOf(incident: Readonly<Incident>): string {
   const tickets = incident.ticketIds.length === 0 ? '' : ` on #${incident.ticketIds.join(', #')}`;
   const job     = incident.jobId === null ? '' : `, job ${incident.jobId}`;
@@ -402,6 +431,9 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
   const subject = ticketsPhraseOf(job.ticketIds);
   const roleBrief = `You are the ${job.role ?? job.kind} of job ${job.id}.`;
   const [ticket] = facts.tickets;
+  if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock?.phase === 're-reviewing') {
+    return { firstMessage: conflictReReviewMessageOf(job, ticket, facts, facts.airlock), roleBrief };
+  }
   if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock !== null) {
     return { firstMessage: airlockAgentMessageOf(job, ticket, facts.airlock), roleBrief };
   }

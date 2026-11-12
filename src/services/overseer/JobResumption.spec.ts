@@ -220,8 +220,55 @@ describe('the last worker an Airlock agent stands in for', () => {
     expect(JobResumption.lastWorkerJobIdOf(afterReplaced, airlockReviewer('A2'))).toBe('J2');
   });
 
-  test('is none for a job that is no Airlock agent, and for an Airlock agent whose ticket has no ended worker of its role', () => {
+  test('is none for a job that is no Airlock agent, and for an Airlock agent whose ticket has no ended worker', () => {
     expect(JobResumption.lastWorkerJobIdOf(RECORDS, reviewJob())).toBeNull();
     expect(JobResumption.lastWorkerJobIdOf([airlockLaunch('A1')], airlockReviewer('A1'))).toBeNull();
+  });
+});
+
+// The merge train's conflict fixer is whoever last worked on the branch, read from history and never from the pipeline (PLAN 7.7).
+describe('the last worker of a ticket', () => {
+  const builderLaunch = (jobId: string): LogRecord => ({
+    at:     AT,
+    kind:   'job-launched',
+    jobId,
+    fields: {
+      kind: 'build', role: 'builder', ticketIds: ['001'], attempt: 1, target: 'main', parentJobId: null
+    }
+  });
+  const reReviewerLaunch = (jobId: string): LogRecord => ({
+    at:     AT,
+    kind:   'job-launched',
+    jobId,
+    fields: {
+      kind: 'review', role: 're-reviewer', ticketIds: ['001'], attempt: 2, target: 'main', parentJobId: null
+    }
+  });
+  const conflictReReviewer = (jobId: string): Job => reviewJob({
+    id: jobId, kind: 'merge-agent', role: 'conflict-re-reviewer', parentJobId: 'M1'
+  });
+
+  test('is the newest ended build or review job of the ticket, with the role it ran as, whatever kind ended before it', () => {
+    expect(JobResumption.lastWorkerOf([builderLaunch('J1'), ended('J1')], '001')).toEqual({ jobId: 'J1', kind: 'build', role: 'builder' });
+    expect(JobResumption.lastWorkerOf([builderLaunch('J1'), ended('J1'), launched('J2'), ended('J2'), reReviewerLaunch('J3'), ended('J3')], '001'))
+      .toEqual({ jobId: 'J3', kind: 'review', role: 're-reviewer' });
+  });
+
+  test('is none while the ticket\'s workers still run, and for another ticket', () => {
+    expect(JobResumption.lastWorkerOf([builderLaunch('J1')], '001')).toBeNull();
+    expect(JobResumption.lastWorkerOf([builderLaunch('J1'), ended('J1')], '002')).toBeNull();
+  });
+
+  test('an Airlock agent standing in for a re-reviewer resumes the re-reviewer\'s session', () => {
+    const records = [launched('J1'), ended('J1'), reReviewerLaunch('J2'), ended('J2')];
+    expect(JobResumption.sessionOwnerJobIdOf(records, reviewJob({
+      id: 'A1', kind: 'merge-agent', role: 're-reviewer', parentJobId: 'M1'
+    }))).toBe('J2');
+  });
+
+  test('a conflict re-reviewer is a fresh session of its own and stands in for no worker', () => {
+    const records = [launched('J1'), ended('J1')];
+    expect(JobResumption.sessionOwnerJobIdOf(records, conflictReReviewer('A2'))).toBe('A2');
+    expect(JobResumption.lastWorkerJobIdOf(records, conflictReReviewer('A2'))).toBeNull();
   });
 });

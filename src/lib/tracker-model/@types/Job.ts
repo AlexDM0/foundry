@@ -9,8 +9,8 @@ import type { QuestionOptionNotes } from './OptionConsequences.ts';
 export type JobKind = 'build' | 'review' | 'merge' | 'merge-agent' | 'refresh' | 'assistant' | 'product-owner' | 'pipeline-agent';
 
 /**
- * A `merge-agent` job runs as its ticket's `builder` or `reviewer`, resumed into the Airlock, or as a `conflict-re-reviewer`. A review past
- * its first round runs as a `re-reviewer`.
+ * A `merge-agent` job runs as its ticket's last worker (`builder`, `reviewer` or `re-reviewer`), resumed into the Airlock, or as a
+ * `conflict-re-reviewer`, a fresh session. A review past its first round runs as a `re-reviewer`.
  */
 export type JobRole = 'builder' | 'reviewer' | 're-reviewer' | 'conflict-re-reviewer' | 'assistant' | 'product-owner' | 'pipeline-agent';
 
@@ -63,7 +63,8 @@ export type InterruptionCause =
   | 'forced-stop-refused'
   | 'authentication-failed';
 
-export type AirlockPhase = 'merge-in' | 'resolving' | 'gating' | 'fixing' | 'landing';
+/** `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`. */
+export type AirlockPhase = 'merge-in' | 'resolving' | 're-reviewing' | 'gating' | 'fixing' | 'landing';
 
 export interface Airlock {
   target:    string;

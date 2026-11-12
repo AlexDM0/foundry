@@ -18,6 +18,7 @@ import type {
   InterruptionCause,
   Job,
   JobKind,
+  JobRole,
   PictureReference
 }                                                              from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordFieldsOf }                   from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -169,44 +170,67 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pic
   return sessionOwnerByJobId.get(job.id) ?? job.id;
 }
 
+/** The ticket's newest ended build or review job, whichever the pipeline says now: the worker that last changed the branch's code. */
+export interface LastWorker {
+  jobId: string;
+  kind:  Extract<JobKind, 'build' | 'review'>;
+  role:  JobRole;
+}
+
+/**
+ * Read from history, never from the pipeline, so a review step removed since still gives the reviewer. A conflict re-reviewer is never
+ * the last worker of a later merge: a freed Airlock slot puts the branch back at its own tip, so its fixes are gone with the merge.
+ */
+function lastWorkerOf(logRecords: readonly LogRecord[], ticketId: string): LastWorker | null {
+  const launchedWorkers = new Map<string, Omit<LastWorker, 'jobId'>>();
+  let lastWorker: LastWorker | null = null;
+  for (const record of logRecords) {
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) && record.fields.role !== null) {
+      const { kind, role } = record.fields;
+      if (kind === 'build' || kind === 'review') launchedWorkers.set(record.jobId, { kind, role });
+    }
+    if (record.kind !== 'job-ended') continue;
+    const launched = launchedWorkers.get(record.jobId);
+    if (launched !== undefined) lastWorker = { jobId: record.jobId, ...launched };
+  }
+  return lastWorker;
+}
+
 interface AirlockAgentPredecessors {
-  /** The ticket's newest ended job of the agent's role launched before it: its build or review job. */
-  newestWorker:       string | null;
+  /** The ticket's last worker as the agent's launch found it: its build or review job. `null` for a conflict re-reviewer, a session of its own. */
+  newestWorker:       LastWorker | null;
   siblingWasReplaced: boolean;
 }
 
 function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): AirlockAgentPredecessors {
-  const ownerKind: JobKind = job.role === 'builder' ? 'build' : 'review';
-  const ownerJobIds   = new Set<string>();
+  const ownLaunch = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
+  const before    = ownLaunch === -1 ? logRecords : logRecords.slice(0, ownLaunch);
   const siblingJobIds = new Set<string>();
-  let newestWorker: string | null = null;
   let siblingWasReplaced = false;
-  for (const record of logRecords) {
-    if (record.kind === 'job-launched' && record.jobId === job.id) break;
-    const sharesTheTicket = record.kind === 'job-launched' && record.fields.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId));
-    if (record.kind === 'job-launched' && record.fields.kind === ownerKind && sharesTheTicket) ownerJobIds.add(record.jobId);
+  for (const record of before) {
     if (record.kind === 'job-launched' && job.parentJobId !== null && record.fields.parentJobId === job.parentJobId) siblingJobIds.add(record.jobId);
-    if (record.kind === 'job-ended' && ownerJobIds.has(record.jobId)) newestWorker = record.jobId;
     if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
   }
+  const [ticketId] = job.ticketIds;
+  const newestWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(before, ticketId);
   return { newestWorker, siblingWasReplaced };
 }
 
 /**
- * An Airlock agent carries on the session of its ticket's newest ended job of its role: the reviewer's, or the builder's (itself perhaps
- * carried on). After an Airlock agent of the same merge job ended `replaced`, or with no such job, it is a fresh session of its own.
+ * An Airlock agent carries on the session of its ticket's last worker: the reviewer's, or the builder's (itself perhaps carried on). After
+ * an Airlock agent of the same merge job ended `replaced`, with no last worker, or as a conflict re-reviewer, it is a fresh session of its own.
  */
 function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
   const { newestWorker, siblingWasReplaced } = airlockAgentPredecessorsOf(logRecords, job);
   if (siblingWasReplaced || newestWorker === null) return job.id;
   return sessionOwnerJobIdOf(logRecords, {
-    id: newestWorker, kind: job.role === 'builder' ? 'build' : 'review', role: job.role, ticketIds: job.ticketIds, parentJobId: null
+    id: newestWorker.jobId, kind: newestWorker.kind, role: newestWorker.role, ticketIds: job.ticketIds, parentJobId: null
   });
 }
 
 /** The last worker an Airlock agent stands in for, whose launch pair it takes, even as a fresh session; `null` for every other job. */
 function lastWorkerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId'>>): string | null {
-  return job.kind === 'merge-agent' ? airlockAgentPredecessorsOf(logRecords, job).newestWorker : null;
+  return job.kind === 'merge-agent' ? airlockAgentPredecessorsOf(logRecords, job).newestWorker?.jobId ?? null : null;
 }
 
 /** The `## Review <round>` section a builder resumed after its review is sent: the newest one in the ticket's body. */
@@ -376,6 +400,7 @@ export const JobResumption = Object.freeze({
   earlierSessionWasReplaced,
   sessionOwnerJobIdOf,
   lastWorkerJobIdOf,
+  lastWorkerOf,
   newestReviewSectionOf,
   redHandoffTakenOverOf,
   staleGreenSessionOwnerOf,

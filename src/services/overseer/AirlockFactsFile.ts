@@ -7,6 +7,10 @@ import { join }                                from 'node:path';
 
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import { unmergedPathsIn }     from '../../lib/git/BranchMerge.ts';
+import type { AirlockPhase }   from '../../lib/tracker-model/@types/Job.ts';
+
+/** The Airlock phases an agent works in: resolving a conflict, re-reviewing a large resolution, or fixing a red merged tree. */
+export type AirlockAgentPhase = Extract<AirlockPhase, 'resolving' | 're-reviewing' | 'fixing'>;
 
 export type AirlockConflictReading = { verdict: 'known'; conflictedFiles: string[] } | { verdict: 'unknown' };
 
@@ -39,7 +43,7 @@ function keptConflictsOf(mergeJobFolder: string): KeptConflictReading {
  */
 function conflictedFilesOf(
   mergeJobFolder: string,
-  phase: 'resolving' | 'fixing',
+  phase: AirlockAgentPhase,
   airlockWorktree: string,
   unmergedPathsOf: (worktreePath: string) => string[] | null = unmergedPathsIn,
 ): AirlockConflictReading {

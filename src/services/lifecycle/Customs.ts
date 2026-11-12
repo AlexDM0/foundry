@@ -26,7 +26,10 @@ import { TicketBodyHashUtil }                                                   
 import { PRODUCT_NAMES }                                                              from '../../shared/constants/ProductNames.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
-/** `airlock-agent` is a builder or reviewer resumed into the Airlock for a conflict or a red merged tree. */
+/**
+ * `airlock-agent` is the ticket's last worker resumed into the Airlock for a conflict or a red merged tree; a conflict re-reviewer in the
+ * Airlock is verified as a `reviewer`.
+ */
 export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-agent';
 
 /** The roles that end with a report: the pipeline agent is a session, verified at each turn end with no report. */

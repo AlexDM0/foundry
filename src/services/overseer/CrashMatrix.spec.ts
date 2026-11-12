@@ -66,6 +66,7 @@ import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker
 import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
+import { AirlockFactsFile }                                     from './AirlockFactsFile.ts';
 import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
 import { IntakeSessions }                                       from './IntakeSessions.ts';
@@ -488,7 +489,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     overseerLog        = [];
     mkdirSync(sessionWorkspace.ticketsDirectory, { recursive: true });
     writeReadableTracker(sessionWorkspace);
-    const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
+    const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'conflictReReviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
     for (const path of instructionDefaults) {
       mkdirSync(join(repository, path, '..'), { recursive: true });
       writeFileSync(join(repository, path), 'Example instructions.\n');
@@ -775,6 +776,37 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     });
     await passOnce(await startedOverseer(adapter));
     expect(plans.get(airlockAgentJobId)).toEqual({ reportTitle: 'airlock agent report', askUser: false });
+  });
+
+  test('a conflict re-reviewer launches bound to the reviewer report schema while it re-reviews, with the question tool disallowed', async () => {
+    const plans = new Map<string, { reportTitle: unknown; askUser: boolean }>();
+    const adapter: AgentAdapter = {
+      ...fakeAgentAdapter(),
+      planOf(request) {
+        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        return fakeAgentAdapter(WAITING_STEPS).planOf(request);
+      },
+    };
+    let reReviewerJobId = '';
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        const mergeJob = change.board.launchJob({
+          kind: 'merge', role: null, ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job;
+        change.board.setJobSlot(mergeJob.id, {
+          target: 'main', targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), phase: 're-reviewing'
+        });
+        AirlockFactsFile.keep(sessionJobFolder(mergeJob.id), { conflictedFiles: 'shared.txt' });
+        reReviewerJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'conflict-re-reviewer', ticketIds: ['001'], parentJobId: mergeJob.id, attempt: 1, target: 'main',
+        }, change.at).job.id;
+      },
+    });
+    await passOnce(await startedOverseer(adapter));
+    expect(plans.get(reReviewerJobId)).toEqual({ reportTitle: 'reviewer report', askUser: false });
   });
 
   test('an Airlock agent launches under its role\'s profile in the Airlock: the target ref denied, the git verbs allowed, no network', async () => {

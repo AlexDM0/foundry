@@ -382,7 +382,8 @@ forge oversee status
 | Phase | Who you wait for | If it does not move |
 | --- | --- | --- |
 | `merge-in` | The Overseer's git step | A failure opens `merge-refused`. |
-| `resolving` | The ticket's [reviewer](../glossary.md#reviewer), or its builder with no review phase, resumed as a [merge agent](../glossary.md#merge-agent) | Its budget ends it. `merge-refused` opens. |
+| `resolving` | The ticket's last worker, its newest ended builder or [reviewer](../glossary.md#reviewer), resumed as a [merge agent](../glossary.md#merge-agent) | Its budget ends it. `merge-refused` opens. |
+| `re-reviewing` | A conflict re-reviewer of a resolution larger than the merge train's threshold | Its budget ends it, or a claim that does not hold refuses the merge: `merge-refused` opens. |
 | `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `forge gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
 | `fixing` | The same merge agent, resumed with the red handoff | Red past its resumes aborts and parks. |
 | `landing` | The compare-and-swap | See the table below. |

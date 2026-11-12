@@ -11,11 +11,12 @@ import {
   type MergeOutcome,
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
-import { GitProcess }                from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }              from '../../lib/git/GitWorktrees.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE } from '../../lib/git/constants/GitConventions.ts';
-import type { Job, Airlock }         from '../../lib/tracker-model/@types/Job.ts';
-import { CUSTOMS_CHECKS }            from './Customs.ts';
+import { GitProcess }                     from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                   from '../../lib/git/GitWorktrees.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE }      from '../../lib/git/constants/GitConventions.ts';
+import type { Job, Airlock }              from '../../lib/tracker-model/@types/Job.ts';
+import type { VerificationRefusalReason } from './Customs.ts';
+import { CUSTOMS_CHECKS }                 from './Customs.ts';
 
 /** The commit the slot worktree starts from, its merge's first parent, and the one merged into it, its second. */
 export interface MergeSides {
@@ -108,6 +109,35 @@ function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, co
   }).verdict === 'passed';
 }
 
+/** A claim the conflict re-reviewer could not make hold: the Airlock cannot ask User for a waiver, so either one refuses the merge. */
+const CLAIM_RESULTS_REFUSING_A_RE_REVIEW: readonly unknown[] = ['does-not-hold', 'waiver-proposed'];
+
+export type ReReviewVerdict =
+  | { verdict: 'holds' }
+  | { verdict: 'customs-refused'; reason: VerificationRefusalReason; facts: readonly string[] }
+  | { verdict: 'claims-refused'; acceptanceItems: readonly string[] };
+
+function claimsOf(report: unknown): readonly Readonly<Record<string, unknown>>[] {
+  const claims = typeof report === 'object' && report !== null && Object.hasOwn(report, 'claims') ? (report as { claims: unknown }).claims : null;
+  return Array.isArray(claims) ? claims.filter((claim): claim is Record<string, unknown> => typeof claim === 'object' && claim !== null) : [];
+}
+
+/**
+ * The conflict re-reviewer's report, judged by the reviewer column's checks the Airlock can run: a valid reviewer report naming HEAD (V1)
+ * and HEAD descending from the resolution it reviewed (V2); then every claim holds after its fixes.
+ */
+function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, report: unknown): ReReviewVerdict {
+  const subject = {
+    role: 'reviewer', worktreePath, startCommit: resolutionCommit, report, ticketBody: '', bodyHashAtLaunch: ''
+  } as const;
+  for (const check of [CUSTOMS_CHECKS.V1, CUSTOMS_CHECKS.V2]) {
+    const verdict = check(subject);
+    if (verdict.verdict === 'refused') return { verdict: 'customs-refused', reason: verdict.reason, facts: verdict.facts };
+  }
+  const acceptanceItems = claimsOf(report).filter((claim) => CLAIM_RESULTS_REFUSING_A_RE_REVIEW.includes(claim['result'])).map((claim) => String(claim['item']));
+  return acceptanceItems.length === 0 ? { verdict: 'holds' } : { verdict: 'claims-refused', acceptanceItems };
+}
+
 /** The lines the merge commit at HEAD changed against git's automatic merge of its parents; `null` when git cannot tell. */
 function resolutionLinesOf(worktreePath: string): number | null {
   const reading = readMergeResolutionDiff(worktreePath, 'HEAD');
@@ -120,6 +150,7 @@ export const MergeRun = Object.freeze({
   headOf,
   mergeInOnce,
   mergeIsInProgress,
+  reReviewVerdictOf,
   resolutionIsSound,
   resolutionLinesOf,
   restoreBranchTip,

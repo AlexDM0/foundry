@@ -41,12 +41,13 @@ import {
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
 import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
+import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
 import { GROUP_TARGET_PREFIX }                                 from '../lifecycle/MergeTargets.ts';
 import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                      from '../tracker/Workspace.ts';
-import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
+import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
 import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
@@ -150,12 +151,12 @@ export interface ReviewFindingsFacts {
   targetCatchUp?: TargetCatchUpHandover | null;
 }
 
-/** What an Airlock agent is sent in for: the conflict of the merge-in, or the red gate on the merged tree. */
+/** What an Airlock agent is sent in for: the conflict of the merge-in, the re-review of its resolution, or the red gate on the merged tree. */
 export interface AirlockFacts {
   worktree:        string;
   branchTip:       string;
   targetTip:       string;
-  phase:           'resolving' | 'fixing';
+  phase:           AirlockAgentPhase;
   conflictedFiles: readonly string[];
   /** The newest red gate on the merged tree; `null` before one. */
   redHandoff:      RedHandoffFacts | null;
@@ -323,6 +324,18 @@ const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
   'review':      REVIEWER_REPORT_SCHEMA,
   'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
 };
+
+/** The Airlock phase an agent is launched or resumed in, read from its merge job's slot. */
+function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhase {
+  const phase = board.jobs().find((candidate) => candidate.id === job.parentJobId)?.airlock?.phase;
+  return phase === 'fixing' || phase === 're-reviewing' ? phase : 'resolving';
+}
+
+/** A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. */
+function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
+  if (job.kind === 'merge-agent' && airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
+  return REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null;
+}
 
 function fileTextOrEmpty(filePath: string): string {
   try {
@@ -623,7 +636,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
-  const phase          = mergeJob?.airlock?.phase === 'fixing' ? 'fixing' : 'resolving';
+  const phase          = airlockAgentPhaseOf(board, job);
   const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, workingDirectory);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   return {
@@ -766,7 +779,7 @@ function launchWatcher(
     profile:           launchProfileOf(jobLaunchContext, board, job, workingDirectory, hatchDirectory),
     confinement:       launchFacts.confinement,
     jobFilesDirectory: jobFolder,
-    reportSchema:      REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null,
+    reportSchema:      reportSchemaOf(board, job),
     ...(billing === undefined ? {} : { billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
@@ -1007,6 +1020,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       };
     },
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
+    resolutionLinesOf:   MergeRun.resolutionLinesOf,
     watcherIsLive:       (job) => {
       const jobFolder = WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id);
       return WatcherFleet.livenessOf(platformPorts, jobFolder, job.watcherInstance).verdict === 'live';
