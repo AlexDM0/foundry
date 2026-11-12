@@ -10,6 +10,7 @@ import { hostGuardVerdictFor }                                                  
 import { originGuardVerdictFor }                                                                   from '../../lib/local-http-guards/OriginGuard.ts';
 import { createSessionCodes, type SessionCodes }                                                   from '../../lib/local-http-guards/SessionCodes.ts';
 import { bearerTokenMatches }                                                                      from '../../lib/local-http-guards/TokenCheck.ts';
+import { monotonicMillisecondsOfNow }                                                              from '../../services/Clock.ts';
 import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
 import type { WatchTimers }                                                                        from '../../services/ForgeWatch.ts';
 import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
@@ -34,7 +35,7 @@ export interface PageServerOptions {
   /** The stamp the server record carries: recorded for a reader to show, never compared. */
   readonly now:                             () => string;
   readonly processId:                       number;
-  /** Milliseconds on a monotonic clock for a session code's life; `performance.now()` when not given. */
+  /** Milliseconds on a monotonic clock for a session code's life; the clock's own when not given. */
   readonly monotonicNow?:                   () => number;
   readonly heartbeatIntervalMilliseconds?:  number;
   readonly healthProbeTimeoutMilliseconds?: number;
@@ -220,7 +221,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   const url  = urlOfPort(port);
   const context: RouteContext = {
     broker,
-    sessionCodes: createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? (() => performance.now()) }),
+    sessionCodes: createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
     token:        tokenWrite.token,
     options,
   };

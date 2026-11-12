@@ -60,7 +60,7 @@ export default [
   { files: TYPESCRIPT_FILES, rules: confinedReachRules(null) },
   ...CONFINED_REACH_SITES.map((site) => ({ files: [site], rules: confinedReachRules(site) })),
   {
-    // The wall clock is read in one module, as the environment is, and handed to every other as an injected `now`.
+    // The clock is read in one module, as the environment is, and handed to every other as an injected `now`.
     files:   ['src/**/*.ts'],
     ignores: [...SPECS_AND_TESTING_FOLDERS, 'src/services/Clock.ts'],
     rules:   {
@@ -68,6 +68,7 @@ export default [
         'error',
         { selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']", message: CLOCK_MESSAGE },
         { selector: "NewExpression[callee.name='Date'][arguments.length=0]", message: CLOCK_MESSAGE },
+        { selector: "CallExpression[callee.object.name='performance'][callee.property.name='now']", message: CLOCK_MESSAGE },
       ],
     },
   },
