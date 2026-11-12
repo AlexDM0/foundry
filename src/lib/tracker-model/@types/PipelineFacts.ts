@@ -123,6 +123,18 @@ export interface ResolvedInstructionEntry {
   textIsCut:   boolean;
 }
 
+/**
+ * What a double-click or Enter on a node opens: an agent step's dialog, the review or merge step's dialog (a `-re-review` target focuses
+ * its re-review section), or the gates area at the node's phase tab. A node with no target opens nothing.
+ */
+export type PipelineNodeDialogTarget =
+  | 'agent-step'
+  | 'review-step'
+  | 'review-step-re-review'
+  | 'merge-step'
+  | 'merge-step-re-review'
+  | 'gates-tab';
+
 export interface PipelineGateChip {
   gateName: string;
   mark:     PipelineNodeMark;
@@ -147,6 +159,7 @@ export interface PipelineFlowNode {
   switchState:        PipelineSwitchState | null;
   gateChips:          PipelineGateChip[];
   mark:               PipelineNodeMark;
+  dialogTarget:       PipelineNodeDialogTarget | null;
   questionIds:        string[];
 }
 

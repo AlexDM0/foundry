@@ -19,6 +19,7 @@ import type {
   PipelineFlowStage,
   PipelineGateRow,
   PipelineInsertSlot,
+  PipelineNodeDialogTarget,
   PipelineNodeMark,
   PipelineOccupant,
   PipelineSetupFacts,
@@ -162,8 +163,28 @@ function defaultBriefEntry(role: PipelineAgentRole, readByRoles: PipelineAgentRo
   };
 }
 
+/** The node-to-dialog table of PLAN 9.1, as the Overseer's flow graph applies it. */
+function exampleDialogTargetOf(node: Partial<PipelineFlowNode> & Pick<PipelineFlowNode, 'nodeKind'>): PipelineNodeDialogTarget | null {
+  switch (node.nodeKind) {
+    case 'ticket-creation':
+    case 'builder':
+      return 'agent-step';
+    case 'review':
+      return 'review-step';
+    case 're-review':
+      return node.role === 'reReviewer' ? 'review-step-re-review' : 'merge-step-re-review';
+    case 'merge-main-into-tree':
+      return node.mergePlacement === 'before-review' ? null : 'merge-step';
+    case 'gates':
+      return 'gates-tab';
+    default:
+      return null;
+  }
+}
+
 function exampleNode(changes: Partial<PipelineFlowNode> & Pick<PipelineFlowNode, 'nodeId' | 'nodeKind'>): PipelineFlowNode {
   return {
+    dialogTarget:       exampleDialogTargetOf(changes),
     role:               null,
     settings:           null,
     instructionEntries: [],
