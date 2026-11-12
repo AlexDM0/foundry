@@ -1,5 +1,13 @@
 /** The fields of the Overseer's `BoardState` (`GET /api/state`, the `board` event) the shell reads; each view adds the fields it uses. */
-import type { DraftState }      from '../../src/lib/tracker-model/@types/Draft.ts';
+import type { DraftState } from '../../src/lib/tracker-model/@types/Draft.ts';
+import type { LogRecord }  from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type {
+  AppliedPipelineFacts,
+  GateProfileRunFacts,
+  PipelineChoices,
+  PipelineFlowFacts,
+  PipelineSetupFacts
+} from '../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { TimestampSlices } from '../utils/TimeUtil.ts';
 
 export interface IdentifiedRecord {
@@ -40,9 +48,19 @@ export interface LaunchSlotsDocument {
   readonly inProgressTicketIdsWithoutJob: readonly string[];
 }
 
+/** The newest observation of one usage window the plan has, such as `five_hour` or `seven_day`. */
+export interface UsageWindowDocument {
+  readonly window:      string;
+  /** Percent of the window used, 0 to 100. */
+  readonly utilization: number;
+  readonly resetsAt:    string | null;
+}
+
 export interface UsageDocument {
   readonly resetsAt: string | null;
   readonly window:   string | null;
+  /** Empty or missing before the first observation and under API billing. */
+  readonly windows?: readonly UsageWindowDocument[];
 }
 
 export interface TaskDocument {
@@ -134,19 +152,28 @@ export interface MergeQueueDocument {
 
 /** The views' slices are optional, so a board from an older Overseer, or a spec's, shows them empty rather than failing. */
 export interface BoardStateDocument {
-  readonly project:      string;
-  readonly jobs:         readonly IdentifiedRecord[];
-  readonly decisions:    readonly IdentifiedRecord[];
-  readonly incidents:    readonly IdentifiedRecord[];
-  readonly overseer:     OverseerFactsDocument;
-  readonly usage:        unknown;
-  readonly notices?:     readonly NoticeDocument[];
-  readonly concurrency?: ConcurrencyDocument;
-  readonly launchSlots?: LaunchSlotsDocument;
+  readonly project:          string;
+  readonly jobs:             readonly IdentifiedRecord[];
+  readonly decisions:        readonly IdentifiedRecord[];
+  readonly incidents:        readonly IdentifiedRecord[];
+  readonly overseer:         OverseerFactsDocument;
+  readonly usage:            unknown;
+  readonly notices?:         readonly NoticeDocument[];
+  readonly concurrency?:     ConcurrencyDocument;
+  readonly launchSlots?:     LaunchSlotsDocument;
   /** The value `status --json` prints as `confinement`. */
-  readonly confinement?: 'confined' | 'unavailable' | 'unconfined-by-design';
-  readonly page?:        PageDocument;
-  readonly mergeQueue?:  MergeQueueDocument;
+  readonly confinement?:     'confined' | 'unavailable' | 'unconfined-by-design';
+  readonly page?:            PageDocument;
+  readonly mergeQueue?:      MergeQueueDocument;
+  readonly pipeline?:        AppliedPipelineFacts;
+  /** Null with no open setup, update or advise record. */
+  readonly pipelineSetup?:   PipelineSetupFacts | null;
+  /** Null with neither a draft nor a readable pipeline to draw. */
+  readonly pipelineFlow?:    PipelineFlowFacts | null;
+  readonly profileRuns?:     readonly GateProfileRunFacts[];
+  /** The newest pipeline records, newest first, for the live view's "Earlier" list. */
+  readonly pipelineHistory?: readonly LogRecord[];
+  readonly pipelineChoices?: PipelineChoices;
 }
 
 /** `GET /api/identity`: what the Bridge needs to key its preferences and to notice new code behind the same port. */

@@ -1,0 +1,255 @@
+/**
+ * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
+ * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
+ */
+import type { JobState } from './Job.ts';
+import type {
+  GatePhase,
+  InstructionEntry,
+  Pipeline,
+  PipelineAgentRole
+} from './Pipeline.ts';
+import type {
+  ApplyRequest,
+  PipelineDraftField,
+  PipelineSetup,
+  SourceAnnotation
+} from './PipelineSetup.ts';
+import type { AgentEffort, AgentModel, AgentPair } from './Ticket.ts';
+
+export type PipelineReadingVerdict = 'absent' | 'readable' | 'older' | 'malformed';
+
+/** The newest Apply, from its `pipeline-applied` record. */
+export interface PipelineApplication {
+  /** 1 for the first Apply, then one more for each. */
+  appliedRevision:    number;
+  appliedAt:          string;
+  appliedBy:          'user';
+  /** The constitution commit that Apply landed on main; null when it made none. */
+  constitutionCommit: string | null;
+}
+
+export type AppliedPipelineFacts =
+  | { readingVerdict: 'absent' }
+  | { readingVerdict: 'older'; fileText: string }
+  | { readingVerdict: 'malformed'; reason: string; fileText: string }
+  | {
+    readingVerdict: 'readable';
+    pipeline:       Pipeline;
+    contentHash:    string;
+    /** The stored text, for "View pipeline.json". */
+    fileText:       string;
+    /** Null for a pipeline the `gate` verbs alone wrote. */
+    application:    PipelineApplication | null;
+  };
+
+/** What A0bResume summarises each step with, as counts. */
+export interface PipelineSetupSummary {
+  stackItemCount:        number;
+  scriptCount:           number;
+  answeredQuestionCount: number;
+  prepareStepCount:      number;
+  gateCountByPhase:      Record<GatePhase, number>;
+  /** The draft edits by User that are not undone. */
+  userEditsKeptCount:    number;
+}
+
+/** The `##` lines and the top-level `-` items of the constitution's markdown. */
+export interface ConstitutionOutline {
+  sectionCount: number;
+  ruleCount:    number;
+}
+
+/** An annotation with the zero-based index of the markdown line it anchors to. */
+export interface ResolvedSourceAnnotation extends SourceAnnotation {
+  lineIndex: number;
+}
+
+/** The pending Apply, with what holds it: the files that block the main checkout and the ticket whose Airlock holds main. */
+export interface ApplyStateFacts extends ApplyRequest {
+  blockingFiles:       string[];
+  ticketIdHoldingMain: string | null;
+}
+
+export interface PipelineSetupFacts {
+  record:              PipelineSetup;
+  summary:             PipelineSetupSummary;
+  openQuestionCount:   number;
+  /** Null when no agent job is on the board: it ended, or none started. */
+  agentJobState:       JobState | null;
+  /** Main's commits since the snapshot; computed on each read, never stored. */
+  mainMovedByCommits:  number;
+  /** Rendered by the server from the constitution's markdown; null with no constitution. */
+  constitutionHtml:    string | null;
+  constitutionOutline: ConstitutionOutline | null;
+  annotations:         ResolvedSourceAnnotation[];
+  /** The roles whose instruction lists hold the constitution. */
+  readByRoles:         PipelineAgentRole[];
+  applyState:          ApplyStateFacts | null;
+}
+
+export type PipelineNodeKind =
+  | 'ticket-creation'
+  | 'human-ticket-review'
+  | 'builder'
+  | 'gates'
+  | 'review'
+  | 're-review'
+  | 'merge-main-into-tree'
+  | 'human-code-review'
+  | 'ready-for-airlock'
+  | 'airlock'
+  | 'fast-forward-main';
+
+/** `proposed` while the agent's proposal is not applied; `changed`, `new` and `removed` against the applied pipeline while editing. */
+export type PipelineNodeMark = 'unchanged' | 'proposed' | 'changed' | 'new' | 'removed';
+
+/** Where a merge of main into the ticket's tree sits: before review (Q5), before User's code review, or in the merge train. */
+export type MergePlacement = 'before-review' | 'before-human-code-review' | 'airlock';
+
+/** Whose model and effort a merge step's derived meter shows: the ticket's last worker, or the builder. */
+export type DerivedSettingsSource = 'last-worker' | 'builder';
+
+export type PipelineSwitchState = 'on' | 'off';
+
+/** One row of an agent step's instruction list, resolved to the file it reads. */
+export interface ResolvedInstructionEntry {
+  entry:       InstructionEntry;
+  fileName:    string;
+  /** The roles whose lists hold this entry. */
+  readByRoles: PipelineAgentRole[];
+  /** The file's text read on main, cut at the preview limit; null when the file is not there. */
+  text:        string | null;
+  textIsCut:   boolean;
+}
+
+export interface PipelineGateChip {
+  gateName: string;
+  mark:     PipelineNodeMark;
+}
+
+export interface PipelineFlowNode {
+  nodeId:             string;
+  nodeKind:           PipelineNodeKind;
+  role:               PipelineAgentRole | null;
+  /** The resolved model and effort of an agent step, or the derived pair of a merge step; null on other nodes. */
+  settings:           AgentPair | null;
+  instructionEntries: ResolvedInstructionEntry[];
+  derivedFrom:        DerivedSettingsSource | null;
+  /** Only on a `merge-main-into-tree` node. */
+  mergePlacement:     MergePlacement | null;
+  /** Only on a `gates` node. */
+  phase:              GatePhase | null;
+  conditional:        boolean;
+  /** Only on a conditional re-review node. */
+  thresholdLines:     number | null;
+  /** Only on a switch node: Human ticket review and Human code review. */
+  switchState:        PipelineSwitchState | null;
+  gateChips:          PipelineGateChip[];
+  mark:               PipelineNodeMark;
+  questionIds:        string[];
+}
+
+export type PipelineEdgeTone = 'forward' | 'rollback' | 'loop';
+
+/** The label of an edge, worded by the Bridge; `null` draws no label. */
+export type PipelineEdgeLabelKind =
+  | 'all-green'
+  | 'red-builder-fixes'
+  | 'conflict-or-red-builder-fixes'
+  | 'red-reviewer-fixes'
+  | 'red-last-worker-fixes'
+  | 'gates-again-after-re-review';
+
+export interface PipelineFlowEdge {
+  edgeId:    string;
+  from:      string;
+  to:        string;
+  tone:      PipelineEdgeTone;
+  labelKind: PipelineEdgeLabelKind | null;
+  /** On the path a ticket takes now; the live flow animates it. */
+  active:    boolean;
+}
+
+export type PipelineInsertableStep =
+  | 'build-gates'
+  | 'review'
+  | 'human-code-review'
+  | 'review-gates'
+  | 're-review'
+  | 'merge-gates'
+  | 'airlock-re-review';
+
+/** A + where a step is missing; the steps that fit on one line share one slot. */
+export interface PipelineInsertSlot {
+  slotId:       string;
+  after:        string;
+  offeredSteps: PipelineInsertableStep[];
+}
+
+export type PipelineOccupantKind = 'ticket' | 'draft';
+
+/** A ticket, or a filing draft being written, on the node of its current step. */
+export interface PipelineOccupant {
+  occupantKind: PipelineOccupantKind;
+  occupantId:   string;
+  nodeId:       string;
+  jobId:        string | null;
+  since:        string;
+}
+
+export type PipelineGateRowKind = 'prepare' | 'gate';
+
+/** One row of a phase's tab in the gates area; prepare rows come first. */
+export interface PipelineGateRow {
+  rowKind:      PipelineGateRowKind;
+  name:         string;
+  run:          string;
+  fix:          string | null;
+  in:           string | null;
+  network:      string[];
+  /** The other phases the gate runs in; empty for a prepare row. */
+  alsoInPhases: GatePhase[];
+  mark:         PipelineNodeMark;
+}
+
+export type PipelineChangeKind = 'changed' | 'new' | 'removed';
+
+/** One row of the change list between the applied pipeline (or the minimal one) and the draft. */
+export interface PipelineChange {
+  field:      PipelineDraftField;
+  changeKind: PipelineChangeKind;
+  /** The newest edit that is not undone on this field; Undo sends it. Null when no edit made the change. */
+  editId:     string | null;
+}
+
+export type PipelineFlowStage = 'proposal' | 'live' | 'editing';
+
+export interface PipelineFlowFacts {
+  nodes:             PipelineFlowNode[];
+  edges:             PipelineFlowEdge[];
+  insertSlots:       PipelineInsertSlot[];
+  occupants:         PipelineOccupant[];
+  gateRows:          Record<GatePhase, PipelineGateRow[]>;
+  changeList:        PipelineChange[];
+  ticketIdsInFlight: string[];
+  toolbarStage:      PipelineFlowStage;
+}
+
+export type GateProfileRunState = 'queued' | 'running' | 'passed' | 'red' | 'cannot-run' | 'timed-out' | 'stopped';
+
+/** The newest profile run of one gate in one phase; a run starts only on User's press. */
+export interface GateProfileRunFacts {
+  profileRunId:        string;
+  gateName:            string;
+  phase:               GatePhase;
+  state:               GateProfileRunState;
+  /** Recorded and shown only; null until the run started. */
+  elapsedMilliseconds: number | null;
+}
+
+/** Every model and effort a step may take, in order; an effort's meter level is its position plus one. */
+export interface PipelineChoices {
+  models:  AgentModel[];
+  efforts: AgentEffort[];
+}
