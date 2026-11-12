@@ -3,7 +3,8 @@
  * sits under :root[data-theme="dark"], which the shell sets before the first paint. `gaia.css` reads only these custom properties.
  */
 :root {
-  color-scheme: light dark;
+  /* The default values are the light ones, so the browser's own controls and scrollbars are drawn light too, whatever the system theme. */
+  color-scheme: light;
 
   --sp-half: 2px;
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
@@ -79,7 +80,6 @@
   --backdrop:       oklch(0.24 0.02 265 / 0.32);
 }
 
-:root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
 
