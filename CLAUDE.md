@@ -354,10 +354,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
   plain `.spec.ts` in the main run; its behaviour is held by `.dom.tsx` specs, never a frozen markup table. A pure
   util several views use lives in `bridge/utils/` (chip parts in `bridge/chips/`), with its spec.
-- The Pipeline view is `bridge/views/pipeline/`. It is the one view with subfolders: `setup/`, `agent-panel/`,
-  `flow/`, `gates/`, `dialogs/`, `apply/`, `editing/` and `live/`. Each subfolder keeps the logic of its components in
-  pure `*Model.ts` files. `PipelineViewModel.screenOf` selects the screen from the pipeline facts of the board and the
-  route: a setup step, the resume summary, the live flow or the editing flow.
+- The Pipeline view is `bridge/views/pipeline/`. Its components are in one subfolder for each part: `setup/`,
+  `agent-panel/`, `flow/`, `gates/`, `dialogs/`, `apply/`, `editing/` and `live/`. Each subfolder keeps the logic of its
+  components in pure `*Model.ts` files. `PipelineViewModel.screenOf` selects the screen from the pipeline facts of the
+  board and the route: a setup step, the resume summary, the live flow or the editing flow.
 - While the board has no readable `pipeline.json`, the Bridge shows only the Pipeline tab
   (`bridge/shell/HashRouter.ts`). The header then shows the setup stepper in place of the statistics, the Overseer
   controls and the tabs (`setupSteps` in `bridge/shell/HeaderModel.ts`). A done step links back to its route.
@@ -389,9 +389,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - No agent preloads a skill, and nothing installs a worker definition. An Overseer's roles read the instruction files
   `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
   fixed prompts under `resources/prompts/`.
-- The pipeline agent loads no skill. Only `pipeline setup`, `pipeline update` and `advise` start one; the Overseer
-  starts none by itself. Its instructions are the fixed prompts `resources/prompts/PipelineAgent*.md` and the brief
-  that `pipeline.json` names, by default `briefs/defaults/pipelineAgent.md`.
+- The pipeline agent loads no skill. Only `pipeline setup`, `pipeline update` and `advise` start one. The Overseer
+  starts no new one by itself: it only resumes a pipeline agent that a stop interrupted. Its instructions are the fixed
+  prompts `resources/prompts/PipelineAgent*.md` and the brief that `pipeline.json` names, by default
+  `briefs/defaults/pipelineAgent.md`.
 - No skill file lists commands: `agent-progress help` is the reference. Both skills name it and
   `.agent-progress/reference.md`, installed from `resources/templates/Reference.md`, which holds only what help does
   not print and follows `docs/cli.md`.
