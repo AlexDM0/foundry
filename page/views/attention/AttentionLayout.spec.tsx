@@ -3,8 +3,8 @@
  * content's order, the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to
  * `#questions/E2`; "Update forge" sends `forge-update` through the command sender and is disabled while it is on its way; a refusal shows
  * under its callout with the forge's code and sentence until dismissed; nothing waiting says so; B3's banner, its stale rows that can be
- * read and not acted on, and the side panel that names the forges the totals cannot vouch for. The content comes from the model over the
- * artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
+ * read and not acted on, and the side panel that names the forges the totals cannot vouch for; an empty place says so. The content comes
+ * from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -211,6 +211,13 @@ describe('the side of the view', () => {
     expect(firstJobs.map((dot) => dot.props['data-role'])).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
     expect(tree.onlyWithClass(unfolded, 'gaia-attention-link').props['href']).toBe('#activity');
+  });
+
+  test('with no activity reported, just happened says so in its place', () => {
+    const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, activity: [] });
+    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent'))).toEqual([]);
+    const recentSection = tree.onlyHostElementIn(unfolded, (element) => element.tag === 'section' && element.props['aria-labelledby'] === 'gaia-attention-recent-head');
+    expect(tree.textOf([tree.onlyWithClass([recentSection], 'gaia-attention-nothing')])).toBe('No forge has reported activity yet.');
   });
 
   test('every control has a name, and the open-in-new-tab command shows its words beside its arrow', () => {

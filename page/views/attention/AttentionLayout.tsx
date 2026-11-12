@@ -50,6 +50,8 @@ const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 
 const ACTIVITY_HREF = '#activity';
 
+const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
+
 function commandIsOnItsWay(commandStates: CommandStates, command: CommandBody): boolean {
   return CommandSender.stateOf(commandStates, CommandSender.subjectOf(command)).onItsWay !== null;
 }
@@ -206,18 +208,20 @@ function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
         <MicroCapsLabel element="h2" id={RECENT_HEAD_ID} text="Just happened" />
         <a className="gaia-attention-link" href={ACTIVITY_HREF}>All activity</a>
       </div>
-      <ul className="gaia-attention-recent">
-        {recent.map((entry) => (
-          <li key={entry.key} className="gaia-attention-recent-entry">
-            <span className="gaia-attention-recent-at">{entry.clockText ?? ''}</span>
-            <span className="gaia-attention-recent-what">
-              <span className="gaia-attention-recent-forge">{entry.project}</span>
-              {' '}
-              <span className="gaia-attention-recent-text">{entry.text}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+      {recent.length === 0 ? <p className="gaia-attention-nothing">{NO_ACTIVITY_SENTENCE}</p> : (
+        <ul className="gaia-attention-recent">
+          {recent.map((entry) => (
+            <li key={entry.key} className="gaia-attention-recent-entry">
+              <span className="gaia-attention-recent-at">{entry.clockText ?? ''}</span>
+              <span className="gaia-attention-recent-what">
+                <span className="gaia-attention-recent-forge">{entry.project}</span>
+                {' '}
+                <span className="gaia-attention-recent-text">{entry.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
