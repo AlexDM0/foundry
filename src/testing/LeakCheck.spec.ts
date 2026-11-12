@@ -6,9 +6,13 @@ import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
+import { environmentCopy }                           from '../services/Environment.ts';
 import { createScratchDirectory, removeScratchPath } from './ScratchRoot.ts';
 
 const CHILD_RUN_TIMEOUT_MILLISECONDS = 20_000;
+
+/** Bun keeps its transpiler cache under `HOME`; the child's would land in this run's scratch home, so it runs without one. */
+const NO_TRANSPILER_CACHE = { BUN_RUNTIME_TRANSPILER_CACHE_PATH: '0' };
 
 interface ChildRunResult {
   readonly exitCode:      number;
@@ -28,7 +32,12 @@ function plantedRunOf(specBody: string): ChildRunResult {
       `import { runScratchFolder } from ${JSON.stringify(scratchModule)};`,
       specBody,
     ].join('\n'));
-    const finished = Bun.spawnSync([process.execPath, 'test'], { cwd: plantedFolder, stdout: 'pipe', stderr: 'pipe' });
+    const finished = Bun.spawnSync([process.execPath, 'test'], {
+      cwd:    plantedFolder,
+      env:    { ...environmentCopy(), ...NO_TRANSPILER_CACHE },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
     return { exitCode: finished.exitCode, standardError: finished.stderr.toString() };
   } finally {
     removeScratchPath(plantedFolder);
