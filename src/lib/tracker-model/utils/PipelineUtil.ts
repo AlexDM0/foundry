@@ -19,9 +19,14 @@ function pipelineHashOf(pipeline: Readonly<Pipeline>): string {
       writes:       gate.writes ?? [],
       overseerOnly: gate.overseerOnly ?? false,
     })),
-    review:       pipeline.review === undefined ? null : { name: pipeline.review.name, model: pipeline.review.model ?? null, effort: pipeline.review.effort ?? null },
-    constitution: pipeline.constitution ?? [],
-    agents:       Object.entries(pipeline.agents ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+    phases:       { build: pipeline.phases.build, review: pipeline.phases.review, merge: pipeline.phases.merge },
+    review:       pipeline.review === undefined ? null : { name: pipeline.review.name, reReview: pipeline.review.reReview?.thresholdLines ?? null },
+    airlock:      pipeline.airlock === undefined ? null : { reReview: pipeline.airlock.reReview?.thresholdLines ?? null },
+    constitution: pipeline.constitution?.path ?? null,
+    agents:       Object.entries(pipeline.agents ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([role, settings]) => [
+      role,
+      { model: settings.model ?? null, effort: settings.effort ?? null, instructions: settings.instructions ?? null },
+    ]),
   };
   return TicketBodyHashUtil.bodyHashOf(JSON.stringify(canonical));
 }

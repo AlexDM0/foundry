@@ -43,14 +43,14 @@ other job without a [worktree](../glossary.md#worktree), then builder or reviewe
 | Role | Job kind | Working directory | Model, effort | Profile source |
 | --- | --- | --- | --- | --- |
 | [`builder`](../glossary.md#builder) | `build` | `<worktrees>/ticket-<id>` | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` |
-| [`reviewer`](../glossary.md#reviewer) | `review` | `<worktrees>/ticket-<id>` | Same, or [pipeline](../glossary.md#pipeline) `review.model` and `review.effort` | `WorkerProfiles.profileOf` |
+| [`reviewer`](../glossary.md#reviewer) | `review` | `<worktrees>/ticket-<id>` | Same, or [pipeline](../glossary.md#pipeline) `agents.reviewer.model` and `agents.reviewer.effort` while `review` is set | `WorkerProfiles.profileOf` |
 | `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | as its build or review job | `WorkerProfiles.profileOf` for its role, asking off |
 | [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
 | [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
 | [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/J<n>`, detached at the main line's tip | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
 
-A pipeline `review.effort` outside the vocabulary keeps `WORKER_EFFORT` (`JobLaunch.reviewerLaunchSettingsOf`). A
-ticket's `model` and `effort` reach no launch: see
+A pipeline whose reviewer `model` or `effort` is outside the vocabulary is malformed, so it never reaches a launch
+(`JobLaunch.reviewerLaunchSettingsOf`). A ticket's `model` and `effort` reach no launch: see
 [gap-ticket-model-not-launched](../reference/known-gaps.md#gap-ticket-model-not-launched).
 
 > **As built.** The product owner, Assistant and pipeline agent take the short profile in `DrivePass.ts`, not the

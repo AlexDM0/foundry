@@ -783,18 +783,19 @@ before the first listing is out of reach, as it is on POSIX.
 | command | what it does |
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
-| `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, prepare, gates }`, with `review`, `constitution` and `agents` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null` and both lists empty. A malformed file is refused at exit 1 with its reason. |
+| `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null`, both lists empty, and `version` and `phases` absent. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
 | `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added ([why to add gates first](architecture/customs-and-gates.md)). |
-| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
-| `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
-| `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
+| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
+| `gate none [--json]` | Store an empty gate list and empty phases on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
+| `gate remove <name> [--json]` | Remove the gate `<name>` from the gates and from every phase, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `pending` at once. Any other approval or switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`approval-without-pipeline`), since a file holding only the switch would read as no gates on purpose. No role an agent runs under may relay it. |
 | `gate approval merge on\|off [--json]` | Switch merge approval, stored as `approvals.merge` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. Off, as with no key, the Airlocks work as without it. On, on every target (the main line, each group integration and the group release), a ticket in review done waits for merge until User runs `merge accept`: see [Merge approval](#merge-approval). Refused as `gate approval tickets` is. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
 Every `gate` write (`prepare`, `add`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json` atomically
-after `progress.json`, is accepted with tickets in flight and refuses a malformed `pipeline.json` at exit 1 rather than
-overwrite it. A ticket's row records the content hash of the pipeline it was gated by (`pipelineHash`) at its next gate
+after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older `pipeline.json` at exit 1
+rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal pipeline, version 2 with no
+gates. A ticket's row records the content hash of the pipeline it was gated by (`pipelineHash`) at its next gate
 run, which reads the pipeline afresh. `--json` on these writes prints `{ pipeline, pipelineHash }`.
 
 #### `gate add`
@@ -1240,6 +1241,7 @@ checks and how each refusal routes, and [Confinement](architecture/confinement.m
 | on Linux, the worktree's `.claude/` folder cannot be made before a gate, prepare, install or worker launch | incident `sandbox-unavailable`; the job ends `stopped`; the launch never starts | `gate retry`, `ticket park` |
 | no `pipeline.json` is stored | the `checks-not-set` decision; nothing launches | `gate add`, `gate none`, `advise` |
 | `pipeline.json` is malformed | the `checks-not-set` decision; nothing launches | repair or delete `<data>/pipeline.json`: every `gate` write refuses it until then |
+| `pipeline.json` is older, written by an earlier release with no `version` | the `checks-not-set` decision; nothing launches | set the pipeline up again: every `gate` write refuses it (`older-pipeline`) until it is deleted |
 | a running build or review's event log stands still for `QUIET_JOB_SWEEPS` (6) sweeps | incident `quiet-job` | `job message`, `job fresh` |
 
 A ticket an open incident names launches no new job until the incident is settled.
@@ -1709,34 +1711,51 @@ lives in [`pipeline.json`](#datapipelinejson).
 
 ### `<data>/pipeline.json`
 
-The board's gate pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs write it
+The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs write it
 through the lock. [The pipeline](architecture/customs-and-gates.md) says what it means, what `review`, `constitution`
-and `agents` change, and how to edit those three by hand.
+and `agents` change, and how to edit those three by hand. This is format version 2.
 
 ```json
 {
+  "version": 2,
   "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile" }],
   "gates": [
     { "name": "tests", "run": "bun test", "fix": "bun run lint:fix", "definedBy": ["package.json"] }
   ],
-  "review": { "name": "strict", "model": "opus", "effort": "high" }
+  "phases": { "build": ["tests"], "review": ["tests"], "merge": ["tests"] },
+  "review": { "name": "strict", "reReview": { "thresholdLines": 750 } },
+  "constitution": { "path": "CONSTITUTION.md" },
+  "agents": {
+    "reviewer": {
+      "model": "opus",
+      "effort": "high",
+      "instructions": [{ "kind": "constitution" }, { "kind": "default-brief", "role": "reviewer" }]
+    }
+  }
 }
 ```
 
 | key | required | value |
 |---|---|---|
-| `prepare` | no | steps in run order, each `name` and `run` |
-| `gates` | no | gates in run order, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true` |
-| `review` | no | `name`, `model`, `effort`; its presence sets the review phase |
-| `constitution` | no | a list of files, in place of `<data>/briefs/defaults/constitution.md` |
-| `agents` | no | a list of files per role: `builder`, `reviewer`, `productOwner`, `pipelineAgent`, `assistant`, each in place of `<data>/briefs/defaults/<role>.md` |
+| `version` | yes | `2`, written first |
+| `prepare` | yes | steps in run order, each `name` and `run` |
+| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose |
+| `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
+| `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
+| `airlock` | no | the merge train: `reReview` (`thresholdLines`) when a re-review after a conflict merge is on |
+| `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md` |
+| `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. Each entry is listed at most once. Today only the reviewer's `model` and `effort` are applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 
-An unknown key, a step or gate without `name` or `run`, or a name given twice makes it malformed: the board reads it as
-no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each launch writes
-`<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex digits of each
-file's SHA-256 as it was read.
+A file with no `version`, or a version below 2, is older: an earlier release wrote it, and no release converts it. The
+board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1 (`older-pipeline`); set the
+pipeline up again. A higher version, an unknown key at any level, a missing required key, a step or gate without `name`
+or `run`, a name given twice or shared by a prepare step and a gate, a phase naming an unknown gate, a gate in no
+phase, a model or effort outside the lists above, an instruction entry listed twice or a path outside the repository
+makes it malformed: the board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each
+launch writes `<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex
+digits of each file's SHA-256 as it was read.
 
 #### API billing set-up
 

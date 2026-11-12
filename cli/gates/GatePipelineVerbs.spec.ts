@@ -1,7 +1,8 @@
 /**
  * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
- * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight; a malformed file is refused, never overwritten,
- * and a refused write leaves the progress file, the pipeline and the log as they were.
+ * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write version 2 with every gate in every
+ * phase; a malformed file is refused, never overwritten, and a refused write leaves the progress file, the pipeline and the log as they
+ * were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
   existsSync,
@@ -79,7 +80,9 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   test('gate none stores an empty gate list on purpose, logs it once, and gate list prints it set with no gates', async () => {
     await run(['gate', 'none']);
 
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({ prepare: [], gates: [] });
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
     expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-gates-none"'))).toHaveLength(1);
     const pipeline = await listed();
     expect(pipeline.pipelineIsSet).toBe(true);
@@ -96,7 +99,9 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   test('gate approval tickets off and on write approvals.tickets, log each change, and gate list prints it', async () => {
     await run(['gate', 'none']);
     await run(['gate', 'approval', 'tickets', 'off']);
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({ prepare: [], gates: [], approvals: { tickets: false } });
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { tickets: false },
+    });
     expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { tickets: false } });
     expect((await run(['gate', 'list'])).outputText()).toContain('Ticket review: off');
 
@@ -112,7 +117,9 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     await run(['gate', 'none']);
     expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: off');
     await run(['gate', 'approval', 'merge', 'on']);
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({ prepare: [], gates: [], approvals: { merge: true } });
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { merge: true },
+    });
     expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { merge: true } });
     expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: on');
 
@@ -137,11 +144,14 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     await run(['gate', 'add', 'types', '--defined-by', 'tsconfig.json', '--', 'bun run typecheck']);
     await run(['gate', 'add', 'test', '--in', 'packages/example', '--writes', '~/.cache/example', '--overseer-only', '--', 'bun test']);
     await run(['gate', 'add', 'types', '--', 'tsc --noEmit']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ phases: { build: ['types', 'test'], review: ['types', 'test'], merge: ['types', 'test'] } });
     await run(['gate', 'remove', 'test']);
 
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
+      version: 2,
       prepare: [{ name: 'install', run: 'bun install' }],
       gates:   [{ name: 'types', run: 'tsc --noEmit' }],
+      phases:  { build: ['types'], review: ['types'], merge: ['types'] },
     });
   });
 
@@ -166,7 +176,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(unknown.context.errorText()).toContain('There is no gate lint: the gates are test.');
     expect(storedFiles()).toEqual(before);
 
-    writeFileSync(pipelineFilePath(), '{ "gates": [{ "run": "bun test" }] }\n');
+    writeFileSync(pipelineFilePath(), '{ "version": 2, "prepare": [], "gates": [{ "run": "bun test" }], "phases": { "build": [], "review": [], "merge": [] } }\n');
     const malformedBefore = storedFiles();
     for (const verb of [['gate', 'none'], ['gate', 'list']]) {
       const refused = await runWithExitCode(verb);
@@ -206,7 +216,12 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--writes', 'C:\\cache', '--writes', '~\\AppData\\cache', '--', 'bun test'], context)).toBe(0);
     expect(PipelineFile.read(pipelineFilePath())).toEqual({
       verdict:  'readable',
-      pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test', writes: ['C:\\cache', '~\\AppData\\cache'] }] },
+      pipeline: {
+        version: 2,
+        prepare: [],
+        gates:   [{ name: 'test', run: 'bun test', writes: ['C:\\cache', '~\\AppData\\cache'] }],
+        phases:  { build: ['test'], review: ['test'], merge: ['test'] },
+      },
     });
   });
 

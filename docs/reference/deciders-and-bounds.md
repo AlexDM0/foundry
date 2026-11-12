@@ -485,7 +485,7 @@ timeout, budget or retry key.
 | --- | --- | --- | --- | --- |
 | [Concurrency limit](../glossary.md#concurrency-limit) | `forge concurrency <n>`, stored in `progress.json` | `LOWEST_CONCURRENCY_LIMIT_AGENTS` to `CONCURRENCY_LIMIT_CEILING_AGENTS` | `DEFAULT_CONCURRENCY_LIMIT_AGENTS` | The next launch; running agents go on |
 | Overseer port | `forge oversee --port <n>` | 0 to `HIGHEST_PORT`; 0 lets the system choose | Derived | That Overseer's start; given ports never move upward |
-| Reviewer model and effort | `review.model`, `review.effort` in `pipeline.json` | A model text; an effort in `AGENT_EFFORTS` | `WORKER_MODEL`, `WORKER_EFFORT` | The next review launch; an unknown effort keeps the default |
+| Reviewer model and effort | `agents.reviewer.model`, `agents.reviewer.effort` in `pipeline.json` | A model in `AGENT_MODELS`; an effort in `AGENT_EFFORTS` | `WORKER_MODEL`, `WORKER_EFFORT` | The next review launch; any other value makes the file malformed |
 
 [`cli.md`](../cli.md) holds the commands and the pipeline fields. A ticket's priority, `network` and dependencies steer
 one ticket, and bound nothing.

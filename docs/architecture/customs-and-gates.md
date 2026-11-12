@@ -358,11 +358,14 @@ One small file steers every role, because each stage reads the keys it needs.
 
 | Key | What it means |
 | --- | --- |
+| `version` | The format, `2`; a file without it is older |
 | `prepare` | How to make a fresh tree runnable |
-| `gates` | What must be true of a tree, in run order |
-| `review` | Whether a review phase exists, and how its agent runs |
-| `constitution` | Files every code-touching agent reads first |
-| `agents` | Each role's own files, replacing its default |
+| `gates` | What must be true of a tree, each defined once |
+| `phases` | Which gates run in the build, review and merge phase, in run order; today every gate run site runs every gate |
+| `review` | Whether a review phase exists, and its re-review threshold |
+| `airlock` | The merge train's re-review threshold |
+| `constitution` | The one constitution file, `{ path }` |
+| `agents` | Each role's model, effort and ordered instruction list |
 
 The Overseer reads the file afresh, each lock hold and each merged-tree run, so an edit reaches the next gate run
 without a restart. Tickets in flight never block a pipeline change.
@@ -375,10 +378,11 @@ No file stops all ticket work; `gates: []` runs all work with no gates.
 | --- | --- | --- |
 | Absent | No | `checks-not-set` opens, a pipeline agent starts, and no ticket work launches or resumes |
 | Malformed | No | The same, and `gate list` and every `gate` write refuse it; an accepted proposal does not refuse and writes over it |
+| Older (no `version`) | No | The same, and `gate list` and every `gate` write refuse it with `older-pipeline`: set the pipeline up again |
 | `gates: []` | Yes | Counts as set: work runs and [landing](../glossary.md#landing) runs no gate. `gate none` sets it on purpose; a first `gate prepare` on a board with no file, or removing the last gate, also leaves it |
-| `{}` | Yes | Valid: both lists default to empty |
+| `{ "version": 2, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }` | Yes | The minimal pipeline: valid, with no review and no gates |
 
-`contentsOf` always writes `prepare` and `gates`, so an empty list shows in the file.
+`contentsOf` always writes `version`, `prepare`, `gates` and `phases`, so an empty list shows in the file.
 
 > **Careful.** Add gates before or together with the first prepare step. A `gate prepare` on a board with no file sets
 > the pipeline with no gates, `checks-not-set` stops holding work, and tickets land ungated until a gate is added.
@@ -386,9 +390,12 @@ No file stops all ticket work; `gates: []` runs all work with no gates.
 ### Strict parsing
 
 Anything `PipelineFile.read` does not recognise makes the file malformed, and a malformed file stops ticket work. The
-read answers `absent`, `readable` or `malformed` with a reason, and never throws. The parser accepts nothing it does not
-know: an unknown key at any level, a step or gate without a non-blank `name` or `run`, a repeated name, an
-`overseerOnly` other than `true`, or a `writes` folder that is neither absolute nor `~/` makes the file malformed.
+read answers `absent`, `readable`, `older` or `malformed` with a reason, and never throws. A file with no `version`, or
+a lower one, is `older`: no release converts it. The parser accepts nothing it does not know: an unknown key at any
+level, a missing required key, a step or gate without a non-blank `name` or `run`, a repeated name, a phase that names
+an unknown gate or a gate no phase names, a model or effort outside the vocabularies, a repeated instruction entry, a
+path outside the repository, an `overseerOnly` other than `true`, or a `writes` folder that is neither absolute nor `~/`
+makes the file malformed. [The file format](../cli.md#datapipelinejson) lists every rule.
 
 > **Why.** `progress.json` keeps unknown keys. This file decides what judges work, so a typo that silently disabled a
 > gate would be the worst outcome.
@@ -402,11 +409,11 @@ picks it up, and a malformed edit stops ticket work.
   build to merge in the same lock hold, and the Airlock skips `Landing.ticketRefusalOf`, since only a review accounts
   for Acceptance. See `src/services/overseer/Airlocks.ts`. This is the default of a fitted board; see
   [what acceptance writes](#the-decision-and-what-acceptance-writes).
-- With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `model` and `effort` set the reviewer's
-  launch. An `effort` outside the vocabulary keeps the default.
-- A listed `constitution` or `agents.<role>` array replaces its default. List the default too to extend it.
-- An Airlock agent reads its builder or reviewer files. Only builder and reviewer get the constitution
-  (`ROLES_GIVEN_THE_CONSTITUTION`).
+- With `review`, `name` labels each [review bar](../glossary.md#review-bar), and `agents.reviewer.model` and `effort`
+  set the reviewer's launch. A `reReview` threshold is stored and read, and no lifecycle step acts on it yet.
+- `constitution.path` replaces the default constitution file. A listed `agents.<role>.instructions` list replaces the
+  role's default list (`DEFAULT_INSTRUCTIONS_OF_ROLE`); keep its `constitution` and `default-brief` entries to extend it.
+- An Airlock agent reads its builder or reviewer files. By default only builder and reviewer read the constitution.
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
@@ -578,7 +585,7 @@ interprets them.
 | Pipeline file | `src/adapters/pipeline/PipelineFile.ts` | `read`, `contentsOf` | `src/adapters/pipeline/PipelineFile.spec.ts` |
 | Pipeline hash | `src/lib/tracker-model/utils/PipelineUtil.ts` | `pipelineHashOf` | |
 | Row's pipeline hash | `src/lib/tracker-model/TrackerChanges.ts` | `recordPipelineJudgedBy` | |
-| Instruction files | `src/services/overseer/InstructionFiles.ts` | `trackedInstructionPathsOf`, `ROLES_GIVEN_THE_CONSTITUTION` | |
+| Instruction files | `src/services/overseer/InstructionFiles.ts` | `trackedInstructionPathsOf`, `DEFAULT_INSTRUCTIONS_OF_ROLE` (`src/lib/tracker-model/constants/PipelineDefaults.ts`) | |
 | Pipeline agent job | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `pipelineAgentFactsOf`, `pipelineAgentProfileOf`, `settleEndedPipelineAgents` | |
 | Twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice`, `verdictOf` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
 | Caching suggestions | `src/services/lifecycle/CachingChecks.ts` | `cachingSuggestionsOf` | `src/services/lifecycle/CachingChecks.spec.ts` |

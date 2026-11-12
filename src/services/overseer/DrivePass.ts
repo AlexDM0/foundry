@@ -747,7 +747,7 @@ function launchWatcher(
     firstMessage:  launchParts.firstMessage,
     roleBrief:     text.roleBrief,
     ...AssistantBoot.launchSettingsOf(job),
-    ...JobLaunch.reviewerLaunchSettingsOf(board.pipeline()?.review, job),
+    ...JobLaunch.reviewerLaunchSettingsOf(board.pipeline(), job),
     environment:   launchEnvironment.launchEnvironmentOf(
       request.inheritedEnvironment,
       { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },

@@ -25,14 +25,13 @@ import type {
   JobState
 } from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineReview, PipelineStep }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineStep }                                                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
 import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
@@ -799,12 +798,13 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   if (board.pipeline()?.review === undefined) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
 }
 
-/** A reviewer runs on the pipeline review's `model` and `effort` where set; an effort outside the vocabulary keeps the default. */
-function reviewerLaunchSettingsOf(review: Readonly<PipelineReview> | undefined, job: Readonly<Job>): { model?: string; effort?: AgentEffort } {
-  if (job.kind !== REVIEW_JOB_KIND || review === undefined) return {};
+/** A reviewer runs on the pipeline reviewer's `model` and `effort` where set, while the pipeline has a review. */
+function reviewerLaunchSettingsOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): { model?: string; effort?: AgentEffort } {
+  const reviewerSettings = pipeline?.agents?.reviewer;
+  if (job.kind !== REVIEW_JOB_KIND || pipeline?.review === undefined || reviewerSettings === undefined) return {};
   return {
-    ...(review.model === undefined || review.model === '' ? {} : { model: review.model }),
-    ...(review.effort !== undefined && VocabularyUtil.agentEffortIsKnown(review.effort) ? { effort: review.effort } : {}),
+    ...(reviewerSettings.model === undefined ? {} : { model: reviewerSettings.model }),
+    ...(reviewerSettings.effort === undefined ? {} : { effort: reviewerSettings.effort }),
   };
 }
 

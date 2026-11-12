@@ -26,7 +26,7 @@ import type { NetworkDomainGuard }                                              
 import { SANDBOX_EXEC_PATH }                                                     from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                                  from '../../src/lib/gate-confinement/GateConfinement.ts';
 import type { Job, JobState }                                                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineReview }                                                   from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { AgentStepSettings, PipelineReview }                                from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                                                            from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                                                        from '../../src/lib/watcher/WatcherFiles.ts';
 import type { WatcherLaunch }                                                    from '../../src/lib/watcher/WatcherLaunch.ts';
@@ -140,10 +140,10 @@ function launchCapturingAdapterOf(adapter: AgentAdapter): AgentAdapter {
 }
 
 /** No verb sets the review phase: `pipeline.json` is edited by hand, as User would. */
-function setReviewPhase(review: Readonly<PipelineReview>): void {
+function setReviewPhase(review: Readonly<PipelineReview>, reviewerSettings: Readonly<AgentStepSettings>): void {
   const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
   const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
-  writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review }, null, 2)}\n`);
+  writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review, agents: { reviewer: reviewerSettings } }, null, 2)}\n`);
 }
 
 function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = seatbeltThatApplies()): Promise<DrivePass> {
@@ -291,7 +291,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'prepare', 'install', '--', 'true']);
-    setReviewPhase({ name: 'Security pass', model: 'sonnet', effort: 'high' });
+    setReviewPhase({ name: 'Security pass' }, { model: 'sonnet', effort: 'high' });
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => storedProgressOf(repositoryDirectory).jobs?.some((job) => job.kind === 'review') === true, 'the review launch');
     const launchedKindOf = (request: AgentLaunchRequest): unknown => loggedEntries('job-launched')

@@ -267,6 +267,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | --- | --- | --- | --- | --- |
 | `There is no gate <gate>` | `unknown-gate` | `gate remove` named no gate. The tail reads `none is stored` or lists the gates. | Run `gate list`. | [Customs and gates](../architecture/customs-and-gates.md) |
 | `cannot be read as a pipeline` | `malformed-pipeline` | `pipeline.json` is malformed. Every `gate` verb but `gate retry` refuses, so no `gate` verb overwrites a hand edit. An accepted proposal does: [known gap](known-gaps.md#gap-proposal-overwrites-malformed-pipeline). | Repair or delete the file. | [Customs and gates](../architecture/customs-and-gates.md) |
+| `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again. Until the pipeline set-up exists, delete the file and add the gates again. | [Customs and gates](../architecture/customs-and-gates.md) |
 
 </details>
 

@@ -87,6 +87,7 @@ describe('a pipeline proposal is written only when User accepts it', () => {
 
     expect(answer(board, 'a')).toEqual(['decision-answered', 'pipeline-prepare-step-set', 'pipeline-gate-added', 'pipeline-gate-added']);
     expect(board.pipeline()).toEqual({
+      version: 2,
       prepare: [{ name: 'install', run: 'bun install' }],
       gates:   [
         { name: 'lint', run: 'bun run lint', definedBy: ['eslint.config.js'] },
@@ -94,6 +95,7 @@ describe('a pipeline proposal is written only when User accepts it', () => {
           name: 'tests', run: 'bun test', network: ['registry.npmjs.org'], writes: ['~/.cache/example']
         },
       ],
+      phases: { build: ['lint', 'tests'], review: ['lint', 'tests'], merge: ['lint', 'tests'] },
     });
     expect(board.pipelineChanged()).toBe(true);
   });

@@ -100,8 +100,10 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
   const branchTreeOf = (_ticketId: string): string => RECORDED_AIRLOCK_IDS.TICKET_TREE;
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
-    pipeline: { prepare: [], gates: [], ...hasReviewPhase ? { review: { name: 'Review' } } : {} },
-    tickets:  tickets.map((ticket) => ({
+    pipeline: {
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, ...hasReviewPhase ? { review: { name: 'Review' } } : {}
+    },
+    tickets: tickets.map((ticket) => ({
       ...ticketFixture({
         id:     ticket.id,
         status: ticket.status ?? 'in-review',

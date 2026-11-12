@@ -22,12 +22,16 @@ const AT = '2026-11-10T10:00:00+01:00';
 const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined || ticket.releasesGroup === true ? 'main' : `group-${ticket.group}`);
 
 const PIPELINE_WITH_REVIEW: Pipeline = {
+  version: 2,
   prepare: [],
   gates:   [{ name: 'typecheck', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
+  phases:  { build: ['typecheck', 'test'], review: ['typecheck', 'test'], merge: ['typecheck', 'test'] },
   review:  { name: 'Review' },
 };
 
-const PIPELINE_WITHOUT_REVIEW: Pipeline = { prepare: [], gates: [{ name: 'test', run: 'bun test' }] };
+const PIPELINE_WITHOUT_REVIEW: Pipeline = {
+  version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+};
 
 function launchOf(kind: 'build' | 'review', ticketId: string, attempt: number): JobLaunch {
   return {

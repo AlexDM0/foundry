@@ -272,7 +272,8 @@ describe('one pass', () => {
   test('a builder file the pipeline names that is missing launches no session and is noticed; committed, the next pass launches it and records its hash', async () => {
     const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
     const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
-    writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, constitution: [], agents: { builder: [RECORDED_FLOW_BUILDER_FILE.path] } }, null, 2)}\n`);
+    const builderInstructions = [{ kind: 'file', path: RECORDED_FLOW_BUILDER_FILE.path }];
+    writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, agents: { builder: { instructions: builderInstructions } } }, null, 2)}\n`);
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     await passOnce(drivePass);

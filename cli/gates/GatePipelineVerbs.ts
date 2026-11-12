@@ -138,20 +138,24 @@ function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval].join('\n');
 }
 
-/** Takes no lock and writes nothing; a malformed file is refused with its reason, since nothing could be listed from it. */
+/** Takes no lock and writes nothing; a malformed or older file is refused, since nothing could be listed from it. */
 export function listPipeline(commandArguments: ArgumentParser, context: CommandContext): void {
   commandArguments.rejectUnknownOptions(['json'], GATE_PIPELINE_USAGE.list);
   commandArguments.rejectExtraPositionals(1, GATE_PIPELINE_USAGE.list);
   const { pipelineFilePath } = requireWorkspace(context.currentDirectory);
   const reading = PipelineFile.read(pipelineFilePath);
   if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineFilePath, reason: reading.reason });
+  if (reading.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath: pipelineFilePath });
   const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
   const entity = {
     pipelineIsSet: pipeline !== null,
     pipelineHash:  pipeline === null ? null : PipelineUtil.pipelineHashOf(pipeline),
+    ...(pipeline === null ? {} : { version: pipeline.version }),
     prepare:       pipeline?.prepare ?? [],
     gates:         pipeline?.gates ?? [],
+    ...(pipeline === null ? {} : { phases: pipeline.phases }),
     ...(pipeline?.review === undefined ? {} : { review: pipeline.review }),
+    ...(pipeline?.airlock === undefined ? {} : { airlock: pipeline.airlock }),
     ...(pipeline?.constitution === undefined ? {} : { constitution: pipeline.constitution }),
     ...(pipeline?.agents === undefined ? {} : { agents: pipeline.agents }),
     ...(pipeline?.approvals === undefined ? {} : { approvals: pipeline.approvals }),

@@ -395,6 +395,13 @@ function noTrackerAtOverrideText(overrideDirectory: string): string {
     + `Run \`${PRODUCT_NAMES.PROGRAM} init\` there, or unset ${ROOT_OVERRIDE_VARIABLE} to search upwards from the current directory instead.`;
 }
 
+/** Not `OLDER_FORMAT_ADVICE`: no release converts a pipeline, so running `update` with an earlier one would not help. */
+function olderPipelineText(filePath: string): string {
+  return `${filePath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, and no release `
+    + 'converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up again on the '
+    + `Pipeline tab of the Bridge, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\`.`;
+}
+
 function olderProgramPresentText({
   rootDirectory, olderDataFolderPath, program, olderProgram
 }: OlderProgramPresentDetail): string {
@@ -467,6 +474,8 @@ function messageOf(refusal: OperationRefusal): string {
     case 'malformed-pipeline':
       return `${detail.filePath} cannot be read as a pipeline (${detail.reason}), so it is not overwritten. Nothing was written; repair `
         + 'or delete it first.';
+    case 'older-pipeline':
+      return olderPipelineText(detail.filePath);
     case 'role-command-refused':
       return `The Overseer refused the relayed ${detail.commandKind}: ${ROLE_COMMAND_REFUSAL_TEXT[detail.reason]} (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
     case 'verb-not-relayable':

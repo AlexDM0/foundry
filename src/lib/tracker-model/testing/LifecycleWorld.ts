@@ -154,7 +154,13 @@ export class LifecycleWorld {
       tickets:  this.tickets,
       epics:    [],
       logger:   createLogger((record) => this.logRecords.push(record)),
-      pipeline: { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], review: { name: 'Review' } },
+      pipeline: {
+        version: 2,
+        prepare: [],
+        gates:   [{ name: 'verify', run: 'bun run verify' }],
+        phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },
+        review:  { name: 'Review' },
+      },
     });
   }
 

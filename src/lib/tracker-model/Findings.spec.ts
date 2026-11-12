@@ -49,7 +49,9 @@ function boardWithFinding(ticketReviewIsOn: boolean, findingOverrides: Partial<T
     tickets:  [ticketFixture({ id: '001', status: 'in-review', task: 1 })],
     epics:    [],
     logger:   createLogger(() => undefined),
-    pipeline: { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], review: { name: 'Review' } },
+    pipeline: {
+      version: 2, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+    },
   });
   board.setApproval('tickets', ticketReviewIsOn, AT);
   const builder = board.launchJob({

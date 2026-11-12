@@ -100,7 +100,9 @@ function assistantBoard(storedLogRecords: LogRecord[] = [], jobs: Job[] = [{ ...
     epics:    [],
     logger:   createLogger((record) => records.push(record)),
     storedLogRecords,
-    pipeline: { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }] },
+    pipeline: {
+      version: 2, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }
+    },
   });
   return { board, records };
 }

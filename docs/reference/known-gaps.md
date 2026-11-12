@@ -72,6 +72,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-unreadable-pipeline-passes-merge-gate](#gap-unreadable-pipeline-passes-merge-gate) | Lifecycle | bug | A pipeline unreadable at gate time gates nothing |
 | [gap-proposal-overwrites-malformed-pipeline](#gap-proposal-overwrites-malformed-pipeline) | Lifecycle | bug | An accepted proposal replaces a malformed `pipeline.json` |
 | [gap-checks-not-set-stays-open](#gap-checks-not-set-stays-open) | Lifecycle | bug | Setting a pipeline does not close `checks-not-set` |
+| [gap-older-pipeline-holds](#gap-older-pipeline-holds) | Lifecycle | bug | A version 1 `pipeline.json` holds the board until it is set up again |
 | [gap-overseer-decisions-have-no-options](#gap-overseer-decisions-have-no-options) | Lifecycle | misleading text | `decide <E> a` is refused on most Overseer decisions |
 | [gap-setup-failed-default-not-allowed](#gap-setup-failed-default-not-allowed) | Lifecycle | misleading text | `gate retry` cannot settle a merge's `setup-failed` |
 | [gap-quiet-job-decisions-stack](#gap-quiet-job-decisions-stack) | Lifecycle | bug | A silent job opens one more decision per quiet cycle |
@@ -424,13 +425,13 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Expected:** `cli/HelpText.ts` says `--model` and `--effort` name what the agents building and reviewing a ticket run
   on, and `ticket agent` changes them.
 - **Does:** `AssistantBoot.launchSettingsOf` picks `WORKER_MODEL` and `WORKER_EFFORT`, or the Assistant's constants, by
-  job kind. Only `JobLaunch.reviewerLaunchSettingsOf` overrides that, from the pipeline's `review`.
+  job kind. Only `JobLaunch.reviewerLaunchSettingsOf` overrides that, from the pipeline's `agents.reviewer`.
   `TicketDefaultsUtil.agentModelOf` and `agentEffortOf` feed status documents, `review-stats` and `ticket agent`, and no
   launch reads them.
 - **Effect:** a ticket filed `--model haiku` builds on `WORKER_MODEL`, while `status`, `ticket show` and the `byBuilder`
   table of `review-stats` report `haiku`.
-- **Instead:** read a ticket's model and effort as labels. Set a reviewer's through the pipeline's `review` key. Nothing
-  changes a builder's.
+- **Instead:** read a ticket's model and effort as labels. Set a reviewer's through the pipeline's `agents.reviewer`.
+  Nothing changes a builder's.
 - **Evidence:** `src/services/overseer/AssistantBoot.ts` `launchSettingsOf`; `src/services/overseer/JobLaunch.ts`
   `reviewerLaunchSettingsOf`; `src/services/overseer/DrivePass.ts`, the launch request;
   `src/lib/tracker-model/utils/TicketDefaultsUtil.ts`; `cli/HelpText.ts`.
@@ -533,6 +534,21 @@ named in the [Glossary](../glossary.md#reading-names).
   `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `cli/overseer/OverseerWording.ts`
   `decisionWordingOf`.
 - **Established:** probed for `gate none`; read for an accepted proposal. **Severity:** bug.
+
+<a id="gap-older-pipeline-holds"></a>
+
+### A version 1 `pipeline.json` holds the board
+
+- **Expected:** an update of the program keeps every board working.
+- **Does:** `pipeline.json` format version 2 adds `version` and `phases`. A file an earlier release wrote has no
+  `version`, so it reads as older; nothing converts it. The board reads it as no pipeline, and `gate list` and every
+  `gate` write refuse it with `older-pipeline`.
+- **Effect:** the board holds new work and resumes, as with no pipeline, until it is set up again. The owner accepted
+  this hold.
+- **Instead:** set the pipeline up again: delete `<data>/pipeline.json`, then add its gates again with the `gate` verbs.
+- **Evidence:** `src/adapters/pipeline/PipelineFile.ts` `documentReadingOf`; `src/services/control/SettingControls.ts`
+  `requireReadablePipeline`.
+- **Established:** read. **Severity:** bug.
 
 <a id="gap-overseer-decisions-have-no-options"></a>
 

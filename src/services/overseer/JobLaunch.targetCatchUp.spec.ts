@@ -44,7 +44,9 @@ import { RedHandoff }                                            from './RedHand
 import { WatcherFleet }                                          from './WatcherFleet.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
-const PIPELINE: Pipeline = { prepare: [], gates: [{ name: 'tests', run: 'bun test' }], review: { name: 'Review' } };
+const PIPELINE: Pipeline = {
+  version: 2, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
+};
 const TRACKER_ID = 'example-tracker-id';
 const TARGET = 'master';
 const TARGET_TIP = '1'.repeat(40);

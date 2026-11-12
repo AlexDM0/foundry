@@ -7,11 +7,13 @@ import type {
   TrackerCleared
 } from './@types/BoardChanges.ts';
 import type { LogRecordFieldsOf } from './@types/LogRecord.ts';
-import type {
-  Pipeline,
-  PipelineApproval,
-  PipelineGate,
-  PipelineStep
+import {
+  type GatePhase,
+  PIPELINE_FORMAT_VERSION,
+  type Pipeline,
+  type PipelineApproval,
+  type PipelineGate,
+  type PipelineStep
 } from './@types/Pipeline.ts';
 import type { OverseerState, ViewRange } from './@types/TrackerProgress.ts';
 import type { BoardRecords }             from './BoardRecords.ts';
@@ -19,6 +21,15 @@ import { BoardRefusal }                  from './BoardRefusal.ts';
 import type { DispatchQueries }          from './DispatchQueries.ts';
 import { PipelineUtil }                  from './utils/PipelineUtil.ts';
 import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
+
+const GATE_PHASES: readonly GatePhase[] = ['build', 'review', 'merge'];
+
+/** No review, no re-review and no gates: valid, and it counts as set. */
+function minimalPipelineOf(): Pipeline {
+  return {
+    version: PIPELINE_FORMAT_VERSION, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  };
+}
 
 export class TrackerChanges {
   constructor(
@@ -50,7 +61,7 @@ export class TrackerChanges {
    * judged by at its next gate run.
    */
   private changedPipelineOf(change: (pipeline: Pipeline) => void, logged: Logged['logged']): PipelineChanged {
-    const pipeline = this.records.pipeline ?? { prepare: [], gates: [] };
+    const pipeline = this.records.pipeline ?? minimalPipelineOf();
     change(pipeline);
     this.records.pipeline        = pipeline;
     this.records.pipelineChanged = true;
@@ -67,13 +78,17 @@ export class TrackerChanges {
     }, logged);
   }
 
-  /** A gate of the same name is replaced where it stands, keeping its place in the run order; a new one runs last. */
+  /** A gate of the same name is replaced where it stands, keeping its place and its phases; a new one runs last in every phase. */
   addGate(gate: PipelineGate, at: string): PipelineChanged {
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-added', fields: { name: gate.name, run: gate.run } }, at)];
     return this.changedPipelineOf((pipeline) => {
       const index = pipeline.gates.findIndex((candidate) => candidate.name === gate.name);
-      if (index === -1) pipeline.gates.push({ ...gate });
-      else pipeline.gates[index] = { ...gate };
+      if (index !== -1) {
+        pipeline.gates[index] = { ...gate };
+        return;
+      }
+      pipeline.gates.push({ ...gate });
+      for (const phase of GATE_PHASES) pipeline.phases[phase].push(gate.name);
     }, logged);
   }
 
@@ -82,6 +97,7 @@ export class TrackerChanges {
     const logged = [this.records.logger.log({ kind: 'pipeline-gates-none', fields: {} }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.gates.length = 0;
+      for (const phase of GATE_PHASES) pipeline.phases[phase].length = 0;
     }, logged);
   }
 
@@ -91,6 +107,7 @@ export class TrackerChanges {
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-removed', fields: { name } }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.gates.splice(pipeline.gates.findIndex((gate) => gate.name === name), 1);
+      for (const phase of GATE_PHASES) pipeline.phases[phase] = pipeline.phases[phase].filter((gateName) => gateName !== name);
     }, logged);
   }
 

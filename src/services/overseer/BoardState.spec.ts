@@ -144,7 +144,9 @@ describe('BoardStateAssembly.boardStateOf', () => {
   function readingOf(mergeForecasting: MergeForecasting | null, logRecords: readonly LogRecord[] = [], agentTakesPictures = true): BoardStateReading {
     const { board, progress, tickets } = boardFixture({
       tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
-      pipeline: { prepare: [], gates: [{ name: 'test', run: 'bun test' }] },
+      pipeline: {
+        version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+      },
     });
     return {
       statusDocument: {},

@@ -3,10 +3,13 @@ import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlC
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 
-/** A malformed `pipeline.json` is never written over: a hand edit gone wrong is repaired, not lost. */
+/** A malformed or older `pipeline.json` is never written over: a hand edit gone wrong is repaired, not lost, and an older one set up again. */
 function requireReadablePipeline(change: TrackerChange): void {
-  if (change.malformedPipelineReason === null) return;
-  throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: change.workspace.pipelineFilePath, reason: change.malformedPipelineReason });
+  const { unreadablePipeline } = change;
+  const filePath = change.workspace.pipelineFilePath;
+  if (unreadablePipeline === null) return;
+  if (unreadablePipeline.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath });
+  throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath, reason: unreadablePipeline.reason });
 }
 
 function inReadablePipeline<Result>(change: TrackerChange, apply: () => Result): Result {

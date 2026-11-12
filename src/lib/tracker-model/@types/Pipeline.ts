@@ -1,4 +1,10 @@
-/** The board's gate pipeline, stored in `pipeline.json` beside the progress file: absent until a `gate` verb first writes it. */
+/** The board's pipeline, stored in `pipeline.json` beside the progress file: absent until a `gate` verb first writes it. */
+import type { AgentEffort, AgentModel } from './Ticket.ts';
+
+export const PIPELINE_FORMAT_VERSION = 2;
+
+/** Build is what a builder passes to be reviewed, review what a reviewer keeps green, merge what runs after main is merged in. */
+export type GatePhase = 'build' | 'review' | 'merge';
 
 export interface PipelineStep {
   name: string;
@@ -22,13 +28,48 @@ export interface PipelineGate {
   overseerOnly?: true;
 }
 
-export interface PipelineReview {
-  name:    string;
-  model?:  string;
-  effort?: string;
+/** The gate names of each phase, in run order. A gate is defined once and may run in several phases. */
+export type PipelinePhaseOrders = Record<GatePhase, string[]>;
+
+export type PipelineAgentRole =
+  | 'productOwner'
+  | 'builder'
+  | 'reviewer'
+  | 'reReviewer'
+  | 'conflictReReviewer'
+  | 'pipelineAgent'
+  | 'assistant';
+
+export type InstructionEntry =
+  | { kind: 'constitution' }
+  | { kind: 'default-brief'; role: PipelineAgentRole }
+  /** A tracked path, or a path under the data folder. */
+  | { kind: 'file'; path: string };
+
+export interface AgentStepSettings {
+  model?:        AgentModel;
+  effort?:       AgentEffort;
+  /** Read top to bottom; absent is the role's default list. */
+  instructions?: InstructionEntry[];
 }
 
-export type PipelineAgentRole = 'builder' | 'reviewer' | 'productOwner' | 'pipelineAgent' | 'assistant';
+/** Present means on: a re-review runs when the fixes change at least `thresholdLines` lines. */
+export interface ConditionalReReview {
+  thresholdLines: number;
+}
+
+export interface PipelineReview {
+  name:      string;
+  reReview?: ConditionalReReview;
+}
+
+export interface PipelineAirlock {
+  reReview?: ConditionalReReview;
+}
+
+export interface PipelineConstitution {
+  path: string;
+}
 
 /**
  * A human gate User may switch on or off: `tickets` is the ticket review before an agent can pick a ticket up; `merge` is User's accept
@@ -45,12 +86,17 @@ export type PipelineBilling =
   | { mode: 'api'; maxBudgetUsd?: number };
 
 export interface Pipeline {
+  version:       typeof PIPELINE_FORMAT_VERSION;
   prepare:       PipelineStep[];
-  /** In run order; an empty list is no gates on purpose, which counts as set. */
+  /** Every gate, defined once; an empty list is no gates on purpose, which counts as set. */
   gates:         PipelineGate[];
+  phases:        PipelinePhaseOrders;
+  /** Present: the review phase is on. */
   review?:       PipelineReview;
-  constitution?: string[];
-  agents?:       Partial<Record<PipelineAgentRole, string[]>>;
+  /** The merge train. */
+  airlock?:      PipelineAirlock;
+  constitution?: PipelineConstitution;
+  agents?:       Partial<Record<PipelineAgentRole, AgentStepSettings>>;
   /** An absent `tickets` approval is on; an absent `merge` approval is off. */
   approvals?:    Partial<Record<PipelineApproval, boolean>>;
   /** Absent bills by subscription; not part of the pipeline hash, as `approvals` is not. */

@@ -26,7 +26,12 @@ import { testWhenGitIsRecorded }                          from '../../testing/To
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
-const PIPELINE: Pipeline = { prepare: [], gates: [{ name: 'tests', run: 'true' }, { name: 'lint', run: 'true' }] };
+const PIPELINE: Pipeline = {
+  version: 2,
+  prepare: [],
+  gates:   [{ name: 'tests', run: 'true' }, { name: 'lint', run: 'true' }],
+  phases:  { build: ['tests', 'lint'], review: ['tests', 'lint'], merge: ['tests', 'lint'] },
+};
 const START_COMMIT = 'example-start-commit';
 
 const recordedGit = useRecordedGit();

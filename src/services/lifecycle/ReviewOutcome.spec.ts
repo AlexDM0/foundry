@@ -63,7 +63,9 @@ function newBoard(): Board {
     epics:            [],
     logger:           createLogger(() => undefined),
     storedLogRecords: [],
-    pipeline:         { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], review: { name: 'Review' } },
+    pipeline:         {
+      version: 2, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+    },
   });
 }
 

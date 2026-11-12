@@ -69,6 +69,7 @@ function profileOf(role: ProfiledRole, networkDomains: readonly string[] = [], f
 
 describe('the pipeline\'s toolchain', () => {
   const pipeline: Pipeline = {
+    version: 2,
     prepare: [{ name: 'install', run: 'uv sync' }],
     gates:   [
       {
@@ -78,6 +79,7 @@ describe('the pipeline\'s toolchain', () => {
         name: 'deploy-check', run: 'terraform plan', network: ['cloud.example.com'], writes: ['/example/terraform-cache'], overseerOnly: true
       },
     ],
+    phases: { build: ['tests', 'deploy-check'], review: ['tests', 'deploy-check'], merge: ['tests', 'deploy-check'] },
   };
 
   test('gives a builder the network and writes of every gate but an overseerOnly one, its ticket\'s line added, and their executables', () => {
@@ -92,7 +94,12 @@ describe('the pipeline\'s toolchain', () => {
 
   test('splits the lines in the grammar they run in: on cmd, a & b grants both, and a caret-escaped & grants neither word after it', () => {
     const windowsShellLine = createWindowsCommandLine({ commandInterpreter: () => 'C:\\Windows\\system32\\cmd.exe', systemRoot: () => undefined });
-    const cmdPipeline: Pipeline = { prepare: [{ name: 'install', run: 'npm ci & npx playwright install' }], gates: [{ name: 'tests', run: 'echo a ^& b' }] };
+    const cmdPipeline: Pipeline = {
+      version: 2,
+      prepare: [{ name: 'install', run: 'npm ci & npx playwright install' }],
+      gates:   [{ name: 'tests', run: 'echo a ^& b' }],
+      phases:  { build: ['tests'], review: ['tests'], merge: ['tests'] },
+    };
 
     expect(WorkerProfiles.workerToolchainOf(cmdPipeline, [], windowsShellLine).executables).toEqual(['npm', 'npx', 'echo']);
   });

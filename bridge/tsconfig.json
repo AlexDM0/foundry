@@ -85,6 +85,7 @@
     "../src/lib/tracker-model/constants/ReviewRecordVocabulary.ts",
     "../src/lib/tracker-model/constants/OverseerStates.ts",
     "../src/lib/tracker-model/constants/PictureIdPattern.ts",
+    "../src/lib/tracker-model/constants/PipelineDefaults.ts",
     "../src/lib/tracker-model/constants/TaskIds.ts",
     "../src/lib/tracker-model/constants/TicketFields.ts",
     "../src/lib/tracker-model/constants/TicketMoveLegality.ts",

@@ -1,26 +1,25 @@
 /**
- * The instruction files the pipeline names for a role: the constitution first for the roles that touch code, then the role's own array, each
- * defaulting to its generated file in the data folder. A data-folder file is read from disk; any other is tracked, so it is read from the
- * main line, never from a ticket's branch.
+ * The instruction files the pipeline names for a role: its ordered list, or the role's default list where it names none, each entry
+ * resolved to a path. A data-folder file is read from disk; any other is tracked, so it is read from the main line, never from a ticket's
+ * branch.
  */
 import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { GitProcess }                       from '../../lib/git/GitProcess.ts';
-import type { Job }                         from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PRODUCT_NAMES }                    from '../../shared/constants/ProductNames.ts';
-import { PathNestingUtil }                  from '../../shared/utils/PathNestingUtil.ts';
-import { AssistantBoot }                    from './AssistantBoot.ts';
+import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
+import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
+import type { InstructionEntry, Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { DEFAULT_INSTRUCTIONS_OF_ROLE }                       from '../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
+import { PathNestingUtil }                                    from '../../shared/utils/PathNestingUtil.ts';
+import { AssistantBoot }                                      from './AssistantBoot.ts';
 
 export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/defaults`;
 
 export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constitution.md`;
 
 const CONTENT_HASH_LENGTH_CHARACTERS = 16;
-
-const ROLES_GIVEN_THE_CONSTITUTION: readonly PipelineAgentRole[] = ['builder', 'reviewer'];
 
 export interface InstructionFileRead {
   path:        string;
@@ -46,18 +45,26 @@ function instructionRoleOf(job: Readonly<Job>): PipelineAgentRole | null {
   return null;
 }
 
+function instructionPathOf(pipeline: Readonly<Pipeline> | null, entry: Readonly<InstructionEntry>): string {
+  if (entry.kind === 'constitution') return pipeline?.constitution?.path ?? CONSTITUTION_DEFAULT_PATH;
+  if (entry.kind === 'default-brief') return defaultInstructionPathOf(entry.role);
+  return entry.path;
+}
+
 function instructionPathsOf(pipeline: Readonly<Pipeline> | null, role: PipelineAgentRole): string[] {
-  const constitution = ROLES_GIVEN_THE_CONSTITUTION.includes(role) ? pipeline?.constitution ?? [CONSTITUTION_DEFAULT_PATH] : [];
-  return [...constitution, ...pipeline?.agents?.[role] ?? [defaultInstructionPathOf(role)]];
+  const entries = pipeline?.agents?.[role]?.instructions ?? DEFAULT_INSTRUCTIONS_OF_ROLE[role];
+  return entries.map((entry) => instructionPathOf(pipeline, entry));
 }
 
 function isDataFolderPath(path: string): boolean {
   return path.startsWith(`${PRODUCT_NAMES.DATA_FOLDER}/`);
 }
 
-/** Every tracked file any array names, which a branch may change only where its ticket names it. */
+/** Every tracked file the pipeline names, which a branch may change only where its ticket names it. */
 function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[] {
-  const named = [...pipeline?.constitution ?? [], ...Object.values(pipeline?.agents ?? {}).flat()];
+  const listedFiles = Object.values(pipeline?.agents ?? {}).flatMap((settings) => settings.instructions ?? [])
+    .flatMap((entry) => (entry.kind === 'file' ? [entry.path] : []));
+  const named = [...(pipeline?.constitution === undefined ? [] : [pipeline.constitution.path]), ...listedFiles];
   return [...new Set(named.filter((path) => !isDataFolderPath(path)))];
 }
 

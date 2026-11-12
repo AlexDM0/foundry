@@ -4,26 +4,26 @@
  * drafts, then log.jsonl, so the progress file is never behind the tickets. The writes commit through the hold journal, fenced against a
  * takeover of the lock, and leave alone every file whose bytes would not change.
  */
-import { createDraftFileWriter }                                         from '../../adapters/drafts/DraftFileWriter.ts';
-import { createEpicFileWriter }                                          from '../../adapters/epics/EpicFileWriter.ts';
-import type { JournaledFile }                                            from '../../adapters/hold-journal/HoldJournalIngestion.ts';
-import { createLogFileWriter }                                           from '../../adapters/log/LogFileWriter.ts';
-import { createLogRecordCollector }                                      from '../../adapters/log/LogRecordCollector.ts';
-import { PipelineFile }                                                  from '../../adapters/pipeline/PipelineFile.ts';
-import { createProgressFileWriter }                                      from '../../adapters/progress/ProgressFileWriter.ts';
-import { createTicketFileWriter }                                        from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                                from '../../lib/tracker-model/@types/LogRecord.ts';
-import { Board }                                                         from '../../lib/tracker-model/Board.ts';
-import { refusalIsBoardRefusal }                                         from '../../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                                                  from '../../lib/tracker-model/Logger.ts';
-import { OperationRefusal }                                              from '../../shared/OperationRefusal.ts';
-import { draftFilePathOf, type MalformedDraftFile }                      from './DraftStore.ts';
-import { everyEpicFilePathIn, type MalformedEpicFile }                   from './EpicStore.ts';
-import { commitHold }                                                    from './HoldJournal.ts';
-import { everyTicketFilePathIn, type MalformedTicketFile }               from './TicketStore.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from './TrackerLock.ts';
-import { requireTracker, type TrackerContents }                          from './TrackerReader.ts';
-import type { Workspace }                                                from './Workspace.ts';
+import { createDraftFileWriter }                                              from '../../adapters/drafts/DraftFileWriter.ts';
+import { createEpicFileWriter }                                               from '../../adapters/epics/EpicFileWriter.ts';
+import type { JournaledFile }                                                 from '../../adapters/hold-journal/HoldJournalIngestion.ts';
+import { createLogFileWriter }                                                from '../../adapters/log/LogFileWriter.ts';
+import { createLogRecordCollector }                                           from '../../adapters/log/LogRecordCollector.ts';
+import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } from '../../adapters/pipeline/PipelineFile.ts';
+import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
+import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
+import type { LogRecord }                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import { Board }                                                              from '../../lib/tracker-model/Board.ts';
+import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
+import { OperationRefusal }                                                   from '../../shared/OperationRefusal.ts';
+import { draftFilePathOf, type MalformedDraftFile }                           from './DraftStore.ts';
+import { everyEpicFilePathIn, type MalformedEpicFile }                        from './EpicStore.ts';
+import { commitHold }                                                         from './HoldJournal.ts';
+import { everyTicketFilePathIn, type MalformedTicketFile }                    from './TicketStore.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock }      from './TrackerLock.ts';
+import { requireTracker, type TrackerContents }                               from './TrackerReader.ts';
+import type { Workspace }                                                     from './Workspace.ts';
 
 export interface TrackerChange {
   board:                          Board;
@@ -32,8 +32,8 @@ export interface TrackerChange {
   malformedTickets:               readonly MalformedTicketFile[];
   malformedEpics:                 readonly MalformedEpicFile[];
   malformedDrafts:                readonly MalformedDraftFile[];
-  /** Why the stored `pipeline.json` could not be read; `null` when it was, or none is stored. */
-  malformedPipelineReason:        string | null;
+  /** The stored `pipeline.json` when the board cannot use it, older or malformed; `null` when it was read, or none is stored. */
+  unreadablePipeline:             UnreadablePipelineReading | null;
   /** How many entries the log held when it was read, before anything this invocation logged. */
   storedLogEntryCount:            number;
   /** The log as it was read, before anything this invocation logged. */
@@ -82,6 +82,10 @@ function openBoard(contents: TrackerContents): OpenBoard {
     pipeline:         contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
   });
   return { contents, logRecordCollector, board };
+}
+
+function unreadablePipelineOf(reading: PipelineReading): UnreadablePipelineReading | null {
+  return reading.verdict === 'older' || reading.verdict === 'malformed' ? reading : null;
 }
 
 interface PlannedHold {
@@ -144,7 +148,7 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
       malformedTickets:               openedBoard.contents.listing.malformed,
       malformedEpics:                 openedBoard.contents.epicListing.malformed,
       malformedDrafts:                openedBoard.contents.draftListing.malformed,
-      malformedPipelineReason:        openedBoard.contents.pipelineReading.verdict === 'malformed' ? openedBoard.contents.pipelineReading.reason : null,
+      unreadablePipeline:             unreadablePipelineOf(openedBoard.contents.pipelineReading),
       storedLogEntryCount:            openedBoard.contents.storedLog.records.length,
       storedLogRecords:               openedBoard.contents.storedLog.records,
       deleteAllTicketFilesAfterwards: (onDeleted) => { deletionCallbacks.push(onDeleted); },

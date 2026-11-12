@@ -84,7 +84,9 @@ function lifecycleBoardOf(contents: { tickets: Ticket[]; progress?: Partial<Trac
     epics:            [],
     logger:           createLogger((record) => records.push(record)),
     storedLogRecords: contents.storedLogRecords ?? [],
-    pipeline:         contents.pipeline === undefined ? { prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], review: { name: 'Review' } } : contents.pipeline,
+    pipeline:         contents.pipeline === undefined ? {
+      version: 2, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+    } : contents.pipeline,
   });
   return { board, progress, records };
 }
@@ -121,7 +123,9 @@ describe('no pipeline and no gates on purpose are told apart', () => {
     expect(board.decisions()).toEqual([]);
     expect(board.jobs().map((job) => job.kind)).toEqual(['assistant', 'build']);
     expect(records.filter((record) => record.kind === 'pipeline-gates-none')).toHaveLength(1);
-    expect(board.pipeline()).toEqual({ prepare: [], gates: [] });
+    expect(board.pipeline()).toEqual({
+      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
   });
 });
 
