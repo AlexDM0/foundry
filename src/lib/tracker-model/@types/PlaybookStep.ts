@@ -9,25 +9,9 @@ export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 
 /** A decision code opens from the facts; its questions are worded by the caller, never by the policy. */
 export interface DecisionDraft {
-  kind:              DecisionKind;
-  ticketIds:         readonly string[];
-  jobId:             string | null;
-  /** Only on a `pipeline-proposal` decision: the proposal with its twice-run record, which its options accept or decline. */
-  pipelineProposal?: PipelineProposalFacts;
-}
-
-/** A pipeline agent's verified proposal as User sees it: each gate with what its two runs did, and the caching suggestions by kind and values. */
-export interface PipelineProposalFacts {
-  snapshotCommit:     string;
-  prepare:            readonly { name: string; run: string }[];
-  failedPrepareSteps: readonly (string | null)[];
-  gates:              readonly { name: string; run: string; verdict: string; outcomes: readonly string[]; durationsMilliseconds: readonly number[] }[];
-  review:             string | null;
-  constitution:       readonly string[];
-  agents:             Readonly<Record<string, readonly string[]>>;
-  suggestions:        readonly { kind: string; values: readonly string[] }[];
-  /** What the snapshot's tree cannot represent on every OS: reserved names, case collisions, symbolic links. Reported, never repaired. */
-  treeFindings:       readonly { kind: string; paths: readonly string[] }[];
+  kind:      DecisionKind;
+  ticketIds: readonly string[];
+  jobId:     string | null;
 }
 
 export interface DecisionWording {

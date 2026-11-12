@@ -19,8 +19,8 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
 import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineBilling }                                                           from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                                             from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Pipeline, PipelineBilling }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, PipelineSetupMode }                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
 import { WorktreesFolder }                                                                from '../../shared/WorktreesFolder.ts';
 import {
@@ -31,11 +31,11 @@ import {
   type LaunchSnapshot,
   type RefMovesAllowed
 } from '../lifecycle/Customs.ts';
-import type { PipelineAgentMode } from '../lifecycle/PipelineAgentProposal.ts';
-import type { TrackerChange }     from '../tracker/TrackerPipeline.ts';
-import type { Workspace }         from '../tracker/Workspace.ts';
-import { GroupWorktrees }         from './GroupWorktrees.ts';
-import { WatcherFleet }           from './WatcherFleet.ts';
+import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
+import type { Workspace }            from '../tracker/Workspace.ts';
+import { GroupWorktrees }            from './GroupWorktrees.ts';
+import { CONSTITUTION_DEFAULT_PATH } from './InstructionFiles.ts';
+import { WatcherFleet }              from './WatcherFleet.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
@@ -130,25 +130,45 @@ function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart
   }
 }
 
-/** What a pipeline agent's first message is filled from: `setup` for a first setup, `advise` on a stored pipeline, and the gate runs so far. */
+/**
+ * What a pipeline agent's first message is filled from: the record it serves, which a fresh session in place of a replaced one reads again,
+ * and the stored pipeline and gate runs so far, which an agent no record names advises on.
+ */
 export interface PipelineAgentFacts {
-  mode:        PipelineAgentMode;
-  gateHistory: string[];
+  /** The record's mode; with no record, `setup` while no pipeline is stored and `advise` on a stored one. */
+  mode:                  PipelineSetupMode;
+  /** Null for an agent no record names. */
+  setup:                 Readonly<PipelineSetup> | null;
+  storedPipeline:        Readonly<Pipeline> | null;
+  /** The installed default constitution, one of the sources the constitution is drafted from; null when the file is missing. */
+  installedConstitution: string | null;
+  gateHistory:           string[];
   /** The grammar the proposed lines must be written in: the one they run in on this machine. */
-  lineGrammar: ShellLineGrammar;
+  lineGrammar:           ShellLineGrammar;
 }
 
 /** The newest gate runs `advise` reads its optimisations from. */
 const GATE_HISTORY_RECORDS = 200;
 
-function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar): PipelineAgentFacts | null {
+function installedConstitutionOf(rootDirectory: string): string | null {
+  try {
+    return readFileSync(join(rootDirectory, CONSTITUTION_DEFAULT_PATH), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar, rootDirectory: string): PipelineAgentFacts | null {
   if (!isPipelineAgentJob(job)) return null;
   const gateHistory = board.logRecordsSoFar()
     .flatMap((record) => (record.kind === 'gate-ran' ? [`${record.at} ${record.fields.outcome}${record.fields.cached ? ' (cached)' : ''} tree ${record.fields.tree}`] : []))
     .slice(-GATE_HISTORY_RECORDS);
-  const setupMode = servedSetupOf(board, job)?.mode;
-  const mode = setupMode === undefined ? (board.pipeline() === null ? 'setup' : 'advise') : (setupMode === 'setup' ? 'setup' : 'advise');
-  return { mode, gateHistory, lineGrammar };
+  const setup = servedSetupOf(board, job);
+  const storedPipeline = board.pipeline();
+  const mode = setup?.mode ?? (storedPipeline === null ? 'setup' : 'advise');
+  return {
+    mode, setup, storedPipeline, installedConstitution: installedConstitutionOf(rootDirectory), gateHistory, lineGrammar
+  };
 }
 
 /** It reads the snapshot and writes only its Hatch folder; no network, no question, no skill. */

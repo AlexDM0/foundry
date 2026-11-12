@@ -117,7 +117,7 @@ export interface JobLaunchFacts {
   airlock:                AirlockFacts | null;
   /** What a fresh Assistant boots with: the incidents of its first message, the newest incident records and the board; `null` otherwise. */
   assistant:              AssistantFacts | null;
-  /** A pipeline agent's mode and the gate history `advise` reads; `null` for every other job. */
+  /** A pipeline agent's record, the stored pipeline and the gate history `advise` reads; `null` for every other job. */
   pipelineAgent?:         PipelineAgentFacts | null;
   /** The role's instruction files as the pipeline names them, joined in order and unfilled; empty for a job no array speaks for. */
   instructions:           string;
@@ -678,7 +678,7 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
-    pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar),
+    pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar, request.workspace.rootDirectory),
   };
 }
 

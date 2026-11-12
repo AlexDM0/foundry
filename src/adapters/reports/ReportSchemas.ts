@@ -104,46 +104,6 @@ export const REVIEWER_REPORT_SCHEMA: JsonSchema = {
   }),
 };
 
-const TEXT_LIST = listOf(TEXT);
-
-const PIPELINE_AGENT_GATE = closedObject({
-  name: TEXT, run: TEXT, definedBy: TEXT_LIST, network: TEXT_LIST, writes: TEXT_LIST
-});
-
-const PIPELINE_AGENT_REVIEW: JsonSchema = { oneOf: [{ type: 'null' }, closedObject({ name: TEXT, model: NULLABLE_TEXT, effort: NULLABLE_TEXT })], };
-
-/** Each optimisation `advise` makes is a draft low ticket the pipeline agent filed through its Hatch, named as a reviewer names a filed finding. */
-const FILED_OPTIMISATION: JsonSchema = {
-  ...closedObject({ summary: TEXT, filedTicketId: NULLABLE_TEXT, hatchRequestId: NULLABLE_TEXT }),
-  anyOf: [
-    { properties: { filedTicketId: TEXT }, required: ['filedTicketId'] },
-    { properties: { hatchRequestId: TEXT }, required: ['hatchRequestId'] },
-  ],
-};
-
-/**
- * The pipeline agent's proposal for the whole pipeline, every array starting from the defaults; `headCommit` is the main-line snapshot it read.
- * `setup` answers `checks-not-set`; `advise` takes the gate history and files its optimisations.
- */
-export const PIPELINE_AGENT_REPORT_SCHEMA: JsonSchema = {
-  $schema: DRAFT_07,
-  title:   'pipeline agent report',
-  ...closedObject({
-    role:         { const: 'pipeline-agent' },
-    mode:         { enum: ['setup', 'advise'] },
-    headCommit:   COMMIT_SHA,
-    prepare:      listOf(closedObject({ name: TEXT, run: TEXT })),
-    gates:        listOf(PIPELINE_AGENT_GATE),
-    review:       PIPELINE_AGENT_REVIEW,
-    constitution: TEXT_LIST,
-    agents:       closedObject({
-      builder: TEXT_LIST, reviewer: TEXT_LIST, productOwner: TEXT_LIST, pipelineAgent: TEXT_LIST, assistant: TEXT_LIST
-    }),
-    optimisations: listOf(FILED_OPTIMISATION),
-    notes:         TEXT,
-  }),
-};
-
 /** A builder's or reviewer's report from the Airlock, on a conflict or a red merged tree: `reportKind` is non-null only with `cannot-resolve`. */
 export const AIRLOCK_AGENT_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,

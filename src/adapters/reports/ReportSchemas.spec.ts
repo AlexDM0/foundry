@@ -5,22 +5,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import {
-  AIRLOCK_AGENT_REPORT_SCHEMA,
-  BUILDER_REPORT_SCHEMA,
-  PIPELINE_AGENT_REPORT_SCHEMA,
-  REVIEWER_REPORT_SCHEMA
-} from './ReportSchemas.ts';
-import { reportVerdictOf, type JsonSchema } from './ReportValidation.ts';
-import { pipelineAgentReportOf }            from './testing/PipelineAgentReportFixture.ts';
+import { AIRLOCK_AGENT_REPORT_SCHEMA, BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from './ReportSchemas.ts';
+import { reportVerdictOf, type JsonSchema }                                           from './ReportValidation.ts';
 
 const HEAD = 'a'.repeat(40);
-
-const PIPELINE_AGENT_REPORT = pipelineAgentReportOf(HEAD);
-
-function adviceFiling(hatchRequestId: string | null): Record<string, unknown> {
-  return { ...PIPELINE_AGENT_REPORT, mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId: null, hatchRequestId }] };
-}
 
 const BUILT = {
   role:              'builder',
@@ -101,30 +89,6 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
   ['a reviewer in the Airlock that cannot resolve, with no kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, outcome: 'cannot-resolve' }, true],
   ['a resolved report carrying a report kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, reportKind: 'system-blocker' }, false],
   ['an Airlock agent report of the pipeline agent role', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, role: 'pipeline-agent' }, false],
-  ['a pipeline agent setup proposal', PIPELINE_AGENT_REPORT_SCHEMA, PIPELINE_AGENT_REPORT, true],
-  ['a pipeline agent proposing no review', PIPELINE_AGENT_REPORT_SCHEMA, { ...PIPELINE_AGENT_REPORT, review: null }, true],
-  ['a pipeline agent advice naming a queued optimisation', PIPELINE_AGENT_REPORT_SCHEMA, adviceFiling('5f0c'), true],
-  ['a pipeline agent optimisation naming neither ticket nor request', PIPELINE_AGENT_REPORT_SCHEMA, adviceFiling(null), false],
-  [
-    'a pipeline agent report missing its constitution',
-    PIPELINE_AGENT_REPORT_SCHEMA,
-    Object.fromEntries(Object.entries(PIPELINE_AGENT_REPORT).filter(([field]) => field !== 'constitution')),
-    false,
-  ],
-  ['a pipeline agent report with an unknown field', PIPELINE_AGENT_REPORT_SCHEMA, { ...PIPELINE_AGENT_REPORT, checks: 'bun test' }, false],
-  ['a pipeline agent gate without its writes', PIPELINE_AGENT_REPORT_SCHEMA, {
-    ...PIPELINE_AGENT_REPORT,
-    gates: [{
-      name: 'tests', run: 'bun test', definedBy: [], network: []
-    }]
-  }, false],
-  [
-    'a pipeline agent agents array for an unknown role',
-    PIPELINE_AGENT_REPORT_SCHEMA,
-    { ...PIPELINE_AGENT_REPORT, agents: { ...PIPELINE_AGENT_REPORT['agents'] as object, tester: [] } },
-    false,
-  ],
-  ['a pipeline agent report in an unknown mode', PIPELINE_AGENT_REPORT_SCHEMA, { ...PIPELINE_AGENT_REPORT, mode: 'install' }, false],
 ];
 
 describe('the report table', () => {
@@ -133,7 +97,7 @@ describe('the report table', () => {
   });
 
   test('each schema is a draft-07 document that survives JSON unchanged, as the command line receives it', () => {
-    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, PIPELINE_AGENT_REPORT_SCHEMA]) {
+    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA]) {
       expect(schema.$schema).toBe('http://json-schema.org/draft-07/schema#');
       expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);
     }

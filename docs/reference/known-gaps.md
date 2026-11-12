@@ -70,7 +70,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-round-verdict-mixes-runs](#gap-round-verdict-mixes-runs) | Lifecycle | bug | A further review round is judged against an earlier run |
 | [gap-outside-ref-move-fails-job](#gap-outside-ref-move-fails-job) | Lifecycle | bug | An outside ref move fails every live job at V14 |
 | [gap-unreadable-pipeline-passes-merge-gate](#gap-unreadable-pipeline-passes-merge-gate) | Lifecycle | bug | A pipeline unreadable at gate time gates nothing |
-| [gap-proposal-overwrites-malformed-pipeline](#gap-proposal-overwrites-malformed-pipeline) | Lifecycle | bug | An accepted proposal replaces a malformed `pipeline.json` |
 | [gap-checks-not-set-stays-open](#gap-checks-not-set-stays-open) | Lifecycle | bug | Setting a pipeline does not close `checks-not-set` |
 | [gap-older-pipeline-holds](#gap-older-pipeline-holds) | Lifecycle | bug | A version 1 `pipeline.json` holds the board until it is set up again |
 | [gap-overseer-decisions-have-no-options](#gap-overseer-decisions-have-no-options) | Lifecycle | misleading text | `decide <E> a` is refused on most Overseer decisions |
@@ -84,7 +83,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-incident-answer-not-delivered](#gap-incident-answer-not-delivered) | Agents and control | bug | An incident's answer never reaches the session |
 | [gap-escalated-question-of-ended-job](#gap-escalated-question-of-ended-job) | Agents and control | bug | An escalated question of an ended job reaches nobody |
 | [gap-assistant-job-moves-refused-at-hatch](#gap-assistant-job-moves-refused-at-hatch) | Agents and control | bug | The [Hatch](../glossary.md#hatch) refuses the [Assistant](../glossary.md#assistant)'s job-targeting moves |
-| [gap-pipeline-agent-advise-filing](#gap-pipeline-agent-advise-filing) | Agents and control | bug | The [pipeline agent](../glossary.md#pipeline-agent)'s advised filing cannot succeed |
+| [gap-pipeline-agent-advise-filing](#gap-pipeline-agent-advise-filing) | Agents and control | bug | The [pipeline agent](../glossary.md#pipeline-agent)'s advice cannot reach a record |
 | [gap-live-pipeline-agent-under-older-name](#gap-live-pipeline-agent-under-older-name) | Agents and control | bug | A live pipeline agent job an earlier release started makes `progress.json` unreadable |
 | [gap-session-profiles-weaker](#gap-session-profiles-weaker) | Agents and control | bug | Assistant, [product owner](../glossary.md#product-owner) and pipeline agent run weaker denies |
 | [gap-refused-relayed-command-partial](#gap-refused-relayed-command-partial) | Agents and control | bug | A refused relayed command keeps its changes |
@@ -503,35 +502,19 @@ named in the [Glossary](../glossary.md#reading-names).
   `runPipeline`.
 - **Established:** read. **Severity:** bug.
 
-<a id="gap-proposal-overwrites-malformed-pipeline"></a>
-
-### Accepting a proposal overwrites a malformed pipeline
-
-- **Expected:** a malformed `pipeline.json` is refused, not replaced: every `gate` verb refuses `malformed-pipeline`.
-- **Does:** `inReadablePipeline` guards the `gate` verbs alone. `answerPipelineProposal` calls
-  `PipelineAgentProposal.acceptProposal`, which calls the Board moves directly. `changedPipelineOf` starts from an empty
-  pipeline when the Board read none, and the hold writes the file.
-- **Effect:** an answer to a `pipeline-proposal` decision loses a hand-edited file that failed to parse.
-- **Instead:** repair `<data>/pipeline.json`, or copy it aside, before accepting a proposal.
-- **Evidence:** `src/services/control/SettingControls.ts` `inReadablePipeline`;
-  `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `src/services/lifecycle/PipelineAgentProposal.ts`
-  `acceptProposal`; `src/lib/tracker-model/TrackerChanges.ts` `changedPipelineOf`.
-- **Established:** read. **Severity:** bug.
-
 <a id="gap-checks-not-set-stays-open"></a>
 
 ### The `checks-not-set` decision stays open
 
 - **Expected:** the `checks-not-set` decision closes once the board has a pipeline.
-- **Does:** `Playbook.nextStepsOf` opens it while no pipeline is set, and nothing closes it. `gate none`, a `gate add`
-  and an accepted proposal leave it open, and `answerPipelineProposal` touches only its own decision.
+- **Does:** `Playbook.nextStepsOf` opens it while no pipeline is set, and nothing closes it. `gate none` and a
+  `gate add` leave it open.
 - **Effect:** the question stays on the Questions tab after it stopped applying. Answered with no pipeline set, it
-  reopens and a fresh pipeline agent launches.
+  reopens.
 - **Instead:** once a pipeline is set, run `forge decide <E> -- <text>`.
-- **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`, `pipelineAgentAnsweredChecksNotSet`;
-  `src/services/control/DecisionControls.ts` `answerPipelineProposal`; `cli/overseer/OverseerWording.ts`
+- **Evidence:** `src/lib/tracker-model/Playbook.ts` `nextStepsOf`; `cli/overseer/OverseerWording.ts`
   `decisionWordingOf`.
-- **Established:** probed for `gate none`; read for an accepted proposal. **Severity:** bug.
+- **Established:** probed for `gate none`. **Severity:** bug.
 
 <a id="gap-older-pipeline-holds"></a>
 
@@ -721,22 +704,18 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-pipeline-agent-advise-filing"></a>
 
-### The pipeline agent's advised filing cannot work
+### The pipeline agent's advice cannot reach a record
 
-- **Expected:** in `advise` mode the pipeline agent files each optimisation as a low draft ticket.
-- **Does:** the prompt says `ticket add "<title>" --status draft --priority low`. `--status` is not in
-  `ADD_OPTION_NAMES`, and `--type` is required, so the verb refuses it. A correct filing meets `Bouncer.verdictOf`,
-  which has no branch for role `pipeline-agent` and refuses `command-not-allowed-for-role`.
-- **Effect:** a pipeline agent cannot file anything. The report schema admits only filed optimisations, each with a
-  `filedTicketId` or `hatchRequestId`, so an `advise` run listing any ends `failed` at
-  [V12](../architecture/customs-and-gates.md) (filings are this job's). A run listing none reports nothing.
-- **Instead:** read the optimisations in the session's transcript on the Bridge, which shows the session's text where
-  `forge job attach <J>` does not, and file them by hand. Each entry's only free text is its `summary`; the
-  report's `notes` field may also carry advice.
-- **Evidence:** `cli/overseer/OverseerWording.ts` `PIPELINE_AGENT_MODE_INSTRUCTIONS`;
-  `cli/tickets/TicketFilingSubcommands.ts` `ADD_OPTION_NAMES`; `src/services/control/Bouncer.ts` `verdictOf`;
-  `src/services/lifecycle/Customs.ts` `filedFindingsWereFiledByThisJob`; `src/adapters/reports/ReportSchemas.ts`
-  `FILED_OPTIMISATION`.
+- **Expected:** in `advise` mode the pipeline agent proposes its improvements as edits of a setup record's draft, and
+  User applies the ones User accepts.
+- **Does:** `advise` records a pipeline agent job and opens no setup record. The agent's prompt tells it to propose
+  edits with `pipeline propose` and to file no ticket, but the Bouncer refuses each of its relayed setup commands with
+  `job-serves-no-setup`, since no open record names the job as its agent.
+- **Effect:** an `advise` run changes nothing; its advice is only the session's own text.
+- **Instead:** read the advice in the session's transcript on the Bridge, which shows the session's text where
+  `forge job attach <J>` does not, and make the changes with the `gate` verbs.
+- **Evidence:** `cli/pipeline/AdviseCommand.ts`; `src/services/control/Bouncer.ts` `pipelineAgentVerdictOf`;
+  `resources/prompts/PipelineAgentAdvise.md`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-live-pipeline-agent-under-older-name"></a>

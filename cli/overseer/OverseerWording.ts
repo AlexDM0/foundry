@@ -2,18 +2,24 @@
  * The words the Overseer's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                                               from 'node:fs';
-import { OperationRefusalWordingUtil }                                from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CLAUDE_API_KEY_VARIABLE }                                    from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
-import type { Incident }                                              from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                   from '../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                                          from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PipelineProposalFacts } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import { ACCEPT_PROPOSAL_LABEL }                                      from '../../src/services/control/DecisionControls.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }                             from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                                        from '../../src/services/overseer/AssistantBoot.ts';
-import type { AssistantChatFacts }                                    from '../../src/services/overseer/AssistantSession.ts';
-import type { BatonPassFailure }                                      from '../../src/services/overseer/BatonPass.ts';
+import { readFileSync }                from 'node:fs';
+import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CLAUDE_API_KEY_VARIABLE }     from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
+import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type {
+  PipelineSetup,
+  PipelineSetupMode,
+  PipelineSetupStep,
+  ResearchFinding,
+  SetupQuestion
+} from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import type { AssistantFacts }                 from '../../src/services/overseer/AssistantBoot.ts';
+import type { AssistantChatFacts }             from '../../src/services/overseer/AssistantSession.ts';
+import type { BatonPassFailure }               from '../../src/services/overseer/BatonPass.ts';
 import type {
   AirlockFacts,
   JobLaunchFacts,
@@ -32,52 +38,6 @@ import { LINE_GRAMMAR_WORDING }                                       from '../L
 
 function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
-}
-
-const SUGGESTION_WORDING: Readonly<Record<string, string>> = {
-  'no-caching-tool':        'No caching tool while these gates are slow',
-  'per-worktree-cache':     'The cache lives in each worktree; use one absolute cache folder for every worktree instead of',
-  'task-inputs-unseen':     'A task\'s inputs miss what its import graph cannot see (task, then folders)',
-  'gate-not-through-turbo': 'A gate runs past the cache; run it through `turbo run <task>`',
-};
-
-const TREE_FINDING_WORDING: Readonly<Record<string, string>> = {
-  'reserved-name':   'A path part is a device name Windows reserves',
-  'unstorable-name': 'A path part holds a character Windows cannot store, or ends in a dot or space',
-  'case-collision':  'Paths differ only in case, so a case-insensitive file system checks out one of them',
-  'symbolic-link':   'A symbolic link, which Windows checks out as a plain file unless symbolic links are enabled',
-};
-
-function proposedGateLineOf(gate: PipelineProposalFacts['gates'][number]): string {
-  const times = gate.durationsMilliseconds.map((milliseconds) => `${milliseconds} ms`).join(', ');
-  return `gate ${gate.name}: ${gate.run} — ${gate.verdict} (${gate.outcomes.join(', ')}; ${times})`;
-}
-
-/** The proposal with what each gate did on both runs of the snapshot; accepting writes the prepare steps and gates, declining nothing. */
-function pipelineProposalWordingOf(proposal: PipelineProposalFacts): DecisionWording {
-  const failedPrepare = proposal.failedPrepareSteps.filter((step) => step !== null);
-  return {
-    questions: [{
-      question:    'The pipeline agent proposed this pipeline and its gates ran twice on the main line. Accept it?',
-      header:      'pipeline-proposal',
-      multiSelect: false,
-      options:     [
-        { label: `${ACCEPT_PROPOSAL_LABEL} the prepare steps and gates`, description: 'Written through gate prepare and gate add in one hold.' },
-        { label: 'Decline', description: 'Nothing changes; the board still holds new work until a pipeline is set.' },
-      ],
-    }],
-    context: [
-      `Snapshot ${proposal.snapshotCommit}`,
-      ...proposal.prepare.map((step) => `prepare ${step.name}: ${step.run}`),
-      ...failedPrepare.length === 0 ? [] : [`prepare failed in a run at: ${failedPrepare.join(', ')}`],
-      ...proposal.gates.map(proposedGateLineOf),
-      `review: ${proposal.review ?? 'none'} (not written by accepting)`,
-      `constitution: ${proposal.constitution.join(', ')} (not written by accepting)`,
-      ...Object.entries(proposal.agents).map(([role, paths]) => `agents.${role}: ${paths.join(', ')} (not written by accepting)`),
-      ...proposal.suggestions.map((suggestion) => `suggestion: ${SUGGESTION_WORDING[suggestion.kind] ?? suggestion.kind}: ${suggestion.values.join(', ')}`),
-      ...proposal.treeFindings.map((finding) => `not portable: ${TREE_FINDING_WORDING[finding.kind] ?? finding.kind}: ${finding.paths.join(', ')}`),
-    ].join('\n'),
-  };
 }
 
 const API_KEY_NOT_SET_WORDING: DecisionWording = {
@@ -116,7 +76,6 @@ function budgetReachedWordingOf(draft: DecisionDraft): DecisionWording {
 }
 
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
-  if (draft.pipelineProposal !== undefined) return pipelineProposalWordingOf(draft.pipelineProposal);
   if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
   if (draft.kind === 'api-authentication-failed') return API_AUTHENTICATION_FAILED_WORDING;
   if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
@@ -305,35 +264,136 @@ function reviewFindingsMessageOf(ticketId: string, facts: Readonly<ReviewFinding
   ].join('\n');
 }
 
-/**
- * A builder's and a reviewer's first message is its role's instruction files, the constitution first, filled with its ticket and checks
- * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it.
- */
-const PIPELINE_AGENT_MODE_INSTRUCTIONS = {
-  setup:  'No pipeline is stored (checks-not-set): your report is its proposal, and `optimisations` stays empty.',
-  advise: `A pipeline is stored: propose it as it should stand, and file each optimisation the gate history shows as a draft low ticket
-through your Hatch (\`${PRODUCT_NAMES.PROGRAM} ticket add "<title>" --status draft --priority low\`), naming it in \`optimisations\`.`,
-} as const;
-
 type SessionConfinement = JobLaunchFacts['confinement'];
 
-function pipelineAgentTextOf(
-  job: Readonly<Job>, pipelineAgent: NonNullable<JobLaunchFacts['pipelineAgent']>, instructions: string, confinement: SessionConfinement
-): JobLaunchText {
-  const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM, dataFolder: PRODUCT_NAMES.DATA_FOLDER };
+type PipelineAgentFacts = NonNullable<JobLaunchFacts['pipelineAgent']>;
+
+function promptOf(fileName: string): string {
+  return readFileSync(resourceFilePathOf('prompts', fileName), 'utf8');
+}
+
+/** The shortest fence markdown reads as one. */
+const MARKDOWN_FENCE_LENGTH = 3;
+
+/** A fence longer than any run of backticks in the text, so a document holding a fence of its own is shown whole. */
+function fencedBlockOf(text: string, language: string): string {
+  const longestRun = Math.max(0, ...[...text.matchAll(/`+/gu)].map((run) => run[0].length));
+  const fence = '`'.repeat(Math.max(MARKDOWN_FENCE_LENGTH, longestRun + 1));
+  return `${fence}${language}\n${text.endsWith('\n') ? text : `${text}\n`}${fence}`;
+}
+
+/**
+ * The step blocks a step works under: the research block also while billing is open, since the agent starts reading at once, and the
+ * design block also at Apply, so the agent still answers User's changes there. An advise session reads the design rules too.
+ */
+function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): readonly string[] {
+  if (mode === 'advise') return ['PipelineAgentAdvise.md', 'PipelineAgentDesign.md'];
+  switch (step) {
+    case 'billing':
+    case 'research':
+      return ['PipelineAgentResearch.md'];
+    case 'constitution':
+      return ['PipelineAgentConstitution.md'];
+    case 'design':
+    case 'apply':
+      return ['PipelineAgentDesign.md'];
+  }
+}
+
+function stepInstructionsOf(mode: PipelineSetupMode, step: PipelineSetupStep): string {
+  const fills = { program: PRODUCT_NAMES.PROGRAM };
+  return stepPromptFilesOf(mode, step).map((fileName) => filledTemplateOf(promptOf(fileName), fills).trim()).join('\n\n');
+}
+
+function findingLineOf(finding: Readonly<ResearchFinding>): string {
+  const value  = finding.value === null ? '' : `: ${finding.value}`;
+  const script = finding.script === null
+    ? ''
+    : `; script \`${finding.script.name}\` runs \`${finding.script.run}\`: ${finding.script.meaning} (${finding.script.gateCandidate}`
+      + `${finding.script.needs.length === 0 ? '' : `, needs ${finding.script.needs.join(', ')}`})`;
+  const paths   = finding.sourcePaths.length === 0 ? '' : ` [${finding.sourcePaths.join(', ')}]`;
+  const recheck = finding.needsRecheck ? ' Needs a recheck.' : '';
+  return `- ${finding.findingId} ${finding.topic}, ${finding.label}${value}${script}${paths}${recheck}`;
+}
+
+function questionLinesOf(question: Readonly<SetupQuestion>): string[] {
+  const subject = question.subject === null ? '' : `, ${question.subject.kind} ${question.subject.reference}`;
+  const options = question.options.map((option) => `  ${option.letter}) ${option.text}${question.recommended.includes(option.letter) ? ' (recommended)' : ''}`);
+  const { answer } = question;
+  const answerLine = answer === null
+    ? '  Open.'
+    : `  Answer: ${'letters' in answer ? answer.letters.join(', ') : answer.text}`;
+  return [`- ${question.questionId} (${question.step}${subject}${question.multiple ? ', several options' : ''}): ${question.question}`, ...options, answerLine];
+}
+
+function constitutionLinesOf(setup: Readonly<PipelineSetup>): string[] {
+  const { constitution } = setup;
+  if (constitution === null) return ['No constitution is drafted yet.'];
+  const ticks = [
+    ...(constitution.draftedFrom.contributing ? ['CONTRIBUTING.md'] : []),
+    ...(constitution.draftedFrom.research ? ['the research findings'] : []),
+    ...(constitution.draftedFrom.installedDefault ? ['the installed default constitution'] : []),
+  ];
+  const sources = constitution.annotations.map((annotation) => `- Line "${annotation.lineText}" (occurrence ${annotation.occurrence}): `
+    + `${annotation.kind}${annotation.path === null ? '' : `, ${annotation.path}`}`);
+  return [
+    `Revision ${constitution.revision}. The SOURCES ticks select: ${ticks.length === 0 ? 'none' : ticks.join(', ')}.`,
+    fencedBlockOf(constitution.markdown, 'markdown'),
+    ...(sources.length === 0 ? ['No line names a source.'] : ['Sources:', ...sources]),
+  ];
+}
+
+function pipelineBlockOf(pipeline: Readonly<Pipeline>): string {
+  return fencedBlockOf(JSON.stringify(pipeline, null, 2), 'json');
+}
+
+/** The record as the agent reads it in its first message: a fresh session in place of a replaced one starts from it. */
+function setupFactsTextOf(facts: PipelineAgentFacts): string {
+  const { setup } = facts;
+  const sections: string[] = [];
+  if (setup === null) {
+    sections.push('No setup record names this job.');
+    sections.push(facts.storedPipeline === null ? 'No pipeline is stored.' : `The stored pipeline:\n\n${pipelineBlockOf(facts.storedPipeline)}`);
+  } else {
+    const stepStates = Object.entries(setup.stepStates).map(([step, state]) => `${step} ${state}`).join(', ');
+    const edits = setup.edits.map((edit) => `- ${edit.editId} by ${edit.by}, ${edit.field}: ${edit.summary}${edit.undone ? ' (undone)' : ''}`);
+    sections.push(
+      `Setup ${setup.setupId}, mode ${setup.mode}. The current step is ${setup.currentStep}. Steps: ${stepStates}.`,
+      `### Findings\n\n${setup.findings.length === 0 ? 'None yet.' : setup.findings.map(findingLineOf).join('\n')}`,
+      `### Questions\n\n${setup.questions.length === 0 ? 'None yet.' : setup.questions.flatMap(questionLinesOf).join('\n')}`,
+      `### Constitution\n\n${constitutionLinesOf(setup).join('\n\n')}`,
+      `### Draft pipeline\n\n${setup.draft === null ? 'No draft yet.' : `Revision ${setup.draftRevision}.\n\n${pipelineBlockOf(setup.draft)}`}`,
+      `### Edits\n\n${edits.length === 0 ? 'None yet.' : edits.join('\n')}`,
+    );
+  }
+  if (facts.mode !== 'advise' && facts.installedConstitution !== null) {
+    sections.push(`### The installed default constitution\n\n${fencedBlockOf(facts.installedConstitution, 'markdown')}`);
+  }
+  if (facts.mode === 'advise') {
+    sections.push(`### Gate history, newest last\n\n${facts.gateHistory.length === 0 ? 'None recorded.' : facts.gateHistory.join('\n')}`);
+  }
+  return sections.join('\n\n');
+}
+
+/** The current step's block and the record's facts; with no record, a first setup reads the research block. */
+function pipelineAgentTextOf(job: Readonly<Job>, facts: PipelineAgentFacts, instructions: string, confinement: SessionConfinement): JobLaunchText {
+  const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM };
   return {
-    firstMessage: filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'PipelineAgentPrompt.md'), 'utf8'), {
+    firstMessage: filledTemplateOf(promptOf('PipelineAgentPrompt.md'), {
       ...fills,
       pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
-      mode:                pipelineAgent.mode,
-      modeInstructions:    PIPELINE_AGENT_MODE_INSTRUCTIONS[pipelineAgent.mode],
-      gateHistory:         pipelineAgent.gateHistory.length === 0 ? 'None recorded.' : pipelineAgent.gateHistory.join('\n'),
-      lineGrammar:         LINE_GRAMMAR_WORDING[pipelineAgent.lineGrammar],
+      lineGrammar:         LINE_GRAMMAR_WORDING[facts.lineGrammar],
+      setupFacts:          setupFactsTextOf(facts),
+      stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research'),
     }),
     roleBrief: filledTemplateOf(instructions, fills),
   };
 }
 
+/**
+ * A builder's and a reviewer's first message is its role's instruction files, the constitution first, filled with its ticket and checks
+ * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it.
+ */
 function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
   if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement);
@@ -396,6 +456,13 @@ function answerMessageOf(answer: Readonly<Record<string, string>>): string {
   return `You were interrupted while waiting for the answer to your question; carry on with it.\n\n${answerLines.join('\n\n')}`;
 }
 
+/** A Continue carries the next step's block, unless the agent already works under it. */
+function stepContinuedMessageOf(mode: PipelineSetupMode, step: PipelineSetupStep, currentStep: PipelineSetupStep): string {
+  const moved = `User completed the ${step} step. The current step is ${currentStep}.`;
+  const nextInstructions = stepInstructionsOf(mode, currentStep);
+  return nextInstructions === stepInstructionsOf(mode, step) ? moved : `${moved}\n\n${nextInstructions}`;
+}
+
 /** What the pipeline agent reads when User answers, edits, undoes, discards or continues on its setup record, which it must read again. */
 function setupMessageWordingOf(message: SetupMessage): string {
   switch (message.kind) {
@@ -404,7 +471,7 @@ function setupMessageWordingOf(message: SetupMessage): string {
         ? `User answered ${message.questionId}: ${message.reply.letters.join(', ')}.`
         : `User answered ${message.questionId}: ${message.reply.text}`;
     case 'step-continued':
-      return `User completed the ${message.step} step. The current step is ${message.currentStep}.`;
+      return stepContinuedMessageOf(message.mode, message.step, message.currentStep);
     case 'constitution-edited': {
       const parts = [...(message.markdownChanged ? ['the text'] : []), ...(message.sourcesChanged ? ['the SOURCES ticks'] : [])];
       return `User changed ${parts.join(' and ')} of the constitution (revision ${message.revision}). Read the constitution again before you change it.`;
@@ -418,8 +485,11 @@ function setupMessageWordingOf(message: SetupMessage): string {
       return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).`;
     case 'setup-resumed':
       if (message.mainMovedByCommits === 0) return 'User resumed the setup. Main did not move.';
-      return `User resumed the setup. Main moved ${message.mainMovedByCommits} ${message.mainMovedByCommits === 1 ? 'commit' : 'commits'}. These paths changed: `
-        + `${message.changedPaths.length === 0 ? 'none' : message.changedPaths.join(', ')}. Check the findings that name them.`;
+      return filledTemplateOf(promptOf('PipelineAgentMainMoved.md'), {
+        count:        String(message.mainMovedByCommits),
+        commits:      message.mainMovedByCommits === 1 ? 'commit' : 'commits',
+        changedPaths: message.changedPaths.length === 0 ? 'none' : message.changedPaths.join(', '),
+      }).trim().replaceAll('\n', ' ');
   }
 }
 

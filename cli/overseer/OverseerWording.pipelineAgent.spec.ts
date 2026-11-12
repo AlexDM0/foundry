@@ -1,21 +1,94 @@
 /**
- * The pipeline agent's first message names the grammar its proposed lines run in on this machine, filled from the shell line port's
- * `lineGrammar`, so a pipeline agent on Windows writes cmd.exe lines and one on macOS or Linux POSIX shell lines.
+ * The pipeline agent's first message. What matters: it carries the current step's block and the record's facts (findings, questions with
+ * their answers, the constitution with its sources, the draft and the edits), so a fresh session in place of a replaced one starts from
+ * the record alone and gets the same message after its note; the research block also while billing is open; the advise block with the
+ * design rules and the gate history on a stored pipeline; the confinement claims as the platform holds them; and the grammar its lines run
+ * in, filled from the shell line port's `lineGrammar`. The constitution block asks for one whole document whose sources travel only in
+ * the `sources` list.
  */
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
-import type { ShellLineGrammar } from '../../src/lib/shell-line/ShellLine.ts';
-import type { Job }              from '../../src/lib/tracker-model/@types/Job.ts';
-import type { JobLaunchFacts }   from '../../src/services/overseer/DrivePass.ts';
-import { LINE_GRAMMAR_WORDING }  from '../LineGrammarWording.ts';
-import { OverseerWording }       from './OverseerWording.ts';
+import type { ShellLineGrammar }   from '../../src/lib/shell-line/ShellLine.ts';
+import type { Job }                from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Pipeline }           from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }      from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { JobLaunchFacts }     from '../../src/services/overseer/DrivePass.ts';
+import type { PipelineAgentFacts } from '../../src/services/overseer/PipelineAgentSessions.ts';
+import { LINE_GRAMMAR_WORDING }    from '../LineGrammarWording.ts';
+import { OverseerWording }         from './OverseerWording.ts';
 
 const PIPELINE_AGENT_JOB = {
   id: 'J9', kind: 'pipeline-agent', ticketIds: [], attempt: 1
 } as unknown as Readonly<Job>;
 
-function pipelineAgentMessageOf(lineGrammar: ShellLineGrammar, confinement: JobLaunchFacts['confinement'] = 'confined'): string {
-  const facts: JobLaunchFacts = {
+const DRAFT: Pipeline = {
+  version: 2,
+  prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
+  gates:   [{ name: 'test', run: 'bun test' }],
+  phases:  { build: ['test'], review: ['test'], merge: [] },
+};
+
+const CONSTITUTION_MARKDOWN = '# Constitution\n\n## Tests\n\n- Each module has a spec beside it.\n\n```ts\nconst example = 1;\n```\n';
+
+function setupAt(currentStep: PipelineSetup['currentStep']): PipelineSetup {
+  return {
+    formatVersion:   1,
+    setupId:         'S1',
+    mode:            'setup',
+    baseContentHash: null,
+    stepStates:      {
+      billing: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+    },
+    currentStep,
+    billing:         { mode: 'subscription' },
+    agentJobId:      'J9',
+    snapshotCommit:  null,
+    readyToContinue: [],
+    findings:        [{
+      findingId:   'F1',
+      topic:       'scripts',
+      label:       'Unit tests',
+      value:       null,
+      sourcePaths: ['package.json'],
+      script:      {
+        name: 'test', run: 'bun test', meaning: 'Runs the unit tests', gateCandidate: 'gate', needs: []
+      },
+      needsRecheck: true,
+    }],
+    questions: [{
+      questionId:  'Q1',
+      step:        'research',
+      subject:     { kind: 'finding', reference: 'F1' },
+      question:    'May the tests reach the network?',
+      context:     '',
+      options:     [{ letter: 'a', text: 'No' }, { letter: 'b', text: 'Yes, the registry only' }],
+      recommended: ['a'],
+      multiple:    false,
+      answer:      { letters: ['b'], answeredAt: '2026-11-12T10:00:00+01:00' },
+    }],
+    constitution: {
+      markdown:    CONSTITUTION_MARKDOWN,
+      annotations: [{
+        lineText: '- Each module has a spec beside it.', occurrence: 1, kind: 'contributing', path: 'CONTRIBUTING.md'
+      }],
+      draftedFrom: { contributing: true, research: false, installedDefault: true },
+      baseBlob:    null,
+      revision:    2,
+    },
+    draft:         DRAFT,
+    draftRevision: 3,
+    edits:         [{
+      editId: 'E1', by: 'agent', field: 'gate:test', summary: 'Run the unit tests in the build and review phases.', undone: false
+    }],
+    replacesUnreadablePipeline: false,
+    applyRequest:               null,
+    nextNumbers:                { finding: 2, question: 2, edit: 2 },
+    extra:                      [],
+  };
+}
+
+function factsWith(pipelineAgent: Partial<PipelineAgentFacts>, confinement: JobLaunchFacts['confinement'] = 'confined'): JobLaunchFacts {
+  return {
     confinement,
     tickets:                [],
     checksLine:             null,
@@ -24,10 +97,19 @@ function pipelineAgentMessageOf(lineGrammar: ShellLineGrammar, confinement: JobL
     intake:                 null,
     airlock:                null,
     assistant:              null,
-    pipelineAgent:          { mode: 'setup', gateHistory: [], lineGrammar },
-    instructions:           '',
+    pipelineAgent:          {
+      mode: 'setup', setup: null, storedPipeline: null, installedConstitution: null, gateHistory: [], lineGrammar: 'posix-shell', ...pipelineAgent
+    },
+    instructions: '',
   };
+}
+
+function firstMessageOf(facts: JobLaunchFacts): string {
   return OverseerWording.launchTextOf(PIPELINE_AGENT_JOB, facts).firstMessage;
+}
+
+function pipelineAgentMessageOf(lineGrammar: ShellLineGrammar, confinement: JobLaunchFacts['confinement'] = 'confined'): string {
+  return firstMessageOf(factsWith({ lineGrammar }, confinement));
 }
 
 test('claims the pipeline agent has no network and writes only its Hatch folder where its sandbox enforces it', () => {
@@ -43,4 +125,74 @@ test('gives the Hatch-only and no-network limits as rules, never as limits a san
 test.each(['posix-shell', 'windows-cmd'] as const)('names the %s grammar as the one each line is written in', (lineGrammar) => {
   expect(pipelineAgentMessageOf(lineGrammar)).toContain(`Write each prepare and gate line in the grammar it runs in on this machine: ${LINE_GRAMMAR_WORDING[lineGrammar]}.`);
   expect(pipelineAgentMessageOf(lineGrammar)).not.toContain('{{');
+});
+
+test('names the five relayed commands and the question rule', () => {
+  const message = pipelineAgentMessageOf('posix-shell');
+  for (const verb of ['finding', 'ask', 'draft-constitution', 'propose', 'ready <step>']) expect(message).toContain(`pipeline ${verb}\``);
+  expect(message).toContain('Give two to four options.');
+  expect(message).toContain('Do not give an "Other" option.');
+});
+
+describe('the current step\'s block', () => {
+  test.each([
+    ['billing', '### Research'],
+    ['research', '### Research'],
+    ['constitution', '### Constitution'],
+    ['design', '### Pipeline design'],
+    ['apply', '### Pipeline design'],
+  ] as const)('at the %s step it is %s', (currentStep, heading) => {
+    const message = firstMessageOf(factsWith({ setup: setupAt(currentStep) }));
+
+    expect(message).toContain(`## Your step\n\n${heading}\n`);
+    expect(message).not.toContain('{{');
+  });
+
+  test('an agent no record names reads the research block with no pipeline stored', () => {
+    expect(firstMessageOf(factsWith({}))).toContain('## Your step\n\n### Research\n');
+  });
+
+  test('an advise session reads the advise block, the design rules and the gate history, on the stored pipeline', () => {
+    const message = firstMessageOf(factsWith({
+      mode: 'advise', storedPipeline: DRAFT, gateHistory: ['2026-11-12T10:00:00+01:00 green tree 4b825dc'], installedConstitution: '# Installed\n'
+    }));
+
+    expect(message).toContain('### Advice on the stored pipeline');
+    expect(message).toContain('### Pipeline design');
+    expect(message).toContain('Do not file a ticket.');
+    expect(message).toContain('2026-11-12T10:00:00+01:00 green tree 4b825dc');
+    expect(message).toContain('"run": "bun test"');
+    expect(message).not.toContain('# Installed');
+  });
+
+  test('the constitution block asks for one whole document, its sources only in the sources list', () => {
+    const message = firstMessageOf(factsWith({ setup: setupAt('constitution') }));
+
+    expect(message).toContain('Write one whole document.');
+    expect(message).toContain('Send the whole document each time');
+    expect(message).toContain('Do not write a source into the text.');
+    expect(message).toContain('Name the source of a line only in the `sources` list');
+  });
+});
+
+test('carries the record\'s facts: findings, questions with answers, the constitution with its sources, the draft and the edits', () => {
+  const message = firstMessageOf(factsWith({ setup: setupAt('constitution'), installedConstitution: '# Installed default\n' }));
+
+  expect(message).toContain('Setup S1, mode setup. The current step is constitution.');
+  expect(message).toContain('- F1 scripts, Unit tests; script `test` runs `bun test`: Runs the unit tests (gate) [package.json] Needs a recheck.');
+  expect(message).toContain('- Q1 (research, finding F1): May the tests reach the network?\n  a) No (recommended)\n  b) Yes, the registry only\n  Answer: b');
+  expect(message).toContain('The SOURCES ticks select: CONTRIBUTING.md, the installed default constitution.');
+  expect(message).toContain(`\`\`\`\`markdown\n${CONSTITUTION_MARKDOWN}\`\`\`\``);
+  expect(message).toContain('- Line "- Each module has a spec beside it." (occurrence 1): contributing, CONTRIBUTING.md');
+  expect(message).toContain('Revision 3.');
+  expect(message).toContain('"name": "install"');
+  expect(message).toContain('- E1 by agent, gate:test: Run the unit tests in the build and review phases.');
+  expect(message).toContain('# Installed default');
+});
+
+test('a fresh session in place of a replaced one gets the same first message, after its note', () => {
+  const facts = factsWith({ setup: setupAt('design') });
+  const replaced = firstMessageOf({ ...facts, earlierSessionReplaced: true });
+
+  expect(replaced.endsWith(`\n\n${firstMessageOf(facts)}`)).toBe(true);
 });

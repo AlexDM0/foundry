@@ -1267,8 +1267,14 @@ Apply refuses `setup-snapshot-touched` until a resume checks the snapshot out at
 A stored open `pipeline-proposal` decision, which an earlier release opened for the one-shot proposal, is withdrawn at
 the next pass (`decision-withdrawn`).
 
-> **As built.** An `advise` run cannot file its optimisations: [pipeline agent advise
-> filing](reference/known-gaps.md#gap-pipeline-agent-advise-filing).
+The agent's first message holds its current step's instructions and the facts of its record: the findings, the
+questions with their answers, the constitution with its sources, the draft and its edits. A fresh session in place of
+a replaced one gets the same message, built again from the record, which is the agent's memory. User's Continue sends
+the next step's instructions as a message. An agent no record names reads the stored pipeline and the newest 200 gate
+runs, and is told to propose edits and to file no ticket.
+
+> **As built.** An `advise` run opens no record, so the Bouncer refuses each edit it proposes: [pipeline agent
+> advise](reference/known-gaps.md#gap-pipeline-agent-advise-filing).
 
 #### `intake close`
 

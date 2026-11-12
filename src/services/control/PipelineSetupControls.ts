@@ -169,7 +169,7 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: TrackerChan
   if (fieldOf(command, 'move') !== 'continue') refuseMalformedSetupCommand(command.kind, 'move');
   const changed = change.board.continueSetupStep(setupId, step, change.at);
   return messagedToTheAgent(changed, change, context, {
-    kind: 'step-continued', setupId, step, currentStep: changed.setup.currentStep
+    kind: 'step-continued', setupId, mode: changed.setup.mode, step, currentStep: changed.setup.currentStep
   });
 }
 

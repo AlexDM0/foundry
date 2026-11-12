@@ -326,7 +326,7 @@ describe('the message to the pipeline agent', () => {
       {
         jobId:   'J1',
         message: {
-          kind: 'step-continued', setupId: 'S1', step: 'constitution', currentStep: 'design'
+          kind: 'step-continued', setupId: 'S1', mode: 'setup', step: 'constitution', currentStep: 'design'
         }
       },
     ]);

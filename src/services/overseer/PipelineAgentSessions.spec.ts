@@ -1,11 +1,12 @@
 /**
- * The pipeline agent as a session, on the Overseer's side. What matters: each turn end runs Customs on the setup's snapshot, and a refusal
- * marks the record's snapshot touched, which Apply refuses, and opens one incident, never a second one for the same touch; a resume clears
- * the mark; with no snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's
- * snapshot commit, its billing and its mode; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a
- * resume moved it, and takes the snapshot start again. A snapshot no open record and no live agent holds is removed once per Overseer, and one the
- * removal leaves is named as a leftover. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of
- * `src/testing/RecordedGitScenarios.ts`, whose snapshot is setup S1's under a worktrees root at the repository.
+ * The pipeline agent as a session, on the Overseer's side. What matters: each turn end runs Customs on the setup's snapshot, and a refusal marks the
+ * record's snapshot touched, which Apply refuses, and opens one incident, never a second one for the same touch; a resume clears the mark; with no
+ * snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's snapshot commit, its billing,
+ * and the facts its first message is built from (the record and the installed default constitution), so a fresh session in place of a replaced one
+ * starts from the same; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a resume moved it, and takes the
+ * snapshot start again. A snapshot no open record and no live agent holds is removed once per Overseer, and one the removal leaves is named as a
+ * leftover. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of `src/testing/RecordedGitScenarios.ts`, whose snapshot
+ * is setup S1's under a worktrees root at the repository.
  */
 import {
   existsSync,
@@ -34,6 +35,7 @@ import { testWhenGitIsRecorded }                                    from '../../
 import { launchSnapshotOf }                                         from '../lifecycle/Customs.ts';
 import type { TrackerChange }                                       from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                           from '../tracker/Workspace.ts';
+import { CONSTITUTION_DEFAULT_PATH }                                from './InstructionFiles.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER, PipelineAgentSessions }    from './PipelineAgentSessions.ts';
 import { WatcherFleet }                                             from './WatcherFleet.ts';
 
@@ -189,13 +191,33 @@ test('a turn end with no snapshot start fails closed, and an agent no record nam
   expect(board.logRecordsSoFar().some((record) => record.kind === 'pipeline-snapshot-touched')).toBe(false);
 });
 
-test('the record gives its agent the billing, before any pipeline is stored, and the mode', () => {
+test('the record gives its agent the billing, before any pipeline is stored, and the facts of its first message', () => {
   const { board, jobId } = boardWithSetupAgent();
   const job = board.jobById(jobId);
   if (job === undefined) throw new Error('the agent is on the board');
+  const installedConstitutionPath = join(repositoryDirectory, CONSTITUTION_DEFAULT_PATH);
+  mkdirSync(path.dirname(installedConstitutionPath), { recursive: true });
+  writeFileSync(installedConstitutionPath, '# Constitution\n');
+
+  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory);
 
   expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
-  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell')?.mode).toBe('setup');
+  expect(facts?.mode).toBe('setup');
+  expect(facts?.setup).toEqual(board.pipelineSetup());
+  expect(facts?.installedConstitution).toBe('# Constitution\n');
+});
+
+test('an agent no record names advises on the stored pipeline, and a missing installed constitution is no fact', () => {
+  const { board } = boardFixture();
+  board.setNoGates(AT);
+  const { job } = board.startPipelineAgent(AT);
+
+  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory);
+
+  expect(facts?.mode).toBe('advise');
+  expect(facts?.setup).toBeNull();
+  expect(facts?.storedPipeline).toEqual(board.pipeline());
+  expect(facts?.installedConstitution).toBeNull();
 });
 
 testWhenGitIsRecorded('a record whose agent has no snapshot commit takes main\'s tip, once', async () => {
