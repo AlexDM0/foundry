@@ -133,12 +133,13 @@ These specs hold what the CLI prints and accepts.
 These sit next to the code they guard.
 
 <details>
-<summary>The 10 guards beside their subject</summary>
+<summary>The 11 guards beside their subject</summary>
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
 | `bridge/StyleContract.spec.ts` | Every `className` literal is styled in `bridge/styles/board.css` and every styled class is emitted; an unreadable `className` fails. | Add the rule, drop the dead one, or write a literal. |
 | `bridge/HoverMovesNothing.spec.ts` | No `:hover` or `:active` rule in `bridge/styles/board.css` or `bridge/styles/tokens.css`, inside `@media` and `@container` too, sets a property other than colour, background, border colour, outline, box shadow, text decoration, filter, opacity, visibility or cursor; `transform: none` passes, and `MOVEMENTS_ALLOWED` is exact both ways. | Give the feedback as a colour, a shadow or `filter: brightness(…)`, never a size, a spacing or a transform. |
+| `bridge/ThemeTokens.spec.ts` | Every pipeline token in `bridge/styles/tokens.css` has a value in the light and the dark theme (a literal in both, or an alias of a themed token), each new motion token is `0ms` under reduced motion and before the first paint, the toast's reading time is kept, and the three design colours with no name of their own each read a named token. | Add the missing dark value or zero; a new design colour gets a token in both themes. |
 | `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. [Watchers](../architecture/watchers.md) says why the bundle stays thin. |

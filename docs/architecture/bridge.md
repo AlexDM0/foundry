@@ -316,7 +316,8 @@ ticket form, a filing draft's card the draft form; while the panel is open the K
 what the panel covers. The Kanban ticks its working cards' stamps only while `BridgeApp` says the event stream is live.
 `BridgeApp` also sets `data-freshness` on the root, `live` or `snapshot`, from the stream, and every live animation,
 wherever it is drawn, plays only under `:root[data-freshness="live"]`. Until the first board has painted the root
-carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms, so that board shows at once.
+carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms (the toast's reading time
+excepted), so that board shows at once.
 
 The filter line holds the menu every board tab shares: the finished-work window, then on the Kanban its Epic rows (with
 the pressed epic's roll-up) and, on a board with dependencies, Order Ready. `BridgeApp` keeps the Kanban's choices,

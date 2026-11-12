@@ -16,6 +16,7 @@
   --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
 
   --r-1: 4px; --r-2: 6px; --r-3: 10px; --r-pill: 999px;
+  --r-group: 12px; --r-dialog: 14px;
 
   --fs-micro: 11px; --fs-small: 12px; --fs-body: 13px;
   --fs-title: 15px; --fs-page: 20px;
@@ -26,6 +27,7 @@
   --row-h: 30px;
   --col-name: 432px;
   --col-name-wide: 780px;
+  --flow-node-width: 304px;
 
   --motion-fast: 120ms;
   --motion-base: 160ms;
@@ -34,6 +36,13 @@
   --pulse-status:   1.6s;
   --pulse-activity: 1.4s;
   --pulse-card:     3.2s;
+  --motion-rise:      420ms;
+  --motion-pop:       380ms;
+  --motion-modal:     360ms;
+  --rise-step:        80ms;
+  --glow-period:      2.6s;
+  --flow-dash-period: 0.7s;
+  --toast-duration:   5s;
 
   /* The Coral light theme: a near-white page, lanes in a deeper ground so the white cards stand off them. */
   --bg:          oklch(0.9875 0.002 265);
@@ -84,15 +93,60 @@
   --epic-6-fill: oklch(0.56 0.17 325); --epic-6-tint: oklch(0.955 0.030 325); --epic-6-ink: oklch(0.45 0.15 325);
 }
 
+/* The pipeline views' colours: literal values per theme here and in the dark block; the names that match a token above are aliases
+   further down. Light values are mapped onto the light ramp from the dark design. */
+:root {
+  --surface-info:     oklch(0.97 0.008 250);
+  --line-arrow:       oklch(0.72 0.018 255);
+  --line-conditional: oklch(0.62 0.018 265);
+  --ink-2:            oklch(0.38 0.02 265);
+  --ink-4:            oklch(0.62 0.018 265);
+
+  --accent-ink-on: oklch(1 0 0);
+  --accent-hover:  oklch(0.40 0.13 255);
+
+  --ticket-chip-tint: oklch(0.955 0.028 255); --ticket-chip-ink: oklch(0.43 0.12 255);
+  --human-review-fill: oklch(0.955 0.02 262); --human-review-edge: oklch(0.78 0.06 262); --human-review-ink: oklch(0.44 0.08 262);
+  --primary-disabled-fill: oklch(0.90 0.02 262); --primary-disabled-ink: oklch(0.60 0.03 262);
+
+  --done-fill: oklch(0.957 0.033 155); --done-ink: oklch(0.42 0.095 155); --done-edge: oklch(0.72 0.10 155);
+
+  --question-fill: oklch(0.965 0.04 95); --question-ink: oklch(0.42 0.08 90); --question-edge: oklch(0.80 0.08 95);
+  --question-accent: oklch(0.70 0.13 88); --question-option-fill: oklch(0.98 0.02 95); --question-input-fill: oklch(0.995 0.008 95);
+  --question-option-ink: oklch(0.40 0.06 95);
+
+  --change-changed-fill: oklch(0.96 0.045 83); --change-changed-ink: oklch(0.45 0.09 75);
+  --change-changed-edge: oklch(0.80 0.10 80);  --change-changed-dot: oklch(0.75 0.14 80);
+  --change-removed-fill: oklch(0.955 0.03 27); --change-removed-ink: oklch(0.45 0.13 27);
+  --change-removed-edge: oklch(0.68 0.12 29);  --change-removed-row-edge: oklch(0.78 0.09 27);
+
+  --flow-rollback: oklch(0.62 0.08 30); --flow-rollback-label: oklch(0.50 0.10 30);
+  --info-fill: oklch(0.957 0.028 210); --info-ink: oklch(0.43 0.09 210);
+  --flow-grid-dot: oklch(0.88 0.008 265); --flow-group-fill: oklch(0 0 0 / 0.02);
+  --log-surface: oklch(0.97 0.004 265); --tooltip-surface: oklch(0.93 0.008 262);
+  --toast-fill: oklch(0.96 0.035 155); --toast-track: oklch(0.90 0.05 155); --toast-check: oklch(0.42 0.095 155);
+  --skeleton-sheen: oklch(0.985 0.004 240);
+
+  --overlay:        oklch(0.24 0.02 265 / 0.35);
+  --shadow-modal:   0 24px 64px oklch(0 0 0 / 0.18);
+  --shadow-menu:    0 12px 32px oklch(0 0 0 / 0.14);
+  --shadow-toast:   0 16px 40px oklch(0 0 0 / 0.14);
+  --shadow-tooltip: 0 8px 20px oklch(0 0 0 / 0.12);
+}
+
 /* Outline is left out on purpose: a focus ring appears and leaves at once. */
 :root {
   --feedback-transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out),
                          color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out),
-                         transform var(--motion-fast) var(--ease-out);
+                         filter var(--motion-fast) var(--ease-out);
 }
 
+/* The toast's duration is the time to read it, not a motion, so reduced motion keeps it. */
 @media (prefers-reduced-motion: reduce) {
-  :root { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }
+  :root {
+    --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
+    --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --rise-step: 0ms; --glow-period: 0ms; --flow-dash-period: 0ms;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -156,6 +210,45 @@
   --epic-5-fill: oklch(0.68 0.14 280); --epic-5-tint: oklch(0.31 0.060 280); --epic-5-ink: oklch(0.89 0.060 280);
   --epic-6-fill: oklch(0.70 0.16 325); --epic-6-tint: oklch(0.31 0.060 325); --epic-6-ink: oklch(0.89 0.060 325);
 }
+
+:root[data-theme="dark"] {
+  --surface-info:     oklch(0.26 0.016 264);
+  --line-arrow:       oklch(0.49 0.019 266);
+  --line-conditional: oklch(0.606 0.016 264);
+  --ink-2:            oklch(0.829 0.012 265);
+  --ink-4:            oklch(0.606 0.016 264);
+
+  --accent-ink-on: oklch(0.219 0.043 262);
+  --accent-hover:  oklch(0.851 0.058 261);
+
+  --ticket-chip-tint: oklch(0.316 0.047 261); --ticket-chip-ink: oklch(0.884 0.043 260);
+  --human-review-fill: oklch(0.308 0.035 262); --human-review-edge: oklch(0.439 0.064 263); --human-review-ink: oklch(0.788 0.047 261);
+  --primary-disabled-fill: oklch(0.317 0.031 264); --primary-disabled-ink: oklch(0.632 0.041 263);
+
+  --done-fill: oklch(0.321 0.045 155); --done-ink: oklch(0.902 0.051 153); --done-edge: oklch(0.485 0.093 153);
+
+  --question-fill: oklch(0.321 0.038 95); --question-ink: oklch(0.90 0.067 97); --question-edge: oklch(0.532 0.077 95);
+  --question-accent: oklch(0.833 0.117 92); --question-option-fill: oklch(0.28 0.032 98); --question-input-fill: oklch(0.226 0.022 96);
+  --question-option-ink: oklch(0.851 0.055 97);
+
+  --change-changed-fill: oklch(0.341 0.047 83); --change-changed-ink: oklch(0.91 0.069 90);
+  --change-changed-edge: oklch(0.532 0.086 82); --change-changed-dot: oklch(0.786 0.128 81);
+  --change-removed-fill: oklch(0.316 0.055 27); --change-removed-ink: oklch(0.908 0.033 32);
+  --change-removed-edge: oklch(0.678 0.123 29); --change-removed-row-edge: oklch(0.464 0.104 27);
+
+  --flow-rollback: oklch(0.518 0.065 30); --flow-rollback-label: oklch(0.742 0.076 30);
+  --info-fill: oklch(0.329 0.035 213); --info-ink: oklch(0.90 0.035 208);
+  --flow-grid-dot: oklch(0.297 0.013 267); --flow-group-fill: oklch(1 0 0 / 0.02);
+  --log-surface: oklch(0.177 0.009 264); --tooltip-surface: oklch(0.301 0.017 266);
+  --toast-fill: oklch(0.272 0.019 161); --toast-track: oklch(0.31 0.024 160); --toast-check: oklch(0.958 0.023 153);
+  --skeleton-sheen: oklch(0.356 0.018 268);
+
+  --overlay:        oklch(0.14 0.007 270 / 0.66);
+  --shadow-modal:   0 24px 64px oklch(0 0 0 / 0.55);
+  --shadow-menu:    0 12px 32px oklch(0 0 0 / 0.5);
+  --shadow-toast:   0 16px 40px oklch(0 0 0 / 0.5);
+  --shadow-tooltip: 0 8px 20px oklch(0 0 0 / 0.4);
+}
 :root[data-theme="dark"] [data-state="pending"]     { --s-fill: oklch(0.80 0.012 265); --s-tint: oklch(0.29 0.010 265); --s-ink: oklch(0.80 0.012 265); --s-edge: oklch(0.40 0.012 265); --s-head: var(--s-ink); }
 :root[data-theme="dark"] [data-state="in-progress"] { --s-fill: oklch(0.76 0.145 80);  --s-tint: oklch(0.33 0.065 80);  --s-ink: oklch(0.91 0.075 85);  --s-edge: oklch(0.52 0.10 80); }
 :root[data-theme="dark"] [data-state="paused"]      { --s-fill: oklch(0.62 0.045 265); --s-tint: oklch(0.31 0.022 265); --s-ink: oklch(0.85 0.030 265); --s-edge: oklch(0.47 0.030 265); }
@@ -202,10 +295,30 @@
 :root { --detail-w: 480px; --question-panel-w: 800px; --detail-motion: 220ms; }
 
 /* Shell: every motion token is 0ms until the first board has painted, so a first render shows its final state at once. */
-:root:not([data-motion="ready"]) { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }
+:root:not([data-motion="ready"]) {
+  --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
+  --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --rise-step: 0ms; --glow-period: 0ms; --flow-dash-period: 0ms;
+}
 
 /* Progress, Epics and Tickets: an epic's own flare, for its square, which carries no state. */
 [data-epic-slot] {
   --epic-flare:      color-mix(in oklch, var(--epic-fill) 45%, var(--flare-light));
   --epic-flare-rest: color-mix(in oklch, var(--epic-flare) 0%, transparent);
+}
+
+/* The pipeline views' names for colours a token above already holds, and the washes mixed from them: one line follows both themes. */
+:root {
+  --surface-page:   var(--bg);
+  --surface-panel:  var(--surface);
+  --surface-raised: var(--surface-2);
+  --line-hairline:  var(--line);
+  --line-control:   var(--line-strong);
+  --ink-1:          var(--ink);
+  --ink-3:          var(--ink-muted);
+  --accent-ring:    color-mix(in oklch, var(--link) 16%, transparent);
+  --accent-outline: color-mix(in oklch, var(--link) 35%, transparent);
+  --live-dot:       var(--status-live);
+  --change-new-fill: var(--done-fill); --change-new-ink: var(--done-ink); --change-new-edge: var(--done-edge);
+  --flow-canvas:    var(--bg);
+  --new-text-tint:  color-mix(in oklch, var(--status-live) 16%, transparent);
 }
