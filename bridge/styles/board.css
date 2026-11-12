@@ -33,6 +33,14 @@
  *   .bridge-pipeline-resume the resume summary (A0bResume): the hero with its .bridge-pipeline-resume-badge, the vertical stepper
  *                           whose details are a .bridge-pipeline-resume-recheck word, a -summary and the current step's
  *                           .bridge-pipeline-resume-chips of -chip[data-tone]; the -actions row; the -main-moved note
+ *   .bridge-pipeline-flow-screen the flow screen: the .bridge-pipeline-flow[data-stage]
+ *                           (its .bridge-pipeline-flow-toolbar of the .bridge-pipeline-flow-note with its
+ *                           .bridge-pipeline-flow-stage-mark[data-stage] and the zoom, over the .bridge-pipeline-flow-viewport of the
+ *                           scaled .bridge-pipeline-flow-canvas: two .bridge-pipeline-flow-column[data-column] of
+ *                           .bridge-pipeline-flow-cell nodes (a .bridge-pipeline-flow-chips-lead before a node's chips) and
+ *                           .bridge-pipeline-flow-slot[data-disabled?] + menus, the spine's ending in the .bridge-pipeline-flow-train
+ *                           frame) beside the .bridge-pipeline-minimal-note aside (-lead, -title, -warning, -warning-mark, -steps,
+ *                           -steps-title, -step-list, -step, -step-mark, -closing); the editing footer's .bridge-pipeline-footer-note
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -3457,4 +3465,65 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-pipeline-setup-hero, .bridge-pipeline-setup-section, .bridge-pipeline-resume > .bridge-stepper {
     animation: bridge-rise var(--motion-rise) var(--ease-out) both;
   }
+
+/* The flow screen: the flow beside the smallest pipeline's note. The canvas is a dot grid holding the left column (the spine, the merge
+   train's frame under it) and the right column, scaled by the zoom from its top left corner; the arrow layer lies under the columns, so a
+   + on a line covers the line. */
+.bridge-pipeline-flow-screen { display: flex; align-items: flex-start; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-flow {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; overflow: hidden;
+  background: var(--flow-canvas); border: 1px solid var(--line-hairline); border-radius: var(--r-group);
+}
+.bridge-pipeline-flow-toolbar {
+  display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; box-sizing: border-box; padding: 0 var(--sp-4);
+  background: var(--surface-panel); border-bottom: 1px solid var(--line-hairline);
+}
+.bridge-pipeline-flow-note { display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--sp-2); min-width: 0; color: var(--ink-2); font-size: var(--fs-small); }
+.bridge-pipeline-flow-stage-mark { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); }
+.bridge-pipeline-flow-stage-mark[data-stage="live"] { background: var(--live-dot); }
+.bridge-pipeline-flow-stage-mark[data-stage="editing"] { background: var(--change-changed-dot); }
+.bridge-pipeline-flow-stage-mark[data-stage="proposal"] {
+  width: 16px; height: 10px; box-sizing: border-box; border: 1.5px dashed var(--question-edge); border-radius: 3px; background: var(--question-fill);
+}
+.bridge-pipeline-flow-viewport { position: relative; overflow: auto; min-height: 320px; }
+.bridge-pipeline-flow-canvas {
+  position: relative; display: grid; grid-template-columns: 128px var(--flow-node-width) 160px var(--flow-node-width) 120px;
+  align-items: start; width: max-content; padding: var(--sp-4) 0 var(--sp-5);
+  background-color: var(--flow-canvas); background-image: radial-gradient(var(--flow-grid-dot) 1px, transparent 1px); background-size: 16px 16px;
+  transform: scale(var(--flow-zoom, 1)); transform-origin: top left;
+}
+.bridge-pipeline-flow-column { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); }
+.bridge-pipeline-flow-column[data-column="spine"] { grid-column: 2; }
+.bridge-pipeline-flow-column[data-column="branch"] { grid-column: 4; }
+.bridge-pipeline-flow-cell { display: flex; }
+.bridge-pipeline-flow-chips-lead { align-self: center; color: var(--ink-3); font-size: var(--fs-small); }
+/* The frame's padding reaches past the column on both sides, so its nodes stand under the spine's. */
+.bridge-pipeline-flow-train { align-self: stretch; margin: 0 calc(-1 * var(--sp-4) - 1px); }
+.bridge-pipeline-flow-train .bridge-flow-frame { align-items: center; gap: var(--sp-5); }
+.bridge-pipeline-flow-slot { display: flex; justify-content: center; }
+.bridge-pipeline-flow-slot[data-disabled] { opacity: 0.55; }
+.bridge-pipeline-footer-note { color: var(--ink-2); font-size: var(--fs-small); }
+
+/* The smallest pipeline's aside: its lead, the warning while no phase has a gate, and where a + adds a step. */
+.bridge-pipeline-minimal-note {
+  display: flex; flex: 0 0 400px; flex-direction: column; gap: var(--sp-3); box-sizing: border-box; padding: var(--sp-4);
+  color: var(--ink-2); font-size: var(--fs-small); line-height: 1.5;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-group);
+}
+.bridge-pipeline-minimal-note-lead { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; }
+.bridge-pipeline-minimal-note-title { color: var(--ink-1); font-size: var(--fs-title); }
+.bridge-pipeline-minimal-note-warning {
+  display: flex; gap: var(--sp-2); margin: 0; padding: var(--sp-2) var(--sp-3); color: var(--change-changed-ink);
+  background: var(--change-changed-fill); border: 1px solid var(--change-changed-edge); border-radius: var(--r-2);
+}
+.bridge-pipeline-minimal-note-warning-mark { flex: none; font-weight: 700; }
+.bridge-pipeline-minimal-note-steps { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-pipeline-minimal-note-steps-title { margin: 0; color: var(--ink-3); font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.bridge-pipeline-minimal-note-step-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-minimal-note-step { display: flex; gap: var(--sp-2); }
+.bridge-pipeline-minimal-note-step-mark { flex: none; color: var(--link); font-weight: 700; }
+.bridge-pipeline-minimal-note-closing { margin: 0; color: var(--ink-3); }
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-freshness="live"] .bridge-pipeline-flow-stage-mark[data-stage="live"] { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
 }

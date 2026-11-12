@@ -267,6 +267,12 @@ depends on another and Epics only on one with epics. Pipeline shows only once th
 tab's screen from the facts and the route: `#pipeline/setup/<step>`, `#pipeline/edit` and
 `#pipeline/edit/constitution`.
 
+The flow screen draws `pipelineFlow` (`bridge/views/pipeline/flow/`). `PipelineFlowModel` words every node, edge label
+and + menu from the facts' values and places each node in the left spine, the right column or the merge train's frame.
+The nodes are DOM boxes; `PipelineFlow` measures them and `PipelineFlowLayoutUtil` (DOM-free, like the Kanban's arrow
+util) turns the boxes into arrow paths. A switch or a + choice sends `pipeline-draft-edit` to the open record; on a live
+board it sends `pipeline-update-start` first and the edit once the update record shows. The zoom is a board preference.
+
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 
 *Notice the order: the route resolves before the store exists, so the stored tab goes unread, and only a later

@@ -46,6 +46,13 @@ the open questions and the pipeline agent's job on the current step, a note when
 billing step reopened from the stepper saves a change with `pipeline-setup-billing` and offers **Back to <step>** in
 place of a second start.
 
+Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
+left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
+to open its settings; the merge of main before review has none, since the builder's settings drive it. The two switches,
+Human ticket review and Human code review, change the pipeline at once; on a live board the first change opens an
+edit. A + sits where a step is missing and offers what fits there. While you edit, the footer lists the steps you
+removed, with Discard and Apply changes. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.
+
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
 A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of
 its own. Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >

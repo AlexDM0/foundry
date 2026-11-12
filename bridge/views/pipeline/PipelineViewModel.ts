@@ -4,10 +4,16 @@
  * step, or the resume summary on the bare `#pipeline`; a record in `update` or `advise` mode is the flow being edited; a readable pipeline
  * is the live flow; anything else is the setup landing, which names an unreadable file's reason.
  */
-import type { AppliedPipelineFacts, PipelineChoices, PipelineSetupFacts } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineSetup, PipelineSetupStep }                          from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { StepperStatus }                                             from '../../design-system/Stepper.tsx';
-import { HashRouter, type BridgeRoute }                                   from '../../shell/HashRouter.ts';
+import type {
+  AppliedPipelineFacts,
+  GateProfileRunFacts,
+  PipelineChoices,
+  PipelineFlowFacts,
+  PipelineSetupFacts
+} from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetup, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { StepperStatus }                    from '../../design-system/Stepper.tsx';
+import { HashRouter, type BridgeRoute }          from '../../shell/HashRouter.ts';
 
 /** The setup steps in their order. */
 export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
@@ -28,6 +34,8 @@ const CONSTITUTION_EDIT_ITEM = 'edit/constitution';
 export interface PipelineViewFacts {
   readonly pipeline?:        AppliedPipelineFacts;
   readonly pipelineSetup?:   PipelineSetupFacts | null;
+  readonly pipelineFlow?:    PipelineFlowFacts | null;
+  readonly profileRuns?:     readonly GateProfileRunFacts[];
   readonly pipelineChoices?: PipelineChoices;
   /** The setup landing counts the pending tickets in it. */
   readonly page?:            { readonly tickets: readonly { readonly status: string }[] };

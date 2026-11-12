@@ -1,8 +1,15 @@
 /**
  * The Pipeline view in a happy-dom document. What matters: it names the screen the facts and the route pick, and the setup landing of an
- * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows.
+ * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the flow;
+ * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
+ * Apply changes, while a live flow has no footer.
  */
-import { cleanup, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  within
+} from '@testing-library/react';
 import {
   afterEach,
   describe,
@@ -10,8 +17,9 @@ import {
   test
 } from 'bun:test';
 
-import { pipelineBoardStateOf } from '../../testing/PipelineFixture.ts';
-import { PipelineView }         from './PipelineView.tsx';
+import { clickSettled, fakeControls } from '../../testing/FakeControls.ts';
+import { pipelineBoardStateOf }       from '../../testing/PipelineFixture.ts';
+import { PipelineView }               from './PipelineView.tsx';
 
 afterEach(cleanup);
 
@@ -33,5 +41,24 @@ describe('the Pipeline view', () => {
     unmount();
     render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} />);
     expect(screen.getByRole('region', { name: 'Pipeline' }).getAttribute('data-screen')).toBe('flow');
+  });
+
+  test('the smallest pipeline being edited shows its aside and a footer naming the removed steps, Discard and Apply changes', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A7')} route={{ tab: 'pipeline', item: null }} />);
+    expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('editing');
+    expect(screen.getByRole('complementary', { name: 'About this pipeline' })).toBeDefined();
+    const footer = screen.getByRole('region', { name: 'Pipeline changes' });
+    expect(within(footer).getByText('Review and the merge train re-review removed')).toBeDefined();
+    expect(within(footer).getByRole('button', { name: 'Apply changes' })).toBeDefined();
+    await clickSettled(within(footer).getByRole('button', { name: 'Discard' }));
+    expect(controls.sent).toEqual([{ kind: 'pipeline-draft-discard', setupId: 'S2' }]);
+  });
+
+  test('a live flow with a review step has no aside and no footer', () => {
+    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} />);
+    expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('live');
+    expect(screen.queryByRole('complementary', { name: 'About this pipeline' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Pipeline changes' })).toBeNull();
   });
 });
