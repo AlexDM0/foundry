@@ -2,7 +2,8 @@
  * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
  * keeps the window title and the document's theme in step with them, and provides the command sender to the views; `GaiaShell` lays out
  * the rail, the top bar, the connection banner and the view from those values alone. While the stream is lost one disabled fieldset
- * disables every control of the top bar and the view, so a view's control needs no word of the stream; the rail holds only links.
+ * disables every button and field of the top bar and the view, so a view's control needs no word of the stream; a link, as every rail
+ * row is, still navigates.
  */
 import {
   type ReactNode,
