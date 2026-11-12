@@ -11,7 +11,7 @@ Three items are open: four internal moves around `src/services/tracker/TicketSto
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
 [Board](glossary.md#board), which wait for the next change that touches them; two steps of an
 [incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own; and
-two known gaps the pipeline onboarding plan meant to close, which wait for the next change to the code they name.
+two known gaps the pipeline setup plan meant to close, which wait for the next change to the code they name.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -39,9 +39,9 @@ steps the board designs drew have no record to read, so the trail leaves them ou
 | The delivery of a settled incident: delivered to the Assistant J1 in chat 14 | The open incident carries `deliveredInTurn`, but no log record notes the delivery, so it goes with the incident once settled. | A delivery record in the log, such as `incident-delivered` with the job and the chat |
 | The fresh agent a `job-fresh` default started: fresh builder J2 took #001 | `job-fresh` logs `job-stop-requested` under the old job; the new job is launched later and names no incident. | The launch of a replacing job naming the incident it answers |
 
-## Pipeline gaps the onboarding left open
+## Pipeline gaps the setup work left open
 
-The pipeline onboarding plan meant to close these two [known gaps](reference/known-gaps.md); its items changed neither
+The pipeline setup plan meant to close these two [known gaps](reference/known-gaps.md); its items changed neither
 code path.
 
 | Gap | Change | Waits for |
