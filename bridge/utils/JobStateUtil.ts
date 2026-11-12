@@ -17,6 +17,7 @@ const PALETTE_STATE_OF_JOB_STATE: Readonly<Record<string, DisplayState>> = {
   'stopping':           'paused',
   'in-customs':         'in-review',
   'gating':             'in-review',
+  'merging-main':       'in-review',
   'merging':            'reviewed',
   'landing':            'reviewed',
 };

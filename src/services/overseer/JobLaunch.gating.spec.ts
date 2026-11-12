@@ -320,8 +320,10 @@ describe('the gate run\'s settlement', () => {
       gate:     {
         verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest
       },
-      sandboxRefusal: null,
-      targetCatchUp:  { verdict: 'not-checked' },
+      sandboxRefusal:   null,
+      targetCatchUp:    { verdict: 'not-checked' },
+      mainMerge:        null,
+      conflictReReview: null,
     }]);
 
     expect(progress.tasks[0]).toMatchObject({ greenPhase: 'build', pipelineHash: manifest.phaseHash, greenTree: EXAMPLE_TREE });

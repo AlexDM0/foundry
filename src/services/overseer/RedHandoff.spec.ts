@@ -1,7 +1,8 @@
 /**
  * The Baton pass a red handoff leaves in its job's folder. What matters: it names every field the resumed session needs instead of
  * rerunning the gate (gate, command, fix command, commit, exit code, the full log's path); a long output shows only its first and last
- * 40 lines and never more than 8 KB; a gate that changed a file shows the diff in the output's place; and the facts read back as written.
+ * 40 lines and never more than 8 KB; a gate that changed a file shows the diff in the output's place; a conflicted merge of the target
+ * names the tip it merged and lists the conflicted files; and the facts read back as written.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -98,5 +99,17 @@ describe('the red handoff baton-pass', () => {
 
     expect(batonPass).toContain('Customs check: V4');
     expect(batonPass).toContain('Gate: -');
+  });
+
+  test('names the target, the tip it merged and the branch tip for a conflicted merge, and lists each conflicted file', () => {
+    const facts: RedHandoffFacts = {
+      ...factsIn('/example/job'), kind: 'merge-conflict', name: 'main', command: null, fixCommand: null, exitCode: null, fullLogPath: null, mergedTip: 'f'.repeat(40)
+    };
+    const batonPass = RedHandoff.batonPassTextOf(facts, 'basket.ts\ncheckout.ts\n');
+
+    expect(batonPass).toContain('# The merge of `main` conflicts');
+    expect(batonPass).toContain(`- Merged tip: ${'f'.repeat(40)}`);
+    expect(batonPass).toContain(`- Branch tip: ${facts.commit}`);
+    expect(batonPass).toContain('- basket.ts\n- checkout.ts\n');
   });
 });

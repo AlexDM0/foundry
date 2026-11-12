@@ -907,8 +907,16 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return { candidate, branchTip, conflictedFiles: predicted.verdict === 'clean' ? [] : predicted.verdict === 'conflicting' ? predicted.conflictedFiles : null };
   }
 
-  /** Design section 6.2's order: priority, clean first, fewest conflicts caused among the clean, readiness, ticket id. */
-  function orderedPredictions(target: string, candidates: readonly MergeCandidate[]): ReturnType<typeof predictionOf>[] {
+  /**
+   * Design section 6.2's order: priority, clean first, fewest conflicts caused among the clean, readiness, ticket id. With merge approval
+   * on, User's press order alone: readiness is the accept's place in the log, then ticket id.
+   */
+  function orderedPredictions(target: string, candidates: readonly MergeCandidate[], pressOrder: boolean): ReturnType<typeof predictionOf>[] {
+    if (pressOrder) {
+      const [first] = MergeQueueUtil.pressOrderOf(candidates.map((candidate) => ({ ...candidate, queuedLogPosition: candidate.readiness })));
+      const prediction = first === undefined ? null : predictionOf(target, first);
+      return prediction === null || prediction.branchTip === null ? [] : [prediction];
+    }
     const predictions = candidates.map((candidate) => predictionOf(target, candidate)).filter((prediction) => prediction.branchTip !== null);
     const clean       = predictions.filter((prediction) => prediction.conflictedFiles?.length === 0);
     const conflictsCaused = new Map(predictions.map((prediction) => {
@@ -971,6 +979,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const isGroup = target !== mainLine;
       return {
         candidates:               hold.board.mergeCandidatesOf(target, targetOf, branchTreeOf),
+        pressOrder:               hold.board.mergeApprovalIsOn(),
         releaseIsQueuedOrSlotted: isGroup && hold.board.groupReleaseQueuedOrSlotted(groupOf(target)) !== null,
         refreshWasRefused:        isGroup && hold.board.decisions().some((decision) => (
           decision.kind === 'merge-refused' && decision.ticketIds.length === 0 && decision.context.startsWith(`${target}${REFRESH_REFUSAL_SEPARATOR}`)
@@ -979,7 +988,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (queue === null) return false;
     if (target !== mainLine && await allocateRefresh(target, queue.releaseIsQueuedOrSlotted, queue.refreshWasRefused)) return true;
-    const [first] = orderedPredictions(target, queue.candidates);
+    const [first] = orderedPredictions(target, queue.candidates, queue.pressOrder);
     if (first?.branchTip === undefined || first.branchTip === null) return false;
     const targetTip = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`);
     if (targetTip === null) return false;

@@ -194,7 +194,7 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['ticke
 
 /**
  * A conflict re-reviewer reads its role's instruction files, the reviewer's brief among them, filled as a first review round's, and then
- * what the Airlock asks of it: the merge it re-reviews, with no question to User.
+ * what the Airlock, or the merge before User's code review, asks of it: the merge it re-reviews, with no question to User.
  */
 function conflictReReviewMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['tickets'][number], facts: JobLaunchFacts, airlock: AirlockFacts): string {
   const instructions = filledTemplateOf(facts.instructions, {
@@ -209,15 +209,15 @@ function conflictReReviewMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['t
     mergeApprovalStep: '',
     sandboxRefusal:    CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
   }).trim();
-  const task = filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockReReviewMessage.md'), 'utf8'), {
-    ticketId:        ticket.id,
-    jobId:           job.id,
-    targetTip:       airlock.targetTip,
-    branchTip:       airlock.branchTip,
-    airlockWorktree: airlock.worktree,
-    conflictedFiles: airlock.conflictedFiles.map((path) => `- ${path}`).join('\n'),
-    callBudget:      String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
-  }).trim();
+  const conflictedFiles = airlock.conflictedFiles.map((path) => `- ${path}`).join('\n');
+  const callBudget = String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET);
+  const task = airlock.mergePlacement === 'airlock'
+    ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockReReviewMessage.md'), 'utf8'), {
+      ticketId: ticket.id, jobId: job.id, targetTip: airlock.targetTip, branchTip: airlock.branchTip, airlockWorktree: airlock.worktree, conflictedFiles, callBudget,
+    }).trim()
+    : filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'HumanCodeReviewReReviewMessage.md'), 'utf8'), {
+      ticketId: ticket.id, jobId: job.id, targetTip: airlock.targetTip, branchTip: airlock.branchTip, worktree: airlock.worktree, conflictedFiles, callBudget,
+    }).trim();
   return [instructions, '', task].join('\n');
 }
 
@@ -525,8 +525,22 @@ function setupMessageWordingOf(message: SetupMessage): string {
   }
 }
 
-/** The first line of a session resumed to fix its red gate or Customs check, which points it to the Baton pass. */
+/**
+ * The first line of a session resumed to fix its red gate or Customs check, which points it to the Baton pass; a merge of the target that
+ * conflicted before User's code review asks the session to merge that tip again itself.
+ */
 function redHandoffMessageOf(facts: Readonly<RedHandoffFacts>): string {
+  if (facts.kind === 'merge-conflict') {
+    return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'MainMergeConflictMessage.md'), 'utf8'), {
+      mergedTip:      facts.mergedTip ?? '',
+      target:         facts.name,
+      commit:         facts.commit,
+      batonPassPath:  facts.batonPassPath,
+      resume:         String(facts.resume),
+      resumesAllowed: String(facts.resumesAllowed),
+      callBudget:     String(facts.callBudget),
+    }).trim().replaceAll('\n', ' ');
+  }
   return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'RedHandoffMessage.md'), 'utf8'), {
     what:           facts.kind === 'gate' ? `the \`${facts.name}\` gate` : `Customs check ${facts.name}`,
     commit:         facts.commit,

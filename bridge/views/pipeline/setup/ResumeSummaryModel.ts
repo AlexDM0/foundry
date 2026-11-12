@@ -41,6 +41,7 @@ const JOB_STATE_WORDS: Readonly<Record<JobState, string>> = {
   'awaiting-answer':    'waiting for an answer',
   'in-customs':         'in customs',
   'gating':             'gating',
+  'merging-main':       'merging main',
   'merging':            'merging',
   'landing':            'landing',
   'stopping':           'stopping',

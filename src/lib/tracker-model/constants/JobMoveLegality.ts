@@ -9,16 +9,17 @@ export const LEGAL_SOURCE_STATES_FOR_JOB_MOVE: Readonly<Record<JobMoveTarget, re
   'preparing':          ['launching'],
   'running':            ['launching', 'preparing', 'waiting-for-answer', 'interrupted', 'awaiting-answer'],
   'waiting-for-answer': ['running'],
-  // From `in-customs` or `gating`: a handoff whose Customs check or gate went red waits there for its session's resume.
-  'interrupted':        ['preparing', 'running', 'waiting-for-answer', 'stopping', 'in-customs', 'gating'],
+  // From `in-customs`, `gating` or `merging-main`: a handoff whose Customs check, gate or merge of the target went red waits there for its
+  // session's resume.
+  'interrupted':        ['preparing', 'running', 'waiting-for-answer', 'stopping', 'in-customs', 'gating', 'merging-main'],
   // From `gating`: a review whose gate passed waits there, with no process, for User's answer to its waiver proposals.
   'awaiting-answer':    ['interrupted', 'gating'],
   'in-customs':         ['running'],
   'gating':             ['in-customs', 'merging'],
+  'merging-main':       ['gating'],
   'merging':            ['launching'],
   'landing':            ['gating'],
-  'stopping':           ['launching', 'preparing', 'running', 'waiting-for-answer', 'interrupted', 'awaiting-answer', 'in-customs', 'gating', 'merging', 'landing'],
-  'ended':              [
+  'stopping':           [
     'launching',
     'preparing',
     'running',
@@ -27,6 +28,20 @@ export const LEGAL_SOURCE_STATES_FOR_JOB_MOVE: Readonly<Record<JobMoveTarget, re
     'awaiting-answer',
     'in-customs',
     'gating',
+    'merging-main',
+    'merging',
+    'landing',
+  ],
+  'ended': [
+    'launching',
+    'preparing',
+    'running',
+    'waiting-for-answer',
+    'interrupted',
+    'awaiting-answer',
+    'in-customs',
+    'gating',
+    'merging-main',
     'merging',
     'landing',
     'stopping',

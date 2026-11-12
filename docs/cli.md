@@ -772,6 +772,7 @@ phase's run order, the first red gate stopping the rest. Each place a tree is ga
 | a build job's worktree | `build` |
 | the merge of the target into a branch before its review ([A review job](#a-review-job)); a red gate or a conflict there goes back to the builder | `build` |
 | a review job's worktree | `review` |
+| the merge of the target into the worktree before User's Merge, with merge approval on ([Merge approval](#merge-approval)) | `review`, or `build` with no review phase |
 | an Airlock's merged tree | `merge` |
 | a stale green, gated again with no slot held | the row's `greenPhase` (with none: `review` with a review phase, `build` without one) |
 
@@ -783,13 +784,14 @@ and their confinement.
 
 A job's gate run starts by writing its manifest, `<data>/jobs/<J>/gate-run.json`, atomically: `{ phase, phaseHash,
 prepare, gates }`, the phase, that phase's hash, and the prepare steps and gates it runs in order, as the pipeline held
-them then. A session resumed after a red handoff runs again under `gate-run-<instance>.json`, and the merge before
-review under `target-gate-run.json`. The run reads only its manifest and never rewrites it: each step's Watcher folder
-is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no gate that did
-not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase and hash.
-The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not current
-and the ticket is gated again: such a passing review waits unqueued for its next review, and without a review phase such
-a build waits unqueued for that gate run. A manifest that cannot be read is never replaced: the run ends
+them then. A session resumed after a red handoff runs again under `gate-run-<instance>.json`, the merge before review
+under `target-gate-run.json`, and the merge before User's Merge under `main-gate-run.json`
+(`main-gate-run-<instance>.json` in a later round). The run reads only its manifest and never rewrites it: each step's
+Watcher folder is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no
+gate that did not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase
+and hash. The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not
+current and the ticket is gated again: such a passing review waits unqueued for its next review, and without a review
+phase such a build waits unqueued for that gate run. A manifest that cannot be read is never replaced: the run ends
 `gate-cannot-run`. An Airlock's merged tree and a stale green are gated from one read of the pipeline, and record that
 read's phase and hash in the same way.
 
@@ -1156,7 +1158,7 @@ notice `install-version-changed`. Code that differs alone shows the notice `new-
 
 | command | what it does |
 |---|---|
-| `merges [--json]` | The merge queue, read as `status` reads the tracker (no lock, nothing written): each held Airlock slot `{target, jobId, ticketIds, phase, targetTip, branchTip}`, then each queued ticket `{ticketId, target, priority, queuedAt}` by target, priority, then queue order (the Airlock's own pick also weighs predicted conflicts), `queuedAt` its `merge-queued` record's place in the log. `--json` prints `{slots, queue}`. |
+| `merges [--json]` | The merge queue, read as `status` reads the tracker (no lock, nothing written): each held Airlock slot `{target, jobId, ticketIds, phase, targetTip, branchTip}`, then each queued ticket `{ticketId, target, priority, queuedAt}` by target, priority, then queue order (the Airlock's own pick also weighs predicted conflicts, and with merge approval on follows User's press order instead), `queuedAt` its `merge-queued` record's place in the log. `--json` prints `{slots, queue}`. |
 | `merge accept <id> [--json]` | With merge approval on, User's accept of a ticket waiting for merge: sets the row's `mergeAccepted` and logs `merge-acceptance-set {state: accepted}`, so the ticket's Airlock may land it. In the hold, `git merge-tree` predicts the merge of `ticket-<id>` into its target's current tip; anything but clean is refused at exit 1 with nothing written: `merge-accept-would-conflict` (with the files) or `merge-accept-prediction-failed`. Also refused: `merge-approval-off`, and `merge-accept-of-a-ticket-not-waiting` for a ticket not in review done, held, on a job, or whose branch moved past its green. An accepted ticket answers `nothing-to-do`. |
 | `merge update <id> [--json]` | With merge approval on, the target merged into the ticket's worktree in the hold, with no Airlock held (`merge-updated {target, outcome}`). Merged, the branch's green is stale, so the Overseer gates it on its next pass: green sets review done again, red clears it and the ticket's next reviewer takes the red handoff. A conflict is aborted, the worktree left at its tip, and review done and the accept are cleared, so the ticket's next reviewer merges the target. Refused at exit 1: `merge-approval-off`, `merge-update-of-a-ticket-not-waiting` (not in review done, or a job holds it) and `merge-update-failed` (git could not merge). A branch that already holds the target answers `nothing-to-do`. |
 | `worktree repair <id> --step prune\|reinstall\|recreate\|unlock [--incident <I>] [--json]` | A code-implemented repair of the ticket's worktree `<worktrees>/ticket-<id>/`, run inside the hold that records it (`worktree-repaired {step, patchPath}`). [Each step](#worktree-repair) is below. |
@@ -1430,18 +1432,42 @@ refresh and release.
 
 #### Merge approval
 
-With `approvals.merge` on (`gate approval merge on`), a ticket in review done (`mergeQueued`, its green current) is
-waiting for merge: no Airlock takes it until User accepts it with `merge accept`, which sets the row's `mergeAccepted`
-only while `git merge-tree` predicts a clean merge into its target's current tip. Each Pass, the board state serves
-every waiting ticket under its target as `mergeQueue.targets[].waitingForMerge`, `{ticketId, priority, againstTarget,
-conflictedFiles}`, `againstTarget` one of `clean`, `conflicting` (with its files) or `prediction-failed`. The reviewer
-prompt tells the reviewer to merge the target into the branch as the last step of its review, so review done follows the
-green rule on the merged tree. `merge update` merges the target into a waiting ticket's worktree with no Airlock held;
-the Overseer never runs it by itself. Clearing `mergeQueued`, or leaving in-review, clears `mergeAccepted` too.
+With `approvals.merge` on (`gate approval merge on`), a green review does not queue at once. The review job moves
+to `merging-main`: the Overseer brings the ticket's worktree up to the target's tip before User reviews the code. With
+no review phase, a green build does the same, before its Handoff is written and its ticket moves `in-review`. Each
+round of `merging-main` is one Watcher instance of the job, and keeps its files in the job folder suffixed like a gate
+folder (`-<instance>` past the first). The reviewer prompt still tells the reviewer to merge the target into the branch
+as the last step of its review, so `merging-main` finds the branch up to date unless the target moved since.
 
-Once accepted, the ticket runs the same merge train as with merge approval off: a conflict, a large resolution and a red
-merged tree go as [The Airlocks](#the-airlocks) says, to its last worker and the conflict re-reviewer in the Airlock,
-and `mergeAccepted` stays set. After User's Merge, only the conditional re-review guards what the last worker changes.
+| the round | what the Overseer does |
+| --- | --- |
+| the worktree holds the target's tip and its green is current in the job's phase | the job ends (`reviewed`, or `built` with its Handoff), the ticket is marked `mergeQueued` and waits for User's Merge |
+| the worktree lacks the tip | it records both tips (`main-merge.json`) and merges the tip in with every hook off, in a process Watcher of its own (`main-merge`), as the merge before review does |
+| the merge is clean, or the worktree holds the tip on a tree whose green is not current | it gates the tree with the job's phase's gates, `review`, or `build` with no review phase (`main-gate-run.json`); green ends the job and queues the ticket |
+| a gate is red | a red handoff: the job's own session resumes, the reviewer, or with no review phase the builder |
+| the merge conflicts | the merge is aborted and the worktree reset to the branch tip (`main-conflict.json`); a red handoff of kind `merge-conflict`: the job's own session resumes to merge the tip itself, resolve, commit and report again |
+| the session's resolution changed more lines than `airlock.reReview.thresholdLines`, or git cannot tell how many | at the first round after it, a `conflict-re-reviewer` starts as a fresh `merge-agent` job under the job, its attempt the conflict's round, and reports as a reviewer before the gates run; with `airlock.reReview` absent, or at the threshold, the gates run at once |
+| the conflict re-review leaves a claim `does-not-hold` or `waiver-proposed`, its report is invalid, or it ends any other way | the re-reviewer ends `does-not-hold`, and the job ends `failed` (cause `re-review-failed`): a failed pass, and the next attempt merges again |
+| the merge cannot run or settle | incident `setup-failed` (step `main-merge`); the job ends `stopped` |
+
+Each red handoff counts on the session's ladder, so the one past the last resume parks the ticket
+`red-resumes-spent`. A conflict re-reviewer whose session could not be resumed is replaced by a fresh one with the
+same attempt; a job stopped while its re-reviewer works stops the re-reviewer first. A ticket in review done
+(`mergeQueued`, its green current) is waiting for merge: no Airlock takes it until User accepts it with `merge accept`,
+which sets the row's `mergeAccepted` only while `git merge-tree` predicts a clean merge into its target's current tip.
+Each Pass, the board state serves every waiting ticket under its target as `mergeQueue.targets[].waitingForMerge`,
+`{ticketId, priority, againstTarget, conflictedFiles}`, `againstTarget` one of `clean`, `conflicting` (with its files)
+or `prediction-failed`, in the order the tickets were queued. `merge update` merges the target into a waiting ticket's
+worktree with no Airlock held; the Overseer never runs it by itself. Clearing `mergeQueued`, or leaving in-review,
+clears `mergeAccepted` too.
+
+User's press order sets the train: an accepted ticket's readiness is the place of its newest `merge-acceptance-set`
+`accepted` record in the log, and each Airlock takes the earliest accept first, then the lowest ticket id, whatever
+the priority or the predicted conflicts. `mergeQueue.targets[].order` lists the accepted tickets in that order.
+Once accepted, the ticket runs the same merge train as with merge approval off: a conflict, a large resolution and a
+red merged tree go as [The Airlocks](#the-airlocks) says, to its last worker and the conflict re-reviewer in the
+Airlock, and `mergeAccepted` stays set. After User's Merge, only the conditional re-review guards what the last worker
+changes.
 
 | what happens to an accepted ticket in its Airlock | what shows | moves for User |
 | --- | --- | --- |
@@ -1486,7 +1512,7 @@ must also converge.
 | reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
 | claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling ([as built](reference/known-gaps.md#gap-waiver-answer-has-no-effect)) |
-| otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target |
+| otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target; with merge approval on, the job first moves to `merging-main` and ends there ([Merge approval](#merge-approval)) |
 
 Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
 `greenTree` is the tree of the branch HEAD and its `pipelineHash` the current hash of its `greenPhase` ([the pipeline
@@ -1761,10 +1787,10 @@ explorer](interactive/state-explorer.html) walks them.
 | `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. |
 | `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A review job past its first round has `re-reviewer`. A `merge-agent` job has the role of its ticket's last worker, `builder`, `reviewer` or `re-reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
-| `parentJobId` | no | A merge agent's merge or refresh job, else null. |
+| `parentJobId` | no | A merge agent's merge or refresh job, or the build or review job in `merging-main` a conflict re-reviewer works under, else null. |
 | `attempt` | no | From 1. |
 | `target` | no | The main line or `group-<name>`, or null for a session. |
-| `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging`, `landing` or `stopping`. |
+| `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging-main`, `merging`, `landing` or `stopping`. |
 | `interruption` | yes | Why it was last interrupted: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
 | `watcherInstance` | no | The newest Watcher instance spawned or to spawn, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |

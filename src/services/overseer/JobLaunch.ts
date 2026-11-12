@@ -50,8 +50,13 @@ import {
   CUSTOMS_CHECKS,
   clearCustoms
 } from '../lifecycle/Customs.ts';
-import { type GateConfinement, GateRun }                               from '../lifecycle/GateRun.ts';
-import { MergeRun, type MergeSides, type TargetMergeSettlement }       from '../lifecycle/MergeRun.ts';
+import { type GateConfinement, GateRun } from '../lifecycle/GateRun.ts';
+import {
+  MergeRun,
+  type MergeSides,
+  type ReReviewVerdict,
+  type TargetMergeSettlement
+} from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                                               from '../lifecycle/ReviewOutcome.ts';
 import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
@@ -84,6 +89,8 @@ export interface JobLaunchContext {
   windDownMessage:      string;
   decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
   log:                  (line: string) => void;
+  /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
+  resolutionLinesOf:    (worktreePath: string) => number | null;
   processStarts?:       ProcessStarts;
 }
 
@@ -132,18 +139,22 @@ interface StepVerdict extends GateRunStamp {
 }
 
 export interface BuildJobObservation {
-  jobId:          string;
-  setup:          SetupProgress;
+  jobId:            string;
+  setup:            SetupProgress;
   /** Top-level assistant turns across every Watcher instance of the job. */
-  calls:          number;
+  calls:            number;
   /** The structured report of the newest `result`, `undefined` before one. */
-  report:         unknown;
-  agentEnd:       WatcherEnd | 'lost' | null;
-  gate:           GateProgress;
+  report:           unknown;
+  agentEnd:         WatcherEnd | 'lost' | null;
+  gate:             GateProgress;
   /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was. */
-  sandboxRefusal: SandboxRefusal | null;
+  sandboxRefusal:   SandboxRefusal | null;
   /** Where a prepared review job stands in bringing its branch up to the target's tip; `not-checked` for every other job. */
-  targetCatchUp:  TargetCatchUp;
+  targetCatchUp:    TargetCatchUp;
+  /** Where a job in `merging-main` stands; `null` for a job in any other state. */
+  mainMerge:        MainMergeReading | null;
+  /** The conflict re-reviewer working under the job; `null` while none is. */
+  conflictReReview: ConflictReReviewReading | null;
 }
 
 /**
@@ -169,6 +180,65 @@ export type TargetCatchUpHandover =
 /** The tips the catch-up merge was checked against, kept before its process starts, so every later step reads the same two. */
 type TargetMergeRecord = MergeSides;
 
+/**
+ * One round of a job in `merging-main`, the job's Watcher instance: the target's tip checked against the worktree, merged in by a process
+ * Watcher when the branch lacks it, then the merged tree gated in the job's own phase once the hold asks for it. `up-to-date` and `merged`
+ * carry the tree the hold settles: a green current on it finishes the job, any other is gated first.
+ */
+export type MainMergeStep =
+  /** A conflict re-reviewer works in the worktree: nothing else of the round is read until it ended. */
+  | { verdict: 're-reviewing' }
+  | { verdict: 'up-to-date'; treeId: string }
+  | { verdict: 'behind'; targetTip: string; branchTip: string }
+  | { verdict: 'merging' }
+  | { verdict: 'merge-ended' }
+  | { verdict: 'merge-failed'; reason: string }
+  | { verdict: 'conflicted'; targetTip: string; branchTip: string; conflictedFiles: string[] }
+  | { verdict: 'merged'; treeId: string }
+  | { verdict: 'gating'; stepIndex: number }
+  | { verdict: 'gated'; gate: Extract<GateProgress, { verdict: 'judged' }> };
+
+/** The newest conflict a job in `merging-main` sent its session, and the resolution its session committed for it, kept at the first look. */
+export interface MainMergeResolution {
+  conflictRound:    number;
+  targetTip:        string;
+  branchTip:        string;
+  conflictedFiles:  string[];
+  resolutionCommit: string;
+  /** `null` when git cannot tell, which is re-reviewed. */
+  lines:            number | null;
+}
+
+/** The conflict re-reviewer working under a job in `merging-main`, read like a session; its report is judged once it reached Customs. */
+export interface ConflictReReviewReading {
+  jobId:        string;
+  calls:        number;
+  sessionEnded: boolean;
+  verdict:      ReReviewVerdict | null;
+}
+
+export interface MainMergeReading {
+  step:       MainMergeStep;
+  /** Read only while the pipeline has `airlock.reReview`, which alone asks for a conflict re-review. */
+  resolution: MainMergeResolution | null;
+}
+
+/** What a round whose merge conflicted keeps, for the resolution read after it and the conflict re-reviewer's launch. */
+export interface MainMergeConflict {
+  targetTip:       string;
+  branchTip:       string;
+  conflictedFiles: string[];
+}
+
+/** Where one merge of the target into a ticket's worktree runs and settles: the catch-up before a review, or a round of `merging-main`. */
+interface MergeIntoTreeFiles {
+  watcherFolder:  string;
+  settlementFile: string;
+}
+
+/** The main-merge verdicts only a Watcher's end moves on. */
+const MAIN_MERGE_WAITS: readonly MainMergeStep['verdict'][] = ['merging', 'gating'];
+
 /** The catch-up verdicts only a Watcher's end moves on, so a pass that reads one waits for that end instead of asking for the next pass. */
 const TARGET_CATCH_UP_WAITS: readonly TargetCatchUp['verdict'][] = ['merging', 'gating'];
 
@@ -178,7 +248,7 @@ interface SandboxRefusal {
 }
 
 /** Where a refused line or worker launch can stand: prepare and install lines while preparing, the worker while running, gates while gating. */
-const STATES_A_SANDBOX_REFUSAL_ENDS: ReadonlySet<JobState> = new Set<JobState>(['preparing', 'running', 'gating']);
+const STATES_A_SANDBOX_REFUSAL_ENDS: ReadonlySet<JobState> = new Set<JobState>(['preparing', 'running', 'gating', 'merging-main']);
 
 /** What the Overseer writes in the job folder beside its Watchers; only the Overseer writes there. */
 const JOB_FILES = {
@@ -196,6 +266,21 @@ const JOB_FILES = {
   targetMergeSettlement:  'target-merge-settlement.json',
   targetConflict:         'target-conflict.json',
 } as const;
+
+/**
+ * What a job in `merging-main` keeps per round, each name suffixed with the round's Watcher instance like a gate folder: the tips its merge
+ * was checked against, the merge's settlement, a conflict sent to the session, the resolution kept for it, and the tree the hold asked to gate.
+ */
+const MAIN_MERGE_FILES = {
+  record:       'main-merge',
+  settlement:   'main-merge-settlement',
+  conflict:     'main-conflict',
+  resolution:   'main-resolution',
+  gateRequired: 'main-gate-required',
+} as const;
+const MAIN_MERGE_WATCHER_FOLDER = 'main-merge';
+const MAIN_MERGE_FOLDER_PREFIX = 'main-';
+const JSON_EXTENSION = '.json';
 
 const INSTALL_WATCHER_FOLDER = 'install';
 const TARGET_MERGE_WATCHER_FOLDER = 'target-merge';
@@ -221,6 +306,7 @@ const GATE_LOG_FILE = 'gate.log';
 const REGATE_MARKER_FILE = 'regate-required';
 const PROCESS_WATCHER_INSTANCE = 1;
 const REVIEW_JOB_KIND = 'review';
+const CONFLICT_RE_REVIEWER_ROLE = 'conflict-re-reviewer';
 
 /** The jobs whose session works a ticket's worktree: each is prepared, verified and gated the same way, and only its outcome differs. */
 const WORKTREE_JOB_KINDS: readonly JobKind[] = ['build', REVIEW_JOB_KIND];
@@ -237,7 +323,7 @@ function treeStopAtEndOf(job: Readonly<Job>): { treeStopAtEndGraceMilliseconds?:
 const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
 
 function callBudgetOf(job: Readonly<Job>): number {
-  return job.kind === REVIEW_JOB_KIND ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
+  return job.kind === REVIEW_JOB_KIND || job.role === CONFLICT_RE_REVIEWER_ROLE ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
 }
 const HANDOFF_HEADING = /^## Handoff[ \t]*\r?$/;
 const SECTION_HEADING = /^## /;
@@ -254,6 +340,7 @@ export const BUILD_JOB_CAUSES = {
   sandboxUnavailable: 'sandbox-unavailable',
   targetConflict:     'target-conflict',
   targetGateRed:      'target-gate-red',
+  reReviewFailed:     're-review-failed',
 } as const;
 
 /** The causes a review job ends `does-not-hold` with when its branch could not be brought up to the target before the reviewer. */
@@ -549,13 +636,15 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
     const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
     const setup = job.state === 'preparing' ? setupProgressOf(context, job, pipeline?.prepare ?? []) : 'installed';
     return {
-      jobId:          job.id,
+      jobId:            job.id,
       setup,
       ...sessionReadingOf(context, job),
-      agentEnd:       liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
-      gate:           job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
-      sandboxRefusal: sandboxRefusalOf(context, job),
-      targetCatchUp:  setup === 'installed' ? targetCatchUpOf(context, job, pipeline) : { verdict: 'not-checked' },
+      agentEnd:         liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
+      gate:             job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
+      sandboxRefusal:   sandboxRefusalOf(context, job),
+      targetCatchUp:    setup === 'installed' ? targetCatchUpOf(context, job, pipeline) : { verdict: 'not-checked' },
+      mainMerge:        mainMergeReadingOf(context, jobs, job, pipeline),
+      conflictReReview: conflictReReviewReadingOf(context, jobs, job, pipeline),
     };
   });
 }
@@ -598,6 +687,111 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   const progress = gateRunProgressOf(context, job, treeId, TARGET_GATE_RUN, pipeline);
   if (progress.verdict === 'running') return { verdict: 'gating', stepIndex: progress.stepIndex };
   return { verdict: 'gated', targetTip: record.mergedTip, gate: progress };
+}
+
+function isTextList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isMainMergeConflict(value: unknown): value is MainMergeConflict {
+  return typeof reportFieldOf(value, 'targetTip') === 'string' && typeof reportFieldOf(value, 'branchTip') === 'string'
+    && isTextList(reportFieldOf(value, 'conflictedFiles'));
+}
+
+function isMainMergeResolution(value: unknown): value is MainMergeResolution {
+  const lines = reportFieldOf(value, 'lines');
+  return isMainMergeConflict(value) && typeof reportFieldOf(value, 'conflictRound') === 'number' && typeof reportFieldOf(value, 'resolutionCommit') === 'string'
+    && (lines === null || typeof lines === 'number');
+}
+
+/** The newest round before the current one whose merge conflicted; `null` when none did. */
+function newestMainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): { round: number; conflict: MainMergeConflict } | null {
+  for (let round = job.watcherInstance - 1; round >= FIRST_WATCHER_INSTANCE; round -= 1) {
+    const conflict = readJsonFile<unknown>(mainMergeFileOf(trackerDirectory, job, MAIN_MERGE_FILES.conflict, round));
+    if (isMainMergeConflict(conflict)) return { round, conflict };
+  }
+  return null;
+}
+
+/**
+ * The resolution of the newest conflict, kept at the first look after the session that resolved it reached `merging-main` again: its HEAD
+ * then, and the lines that commit changed against git's automatic merge, so a later commit on top never changes what was measured.
+ */
+function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): MainMergeResolution | null {
+  const newest = newestMainMergeConflictOf(context.workspace.trackerDirectory, job);
+  if (newest === null) return null;
+  const resolutionPath = mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.resolution, newest.round);
+  const kept = readJsonFile<unknown>(resolutionPath);
+  if (isMainMergeResolution(kept)) return kept;
+  const worktree = worktreeOf(context.workspace, job);
+  const resolutionCommit = MergeRun.headOf(worktree);
+  // Fail closed: a HEAD git cannot read is re-reviewed against no commit, which refuses, and nothing is kept for it.
+  if (resolutionCommit === null) return {
+    conflictRound: newest.round, ...newest.conflict, resolutionCommit: '', lines: null
+  };
+  const resolution: MainMergeResolution = {
+    conflictRound: newest.round, ...newest.conflict, resolutionCommit, lines: context.resolutionLinesOf(worktree)
+  };
+  writeFileAtomically(resolutionPath, `${JSON.stringify(resolution)}\n`);
+  return resolution;
+}
+
+/** Read from the job folder and the worktree alone, so a restart reads the same step of the same round again. */
+function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>): MainMergeStep {
+  const round    = job.watcherInstance;
+  const worktree = worktreeOf(context.workspace, job);
+  const unreadableTree: MainMergeStep = { verdict: 'merge-failed', reason: `The tree of ${branchOf(job)}'s HEAD cannot be read.` };
+  if (existsSync(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.gateRequired, round))) {
+    const treeId = treeOf(worktree);
+    if (treeId === null) return unreadableTree;
+    const progress = gateRunProgressOf(context, job, treeId, mainMergeGateRunOf(job, round), pipeline);
+    return progress.verdict === 'running' ? { verdict: 'gating', stepIndex: progress.stepIndex } : { verdict: 'gated', gate: progress };
+  }
+  const record = readJsonFile<TargetMergeRecord>(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round));
+  if (record === null) {
+    const check = firstTargetCheckOf(context, job);
+    if (check.verdict === 'behind' || check.verdict === 'merge-failed') return check;
+    const treeId = treeOf(worktree);
+    return treeId === null ? unreadableTree : { verdict: 'up-to-date', treeId };
+  }
+  const files = mainMergeIntoTreeFilesOf(round);
+  const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolderOf(context.workspace, job), files.settlementFile));
+  if (settlement === null) {
+    const mergeEnd = processWatcherEnd(context.platformPorts, join(jobFolderOf(context.workspace, job), files.watcherFolder));
+    return mergeEnd === 'pending' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
+  }
+  if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
+  if (settlement.verdict === 'conflicted') return {
+    verdict: 'conflicted', targetTip: record.mergedTip, branchTip: record.startTip, conflictedFiles: settlement.conflictedFiles
+  };
+  const treeId = treeOf(worktree);
+  return treeId === null ? unreadableTree : { verdict: 'merged', treeId };
+}
+
+function mainMergeReadingOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], job: Readonly<Job>, pipeline: Readonly<Pipeline> | null): MainMergeReading | null {
+  if (job.state !== 'merging-main' || pipeline === null) return null;
+  if (conflictReReviewerOf(jobs, job) !== undefined) return { step: { verdict: 're-reviewing' }, resolution: null };
+  return {
+    step:       mainMergeStepOf(context, job, pipeline),
+    resolution: pipeline.airlock?.reReview === undefined ? null : mainMergeResolutionOf(context, job),
+  };
+}
+
+/** The conflict re-reviewer is judged by the reviewer column's checks once its report reached Customs, against the resolution it re-reviewed. */
+function conflictReReviewReadingOf(
+  context: JobLaunchContext, jobs: readonly Readonly<Job>[], job: Readonly<Job>, pipeline: Readonly<Pipeline> | null
+): ConflictReReviewReading | null {
+  const reReviewer = conflictReReviewerOf(jobs, job);
+  if (reReviewer === undefined) return null;
+  const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, reReviewer), reReviewer.watcherInstance);
+  const { calls, report } = sessionReadingOf(context, reReviewer);
+  const resolution = reReviewer.state === 'in-customs' && pipeline?.airlock?.reReview !== undefined ? mainMergeResolutionOf(context, job) : null;
+  return {
+    jobId:        reReviewer.id,
+    calls,
+    sessionEnded: liveness.verdict !== 'live',
+    verdict:      resolution === null ? null : MergeRun.reReviewVerdictOf(worktreeOf(context.workspace, job), resolution.resolutionCommit, report),
+  };
 }
 
 function readJobStart(jobFolder: string): JobStart | null {
@@ -789,7 +983,7 @@ function holdAgentConfigHits(change: TrackerChange, context: JobLaunchContext, t
   return { held: [...held].sort(), logged: hold.logged };
 }
 
-interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'command' | 'fixCommand' | 'exitCode' | 'fullLogPath'> {
+interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'command' | 'fixCommand' | 'exitCode' | 'fullLogPath' | 'mergedTip'> {
   output: string;
 }
 
@@ -839,29 +1033,23 @@ function gatePhaseOfJob(job: Readonly<Job>): GatePhase {
   return job.kind === REVIEW_JOB_KIND ? 'review' : 'build';
 }
 
-function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
-  const { gate } = observation;
-  if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
+/**
+ * Records a judged gate run on the row, and routes a run that did not pass: a failed prepare step or a gate that cannot run opens its
+ * incident and stops the job, a red gate is the session's red handoff. Returns whether the run passed.
+ */
+function settleJudgedGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<GateProgress, { verdict: 'judged' }>, stamp: GateRunStamp | null): boolean {
   const { board, at } = hold.change;
-  const phase = gatePhaseOfJob(job);
-  if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId, phase)) {
-    const jobFolder = jobFolderOf(hold.context.workspace, job);
-    mkdirSync(jobFolder, { recursive: true });
-    writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
-    return;
-  }
-  // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
-  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, gate.ran ? gate.manifest : board.gateRunStampOf(phase), at);
+  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, stamp, at);
   if (gate.outcome === 'setup-failed') {
     openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
-    return;
+    return false;
   }
   if (gate.ran) hold.logged.push(...board.recordGateRan({ tree: gate.treeId, outcome: gate.outcome, cached: false }, at).logged);
   if (gate.outcome === 'cannot-run') {
     openIncidentFor(hold, job, 'gate-cannot-run', { tree: gate.treeId, gate: gate.step ?? '' });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.gateCannotRun });
-    return;
+    return false;
   }
   if (gate.outcome === 'failed') {
     hold.context.log(`The ${gate.step ?? ''} gate of job ${job.id} (#${ticketIdOf(job)}) is red on ${gate.treeId}; its output is in ${GATE_LOG_FILE}.`);
@@ -875,10 +1063,55 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
       fullLogPath: join(jobFolderOf(hold.context.workspace, job), GATE_LOG_FILE),
       output:      gate.output,
     });
+    return false;
+  }
+  return true;
+}
+
+/** The review job recorded its review already: its session is back from a resume that `merging-main` sent it on. */
+function reviewPassIsSettled(board: Board, job: Readonly<Job>): boolean {
+  let launched = false;
+  for (const record of board.logRecordsSoFar()) {
+    if (record.kind === 'job-launched' && record.jobId === job.id) launched = true;
+    if (launched && record.kind === 'review-recorded' && record.ticketId === ticketIdOf(job)) return true;
+  }
+  return false;
+}
+
+/** With merge approval on, a gated build with no review phase merges the target into its worktree before its ticket waits for User's Merge. */
+function buildMergesMainFirst(board: Board): boolean {
+  return board.pipeline()?.review === undefined && board.mergeApprovalIsOn();
+}
+
+/** The builder's verified work: its Handoff written from the report, the job ended `built` and the ticket moved `in-review`. */
+function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string): void {
+  const { board, at } = hold.change;
+  const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job))?.body ?? '';
+  const body = { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(report)), appends: false };
+  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
+  endJob(hold, job, { outcome: 'built', commit: headCommit });
+  hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(job), commit: headCommit }, at).logged);
+}
+
+function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
+  const { gate } = observation;
+  if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
+  const { board, at } = hold.change;
+  const phase = gatePhaseOfJob(job);
+  if (!gate.ran && !board.greenIsCurrent(ticketIdOf(job), gate.treeId, phase)) {
+    const jobFolder = jobFolderOf(hold.context.workspace, job);
+    mkdirSync(jobFolder, { recursive: true });
+    writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
+  // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
+  if (!settleJudgedGate(hold, job, gate, gate.ran ? gate.manifest : board.gateRunStampOf(phase))) return;
   const headCommit = String(reportFieldOf(observation.report, 'headCommit'));
   if (job.kind === REVIEW_JOB_KIND) {
+    if (reviewPassIsSettled(board, job)) {
+      hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
+      return;
+    }
     const start = readJobStart(jobFolderOf(hold.context.workspace, job));
     hold.logged.push(...ReviewOutcome.settleReviewPass({
       board,
@@ -894,15 +1127,177 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     }).logged);
     return;
   }
-  const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job))?.body ?? '';
-  const body = { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(observation.report)), appends: false };
-  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
-  endJob(hold, job, { outcome: 'built', commit: headCommit });
-  hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(job), commit: headCommit }, at).logged);
+  if (buildMergesMainFirst(board)) {
+    hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
+    return;
+  }
+  settleBuilt(hold, job, observation.report, headCommit);
   // A pipeline without a review phase lands a gated build directly: it waits in review only for its Airlock. A green the pipeline changed
   // under while it ran is not current: the ticket waits unqueued, and the Airlock sweep gates it again.
   const queuesAtOnce = board.pipeline()?.review === undefined && board.greenIsCurrent(ticketIdOf(job), gate.treeId, board.greenPhaseOf(ticketIdOf(job)));
   if (queuesAtOnce) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
+}
+
+function mainMergeFileOf(trackerDirectory: string, job: Readonly<Job>, name: string, round: number): string {
+  return join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), `${name}${instanceSuffixOf(round)}${JSON_EXTENSION}`);
+}
+
+/** A round's merge, in a process Watcher folder of its own beside its settlement. */
+function mainMergeIntoTreeFilesOf(round: number): MergeIntoTreeFiles {
+  return { watcherFolder: `${MAIN_MERGE_WATCHER_FOLDER}${instanceSuffixOf(round)}`, settlementFile: `${MAIN_MERGE_FILES.settlement}${instanceSuffixOf(round)}${JSON_EXTENSION}` };
+}
+
+/** A round's gate run: the job's own phase, in folders prefixed apart from the gate runs of its session. */
+function mainMergeGateRunOf(job: Readonly<Job>, round: number): GateRunPlace {
+  return { phase: gatePhaseOfJob(job), watcherInstance: round, folderPrefix: MAIN_MERGE_FOLDER_PREFIX };
+}
+
+function conflictReReviewerOf(jobs: readonly Readonly<Job>[], job: Readonly<Job>): Readonly<Job> | undefined {
+  return jobs.find((candidate) => candidate.kind === 'merge-agent' && candidate.parentJobId === job.id);
+}
+
+/** The conflict re-reviewer of the newest conflict is launched once, as the conflict's round, and again in place of one that was replaced. */
+type ConflictReReviewNeed = { verdict: 'none' } | { verdict: 'launch'; attempt: number } | { verdict: 'failed' };
+
+/** The outcome the newest conflict re-reviewer launched under the job with this attempt ended with; `null` when none was launched. */
+function conflictReReviewEndingOf(records: readonly LogRecord[], parentJobId: string, attempt: number): string | null {
+  const reReviewerJobIds = new Set<string>();
+  let outcome: string | null = null;
+  for (const record of records) {
+    if (record.kind === 'job-launched' && record.fields.parentJobId === parentJobId && record.fields.role === CONFLICT_RE_REVIEWER_ROLE
+      && record.fields.attempt === attempt) reReviewerJobIds.add(record.jobId);
+    if (record.kind === 'job-ended' && reReviewerJobIds.has(record.jobId)) ({ outcome } = record.fields);
+  }
+  return outcome;
+}
+
+/**
+ * A resolution of the newest conflict that changed more lines than `airlock.reReview.thresholdLines`, or that git cannot measure, is
+ * re-reviewed once; with no `airlock.reReview` it never is. A re-review that ended other than `reviewed` or `replaced` failed.
+ */
+function conflictReReviewNeedOf(board: Board, job: Readonly<Job>, resolution: MainMergeResolution | null): ConflictReReviewNeed {
+  const thresholdLines = board.pipeline()?.airlock?.reReview?.thresholdLines;
+  if (resolution === null || thresholdLines === undefined) return { verdict: 'none' };
+  if (resolution.lines !== null && resolution.lines <= thresholdLines) return { verdict: 'none' };
+  const ending = conflictReReviewEndingOf(board.logRecordsSoFar(), job.id, resolution.conflictRound);
+  if (ending === null || ending === 'replaced') return { verdict: 'launch', attempt: resolution.conflictRound };
+  return ending === 'reviewed' ? { verdict: 'none' } : { verdict: 'failed' };
+}
+
+/** The ticket's worktree is up to date with the target and gated green: the job ends, and its ticket waits in the queue for User's Merge. */
+function finishMainMerge(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation, treeId: string): void {
+  const { board, at } = hold.change;
+  const ticketId   = ticketIdOf(job);
+  const headCommit = MergeRun.headOf(worktreeOf(hold.context.workspace, job)) ?? '';
+  if (job.kind === REVIEW_JOB_KIND) endJob(hold, job, { outcome: 'reviewed', commit: headCommit });
+  else settleBuilt(hold, job, observation.report, headCommit);
+  if (board.greenIsCurrent(ticketId, treeId, board.greenPhaseOf(ticketId))) {
+    hold.logged.push(...board.queueTicketForMerge(ticketId, job.target ?? hold.context.mainLine, treeId, at).logged);
+  }
+}
+
+/**
+ * The tree a round leaves, holding the target's tip: the newest conflict's resolution goes to a conflict re-reviewer first when it needs
+ * one; then a green current on the tree in the job's phase finishes the job, and any other tree is gated before.
+ */
+function settleMergedTree(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation, reading: MainMergeReading, treeId: string): void {
+  const { board, at } = hold.change;
+  const need = conflictReReviewNeedOf(board, job, reading.resolution);
+  if (need.verdict === 'launch') {
+    hold.logged.push(...board.launchJob({
+      kind: 'merge-agent', role: CONFLICT_RE_REVIEWER_ROLE, ticketIds: job.ticketIds, parentJobId: job.id, attempt: need.attempt, target: job.target,
+    }, at).logged);
+    return;
+  }
+  if (need.verdict === 'failed') {
+    endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.reReviewFailed });
+    return;
+  }
+  if (board.greenIsCurrent(ticketIdOf(job), treeId, gatePhaseOfJob(job))) {
+    finishMainMerge(hold, job, observation, treeId);
+    return;
+  }
+  const markerPath = mainMergeFileOf(hold.context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.gateRequired, job.watcherInstance);
+  mkdirSync(dirname(markerPath), { recursive: true });
+  writeFileAtomically(markerPath, `${JSON.stringify({ treeId })}\n`);
+}
+
+/**
+ * The conflict re-reviewer under the job: past its budget and grace it is stopped; once its report reached Customs and its session ended,
+ * a report that holds ends it `reviewed`, and any other ends it `does-not-hold`. A stopped one ends `stopped` once its session is gone.
+ */
+function settleConflictReReviewer(hold: HoldContext, reReviewer: Readonly<Job>, reading: ConflictReReviewReading | null): void {
+  const { board, at } = hold.change;
+  if (reading === null) return;
+  if (reReviewer.state === 'running' && reading.calls >= callBudgetOf(reReviewer) + WIND_DOWN_GRACE_CALLS) {
+    hold.logged.push(...board.moveJob(reReviewer.id, 'stopping', at).logged);
+    return;
+  }
+  if (!reading.sessionEnded) return;
+  if (reReviewer.state === 'stopping') {
+    endJob(hold, reReviewer, userStopEndingOf(reReviewer) ?? { outcome: 'stopped', cause: BUILD_JOB_CAUSES.outOfCalls });
+    return;
+  }
+  if (reReviewer.state !== 'in-customs' || reading.verdict === null) return;
+  if (reading.verdict.verdict === 'holds') endJob(hold, reReviewer, { outcome: 'reviewed' });
+  else endJob(hold, reReviewer, { outcome: 'does-not-hold', cause: BUILD_JOB_CAUSES.reReviewFailed });
+}
+
+/** A job stopped while its conflict re-reviewer works stops the re-reviewer first, and ends once that one ended. */
+function stopTheConflictReReviewer(hold: HoldContext, reReviewer: Readonly<Job>, reading: ConflictReReviewReading | null): void {
+  const { board, at } = hold.change;
+  if (reReviewer.state !== 'stopping') {
+    hold.logged.push(...board.moveJob(reReviewer.id, 'stopping', at).logged);
+    return;
+  }
+  if (reading?.sessionEnded === true) endJob(hold, reReviewer, { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE });
+}
+
+/** A conflict goes back to the job's own session, the ticket's last worker, as a red handoff naming the target tip and the conflicted files. */
+function sendConflictToTheSession(hold: HoldContext, job: Readonly<Job>, conflict: Extract<MainMergeStep, { verdict: 'conflicted' }>): void {
+  const conflictPath = mainMergeFileOf(hold.context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.conflict, job.watcherInstance);
+  mkdirSync(dirname(conflictPath), { recursive: true });
+  const kept: MainMergeConflict = { targetTip: conflict.targetTip, branchTip: conflict.branchTip, conflictedFiles: conflict.conflictedFiles };
+  writeFileAtomically(conflictPath, `${JSON.stringify(kept)}\n`);
+  interruptOnRedHandoff(hold, job, {
+    kind:        'merge-conflict',
+    name:        job.target ?? hold.context.mainLine,
+    command:     null,
+    fixCommand:  null,
+    exitCode:    null,
+    fullLogPath: null,
+    mergedTip:   conflict.targetTip,
+    output:      conflict.conflictedFiles.join('\n'),
+  });
+}
+
+/** In the hold, for a job in `merging-main`: its conflict re-reviewer first, then the round's step. */
+function settleMainMerge(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
+  const reading = observation.mainMerge;
+  if (reading === null || !hold.pipelineStored) return;
+  const reReviewer = conflictReReviewerOf(hold.change.board.jobs(), job);
+  if (reReviewer !== undefined) {
+    settleConflictReReviewer(hold, reReviewer, observation.conflictReReview);
+    return;
+  }
+  const { step } = reading;
+  switch (step.verdict) {
+    case 'merge-failed':
+      openIncidentFor(hold, job, 'setup-failed', { step: MAIN_MERGE_WATCHER_FOLDER, reason: step.reason });
+      endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
+      return;
+    case 'conflicted':
+      sendConflictToTheSession(hold, job, step);
+      return;
+    case 'up-to-date':
+    case 'merged':
+      settleMergedTree(hold, job, observation, reading, step.treeId);
+      return;
+    case 'gated':
+      if (settleJudgedGate(hold, job, step.gate, step.gate.manifest)) finishMainMerge(hold, job, observation, step.gate.treeId);
+      return;
+    default:
+  }
 }
 
 /**
@@ -1041,7 +1436,12 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
         hold.logged.push(...board.moveJob(job.id, 'stopping', at).logged);
       }
       return;
-    case 'stopping':
+    case 'stopping': {
+      const reReviewer = conflictReReviewerOf(board.jobs(), job);
+      if (reReviewer !== undefined) {
+        stopTheConflictReReviewer(hold, reReviewer, observation.conflictReReview);
+        return;
+      }
       if (observation.agentEnd === null) return;
       if (job.stopRequest === undefined && workingOffARedHandoff(hold.context, job)) {
         const output = `The resumed session passed its ${RED_HANDOFF_RESUME_CALL_BUDGET} calls and the ${WIND_DOWN_GRACE_CALLS}-call grace without a report.`;
@@ -1050,11 +1450,15 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
       }
       endJob(hold, job, userStopEndingOf(job) ?? { outcome: 'stopped', cause: BUILD_JOB_CAUSES.outOfCalls });
       return;
+    }
     case 'in-customs':
       verifyAndRoute(hold, job, observation);
       return;
     case 'gating':
       settleGate(hold, job, observation);
+      return;
+    case 'merging-main':
+      settleMainMerge(hold, job, observation);
       return;
     default:
   }
@@ -1081,6 +1485,14 @@ function someBuildJobAwaitsAPass(board: Board, observations: readonly BuildJobOb
     if (state === 'preparing') {
       return observation.setup !== 'creating-worktree' && observation.setup !== 'installing' && !TARGET_CATCH_UP_WAITS.includes(observation.targetCatchUp.verdict);
     }
+    if (state === 'merging-main') {
+      const job = board.jobById(observation.jobId);
+      // A re-reviewer the hold just ended, or launched, leaves the round where only the next pass moves it on, or its own Watcher does.
+      if (job === undefined || conflictReReviewerOf(board.jobs(), job) !== undefined) return false;
+      return observation.mainMerge !== null && !MAIN_MERGE_WAITS.includes(observation.mainMerge.step.verdict);
+    }
+    // A conflict re-reviewer that ended in this pass leaves its stopped job for the next one.
+    if (state === 'stopping' && observation.conflictReReview?.sessionEnded === true) return true;
     return state === 'gating' && observation.gate.verdict === 'judged';
   });
 }
@@ -1269,34 +1681,37 @@ function launchProcessWatcher(context: JobLaunchContext, trackerId: string, job:
   return { verdict: 'spawned', processId };
 }
 
-function writeTargetMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, settlement: TargetMergeSettlement): void {
-  writeFileAtomically(join(jobFolderOf(context.workspace, job), JOB_FILES.targetMergeSettlement), `${JSON.stringify(settlement)}\n`);
+/** The review's catch-up merge before its reviewer, in the `target-merge` Watcher folder. */
+const TARGET_CATCH_UP_MERGE: MergeIntoTreeFiles = { watcherFolder: TARGET_MERGE_WATCHER_FOLDER, settlementFile: JOB_FILES.targetMergeSettlement };
+
+function writeMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, files: MergeIntoTreeFiles, settlement: TargetMergeSettlement): void {
+  writeFileAtomically(join(jobFolderOf(context.workspace, job), files.settlementFile), `${JSON.stringify(settlement)}\n`);
 }
 
 /**
  * The merge is the Overseer's own git, so it runs outside the gate sandbox, which would refuse git's writes to the repository's shared
  * object store; every hook is off, so no worker-written code runs. A merge that cannot start is settled `failed` at once.
  */
-function launchTargetMerge(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, record: Readonly<TargetMergeRecord>): void {
-  const watcherFolder = join(jobFolderOf(context.workspace, job), TARGET_MERGE_WATCHER_FOLDER);
+function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, files: MergeIntoTreeFiles, record: Readonly<TargetMergeRecord>): void {
+  const watcherFolder = join(jobFolderOf(context.workspace, job), files.watcherFolder);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return;
   const worktree = worktreeOf(context.workspace, job);
   const git = context.platformPorts.executableResolver.absolutePathOf('git', [context.workspace.rootDirectory]);
   if (git.verdict === 'refused') {
-    writeTargetMergeSettlement(context, job, { verdict: 'failed', reason: 'git cannot be found on the Overseer\'s PATH.' });
+    writeMergeSettlement(context, job, files, { verdict: 'failed', reason: 'git cannot be found on the Overseer\'s PATH.' });
     return;
   }
   const gitVariables = { ...GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS), GIT_CEILING_DIRECTORIES: GitWorktrees.ceilingOf(worktree) };
-  const launched = launchProcessWatcher(context, trackerId, job, TARGET_MERGE_WATCHER_FOLDER, {
+  const launched = launchProcessWatcher(context, trackerId, job, files.watcherFolder, {
     workingDirectory: worktree,
     argv:             MergeRun.targetMergeCommandOf(git.path, record.mergedTip),
     environment:      context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitVariables),
   });
   if (launched.verdict === 'unfit-endpoint') {
-    writeTargetMergeSettlement(context, job, { verdict: 'failed', reason: launched.reason });
+    writeMergeSettlement(context, job, files, { verdict: 'failed', reason: launched.reason });
     return;
   }
-  context.log(`Spawned the ${TARGET_MERGE_WATCHER_FOLDER} Watcher of job ${job.id} (#${ticketIdOf(job)}), merging ${record.mergedTip} into ${branchOf(job)}.`);
+  context.log(`Spawned the ${files.watcherFolder} Watcher of job ${job.id} (#${ticketIdOf(job)}), merging ${record.mergedTip} into ${branchOf(job)}.`);
 }
 
 /** After the hold: what a prepared review job's catch-up asks of git and the Watchers, read afresh like a gate step. */
@@ -1309,14 +1724,37 @@ function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, j
     const record: TargetMergeRecord = { startTip: catchUp.branchTip, mergedTip: catchUp.targetTip };
     mkdirSync(jobFolder, { recursive: true });
     writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
-    launchTargetMerge(context, trackerId, job, record);
+    launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
     return;
   }
   const record = readJsonFile<TargetMergeRecord>(recordPath);
   if (record === null) return;
-  if (catchUp.verdict === 'merging') launchTargetMerge(context, trackerId, job, record);
-  if (catchUp.verdict === 'merge-ended') writeTargetMergeSettlement(context, job, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
+  if (catchUp.verdict === 'merging') launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
+  if (catchUp.verdict === 'merge-ended') writeMergeSettlement(context, job, TARGET_CATCH_UP_MERGE, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
   if (catchUp.verdict === 'gating') spawnGateRunStep(context, trackerId, job, { place: TARGET_GATE_RUN, pipeline, stepIndex: catchUp.stepIndex });
+}
+
+/**
+ * After the hold: what a round of `merging-main` asks of git and the Watchers, read afresh. Nothing merges while a conflict re-reviewer
+ * works in the worktree: a target that moved meanwhile is merged once it ended.
+ */
+function runMainMergeEffects(context: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+  if (conflictReReviewerOf(board.jobs(), job) !== undefined) return;
+  const round = job.watcherInstance;
+  const step = mainMergeStepOf(context, job, pipeline);
+  const files = mainMergeIntoTreeFilesOf(round);
+  const recordPath = mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.record, round);
+  if (step.verdict === 'behind') {
+    const record: TargetMergeRecord = { startTip: step.branchTip, mergedTip: step.targetTip };
+    mkdirSync(dirname(recordPath), { recursive: true });
+    writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
+    launchMergeIntoTree(context, trackerId, job, files, record);
+    return;
+  }
+  const record = readJsonFile<TargetMergeRecord>(recordPath);
+  if (step.verdict === 'merging' && record !== null) launchMergeIntoTree(context, trackerId, job, files, record);
+  if (step.verdict === 'merge-ended' && record !== null) writeMergeSettlement(context, job, files, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
+  if (step.verdict === 'gating') spawnGateRunStep(context, trackerId, job, { place: mainMergeGateRunOf(job, round), pipeline, stepIndex: step.stepIndex });
 }
 
 /** A checkout dirty before anyone touched it is a repository whose stored files `.gitattributes` would convert; its paths stop the install. */
@@ -1395,6 +1833,9 @@ async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonl
 /** After the hold and the Baton check: what each build job's new state asks of git and the Watchers. */
 async function runBuildJobEffects(context: JobLaunchContext, board: Board, trackerId: string, observations: readonly BuildJobObservation[]): Promise<void> {
   const pipeline = board.pipeline();
+  const frameRequest: BuildJobFrameRequest = {
+    platformPorts: context.platformPorts, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
+  };
   for (const job of board.jobs().filter(isWorktreeJob)) {
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
@@ -1403,11 +1844,12 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
       if (worktreeIsReady && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
       if (worktreeIsReady && !unnormalised && pipeline !== null) runTargetCatchUpEffects(context, trackerId, job, pipeline);
     }
-    const calls = observations.find((observation) => observation.jobId === job.id)?.calls ?? 0;
-    await deliverBuildJobFrames({
-      platformPorts: context.platformPorts, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
-    }, job, calls);
+    const observation = observations.find((candidate) => candidate.jobId === job.id);
+    await deliverBuildJobFrames(frameRequest, job, observation?.calls ?? 0);
     if (job.state === 'gating' && pipeline !== null) spawnNextGateStep(context, trackerId, job, pipeline);
+    if (job.state === 'merging-main' && pipeline !== null) runMainMergeEffects(context, board, trackerId, job, pipeline);
+    const reReviewer = conflictReReviewerOf(board.jobs(), job);
+    if (reReviewer !== undefined) await deliverBuildJobFrames(frameRequest, reReviewer, observation?.conflictReReview?.calls ?? 0);
   }
 }
 
@@ -1505,6 +1947,11 @@ function recordedLaunchSettingsOf(jobFolder: string): SessionLaunchSettings | nu
   return { model, effort };
 }
 
+/** What the conflict re-reviewer under a job in `merging-main` is told: the newest conflict its job's session resolved; `null` with none. */
+function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): MainMergeConflict | null {
+  return newestMainMergeConflictOf(trackerDirectory, job)?.conflict ?? null;
+}
+
 export const JobLaunch = Object.freeze({
   recordInstructionsRead,
   recordLaunchSettings,
@@ -1531,4 +1978,5 @@ export const JobLaunch = Object.freeze({
   callBudgetOf,
   bodyWithHandoffOf,
   targetCatchUpHandoverOf,
+  mainMergeConflictOf,
 });

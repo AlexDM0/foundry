@@ -10,7 +10,7 @@ export interface MergeQueueCandidate {
   priority:          TicketPriority;
   /** A failed prediction orders as conflicting. */
   againstTarget:     MergeForecast;
-  /** Where its `merge-queued` record stands in the log: its readiness. */
+  /** Where its `merge-queued` record stands in the log, or with merge approval on User's accept: its readiness. */
   queuedLogPosition: number;
 }
 
@@ -55,6 +55,11 @@ function orderOf<Candidate extends MergeQueueCandidate>(candidates: readonly Can
     || a.ticketId.localeCompare(b.ticketId, 'en', { numeric: true }));
 }
 
+/** With merge approval on: User's press order alone, the earliest accept first, then ticket id (Q6 of the pipeline plan). */
+function pressOrderOf<Candidate extends Pick<MergeQueueCandidate, 'ticketId' | 'queuedLogPosition'>>(candidates: readonly Candidate[]): Candidate[] {
+  return [...candidates].sort((a, b) => a.queuedLogPosition - b.queuedLogPosition || a.ticketId.localeCompare(b.ticketId, 'en', { numeric: true }));
+}
+
 /** Never once the release ticket is queued or slotted, so a refresh and a release never merge main at the same time. */
 function groupRefreshIsDue(facts: GroupRefreshFacts, limits: GroupRefreshLimits): boolean {
   if (facts.releaseTicketIsQueuedOrSlotted) return false;
@@ -64,6 +69,7 @@ function groupRefreshIsDue(facts: GroupRefreshFacts, limits: GroupRefreshLimits)
 
 export const MergeQueueUtil = {
   orderOf,
+  pressOrderOf,
   conflictsCausedBy,
   groupRefreshIsDue,
 } as const;

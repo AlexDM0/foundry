@@ -23,6 +23,11 @@ export type JobState =
   | 'awaiting-answer'
   | 'in-customs'
   | 'gating'
+  /**
+   * A build or review job whose gates passed, with merge approval on: the Overseer merges the target into the ticket's worktree and gates
+   * the merged tree before the ticket waits for User's Merge.
+   */
+  | 'merging-main'
   | 'merging'
   | 'landing'
   | 'stopping';

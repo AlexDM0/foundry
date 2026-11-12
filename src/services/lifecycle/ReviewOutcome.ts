@@ -1,6 +1,7 @@
 /**
  * What a verified and gated review pass leads to, computed by code (design section 5.3): its rework, its `## Review <round>`, its record,
- * the round verdict, and the move it makes: a failed pass back to a fixer, a fresh reviewer, a waiver for User, or the merge queue.
+ * the round verdict, and the move it makes: a failed pass back to a fixer, a fresh reviewer, a waiver for User, or the merge queue, which
+ * with merge approval on waits for the merge of the target into the ticket's worktree first.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -232,6 +233,11 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
       break;
     }
     case 'merge-queued':
+      // With merge approval on, the passing review waits in `merging-main`: the target merges into its worktree before User's Merge.
+      if (board.mergeApprovalIsOn()) {
+        logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
+        break;
+      }
       logged.push(...board.endJob(job.id, { outcome: 'reviewed', commit: headCommit }, at).logged);
       // A gate run that read a pipeline changed since leaves a green that is not current: the ticket waits unqueued for its next review.
       if (board.greenIsCurrent(ticketId, request.headTree, board.greenPhaseOf(ticketId))) {

@@ -64,14 +64,16 @@ function resumedScene(): ResumedScene {
   const change = { board, at: AT } as unknown as TrackerChange;
   const observe = (overrides: Partial<BuildJobObservation>): void => {
     JobLaunch.applyBuildJobObservations(change, context, [{
-      jobId:          job.id,
-      setup:          'installed',
-      calls:          0,
-      report:         undefined,
-      agentEnd:       null,
-      gate:           { verdict: 'pending' },
-      sandboxRefusal: null,
-      targetCatchUp:  { verdict: 'not-checked' },
+      jobId:            job.id,
+      setup:            'installed',
+      calls:            0,
+      report:           undefined,
+      agentEnd:         null,
+      gate:             { verdict: 'pending' },
+      sandboxRefusal:   null,
+      targetCatchUp:    { verdict: 'not-checked' },
+      mainMerge:        null,
+      conflictReReview: null,
       ...overrides,
     }]);
   };

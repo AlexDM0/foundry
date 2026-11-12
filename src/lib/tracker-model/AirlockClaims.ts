@@ -41,7 +41,10 @@ export interface RefreshSlotClaim {
 export interface MergeCandidate {
   ticketId:  string;
   priority:  TicketPriority;
-  /** The log position of the ticket's last `merge-queued` record: its readiness to land. */
+  /**
+   * Its readiness to land: the log position of the ticket's last `merge-queued` record. With merge approval on, a candidate's is the
+   * position of User's last accept (`merge-acceptance-set`, `accepted`), so the press order sets the train.
+   */
   readiness: number;
 }
 
@@ -80,22 +83,21 @@ export class AirlockClaims {
    * With merge approval on, only a ticket User accepted is a candidate.
    */
   mergeCandidatesOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
-    const mergeApprovalIsOn = this.records.pipeline?.approvals?.merge === true;
-    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf)
-      .filter((candidate) => !mergeApprovalIsOn || this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
+    if (!this.mergeApprovalIsOn()) return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf, this.queuedPositionByTicketId());
+    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf, this.acceptPositionByTicketId())
+      .filter((candidate) => this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
   }
 
   /** With merge approval on: the tickets that would be candidates but wait for User's accept. Empty with merge approval off. */
   ticketsWaitingForMergeOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
-    if (this.records.pipeline?.approvals?.merge !== true) return [];
-    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf).filter((candidate) => !this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
+    if (!this.mergeApprovalIsOn()) return [];
+    return this.queuedGreenTicketsOf(target, targetOf, branchTreeOf, this.queuedPositionByTicketId())
+      .filter((candidate) => !this.mergeQueueMarks.ticketIsMergeAccepted(candidate.ticketId));
   }
 
-  private queuedGreenTicketsOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): MergeCandidate[] {
-    const readinessByTicketId = new Map<string, number>();
-    [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
-      if (record.kind === 'merge-queued') readinessByTicketId.set(record.ticketId, position);
-    });
+  private queuedGreenTicketsOf(
+    target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf, readinessByTicketId: ReadonlyMap<string, number>
+  ): MergeCandidate[] {
     return this.queuedOrAwaitingTicketsOf(target, targetOf)
       .filter((ticket) => this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true)
       .filter(({ frontmatter }) => this.ownGreenIsCurrent(frontmatter.id, branchTreeOf))
@@ -105,6 +107,27 @@ export class AirlockClaims {
         priority:  this.mergePriorityOf(ticket),
         readiness: readinessByTicketId.get(ticket.frontmatter.id) ?? -1,
       }));
+  }
+
+  private mergeApprovalIsOn(): boolean {
+    return this.records.pipeline?.approvals?.merge === true;
+  }
+
+  private queuedPositionByTicketId(): Map<string, number> {
+    const positionByTicketId = new Map<string, number>();
+    [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
+      if (record.kind === 'merge-queued') positionByTicketId.set(record.ticketId, position);
+    });
+    return positionByTicketId;
+  }
+
+  /** User's newest accept of each ticket; a ticket with none waits for its accept and is no candidate. */
+  private acceptPositionByTicketId(): Map<string, number> {
+    const positionByTicketId = new Map<string, number>();
+    [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
+      if (record.kind === 'merge-acceptance-set' && record.fields.state === 'accepted') positionByTicketId.set(record.ticketId, position);
+    });
+    return positionByTicketId;
   }
 
   /**
@@ -173,14 +196,15 @@ export class AirlockClaims {
 
   /**
    * Re-derives the queue inside the hold: refused while the slot is held, for a ticket no longer queued, and `higher-priority-queued` when
-   * a candidate of a strictly higher rank waits, since the prediction ran outside the lock. Launches the merge job, holding the slot.
+   * a candidate of a strictly higher rank waits, since the prediction ran outside the lock. With merge approval on, User's press order
+   * alone sets the train, so no priority refuses a claim. Launches the merge job, holding the slot.
    */
   claimAirlock(claim: AirlockClaim, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf, at: string): JobChanged {
     this.refuseWhileTheSlotIsHeld(claim.target);
     const candidates = this.mergeCandidatesOf(claim.target, targetOf, branchTreeOf);
     const claimed    = candidates.find((candidate) => candidate.ticketId === claim.ticketId);
     if (claimed === undefined) throw new BoardRefusal({ reason: 'merge-candidate-not-queued', ticketId: claim.ticketId, target: claim.target });
-    const higher = candidates.filter((candidate) => MERGE_PRIORITY_RANK[candidate.priority] < MERGE_PRIORITY_RANK[claimed.priority]);
+    const higher = this.mergeApprovalIsOn() ? [] : candidates.filter((candidate) => MERGE_PRIORITY_RANK[candidate.priority] < MERGE_PRIORITY_RANK[claimed.priority]);
     if (higher.length > 0) throw new BoardRefusal({ reason: 'higher-priority-queued', ticketId: claim.ticketId, queuedTicketIds: higher.map((candidate) => candidate.ticketId) });
 
     const launched = this.jobRules.launchJob({

@@ -2,8 +2,9 @@
  * The first message of a ticket's last worker resumed into its Airlock, and of a conflict re-reviewer. What matters: a conflict names the
  * target tip, the branch tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the
  * agent cannot ask and states its call budget; a fresh agent in place of a session that could not resume is also given the ticket with its
- * Handoff and Review, and its role's full budget; and a conflict re-reviewer reads its instruction files, filled as a first review round's,
- * before the re-review the Airlock asks of it.
+ * Handoff and Review, and its role's full budget; a conflict re-reviewer reads its instruction files, filled as a first review round's,
+ * before the re-review the Airlock asks of it, or the merge before User's code review, which never names the Airlock; and a session resumed
+ * on a conflicted merge before User's code review is told the tip to merge again and where the conflicted files are named.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -14,6 +15,7 @@ import { RED_HANDOFF_RESUME_CALL_BUDGET }    from '../../src/shared/constants/Ov
 import { OverseerWording }                   from './OverseerWording.ts';
 
 const CONFLICT: AirlockFacts = {
+  mergePlacement:  'airlock',
   worktree:        '/example-agency/storefront/.example-worktrees/ticket-012',
   branchTip:       '1111111111111111111111111111111111111111',
   targetTip:       '2222222222222222222222222222222222222222',
@@ -112,5 +114,52 @@ describe('a conflict re-reviewer in the Airlock', () => {
   test('is told it cannot ask User, proposes no waiver, and has the reviewer\'s budget', () => {
     expect(message).toContain('AskUserQuestion is not available. Do not propose a waiver.');
     expect(message).toContain(`You have ${DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET} calls`);
+  });
+});
+
+describe('a conflict re-reviewer before User\'s code review', () => {
+  const instructions = 'You review ticket #{{ticketId}}, round {{round}}, as job {{jobId}}, with {{callBudget}} calls.\n\n{{ticketBody}}';
+  const message = messageOf({
+    ...CONFLICT, mergePlacement: 'before-human-code-review', phase: 're-reviewing', resumesSession: false
+  }, 'conflict-re-reviewer', instructions);
+
+  test('reads its instruction files, then the re-review of the merge before User\'s code review, never the Airlock', () => {
+    expect(message.indexOf('Example basket adds up.')).toBeLessThan(message.indexOf('conflict re-reviewer of #012, job J9'));
+    expect(message).toContain('Before User reviews the code');
+    for (const fact of [CONFLICT.targetTip, CONFLICT.branchTip, CONFLICT.worktree, '- basket.ts', '- checkout.ts']) expect(message).toContain(fact);
+    expect(message).not.toContain('Airlock');
+    expect(message).not.toMatch(/\{\{\w+\}\}/);
+  });
+
+  test('is told it cannot ask User, proposes no waiver, and has the reviewer\'s budget', () => {
+    expect(message).toContain('AskUserQuestion is not available. Do not propose a waiver.');
+    expect(message).toContain(`You have ${DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET} calls`);
+  });
+});
+
+describe('a session resumed on a conflicted merge before User\'s code review', () => {
+  const message = OverseerWording.redHandoffMessageOf({
+    kind:                'merge-conflict',
+    name:                'main',
+    command:             null,
+    fixCommand:          null,
+    commit:              CONFLICT.branchTip,
+    exitCode:            null,
+    batonPassPath:       '/example-agency/jobs/J8/gate-failure.md',
+    fullLogPath:         null,
+    resume:              1,
+    resumesAllowed:      2,
+    callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
+    interruptedInstance: 1,
+    mergedTip:           CONFLICT.targetTip,
+  });
+
+  test('is told the tip to merge again, its branch tip, the Baton pass and its resume, on one line', () => {
+    for (const fact of ['`main`', `Merge \`${CONFLICT.targetTip}\``, CONFLICT.branchTip, '/example-agency/jobs/J8/gate-failure.md', 'resume 1 of 2']) {
+      expect(message).toContain(fact);
+    }
+    expect(message).toContain(`${RED_HANDOFF_RESUME_CALL_BUDGET} tool calls`);
+    expect(message).not.toContain('\n');
+    expect(message).not.toMatch(/\{\{\w+\}\}/);
   });
 });

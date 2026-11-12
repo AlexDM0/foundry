@@ -53,6 +53,7 @@ const PATH_TO_STATE: Readonly<Record<JobState, readonly JobMoveTarget[]>> = {
   'awaiting-answer':    ['running', 'interrupted', 'awaiting-answer'],
   'in-customs':         ['running', 'in-customs'],
   'gating':             ['running', 'in-customs', 'gating'],
+  'merging-main':       ['running', 'in-customs', 'gating', 'merging-main'],
   'merging':            ['merging'],
   'landing':            ['merging', 'gating', 'landing'],
   'stopping':           ['stopping'],
@@ -241,7 +242,9 @@ describe('the legality table', () => {
       'awaiting-answer':    ['running', 'stopping', 'ended'],
       // A red Customs check or gate interrupts the job, so the same session is resumed to fix it.
       'in-customs':         ['gating', 'interrupted', 'stopping', 'ended'],
-      'gating':             ['awaiting-answer', 'interrupted', 'landing', 'stopping', 'ended'],
+      'gating':             ['awaiting-answer', 'interrupted', 'landing', 'merging-main', 'stopping', 'ended'],
+      // With merge approval on, a green build or review merges the target in; a conflict or a red gate there resumes the same session.
+      'merging-main':       ['interrupted', 'stopping', 'ended'],
       'merging':            ['gating', 'stopping', 'ended'],
       'landing':            ['stopping', 'ended'],
       'stopping':           ['interrupted', 'ended'],

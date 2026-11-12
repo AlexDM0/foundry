@@ -22,8 +22,8 @@ const FORECAST_TICKET_STATUSES: readonly TicketStatus[] = ['pending', 'in-progre
 /** A filed ticket no builder can take yet, which can neither start nor be said to wait. */
 const UNREADY_TICKET_STATUSES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
 
-/** The states in which a build job's handoff is in Customs or its gates run. */
-const CUSTOMS_JOB_STATES: readonly JobState[] = ['in-customs', 'gating'];
+/** The states in which a build job's handoff is in Customs or its gates run, the target's merge before User's Merge included. */
+const CUSTOMS_JOB_STATES: readonly JobState[] = ['in-customs', 'gating', 'merging-main'];
 
 /** The round of a review after a build still to come: finishing the ticket again starts its rounds over. */
 const FIRST_REVIEW_ROUND = 1;

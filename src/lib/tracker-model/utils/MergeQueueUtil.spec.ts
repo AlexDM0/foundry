@@ -1,7 +1,8 @@
 /**
  * The merge queue's order and the group refresh's trigger. What matters is that each of the five keys decides only when every key above it
  * ties, that a failed prediction orders as conflicting, that only clean candidates count as conflicts caused, and that no tie-break ever
- * lifts a lower priority over a higher. A refresh is due by the count or by a conflicting group tip, and never beside a queued release.
+ * lifts a lower priority over a higher. With merge approval on, the press order alone decides: readiness, then ticket id, whatever the
+ * priority or the prediction. A refresh is due by the count or by a conflicting group tip, and never beside a queued release.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,6 +22,21 @@ function candidate(ticketId: string, overrides: Partial<MergeQueueCandidate> = {
 function orderedIdsOf(candidates: readonly MergeQueueCandidate[], pairwiseConflicts: readonly PairwiseConflict[] = []): string[] {
   return MergeQueueUtil.orderOf(candidates, pairwiseConflicts).map((ordered) => ordered.ticketId);
 }
+
+describe('the press order with merge approval on', () => {
+  test('readiness alone decides, the earliest accept first, whatever the priority or the prediction', () => {
+    const candidates = [
+      candidate('1', { priority: 'high', queuedLogPosition: 7 }),
+      candidate('2', { priority: 'low', againstTarget: 'conflicting', queuedLogPosition: 3 }),
+      candidate('3', { queuedLogPosition: 5 }),
+    ];
+    expect(MergeQueueUtil.pressOrderOf(candidates).map((ordered) => ordered.ticketId)).toEqual(['2', '3', '1']);
+  });
+
+  test('a tie in readiness falls to the ticket id, compared as a number', () => {
+    expect(MergeQueueUtil.pressOrderOf([candidate('10'), candidate('9')]).map((ordered) => ordered.ticketId)).toEqual(['9', '10']);
+  });
+});
 
 describe('ordering the merge queue', () => {
   const cases: { claim: string; candidates: MergeQueueCandidate[]; pairwiseConflicts?: PairwiseConflict[]; expected: string[] }[] = [

@@ -219,7 +219,7 @@ function mergeTargetOf(board: Board, target: string, forecasting: MergeForecasti
   return {
     target,
     holder: holder?.airlock === undefined ? null : { jobId: holder.id, ticketIds: [...holder.ticketIds], phase: holder.airlock.phase },
-    order:  MergeQueueUtil.orderOf(queueCandidates, forecasts.pairwiseConflicts).map((candidate) => ({
+    order:  (board.mergeApprovalIsOn() ? MergeQueueUtil.pressOrderOf(queueCandidates) : MergeQueueUtil.orderOf(queueCandidates, forecasts.pairwiseConflicts)).map((candidate) => ({
       ticketId:        candidate.ticketId,
       priority:        candidate.priority,
       againstTarget:   candidate.againstTarget,

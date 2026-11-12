@@ -4,9 +4,10 @@
  * replayed by its successor. A hold that leaves progress.json as it was journals only the files it changes, and a crash anywhere in it is still
  * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`,
  * an Overseer restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
- * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking
- * User. A first instance that resumes another job's session and exits before it starts is a failed resume. A gate profile left running by
- * a stopped Overseer reads `stopped` after the next start, is never run again, and its worktree goes.
+ * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent, or a conflict
+ * re-reviewer before User's code review, launches never asking User. A first instance that resumes another job's session and exits before
+ * it starts is a failed resume. A gate profile left running by a stopped Overseer reads `stopped` after the next start, is never run
+ * again, and its worktree goes.
  *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -889,6 +890,43 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     });
     await passOnce(await startedOverseer(adapter));
     expect(plans.get(reReviewerJobId)).toEqual({ reportTitle: 'reviewer report', askUser: false });
+  });
+
+  test('a conflict re-reviewer under a job in merging-main launches as the reviewer it is, outside any Airlock, with the conflict its job resolved', async () => {
+    const plans = new Map<string, { reportTitle: unknown; askUser: boolean }>();
+    const adapter: AgentAdapter = {
+      ...fakeAgentAdapter(),
+      planOf(request) {
+        plans.set(basename(request.jobFilesDirectory), { reportTitle: (request.reportSchema as { title?: string } | null)?.title, askUser: request.profile.askUser });
+        return fakeAgentAdapter(WAITING_STEPS).planOf(request);
+      },
+    };
+    let reReviewerJobId = '';
+    await writeTracker({
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        change.board.setApproval('merge', true, change.at);
+        const reviewJob = change.board.launchJob({
+          kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main',
+        }, change.at).job;
+        for (const state of ['preparing', 'running'] as const) change.board.moveJob(reviewJob.id, state, change.at);
+        change.board.interruptJob(reviewJob.id, 'handoff-red', change.at);
+        for (const state of ['running', 'in-customs', 'gating', 'merging-main'] as const) change.board.moveJob(reviewJob.id, state, change.at);
+        mkdirSync(sessionJobFolder(reviewJob.id), { recursive: true });
+        const keptConflict = { targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), conflictedFiles: ['shared.txt'] };
+        writeFileSync(join(sessionJobFolder(reviewJob.id), 'main-conflict.json'), `${JSON.stringify(keptConflict)}\n`);
+        reReviewerJobId = change.board.launchJob({
+          kind: 'merge-agent', role: 'conflict-re-reviewer', ticketIds: ['001'], parentJobId: reviewJob.id, attempt: 1, target: 'main',
+        }, change.at).job.id;
+      },
+    });
+    await passOnce(await startedOverseer(adapter));
+    expect(plans.get(reReviewerJobId)).toEqual({ reportTitle: 'reviewer report', askUser: false });
+    expect(launchFacts.find((launch) => launch.jobId === reReviewerJobId)?.facts.airlock).toMatchObject({
+      mergePlacement: 'before-human-code-review', phase: 're-reviewing', targetTip: 'a'.repeat(40), branchTip: 'b'.repeat(40), conflictedFiles: ['shared.txt'], redHandoff: null,
+    });
   });
 
   test('an Airlock agent launches under its role\'s profile in the Airlock: the target ref denied, the git verbs allowed, no network', async () => {

@@ -2,6 +2,8 @@
  * The Airlock's claim on the board. What matters: the queue is re-derived inside the hold, so a strictly higher priority queued since
  * the prediction is never jumped, a held slot is never claimed twice, and a claim writes the slot on the merge job it launches. A green
  * is current only under the phase hash it was recorded with and with its phase stored: a row from before the phase existed fails closed.
+ * With merge approval on, User's press order alone sets the train: a candidate's readiness is its newest accept, and no priority refuses
+ * a claim, while the tickets still waiting keep the order they were queued in.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -171,6 +173,49 @@ describe('claiming the main line\'s Airlock', () => {
       context: 'acceptance-unaccounted'
     }, AT);
     expect(board.mergeCandidatesOf('main', targetOf, branchTreeOf).map((candidate) => candidate.ticketId)).toEqual(['001', '003']);
+  });
+});
+
+describe('the press order with merge approval on', () => {
+  function acceptedInOrder(ticketIds: readonly string[]): ReturnType<typeof boardFixture>['board'] {
+    const board = queuedBoard();
+    board.setApproval('merge', true, AT);
+    for (const ticketId of ticketIds) board.setTicketMergeAccepted(ticketId, true, AT);
+    return board;
+  }
+
+  test('a candidate\'s readiness is the place of its newest accept in the log, whatever its priority', () => {
+    const board = acceptedInOrder(['003', '001', '002']);
+    const readinessOf = (ticketId: string): number => board.mergeCandidatesOf('main', targetOf, branchTreeOf).find((candidate) => candidate.ticketId === ticketId)?.readiness ?? -1;
+    expect(readinessOf('003')).toBeLessThan(readinessOf('001'));
+    expect(readinessOf('001')).toBeLessThan(readinessOf('002'));
+  });
+
+  test('an accept cleared and pressed again moves the ticket behind every accept pressed meanwhile', () => {
+    const board = acceptedInOrder(['001', '003']);
+    board.setTicketMergeAccepted('001', false, AT);
+    board.setTicketMergeAccepted('001', true, AT);
+    const candidates = board.mergeCandidatesOf('main', targetOf, branchTreeOf);
+    const readinessOf = (ticketId: string): number => candidates.find((candidate) => candidate.ticketId === ticketId)?.readiness ?? -1;
+    expect(readinessOf('003')).toBeLessThan(readinessOf('001'));
+  });
+
+  test('claims the first accepted ticket though a higher priority is accepted after it', () => {
+    const board = acceptedInOrder(['003', '002']);
+    expect(board.claimAirlock(claimOf('003'), targetOf, branchTreeOf, AT).job).toMatchObject({ kind: 'merge', ticketIds: ['003'] });
+  });
+
+  test('the tickets waiting for an accept keep the order they were queued in', () => {
+    const board = acceptedInOrder(['002']);
+    const waiting = board.ticketsWaitingForMergeOf('main', targetOf, branchTreeOf);
+    expect(waiting.map((candidate) => candidate.ticketId)).toEqual(['001', '003']);
+    expect((waiting[0]?.readiness ?? -1)).toBeLessThan(waiting[1]?.readiness ?? -1);
+    expect((waiting[0]?.readiness ?? -1)).toBeGreaterThanOrEqual(0);
+  });
+
+  test('with merge approval off, priority still refuses a claim past a higher candidate', () => {
+    const board = queuedBoard();
+    expect(refusalDetailOf(() => board.claimAirlock(claimOf('003'), targetOf, branchTreeOf, AT))).toMatchObject({ reason: 'higher-priority-queued' });
   });
 });
 

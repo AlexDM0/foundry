@@ -32,6 +32,7 @@ export const JOB_STATES = [
   'awaiting-answer',
   'in-customs',
   'gating',
+  'merging-main',
   'merging',
   'landing',
   'stopping',

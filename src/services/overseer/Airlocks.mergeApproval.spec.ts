@@ -1,8 +1,8 @@
 /**
  * The Airlocks with merge approval on. What matters: nothing lands that User did not accept, on the main line and on a group target; once
  * accepted, the ticket runs the same merge train as with merge approval off: a conflict or a red merged tree goes to its last worker in the
- * Airlock, its accept and queue mark kept, never back to a reviewer outside it nor to `in-progress`; and an accepted green tree lands with
- * no second approval.
+ * Airlock, its accept and queue mark kept, never back to a reviewer outside it nor to `in-progress`; an accepted green tree lands with
+ * no second approval; and the train takes the accepted tickets in User's press order, never by priority.
  * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, one stage per sweep, so a landing nobody accepted
  * would be a call the stage lacks; the accepted tickets' Airlock agents answer from the recorded answer sets of
  * `src/services/overseer/testing/AirlockAnswerSets.ts`.
@@ -210,4 +210,26 @@ testWhenGitIsRecorded('with merge approval off, a reviewed ticket with no accept
   harness = plantedHarness([{ id: '001' }], true, false);
   await sweepOn(harness, LANDING_ON_MAIN);
   expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+});
+
+testWhenGitIsRecorded('the train takes the accepted tickets in User\'s press order: a high priority accepted later waits', async () => {
+  harness = plantedHarness([{ id: '001', priority: 'high' }, { id: '002' }]);
+  harness.board.setTicketMergeAccepted('002', true, HARNESS_AT);
+  harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
+  // The merge-in left by a live holder keeps its slot, so the sweep stops once the train took its first ticket.
+  harness.settings.watcherIsLive = true;
+  recordedGit.answerFrom([
+    ...['001', '002'].flatMap((ticketId) => [
+      treeRead(`refs/heads/ticket-${ticketId}`, BRANCH_TREE),
+      commitResolved(`refs/heads/ticket-${ticketId}`, BRANCH_TIP),
+      mergePredicted('main', `ticket-${ticketId}`, BRANCH_TREE),
+    ]),
+    MAIN_TIP_READ,
+    commitResolved('MERGE_HEAD', MAIN_TIP),
+  ]);
+
+  await harness.slots.sweep();
+
+  expect(mergesStarted(harness)).toBe(1);
+  expect(harness.mergeJob()?.ticketIds).toEqual(['002']);
 });

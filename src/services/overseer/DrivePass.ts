@@ -154,6 +154,8 @@ export interface ReviewFindingsFacts {
 
 /** What an Airlock agent is sent in for: the conflict of the merge-in, the re-review of its resolution, or the red gate on the merged tree. */
 export interface AirlockFacts {
+  /** `before-human-code-review` for a conflict re-reviewer under a build or review job in `merging-main`, outside any Airlock. */
+  mergePlacement:  'airlock' | 'before-human-code-review';
   worktree:        string;
   branchTip:       string;
   targetTip:       string;
@@ -329,9 +331,14 @@ const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
   'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
 };
 
-/** The Airlock phase an agent is launched or resumed in, read from its merge job's slot. */
+/**
+ * The Airlock phase an agent is launched or resumed in, read from its merge job's slot. Under a build or review job in `merging-main`, the
+ * agent is the conflict re-reviewer of the merge before User's code review.
+ */
 function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhase {
-  const phase = board.jobs().find((candidate) => candidate.id === job.parentJobId)?.airlock?.phase;
+  const parent = board.jobs().find((candidate) => candidate.id === job.parentJobId);
+  if (parent?.state === 'merging-main') return 're-reviewing';
+  const phase = parent?.airlock?.phase;
   return phase === 'fixing' || phase === 're-reviewing' ? phase : 'resolving';
 }
 
@@ -641,18 +648,33 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
 function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null | 'conflicts-unknown' {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
+  const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
+  if (mergeJob?.state === 'merging-main') {
+    const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
+    return {
+      mergePlacement:  'before-human-code-review',
+      worktree:        workingDirectory,
+      branchTip:       conflict?.branchTip ?? '',
+      targetTip:       conflict?.targetTip ?? '',
+      phase:           're-reviewing',
+      conflictedFiles: conflict?.conflictedFiles ?? [],
+      redHandoff:      null,
+      resumesSession,
+    };
+  }
   const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
   const phase          = airlockAgentPhaseOf(board, job);
   const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, workingDirectory);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   return {
+    mergePlacement:  'airlock',
     worktree:        workingDirectory,
     branchTip:       mergeJob?.airlock?.branchTip ?? '',
     targetTip:       mergeJob?.airlock?.targetTip ?? '',
     phase,
     conflictedFiles: conflicts.conflictedFiles,
     redHandoff:      RedHandoff.redHandoffFactsOf(mergeJobFolder),
-    resumesSession:  JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id,
+    resumesSession,
   };
 }
 
@@ -926,6 +948,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     windDownMessage:      request.windDownMessage,
     decisionWordingOf:    request.decisionWordingOf,
     log:                  request.log,
+    resolutionLinesOf:    MergeRun.resolutionLinesOf,
     ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
   };
   const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };

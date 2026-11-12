@@ -25,9 +25,12 @@ export const BATON_PASS_OUTPUT_LIMITS = {
 
 /** What went red, and which resume of how many fixes it: the resume message and a fresh session's first message are worded from it. */
 export interface RedHandoffFacts {
-  /** `gate` for a red gate, `customs` for a refused Customs check (a dirty worktree, no commit, missing or stale gate claims). */
-  kind:                'gate' | 'customs';
-  /** The gate's name, or the Customs check's id. */
+  /**
+   * `gate` for a red gate, `customs` for a refused Customs check (a dirty worktree, no commit, missing or stale gate claims),
+   * `merge-conflict` for a merge of the target into the worktree that conflicted before User's Merge.
+   */
+  kind:                'gate' | 'customs' | 'merge-conflict';
+  /** The gate's name, the Customs check's id, or the target the merge took its tip from. */
   name:                string;
   /** The gate's shell line; `null` for a Customs check. */
   command:             string | null;
@@ -42,6 +45,8 @@ export interface RedHandoffFacts {
   /** The Watcher instance that went red: the resume's calls are counted from the next one. A fresh session taking over stores 0. */
   interruptedInstance: number;
   callBudget:          number;
+  /** On a `merge-conflict` only: the target tip the session merges in again. */
+  mergedTip?:          string;
 }
 
 const OMISSION_MARK = (omittedLines: number): string => `[… ${omittedLines} lines omitted …]`;
@@ -75,10 +80,29 @@ function outputExcerptOf(output: string): string {
   return `${firstBytesOf(head, halfBytes)}\n[… cut to ${BYTES} bytes …]\n${lastBytesOf(cutTail, halfBytes)}`;
 }
 
+const BATON_PASS_HEADINGS: Readonly<Record<RedHandoffFacts['kind'], (name: string) => string>> = {
+  'gate':           (name) => `Gate \`${name}\` is red`,
+  'customs':        (name) => `Customs check ${name} is red`,
+  'merge-conflict': (name) => `The merge of \`${name}\` conflicts`,
+};
+
+/** A conflicted merge names the tip it took, and its output is the conflicted files. */
 function batonPassTextOf(facts: Readonly<RedHandoffFacts>, output: string): string {
-  const what = facts.kind === 'gate' ? `Gate \`${facts.name}\`` : `Customs check ${facts.name}`;
+  if (facts.kind === 'merge-conflict') {
+    return [
+      `# ${BATON_PASS_HEADINGS[facts.kind](facts.name)}`,
+      '',
+      `- Merged tip: ${facts.mergedTip ?? '-'}`,
+      `- Branch tip: ${facts.commit}`,
+      '',
+      '## Conflicted files',
+      '',
+      ...output.split('\n').filter((path) => path !== '').map((path) => `- ${path}`),
+      '',
+    ].join('\n');
+  }
   return [
-    `# ${what} is red`,
+    `# ${BATON_PASS_HEADINGS[facts.kind](facts.name)}`,
     '',
     `- Gate: ${facts.kind === 'gate' ? facts.name : '-'}`,
     `- Customs check: ${facts.kind === 'customs' ? facts.name : '-'}`,
