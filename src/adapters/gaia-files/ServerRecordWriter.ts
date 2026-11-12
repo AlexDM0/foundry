@@ -11,7 +11,7 @@ import { GaiaFileWriteUtil, type FileRemoveVerdict } from './utils/GaiaFileWrite
 /** The record's place is part of the forge's contract (F5), so neither name follows Gaia's own product names. */
 const FORGE_MONITOR_FOLDER_NAME = '.forge-monitor';
 const GAIA_FOLDER_IN_FORGE_MONITOR = 'gaia';
-export const SERVER_RECORD_FILE_NAME = 'server.json';
+const SERVER_RECORD_FILE_NAME = 'server.json';
 
 export interface ServerRecord {
   readonly url:       URL;

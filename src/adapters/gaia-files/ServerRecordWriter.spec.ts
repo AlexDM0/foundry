@@ -1,6 +1,6 @@
 /**
  * The server record under a scratch home: it is written at version 1 with the origin taken from the url, a second write replaces it, and
- * it goes away by `remove()` and by nothing else, which a scan of the source holds: no other module names the record's file.
+ * it goes away by `remove()` and by nothing else, which a scan of the source holds: no other module names the record's file or its path.
  */
 import {
   existsSync,
@@ -9,7 +9,7 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -18,21 +18,21 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
-import {
-  createServerRecordWriter,
-  SERVER_RECORD_FILE_NAME,
-  serverRecordPathIn,
-  type ServerRecord,
-} from './ServerRecordWriter.ts';
-import { SettingsFile }           from './SettingsFile.ts';
-import { createSettingsWriter }   from './SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS } from './constants/GaiaSettingsDefaults.ts';
+import { createScratchDirectory, removeScratchPath }                       from '../../testing/ScratchRoot.ts';
+import { createServerRecordWriter, serverRecordPathIn, type ServerRecord } from './ServerRecordWriter.ts';
+import { SettingsFile }                                                    from './SettingsFile.ts';
+import { createSettingsWriter }                                            from './SettingsWriter.ts';
+import { GAIA_SETTINGS_DEFAULTS }                                          from './constants/GaiaSettingsDefaults.ts';
 
 const SOURCE_FOLDER = join(import.meta.dir, '..', '..');
 
-/** The only modules that may name the record's file; exact both ways. */
+/** The only modules that may name the record's file or the function that answers its path; exact both ways. */
 const MODULES_NAMING_THE_RECORD = ['adapters/gaia-files/ServerRecordWriter.ts'];
+
+const RECORD_FILE_NAME = basename(serverRecordPathIn('/'));
+
+/** The exported way to the record's path is a naming too: through it a module could remove the record without naming its file. */
+const RECORD_NAMINGS = [RECORD_FILE_NAME, serverRecordPathIn.name];
 
 const EXAMPLE_RECORD: ServerRecord = {
   url:       new URL('http://127.0.0.1:4790/'),
@@ -54,13 +54,14 @@ function storedRecord(): unknown {
   return JSON.parse(readFileSync(serverRecordPathIn(homeDirectory), 'utf8'));
 }
 
-/** Every non-spec TypeScript module below `folder` whose text holds `needle`, as paths relative to `folder`. */
-function modulesNaming(folder: string, needle: string): string[] {
+/** Every non-spec TypeScript module below `folder` whose text holds any of `namings`, as paths relative to `folder`. */
+function modulesNaming(folder: string, namings: readonly string[]): string[] {
   const namingModules: string[] = [];
   for (const entry of readdirSync(folder, { recursive: true, withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.ts') || entry.name.endsWith('.spec.ts')) continue;
     const modulePath = join(entry.parentPath, entry.name);
-    if (readFileSync(modulePath, 'utf8').includes(needle)) namingModules.push(relative(folder, modulePath));
+    const moduleText = readFileSync(modulePath, 'utf8');
+    if (namings.some((naming) => moduleText.includes(naming))) namingModules.push(relative(folder, modulePath));
   }
   return namingModules.sort();
 }
@@ -106,7 +107,7 @@ describe('the server record', () => {
   });
 
   test('is named by no module but its writer, so no other module can remove it', () => {
-    expect(modulesNaming(SOURCE_FOLDER, SERVER_RECORD_FILE_NAME)).toEqual(MODULES_NAMING_THE_RECORD);
+    expect(modulesNaming(SOURCE_FOLDER, RECORD_NAMINGS)).toEqual(MODULES_NAMING_THE_RECORD);
   });
 
   test('answers unwritable, and unremovable, where a file stands in place of its folder', async () => {
@@ -117,13 +118,14 @@ describe('the server record', () => {
 });
 
 describe('the scan for modules that name the record', () => {
-  test('finds a planted module that names it and passes over a spec that does', () => {
+  test('finds a planted module for each naming and passes over a spec that names it', () => {
     const plantedFolder = createScratchDirectory('server-record-scan');
     try {
       mkdirSync(join(plantedFolder, 'features', 'example'), { recursive: true });
-      writeFileSync(join(plantedFolder, 'features', 'example', 'Planted.ts'), `await rm('${SERVER_RECORD_FILE_NAME}');\n`);
-      writeFileSync(join(plantedFolder, 'features', 'example', 'Planted.spec.ts'), `'${SERVER_RECORD_FILE_NAME}';\n`);
-      expect(modulesNaming(plantedFolder, SERVER_RECORD_FILE_NAME)).toEqual(['features/example/Planted.ts']);
+      writeFileSync(join(plantedFolder, 'features', 'example', 'PlantedFileName.ts'), `await rm('${RECORD_FILE_NAME}');\n`);
+      writeFileSync(join(plantedFolder, 'features', 'example', 'PlantedPath.ts'), `await rm(${serverRecordPathIn.name}(home));\n`);
+      writeFileSync(join(plantedFolder, 'features', 'example', 'Planted.spec.ts'), `${RECORD_NAMINGS.join('\n')}\n`);
+      expect(modulesNaming(plantedFolder, RECORD_NAMINGS)).toEqual(['features/example/PlantedFileName.ts', 'features/example/PlantedPath.ts']);
     } finally {
       removeScratchPath(plantedFolder);
     }
