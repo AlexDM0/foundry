@@ -12,14 +12,14 @@ const CODE = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08';
 const LOCATION_WITH_CODE: SessionCodeLocation = { hash: `#session=${CODE}`, pathname: '/', search: '' };
 
 interface PostedRequest {
-  readonly input: string;
-  readonly init:  RequestInit;
+  readonly path:           string;
+  readonly requestOptions: RequestInit;
 }
 
 function serverAnswering(answer: () => Response, events: string[], posted: PostedRequest[]): FetchFunction {
-  return (input, init) => {
+  return (path, requestOptions) => {
     events.push('posted');
-    posted.push({ input, init });
+    posted.push({ path, requestOptions });
     return Promise.resolve(answer());
   };
 }
@@ -37,10 +37,10 @@ describe('exchanging the code in the fragment', () => {
     expect(events).toEqual(['replaced with "/"', 'posted']);
     expect(posted).toHaveLength(1);
     const [request] = posted;
-    expect(request?.input).toBe(SessionCodeExchange.SESSION_PATH);
-    expect(request?.input).not.toContain(CODE);
-    expect(request?.init.method).toBe('POST');
-    expect(JSON.parse(String(request?.init.body))).toEqual({ code: CODE });
+    expect(request?.path).toBe(SessionCodeExchange.SESSION_PATH);
+    expect(request?.path).not.toContain(CODE);
+    expect(request?.requestOptions.method).toBe('POST');
+    expect(JSON.parse(String(request?.requestOptions.body))).toEqual({ code: CODE });
   });
 
   test('the address keeps its path and query and loses only the fragment', async () => {

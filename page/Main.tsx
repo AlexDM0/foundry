@@ -22,7 +22,7 @@ const rootElement = document.getElementById(ROOT_ELEMENT_ID);
 void SessionCodeExchange.exchangeCodeInFragment(
   window.location,
   (address) => window.history.replaceState(null, '', address),
-  (input, init) => fetch(input, init),
+  (path, requestOptions) => fetch(path, requestOptions),
 ).then(() => {
   if (rootElement === null) return;
   createRoot(rootElement).render(

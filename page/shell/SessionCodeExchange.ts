@@ -8,7 +8,7 @@ export interface SessionCodeLocation {
   readonly search:   string;
 }
 
-export type FetchFunction = (input: string, init: RequestInit) => Promise<Response>;
+export type FetchFunction = (path: string, requestOptions: RequestInit) => Promise<Response>;
 
 /** `no-code` when the fragment holds none: the page reads with the cookie it already has, as after a reload. */
 export type SessionExchangeOutcome = 'no-code' | 'exchanged' | 'refused' | 'unreachable';
@@ -20,13 +20,13 @@ const SESSION_CODE_FRAGMENT = /^#session=([0-9a-f]+)$/;
 async function exchangeCodeInFragment(
   location: SessionCodeLocation,
   replaceAddress: (address: string) => void,
-  fetchOf: FetchFunction,
+  sendRequest: FetchFunction,
 ): Promise<SessionExchangeOutcome> {
   const code = SESSION_CODE_FRAGMENT.exec(location.hash)?.[1];
   if (code === undefined) return 'no-code';
   replaceAddress(`${location.pathname}${location.search}`);
   try {
-    const response = await fetchOf(SESSION_PATH, {
+    const response = await sendRequest(SESSION_PATH, {
       method:      'POST',
       credentials: 'same-origin',
       headers:     { 'content-type': 'application/json' },
