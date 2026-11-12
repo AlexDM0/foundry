@@ -62,6 +62,12 @@
  *                           textarea, its text transparent over the aria-hidden -mirror of -mirror-line[data-heading?][data-changed?]
  *                           rows (-mirror-text, a source tag, the drafting -caret), the visually hidden -sources-list, and the
  *                           -refusal line
+ *   .bridge-pipeline-design[data-state] the design step (A2Proposal): the -body of the -main (the -pending line, the
+ *                           .bridge-pipeline-flow-workspace of the flow screen and the gates area) and the -aside (tabs over an
+ *                           -aside-panel: the -agent-head with the -status[data-state] line and its -status-dot, the agent panel with
+ *                           the -latest-change block, its -latest-change-text and -latest-change-links; or the
+ *                           .bridge-pipeline-change-list of -change-list-item cards, or the -change-list-empty line); the footer's
+ *                           -summary, the -hint[data-tone] with its -hint-dot, and the -apply holder of Apply pipeline
  *   .bridge-pipeline-dialog-body the step and gate dialogs (A3, A3c, A3d, A2b): -settings[data-size] of -field rows (-label, segments,
  *                           -hint), the -instructions group (-instructions-head, -instruction-rows of listed files and the dashed
  *                           -constitution-off row with its -constitution-off-text and -constitution-off-label, the -add-file field,
@@ -3814,3 +3820,47 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-profile-result[data-tone="passed"] > .bridge-pipeline-profile-result-dot { background: var(--live-dot); }
 .bridge-pipeline-profile-result[data-tone="timed-out"] > .bridge-pipeline-profile-result-dot { background: var(--change-changed-dot); }
 .bridge-pipeline-profile-result[data-tone="red"] > .bridge-pipeline-profile-result-dot { background: var(--change-removed-edge); }
+
+/* The design step (A2Proposal): the flow workspace beside the pipeline agent's 400 px aside, with its tabs over the chat or the change
+ * list; the footer's summary, the hint that Apply waits on a question (an amber pulse) or that all are answered (a pop). */
+.bridge-pipeline-flow-workspace { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-design { display: flex; flex-direction: column; gap: var(--sp-4); width: 100%; min-width: 0; }
+.bridge-pipeline-design-body { display: flex; align-items: stretch; gap: var(--sp-4); min-height: 0; }
+.bridge-pipeline-design-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.bridge-pipeline-design-pending { margin: 0; color: var(--ink-3); }
+.bridge-pipeline-design-aside {
+  display: flex; flex: 0 0 400px; flex-direction: column; min-width: 0;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-pipeline-design-aside > .bridge-tabs { padding: 0 6px; border-bottom: 1px solid var(--line-hairline); }
+.bridge-pipeline-design-aside-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-3); min-height: 0; padding: var(--sp-4); }
+.bridge-pipeline-design-agent-head { display: flex; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-design-status {
+  display: inline-flex; flex: 1 1 auto; align-items: center; gap: var(--sp-2); min-width: 0; color: var(--ink-4); font-size: var(--fs-micro);
+}
+.bridge-pipeline-design-status-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--ink-4); }
+.bridge-pipeline-design-status:not([data-state="not-running"]) .bridge-pipeline-design-status-dot { background: var(--live-dot); }
+.bridge-pipeline-design-latest-change {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface-raised); border-radius: 10px;
+}
+.bridge-pipeline-design-latest-change-text { margin: 0; line-height: 19px; color: var(--ink-1); }
+.bridge-pipeline-design-latest-change-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); }
+.bridge-pipeline-design-summary { color: var(--ink-1); }
+.bridge-pipeline-design-hint { display: inline-flex; align-items: center; gap: 6px; }
+.bridge-pipeline-design-hint[data-tone="question-open"] { color: var(--change-changed-ink); }
+.bridge-pipeline-design-hint[data-tone="answered"] { color: var(--done-ink); }
+.bridge-pipeline-design-hint-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--change-changed-dot); }
+.bridge-pipeline-design-apply { display: inline-flex; }
+.bridge-pipeline-change-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; overflow: auto; list-style: none; }
+.bridge-pipeline-change-list-item { display: block; }
+.bridge-pipeline-change-list-empty { margin: 0; color: var(--ink-3); }
+@media (max-width: 900px) {
+  .bridge-pipeline-design-body { flex-direction: column; }
+  .bridge-pipeline-design-aside { flex-basis: auto; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-pipeline-design-status:not([data-state="not-running"]) .bridge-pipeline-design-status-dot,
+  .bridge-pipeline-design-hint-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
+  .bridge-pipeline-design-hint[data-tone="answered"],
+  .bridge-pipeline-design-latest-change { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
+}

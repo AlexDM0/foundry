@@ -1,14 +1,17 @@
 /**
  * The dialog an open request names, over the pipeline the board is designing or running: the agent step, review step, merge step or gate
- * dialog. Its Saves go to the open setup record; on a live board the first one opens an update (`pipeline-update-start`) and its edits go
- * once the record shows. A dialog closes once its edits are applied, and stays open showing the refusal when they are not.
+ * dialog, or the open question a node waits on. Its Saves go to the open setup record; on a live board the first one opens an update
+ * (`pipeline-update-start`) and its edits go once the record shows. A dialog closes once its edits are applied, and stays open showing
+ * the refusal when they are not.
  */
 import { GATE_PHASES, type GatePhase }                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { PipelineFlowFacts, PipelineFlowNode, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineViewFacts }                                     from '../PipelineViewModel.ts';
 import { PipelineViewModel }                                          from '../PipelineViewModel.ts';
+import { PipelineAgentPanelModel }                                    from '../agent-panel/PipelineAgentPanelModel.ts';
 import type { FlowOpenRequest }                                       from '../flow/PipelineFlow.tsx';
 import { usePipelineFlowEditSender }                                  from '../flow/PipelineFlowEditSender.ts';
+import { PipelineFlowModel }                                          from '../flow/PipelineFlowModel.ts';
 import type { GatesOpenRequest }                                      from '../gates/GatesAreaModel.ts';
 
 import { AgentStepDialog }                from './AgentStepDialog.tsx';
@@ -17,6 +20,7 @@ import { GateDialog }                     from './GateDialog.tsx';
 import type { GateDialogSubject }         from './GateDialogModel.ts';
 import { InstructionsEditorModel }        from './InstructionsEditorModel.ts';
 import { MergeStepDialog }                from './MergeStepDialog.tsx';
+import { NodeQuestionDialog }             from './NodeQuestionDialog.tsx';
 import { usePipelineAgentQuestionSender } from './PipelineAgentQuestionSender.ts';
 import type { ProfileLogFollower }        from './ProfileBox.tsx';
 import { ReviewStepDialog }               from './ReviewStepDialog.tsx';
@@ -42,6 +46,7 @@ function gateSubjectOf(request: FlowOpenRequest | GatesOpenRequest): GateDialogS
     case 'new-prepare-step':
       return { rowKind: 'prepare', name: null, phase: PREPARE_STEP_PHASE };
     case 'node':
+    case 'question':
       return null;
   }
 }
@@ -98,6 +103,14 @@ export function PipelineDialogs({
         {...(followLog === undefined ? {} : { followLog })}
       />
     );
+  }
+  if (request.kind === 'question') {
+    const askingNode = flow.nodes.find((candidate) => candidate.nodeId === request.nodeId) ?? null;
+    if (askingNode === null || record === null) return null;
+    const cards = PipelineAgentPanelModel.openQuestionCardsOf(record.questions, askingNode.questionIds, record.findings);
+    if (cards.length === 0) return null;
+    const nodeTitle = PipelineFlowModel.nodeViewOf(askingNode, choices.efforts).title;
+    return <NodeQuestionDialog key={dialogKey} nodeTitle={nodeTitle} setupId={record.setupId} cards={cards} onClose={onClose} />;
   }
   if (request.kind !== 'node' || request.action.kind !== 'dialog') return null;
   const node = flow.nodes.find((candidate) => candidate.nodeId === request.nodeId) ?? null;

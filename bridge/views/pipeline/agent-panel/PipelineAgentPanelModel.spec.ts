@@ -1,7 +1,7 @@
 /**
  * The pipeline agent panel's model. What matters: the activity line shows only while a turn runs, and says the newest line the agent wrote
  * or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer sends the chosen letter or the
- * Other text and nothing while it is incomplete; a message goes to the agent's job.
+ * Other text and nothing while it is incomplete; a message goes to the agent's job; a flow node's question cards are only its open ones.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -79,5 +79,16 @@ describe('the message', () => {
     expect(PipelineAgentPanelModel.messageCommandOf('J4', ' the tests also need Redis ')).toEqual({ kind: 'job-message', jobId: 'J4', text: 'the tests also need Redis' });
     expect(PipelineAgentPanelModel.messageCommandOf(null, 'hello')).toBeNull();
     expect(PipelineAgentPanelModel.messageCommandOf('J4', ' ')).toBeNull();
+  });
+});
+
+describe('the questions of a flow node', () => {
+  test('lists only the open questions among the node\'s ids, and the open ids of every step', () => {
+    const setup = pipelineBoardStateOf('A2-question-open').pipelineSetup;
+    if (setup === null || setup === undefined) throw new Error('the fixture A2-question-open has no setup');
+    const { questions, findings } = setup.record;
+    expect(PipelineAgentPanelModel.openQuestionIdsOf(questions)).toEqual(['Q3']);
+    expect(PipelineAgentPanelModel.openQuestionCardsOf(questions, ['Q1', 'Q3'], findings).map((card) => card.questionId)).toEqual(['Q3']);
+    expect(PipelineAgentPanelModel.openQuestionCardsOf(questions, ['Q3'], findings)[0]?.eyebrow).toBe('Question · gate browser-tests');
   });
 });

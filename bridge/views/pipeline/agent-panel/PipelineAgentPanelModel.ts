@@ -120,9 +120,8 @@ function answeredTextOf(options: readonly { readonly letter: string; readonly te
   return `Answered: ${texts.join(', ')}`;
 }
 
-/** The questions the step asked, in the order asked, open and answered alike: an answered one shows its confirmation. */
-function questionCardsOf(questions: readonly SetupQuestion[], step: SetupQuestionStep, findings: readonly ResearchFinding[]): SetupQuestionCard[] {
-  return questions.filter((question) => question.step === step).map((question) => ({
+function questionCardOf(question: SetupQuestion, findings: readonly ResearchFinding[]): SetupQuestionCard {
+  return {
     questionId:         question.questionId,
     eyebrow:            eyebrowOf(question, findings),
     question:           question.question,
@@ -131,7 +130,24 @@ function questionCardsOf(questions: readonly SetupQuestion[], step: SetupQuestio
     recommendedLetters: question.recommended,
     otherLetter:        otherLetterOf(question),
     answeredText:       question.answer === null ? null : answeredTextOf(question.options, question.answer),
-  }));
+  };
+}
+
+/** The questions the step asked, in the order asked, open and answered alike: an answered one shows its confirmation. */
+function questionCardsOf(questions: readonly SetupQuestion[], step: SetupQuestionStep, findings: readonly ResearchFinding[]): SetupQuestionCard[] {
+  return questions.filter((question) => question.step === step).map((question) => questionCardOf(question, findings));
+}
+
+/** The open questions among the ids a flow node names, in the order asked. */
+function openQuestionCardsOf(questions: readonly SetupQuestion[], questionIds: readonly string[], findings: readonly ResearchFinding[]): SetupQuestionCard[] {
+  return questions
+    .filter((question) => question.answer === null && questionIds.includes(question.questionId))
+    .map((question) => questionCardOf(question, findings));
+}
+
+/** The ids of the questions with no answer yet, on every step. */
+function openQuestionIdsOf(questions: readonly SetupQuestion[]): string[] {
+  return questions.filter((question) => question.answer === null).map((question) => question.questionId);
 }
 
 /** The first recommended option starts chosen, as drawn; with no recommendation nothing is. */
@@ -179,6 +195,8 @@ export const PipelineAgentPanelModel = Object.freeze({
   chatTurnsOf,
   activityLineOf,
   questionCardsOf,
+  openQuestionCardsOf,
+  openQuestionIdsOf,
   initialChoiceOf,
   answerCommandOf,
   answeredTextAfterSending,

@@ -1,8 +1,8 @@
 /**
  * The pipeline flow on every stage (proposal, live, editing): the toolbar over a canvas of the left spine with the merge train's frame
  * under it and the right column beside it, the arrows drawn over them from the nodes' measured boxes, and a + wherever the facts name a
- * missing step. A double-click or Enter on a node asks for what it opens; a switch and a + choice send their draft edits, first opening an
- * update on a live board. The zoom scales the canvas and is remembered per board.
+ * missing step. A double-click or Enter on a node asks for what it opens, or for the question it waits on, which a marker shows; a switch
+ * and a + choice send their draft edits, first opening an update on a live board. The zoom scales the canvas and is remembered per board.
  */
 import {
   useCallback,
@@ -37,26 +37,32 @@ import {
   type FlowOpenAction
 } from './PipelineFlowModel.ts';
 
-/** What the flow asks its holder to open: a node's dialog or gates tab, or the Gate dialog for a new gate in a phase. */
+/**
+ * What the flow asks its holder to open: a node's dialog or gates tab, the open question a node waits on, or the Gate dialog for a new
+ * gate in a phase.
+ */
 export type FlowOpenRequest =
   | { readonly kind: 'node'; readonly nodeId: string; readonly action: FlowOpenAction }
+  | { readonly kind: 'question'; readonly nodeId: string }
   | { readonly kind: 'new-gate'; readonly phase: GatePhase };
 
 /** Reads every node's box relative to the canvas, unscaled; a spec hands in fixed boxes, since happy-dom lays nothing out. */
 export type FlowBoxMeasurer = (canvas: HTMLElement, zoomPercent: number) => FlowLayoutBox[];
 
 export interface PipelineFlowProps {
-  readonly flow:           PipelineFlowFacts;
+  readonly flow:             PipelineFlowFacts;
   /** The pipeline the flow draws, read for the values a + keeps, such as the review's name. */
-  readonly draft:          Pipeline | null;
+  readonly draft:            Pipeline | null;
   /** The open setup record the edits go to; null on a live board. */
-  readonly editTarget:     DraftEditTarget | null;
-  readonly efforts:        readonly string[];
-  readonly profileRuns:    readonly GateProfileRunFacts[];
-  readonly boardStore:     PreferenceStore | null;
-  readonly selectedNodeId: string | null;
-  readonly onOpen:         (request: FlowOpenRequest) => void;
-  readonly measureBoxes?:  FlowBoxMeasurer;
+  readonly editTarget:       DraftEditTarget | null;
+  readonly efforts:          readonly string[];
+  readonly profileRuns:      readonly GateProfileRunFacts[];
+  readonly boardStore:       PreferenceStore | null;
+  readonly selectedNodeId:   string | null;
+  /** The setup questions still open; a node whose facts name one shows a question marker and opens on it. */
+  readonly openQuestionIds?: readonly string[];
+  readonly onOpen:           (request: FlowOpenRequest) => void;
+  readonly measureBoxes?:    FlowBoxMeasurer;
 }
 
 const ZOOM_CHOICE_NAME = 'pipeline-flow-zoom';
@@ -105,15 +111,24 @@ interface NodeCellProps {
   readonly column:    FlowColumn;
   readonly riseOrder: number;
   readonly selected:  boolean;
+  readonly asking:    boolean;
   readonly editable:  boolean;
   readonly onOpen:    (request: FlowOpenRequest) => void;
   readonly onEdits:   (edits: readonly FlowDraftEdit[]) => void;
 }
 
+/** A node waiting on a question opens on the question; any other node opens what its facts name, if anything. */
+function openPropsOf(view: FlowNodeView, asking: boolean, onOpen: (request: FlowOpenRequest) => void): { onOpen?: () => void; openLabel?: string } {
+  if (asking) return { onOpen: () => onOpen({ kind: 'question', nodeId: view.nodeId }), openLabel: PipelineFlowModel.questionOpenLabelOf(view.title) };
+  const { openAction, openLabel } = view;
+  if (openAction === null || openLabel === null) return {};
+  return { onOpen: () => onOpen({ kind: 'node', nodeId: view.nodeId, action: openAction }), openLabel };
+}
+
 function NodeCell({
-  view, column, riseOrder, selected, editable, onOpen, onEdits
+  view, column, riseOrder, selected, asking, editable, onOpen, onEdits
 }: NodeCellProps) {
-  const { meter, switchView, openAction } = view;
+  const { meter, switchView } = view;
   const gateChips = view.gateChips.map((chip) => (
     <Tag
       key={chip.gateName}
@@ -123,7 +138,11 @@ function NodeCell({
       {...(chip.change === null ? {} : { change: chip.change })}
     />
   ));
-  const hasChips = view.chipsLead !== null || gateChips.length > 0;
+  const markers = [
+    ...(view.markChip === null ? [] : [<Tag key="mark" text={view.markChip} tone="warn" />]),
+    ...(asking ? [<Tag key="question" text="Question" tone="warn" glyph="warning" pops />] : []),
+  ];
+  const hasChips = view.chipsLead !== null || gateChips.length > 0 || markers.length > 0;
   return (
     <div className="bridge-pipeline-flow-cell" data-flow-node-id={view.nodeId} data-flow-column={column} style={{ '--rise-order': riseOrder } as CSSProperties}>
       <FlowNode
@@ -139,6 +158,7 @@ function NodeCell({
           ? {
             chips: (
               <>
+                {markers}
                 {view.chipsLead === null ? null : <span className="bridge-pipeline-flow-chips-lead">{view.chipsLead}</span>}
                 {gateChips}
               </>
@@ -172,16 +192,14 @@ function NodeCell({
               />
             )
           })}
-        {...(openAction === null || view.openLabel === null
-          ? {}
-          : { onOpen: () => onOpen({ kind: 'node', nodeId: view.nodeId, action: openAction }), openLabel: view.openLabel })}
+        {...openPropsOf(view, asking, onOpen)}
       />
     </div>
   );
 }
 
 export function PipelineFlow({
-  flow, draft, editTarget, efforts, profileRuns, boardStore, selectedNodeId, onOpen, measureBoxes = measuredBoxesOf
+  flow, draft, editTarget, efforts, profileRuns, boardStore, selectedNodeId, openQuestionIds = [], onOpen, measureBoxes = measuredBoxesOf
 }: PipelineFlowProps) {
   const stage = flow.toolbarStage;
   const editSender = usePipelineFlowEditSender(stage === 'live' ? null : editTarget);
@@ -239,6 +257,7 @@ export function PipelineFlow({
         column={column}
         riseOrder={riseOrderById.get(item.node.nodeId) ?? 0}
         selected={selectedNodeId === item.node.nodeId}
+        asking={PipelineFlowModel.nodeAsksQuestion(item.node, openQuestionIds)}
         editable={editSender.enabled}
         onOpen={onOpen}
         onEdits={editSender.sendEdits}

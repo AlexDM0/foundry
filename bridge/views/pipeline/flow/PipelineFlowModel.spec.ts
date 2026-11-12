@@ -3,7 +3,8 @@
  * every merge step carries a derived meter whose tooltip follows where it is derived from; a re-review is conditional with its inline tag,
  * sharing the dashed `--line-conditional` edge with the node's border; nodes fall into the spine, the right column and the train in the
  * facts' order with each + after its node; each + choice sends its edit or asks for the Gate dialog; the toolbar note and the footer's
- * removed steps are worded from the facts; the zoom moves by steps and a fit never overflows.
+ * removed steps are worded from the facts; the zoom moves by steps and a fit never overflows; a proposed Review shows its "proposed" chip,
+ * and a node asks while a question it names is open.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -288,5 +289,22 @@ describe('zoom', () => {
     expect(PipelineFlowModel.storedZoomPercentOf('125')).toBe(125);
     expect(PipelineFlowModel.storedZoomPercentOf('133')).toBe(100);
     expect(PipelineFlowModel.storedZoomPercentOf(null)).toBe(100);
+  });
+});
+
+describe('the proposal marks', () => {
+  test('a proposed Review shows the "proposed" chip, as drawn, and no other node does', () => {
+    const views = PipelineFlowModel.nodeViewsOf(flowOf('A2').nodes, EFFORTS);
+    expect(views.filter((view) => view.markChip !== null).map((view) => [view.nodeId, view.markChip])).toEqual([['review', 'proposed']]);
+    expect(views.every((view) => view.mark === 'proposed')).toBe(true);
+    expect(viewOf('A5', 'review').markChip).toBeNull();
+  });
+
+  test('a node asks while one of its questions is open, and opens on it', () => {
+    const asking = nodeOf(flowOf('A2-question-open'), 'gates-merge');
+    expect(PipelineFlowModel.nodeAsksQuestion(asking, ['Q3'])).toBe(true);
+    expect(PipelineFlowModel.nodeAsksQuestion(asking, [])).toBe(false);
+    expect(PipelineFlowModel.nodeAsksQuestion(nodeOf(flowOf('A2-question-open'), 'builder'), ['Q3'])).toBe(false);
+    expect(PipelineFlowModel.questionOpenLabelOf('Gates')).toBe('Answer the question on the Gates step');
   });
 });

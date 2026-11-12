@@ -64,6 +64,15 @@ and chat; the footer counts the sections and rules, with **Back to research** an
 you edit an applied pipeline, the same page at `#pipeline/edit/constitution` edits main's `CONSTITUTION.md`, with only
 **Back to the flow** in its footer.
 
+The pipeline design step (`#pipeline/setup/design`) draws the agent's proposal as the flow, every step and gate dashed
+in amber until you apply it, with the gates area under it. The aside has two tabs: the pipeline agent, with its
+questions, its chat, its newest change (**Show <step> on the flow** selects that step, and **Undo this change** sends
+`pipeline-draft-undo`) and the message box; and **Changes**, one card per change against the smallest pipeline, each
+with **Undo** where an edit made it. A step the agent asks about carries a Question marker, and opening it shows the
+question instead of its settings until you answer. The footer counts the proposed prepare steps and gates.
+**Discard proposal** (`pipeline-draft-discard`) drops the proposal and keeps the agent; **Apply pipeline** stays
+disabled while any question is open. Nothing profiles a gate until you press its stopwatch.
+
 Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
 left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
 to open its settings; the merge of main before review has none, since the builder's settings drive it. An agent step's

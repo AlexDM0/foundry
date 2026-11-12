@@ -280,6 +280,14 @@ tab's rows in a `ReorderableList`, the prepare steps first and in a band of thei
 the same sender as the flow. The stopwatch chip sends `gate-profile-start` for that gate in that tab's phase. A Gates
 node's Enter selects its phase's tab and scrolls to the area.
 
+The design step (`bridge/views/pipeline/setup/DesignStep.tsx`) holds the same `FlowWorkspace` as the flow screen (the
+flow, the gates area and the dialogs, with a selection hook its holder can drive) beside the pipeline agent's aside:
+the agent panel, and the change list (`bridge/views/pipeline/apply/ChangeList.tsx`), which words the facts'
+`changeList` and undoes a row's edit with `pipeline-draft-undo`. `DesignStepModel` counts the footer from the setup's
+summary and keeps Apply disabled while `openQuestionCount` is above zero; the Overseer's refusal stays the authority. A
+node whose `questionIds` name an open question shows a marker and opens on the question (`NodeQuestionDialog`) in place
+of its own dialog.
+
 A node, a gate or a + opens its dialog through `PipelineDialogs` (`bridge/views/pipeline/dialogs/`): the agent step,
 review step, merge step and gate dialogs, each a design-system `Dialog`. A dialog's form is local until Save, which
 sends the edits through the same sender as the flow (on a live board, `pipeline-update-start` first); the dialog closes

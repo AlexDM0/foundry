@@ -70,6 +70,8 @@ export interface FlowNodeView {
   readonly switchView:  FlowSwitchView | null;
   readonly highlighted: boolean;
   readonly mark:        Exclude<PipelineNodeMark, 'unchanged'> | null;
+  /** The "proposed" chip a proposed Review shows, as drawn; null on every other node. */
+  readonly markChip:    string | null;
   readonly openAction:  FlowOpenAction | null;
   readonly openLabel:   string | null;
 }
@@ -161,6 +163,8 @@ const EDGE_LABELS: Readonly<Record<PipelineEdgeLabelKind, string>> = Object.free
 });
 
 const CONDITIONAL_TAG_TEXT = 'conditional';
+
+const PROPOSED_CHIP_TEXT = 'proposed';
 
 const DERIVED_FROM_BUILDER_NOTE = Object.freeze({
   title: 'Derived from the builder',
@@ -343,6 +347,15 @@ function openLabelOf(node: PipelineFlowNode, openAction: FlowOpenAction | null):
   return `Open the ${NODE_TITLES[node.nodeKind]} step`;
 }
 
+/** A node asks while one of its questions is open: it opens on the question, and its own dialog waits for the answer. */
+function nodeAsksQuestion(node: Pick<PipelineFlowNode, 'questionIds'>, openQuestionIds: readonly string[]): boolean {
+  return node.questionIds.some((questionId) => openQuestionIds.includes(questionId));
+}
+
+function questionOpenLabelOf(title: string): string {
+  return `Answer the question on the ${title} step`;
+}
+
 function changeOfMark(mark: PipelineNodeMark): FlowChange | null {
   return mark === 'changed' || mark === 'new' || mark === 'removed' ? mark : null;
 }
@@ -370,6 +383,7 @@ function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], gatesRun
     switchView:  approval === null ? null : { accessibleName: title, checked: node.switchState === 'on', approval },
     highlighted: node.nodeKind === 'human-code-review' && node.switchState === 'on',
     mark:        node.mark === 'unchanged' ? null : node.mark,
+    markChip:    node.nodeKind === 'review' && node.mark === 'proposed' ? PROPOSED_CHIP_TEXT : null,
     openAction,
     openLabel:   openLabelOf(node, openAction),
   };
@@ -505,9 +519,11 @@ export const PipelineFlowModel = Object.freeze({
   draftEditCommandOf,
   fitPercentOf,
   layoutEdgesOf,
+  nodeAsksQuestion,
   nodeViewOf,
   nodeViewsOf,
   openActionOf,
+  questionOpenLabelOf,
   removedStepsTextOf,
   slotViewOf,
   storedZoomPercentOf,

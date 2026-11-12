@@ -53,6 +53,7 @@ export type PipelineFixtureName =
   | 'A3b-anchored-line-edited'
   | 'A2'
   | 'A2-question-open'
+  | 'A2-designing'
   | 'A3-constitution-removed'
   | 'A3-fable-xhigh'
   | 'A4'
@@ -501,6 +502,19 @@ const USER_EDITS: readonly SetupEdit[] = [
   },
 ];
 
+/** The proposal's changes against the smallest pipeline: E1, E2 and E3 made three of them, so those rows have an Undo. */
+const PROPOSAL_CHANGES: readonly PipelineChange[] = [
+  { field: 'prepare:install', changeKind: 'new', editId: null },
+  { field: 'gate:typecheck', changeKind: 'new', editId: 'E1' },
+  { field: 'gate:lint', changeKind: 'new', editId: null },
+  { field: 'gate:unit-tests', changeKind: 'new', editId: null },
+  { field: 'gate:browser-tests', changeKind: 'new', editId: null },
+  { field: 'review', changeKind: 'new', editId: null },
+  { field: 'airlock', changeKind: 'new', editId: null },
+  { field: 'role:reviewer', changeKind: 'changed', editId: 'E2' },
+  { field: 'approval:tickets', changeKind: 'changed', editId: 'E3' },
+];
+
 function setupRecord(changes: Partial<PipelineSetup> = {}): PipelineSetup {
   return {
     formatVersion:   1,
@@ -743,11 +757,13 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
       constitution: constitutionDraft({ markdown: editedMarkdown, annotations: keptAnnotations, revision: 4 }),
     }));
   },
-  'A2':               () => setupState(setupRecord(), {}, { pipelineFlow: proposalFlow() }),
+  'A2':               () => setupState(setupRecord(), {}, { pipelineFlow: proposalFlow({ changeList: [...PROPOSAL_CHANGES] }) }),
   'A2-question-open': () => {
     const record = setupRecord({ questions: [ANSWERED_RESEARCH_QUESTION, OPEN_DESIGN_QUESTION], nextNumbers: { finding: 5, question: 4, edit: 4 } });
-    return setupState(record, {}, { pipelineFlow: withNodeChanged(proposalFlow(), 'gates-merge', { questionIds: ['Q3'] }) });
+    const pipelineFlow = withNodeChanged(proposalFlow({ changeList: [...PROPOSAL_CHANGES] }), 'gates-merge', { questionIds: ['Q3'] });
+    return setupState(record, {}, { pipelineFlow });
   },
+  'A2-designing':            () => setupState(setupRecord({ draft: null, edits: [] }), {}, { pipelineFlow: minimalFlow({ toolbarStage: 'proposal' }) }),
   'A3-constitution-removed': () => {
     const builder = { ...WORKER_PAIR, instructions: [{ kind: 'default-brief', role: 'builder' } as const] };
     const draft: Pipeline = { ...PROPOSED_PIPELINE, agents: { ...PROPOSED_PIPELINE.agents, builder } };
