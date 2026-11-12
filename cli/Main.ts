@@ -25,7 +25,9 @@ const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'st
 const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'oversee']);
 
 /** The commands whose first argument names a subcommand, which the recorded verb then carries: `ticket hold`, not `ticket`. */
-const COMMANDS_WITH_A_SUBCOMMAND = new Set(['task', 'ticket', 'epic', 'draft', 'hook', 'oversee', 'job', 'intake', 'question', 'incident', 'worktree', 'gate', 'merge']);
+const COMMANDS_WITH_A_SUBCOMMAND = new Set([
+  'task', 'ticket', 'epic', 'draft', 'hook', 'oversee', 'job', 'intake', 'question', 'incident', 'worktree', 'gate', 'merge', 'pipeline',
+]);
 
 type HelpRequest = 'reference' | 'ambiguous' | 'none';
 

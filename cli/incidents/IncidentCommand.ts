@@ -6,6 +6,7 @@ import { ControlService }            from '../../src/services/control/ControlSer
 import type { ControlCommand }       from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }             from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }       from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }   from '../CommandControlContext.ts';
 import type { CommandHandler }       from '../CommandHandler.ts';
 import { hatchWhenUnderJob }         from '../HatchUnderJob.ts';
 import { openTrackerForWriting }     from '../OpenTrackerForWriting.ts';
@@ -36,7 +37,7 @@ function commandOf(subcommand: IncidentSubcommand, commandArguments: ArgumentPar
 async function recordMove(subcommand: IncidentSubcommand, commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const command = commandOf(subcommand, commandArguments);
   await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   OutputUtil.printEntity(commandArguments, context, { command, logged }, OutputUtil.loggedSentencesOf(logged));
 }
 

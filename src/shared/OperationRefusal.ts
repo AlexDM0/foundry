@@ -47,6 +47,9 @@ export type OperationRefusalDetail =
   | { kind: 'intake-close-without-job' }
   | { kind: 'intake-title-without-job' }
   | { kind: 'question-options-without-job' }
+  /** A setup command whose `field` is missing or not of its shape; `field` names it as the body does, as `edits[0].value`. */
+  | { kind: 'malformed-setup-command'; commandKind: string; field: string }
+  | { kind: 'pipeline-draft-invalid'; setupId: string; reason: string }
   | { kind: 'picture-unknown'; pictureId: string }
   | { kind: 'too-many-pictures'; pictureCount: number; limit: number }
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }

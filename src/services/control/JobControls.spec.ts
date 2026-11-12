@@ -24,6 +24,7 @@ import type { ControlCommand, ControlCommandOf }          from '../../shared/@ty
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }                     from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, refusalDetailOf, ticketFixture }   from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
@@ -39,7 +40,7 @@ function changeOf(board: Board): TrackerChange {
 }
 
 function apply(board: Board, command: ControlCommand): unknown {
-  return ControlService.apply(command, changeOf(board)).result;
+  return ControlService.apply(command, changeOf(board), ECHOED_CONTROL_CONTEXT).result;
 }
 
 function loggedKindsOf(result: unknown): string[] {
@@ -309,7 +310,7 @@ describe('pictures', () => {
     const storing = PictureStore.storePicture(ownerOnlyFiles, trackerDirectory, Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
     if (storing.verdict !== 'stored') throw new Error('the example picture was not stored');
     const change = { board, at: AT, workspace: { trackerDirectory } } as unknown as TrackerChange;
-    return { board, pictureId: storing.pictureId, applyCommand: (command) => ControlService.apply(command, change).result };
+    return { board, pictureId: storing.pictureId, applyCommand: (command) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT).result };
   }
 
   function thrownBy(act: () => unknown): unknown {

@@ -15,6 +15,7 @@ import type { Board }                                   from '../../lib/tracker-
 import type { ControlCommand }                          from '../../shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                       from '../../testing/EchoedControlContext.ts';
 import { queueOnCurrentGreen }                          from '../../testing/GreenQueue.ts';
 import {
   ancestryAsked,
@@ -68,7 +69,7 @@ function scenario(mergeApprovalIsOn = true): Scenario {
   const change = {
     board, workspace: workspacePathsFor(root), at: AT, malformedTickets: []
   } as unknown as TrackerChange;
-  return { board, apply: (command, stage) => recordedGit.playStage(stage, () => Promise.resolve(ControlService.apply(command, change).result)) };
+  return { board, apply: (command, stage) => recordedGit.playStage(stage, () => Promise.resolve(ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT).result)) };
 }
 
 async function refusalOf(attempt: Promise<unknown>): Promise<unknown> {

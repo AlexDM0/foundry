@@ -10,6 +10,7 @@ import type { ControlCommandOf }    from '../../src/shared/@types/ControlCommand
 import { OperationRefusal }         from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }            from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }      from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }  from '../CommandControlContext.ts';
 import type { CommandHandler }      from '../CommandHandler.ts';
 import { hatchWhenUnderJob }        from '../HatchUnderJob.ts';
 import { openTrackerForWriting }    from '../OpenTrackerForWriting.ts';
@@ -54,7 +55,7 @@ async function noteOptions(commandArguments: ArgumentParser, context: CommandCon
   const command: ControlCommandOf<'question-options'> = {
     kind: 'question-options', jobId, question, options
   };
-  await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   OutputUtil.printEntity(commandArguments, context, { jobId, question, options }, `Job ${jobId} keeps the option notes for its question "${question}".`);
 }
 

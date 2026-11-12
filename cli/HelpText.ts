@@ -675,6 +675,32 @@ never carries it.
                               (checks-not-set); its verified proposal, its gates run twice, opens
                               a pipeline-proposal decision whose Accept writes them.
 
+  pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]
+  pipeline update [--json]
+  pipeline billing <S> subscription|api [--max-budget-usd <n>] [--json]
+  pipeline continue <S> <step> [--json]
+  pipeline answer <S> <Q> <letters>... | -- <text> [--json]
+  pipeline constitution <S> --revision <n> [--file <path>|-] [--sources <source>,…|none] [--json]
+  pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]
+  pipeline undo <S> <E> [--json]
+  pipeline discard <S> [--json]
+  pipeline start-over <S> [--json]
+                              The pipeline setup record, <data>/pipeline-setup.json, one open at a
+                              time (setup-in-progress): setup opens a first one (--replace-unreadable
+                              lets its Apply write over an unreadable pipeline.json), update one on
+                              the stored pipeline. continue completes the current step (billing,
+                              research, constitution, design); answer answers a setup question;
+                              constitution stores the whole text from a file or standard input and
+                              the SOURCES ticks (contributing, research, installed-default); edit
+                              sets draft fields in one move, --set repeating (gate:<name>,
+                              phase-order:<phase>, prepare:<name>, prepare-order, role:<role>,
+                              review, airlock, approval:<approval>, constitution), each to a JSON
+                              value, null removing one, and the draft must stay a valid
+                              pipeline.json; undo writes an edit's base value back; discard drops
+                              every proposed change; start-over removes the record. A stale
+                              --revision is refused at exit 1. An answer, edit, undo, discard or
+                              continue also messages a live pipeline agent.
+
   await [--json] [--after <n>]
                               Wait until the log holds a decision-opened or incident-escalated
                               record past position <n> (the log's length when absent), then print

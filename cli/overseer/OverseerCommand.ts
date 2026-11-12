@@ -16,6 +16,7 @@ import type { ControlCommandOf }                                                
 import { OperationRefusal }                                                                 from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                    from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                                              from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                                          from '../CommandControlContext.ts';
 import type { CommandHandler }                                                              from '../CommandHandler.ts';
 import { hatchWhenUnderJob }                                                                from '../HatchUnderJob.ts';
 import { requireCurrentInstall }                                                            from '../InstallVersionCheck.ts';
@@ -166,7 +167,7 @@ function pauseSubcommand(kind: 'overseer-pause' | 'overseer-resume'): RunSubcomm
     const command: ControlCommandOf<typeof kind> = { kind };
     await hatchWhenUnderJob(context, command);
     requireCurrentInstall(context.currentDirectory);
-    const { logged, previousState } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+    const { logged, previousState } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
     const overseerState = kind === 'overseer-pause' ? 'paused' : 'running';
     OutputUtil.printEntity(commandArguments, context, { overseerState, previousState }, `${OutputUtil.loggedSentencesOf(logged)} (was ${previousState}).`);
   };

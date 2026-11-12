@@ -18,6 +18,7 @@ import { INTAKE_SUBCOMMAND_NAMES }                                              
 import { JOB_SUBCOMMAND_NAMES }                                                                   from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                                                 from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                                               from './overseer/OverseerCommand.ts';
+import { PIPELINE_SUBCOMMAND_NAMES }                                                              from './pipeline/PipelineCommand.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                                                from './tickets/TicketCommand.ts';
 import { WORKTREE_SUBCOMMAND_NAMES }                                                              from './worktrees/WorktreeCommand.ts';
 
@@ -81,6 +82,7 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
     if (command === 'question') return subcommandVerbsOf(command, QUESTION_SUBCOMMAND_NAMES);
+    if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     // The measurement events retire as `hook`; the network guard an Overseer renders into a job's settings stays.
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
     return [command];

@@ -3,6 +3,7 @@
  * share. It records only, never spawning, signalling or reconciling; a refusal leaves as an `OperationRefusal` with a wordless detail.
  */
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                                       from '../../shared/@types/ControlContext.ts';
 import type { TrackerChange }                                        from '../tracker/TrackerPipeline.ts';
 import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
 import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
@@ -10,6 +11,7 @@ import { FILING_CONTROLS }                                           from './Fil
 import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
 import { JOB_CONTROLS }                                              from './JobControls.ts';
 import { OVERSEER_CONTROLS }                                         from './OverseerControls.ts';
+import { PIPELINE_SETUP_CONTROLS }                                   from './PipelineSetupControls.ts';
 import { REPAIR_CONTROLS }                                           from './RepairControls.ts';
 import { SETTING_CONTROLS }                                          from './SettingControls.ts';
 import { TICKET_CONTROLS }                                           from './TicketControls.ts';
@@ -24,7 +26,10 @@ const CONTROL_APPLIERS = {
   ...OVERSEER_CONTROLS,
   ...SETTING_CONTROLS,
   ...AIRLOCK_CONTROLS,
-} as const satisfies { [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange) => unknown };
+  ...PIPELINE_SETUP_CONTROLS,
+} as const satisfies {
+  [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange, context: ControlContext) => unknown
+};
 
 type ControlAppliers = typeof CONTROL_APPLIERS;
 
@@ -44,10 +49,11 @@ function outcomeOf(result: unknown): ControlApplied<unknown>['outcome'] {
   return reportsNoChange ? 'nothing-to-do' : 'done';
 }
 
-function apply<Command extends ControlCommand>(command: Command, change: TrackerChange): ControlApplied<ControlResultOf<Command['kind']>> {
+/** `context` words what a move sends to a session, since only `cli/` holds words. */
+function apply<Command extends ControlCommand>(command: Command, change: TrackerChange, context: ControlContext): ControlApplied<ControlResultOf<Command['kind']>> {
   // The table pairs each kind with its applier, a correlation TypeScript cannot follow through an indexed union.
-  const applier = CONTROL_APPLIERS[command.kind] as unknown as (command: Command, change: TrackerChange) => ControlResultOf<Command['kind']>;
-  const result  = applier(command, change);
+  const applier = CONTROL_APPLIERS[command.kind] as unknown as (command: Command, change: TrackerChange, context: ControlContext) => ControlResultOf<Command['kind']>;
+  const result  = applier(command, change, context);
   return { outcome: outcomeOf(result), result };
 }
 

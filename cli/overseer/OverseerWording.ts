@@ -22,6 +22,7 @@ import type {
   OverseerNotice
 } from '../../src/services/overseer/DrivePass.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/overseer/RedHandoff.ts';
+import type { SetupMessage }                                          from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                                         from '../../src/shared/ResourceFilePath.ts';
 import { DISPATCH_PROTOCOL }                                          from '../../src/shared/constants/DispatchProtocol.ts';
@@ -395,6 +396,29 @@ function answerMessageOf(answer: Readonly<Record<string, string>>): string {
   return `You were interrupted while waiting for the answer to your question; carry on with it.\n\n${answerLines.join('\n\n')}`;
 }
 
+/** What the pipeline agent reads when User answers, edits, undoes, discards or continues on its setup record, which it must read again. */
+function setupMessageWordingOf(message: SetupMessage): string {
+  switch (message.kind) {
+    case 'question-answered':
+      return 'letters' in message.reply
+        ? `User answered ${message.questionId}: ${message.reply.letters.join(', ')}.`
+        : `User answered ${message.questionId}: ${message.reply.text}`;
+    case 'step-continued':
+      return `User completed the ${message.step} step. The current step is ${message.currentStep}.`;
+    case 'constitution-edited': {
+      const parts = [...(message.markdownChanged ? ['the text'] : []), ...(message.sourcesChanged ? ['the SOURCES ticks'] : [])];
+      return `User changed ${parts.join(' and ')} of the constitution (revision ${message.revision}). Read the constitution again before you change it.`;
+    }
+    case 'draft-edited':
+      return `User changed the draft pipeline (revision ${message.draftRevision}): ${message.fields.join(', ')}. `
+        + 'Read the draft again before you propose a change.';
+    case 'draft-edit-undone':
+      return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).`;
+    case 'draft-discarded':
+      return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).`;
+  }
+}
+
 /** The first line of a session resumed to fix its red gate or Customs check, which points it to the Baton pass. */
 function redHandoffMessageOf(facts: Readonly<RedHandoffFacts>): string {
   return filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'RedHandoffMessage.md'), 'utf8'), {
@@ -481,6 +505,7 @@ export const OverseerWording = Object.freeze({
   resumeMessage,
   redHandoffMessageOf,
   answerMessageOf,
+  setupMessageWordingOf,
   overseerStateOf,
   noticeTextOf,
   batonPassWarningTextOf,

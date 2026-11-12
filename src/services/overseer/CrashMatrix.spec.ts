@@ -42,6 +42,7 @@ import { LIMITS }                                           from '../../shared/c
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../testing/DrivePassHarness.ts';
+import { ECHOED_CONTROL_CONTEXT }                           from '../../testing/EchoedControlContext.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -439,14 +440,14 @@ async function decideWithTheOverseerDown(decisionId: string, choices: readonly s
     workspace: sessionWorkspace,
     at:        CHANGED_AT,
     now,
-    mutate:    (change) => ControlService.apply({ kind: 'decision-answer', decisionId, answer: { form: 'letters', choices } }, change),
+    mutate:    (change) => ControlService.apply({ kind: 'decision-answer', decisionId, answer: { form: 'letters', choices } }, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 
 /** A control applied as its verb applies it with the Overseer down: a hold of its own. */
 async function applyControl(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change),
+    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 

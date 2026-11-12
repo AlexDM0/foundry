@@ -10,6 +10,7 @@ import type { ControlCommand }                   from '../../../src/shared/@type
 import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                   from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }               from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                 from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
 
@@ -55,7 +56,8 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     return { status: HTTP_STATUS.LOCKED, body: { refusal: `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.` } };
   }
   try {
-    const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(body as unknown as ControlCommand, change));
+    const command = body as unknown as ControlCommand;
+    const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT));
     request.wake();
     return { status: HTTP_STATUS.OK, body: applied };
   } catch (thrown) {

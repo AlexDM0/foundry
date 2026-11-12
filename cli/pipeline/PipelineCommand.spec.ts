@@ -1,0 +1,165 @@
+/**
+ * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
+ * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
+ * endings and all; a draft edit sets several fields in one move; and a usage mistake or a Board refusal exits 1 with the record, the
+ * progress file and the log as they were.
+ */
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
+
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+}                                             from 'bun:test';
+import type { PipelineSetup }                     from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
+import { runCommandLine }                         from '../Main.ts';
+import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+
+const FROZEN_NOW = new Date('2026-11-12T09:00:00Z');
+
+const CONSTITUTION_TEXT = '# Example Agency\r\n\r\n- Keep the basket page fast.\r\n';
+
+let repositoryDirectory = '';
+
+function setupFilePath(): string {
+  return workspacePathsFor(repositoryDirectory).pipelineSetupFilePath;
+}
+
+function storedFiles(): string[] {
+  const workspace = workspacePathsFor(repositoryDirectory);
+  return [workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]
+    .map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
+}
+
+async function runWithExitCode(
+  commandLineArguments: readonly string[],
+  standardInputText?: string,
+): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {
+  const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, ...(standardInputText === undefined ? {} : { standardInputText }) });
+  const exitCode = await runCommandLine(commandLineArguments, context);
+  return { exitCode, context };
+}
+
+async function run(commandLineArguments: readonly string[], standardInputText?: string): Promise<ReturnType<typeof createCapturedCommandContext>> {
+  const { context, exitCode } = await runWithExitCode(commandLineArguments, standardInputText);
+  expect(exitCode, `\`pipeline ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
+  return context;
+}
+
+function storedSetup(): PipelineSetup {
+  return JSON.parse(readFileSync(setupFilePath(), 'utf8')) as PipelineSetup;
+}
+
+async function setupAtDesign(): Promise<void> {
+  await run(['pipeline', 'setup']);
+  for (const step of ['billing', 'research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
+}
+
+const recordedGit = useRecordedGit();
+
+beforeEach(async () => {
+  repositoryDirectory = await createInitializedRecordedGitRepository('pipeline-verbs', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
+});
+
+afterEach(() => {
+  removeScratchDirectory(repositoryDirectory);
+});
+
+describeWhenGitIsRecorded('the pipeline verbs', () => {
+  test('pipeline setup opens S1 billed as named, prints the record under --json, and logs the opening', async () => {
+    const context = await run(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
+
+    const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
+    expect(printed.setup).toMatchObject({ setupId: 'S1', mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 15 } });
+    expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-opened']);
+    expect(storedSetup().setupId).toBe('S1');
+  });
+
+  test('pipeline billing and pipeline continue move the stored record', async () => {
+    await run(['pipeline', 'setup']);
+
+    await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
+    await run(['pipeline', 'continue', 'S1', 'billing']);
+
+    expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'research', stepStates: { billing: 'done', research: 'in-progress' } });
+  });
+
+  test('pipeline constitution stores the text of a file byte for byte, and of standard input with --file -', async () => {
+    await setupAtDesign();
+    const constitutionFile = join(repositoryDirectory, 'constitution-draft.md');
+    writeFileSync(constitutionFile, CONSTITUTION_TEXT);
+
+    await run(['pipeline', 'constitution', 'S1', '--revision', '0', '--file', 'constitution-draft.md']);
+    expect(storedSetup().constitution?.markdown).toBe(CONSTITUTION_TEXT);
+
+    await run(['pipeline', 'constitution', 'S1', '--revision', '1', '--file', '-', '--sources', 'installed-default'], '# Piped\n');
+    expect(storedSetup().constitution).toMatchObject({ markdown: '# Piped\n', revision: 2, draftedFrom: { contributing: false, research: false, installedDefault: true } });
+  });
+
+  test('pipeline edit sets several fields in one move, pipeline undo takes one back unless that leaves no valid pipeline, and discard all', async () => {
+    await setupAtDesign();
+
+    await run(['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'gate:test={"name": "test", "run": "bun test"}', '--set', 'phase-order:build=["test"]']);
+    expect(storedSetup()).toMatchObject({ draftRevision: 1, draft: { gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'] } } });
+
+    const before = storedFiles();
+    const refused = await runWithExitCode(['pipeline', 'undo', 'S1', 'e2']);
+    expect(refused.exitCode, 'the gate would run in no phase').toBe(1);
+    expect(storedFiles()).toEqual(before);
+
+    await run(['pipeline', 'undo', 'S1', 'e1']);
+    expect(storedSetup()).toMatchObject({ draftRevision: 2, draft: { gates: [], phases: { build: [] } } });
+
+    await run(['pipeline', 'discard', 'S1']);
+    expect(storedSetup().edits.every((edit) => edit.undone)).toBe(true);
+  });
+
+  test('pipeline answer refuses a question the record does not hold, at exit 1 with nothing written', async () => {
+    await setupAtDesign();
+    const before = storedFiles();
+
+    const { exitCode, context } = await runWithExitCode(['pipeline', 'answer', 'S1', 'Q4', 'a']);
+
+    expect(exitCode).toBe(1);
+    expect(context.errorText()).toContain('Q4');
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('usage mistakes exit 1 with nothing written', async () => {
+    await setupAtDesign();
+    const before = storedFiles();
+
+    for (const commandLine of [
+      ['pipeline', 'setup', '--billing', 'credit'],
+      ['pipeline', 'continue', 'S1', 'deploy'],
+      ['pipeline', 'answer', 'S1', 'Q1'],
+      ['pipeline', 'constitution', 'S1', '--revision', '1'],
+      ['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'gates=[]'],
+      ['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'review={not json'],
+      ['pipeline', 'undo', 'S1', 'X1'],
+      ['pipeline', 'rename', 'S1'],
+    ]) {
+      const { exitCode } = await runWithExitCode(commandLine);
+      expect(exitCode, commandLine.join(' ')).toBe(1);
+    }
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('pipeline start-over removes the record, and pipeline update then refuses with no pipeline stored', async () => {
+    await run(['pipeline', 'setup']);
+
+    await run(['pipeline', 'start-over', 'S1']);
+    expect(existsSync(setupFilePath())).toBe(false);
+
+    const { exitCode, context } = await runWithExitCode(['pipeline', 'update']);
+    expect(exitCode).toBe(1);
+    expect(context.errorText()).not.toBe('');
+  });
+});

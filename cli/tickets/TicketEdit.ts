@@ -1,16 +1,17 @@
-import { TicketJsonUtil }         from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { ControlService }         from '../../src/services/control/ControlService.ts';
-import { requireWorkspace }       from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }  from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }       from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }          from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }    from '../CommandContext.ts';
-import { hatchWhenUnderJob }      from '../HatchUnderJob.ts';
-import { openTrackerForWriting }  from '../OpenTrackerForWriting.ts';
-import { suppliedMarkdownBodyOf } from '../SuppliedMarkdownBody.ts';
-import type { ArgumentParser }    from '../arguments/ArgumentParser.ts';
-import { OutputUtil }             from '../utils/OutputUtil.ts';
-import { TICKET_USAGE }           from './constants/TicketUsage.ts';
+import { TicketJsonUtil }          from '../../src/adapters/utils/TicketJsonUtil.ts';
+import { ControlService }          from '../../src/services/control/ControlService.ts';
+import { requireWorkspace }        from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }     from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
+import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
+import { suppliedMarkdownBodyOf }  from '../SuppliedMarkdownBody.ts';
+import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
+import { OutputUtil }              from '../utils/OutputUtil.ts';
+import { TICKET_USAGE }            from './constants/TicketUsage.ts';
 
 const EDIT_OPTION_NAMES = ['title', 'append', 'body', 'body-file', 'force', 'at', 'json'];
 
@@ -49,7 +50,7 @@ export async function editTicket(commandArguments: ArgumentParser, context: Comm
     allowsPastPending: forced,
   };
   await hatchWhenUnderJob(context, command);
-  const edited = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const edited = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   const ticketId = edited.ticket.frontmatter.id;
   const sentences = edited.changed

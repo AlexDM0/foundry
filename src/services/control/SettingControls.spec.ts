@@ -10,6 +10,7 @@ import type { Pipeline }                                 from '../../lib/tracker
 import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }               from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                        from '../../testing/EchoedControlContext.ts';
 import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                             from '../tracker/Workspace.ts';
 import { ControlService }                                from './ControlService.ts';
@@ -72,7 +73,7 @@ describe('an unreadable pipeline.json', () => {
     for (const command of PIPELINE_WRITES) {
       const fixture = boardFixture();
 
-      const refusal = refusalOf(() => ControlService.apply(command, changeOf(fixture, reading)));
+      const refusal = refusalOf(() => ControlService.apply(command, changeOf(fixture, reading), ECHOED_CONTROL_CONTEXT));
 
       expect(refusal.status, command.kind).toBe('refused');
       expect(refusal.detail, command.kind).toEqual(detail);
@@ -84,7 +85,7 @@ describe('an unreadable pipeline.json', () => {
   test('the concurrency limit, which pipeline.json does not hold, is still set', () => {
     const fixture = boardFixture();
 
-    ControlService.apply({ kind: 'concurrency-set', limit: 3 }, changeOf(fixture, { verdict: 'older' }));
+    ControlService.apply({ kind: 'concurrency-set', limit: 3 }, changeOf(fixture, { verdict: 'older' }), ECHOED_CONTROL_CONTEXT);
 
     expect(fixture.board.concurrency().limit).toBe(3);
   });
@@ -95,8 +96,8 @@ describe('the gate kinds on a readable pipeline', () => {
     const fixture = boardFixture({ pipeline: structuredClone(STORED_PIPELINE) });
     const change  = changeOf(fixture, null);
 
-    ControlService.apply({ kind: 'pipeline-gate-add', gate: { name: 'lint', run: 'bun run lint' }, phases: ['review', 'merge'] }, change);
-    ControlService.apply({ kind: 'pipeline-gate-add', gate: { name: 'e2e', run: 'bun run e2e' } }, change);
+    ControlService.apply({ kind: 'pipeline-gate-add', gate: { name: 'lint', run: 'bun run lint' }, phases: ['review', 'merge'] }, change, ECHOED_CONTROL_CONTEXT);
+    ControlService.apply({ kind: 'pipeline-gate-add', gate: { name: 'e2e', run: 'bun run e2e' } }, change, ECHOED_CONTROL_CONTEXT);
 
     expect(fixture.board.pipeline()?.phases).toEqual({ build: ['types', 'test', 'e2e'], review: ['types', 'lint', 'e2e'], merge: ['types', 'test', 'lint', 'e2e'] });
   });
@@ -104,7 +105,7 @@ describe('the gate kinds on a readable pipeline', () => {
   test('an order sets the run order of that phase and hands back the changed pipeline', () => {
     const fixture = boardFixture({ pipeline: structuredClone(STORED_PIPELINE) });
 
-    const applied = ControlService.apply({ kind: 'pipeline-gate-order', phase: 'merge', names: ['test', 'types'] }, changeOf(fixture, null));
+    const applied = ControlService.apply({ kind: 'pipeline-gate-order', phase: 'merge', names: ['test', 'types'] }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
 
     expect(applied.outcome).toBe('done');
     expect(applied.result.pipeline.phases).toEqual({ build: ['types', 'test'], review: ['types'], merge: ['test', 'types'] });

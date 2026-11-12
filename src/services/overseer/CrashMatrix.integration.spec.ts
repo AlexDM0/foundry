@@ -47,6 +47,7 @@ import type { ControlCommand }                                from '../../shared
 import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../testing/ChildProcessCaseTimeout.ts';
 import { createScratchDrivePass, pinnedScratchWatcherBundle } from '../../testing/DrivePassHarness.ts';
+import { ECHOED_CONTROL_CONTEXT }                             from '../../testing/EchoedControlContext.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -324,14 +325,14 @@ async function decideWithTheOverseerDown(decisionId: string, choices: readonly s
     workspace: sessionWorkspace,
     at:        CHANGED_AT,
     now,
-    mutate:    (change) => ControlService.apply({ kind: 'decision-answer', decisionId, answer: { form: 'letters', choices } }, change),
+    mutate:    (change) => ControlService.apply({ kind: 'decision-answer', decisionId, answer: { form: 'letters', choices } }, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 
 /** A control applied as its verb applies it with the Overseer down: a hold of its own. */
 async function applyControl(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change),
+    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 

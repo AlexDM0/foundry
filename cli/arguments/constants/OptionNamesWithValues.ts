@@ -67,4 +67,9 @@ export const OPTION_NAMES_WITH_VALUES = new Set<string>([
   'repository',
   'incident',
   'step',
+  'billing',
+  'max-budget-usd',
+  'revision',
+  'file',
+  'sources',
 ]);

@@ -5,6 +5,7 @@ import { ControlService }                        from '../../src/services/contro
 import { OperationRefusal }                      from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                   from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }               from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                     from '../HatchUnderJob.ts';
 import { openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                   from '../arguments/ArgumentParser.ts';
@@ -36,9 +37,9 @@ export async function holdOrUnholdTicket(holds: boolean, commandArguments: Argum
   const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
     const { board } = change;
     if (holds) {
-      return { holdChange: ControlService.apply({ kind: 'ticket-hold', ticketReference: reference, reason }, change).result, resumeBuildHint: null };
+      return { holdChange: ControlService.apply({ kind: 'ticket-hold', ticketReference: reference, reason }, change, COMMAND_CONTROL_CONTEXT).result, resumeBuildHint: null };
     }
-    const holdChange = ControlService.apply({ kind: 'ticket-unhold', ticketReference: reference }, change).result;
+    const holdChange = ControlService.apply({ kind: 'ticket-unhold', ticketReference: reference }, change, COMMAND_CONTROL_CONTEXT).result;
     const pausedRow  = board.pausedBuildRowOf(holdChange.ticket.frontmatter.id);
     return { holdChange, resumeBuildHint: pausedRow === null ? null : resumeBuildHintFor(pausedRow) };
   });

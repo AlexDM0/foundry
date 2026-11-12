@@ -108,6 +108,28 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
   'merge-accept':              { kind: 'merge-accept', ticketReference: '1' },
   'merge-update':              { kind: 'merge-update', ticketReference: '1' },
+  'pipeline-setup-start':      { kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 20 }, replacesUnreadablePipeline: false },
+  'pipeline-setup-billing':    { kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'subscription' } },
+  'pipeline-setup-step':       {
+    kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
+  },
+  'pipeline-setup-start-over': { kind: 'pipeline-setup-start-over', setupId: 'S1' },
+  'pipeline-setup-answer':     {
+    kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
+  },
+  'pipeline-constitution-edit': {
+    kind:        'pipeline-constitution-edit',
+    setupId:     'S1',
+    revision:    2,
+    markdown:    '# Example Agency\n\n- Keep the basket page fast.\n',
+    draftedFrom: { contributing: true, research: false, installedDefault: false },
+  },
+  'pipeline-update-start': { kind: 'pipeline-update-start' },
+  'pipeline-draft-edit':   {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }]
+  },
+  'pipeline-draft-undo':    { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
+  'pipeline-draft-discard': { kind: 'pipeline-draft-discard', setupId: 'S1' },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

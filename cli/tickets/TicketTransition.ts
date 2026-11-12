@@ -5,6 +5,7 @@ import type { TicketStatus }                     from '../../src/lib/tracker-mod
 import { ControlService }                        from '../../src/services/control/ControlService.ts';
 import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                   from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }               from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                     from '../HatchUnderJob.ts';
 import { openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                   from '../arguments/ArgumentParser.ts';
@@ -40,7 +41,7 @@ export async function transitionOneTicket(
     const { board }   = change;
     // `ticket abandon` is a control command; `ticket status <id> abandoned` is the by-hand override that skips the legality matrix.
     const move = targetStatus === 'abandoned' && checksLegality
-      ? ControlService.apply({ kind: 'ticket-abandon', ticketReference: reference, ...moveDetails }, change).result
+      ? ControlService.apply({ kind: 'ticket-abandon', ticketReference: reference, ...moveDetails }, change, COMMAND_CONTROL_CONTEXT).result
       : board.moveTicket(TicketLookupUtil.requireTicket(change, reference).frontmatter.id, targetStatus, { checksLegality, ...moveDetails }, change.at);
     return {
       move,

@@ -12,6 +12,7 @@ import {
 import { pipelineAgentReportOf }                          from '../../adapters/reports/testing/PipelineAgentReportFixture.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineAgentProposal, type PipelineProposal }   from '../lifecycle/PipelineAgentProposal.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
@@ -61,7 +62,8 @@ function boardWithOpenProposal(): Board {
 
 function answer(board: Board, letter: string): string[] {
   const [decision] = board.decisions();
-  const { result } = ControlService.apply({ kind: 'decision-answer', decisionId: decision?.id ?? '', answer: { form: 'letters', choices: [letter] } }, changeOf(board));
+  const command = { kind: 'decision-answer', decisionId: decision?.id ?? '', answer: { form: 'letters', choices: [letter] } } as const;
+  const { result } = ControlService.apply(command, changeOf(board), ECHOED_CONTROL_CONTEXT);
   return result.logged.map((record) => record.kind);
 }
 

@@ -596,6 +596,10 @@ function messageOf(refusal: OperationRefusal): string {
       return `Name the product-owner job whose intake to title, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'question-options-without-job':
       return `Name the job whose question the option notes are for, as J4. ${NOTHING_WAS_WRITTEN}`;
+    case 'malformed-setup-command':
+      return `The ${detail.commandKind} command's ${detail.field} is missing or is not of its shape. ${NOTHING_WAS_WRITTEN}`;
+    case 'pipeline-draft-invalid':
+      return `The edit would leave pipeline setup ${detail.setupId}'s draft a pipeline that cannot be stored: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'picture-unknown':
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':

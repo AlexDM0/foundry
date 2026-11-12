@@ -3,17 +3,18 @@
  * and submits the drafts its intake filed; `intake title <J> -- <title>` gives the intake a short title. Under the product owner's own job
  * `intake close` and `intake title` name no job: the Overseer stamps it.
  */
-import { ControlService }        from '../../src/services/control/ControlService.ts';
-import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';
-import { PRODUCT_NAMES }         from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }   from '../CommandContext.ts';
-import type { CommandHandler }   from '../CommandHandler.ts';
-import { hatchWhenUnderJob }     from '../HatchUnderJob.ts';
-import { openTrackerForWriting } from '../OpenTrackerForWriting.ts';
-import { refuseUsage }           from '../RecordedIncidentMove.ts';
-import type { ArgumentParser }   from '../arguments/ArgumentParser.ts';
-import { JOB_ID_PATTERN }        from '../constants/RecordIdPatterns.ts';
-import { OutputUtil }            from '../utils/OutputUtil.ts';
+import { ControlService }          from '../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
+import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }     from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import type { CommandHandler }     from '../CommandHandler.ts';
+import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
+import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
+import { refuseUsage }             from '../RecordedIncidentMove.ts';
+import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
+import { JOB_ID_PATTERN }          from '../constants/RecordIdPatterns.ts';
+import { OutputUtil }              from '../utils/OutputUtil.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -27,7 +28,7 @@ async function recordControl(
   command: ControlCommandOf<'intake-start'> | ControlCommandOf<'intake-close'> | ControlCommandOf<'intake-title'>,
 ): Promise<string> {
   await hatchWhenUnderJob(context, command);
-  const { job, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const { job, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   const sentences = OutputUtil.loggedSentencesOf(logged);
   OutputUtil.printEntity(commandArguments, context, { jobId: job.id, logged }, sentences === '' ? `Intake of job ${job.id} closed.` : sentences);
   return job.id;

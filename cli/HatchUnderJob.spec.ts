@@ -36,6 +36,7 @@ import { createScratchDirectory, removeScratchDirectory }            from '../sr
 import { describeWhenGitIsRecorded }                                 from '../src/testing/ToolGuard.ts';
 import { firstValueOf }                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                       from './CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                   from './CommandControlContext.ts';
 import { COMMAND_NAMES }                                             from './CommandTable.ts';
 import { runCommandLine }                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
@@ -48,6 +49,7 @@ import { INTAKE_SUBCOMMAND_NAMES }                                   from './int
 import { JOB_SUBCOMMAND_NAMES }                                      from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
+import { PIPELINE_SUBCOMMAND_NAMES }                                 from './pipeline/PipelineCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                   from './tickets/TicketCommand.ts';
@@ -56,56 +58,66 @@ import { WORKTREE_SUBCOMMAND_NAMES }                                 from './wor
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly string[] } = {
-  'ticket-add':                ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
-  'ticket-edit':               ['ticket', 'edit', '1', '--title', 'Sharper title'],
-  'ticket-depends':            ['ticket', 'depends', '1', '--add', '2'],
-  'ticket-priority':           ['ticket', 'priority', '1', 'high'],
-  'ticket-epic':               ['ticket', 'epic', '1', '--add', 'checkout'],
-  'ticket-abandon':            ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
-  'ticket-ready':              ['ticket', 'ready', '1'],
-  'ticket-submit':             ['ticket', 'submit', '1'],
-  'ticket-park':               ['ticket', 'park', '1', '--', 'The install line needs Alex Example'],
-  'incident-answer':           ['incident', 'answer', 'I1', '--', 'Use the example setup script'],
-  'incident-note':             ['incident', 'note', 'I1', '--', 'Seen twice'],
-  'incident-escalate':         ['incident', 'escalate', 'I1'],
-  'ticket-network':            ['ticket', 'network', '1', 'api.example.com'],
-  'ticket-hold':               ['ticket', 'hold', '1', '--reason', 'waiting on Alex Example'],
-  'ticket-unhold':             ['ticket', 'unhold', '1'],
-  'epic-add':                  ['epic', 'add', 'search', 'Search'],
-  'draft-open':                ['draft', 'open', 'Another intake', '--owner', 'Alex Example'],
-  'draft-claim':               ['draft', 'claim', 'D1', '--owner', 'Alex Example'],
-  'draft-release':             ['draft', 'release', 'D1'],
-  'draft-note':                ['draft', 'note', 'D1', 'Assumed EUR.', '--assumption'],
-  'draft-ask':                 ['draft', 'ask', 'D1', 'Which currency?', '--context', 'Prices', '--option', 'EUR', '--option', 'USD', '--recommended', 'A'],
-  'draft-answer':              ['draft', 'answer', 'D1', 'Q1', 'EUR'],
-  'draft-drop':                ['draft', 'drop', 'D1', 'N1'],
-  'draft-close':               ['draft', 'close', 'D1', '--tickets', '1'],
-  'draft-abandon':             ['draft', 'abandon', 'D1', '--reason', 'dropped'],
-  'decision-answer':           ['decide', 'E1', 'a'],
-  'job-stop':                  ['job', 'stop', 'J1'],
-  'job-fresh':                 ['job', 'fresh', 'J1', '--incident', 'I1'],
-  'job-stop-all':              ['job', 'stop', '--all'],
-  'job-message':               ['job', 'message', 'J1', '--', 'Keep the basket page.'],
-  'worktree-repair':           ['worktree', 'repair', '1', '--step', 'prune', '--incident', 'I1'],
-  'gate-retry':                ['gate', 'retry', 'J1', '--incident', 'I1'],
-  'intake-start':              ['intake', '--', 'Alex Example asks for a basket.'],
-  'pipeline-agent-advise':     ['advise'],
-  'intake-close':              ['intake', 'close', '--set', '1'],
-  'intake-title':              ['intake', 'title', '--', 'Example basket'],
-  'question-options':          ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],
-  'overseer-pause':            ['oversee', 'pause'],
-  'overseer-resume':           ['oversee', 'resume'],
-  'overseer-stop':             ['oversee', 'stop', '--now'],
-  'overseer-restart':          ['oversee', 'restart'],
-  'concurrency-set':           ['concurrency', '3'],
-  'pipeline-prepare-step-set': ['gate', 'prepare', 'install', '--', 'bun install'],
-  'pipeline-gate-add':         ['gate', 'add', 'test', '--defined-by', 'bunfig.toml', '--', 'bun test'],
-  'pipeline-gate-order':       ['gate', 'order', 'merge', 'test'],
-  'pipeline-gates-none':       ['gate', 'none'],
-  'pipeline-gate-remove':      ['gate', 'remove', 'test'],
-  'pipeline-approval-set':     ['gate', 'approval', 'tickets', 'off'],
-  'merge-accept':              ['merge', 'accept', '1'],
-  'merge-update':              ['merge', 'update', '1'],
+  'ticket-add':                 ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
+  'ticket-edit':                ['ticket', 'edit', '1', '--title', 'Sharper title'],
+  'ticket-depends':             ['ticket', 'depends', '1', '--add', '2'],
+  'ticket-priority':            ['ticket', 'priority', '1', 'high'],
+  'ticket-epic':                ['ticket', 'epic', '1', '--add', 'checkout'],
+  'ticket-abandon':             ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
+  'ticket-ready':               ['ticket', 'ready', '1'],
+  'ticket-submit':              ['ticket', 'submit', '1'],
+  'ticket-park':                ['ticket', 'park', '1', '--', 'The install line needs Alex Example'],
+  'incident-answer':            ['incident', 'answer', 'I1', '--', 'Use the example setup script'],
+  'incident-note':              ['incident', 'note', 'I1', '--', 'Seen twice'],
+  'incident-escalate':          ['incident', 'escalate', 'I1'],
+  'ticket-network':             ['ticket', 'network', '1', 'api.example.com'],
+  'ticket-hold':                ['ticket', 'hold', '1', '--reason', 'waiting on Alex Example'],
+  'ticket-unhold':              ['ticket', 'unhold', '1'],
+  'epic-add':                   ['epic', 'add', 'search', 'Search'],
+  'draft-open':                 ['draft', 'open', 'Another intake', '--owner', 'Alex Example'],
+  'draft-claim':                ['draft', 'claim', 'D1', '--owner', 'Alex Example'],
+  'draft-release':              ['draft', 'release', 'D1'],
+  'draft-note':                 ['draft', 'note', 'D1', 'Assumed EUR.', '--assumption'],
+  'draft-ask':                  ['draft', 'ask', 'D1', 'Which currency?', '--context', 'Prices', '--option', 'EUR', '--option', 'USD', '--recommended', 'A'],
+  'draft-answer':               ['draft', 'answer', 'D1', 'Q1', 'EUR'],
+  'draft-drop':                 ['draft', 'drop', 'D1', 'N1'],
+  'draft-close':                ['draft', 'close', 'D1', '--tickets', '1'],
+  'draft-abandon':              ['draft', 'abandon', 'D1', '--reason', 'dropped'],
+  'decision-answer':            ['decide', 'E1', 'a'],
+  'job-stop':                   ['job', 'stop', 'J1'],
+  'job-fresh':                  ['job', 'fresh', 'J1', '--incident', 'I1'],
+  'job-stop-all':               ['job', 'stop', '--all'],
+  'job-message':                ['job', 'message', 'J1', '--', 'Keep the basket page.'],
+  'worktree-repair':            ['worktree', 'repair', '1', '--step', 'prune', '--incident', 'I1'],
+  'gate-retry':                 ['gate', 'retry', 'J1', '--incident', 'I1'],
+  'intake-start':               ['intake', '--', 'Alex Example asks for a basket.'],
+  'pipeline-agent-advise':      ['advise'],
+  'intake-close':               ['intake', 'close', '--set', '1'],
+  'intake-title':               ['intake', 'title', '--', 'Example basket'],
+  'question-options':           ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],
+  'overseer-pause':             ['oversee', 'pause'],
+  'overseer-resume':            ['oversee', 'resume'],
+  'overseer-stop':              ['oversee', 'stop', '--now'],
+  'overseer-restart':           ['oversee', 'restart'],
+  'concurrency-set':            ['concurrency', '3'],
+  'pipeline-prepare-step-set':  ['gate', 'prepare', 'install', '--', 'bun install'],
+  'pipeline-gate-add':          ['gate', 'add', 'test', '--defined-by', 'bunfig.toml', '--', 'bun test'],
+  'pipeline-gate-order':        ['gate', 'order', 'merge', 'test'],
+  'pipeline-gates-none':        ['gate', 'none'],
+  'pipeline-gate-remove':       ['gate', 'remove', 'test'],
+  'pipeline-approval-set':      ['gate', 'approval', 'tickets', 'off'],
+  'merge-accept':               ['merge', 'accept', '1'],
+  'merge-update':               ['merge', 'update', '1'],
+  'pipeline-setup-start':       ['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '20'],
+  'pipeline-setup-billing':     ['pipeline', 'billing', 'S1', 'subscription'],
+  'pipeline-setup-step':        ['pipeline', 'continue', 'S1', 'research'],
+  'pipeline-setup-start-over':  ['pipeline', 'start-over', 'S1'],
+  'pipeline-setup-answer':      ['pipeline', 'answer', 'S1', 'Q1', 'a'],
+  'pipeline-constitution-edit': ['pipeline', 'constitution', 'S1', '--revision', '2', '--sources', 'contributing,research'],
+  'pipeline-update-start':      ['pipeline', 'update'],
+  'pipeline-draft-edit':        ['pipeline', 'edit', 'S1', '--revision', '3', '--set', 'gate:test={"name": "test", "run": "bun test"}'],
+  'pipeline-draft-undo':        ['pipeline', 'undo', 'S1', 'E1'],
+  'pipeline-draft-discard':     ['pipeline', 'discard', 'S1'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {
@@ -212,6 +224,7 @@ function everyVerb(): string[] {
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     if (command === 'question') return QUESTION_SUBCOMMAND_NAMES.map((subcommand) => `question ${subcommand}`);
+    if (command === 'pipeline') return PIPELINE_SUBCOMMAND_NAMES.map((subcommand) => `pipeline ${subcommand}`);
     return [command];
   });
 }
@@ -323,7 +336,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
       workspace: requireWorkspace(repositoryDirectory),
       at:        '2026-09-18T22:11:03+02:00',
       now:       SPEC_CLOCK,
-      mutate:    (change) => ControlService.apply(verdict.command, change).result,
+      mutate:    (change) => ControlService.apply(verdict.command, change, COMMAND_CONTROL_CONTEXT).result,
     });
     const filed = written.result as { ticket: { filePath: string } };
     const text  = readFileSync(filed.ticket.filePath, 'utf8');

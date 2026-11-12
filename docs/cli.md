@@ -22,6 +22,7 @@ Look a command up by its first word, or a stored file by its name.
 | `epic` | [Epics](#epics) |
 | `draft` | [Drafts](#drafts) |
 | `concurrency`, `gate` | [Concurrency and gates](#concurrency-and-gates) |
+| `pipeline` | [Pipeline setup](#pipeline-setup) |
 | `review-stats` | [Review statistics](#review-statistics) |
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
 | `oversee`, `open`, `version` | [The Overseer](#the-overseer) |
@@ -121,7 +122,7 @@ store.
 | every `epic` verb but the two reads | `epic list`, `epic show` |
 | every `draft` verb but the two reads | `draft list`, `draft show` |
 | `concurrency <n>` | `concurrency` without an argument |
-| the `gate` writes, `gate retry` | `gate list` |
+| the `gate` writes, `gate retry`, every `pipeline` verb | `gate list` |
 | `merge`, `worktree repair` | `merges` |
 | `decide`, `incident` | `decisions`, `incidents`, `await` |
 | `job message`, `job fresh`, `job wind-down`, `job stop`, `intake`, `advise` | `jobs`, `job show`, `job attach` |
@@ -914,6 +915,32 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
 kind decides, never the role: a merge agent runs as its ticket's builder or reviewer and still takes none. No row takes
 a launch slot: a `task add --start` row or a review bar with no live job counts nothing.
+
+### Pipeline setup
+
+The `pipeline` verbs are User's moves on the [pipeline setup record](#datapipeline-setupjson). Each one is one control
+command, applied in a hold, with the Overseer up or down; the Bridge's setup controls send the same commands. Every verb
+takes `--json`, which prints `{ setup, logged }`: the record as the move left it and the log records it wrote. A setup,
+question and edit id is read in either case (`s1`, `S1`).
+
+| command | what it does |
+|---|---|
+| `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the billing step, billed by subscription unless `--billing api` says otherwise, with an optional cap. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. Refused `setup-in-progress` beside an open record. |
+| `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`. |
+| `pipeline billing <S> subscription\|api [--max-budget-usd <n>] [--json]` | Change the record's billing (`pipeline-setup-billing`), logged `pipeline-setup-billing-set`. A cap of 0 or below is refused `billing-cap-not-positive`. |
+| `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. |
+| `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
+| `pipeline constitution <S> --revision <n> [--file <path>\|-] [--sources <source>,…\|none] [--json]` | Store User's constitution (`pipeline-constitution-edit`), logged `pipeline-constitution-set`: the whole text from the file, or from standard input with `--file -`, byte for byte, and the SOURCES ticks, the sources named on (`contributing`, `research`, `installed-default`) and the others off. Give the text, the sources or both. `--revision` is the constitution revision User read; another is refused `constitution-draft-stale`. |
+| `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. |
+| `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`. |
+| `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
+| `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`. The setup id is not used again. |
+
+An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
+agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts from
+User's move. A record with no live agent gets no message: the record is what a later agent starts from. A body sent
+to `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`,
+naming the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
 ### Review statistics
 
@@ -1845,8 +1872,8 @@ The login item files themselves never hold the key.
 
 The one open pipeline setup record, beside `progress.json`: a first setup, an update or an advise session of the
 pipeline agent, saved as each answer, edit and finding happens, so every step can resume. Only an Apply writes
-`pipeline.json` from it. The setup moves write it through the lock, atomically; a start over removes it. No command
-verb writes it yet. This is format version 1.
+`pipeline.json` from it. The [`pipeline` verbs](#pipeline-setup) and the same commands from the Bridge write it through
+the lock, atomically; a start over removes it. This is format version 1.
 
 ```jsonc
 {

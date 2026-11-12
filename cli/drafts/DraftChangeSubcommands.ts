@@ -10,6 +10,7 @@ import type { ControlCommand }                  from '../../src/shared/@types/Co
 import { OperationRefusal }                     from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                  from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }              from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                    from '../HatchUnderJob.ts';
 import { openTrackerForWriting }                from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                  from '../arguments/ArgumentParser.ts';
@@ -33,7 +34,7 @@ export async function appliedDraftControl<Command extends ControlCommand>(
   command: Command,
 ): Promise<ControlResultOf<Command['kind']>> {
   await hatchWhenUnderJob(context, command);
-  return openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  return openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 }
 
 export function refusalOf(text: string): OperationRefusal {

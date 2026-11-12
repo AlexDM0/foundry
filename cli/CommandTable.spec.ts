@@ -66,6 +66,7 @@ describe('the command table', () => {
       'merges',
       'open',
       'oversee',
+      'pipeline',
       'question',
       'range',
       'review-stats',

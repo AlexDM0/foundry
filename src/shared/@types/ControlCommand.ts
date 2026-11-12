@@ -3,12 +3,18 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { DecisionAnswerForm }                           from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking }           from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }                                    from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { JobStopMode, PictureReference }                from '../../lib/tracker-model/@types/Job.ts';
-import type { OptionNote }                                   from '../../lib/tracker-model/@types/OptionConsequences.ts';
-import type { PipelineApproval, PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
+import type { GatePhase }                          from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { JobStopMode, PictureReference }      from '../../lib/tracker-model/@types/Job.ts';
+import type { OptionNote }                         from '../../lib/tracker-model/@types/OptionConsequences.ts';
+import type {
+  PipelineApproval,
+  PipelineBilling,
+  PipelineGate,
+  PipelineStep
+} from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { ConstitutionSources, PipelineDraftField, PipelineSetupStep } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -18,6 +24,12 @@ import type {
 } from '../../lib/tracker-model/@types/Ticket.ts';
 
 export type ListEdit = 'replace' | 'add' | 'remove';
+
+/** One field of the draft pipeline and its new value, as the field names it; a `null` value removes the field or writes its default back. */
+export interface PipelineFieldEdit {
+  field: PipelineDraftField;
+  value: unknown;
+}
 
 export type WorktreeRepairStep = 'prune' | 'reinstall' | 'recreate' | 'unlock';
 
@@ -128,6 +140,19 @@ export type ControlCommand =
   | { kind: 'pipeline-gates-none' }
   | { kind: 'pipeline-gate-remove'; name: string }
   | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
+  /** User's first setup of the pipeline: it opens the setup record; `replacesUnreadablePipeline` lets Apply write over an unreadable file. */
+  | { kind: 'pipeline-setup-start'; billing: PipelineBilling; replacesUnreadablePipeline: boolean }
+  | { kind: 'pipeline-setup-billing'; setupId: string; billing: PipelineBilling }
+  | { kind: 'pipeline-setup-step'; setupId: string; step: PipelineSetupStep; move: 'continue' }
+  | { kind: 'pipeline-setup-start-over'; setupId: string }
+  | { kind: 'pipeline-setup-answer'; setupId: string; questionId: string; answer: DecisionAnswerForm }
+  /** `markdown` is the whole document; `draftedFrom` the SOURCES ticks; `revision` the constitution revision User saw. */
+  | { kind: 'pipeline-constitution-edit'; setupId: string; revision: number; markdown?: string; draftedFrom?: ConstitutionSources }
+  /** Opens an update record on the stored pipeline. */
+  | { kind: 'pipeline-update-start' }
+  | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[] }
+  | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
+  | { kind: 'pipeline-draft-discard'; setupId: string }
   /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
   | { kind: 'merge-accept'; ticketReference: string }
   /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */

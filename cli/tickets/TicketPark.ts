@@ -6,6 +6,7 @@ import { ControlService }               from '../../src/services/control/Control
 import type { ControlCommandOf }        from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }             from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                from '../../src/shared/constants/ProductNames.ts';
+import { COMMAND_CONTROL_CONTEXT }      from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }            from '../HatchUnderJob.ts';
 import { openTrackerForWriting }        from '../OpenTrackerForWriting.ts';
 import { incidentOf }                   from '../RecordedIncidentMove.ts';
@@ -24,6 +25,6 @@ export const parkTicket: TicketSubcommandHandler = async (commandArguments, cont
     kind: 'ticket-park', ticketReference, reason, ...incidentOf(commandArguments, TICKET_USAGE)
   };
   await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   OutputUtil.printEntity(commandArguments, context, { command, logged }, OutputUtil.loggedSentencesOf(logged));
 };

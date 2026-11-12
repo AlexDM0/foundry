@@ -5,6 +5,7 @@ import type { ControlCommandOf }                          from '../../src/shared
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                        from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
 import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
 import { suppliedMarkdownBodyOf }                         from '../SuppliedMarkdownBody.ts';
@@ -41,7 +42,7 @@ async function addEpic(commandArguments: ArgumentParser, context: CommandContext
     kind: 'epic-add', key, title, bodyText: body
   };
   await hatchWhenUnderJob(context, command);
-  const added = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const added = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   const { frontmatter } = added.epic;
   OutputUtil.printEntity(
     commandArguments,

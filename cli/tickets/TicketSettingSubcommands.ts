@@ -4,6 +4,7 @@ import type { ControlCommandOf }                                        from '..
 import { OperationRefusal }                                             from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                      from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                                            from '../HatchUnderJob.ts';
 import { openTrackerForWriting, openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
@@ -61,7 +62,7 @@ async function setTicketPriority(commandArguments: ArgumentParser, context: Comm
   const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change).result,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
   );
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged), nextLine);
@@ -124,7 +125,7 @@ async function setTicketNetwork(commandArguments: ArgumentParser, context: Comma
 
   const command: ControlCommandOf<'ticket-network'> = { kind: 'ticket-network', ticketReference: reference, domains };
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
+  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged));
 }

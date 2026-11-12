@@ -4,7 +4,7 @@ import { OperationRefusal }                   from '../../shared/OperationRefusa
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 
 /** A malformed or older `pipeline.json` is never written over: a hand edit gone wrong is repaired, not lost, and an older one set up again. */
-function requireReadablePipeline(change: TrackerChange): void {
+export function requireReadablePipeline(change: TrackerChange): void {
   const { unreadablePipeline } = change;
   const filePath = change.workspace.pipelineFilePath;
   if (unreadablePipeline === null) return;

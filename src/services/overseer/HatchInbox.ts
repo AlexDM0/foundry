@@ -14,6 +14,7 @@ import { writeFileAtomically }                           from '../../lib/atomic-
 import type { Job, JobState }                            from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                    from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                  from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlContext, SetupMessage }             from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                               from '../../shared/WorktreesFolder.ts';
 import { Bouncer, type RelayingJob }                     from '../control/Bouncer.ts';
@@ -35,6 +36,16 @@ export interface HatchReplyToWrite {
 const HATCH_READABLE_STATES: ReadonlySet<JobState> = new Set([
   'launching', 'preparing', 'running', 'waiting-for-answer', 'interrupted', 'awaiting-answer', 'in-customs', 'stopping',
 ]);
+
+/**
+ * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message; one that did is a Bouncer
+ * defect, which fails the hold rather than send a message nobody worded.
+ */
+const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
+  setupMessageWordingOf: (message: SetupMessage): string => {
+    throw new Error(`A relayed command reached the setup message ${message.kind}, which only User's own commands send.`);
+  },
+});
 
 const REQUEST_FILE_PATTERN = /^(.+)\.json$/;
 const HATCH_FORMAT_VERSION = 1;
@@ -146,7 +157,7 @@ function replyOf(change: TrackerChange, job: Readonly<Job>, request: PendingHatc
     return { reply: refusedReply(request.requestId, 'refused', detail), commandKind: reading.command.kind };
   }
   try {
-    const applied = ControlService.apply(verdict.command, change);
+    const applied = ControlService.apply(verdict.command, change, RELAYED_COMMAND_CONTEXT);
     return {
       reply: {
         hatchFormatVersion: HATCH_FORMAT_VERSION, requestId: request.requestId, outcome: applied.outcome, ticketIds: ticketIdsOf(applied.result)

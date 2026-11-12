@@ -12,6 +12,7 @@ import type { ControlCommandOf }                                              fr
 import { OperationRefusal }                                                   from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                      from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                                from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                            from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                                                  from '../HatchUnderJob.ts';
 import { openTrackerForWritingThenReadNextLine }                              from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                                from '../arguments/ArgumentParser.ts';
@@ -126,7 +127,7 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
   const { result: readied, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change).result,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
   );
 
   const [onlyTicket] = readied.tickets;
@@ -153,7 +154,7 @@ async function submitTheNamedDrafts(commandArguments: ArgumentParser, context: C
   const { result: submitted, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change).result,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
   );
   const document = { tickets: submitted.tickets.map(TicketJsonUtil.ticketAsJson), incompleteTickets: submitted.incompleteTickets };
   const humanText = `${OutputUtil.loggedSentencesOf(submitted.logged)}${incompleteDraftsText(submitted.incompleteTickets)}`;
