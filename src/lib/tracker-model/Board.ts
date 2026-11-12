@@ -109,6 +109,8 @@ import type {
   ConstitutionSourcesReading,
   DraftEditRequest,
   MainConstitution,
+  PipelineCheckEnding,
+  PipelineCheckStart,
   PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupReading,
@@ -918,6 +920,23 @@ export class Board {
 
   startOverSetup(setupId: string, at: string): PipelineSetupChanged {
     return this.pipelineSetups.startOverSetup(setupId, at);
+  }
+
+  /** Refuses `no-gate-to-check` and `pipeline-check-running`; the Overseer runs the check. */
+  requestPipelineCheck(setupId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.requestCheck(setupId, at);
+  }
+
+  startPipelineCheck(setupId: string): PipelineCheckStart | null {
+    return this.pipelineSetups.startCheck(setupId);
+  }
+
+  endPipelineCheck(setupId: string, ending: PipelineCheckEnding): PipelineSetupChanged | null {
+    return this.pipelineSetups.endCheck(setupId, ending);
+  }
+
+  stopRunningPipelineCheck(): PipelineSetupChanged | null {
+    return this.pipelineSetups.stopRunningCheck();
   }
 
   /** Refuses `gate-profile-running` while the gate and phase have a run queued or running. */

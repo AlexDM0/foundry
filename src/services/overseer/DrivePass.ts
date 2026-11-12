@@ -30,6 +30,7 @@ import { Playbook }                                                             
 import { FORCED_STOP_REFUSED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
 import { PipelineUtil }                                                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { EventLogEntry }                                                         from '../../lib/watcher/EventLog.ts';
+import type { SetupMessage }                                                          from '../../shared/@types/ControlContext.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }                                  from '../../shared/Environment.ts';
 import { WorktreesFolder }                                                            from '../../shared/WorktreesFolder.ts';
 import { AIRLOCK_LIMITS }                                                             from '../../shared/constants/AirlockLimits.ts';
@@ -82,6 +83,7 @@ import { LaunchSettings, type SessionLaunchSettings }                 from './La
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
+import { PipelineChecking }                                           from './PipelineChecking.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
@@ -205,6 +207,8 @@ export interface DrivePassRequest {
   redHandoffMessageOf:               (facts: Readonly<RedHandoffFacts>) => string;
   /** An answer worded as a plain user message, for a resumed session that no longer holds the question's request. */
   answerMessageOf:                   (answer: DecisionAnswer) => string;
+  /** What the pipeline agent reads when User's check of its setup record ends. */
+  setupMessageWordingOf:             (message: SetupMessage) => string;
   /** Overridden by specs of the fallback delivery: the Overseer stops the Watcher and resumes the session with the answer. */
   deliversAnswersByControlResponse?: boolean;
   homeDirectory:                     string;
@@ -311,6 +315,9 @@ const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 
 /** The sandbox profiles of the gate profiles' lines, in the overseer folder: these confine a profile's run, never record one. */
 const GATE_PROFILE_SANDBOXES_FOLDER = 'gate-profile-sandboxes';
+
+/** The sandbox profiles of the pipeline checks' lines, in the overseer folder, one per setup record. */
+const PIPELINE_CHECK_SANDBOXES_FOLDER = 'pipeline-check-sandboxes';
 
 /** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
 const WORKER_LAUNCH_STEP = 'worker';
@@ -1019,6 +1026,26 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     runGateLines:    (request.processStarts ?? REAL_PROCESS_STARTS).runGateLines,
   });
 
+  const pipelineChecking = PipelineChecking.createPipelineChecking({
+    workspace:       request.workspace,
+    worktreesRoot,
+    mainLine:        request.mainLine,
+    platformPorts,
+    gateSlots,
+    gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
+    confinedLineIn:  (worktreePath, setupId) => (commandArguments, confinement) => {
+      const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, PIPELINE_CHECK_SANDBOXES_FOLDER);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), commandArguments, confinement);
+    },
+    hold:                  holdTracker,
+    // A clock exception: a check's durations are only recorded and shown.
+    millisecondsNow:       () => request.now().getTime(),
+    wake:                  () => wake(true),
+    log:                   request.log,
+    runProposalTwice:      (request.processStarts ?? REAL_PROCESS_STARTS).runProposalTwice,
+    setupMessageWordingOf: request.setupMessageWordingOf,
+  });
+
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
   /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
@@ -1270,6 +1297,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     });
     const heldTargets = written.board.pipeline() === null ? [] : await airlocks.sweep();
     gateProfiling.followRuns(written.board);
+    pipelineChecking.followChecks(written.board);
     await WatcherFleet.reapEndedWatchers(platformPorts, trackerDirectory);
     jobsAtTheLastPass = written.board.jobs();
     assistantsMidTurnAtTheLastPass = AssistantSession.midTurnJobIdsOf(request.workspace.trackerDirectory, written.board, observation.assistantReadings);
@@ -1329,6 +1357,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   async function regroup(): Promise<RegroupingReport> {
     const report = await Regrouping.regroup(platformPorts, request.workspace);
     await gateProfiling.settleAtStart();
+    await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
     for (const lost of report.lost) request.log(`Watcher instance ${lost.instance} of job ${lost.jobId} is gone (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
     wake(true);
@@ -1342,6 +1371,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     resetTimer = null;
     await (running ?? Promise.resolve());
     await gateProfiling.stopAll();
+    await pipelineChecking.stopAll();
   }
 
   /** Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one. */

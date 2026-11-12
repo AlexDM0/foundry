@@ -66,6 +66,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     resumeMessage:         'Example resume message',
     redHandoffMessageOf:   () => 'Example red handoff message',
     answerMessageOf:       (answer) => `Example answers ${JSON.stringify(answer)}`,
+    setupMessageWordingOf: (message) => JSON.stringify(message),
     homeDirectory:         request.monitorFolder,
     onBatonTakenOver:      () => request.log('taken over'),
   };

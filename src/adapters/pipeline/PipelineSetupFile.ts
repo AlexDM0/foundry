@@ -8,7 +8,10 @@ import type { DraftAnswer, DraftQuestionOption } from '../../lib/tracker-model/@
 import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ApplyRequest,
+  CheckedGate,
   ConstitutionDraft,
+  PipelineCheck,
+  PipelineCheckResult,
   PipelineSetup,
   PipelineSetupReading,
   PipelineSetupStep,
@@ -20,11 +23,14 @@ import type {
   SetupQuestionSubject,
   SourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { GATE_OUTCOMES }    from '../../lib/tracker-model/constants/JobStates.ts';
 import {
   APPLY_REQUEST_REASONS,
   APPLY_REQUEST_STATES,
+  CHECKED_GATE_VERDICTS,
   FIRST_SETUP_ITEM_NUMBER,
   GATE_CANDIDACIES,
+  PIPELINE_CHECK_STATES,
   PIPELINE_SETUP_MODES,
   PIPELINE_SETUP_STEP_STATES,
   PIPELINE_SETUP_STEPS,
@@ -64,6 +70,9 @@ const OWNED_KEYS = [
   'nextNumbers',
 ] as const;
 
+/** Written only once User first asks for a check, so a record with none stays as it was stored. */
+const OPTIONAL_OWNED_KEYS = ['check'] as const;
+
 const SETUP_ID_PATTERN = /^S[1-9][0-9]*$/u;
 const FINDING_KEYS     = ['findingId', 'topic', 'label', 'value', 'sourcePaths', 'script', 'needsRecheck'] as const;
 const SCRIPT_KEYS      = ['name', 'run', 'meaning', 'gateCandidate', 'needs'] as const;
@@ -76,6 +85,10 @@ const SOURCES_KEYS     = ['contributing', 'research', 'installedDefault'] as con
 const EDIT_KEYS        = ['editId', 'by', 'field', 'summary', 'undone'] as const;
 const APPLY_KEYS       = ['draftRevision', 'resumesBoard', 'commitJobId', 'state', 'reason'] as const;
 const NEXT_NUMBER_KEYS = ['finding', 'question', 'edit'] as const;
+const CHECK_KEYS       = ['draftRevision', 'gateNames', 'state', 'result', 'reason'] as const;
+const CHECK_RESULT_KEYS = ['snapshotCommit', 'prepare', 'gates'] as const;
+const CHECK_PREPARE_KEYS = ['failedSteps', 'output'] as const;
+const CHECKED_GATE_KEYS = ['name', 'outcomes', 'durationsMilliseconds', 'verdict', 'output'] as const;
 
 type Mapped<Value> = { value: Value } | { problem: string };
 
@@ -300,6 +313,48 @@ function applyRequestOf(value: unknown): Mapped<ApplyRequest | null> {
   });
 }
 
+function checkedGateOf(value: unknown, path: string): Mapped<CheckedGate> {
+  const record = closedRecordOf(value, path, CHECKED_GATE_KEYS);
+  if ('problem' in record) return record;
+  const fields = record.value;
+  return fieldsOf<CheckedGate>({
+    name:                  textOf(fields['name'], `${path}.name`),
+    outcomes:              listOf(fields['outcomes'], `${path}.outcomes`, (item, itemPath) => wordOf(item, itemPath, GATE_OUTCOMES)),
+    durationsMilliseconds: listOf(fields['durationsMilliseconds'], `${path}.durationsMilliseconds`, (item, itemPath) => countOf(item, itemPath, 0)),
+    verdict:               wordOf(fields['verdict'], `${path}.verdict`, CHECKED_GATE_VERDICTS),
+    output:                textOf(fields['output'], `${path}.output`),
+  });
+}
+
+function checkResultOf(value: unknown): Mapped<PipelineCheckResult | null> {
+  if (value === null) return { value: null };
+  const record = closedRecordOf(value, 'check.result', CHECK_RESULT_KEYS);
+  if ('problem' in record) return record;
+  const prepare = closedRecordOf(record.value['prepare'], 'check.result.prepare', CHECK_PREPARE_KEYS);
+  if ('problem' in prepare) return prepare;
+  return fieldsOf<PipelineCheckResult>({
+    snapshotCommit: textOf(record.value['snapshotCommit'], 'check.result.snapshotCommit'),
+    prepare:        fieldsOf<PipelineCheckResult['prepare']>({
+      failedSteps: listOf(prepare.value['failedSteps'], 'check.result.prepare.failedSteps', nullableTextOf),
+      output:      textOf(prepare.value['output'], 'check.result.prepare.output'),
+    }),
+    gates: listOf(record.value['gates'], 'check.result.gates', checkedGateOf),
+  });
+}
+
+function checkOf(value: unknown): Mapped<PipelineCheck> {
+  const record = closedRecordOf(value, 'check', CHECK_KEYS);
+  if ('problem' in record) return record;
+  const fields = record.value;
+  return fieldsOf<PipelineCheck>({
+    draftRevision: countOf(fields['draftRevision'], 'check.draftRevision', 0),
+    gateNames:     textsOf(fields['gateNames'], 'check.gateNames'),
+    state:         wordOf(fields['state'], 'check.state', PIPELINE_CHECK_STATES),
+    result:        checkResultOf(fields['result']),
+    reason:        nullableTextOf(fields['reason'], 'check.reason'),
+  });
+}
+
 function nextNumbersOf(value: unknown): Mapped<PipelineSetup['nextNumbers']> {
   const record = closedRecordOf(value, 'nextNumbers', NEXT_NUMBER_KEYS);
   if ('problem' in record) return record;
@@ -324,8 +379,10 @@ function setupIdOf(value: unknown): Mapped<string> {
 function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const missingKey = OWNED_KEYS.find((key) => !Object.hasOwn(document, key));
   if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
-  const ownedKeys: readonly string[] = OWNED_KEYS;
-  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra'>>({
+  const ownedKeys: readonly string[] = [...OWNED_KEYS, ...OPTIONAL_OWNED_KEYS];
+  const check = Object.hasOwn(document, 'check') ? checkOf(document['check']) : null;
+  if (check !== null && 'problem' in check) return check;
+  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra' | 'check'>>({
     setupId:                    setupIdOf(document['setupId']),
     mode:                       wordOf(document['mode'], 'mode', PIPELINE_SETUP_MODES),
     baseContentHash:            nullableTextOf(document['baseContentHash'], 'baseContentHash'),
@@ -347,7 +404,11 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   });
   if ('problem' in mapped) return mapped;
   const extra = Object.entries(document).filter(([key]) => !ownedKeys.includes(key));
-  return { value: { formatVersion: SETUP_FORMAT_VERSION, ...mapped.value, extra } };
+  return {
+    value: {
+      formatVersion: SETUP_FORMAT_VERSION, ...mapped.value, ...(check === null ? {} : { check: check.value }), extra
+    }
+  };
 }
 
 function documentReadingOf(document: unknown): PipelineSetupReading {
@@ -391,6 +452,7 @@ function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
     ['edits', setup.edits],
     ['replacesUnreadablePipeline', setup.replacesUnreadablePipeline],
     ['applyRequest', setup.applyRequest],
+    ...(setup.check === undefined ? [] : [['check', setup.check]]),
     ['nextNumbers', setup.nextNumbers],
     ...setup.extra,
   ]);

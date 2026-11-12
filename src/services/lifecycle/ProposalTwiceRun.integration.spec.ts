@@ -56,6 +56,7 @@ function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['
     snapshotCommit:  SNAPSHOT_COMMIT,
     environment:     environmentCopy(),
     confinedLineOf:  runsAsGiven,
+    grantsWrites:    true,
     millisecondsNow: () => {
       clock += 250;
       return clock;

@@ -9,6 +9,9 @@ import type { Incident }               from '../../src/lib/tracker-model/@types/
 import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
+  CheckedGate,
+  PipelineCheck,
+  PipelineCheckResult,
   PipelineSetup,
   PipelineSetupMode,
   PipelineSetupStep,
@@ -495,7 +498,36 @@ function stepContinuedMessageOf(mode: PipelineSetupMode, step: PipelineSetupStep
   return nextInstructions === stepInstructionsOf(mode, step) ? moved : `${moved}\n\n${nextInstructions}`;
 }
 
-/** What the pipeline agent reads when User answers, edits, undoes, discards or continues on its setup record, which it must read again. */
+function checkedGateLinesOf(gate: Readonly<CheckedGate>): string {
+  const heading = `- \`${gate.name}\`: ${gate.verdict}. Runs: ${gate.outcomes.join(', ')}.`;
+  return gate.output === '' ? heading : `${heading} The end of the output:\n\n${fencedBlockOf(gate.output, '')}`;
+}
+
+function prepareResultOf(prepare: Readonly<PipelineCheckResult['prepare']>): string {
+  const failedSteps = prepare.failedSteps.map((step, index) => (step === null ? `run ${index + 1} passed` : `run ${index + 1} failed at \`${step}\``));
+  const result = `${failedSteps.join(', ')}.`;
+  return prepare.output === '' ? result : `${result} The end of the output:\n\n${fencedBlockOf(prepare.output, '')}`;
+}
+
+/** The check's result for the agent, or why it could not run; a check that has no result yet tells nothing. */
+function checkEndedMessageOf(check: Readonly<PipelineCheck>): string {
+  if (check.result === null) {
+    return `User's check of draft revision ${check.draftRevision} could not run: ${check.reason ?? 'no reason was recorded'}. `
+      + 'Tell User. Do not run a gate or a script yourself.';
+  }
+  return filledTemplateOf(promptOf('PipelineAgentCheck.md'), {
+    draftRevision:  String(check.draftRevision),
+    snapshotCommit: check.result.snapshotCommit,
+    prepareResult:  prepareResultOf(check.result.prepare),
+    gateResults:    check.result.gates.map(checkedGateLinesOf).join('\n'),
+    program:        PRODUCT_NAMES.PROGRAM,
+  }).trim();
+}
+
+/**
+ * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, which it must
+ * read again, and when User's check ends.
+ */
 function setupMessageWordingOf(message: SetupMessage): string {
   switch (message.kind) {
     case 'question-answered':
@@ -522,6 +554,11 @@ function setupMessageWordingOf(message: SetupMessage): string {
         commits:      message.mainMovedByCommits === 1 ? 'commit' : 'commits',
         changedPaths: message.changedPaths.length === 0 ? 'none' : message.changedPaths.join(', '),
       }).trim().replaceAll('\n', ' ');
+    case 'check-requested':
+      return `User asked for a check of draft revision ${message.draftRevision}. The Overseer runs these gates two times in a fresh worktree `
+        + `of main: ${message.gateNames.join(', ')}. You get the result in a later message. Do not run a gate or a script yourself.`;
+    case 'check-ended':
+      return checkEndedMessageOf(message.check);
   }
 }
 

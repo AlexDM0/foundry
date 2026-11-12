@@ -29,6 +29,7 @@ import { GroupWorktrees }                       from './GroupWorktrees.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER }       from './PipelineAgentSessions.ts';
+import { PIPELINE_CHECK_WORKTREES_FOLDER }      from './PipelineChecking.ts';
 import { WatcherFleet }                         from './WatcherFleet.ts';
 
 export interface WatcherRegrouped {
@@ -51,9 +52,11 @@ export interface RegroupingReport {
 
 /**
  * The Overseer's own folders under the worktrees root: the sessions' working folders, the jobs' Hatch folders, one per job, the pipeline
- * agent's snapshots and the gate profiles' worktrees, which the profiling start sweep removes.
+ * agent's snapshots, and the gate profiles' and pipeline checks' worktrees, which their start sweeps remove.
  */
-const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER, GATE_PROFILE_WORKTREES_FOLDER]);
+const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set([
+  'sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER, GATE_PROFILE_WORKTREES_FOLDER, PIPELINE_CHECK_WORKTREES_FOLDER,
+]);
 
 const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';

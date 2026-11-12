@@ -82,6 +82,8 @@ export type BoardRefusalDetail =
   | { reason: 'no-pipeline-to-update'; mode: PipelineSetupMode }
   | { reason: 'pipeline-apply-pending'; setupId: string }
   | { reason: 'no-apply-pending'; setupId: string }
+  | { reason: 'pipeline-check-running'; setupId: string }
+  | { reason: 'no-gate-to-check'; setupId: string }
   | { reason: 'setup-question-open'; setupId: string; questionIds: readonly string[] }
   | { reason: 'setup-step-needs-recheck'; setupId: string; steps: readonly PipelineSetupStep[] }
   | { reason: 'setup-snapshot-touched'; setupId: string }

@@ -1,7 +1,8 @@
 /**
  * `pipeline-setup.json` both ways. What matters: a written record reads back whole and writes back byte for byte, its own keys first in a
  * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
- * byte; no file is `absent`; and a file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason
+ * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; no file is `absent`; and a
+ * file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason
  * naming the offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -95,6 +96,23 @@ const EXAMPLE_SETUP: PipelineSetup = {
   extra:       [['exampleLaterKey', { kept: true }], ['anotherKey', [1, 2]]],
 };
 
+const EXAMPLE_CHECKED: PipelineSetup = {
+  ...EXAMPLE_SETUP,
+  check: {
+    draftRevision: 4,
+    gateNames:     ['test'],
+    state:         'checked',
+    result:        {
+      snapshotCommit: 'b2c3d4e5f60718293a4b5c6d7e8f9012345678a1',
+      prepare:        { failedSteps: [null, null], output: '' },
+      gates:          [{
+        name: 'test', outcomes: ['failed', 'passed'], durationsMilliseconds: [4200, 3900], verdict: 'disagreeing', output: '1 test failed\n'
+      }],
+    },
+    reason: null,
+  },
+};
+
 let scratchDirectory = '';
 let setupFilePath    = '';
 
@@ -159,6 +177,19 @@ describe('a readable record', () => {
     ]);
   });
 
+  test('a check reads back whole and writes back byte for byte, before nextNumbers', () => {
+    const text = PipelineSetupFile.contentsOf(EXAMPLE_CHECKED);
+    writeFileSync(setupFilePath, text);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    expect(reading).toEqual({ verdict: 'readable', setup: EXAMPLE_CHECKED });
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
+    const keys = Object.keys(JSON.parse(text) as object);
+    expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'check', 'nextNumbers']);
+  });
+
   test('a nested record built in another key order is written in the read\'s order', () => {
     const [firstFinding] = EXAMPLE_SETUP.findings;
     if (firstFinding === undefined) throw new Error('the example has a finding');
@@ -204,6 +235,32 @@ describe('a malformed record', () => {
         }]
       },
     }), 'constitution.annotations[0].occurrence is not a whole number of at least 1'],
+    ['a check in an unknown state',
+      (document) => ({
+        ...document,
+        check: {
+          draftRevision: 1, gateNames: ['test'], state: 'paused', result: null, reason: null
+        }
+      }),
+      'check.state is "paused", which is not one of queued, running, checked, cannot-run, stopped'],
+    ['a checked gate with an unknown outcome',
+      (document) => ({
+        ...document,
+        check: {
+          draftRevision: 1,
+          gateNames:     ['test'],
+          state:         'checked',
+          result:        {
+            snapshotCommit: 'example',
+            prepare:        { failedSteps: [null], output: '' },
+            gates:          [{
+              name: 'test', outcomes: ['flaky'], durationsMilliseconds: [1], verdict: 'red', output: ''
+            }]
+          },
+          reason: null,
+        }
+      }),
+      'check.result.gates[0].outcomes[0] is "flaky", which is not one of passed, failed, cannot-run'],
     ['a billing cap with a subscription',
       (document) => ({ ...document, billing: { mode: 'subscription', maxBudgetUsd: 2 } }),
       'billing.maxBudgetUsd is present with mode subscription'],

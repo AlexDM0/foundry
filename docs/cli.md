@@ -941,6 +941,7 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. |
 | `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`. |
 | `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
+| `pipeline check <S> [--json]` | Ask the Overseer to [check](#pipeline-checks) the gates the draft changes or adds (`pipeline-check`), logged `pipeline-check-requested`: the record's `check` is `queued` with those gate names and the draft revision. A draft that changes or adds no gate is refused `no-gate-to-check`, and a second press while the check is `queued` or `running` `pipeline-check-running`. |
 | `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`, and stop its live agent in the same hold. The setup id is not used again. |
 | `pipeline profile <gate> build\|review\|merge [<S>] [--json]` | Queue a [gate profile](#gate-profiles) (`gate-profile-start`), logged `gate-profile-requested`: that one gate in that one phase, once, as setup `<S>`'s draft defines it, or with no `<S>` as the stored pipeline does. `--json` prints `{ run, logged }`. A gate the source does not define is refused `unknown-gate`, a setup that is not the open one `no-setup-open`, and a second press while that gate and phase have a run `queued` or `running` `gate-profile-running`. |
 | `pipeline profile-stop <P> [--json]` | Stop a gate profile (`gate-profile-stop`): a queued run is `stopped` at once, logged `gate-profile-stopped`; a running one is marked, and the Overseer ends its process tree and records it `stopped`, with no duration. An ended run is left as it is. An unknown id is refused `unknown-profile-run`. |
@@ -948,12 +949,12 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline apply-cancel <S> [--json]` | Clear the record's Apply request (`pipeline-apply-cancel`), committing, held or refused, logged `pipeline-apply-cancelled`: the record is back at the design step and editable, and the stored pipeline stays as it was. With no request it is refused `no-apply-pending`. |
 | `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
-An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
-agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts from
-User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. A record with no agent,
-or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
-`POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming
-the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
+An answer, a constitution edit, a draft edit, an Undo, a discard, a check and a Continue also message the record's
+pipeline agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts
+from User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. A record with no
+agent, or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
+`POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming the
+field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
 #### Gate profiles
 
@@ -980,6 +981,30 @@ An Overseer that stops ends the process tree of each running run and records it 
 is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
 `stopped`, logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is
 the Overseer's own, so the regrouping never names it as a leftover.
+
+#### Pipeline checks
+
+A check tells the pipeline agent how the gates the draft changes or adds behave, before Apply. Only User's press starts
+one: `pipeline check`, or "Ask the pipeline agent to check" under the editing screen's Changes tab. The pipeline agent
+may not relay `pipeline-check`. One check of a record runs at a time.
+
+The Overseer takes the record's queued check when one of the machine's gate run slots is free and no gate run of a job
+or an Airlock of this Overseer waits for one, as a [gate profile](#gate-profiles) does. In the hold that marks the
+check `running`, it reads the gates the draft changes or adds again, as the draft is then, with the draft's prepare
+steps, and the check names that revision and those gates; when none is left, the check ends `cannot-run` with the
+reason `no-touched-gate`. Outside the hold, the Overseer adds a fresh detached worktree of main's tip at
+`<worktrees>/pipeline-checks/<S>` and runs the prepare steps and each of those gates in it two times, each gate on its
+own, under the confinement of the Overseer's own gate runs and with no `writes` folder granted. A gate that both runs
+passed is `green`, one both runs failed `red`, one that could not run `cannot-run`, and one whose two runs differ
+`disagreeing`. The hold that ends the check stores the result in the record (`checked`) or the reason nothing ran
+(`cannot-run`: a line the confinement refused, or a worktree git could not add), and messages the record's pipeline
+agent with it in the same hold, as a User move does. The worktree is removed when the check ends. A check never records
+a green or a `gate-ran` record, and Apply never waits on one.
+
+An Overseer that stops ends the running check's process tree and records it `stopped`, with no result and no message.
+A check still `running` when its Overseer ended is never run again: the next Overseer start records it `stopped` and
+removes every worktree under `<worktrees>/pipeline-checks/`, a folder the regrouping never names as a leftover. User
+presses again.
 
 #### Apply
 
@@ -2061,6 +2086,7 @@ the lock, atomically; a start over removes it. This is format version 1.
   "edits": [],                                   // { editId, by: agent | user, field, summary, undone }
   "replacesUnreadablePipeline": false,
   "applyRequest": null,                          // or { draftRevision, resumesBoard, commitJobId, state, reason }
+  "check": { "draftRevision": 0, "gateNames": ["tests"], "state": "queued", "result": null, "reason": null },
   "nextNumbers": { "finding": 2, "question": 2, "edit": 1 }
 }
 ```
@@ -2086,6 +2112,14 @@ the lock, atomically; a start over removes it. This is format version 1.
   `not-on-target-branch`, `dirty-checkout`, `target-file-held`, `git-failed`, `constitution-commit-unsigned`,
   `constitution-commit-unexpected-paths` or `constitution-moved`. A refused request leaves the record editable, and a
   new Apply replaces it. Apply's stage 2 removes the file.
+- `check` is absent until User first asks for a [check](#pipeline-checks), and then holds the newest one:
+  `draftRevision`, `gateNames` (the gates the draft changes or adds, in draft order), `state` (`queued`, `running`,
+  `checked`, `cannot-run` or `stopped`), `result` and `reason`. `result` is set only once `checked`: `snapshotCommit`
+  (main's tip the worktree held), `prepare` (`failedSteps`, the first failed prepare step of each run or `null`, and
+  `output`) and `gates`, each with its `name`, the two runs' `outcomes` (`passed`, `failed`, `cannot-run`), their
+  `durationsMilliseconds` (recorded and shown only), its `verdict` (`green`, `red`, `cannot-run` or `disagreeing`) and
+  `output`, the last 4,000 characters of the last red or unrunnable run's output. `reason` is set only once
+  `cannot-run`.
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move
@@ -2230,6 +2264,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-draft-undone` | `setupId` | `editId`, `field`, `revision` |
 | `pipeline-draft-discarded` | `setupId` | `revision` |
 | `pipeline-setup-discarded` | `setupId` | none |
+| `pipeline-check-requested` | `setupId` | `revision`, `gateNames`: the gates of that draft revision a check runs two times |
 | `pipeline-apply-requested` | `setupId` | `revision`, `resumesBoard`: the Apply waits for the constitution commit |
 | `pipeline-apply-held` | `setupId` | `reason`: the constitution commit waits, for this stored code |
 | `pipeline-apply-refused` | `setupId` | `reason`: the constitution commit was refused, for this stored code |

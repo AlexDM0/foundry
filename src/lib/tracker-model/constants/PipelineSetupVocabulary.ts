@@ -3,8 +3,10 @@ import type { PipelineBilling } from '../@types/Pipeline.ts';
 import type {
   ApplyRequestReason,
   ApplyRequestState,
+  CheckedGateVerdict,
   ConstitutionSources,
   GateCandidacy,
+  PipelineCheckState,
   PipelineSetupMode,
   PipelineSetupStep,
   PipelineSetupStepState,
@@ -50,6 +52,19 @@ export const APPLY_REQUEST_REASONS = [
 
 /** While a request is in these states, the revision being committed must not change, so every other move refuses. */
 export const PENDING_APPLY_REQUEST_STATES = ['committing', 'held'] as const satisfies readonly ApplyRequestState[];
+
+export const PIPELINE_CHECK_STATES = ['queued', 'running', 'checked', 'cannot-run', 'stopped'] as const satisfies readonly PipelineCheckState[];
+
+/** While a check is in these states, a second request refuses `pipeline-check-running`. */
+export const UNFINISHED_PIPELINE_CHECK_STATES = ['queued', 'running'] as const satisfies readonly PipelineCheckState[];
+
+export const CHECKED_GATE_VERDICTS = ['green', 'red', 'cannot-run', 'disagreeing'] as const satisfies readonly CheckedGateVerdict[];
+
+/** The stored reason of a check whose run found no gate the draft touches any more. */
+export const NO_TOUCHED_GATE_REASON = 'no-touched-gate';
+
+/** The most of a gate's or the prepare steps' output a check stores, in characters, kept from the end. */
+export const CHECK_OUTPUT_LIMIT_CHARACTERS = 4_000;
 
 /** The number the first setup a tracker opens takes, `S1`: the lowest `nextSetupId` a progress file may store. */
 export const FIRST_SETUP_NUMBER = 1;

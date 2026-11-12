@@ -98,6 +98,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'gate-profile-stop':           'pipeline profile-stop',
   'pipeline-apply':              'pipeline apply',
   'pipeline-apply-cancel':       'pipeline apply-cancel',
+  'pipeline-check':              'pipeline check',
   'pipeline-finding-record':     'pipeline finding',
   'pipeline-question-ask':       'pipeline ask',
   'pipeline-constitution-draft': 'pipeline draft-constitution',

@@ -684,6 +684,7 @@ never carries it.
   pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]
   pipeline undo <S> <E> [--json]
   pipeline discard <S> [--json]
+  pipeline check <S> [--json]
   pipeline start-over <S> [--json]
   pipeline resume <S> [--json]
   pipeline apply <S> --revision <n> [--resume] [--json]
@@ -701,11 +702,14 @@ never carries it.
                               review, airlock, approval:<approval>, constitution), each to a JSON
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
-                              every proposed change; start-over removes the record and stops its
-                              agent; resume opens the agent again, and when main moved it moves
-                              the snapshot to main's tip and sends research to a recheck. A stale
-                              --revision is refused at exit 1. An answer, constitution, edit, undo,
-                              discard or continue also messages the pipeline agent, and opens it
+                              every proposed change; check has the Overseer run the gates the
+                              draft changes or adds two times in a fresh worktree of main, with
+                              no writes folder granted, and send the result to the agent;
+                              start-over removes the record and stops its agent; resume opens the
+                              agent again, and when main moved it moves the snapshot to main's
+                              tip and sends research to a recheck. A stale --revision is refused
+                              at exit 1. An answer, constitution, edit, undo, discard, check or
+                              continue also messages the pipeline agent, and opens it
                               again when a stop closed it. apply stores the draft as pipeline.json
                               once main holds its constitution as CONSTITUTION.md (--resume also
                               resumes the board), and closes the record; until then the request

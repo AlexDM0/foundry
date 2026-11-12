@@ -129,6 +129,22 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     expect(storedSetup().edits.every((edit) => edit.undone)).toBe(true);
   });
 
+  test('pipeline check queues the gates the draft adds, and with none refuses no-gate-to-check at exit 1 with nothing written', async () => {
+    await setupAtDesign();
+    const before = storedFiles();
+
+    const refused = await runWithExitCode(['pipeline', 'check', 's1']);
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain('nothing to check');
+    expect(storedFiles()).toEqual(before);
+
+    await run(['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'gate:test={"name": "test", "run": "bun test"}', '--set', 'phase-order:build=["test"]']);
+    await run(['pipeline', 'check', 's1']);
+    expect(storedSetup().check).toEqual({
+      draftRevision: 1, gateNames: ['test'], state: 'queued', result: null, reason: null
+    });
+  });
+
   test('pipeline answer refuses a question the record does not hold, at exit 1 with nothing written', async () => {
     await setupAtDesign();
     const before = storedFiles();
@@ -152,6 +168,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
       ['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'gates=[]'],
       ['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'review={not json'],
       ['pipeline', 'undo', 'S1', 'X1'],
+      ['pipeline', 'check', 'S1', 'extra'],
       ['pipeline', 'rename', 'S1'],
     ]) {
       const { exitCode } = await runWithExitCode(commandLine);

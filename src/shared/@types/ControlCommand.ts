@@ -174,6 +174,8 @@ export type ControlCommand =
   /** Stage 1 of an Apply of the draft at `draftRevision`; `resumesBoard` resumes a paused board once the pipeline is stored. */
   | { kind: 'pipeline-apply'; setupId: string; draftRevision: number; resumesBoard: boolean }
   | { kind: 'pipeline-apply-cancel'; setupId: string }
+  /** User's press: the Overseer runs the gates the draft changes or adds twice, in a fresh worktree of main, and tells the agent. */
+  | { kind: 'pipeline-check'; setupId: string }
   /**
    * The pipeline agent's moves on the setup record it serves. Relayed without `jobId` or `setupId`: the role policy stamps its own job and
    * that job's setup, from the Hatch folder and the record.

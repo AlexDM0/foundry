@@ -1,9 +1,9 @@
 /**
  * User's kinds of the pipeline setup record: start, update and advise, billing, Continue, start over, resume, an answer, the constitution,
- * draft edits, Undo, discard, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and refuses
- * `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over stops
- * it. An answer, a constitution or draft edit, an Undo, a discard, a Continue and a resume also message the agent in the same hold, in the
- * caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the
+ * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and
+ * refuses `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over
+ * stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and a check also message the agent in the
+ * same hold, in the caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's `CONSTITUTION.md` through the
  * context.
  */
 import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
@@ -21,6 +21,7 @@ import type {
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                             from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
@@ -124,16 +125,21 @@ function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
  * no message: the record is what a later agent starts from.
  */
 function messagedToTheAgent(changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage): PipelineSetupChanged {
+  return messagedToTheSetupAgent(changed, change.board, context.setupMessageWordingOf(message), change.at);
+}
+
+/** The same for the Overseer, which words its own message; a record whose agent takes no message is returned as it was. */
+export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Board, text: string, at: string): PipelineSetupChanged {
   const { agentJobId } = changed.setup;
-  if (agentJobId === null || !agentTakesAMessage(change, agentJobId)) return changed;
-  const messaged = change.board.messageJob(agentJobId, context.setupMessageWordingOf(message), [], change.at);
+  if (agentJobId === null || !agentTakesAMessage(board, agentJobId)) return changed;
+  const messaged = board.messageJob(agentJobId, text, [], at);
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
 }
 
-function agentTakesAMessage(change: TrackerChange, agentJobId: string): boolean {
-  const live = change.board.jobById(agentJobId);
+function agentTakesAMessage(board: Board, agentJobId: string): boolean {
+  const live = board.jobById(agentJobId);
   if (live !== undefined) return live.state !== 'stopping';
-  return change.board.endedJobOutcomeOf(agentJobId)?.outcome === 'closed';
+  return board.endedJobOutcomeOf(agentJobId)?.outcome === 'closed';
 }
 
 /** A new pipeline agent for the record: launched by User's command alone, never by the lifecycle. */
@@ -258,7 +264,7 @@ function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: Tracke
   };
   const { agentJobId } = resumed.setup;
   if (agentJobId === null) return startedAgentOf(resumed, change);
-  if (agentTakesAMessage(change, agentJobId)) return messagedToTheAgent(resumed, change, context, message);
+  if (agentTakesAMessage(change.board, agentJobId)) return messagedToTheAgent(resumed, change, context, message);
   // A live agent whose input is closing ends `closed`, and User's next move opens it again.
   if (change.board.jobById(agentJobId) !== undefined) return resumed;
   return startedAgentOf(resumed, change);
@@ -337,6 +343,16 @@ function discardDraft(command: CommandOf<'pipeline-draft-discard'>, change: Trac
   return messagedToTheAgent(changed, change, context, { kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision });
 }
 
+/** The Overseer runs the queued check at its next pass; the agent hears which gates it runs. */
+function requestCheck(command: CommandOf<'pipeline-check'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  const setupId = textFieldOf(command, 'setupId');
+  const changed = change.board.requestPipelineCheck(setupId, change.at);
+  const { check } = changed.setup;
+  return messagedToTheAgent(changed, change, context, {
+    kind: 'check-requested', setupId, draftRevision: changed.setup.draftRevision, gateNames: check?.gateNames ?? []
+  });
+}
+
 function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevision: number; resumesBoard: boolean } {
   const draftRevision = revisionFieldOf(command, 'draftRevision');
   const resumesBoard  = fieldOf(command, 'resumesBoard');
@@ -382,6 +398,7 @@ export const PIPELINE_SETUP_CONTROLS = {
   'pipeline-draft-edit':        editDraft,
   'pipeline-draft-undo':        undoDraftEdit,
   'pipeline-draft-discard':     discardDraft,
+  'pipeline-check':             requestCheck,
   'pipeline-apply':             applySetup,
   'pipeline-apply-cancel':      cancelApply,
 } as const;

@@ -8,7 +8,7 @@
  */
 import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { LogRecord }                                  from './@types/LogRecord.ts';
-import type { Pipeline, PipelineBilling }                  from './@types/Pipeline.ts';
+import type { Pipeline, PipelineBilling, PipelineGate }    from './@types/Pipeline.ts';
 import type {
   ApplyFinishing,
   ApplyRequestReason,
@@ -18,6 +18,8 @@ import type {
   ConstitutionSetting,
   DraftEditRequest,
   MainConstitution,
+  PipelineCheckEnding,
+  PipelineCheckStart,
   PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupStep,
@@ -48,7 +50,8 @@ import {
   SETUP_EDIT_ID_PREFIX,
   SETUP_ID_PREFIX,
   SETUP_QUESTION_ID_PREFIX,
-  SETUP_QUESTION_OPTION_LETTERS
+  SETUP_QUESTION_OPTION_LETTERS,
+  UNFINISHED_PIPELINE_CHECK_STATES
 } from './constants/PipelineSetupVocabulary.ts';
 import { PipelineChangeUtil }    from './utils/PipelineChangeUtil.ts';
 import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
@@ -419,6 +422,61 @@ export class PipelineSetups {
   }
 
   /**
+   * User's check of the gates the draft changes or adds against the base pipeline, which the Overseer runs. Refuses `no-gate-to-check`
+   * when the draft touches no gate, and `pipeline-check-running` while an earlier check waits or runs.
+   */
+  requestCheck(setupId: string, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    const unfinishedStates: readonly string[] = UNFINISHED_PIPELINE_CHECK_STATES;
+    if (setup.check !== undefined && unfinishedStates.includes(setup.check.state)) throw new BoardRefusal({ reason: 'pipeline-check-running', setupId });
+    const gateNames = this.touchedGatesOf(setup).map((gate) => gate.name);
+    if (gateNames.length === 0) throw new BoardRefusal({ reason: 'no-gate-to-check', setupId });
+    setup.check = {
+      draftRevision: setup.draftRevision, gateNames, state: 'queued', result: null, reason: null
+    };
+    this.store(setup);
+    const fields = { revision: setup.draftRevision, gateNames };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-check-requested', setupId, fields }, at)], setup };
+  }
+
+  /**
+   * The Overseer's start of the record's queued check, in the hold: the prepare steps and the touched gates of the draft as it is now, which
+   * the check then names. `null` when the record is gone, is another one, or has no queued check.
+   */
+  startCheck(setupId: string): PipelineCheckStart | null {
+    const setup = this.openSetupRecord();
+    const check = setup?.setupId === setupId ? setup.check : undefined;
+    if (setup === null || check?.state !== 'queued') return null;
+    const gates = this.touchedGatesOf(setup);
+    check.draftRevision = setup.draftRevision;
+    check.gateNames = gates.map((gate) => gate.name);
+    check.state = 'running';
+    this.store(setup);
+    return { draftRevision: setup.draftRevision, prepare: structuredClone(setup.draft?.prepare ?? []), gates: structuredClone(gates) };
+  }
+
+  /** The end of the record's running check. `null` when the record is gone, is another one, or its check is no longer running. */
+  endCheck(setupId: string, ending: PipelineCheckEnding): PipelineSetupChanged | null {
+    const setup = this.openSetupRecord();
+    const check = setup?.setupId === setupId ? setup.check : undefined;
+    if (setup === null || check?.state !== 'running') return null;
+    check.state  = ending.state;
+    check.result = ending.state === 'checked' ? structuredClone(ending.result) : null;
+    check.reason = ending.state === 'cannot-run' ? ending.reason : null;
+    this.store(setup);
+    return { logged: [], setup };
+  }
+
+  /** At an Overseer's start, or as it stops: a running check reads `stopped`, with no result, and runs again only on User's press. */
+  stopRunningCheck(): PipelineSetupChanged | null {
+    const setup = this.openSetupRecord();
+    if (setup?.check?.state !== 'running') return null;
+    setup.check.state = 'stopped';
+    this.store(setup);
+    return { logged: [], setup };
+  }
+
+  /**
    * Stage 1. The request of the revision already waiting answers with it, and the revision an earlier Apply closed answers
    * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, a stored pipeline that
    * moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already holds the draft's text, stage 2 runs at
@@ -621,6 +679,15 @@ export class PipelineSetups {
   private revisionWasApplied(setupId: string, draftRevision: number): boolean {
     return [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'pipeline-applied'
       && record.setupId === setupId && record.fields.revision === draftRevision);
+  }
+
+  /** The gates the draft changes or adds against the base pipeline, in draft order; a removed gate has nothing to run. */
+  private touchedGatesOf(setup: Readonly<PipelineSetup>): PipelineGate[] {
+    if (setup.draft === null) return [];
+    const touchedFields: readonly string[] = PipelineChangeUtil.changesBetween(this.basePipeline(), setup.draft, false)
+      .filter((change) => change.change !== 'removed')
+      .map((change) => change.field);
+    return setup.draft.gates.filter((gate) => touchedFields.includes(`gate:${gate.name}`));
   }
 
   /** The stored pipeline, or the minimal one for a first setup: what the change list and Undo compare with. */

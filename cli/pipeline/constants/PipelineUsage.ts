@@ -18,6 +18,7 @@ export const PIPELINE_USAGE = {
   edit:           `${PROGRAM} pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]`,
   undo:           `${PROGRAM} pipeline undo <S> <E> [--json]`,
   discard:        `${PROGRAM} pipeline discard <S> [--json]`,
+  check:          `${PROGRAM} pipeline check <S> [--json]`,
   profile:        `${PROGRAM} pipeline profile <gate> build|review|merge [<S>] [--json]`,
   'profile-stop': `${PROGRAM} pipeline profile-stop <P> [--json]`,
   apply:          `${PROGRAM} pipeline apply <S> --revision <n> [--resume] [--json]`,

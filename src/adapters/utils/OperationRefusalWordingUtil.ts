@@ -232,6 +232,10 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `No pipeline is stored, so there is nothing to ${detail.mode === 'advise' ? 'advise on' : 'update'}: set the pipeline up first. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-apply-pending':
       return `Pipeline setup ${detail.setupId} waits for its Apply to land, so it cannot change now: cancel the Apply first. ${NOTHING_WAS_WRITTEN}`;
+    case 'pipeline-check-running':
+      return `Pipeline setup ${detail.setupId} has a check not ended yet: wait for its result. ${NOTHING_WAS_WRITTEN}`;
+    case 'no-gate-to-check':
+      return `The draft of pipeline setup ${detail.setupId} changes or adds no gate, so there is nothing to check. ${NOTHING_WAS_WRITTEN}`;
     case 'no-apply-pending':
       return `Pipeline setup ${detail.setupId} has no Apply to cancel or settle. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-question-open':

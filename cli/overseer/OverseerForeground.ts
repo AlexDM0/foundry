@@ -514,6 +514,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         resumeMessage:         OverseerWording.resumeMessage(),
         redHandoffMessageOf:   OverseerWording.redHandoffMessageOf,
         answerMessageOf:       OverseerWording.answerMessageOf,
+        setupMessageWordingOf: OverseerWording.setupMessageWordingOf,
         homeDirectory:         context.homeDirectory,
         log,
         onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),

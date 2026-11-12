@@ -195,6 +195,8 @@ export const LOG_RECORD_SCHEMA = {
   },
   // User's Stop, or an Overseer start that found the run left running: no result.
   'gate-profile-stopped':     { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase' } },
+  // User asked for a check of the gates draft `revision` changes or adds; the Overseer runs them twice.
+  'pipeline-check-requested': { subject: 'pipeline-setup', fields: { revision: 'count', gateNames: 'gate-names' } },
   // Stage 1 of an Apply waits for the constitution commit of draft `revision`.
   'pipeline-apply-requested': { subject: 'pipeline-setup', fields: { revision: 'count', resumesBoard: 'flag' } },
   // The constitution commit waits, or was refused, for the stored `reason` code.

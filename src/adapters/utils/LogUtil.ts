@@ -208,6 +208,8 @@ function sentenceOf(record: LogRecordContent): string {
         + `after ${record.fields.elapsedMilliseconds} ms`;
     case 'gate-profile-stopped':
       return `Gate profile ${record.profileRunId} of ${record.fields.gateName} in the ${record.fields.phase} phase stopped, with no result`;
+    case 'pipeline-check-requested':
+      return `Pipeline setup ${record.setupId} check of draft revision ${record.fields.revision} queued: ${record.fields.gateNames.join(', ')}`;
     case 'pipeline-apply-requested':
       return `Pipeline setup ${record.setupId} Apply of draft revision ${record.fields.revision} waits for the constitution commit`
         + `${record.fields.resumesBoard ? ', then resumes the board' : ''}`;

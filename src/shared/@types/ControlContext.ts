@@ -5,13 +5,14 @@
  */
 import type {
   MainConstitutionReading,
+  PipelineCheck,
   PipelineDraftField,
   PipelineSetupMode,
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 
-/** A User move on the setup record that the pipeline agent must hear about, as values. */
+/** A User move on the setup record that the pipeline agent must hear about, or the end of User's check, as values. */
 export type SetupMessage =
   | { kind: 'question-answered'; setupId: string; questionId: string; reply: SetupQuestionReply }
   | { kind: 'step-continued'; setupId: string; mode: PipelineSetupMode; step: PipelineSetupStep; currentStep: PipelineSetupStep }
@@ -19,7 +20,10 @@ export type SetupMessage =
   | { kind: 'draft-edited'; setupId: string; draftRevision: number; editIds: readonly string[]; fields: readonly PipelineDraftField[] }
   | { kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField }
   | { kind: 'draft-discarded'; setupId: string; draftRevision: number }
-  | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] };
+  | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] }
+  | { kind: 'check-requested'; setupId: string; draftRevision: number; gateNames: readonly string[] }
+  /** The Overseer's, once the check ended `checked` or `cannot-run`. */
+  | { kind: 'check-ended'; setupId: string; check: Readonly<PipelineCheck> };
 
 export interface ControlContext {
   setupMessageWordingOf: (message: SetupMessage) => string;

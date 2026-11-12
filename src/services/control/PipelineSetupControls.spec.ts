@@ -6,7 +6,8 @@
  * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
  * words the injected context gives, and opens it again with its conversation when a stop closed it, while a record with no agent, or one
  * that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
- * research recheck, naming the paths in its message. Git answers from the recordings of `src/testing/RecordedGit.ts`.
+ * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
+ * agent which. Git answers from the recordings of `src/testing/RecordedGit.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -150,6 +151,7 @@ const MALFORMED_COMMANDS: readonly [string, Record<string, unknown>][] = [
     kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: 'yes'
   }],
   ['setupId', { kind: 'pipeline-apply-cancel' }],
+  ['setupId', { kind: 'pipeline-check', setupId: null }],
 ];
 
 describe('a misshapen body', () => {
@@ -335,6 +337,26 @@ describe('the message to the pipeline agent', () => {
         }
       },
     ]);
+  });
+
+  test('a check messages the live agent with the gates the Overseer runs', () => {
+    const fixture = liveAgentBoard();
+    apply(fixture, {
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: 0,
+      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:merge', value: ['test'] }],
+    });
+    fixture.records.length = 0;
+
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J1',
+      message: {
+        kind: 'check-requested', setupId: 'S1', draftRevision: 1, gateNames: ['test']
+      }
+    }]);
   });
 
   test('a record with no agent, or an agent no longer on the board, sends no message and still takes the move', () => {
@@ -593,5 +615,69 @@ describe('Apply', () => {
     expect(fixture.board.pipelineSetup()?.applyRequest).toBeNull();
     const thrown = thrownBy(() => applyIn(fixture, { kind: 'pipeline-apply-cancel', setupId: 'S1' }));
     expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-apply-pending', setupId: 'S1' });
+  });
+});
+
+describe('a check', () => {
+  const STORED_WITH_THREE_GATES: Pipeline = {
+    version: 2,
+    prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
+    gates:   [{ name: 'test', run: 'bun test' }, { name: 'types', run: 'tsc' }, { name: 'format', run: 'prettier --check .' }],
+    phases:  { build: ['test', 'types', 'format'], review: ['test'], merge: ['test'] },
+  };
+
+  /** An update of the three gates: `test` changed, `types` removed, `format` as stored, `lint` new. */
+  function updateWithTouchedGates(): BoardFixture {
+    const fixture = boardFixture({ pipeline: STORED_WITH_THREE_GATES });
+    apply(fixture, { kind: 'pipeline-update-start' });
+    apply(fixture, {
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: 0,
+      edits:         [
+        { field: 'gate:test', value: { name: 'test', run: 'bun test --bail' } },
+        { field: 'gate:types', value: null },
+        { field: 'gate:lint', value: { name: 'lint', run: 'eslint .' } },
+        { field: 'phase-order:build', value: ['test', 'format', 'lint'] },
+      ],
+    });
+    fixture.records.length = 0;
+    return fixture;
+  }
+
+  test('queues only the gates the draft changes or adds, in draft order, logged with the revision', () => {
+    const fixture = updateWithTouchedGates();
+
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+
+    expect(fixture.board.pipelineSetup()?.check).toEqual({
+      draftRevision: 1, gateNames: ['test', 'lint'], state: 'queued', result: null, reason: null
+    });
+    expect(fixture.records).toEqual([{
+      at: CHANGED_AT, kind: 'pipeline-check-requested', setupId: 'S1', fields: { revision: 1, gateNames: ['test', 'lint'] }
+    }]);
+  });
+
+  test('a second press while the check waits refuses pipeline-check-running, with the Board untouched', () => {
+    const fixture = updateWithTouchedGates();
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+    fixture.records.length = 0;
+
+    const thrown = thrownBy(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S1' }));
+
+    expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'pipeline-check-running', setupId: 'S1' });
+    expect(fixture.records).toEqual([]);
+  });
+
+  test('a draft that touches no gate refuses no-gate-to-check, and another record refuses no-setup-open', () => {
+    const fixture = boardFixture({ pipeline: STORED_WITH_THREE_GATES });
+    apply(fixture, { kind: 'pipeline-update-start' });
+
+    const untouched = thrownBy(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S1' }));
+    const otherRecord = thrownBy(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S9' }));
+
+    expect(untouched instanceof BoardRefusal ? untouched.detail : untouched).toEqual({ reason: 'no-gate-to-check', setupId: 'S1' });
+    expect(otherRecord instanceof BoardRefusal ? otherRecord.detail : otherRecord).toEqual({ reason: 'no-setup-open', setupId: 'S9' });
+    expect(fixture.board.pipelineSetup()?.check).toBeUndefined();
   });
 });

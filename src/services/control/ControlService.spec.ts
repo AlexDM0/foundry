@@ -139,6 +139,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     kind: 'pipeline-apply', setupId: 'S1', draftRevision: 2, resumesBoard: true
   },
   'pipeline-apply-cancel':   { kind: 'pipeline-apply-cancel', setupId: 'S1' },
+  'pipeline-check':          { kind: 'pipeline-check', setupId: 'S1' },
   'pipeline-finding-record': {
     kind:        'pipeline-finding-record',
     jobId:       'J4',

@@ -41,9 +41,13 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.editDraft(setupId, {
     by:       'agent',
     revision: null,
-    edits:    [{ edit: { target: 'review', value: { name: 'Review' } }, summary: 'Review every ticket.' }],
+    edits:    [
+      { edit: { target: 'review', value: { name: 'Review' } }, summary: 'Review every ticket.' },
+      { edit: { target: 'gate', name: 'tests', value: { name: 'tests', run: 'bun test' } }, summary: 'Run the tests.' },
+    ],
   }, at);
   board.undoDraftEdit(setupId, 'E1', at);
+  board.requestPipelineCheck(setupId, at);
   board.discardDraft(setupId, at);
   // The edit, its Undo and the discard each took the draft one revision further.
   board.requestApply(setupId, { draftRevision: 3, resumesBoard: false, mainConstitution: null }, at);

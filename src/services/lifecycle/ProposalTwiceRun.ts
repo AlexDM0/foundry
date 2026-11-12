@@ -1,13 +1,14 @@
 /**
- * A pipeline agent's proposed prepare steps and gates, run twice on the main-line snapshot before User sees them, each gate on its own so one
- * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
+ * The draft's prepare steps and the gates User asked to check, run twice on a checkout of main, each gate on its own so one red gate never
+ * hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
-import type { SupervisedSpawnOptions }                        from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                                   from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
-import { GateLineRun, type GateLinesRun, type SingleGateRun } from './GateLineRun.ts';
-import type { GateLineConfiner }                              from './GateRun.ts';
+import type { GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import {
+  GateLineRun,
+  type GateLineRunRequest,
+  type GateLinesRun,
+  type SingleGateRun
+} from './GateLineRun.ts';
 
 export type ProposedGateVerdict = 'green' | 'red' | 'cannot-run' | 'disagreeing';
 
@@ -32,18 +33,9 @@ export interface ProposalRunRecord {
   gates:          ProposedGateRecord[];
 }
 
-export interface ProposalRunRequest {
-  shellLine:       ShellLine;
-  prepare:         readonly PipelineStep[];
-  gates:           readonly PipelineGate[];
-  /** The detached main-line snapshot, which a gate may never leave changed. */
-  directory:       string;
-  snapshotCommit:  string;
-  /** A clock exception: a duration is only recorded and shown, and the caching check suggests from it, never deciding a pass. */
-  millisecondsNow: () => number;
-  environment:     Readonly<Record<string, string>>;
-  spawnOptions:    SupervisedSpawnOptions;
-  confinedLineOf:  GateLineConfiner;
+export interface ProposalRunRequest extends GateLineRunRequest {
+  /** The main commit the checkout holds, which the record names. */
+  snapshotCommit: string;
 }
 
 /** A line the confinement port refused: nothing of the proposal judged the snapshot, so no record exists. */
@@ -63,7 +55,7 @@ function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
 async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRunRecord | ProposalRunRefusal> {
   const runs: GateLinesRun[] = [];
   for (let i = 0; i < PROPOSAL_RUN_COUNT; i += 1) {
-    const run = await GateLineRun.runOnce({ ...request, grantsWrites: true });
+    const run = await GateLineRun.runOnce(request);
     if ('verdict' in run) return run;
     runs.push(run);
   }

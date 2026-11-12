@@ -141,8 +141,10 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-resumed","setupId":"S1","fields":{"snapshotCommit":"e5f60718293a4b5c6d7e8f9012345678901234ab",'
     + '"changedPaths":["package.json"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-constitution-set","setupId":"S1","fields":{"by":"agent","revision":1}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-edited","setupId":"S1","fields":{"by":"agent","revision":1,"editIds":["E1"],"fields":["review"]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-edited","setupId":"S1","fields":{"by":"agent","revision":1,"editIds":["E1","E2"],'
+    + '"fields":["review","gate:tests"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-undone","setupId":"S1","fields":{"editId":"E1","field":"review","revision":2}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-check-requested","setupId":"S1","fields":{"revision":2,"gateNames":["tests"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-discarded","setupId":"S1","fields":{"revision":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-apply-requested","setupId":"S1","fields":{"revision":3,"resumesBoard":false}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-apply-held","setupId":"S1","fields":{"reason":"dirty-checkout"}}',

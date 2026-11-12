@@ -79,7 +79,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 - [Filing drafts](#filing-drafts) (10)
 - [Decisions and incidents](#decisions-and-incidents) (13)
 - [Gates and pipeline](#gates-and-pipeline) (2)
-- [Pipeline setup](#pipeline-setup) (25)
+- [Pipeline setup](#pipeline-setup) (40)
 - [Airlocks and landing](#airlocks-and-landing) (7)
 - [Overseer and Baton](#overseer-and-baton) (12)
 - [Hatch and roles](#hatch-and-roles) (11)
@@ -278,7 +278,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 ### Pipeline setup
 
 <details open>
-<summary>37 sentences</summary>
+<summary>40 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -288,6 +288,8 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `No pipeline is stored, so there is nothing to update` | `no-pipeline-to-update` | An update or advise opened with no readable `pipeline.json`. | Set the pipeline up first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `waits for its Apply to land` | `pipeline-apply-pending` | A setup move, a `gate` write, or an Apply of another revision while the record's Apply request is `committing` or `held`. | Cancel the Apply first. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `has no Apply to cancel or settle` | `no-apply-pending` | `pipeline apply-cancel` with no Apply request. | Nothing to do. | [Apply](../cli.md#apply) |
+| `has a check not ended yet` | `pipeline-check-running` | `pipeline check` while the record's check is `queued` or `running`. | Wait for its result. | [Pipeline checks](../cli.md#pipeline-checks) |
+| `changes or adds no gate, so there is nothing to check` | `no-gate-to-check` | `pipeline check` on a draft that changes or adds no gate against the base pipeline. | Change or add a gate first. | [Pipeline checks](../cli.md#pipeline-checks) |
 | `still asks <ids>: answer every question before the Apply` | `setup-question-open` | An Apply while a setup question has no answer. | Answer each question named. | [Apply](../cli.md#apply) |
 | `needs a recheck of <steps>` | `setup-step-needs-recheck` | An Apply while a step before Apply needs a recheck. | Continue each step named. | [Apply](../cli.md#apply) |
 | `changed its snapshot, so its findings cannot be trusted` | `setup-snapshot-touched` | An Apply after a turn end of the pipeline agent found its snapshot changed. | Resume the setup, then apply. | [Apply](../cli.md#apply) |

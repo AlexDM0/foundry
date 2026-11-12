@@ -4,6 +4,7 @@
  */
 import type { DraftAnswer, DraftQuestionOption } from './Draft.ts';
 import type { GatePhase }                        from './GatePhase.ts';
+import type { GateOutcome }                      from './Job.ts';
 import type {
   AgentStepSettings,
   Pipeline,
@@ -150,6 +151,56 @@ export interface ApplyRequest {
   reason:        ApplyRequestReason | null;
 }
 
+/** A check User asked for: waiting for a slot, running, judged, unable to judge anything, or ended by an Overseer stop with no result. */
+export type PipelineCheckState = 'queued' | 'running' | 'checked' | 'cannot-run' | 'stopped';
+
+/** What a touched gate did in the two runs: `disagreeing` when the two runs differ. */
+export type CheckedGateVerdict = 'green' | 'red' | 'cannot-run' | 'disagreeing';
+
+export interface CheckedGate {
+  name:                  string;
+  outcomes:              GateOutcome[];
+  /** Recorded and shown only, never deciding a verdict. */
+  durationsMilliseconds: number[];
+  verdict:               CheckedGateVerdict;
+  /** The end of the last red or unrunnable run's output; empty when both runs passed. */
+  output:                string;
+}
+
+/** The two runs of the draft's prepare steps and its touched gates in a fresh worktree of main. */
+export interface PipelineCheckResult {
+  /** The main commit the worktree held. */
+  snapshotCommit: string;
+  /** The first prepare step that did not exit 0 in each run, `null` where every one did; and the end of its output. */
+  prepare:        { failedSteps: (string | null)[]; output: string };
+  gates:          CheckedGate[];
+}
+
+/** User's check of the gates the draft touches: only those gates run, twice, and the result goes to the pipeline agent. */
+export interface PipelineCheck {
+  /** The draft revision whose gates the check runs: the request's, then the one the run started on. */
+  draftRevision: number;
+  /** The gates the draft changes or adds against the base pipeline, in draft order. */
+  gateNames:     string[];
+  state:         PipelineCheckState;
+  /** Set only once `checked`. */
+  result:        PipelineCheckResult | null;
+  /** Why a `cannot-run` check judged nothing: a stored code or the refusal's own text; null in every other state. */
+  reason:        string | null;
+}
+
+/** How a check run ended: judged with its result, or unable to judge anything, with the reason. */
+export type PipelineCheckEnding =
+  | { state: 'checked'; result: PipelineCheckResult }
+  | { state: 'cannot-run'; reason: string };
+
+/** What a check runs, read from the draft in the hold that marks it running. */
+export interface PipelineCheckStart {
+  draftRevision: number;
+  prepare:       PipelineStep[];
+  gates:         PipelineGate[];
+}
+
 export interface SetupNextNumbers {
   finding:  number;
   question: number;
@@ -180,6 +231,8 @@ export interface PipelineSetup {
   edits:                      SetupEdit[];
   replacesUnreadablePipeline: boolean;
   applyRequest:               ApplyRequest | null;
+  /** Absent until User first asks for a check; then the newest check, written only once set. */
+  check?:                     PipelineCheck;
   nextNumbers:                SetupNextNumbers;
   /** Keys this build does not know, kept in order so a round trip stays byte-identical. */
   extra:                      Array<[string, unknown]>;

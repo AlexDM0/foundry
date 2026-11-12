@@ -58,6 +58,7 @@ test('a gate that changed a tracked file is restored with the snapshot\'s parent
     snapshotCommit:  'a'.repeat(40),
     environment:     environmentCopy(),
     confinedLineOf:  runsAsGiven,
+    grantsWrites:    false,
     millisecondsNow: () => {
       clock += 1;
       return clock;

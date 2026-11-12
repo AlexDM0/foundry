@@ -2,7 +2,8 @@
  * The message a User setup move sends the pipeline agent. What matters: every kind is worded, an answer carries the letters or the free
  * text as given, and an edit names the fields and the revision, so the agent knows what to read again before its next proposal. A Continue
  * carries the next step's block, since the session works on in the same conversation, unless that block is the one it already works
- * under; a resume names how far main moved, in the singular for one commit, and the paths that changed.
+ * under; a resume names how far main moved, in the singular for one commit, and the paths that changed. A check's request names the gates
+ * it runs, and its end gives the agent each gate's verdict, its runs and the end of its output, or why the check could not run.
  */
 import { expect, test } from 'bun:test';
 
@@ -72,4 +73,54 @@ test.each<[SetupMessage, string]>([
   ],
 ])('a resume is worded as %o', (message, wording) => {
   expect(OverseerWording.setupMessageWordingOf(message)).toBe(wording);
+});
+
+test('a check\'s request names the gates the Overseer runs', () => {
+  expect(OverseerWording.setupMessageWordingOf({
+    kind: 'check-requested', setupId: 'S1', draftRevision: 3, gateNames: ['tests', 'lint']
+  })).toBe('User asked for a check of draft revision 3. The Overseer runs these gates two times in a fresh worktree of main: tests, lint. '
+    + 'You get the result in a later message. Do not run a gate or a script yourself.');
+});
+
+test('a checked result gives each gate\'s verdict, its runs and the end of its output, with every hole filled', () => {
+  const wording = OverseerWording.setupMessageWordingOf({
+    kind:    'check-ended',
+    setupId: 'S1',
+    check:   {
+      draftRevision: 3,
+      gateNames:     ['tests', 'lint'],
+      state:         'checked',
+      result:        {
+        snapshotCommit: 'c'.repeat(40),
+        prepare:        { failedSteps: [null, null], output: '' },
+        gates:          [
+          {
+            name: 'tests', outcomes: ['failed', 'passed'], durationsMilliseconds: [1200, 900], verdict: 'disagreeing', output: '1 test failed\n'
+          },
+          {
+            name: 'lint', outcomes: ['passed', 'passed'], durationsMilliseconds: [300, 310], verdict: 'green', output: ''
+          },
+        ],
+      },
+      reason: null,
+    },
+  });
+
+  expect(wording).toContain('draft revision\n3 changes or adds');
+  expect(wording).toContain(`at commit ${'c'.repeat(40)}`);
+  expect(wording).toContain('Prepare steps: run 1 passed, run 2 passed.');
+  expect(wording).toContain('- `tests`: disagreeing. Runs: failed, passed. The end of the output:\n\n```\n1 test failed\n```');
+  expect(wording).toContain('- `lint`: green. Runs: passed, passed.\n');
+  expect(wording).toContain('pipeline propose');
+  expect(wording).not.toContain('{{');
+});
+
+test('a check that could not run says why', () => {
+  expect(OverseerWording.setupMessageWordingOf({
+    kind:    'check-ended',
+    setupId: 'S1',
+    check:   {
+      draftRevision: 3, gateNames: ['tests'], state: 'cannot-run', result: null, reason: 'example sandbox tool missing'
+    },
+  })).toBe('User\'s check of draft revision 3 could not run: example sandbox tool missing. Tell User. Do not run a gate or a script yourself.');
 });
