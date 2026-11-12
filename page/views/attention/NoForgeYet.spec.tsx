@@ -2,7 +2,8 @@
  * Attention with no forge registered. What matters (SCREENS B4, acceptance 2): the head says why nothing waits; the form adds a repository
  * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program;
  * a folder is chosen through `path-choose` and fills the form, a program chosen is kept through `settings-set`, a cancelled choice keeps
- * nothing; a refused add shows in the form. The command sender is the real one over Gaia's server stood in for by authored answers.
+ * nothing; a refused add shows in the form, and a refused Look again from the top bar on the screen. The command sender is the real one
+ * over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,14 +37,24 @@ const INIT_REFUSED: CommandAnswerDocument = {
   text:          'The folder is not a git repository.',
 };
 
+const LOOK_AGAIN_REFUSED: CommandAnswerDocument = {
+  answerVersion: 1,
+  outcome:       'refused',
+  refusal:       'registry-unreadable',
+  text:          'The registry could not be read.',
+};
+
 interface Pressed {
   readonly chooseFolder:       number;
   readonly addAndStart:        number;
   readonly chooseForgeProgram: number;
+  readonly lookAgain:          number;
 }
 
 function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandStates: CommandStates = senderOver([]).states()) {
-  const pressed = { chooseFolder: 0, addAndStart: 0, chooseForgeProgram: 0 };
+  const pressed = {
+    chooseFolder: 0, addAndStart: 0, chooseForgeProgram: 0, lookAgain: 0
+  };
   const unfolded = tree.unfolded(
     <NoForgeYetLayout
       content={{ status: { condition: null, text: 'no forge on this machine yet' }, forgeProgramIsMissing }}
@@ -60,6 +71,9 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
       }}
       onChooseForgeProgram={() => {
         pressed.chooseForgeProgram += 1;
+      }}
+      onLookAgain={() => {
+        pressed.lookAgain += 1;
       }}
       onDismissFailure={() => undefined}
     />,
@@ -94,7 +108,9 @@ describe('no forge yet', () => {
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-program-missing'))).toEqual([]);
     tree.dispatch(buttonNamed(unfolded, 'Add and start'), 'onClick');
     tree.dispatch(buttonNamed(unfolded, 'Choose a folder'), 'onClick');
-    expect(pressed).toEqual({ chooseFolder: 1, addAndStart: 1, chooseForgeProgram: 0 });
+    expect(pressed).toEqual({
+      chooseFolder: 1, addAndStart: 1, chooseForgeProgram: 0, lookAgain: 0
+    });
     expect(buttonNamed(layoutOf(false, AddRepositoryForm.EMPTY_FORM).unfolded, 'Add and start').props['disabled']).toBe(true);
   });
 
@@ -115,6 +131,16 @@ describe('no forge yet', () => {
     await sender.send(AddRepositoryForm.addCommandOf(FILLED_FORM));
     const add = tree.onlyWithClass(layoutOf(false, FILLED_FORM, sender.states()).unfolded, 'gaia-attention-add');
     expect(tree.textOf([tree.onlyWithClass([add], 'gaia-refusal-text')])).toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
+  });
+
+  test('a refused Look again from the top bar shows on the screen, and Try again sends it once more', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(LOOK_AGAIN_REFUSED))]);
+    await sender.send({ kind: 'fleet-look-again' });
+    const { unfolded, pressed } = layoutOf(false, FILLED_FORM, sender.states());
+    const refusal = tree.onlyWithClass(unfolded, 'gaia-refusal');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Look again: registry-unreadable. The registry could not be read.');
+    tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
+    expect(pressed.lookAgain).toBe(1);
   });
 
   test('"Choose a folder" is disabled while a path is being chosen', () => {

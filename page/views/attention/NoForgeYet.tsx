@@ -33,6 +33,8 @@ export interface NoForgeYetLayoutProps {
   readonly onChooseFolder:       () => void;
   readonly onAddAndStart:        () => void;
   readonly onChooseForgeProgram: () => void;
+  /** Sends the top bar's Look again once more, from its refusal. */
+  readonly onLookAgain:          () => void;
   readonly onDismissFailure:     (subject: CommandSubject) => void;
 }
 
@@ -41,6 +43,7 @@ const ADD_HEAD_ID = 'gaia-attention-add-head';
 const PATH_CHOOSE: CommandSubject = { fleetCommand: 'path-choose' };
 const FORGE_ADD: CommandSubject = { fleetCommand: 'forge-add' };
 const SETTINGS_SET: CommandSubject = { fleetCommand: 'settings-set' };
+const LOOK_AGAIN: CommandSubject = { fleetCommand: 'fleet-look-again' };
 
 function isOnItsWay(commandStates: CommandStates, subject: CommandSubject): boolean {
   return CommandSender.stateOf(commandStates, subject).onItsWay !== null;
@@ -62,7 +65,8 @@ function FailureLine({
 }
 
 export function NoForgeYetLayout({
-  content, form, pathChooser, commandStates, onFolderTyped, onProjectTyped, onChooseFolder, onAddAndStart, onChooseForgeProgram, onDismissFailure,
+  content, form, pathChooser, commandStates, onFolderTyped, onProjectTyped, onChooseFolder, onAddAndStart, onChooseForgeProgram, onLookAgain,
+  onDismissFailure,
 }: NoForgeYetLayoutProps) {
   const choosingAPath = isOnItsWay(commandStates, PATH_CHOOSE);
   const addAndStartCanBeSent = AddRepositoryForm.addAndStartCanBeSent(form, {
@@ -72,6 +76,7 @@ export function NoForgeYetLayout({
   return (
     <div className="gaia-attention-no-forge">
       <div className="gaia-attention-no-forge-column">
+        <FailureLine commandStates={commandStates} subject={LOOK_AGAIN} commandLabel="Look again" onDismissFailure={onDismissFailure} onTryAgain={onLookAgain} />
         <div className="gaia-attention-no-forge-intro">
           <h2 className="gaia-attention-no-forge-title">Nothing waits on you, because no forge is registered.</h2>
           <p className="gaia-attention-no-forge-line">
@@ -163,6 +168,7 @@ export function NoForgeYet({ content }: { readonly content: NoForgeContent }) {
         setPathChooser('forge-program');
         void NoForgeYetCommands.chooseAndKeepForgeProgram(send);
       }}
+      onLookAgain={() => void send({ kind: 'fleet-look-again' })}
       onDismissFailure={dismissFailure}
     />
   );
