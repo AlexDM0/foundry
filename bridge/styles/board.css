@@ -107,6 +107,15 @@
  *   .bridge-callout[data-tone][data-state?]  a tinted state card or a warn-ruled quote, headed by an optional .bridge-callout-title
  *   .bridge-keyed-lines[data-key-column]  an ol of .bridge-keyed-line[data-mark?] lines (current | alert), each a mono
  *                           .bridge-keyed-line-key and its .bridge-keyed-line-text
+ *   .bridge-switch[aria-checked][disabled?]  an on and off switch, its .bridge-switch-knob sliding by a transform
+ *   .bridge-tooltip-trigger[data-dismissed?]  the element a .bridge-tooltip[data-placement] describes (.bridge-tooltip-title,
+ *                           .bridge-tooltip-text), shown on hover and focus
+ *   .bridge-effort-meter[data-size][data-derived?]  a model and effort image: .bridge-effort-meter-glyph when derived,
+ *                           .bridge-effort-meter-model, .bridge-effort-meter-bars of .bridge-effort-meter-bar[data-filled?],
+ *                           .bridge-effort-meter-effort
+ *   .bridge-number-stepper  a group of its lower button, the read-only .bridge-number-stepper-value and its raise button
+ *   .bridge-busy[data-shape]  a progress bar with no value: a spinner or a running bar; .bridge-skeleton a busy status of
+ *                           .bridge-skeleton-line lines
  *   @keyframes bridge-rise, -pop, -glow, -bar, -sheen, -modal, -fade, -menu, -ring, -flowdash, -edge, -grow, -spin,
  *                           -indeterminate, -line, -blink, -caret, -mark, -draw, -toast, -shrink, -shimmer: the parts' shared motion
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
@@ -1106,6 +1115,117 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-dialog[data-motion="out"]::backdrop { animation: bridge-fade 260ms var(--ease-out) reverse both; }
 @media (prefers-reduced-motion: reduce) {
   .bridge-dialog[data-motion], .bridge-dialog[data-motion]::backdrop { animation: none; }
+}
+
+/* An on and off switch: the knob slides by a transform, so the track keeps its size; on is the link colour. */
+.bridge-switch {
+  position: relative; flex: none; display: inline-block; width: 36px; height: 20px; padding: 0;
+  background: var(--line-hairline); border: 0; border-radius: 10px; cursor: pointer;
+}
+.bridge-switch-knob {
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: var(--ink-3); border-radius: 50%;
+  transition: background-color 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.bridge-switch[aria-checked="true"] { background: var(--link); }
+.bridge-switch[aria-checked="true"] .bridge-switch-knob { background: var(--surface-page); transform: translateX(16px); }
+.bridge-switch:not(:disabled):hover { filter: brightness(1.15); }
+.bridge-switch:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-switch:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Passive text that hangs above or below its trigger and takes no space; it rises 4px into place while the trigger is hovered or holds
+   the focus, the one movement a hover may make (bridge/HoverMovesNothing.spec.ts), and hides again after Esc. */
+.bridge-tooltip-trigger { position: relative; display: inline-flex; }
+.bridge-tooltip {
+  position: absolute; left: 0; z-index: 20; width: 240px; padding: var(--sp-2) 10px;
+  color: var(--ink-1); font-size: var(--fs-small); font-weight: 400; line-height: 17px; text-align: start; white-space: normal;
+  background: var(--tooltip-surface); border: 1px solid var(--line-control); border-radius: 6px; box-shadow: var(--shadow-tooltip);
+  pointer-events: none; opacity: 0; visibility: hidden;
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out), visibility 140ms;
+}
+.bridge-tooltip[data-placement="above"] { bottom: calc(100% + 8px); transform: translateY(4px); }
+.bridge-tooltip[data-placement="below"] { top: calc(100% + 8px); transform: translateY(-4px); }
+.bridge-tooltip-trigger:is(:hover, :focus-within) > .bridge-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
+.bridge-tooltip-trigger[data-dismissed] > .bridge-tooltip { opacity: 0; visibility: hidden; }
+.bridge-tooltip-title { display: block; font-weight: 600; }
+.bridge-tooltip-text { display: block; }
+.bridge-tooltip-title + .bridge-tooltip-text { color: var(--ink-3); }
+
+/* An agent's model and effort: the bars rise from the bottom, each 2px taller than the one before, the filled ones in the link colour; a
+   derived meter is dashed and explains itself in its tooltip. */
+.bridge-effort-meter {
+  display: inline-flex; flex: none; align-items: center; gap: 5px; box-sizing: border-box; height: 18px; padding: 0 6px;
+  color: var(--ink-2); font-size: var(--fs-micro); line-height: 1; white-space: nowrap; background: var(--surface-raised); border-radius: 4px;
+}
+.bridge-effort-meter[data-size="dialog"] { height: 20px; padding: 0 7px; font-size: 11.5px; border-radius: 5px; }
+.bridge-effort-meter[data-size="hero"] { height: 22px; padding: 0 var(--sp-2); font-size: var(--fs-small); border-radius: 5px; }
+.bridge-effort-meter[data-derived] { border: 1px dashed var(--line-conditional); cursor: help; }
+.bridge-effort-meter[data-derived]:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-effort-meter-glyph { flex: none; width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; }
+.bridge-effort-meter-model,
+.bridge-effort-meter-effort { flex: none; }
+.bridge-effort-meter-bars { display: inline-flex; flex: none; align-items: flex-end; gap: 2px; height: 10px; }
+.bridge-effort-meter-bar {
+  flex: none; width: 3px; height: 2px; background: var(--line-control); border-radius: 1px; transform-origin: bottom;
+  animation: bridge-bar 480ms var(--ease-out) both;
+  transition: height var(--motion-slow) var(--ease-out), background-color var(--motion-slow) var(--ease-out);
+}
+.bridge-effort-meter-bar:nth-child(2) { height: 4px; animation-delay: 60ms; }
+.bridge-effort-meter-bar:nth-child(3) { height: 6px; animation-delay: 120ms; }
+.bridge-effort-meter-bar:nth-child(4) { height: 8px; animation-delay: 180ms; }
+.bridge-effort-meter-bar:nth-child(5) { height: 10px; animation-delay: 240ms; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bars { height: 11px; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bar { height: 3px; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bar:nth-child(2) { height: 5px; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bar:nth-child(3) { height: 7px; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bar:nth-child(4) { height: 9px; }
+.bridge-effort-meter[data-size="hero"] .bridge-effort-meter-bar:nth-child(5) { height: 11px; }
+.bridge-effort-meter-bar[data-filled] { background: var(--link); }
+
+/* A number changed in steps: the value sits read-only between the lower and the raise button. */
+.bridge-number-stepper { display: inline-flex; flex: none; align-items: stretch; overflow: hidden; border: 1px solid var(--line-control); border-radius: 6px; }
+.bridge-number-stepper > button {
+  width: 30px; height: 30px; padding: 0; color: var(--ink-2); font: inherit; background: var(--surface-panel); border: 0; cursor: pointer;
+}
+.bridge-number-stepper > button:not(:disabled):hover { color: var(--ink-1); filter: brightness(1.15); }
+.bridge-number-stepper > button:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.bridge-number-stepper > button:disabled { color: var(--ink-4); cursor: not-allowed; }
+.bridge-number-stepper-value {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 30px;
+  color: var(--ink-1); font-weight: 600; font-variant-numeric: tabular-nums;
+  background: var(--surface-page); border-inline: 1px solid var(--line-hairline);
+}
+
+/* Work under way with no measure: a turning three-quarter ring, or a band running along a 4px track. */
+.bridge-busy { display: inline-block; flex: none; }
+.bridge-busy[data-shape="spinner"] {
+  box-sizing: border-box; width: 16px; height: 16px; border: 2px solid var(--link); border-left-color: transparent; border-radius: 50%;
+  animation: bridge-spin 0.9s linear infinite;
+}
+.bridge-busy[data-shape="bar"] { position: relative; display: block; height: 4px; overflow: hidden; background: var(--surface-raised); border-radius: 2px; }
+.bridge-busy[data-shape="bar"]::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; background: var(--link); border-radius: 2px;
+  animation: bridge-indeterminate 1.3s ease-in-out infinite;
+}
+
+/* Lines in the place of text on its way, a light band sweeping across them; the last of several is shorter, as a paragraph ends. */
+.bridge-skeleton { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-skeleton-line {
+  display: block; height: 10px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface-raised) 0%, var(--skeleton-sheen) 50%, var(--surface-raised) 100%);
+  background-size: 640px 100%; animation: bridge-shimmer 1.4s linear infinite;
+}
+.bridge-skeleton-line:last-child:not(:first-child) { width: 60%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-switch-knob,
+  .bridge-tooltip { transition: none; }
+  .bridge-effort-meter-bar { animation: none; transition: none; }
+  .bridge-busy[data-shape="spinner"] { animation: none; }
+  .bridge-busy[data-shape="bar"]::after {
+    width: 100%; animation: none;
+    background: repeating-linear-gradient(-45deg, var(--link) 0 4px, var(--surface-raised) 4px 8px);
+  }
+  .bridge-skeleton-line { animation: none; background: var(--surface-raised); }
 }
 
 /* The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets

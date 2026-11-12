@@ -39,8 +39,10 @@ interface AllowedMovement {
   readonly property: string;
 }
 
-/** Each entry moves nothing else, for a reason its own rule states; `.bridge-tooltip`'s transform joins once the tooltip exists. */
-const MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [];
+/** Each entry moves nothing else, for a reason its own rule states: the tooltip hangs absolutely and takes no space. */
+const MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [
+  { selector: '.bridge-tooltip-trigger:is(:hover, :focus-within) > .bridge-tooltip', property: 'transform' },
+];
 
 interface Declaration {
   readonly property: string;
