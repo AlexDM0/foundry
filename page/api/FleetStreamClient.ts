@@ -96,16 +96,16 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
   };
 
   const readFleetEvent = (event: Event): void => {
-    const read = fleetEventReadingOf('data' in event ? event.data : null);
-    if (read === null) return;
-    if (read.fleetVersion === CONTRACT_VERSIONS.gaiaFleetDocument) {
+    const fleetEventReading = fleetEventReadingOf('data' in event ? event.data : null);
+    if (fleetEventReading === null) return;
+    if (fleetEventReading.fleetVersion === CONTRACT_VERSIONS.gaiaFleetDocument) {
       if (reloadMark.read() !== null) reloadMark.write(null);
       // The page and the server ship together: the version is the whole contract between them.
-      publish(read.fleetDocument as FleetDocument);
+      publish(fleetEventReading.fleetDocument as FleetDocument);
       return;
     }
     stop();
-    const serverVersion = String(read.fleetVersion);
+    const serverVersion = String(fleetEventReading.fleetVersion);
     // A mark that cannot be kept could not stop a second reload, so the page then stays out of date rather than reload without end.
     if (reloadMark.read() !== serverVersion && reloadMark.write(serverVersion)) reloadPage();
     else changeState('page-out-of-date');
