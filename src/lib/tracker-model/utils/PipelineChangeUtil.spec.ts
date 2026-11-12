@@ -69,6 +69,17 @@ describe('the change list', () => {
     expect(fieldsAndKindsOf(BASE, draft)).toEqual([['gate:lint', 'changed']]);
   });
 
+  test('is empty when a hand edit writes a gate\'s list option out as an empty list', () => {
+    const draft: Pipeline = {
+      ...BASE,
+      gates: [{
+        name: 'lint', run: 'bun run lint', network: [], writes: []
+      }, { name: 'tests', run: 'bun test', definedBy: [] }]
+    };
+
+    expect(PipelineChangeUtil.changesBetween(BASE, draft, false)).toEqual([]);
+  });
+
   test('names a reorder of a phase\'s gates as that phase\'s order', () => {
     expect(fieldsAndKindsOf(BASE, { ...BASE, phases: { ...BASE.phases, merge: ['tests', 'lint'] } })).toEqual([['phase-order:merge', 'changed']]);
   });

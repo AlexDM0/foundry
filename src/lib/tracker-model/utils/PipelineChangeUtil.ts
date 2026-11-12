@@ -99,13 +99,21 @@ function prepareChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): 
   return [...stepChanges, ...orderChange];
 }
 
+/** An absent list option reads as empty, as the hashes read it, so writing it out as `[]` is no change. */
+function filledGateOf(gate: Readonly<PipelineGate>): object {
+  return {
+    ...gate, definedBy: gate.definedBy ?? [], network: gate.network ?? [], writes: gate.writes ?? []
+  };
+}
+
 function gateChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
   const gateNames = namesOfBoth(base.gates.map((gate) => gate.name), draft.gates.map((gate) => gate.name));
-  return gateNames.flatMap((name) => changeOf(
-    `gate:${name}`,
-    base.gates.find((gate) => gate.name === name),
-    draft.gates.find((gate) => gate.name === name),
-  ));
+  return gateNames.flatMap((name) => {
+    const before = base.gates.find((gate) => gate.name === name);
+    const after  = draft.gates.find((gate) => gate.name === name);
+    if (before !== undefined && after !== undefined && sameValue(filledGateOf(before), filledGateOf(after))) return [];
+    return changeOf(`gate:${name}`, before, after);
+  });
 }
 
 function phaseOrderChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
