@@ -3,21 +3,29 @@
  * recording is read. `bun run record <name>` runs the boundary's real-system spec and writes the recording; `bun run verify` compares the
  * stamps with the installed versions and makes no real call. Test-only.
  */
-import { appendFileSync, existsSync } from 'node:fs';
-import { join }                       from 'node:path';
+import {
+  appendFileSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { scratchRoot } from './ScratchRoot.ts';
 
 /** The outside system whose version stamps a recording. */
-export type RecordedSystem = 'bun';
+export type RecordedSystem = 'bun' | 'forge';
 
 export interface RecordedBoundary {
   readonly recordingName:  string;
   readonly boundaryModule: string;
-  /** Run only by `bun run record`: `bunfig.toml` keeps every `*.recording.spec.ts` out of a plain `bun test`. */
-  readonly recordingSpec:  string;
+  /**
+   * Run only by `bun run record`: `bunfig.toml` keeps every `*.recording.spec.ts` out of a plain `bun test`. `null` for a recording
+   * authored by hand for a contract the system does not serve yet; its spec comes with the system's contract (PLAN 10.3).
+   */
+  readonly recordingSpec:  string | null;
   readonly system:         RecordedSystem;
 }
 
@@ -27,6 +35,24 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     boundaryModule: 'src/lib/process-run/ProcessRun.ts',
     recordingSpec:  'src/lib/process-run/ProcessRun.recording.spec.ts',
     system:         'bun',
+  },
+  {
+    recordingName:  'forge-program',
+    boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
+    recordingSpec:  'src/adapters/forge-program/ForgeProgram.recording.spec.ts',
+    system:         'forge',
+  },
+  {
+    recordingName:  'forge-program-done',
+    boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
+    recordingSpec:  null,
+    system:         'forge',
+  },
+  {
+    recordingName:  'forge-program-refused',
+    boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
+    recordingSpec:  null,
+    system:         'forge',
   },
 ];
 
@@ -65,7 +91,7 @@ export type BoundaryRecordingReading =
 
 const RECORDINGS_FOLDER = join('src', 'testing', 'recordings');
 export const RECORDING_FILE_SUFFIX = '.json';
-const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun']);
+const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun', 'forge']);
 
 export function repositoryRoot(): string {
   return join(import.meta.dir, '..', '..');
@@ -92,10 +118,14 @@ export function recordingPathOf(recordingName: string, operatingSystem: string):
   return join(recordingsFolderOf(operatingSystem), recordingFileNameOf(recordingName));
 }
 
-/** Reading the Bun version starts no process: the running program is the installed Bun. */
-export function installedVersionOf(system: RecordedSystem): string {
+/**
+ * The installed version of a system, read without starting a process: the running program is the installed Bun. `null` for the forge,
+ * whose version only a run of the forge program answers; its recording spec reports the version it recorded from.
+ */
+export function installedVersionOf(system: RecordedSystem): string | null {
   switch (system) {
     case 'bun': return Bun.version;
+    case 'forge': return null;
   }
 }
 
@@ -151,9 +181,33 @@ export function answersInProgressPathOf(recordingName: string): string {
   return join(scratchRoot(), `recording-${recordingName}.jsonl`);
 }
 
+/** Where a recording spec reports the version of the system it recorded from, for a system whose installed version reads `null`. */
+export function systemVersionInProgressPathOf(recordingName: string): string {
+  return join(scratchRoot(), `recording-${recordingName}.system-version`);
+}
+
+function refuseOutsideTheRecordCommand(recordingName: string): void {
+  if (!existsSync(answersInProgressPathOf(recordingName))) {
+    throw new Error(`Nothing collects the answers of ${recordingName}: run it with \`${recordCommandOf(recordingName)}\`.`);
+  }
+}
+
 /** Called by a recording spec for each call shape it records; refuses when the spec runs outside `bun run record`. */
 export function recordAnswer(recordingName: string, callShape: string, answer: unknown): void {
-  const answersPath = answersInProgressPathOf(recordingName);
-  if (!existsSync(answersPath)) throw new Error(`Nothing collects the answers of ${recordingName}: run it with \`${recordCommandOf(recordingName)}\`.`);
-  appendFileSync(answersPath, `${JSON.stringify({ callShape, answer })}\n`);
+  refuseOutsideTheRecordCommand(recordingName);
+  appendFileSync(answersInProgressPathOf(recordingName), `${JSON.stringify({ callShape, answer })}\n`);
+}
+
+/** Called by a recording spec with the version of the system it recorded from; refuses when the spec runs outside `bun run record`. */
+export function recordSystemVersion(recordingName: string, systemVersion: string): void {
+  refuseOutsideTheRecordCommand(recordingName);
+  writeFileSync(systemVersionInProgressPathOf(recordingName), systemVersion);
+}
+
+/** The version a recording spec reported, or `null` when it reported none. */
+export function reportedSystemVersionOf(recordingName: string): string | null {
+  const versionPath = systemVersionInProgressPathOf(recordingName);
+  if (!existsSync(versionPath)) return null;
+  const systemVersion = readFileSync(versionPath, 'utf8');
+  return systemVersion === '' ? null : systemVersion;
 }

@@ -1,0 +1,46 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "forge-program",
+    "operatingSystem": "darwin",
+    "system": "forge",
+    "source": "recorded",
+    "systemVersion": "install version 27"
+  },
+  "answers": [
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"init\",\"--project\",\"Example Project\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": "Unknown option(s): --json.\n  Usage: forge init [--project <name>] [--root <path>] [--no-hooks]\n"
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"update\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": "Unknown option(s): --json.\n  Usage: forge update [--no-hooks]\n"
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"version\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"codeVersion\": \"3a6e9e6043da\",\n  \"installVersion\": 27\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/missing-forge\",\"version\",\"--json\"]",
+      "answer": {
+        "verdict": "not-found",
+        "missing": "program"
+      }
+    }
+  ]
+}

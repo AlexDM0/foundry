@@ -22,7 +22,9 @@ import {
   RECORDED_BOUNDARIES,
   recordedBoundaryNamed,
   recordingPathOf,
+  reportedSystemVersionOf,
   repositoryRoot,
+  systemVersionInProgressPathOf,
   type BoundaryRecording,
   type RecordedAnswer,
   type RecordedBoundary,
@@ -57,7 +59,7 @@ function collectedAnswersIn(answersPath: string): CollectedAnswers {
 
 type RecordingWrite = { readonly verdict: 'written'; readonly recordingPath: string } | { readonly verdict: 'unwritable'; readonly failure: string };
 
-async function writeRecording(boundary: RecordedBoundary, answers: readonly RecordedAnswer[]): Promise<RecordingWrite> {
+async function writeRecording(boundary: RecordedBoundary, systemVersion: string, answers: readonly RecordedAnswer[]): Promise<RecordingWrite> {
   const recording: BoundaryRecording = {
     recordingVersion: CONTRACT_VERSIONS.boundaryRecording,
     stamp:            {
@@ -65,7 +67,7 @@ async function writeRecording(boundary: RecordedBoundary, answers: readonly Reco
       operatingSystem: process.platform,
       system:          boundary.system,
       source:          'recorded',
-      systemVersion:   installedVersionOf(boundary.system),
+      systemVersion,
     },
     answers,
   };
@@ -82,14 +84,21 @@ export async function recordBoundary(recordingName: string, output: RecordOutput
     output.writeStandardError(`"${recordingName}" is no recorded boundary. Name one of:\n${names}\n`);
     return 1;
   }
-  const answersPath = answersInProgressPathOf(boundary.recordingName);
+  const { recordingSpec } = boundary;
+  if (recordingSpec === null) {
+    output.writeStandardError(`${boundary.recordingName} is authored by hand: its ${boundary.system} does not serve the contract yet, so it has no recording spec.\n`);
+    return 1;
+  }
+  const answersPath       = answersInProgressPathOf(boundary.recordingName);
+  const systemVersionPath = systemVersionInProgressPathOf(boundary.recordingName);
   mkdirSync(scratchRoot(), { recursive: true });
   writeFileSync(answersPath, '');
+  writeFileSync(systemVersionPath, '');
   try {
-    output.writeStandardOutput(`Recording ${boundary.recordingName}: running ${boundary.recordingSpec} against the real system.\n`);
+    output.writeStandardOutput(`Recording ${boundary.recordingName}: running ${recordingSpec} against the real system.\n`);
     const testRun = await realProcessRun(environmentCopy).run({
       program:             process.execPath,
-      programArguments:    ['test', ...FOREIGN_TREES_IGNORED.map((pattern) => `--path-ignore-patterns=${pattern}`), `./${boundary.recordingSpec}`],
+      programArguments:    ['test', ...FOREIGN_TREES_IGNORED.map((pattern) => `--path-ignore-patterns=${pattern}`), `./${recordingSpec}`],
       workingDirectory:    repositoryRoot(),
       timeoutMilliseconds: RECORDING_RUN_TIMEOUT_MILLISECONDS,
     });
@@ -103,7 +112,12 @@ export async function recordBoundary(recordingName: string, output: RecordOutput
       output.writeStandardError(`The spec recorded two different answers for ${collected.callShape}: nothing is recorded.\n`);
       return 1;
     }
-    const recordingWrite = await writeRecording(boundary, collected.answers);
+    const systemVersion = installedVersionOf(boundary.system) ?? reportedSystemVersionOf(boundary.recordingName);
+    if (systemVersion === null) {
+      output.writeStandardError(`The real-system spec of ${boundary.recordingName} reported no ${boundary.system} version: nothing is recorded.\n`);
+      return 1;
+    }
+    const recordingWrite = await writeRecording(boundary, systemVersion, collected.answers);
     if (recordingWrite.verdict === 'unwritable') {
       output.writeStandardError(`The recording of ${boundary.recordingName} could not be written (${recordingWrite.failure}): nothing is recorded.\n`);
       return 1;
@@ -112,6 +126,7 @@ export async function recordBoundary(recordingName: string, output: RecordOutput
     return 0;
   } finally {
     if (existsSync(answersPath)) rmSync(answersPath);
+    if (existsSync(systemVersionPath)) rmSync(systemVersionPath);
   }
 }
 

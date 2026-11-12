@@ -1,0 +1,65 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "forge-program-refused",
+    "operatingSystem": "darwin",
+    "system": "forge",
+    "source": "authored"
+  },
+  "answers": [
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"init\",\"--project\",\"Example Project\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"tracker-exists\",\n  \"text\": \"/Users/example/development/example-project is already tracked as Example Project; nothing was written.\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"add\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"login-item-unwritable\",\n  \"text\": \"The login item for /Users/example/development/example-project could not be written; nothing was changed.\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"machine\",\"limit\",\"64\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"machine-agent-limit-above-cpus\",\n  \"text\": \"64 agents is above the 10 CPUs of this machine; the machine agent limit stays at 4.\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"start\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The board at /Users/example/development/example-project was installed by install version 28, which this forge program (install version 27) does not know, so it started nothing.\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"stop\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"overseer-still-live\",\n  \"text\": \"The Overseer at http://127.0.0.1:47213 is still live after the stop was asked; nothing more was done.\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"update\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"baton-pass-refused\",\n  \"text\": \"The Overseer refused to hand over to the new code, so the board stays on code 3a6e9e6043da; nothing was written.\"\n}\n",
+        "standardError": ""
+      }
+    }
+  ]
+}

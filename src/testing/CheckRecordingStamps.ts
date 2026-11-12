@@ -36,8 +36,16 @@ function recordingStampReportOfThisMachine(): RecordingStampReport {
 }
 
 if (import.meta.main) {
-  const { staleLines, unfinishedLines, authoredLines } = recordingStampReportOfThisMachine();
+  const {
+    staleLines,
+    unfinishedLines,
+    authoredLines,
+    uncheckedLines,
+  } = recordingStampReportOfThisMachine();
   if (unfinishedLines.length > 0) console.log(reportText(`${unfinishedLines.length} recorded boundaries are not finished for ${process.platform}:`, unfinishedLines));
+  if (uncheckedLines.length > 0) {
+    console.log(reportText(`${uncheckedLines.length} recordings for ${process.platform} are not checked against an installed version:`, uncheckedLines));
+  }
   if (authoredLines.length > 0) console.warn(reportText(`${authoredLines.length} recordings for ${process.platform} are authored, not recorded:`, authoredLines));
   if (staleLines.length === 0) {
     console.log(`No recording for ${process.platform} is stale.`);

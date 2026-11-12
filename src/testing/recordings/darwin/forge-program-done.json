@@ -1,0 +1,99 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "forge-program-done",
+    "operatingSystem": "darwin",
+    "system": "forge",
+    "source": "authored"
+  },
+  "answers": [
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"init\",\"--project\",\"Example Project\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"trackerId\": \"example-tracker\",\n  \"project\": \"Example Project\",\n  \"root\": \"/Users/example/development/example-project\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"add\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"loginItem\": \"present\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"remove\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"loginItem\": \"absent\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"status\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"loginItem\": \"present\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"machine\",\"limit\",\"4\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"agentLimit\": 4\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"start\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"3a6e9e6043da\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 1,\n    \"control\": 1,\n    \"embed\": 1\n  }\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"stop\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"update\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"installVersion\": 27,\n  \"batonPass\": \"done\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"version\",\"--json\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"3a6e9e6043da\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 1,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "start detached [\"/Users/example/.bun/bin/forge\",\"open\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 48213
+      }
+    }
+  ]
+}

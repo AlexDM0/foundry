@@ -1,7 +1,8 @@
 /**
  * The stamp check fails only on a stale recording: one stamped with another version than the installed one, one stamped for another
  * boundary, OS or system, one that cannot be read, and one that records no listed boundary. A boundary with no recording for the OS is
- * listed as not finished and an authored recording as a warning; neither fails the check. Each stale line names the command to record again.
+ * listed as not finished, an authored recording as a warning, and a recording of a system whose installed version only a run reads as
+ * unchecked; none of those fails the check. Each stale and unchecked line names the command to record again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -32,18 +33,20 @@ function recordedStamp(overrides: Partial<Extract<RecordingStamp, { source: 'rec
   };
 }
 
-function reportFor(recordingTexts: ReadonlyMap<string, string>) {
+function reportFor(recordingTexts: ReadonlyMap<string, string>, installedVersion: string | null = INSTALLED_BUN_VERSION) {
   return recordingStampReportOf({
     recordedBoundaries: [EXAMPLE_BOUNDARY],
     operatingSystem:    'darwin',
     recordingTexts,
-    installedVersionOf: () => INSTALLED_BUN_VERSION,
+    installedVersionOf: () => installedVersion,
   });
 }
 
 describe('the recording-stamp check', () => {
   test('passes a recording stamped with the installed version', () => {
-    expect(reportFor(new Map([['example-boundary.json', recordingText(recordedStamp())]]))).toEqual({ staleLines: [], unfinishedLines: [], authoredLines: [] });
+    expect(reportFor(new Map([['example-boundary.json', recordingText(recordedStamp())]]))).toEqual({
+      staleLines: [], unfinishedLines: [], authoredLines: [], uncheckedLines: []
+    });
   });
 
   test('names a recording stamped with another version as stale, with the command that records it again', () => {
@@ -78,6 +81,7 @@ describe('the recording-stamp check', () => {
       staleLines:      [],
       unfinishedLines: ['example-boundary is not finished for darwin: it has no recording. Record it with `bun run record example-boundary`.'],
       authoredLines:   [],
+      uncheckedLines:  [],
     });
   });
 
@@ -89,6 +93,19 @@ describe('the recording-stamp check', () => {
       staleLines:      [],
       unfinishedLines: [],
       authoredLines:   [expect.stringContaining('example-boundary.json is authored by hand and waits to be recorded from a real bun.')],
+      uncheckedLines:  [],
+    });
+  });
+
+  test('lists a recording of a system whose installed version only a run reads as unchecked, and fails nothing', () => {
+    expect(reportFor(new Map([['example-boundary.json', recordingText(recordedStamp({ systemVersion: 'install version 7' }))]]), null)).toEqual({
+      staleLines:      [],
+      unfinishedLines: [],
+      authoredLines:   [],
+      uncheckedLines:  [
+        'The recording of example-boundary on darwin is stamped bun install version 7; verify cannot read the installed bun without running it. '
+          + 'After a change of bun, record it again with `bun run record example-boundary`.',
+      ],
     });
   });
 });

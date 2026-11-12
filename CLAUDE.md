@@ -60,7 +60,10 @@ recorded from a real forge.
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp, lists a boundary with no recording for the OS as not finished, and lists an
-authored recording as a warning. `src/RealProgramRuns.spec.ts` holds the exact list of files that may start a program another way.
+authored recording as a warning; an authored recording is listed with no recording spec until its system serves the contract. The forge's
+version is read only by running it: `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record forge-program` runs
+that forge under the scratch home in a scratch repository and stamps the recording with its install version, and verify lists it as not
+checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of files that may start a program another way.
 
 # Coding conventions
 

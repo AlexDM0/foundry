@@ -1,7 +1,8 @@
 /**
  * The judgement of the recording-stamp check: from the recordings of one OS and the installed versions, which recordings are stale (a
  * failure, naming the command that records them again), which boundaries have no recording for the OS (not finished, listed), and which
- * recordings are authored by hand (a warning until the system they stand in for exists). It makes no real call.
+ * recordings are authored by hand (a warning until the system they stand in for exists), and which recordings it cannot judge because the
+ * installed version of their system is read only by running it (listed with the command that records them again). It makes no real call.
  */
 import {
   boundaryRecordingReadingOf,
@@ -17,16 +18,18 @@ export interface RecordingStampInput {
   readonly operatingSystem:    string;
   /** The text of each recording file of this OS, by file name. */
   readonly recordingTexts:     ReadonlyMap<string, string>;
-  readonly installedVersionOf: (system: RecordedSystem) => string;
+  /** `null` for a system whose installed version only a run of it answers. */
+  readonly installedVersionOf: (system: RecordedSystem) => string | null;
 }
 
 export interface RecordingStampReport {
   readonly staleLines:      readonly string[];
   readonly unfinishedLines: readonly string[];
   readonly authoredLines:   readonly string[];
+  readonly uncheckedLines:  readonly string[];
 }
 
-type BoundaryJudgement = { readonly kind: 'stale' | 'authored'; readonly line: string } | { readonly kind: 'current' };
+type BoundaryJudgement = { readonly kind: 'stale' | 'authored' | 'unchecked'; readonly line: string } | { readonly kind: 'current' };
 
 function judgementOf(boundary: RecordedBoundary, input: RecordingStampInput, recordingText: string): BoundaryJudgement {
   const recordingPath = recordingPathOf(boundary.recordingName, input.operatingSystem);
@@ -45,6 +48,13 @@ function judgementOf(boundary: RecordedBoundary, input: RecordingStampInput, rec
     return { kind: 'authored', line: `${recordingPath} is authored by hand and waits to be recorded from a real ${stamp.system}.` };
   }
   const installedVersion = input.installedVersionOf(stamp.system);
+  if (installedVersion === null) {
+    return {
+      kind: 'unchecked',
+      line: `The recording of ${boundary.recordingName} on ${input.operatingSystem} is stamped ${stamp.system} ${stamp.systemVersion}; verify cannot read `
+        + `the installed ${stamp.system} without running it. After a change of ${stamp.system}, record it again with \`${recordCommandOf(boundary.recordingName)}\`.`,
+    };
+  }
   if (stamp.systemVersion === installedVersion) return { kind: 'current' };
   return {
     kind: 'stale',
@@ -57,6 +67,7 @@ export function recordingStampReportOf(input: RecordingStampInput): RecordingSta
   const staleLines: string[]      = [];
   const unfinishedLines: string[] = [];
   const authoredLines: string[]   = [];
+  const uncheckedLines: string[]  = [];
   const knownFileNames = new Set(input.recordedBoundaries.map(({ recordingName }) => recordingFileNameOf(recordingName)));
   for (const fileName of input.recordingTexts.keys()) {
     if (!knownFileNames.has(fileName)) staleLines.push(`${fileName} of ${input.operatingSystem} records no boundary of RECORDED_BOUNDARIES: remove it.`);
@@ -71,6 +82,12 @@ export function recordingStampReportOf(input: RecordingStampInput): RecordingSta
     const judgement = judgementOf(boundary, input, recordingText);
     if (judgement.kind === 'stale') staleLines.push(judgement.line);
     if (judgement.kind === 'authored') authoredLines.push(judgement.line);
+    if (judgement.kind === 'unchecked') uncheckedLines.push(judgement.line);
   }
-  return { staleLines, unfinishedLines, authoredLines };
+  return {
+    staleLines,
+    unfinishedLines,
+    authoredLines,
+    uncheckedLines,
+  };
 }

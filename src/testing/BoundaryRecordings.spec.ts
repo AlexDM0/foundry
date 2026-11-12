@@ -1,7 +1,8 @@
 /**
  * A recording is read only at the format version Gaia knows and only with a whole stamp; anything else is unreadable and maps nothing.
  * The list of recorded boundaries names exactly the recording specs in the repository, so no real-system spec runs unrecorded and no
- * listed one is missing. A recording spec run outside `bun run record` refuses to record.
+ * listed one is missing; a boundary without a spec is one authored by hand. A recording spec run outside `bun run record` refuses to record
+ * an answer or a system version.
  */
 import { existsSync }             from 'node:fs';
 import { join }                   from 'node:path';
@@ -13,6 +14,7 @@ import {
   RECORDED_BOUNDARIES,
   recordAnswer,
   RECORDING_SPEC_SUFFIX,
+  recordSystemVersion,
   repositoryRoot,
   type RecordingStamp,
 } from './BoundaryRecordings.ts';
@@ -53,12 +55,17 @@ describe('reading a recording', () => {
 describe('the recorded boundaries', () => {
   test('list exactly the recording specs in the repository, each beside a boundary module that exists', () => {
     const recordingSpecsOnDisk = ['src', 'page'].flatMap((folder) => [...new Bun.Glob(`${folder}/**/*${RECORDING_SPEC_SUFFIX}`).scanSync({ cwd: repositoryRoot() })]);
-    expect(recordingSpecsOnDisk.sort()).toEqual(RECORDED_BOUNDARIES.map(({ recordingSpec }) => recordingSpec).sort());
+    const listedRecordingSpecs = RECORDED_BOUNDARIES.flatMap(({ recordingSpec }) => (recordingSpec === null ? [] : [recordingSpec]));
+    expect(recordingSpecsOnDisk.sort()).toEqual(listedRecordingSpecs.sort());
     for (const boundary of RECORDED_BOUNDARIES) expect(existsSync(join(repositoryRoot(), boundary.boundaryModule))).toBe(true);
   });
 
   test('refuse to collect an answer outside the record command, naming it', () => {
     expect(existsSync(answersInProgressPathOf('process-run'))).toBe(false);
     expect(() => recordAnswer('process-run', 'run ["bun","--version"]', { verdict: 'timed-out' })).toThrow('run it with `bun run record process-run`');
+  });
+
+  test('refuse to collect a system version outside the record command, naming it', () => {
+    expect(() => recordSystemVersion('forge-program', 'install version 7')).toThrow('run it with `bun run record forge-program`');
   });
 });
