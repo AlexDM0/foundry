@@ -27,7 +27,8 @@ a command again when it printed `queued`: the Overseer applies it later.
 Ask User only what the repository does not tell you. Ask with `{{program}} pipeline ask`:
 
 - Give two to four options. The options get the letters `a`, `b`, `c` and `d` in their order.
-- Put the letter of exactly one option in `recommended`. When `multiple` is true, put one or more letters there.
+- `recommended` is a list of letters. Put the letter of exactly one option in it. When `multiple` is true, put one
+  or more letters in it.
 - Do not give an "Other" option. The Bridge lets User write a free answer.
 - Give the question a subject when it is about one node, gate, rule or finding. Only that subject waits for the answer.
 - Do not wait for the answer. Do the other work of the step.
