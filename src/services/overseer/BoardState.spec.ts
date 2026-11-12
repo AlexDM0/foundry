@@ -33,6 +33,7 @@ import {
   type MergeForecasting,
   type PipelineSources
 } from './BoardState.ts';
+import { LaunchSettings } from './LaunchSettings.ts';
 import { MainLineReads }  from './MainLineReads.ts';
 import { liveJobFixture } from './testing/LiveJobFixture.ts';
 
@@ -57,7 +58,7 @@ const EXAMPLE_STATE = {
 } as unknown as BoardState;
 
 describe('BoardStateAssembly.questionHistoryOf', () => {
-  test('keeps every decision and incident record and the records of session jobs alone', () => {
+  test('keeps every decision and incident record and the records of session jobs alone, a pipeline agent\'s among them', () => {
     const at = '2026-10-29T20:00:00+01:00';
     const records = [
       {
@@ -77,6 +78,14 @@ describe('BoardStateAssembly.questionHistoryOf', () => {
         }
       },
       {
+        kind:   'job-launched',
+        at,
+        jobId:  'J3',
+        fields: {
+          kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], attempt: 1, target: null, parentJobId: null
+        }
+      },
+      {
         kind: 'job-ended', at, jobId: 'J1', fields: { outcome: 'built' }
       },
       {
@@ -92,8 +101,8 @@ describe('BoardStateAssembly.questionHistoryOf', () => {
         kind: 'ticket-readied', at, ticketId: '005', fields: {}
       },
     ] as unknown as Parameters<typeof BoardStateAssembly.questionHistoryOf>[0];
-    expect(BoardStateAssembly.questionHistoryOf(records).map((record) => record.kind)).toEqual([
-      'job-launched', 'job-ended', 'decision-answered', 'incident-defaulted'
+    expect(BoardStateAssembly.questionHistoryOf(records).map((record) => ('jobId' in record ? `${record.kind} ${record.jobId}` : record.kind))).toEqual([
+      'job-launched J2', 'job-launched J3', 'job-ended J2', 'decision-answered', 'incident-defaulted'
     ]);
   });
 });
@@ -258,13 +267,14 @@ describe('BoardStateAssembly.boardStateOf', () => {
     expect(BoardStateAssembly.boardStateOf(readingOf(null, [], false)).pictureLimits).toBeNull();
   });
 
-  test('carries the pipeline facts beside the status keys: the stored pipeline, its live flow and every model and effort', () => {
+  test('carries the pipeline facts beside the status keys: the stored pipeline, its live flow, every model and effort and the pipeline agent\'s defaults', () => {
     const state = BoardStateAssembly.boardStateOf(readingOf(null));
     expect(state.pipeline.readingVerdict).toBe('readable');
     expect(state.pipelineSetup).toBeNull();
     expect(state.pipelineFlow?.toolbarStage).toBe('live');
     expect(state.profileRuns).toEqual([]);
     expect(state.pipelineChoices).toEqual({ models: ['haiku', 'sonnet', 'opus', 'fable'], efforts: ['low', 'medium', 'high', 'xhigh', 'max'] });
+    expect(state.pipelineAgentDefaults).toEqual(LaunchSettings.defaultAgentPairOf('pipelineAgent'));
   });
 });
 

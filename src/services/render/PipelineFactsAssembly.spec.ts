@@ -537,6 +537,11 @@ describe('the choices, profile runs and history', () => {
     expect(pipelineFactsOf(inputOf()).pipelineChoices).toEqual({ models: ['haiku', 'sonnet', 'opus', 'fable'], efforts: ['low', 'medium', 'high', 'xhigh', 'max'] });
   });
 
+  test('the pipeline agent\'s default pair, as the launch resolves it, with no draft to name one', () => {
+    const facts = pipelineFactsOf(inputOf({ defaultSettingsOf: (role) => (role === 'pipelineAgent' ? { model: 'fable', effort: 'max' } : { model: 'haiku', effort: 'low' }) }));
+    expect(facts.pipelineAgentDefaults).toEqual({ model: 'fable', effort: 'max' });
+  });
+
   test('each stored profile run as its state and elapsed time; none from a file the board cannot use', () => {
     const gateProfilesReading: GateProfilesReading = {
       verdict:  'readable',

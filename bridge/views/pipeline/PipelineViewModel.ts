@@ -13,6 +13,7 @@ import type {
   PipelineSetupFacts
 } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetup, PipelineSetupMode, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { AgentPair }                                           from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type { StepperStatus }                                       from '../../design-system/Stepper.tsx';
 import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
 import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
@@ -40,15 +41,17 @@ export interface PipelineViewJob {
 
 /** The facts the view reads; an Overseer that serves no pipeline facts leaves both out. */
 export interface PipelineViewFacts {
-  readonly project?:         string;
-  readonly jobs?:            readonly PipelineViewJob[];
-  readonly pipeline?:        AppliedPipelineFacts;
-  readonly pipelineSetup?:   PipelineSetupFacts | null;
-  readonly pipelineFlow?:    PipelineFlowFacts | null;
-  readonly profileRuns?:     readonly GateProfileRunFacts[];
-  readonly pipelineChoices?: PipelineChoices;
+  readonly project?:               string;
+  readonly jobs?:                  readonly PipelineViewJob[];
+  readonly pipeline?:              AppliedPipelineFacts;
+  readonly pipelineSetup?:         PipelineSetupFacts | null;
+  readonly pipelineFlow?:          PipelineFlowFacts | null;
+  readonly profileRuns?:           readonly GateProfileRunFacts[];
+  readonly pipelineChoices?:       PipelineChoices;
+  /** The pipeline agent's model and effort while no draft names them. */
+  readonly pipelineAgentDefaults?: AgentPair;
   /** The newest pipeline records, newest first, for the live flow's "Earlier" list. */
-  readonly pipelineHistory?: readonly LogRecord[];
+  readonly pipelineHistory?:       readonly LogRecord[];
   /** The setup landing and the first Apply count the pending tickets in it; the live flow cuts its stamps by the payload's limits. */
   readonly page?:            {
     readonly tickets:  readonly { readonly status: string }[];

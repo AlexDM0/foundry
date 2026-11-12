@@ -4,6 +4,7 @@
  * which the Overseer's instruction files own.
  */
 import type {
+  ConstitutionSources,
   MainConstitutionReading,
   PipelineCheck,
   PipelineDraftField,
@@ -11,15 +12,35 @@ import type {
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineFieldValue } from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 
-/** A User move on the setup record that the pipeline agent must hear about, or the end of User's check, as values. */
+/** One field a draft move changed, with the value the draft holds now; `null` when the draft holds none there. */
+export interface DraftFieldValue {
+  field: PipelineDraftField;
+  value: PipelineFieldValue | null;
+}
+
+/**
+ * A User move on the setup record that the pipeline agent must hear about, or the end of User's check, as values. The agent has no read of
+ * the record, so a move carries what it changed: the constitution's new text or ticks (`null` when unchanged), and each draft field the
+ * move changed with its value now.
+ */
 export type SetupMessage =
   | { kind: 'question-answered'; setupId: string; questionId: string; reply: SetupQuestionReply }
   | { kind: 'step-continued'; setupId: string; mode: PipelineSetupMode; step: PipelineSetupStep; currentStep: PipelineSetupStep }
-  | { kind: 'constitution-edited'; setupId: string; revision: number; markdownChanged: boolean; sourcesChanged: boolean }
-  | { kind: 'draft-edited'; setupId: string; draftRevision: number; editIds: readonly string[]; fields: readonly PipelineDraftField[] }
-  | { kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField }
-  | { kind: 'draft-discarded'; setupId: string; draftRevision: number }
+  | { kind: 'constitution-edited'; setupId: string; revision: number; markdown: string | null; draftedFrom: ConstitutionSources | null }
+  | {
+    kind:          'draft-edited';
+    setupId:       string;
+    draftRevision: number;
+    editIds:       readonly string[];
+    fields:        readonly PipelineDraftField[];
+    changes:       readonly DraftFieldValue[];
+  }
+  | {
+    kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField; changes: readonly DraftFieldValue[]
+  }
+  | { kind: 'draft-discarded'; setupId: string; draftRevision: number; changes: readonly DraftFieldValue[] }
   | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] }
   | { kind: 'check-requested'; setupId: string; draftRevision: number; gateNames: readonly string[] }
   /** The Overseer's, once the check ended `checked` or `cannot-run`. */

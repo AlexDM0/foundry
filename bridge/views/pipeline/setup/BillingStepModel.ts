@@ -27,12 +27,6 @@ export interface PipelineAgentMeter {
   readonly accessibleName: string;
 }
 
-/**
- * The pipeline agent's model and effort while no draft names them (PLAN 6.3, the A0Setup meter). The Overseer serves no fact of them
- * before a draft exists, so the landing shows this pair.
- */
-export const PIPELINE_AGENT_DEFAULT_SETTINGS: AgentPair = { model: 'opus', effort: 'high' };
-
 export const SUBSCRIPTION_CHOICE: BillingChoice = { mode: 'subscription', capText: '' };
 
 /** The words of each card, in the order the cards show. */
@@ -99,12 +93,22 @@ function waitingTicketsTextOf(pendingTicketCount: number): string {
   return pendingTicketCount === 1 ? '1 ticket waits for a pipeline' : `${pendingTicketCount} tickets wait for a pipeline`;
 }
 
-/** The record's draft names the pipeline agent's pair once the agent proposed one; until then the default pair shows. */
-function pipelineAgentMeterOf(record: PipelineSetup | null, choices: PipelineChoices | undefined): PipelineAgentMeter {
+/** What the meter reads: every effort in order, and the pipeline agent's default pair, both served by the Overseer. */
+export interface PipelineAgentMeterFacts {
+  readonly pipelineChoices?:       PipelineChoices;
+  readonly pipelineAgentDefaults?: AgentPair;
+}
+
+/**
+ * The record's draft names the pipeline agent's pair once the agent proposed one; until then the Overseer's default pair shows. `null`, so
+ * no meter shows, when neither names one.
+ */
+function pipelineAgentMeterOf(record: PipelineSetup | null, facts: PipelineAgentMeterFacts): PipelineAgentMeter | null {
   const named = record?.draft?.agents?.pipelineAgent;
-  const model = named?.model ?? PIPELINE_AGENT_DEFAULT_SETTINGS.model;
-  const effort = named?.effort ?? PIPELINE_AGENT_DEFAULT_SETTINGS.effort;
-  const efforts: readonly string[] = choices?.efforts ?? AGENT_EFFORTS;
+  const model = named?.model ?? facts.pipelineAgentDefaults?.model;
+  const effort = named?.effort ?? facts.pipelineAgentDefaults?.effort;
+  if (model === undefined || effort === undefined) return null;
+  const efforts: readonly string[] = facts.pipelineChoices?.efforts ?? AGENT_EFFORTS;
   return {
     model,
     effort,

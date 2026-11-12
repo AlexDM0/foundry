@@ -107,6 +107,9 @@ export const PIPELINE_CHOICES_FIXTURE: PipelineChoices = {
   efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
 };
 
+/** The pipeline agent's default pair as the Overseer serves it (PLAN 6.3). */
+export const PIPELINE_AGENT_DEFAULTS_FIXTURE: AgentPair = { model: 'opus', effort: 'high' };
+
 const WORKER_PAIR: AgentPair = { model: 'opus', effort: 'medium' };
 
 const RE_REVIEWER_PAIR: AgentPair = { model: 'sonnet', effort: 'high' };
@@ -624,13 +627,14 @@ const MINIMAL_APPLIED_PIPELINE: AppliedPipelineFacts = {
 function pipelineBoardState(changes: Partial<BoardStateDocument>): BoardStateDocument {
   const base = boardStateFixture();
   return boardStateFixture({
-    pipeline:        ABSENT_PIPELINE,
-    pipelineSetup:   null,
-    pipelineFlow:    null,
-    profileRuns:     [],
-    pipelineHistory: [],
-    pipelineChoices: PIPELINE_CHOICES_FIXTURE,
-    concurrency:     { limit: 2, agentsInFlight: 0 },
+    pipeline:              ABSENT_PIPELINE,
+    pipelineSetup:         null,
+    pipelineFlow:          null,
+    profileRuns:           [],
+    pipelineHistory:       [],
+    pipelineChoices:       PIPELINE_CHOICES_FIXTURE,
+    pipelineAgentDefaults: PIPELINE_AGENT_DEFAULTS_FIXTURE,
+    concurrency:           { limit: 2, agentsInFlight: 0 },
     ...(base.page === undefined ? {} : { page: { ...base.page, tickets: [...base.page.tickets, ...PENDING_TICKETS] } }),
     ...changes,
   });

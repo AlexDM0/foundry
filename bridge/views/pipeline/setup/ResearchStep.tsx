@@ -40,7 +40,7 @@ export function ResearchStep({
   const { record } = setup;
   const state = ResearchStepModel.researchStateOf(setup);
   const now = useTickingNow(clock, state !== 'stopped');
-  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts.pipelineChoices);
+  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts);
   const sections = ResearchStepModel.findingSectionsOf(record.findings);
   const scriptRows = ResearchStepModel.scriptRowsOf(record.findings);
   const statusLine = ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
@@ -58,14 +58,18 @@ export function ResearchStep({
             the design starts from the right facts.
           </p>
         </div>
-        <ModelEffortMeter
-          model={meter.model}
-          effort={meter.effort}
-          level={meter.level}
-          levelCount={meter.levelCount}
-          accessibleName={meter.accessibleName}
-          size="node"
-        />
+        {meter === null
+          ? null
+          : (
+            <ModelEffortMeter
+              model={meter.model}
+              effort={meter.effort}
+              level={meter.level}
+              levelCount={meter.levelCount}
+              accessibleName={meter.accessibleName}
+              size="node"
+            />
+          )}
       </section>
 
       {record.findings.length === 0

@@ -4,8 +4,9 @@
  * Board untouched; a draft edit is checked against the revision User saw and the draft it leaves against the `pipeline.json` validator;
  * an update starts from a readable stored pipeline only; a start launches the record's pipeline agent, the only launch besides `advise`,
  * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
- * words the injected context gives, and opens it again with its conversation when a stop closed it, while a record with no agent, or one
- * that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
+ * words the injected context gives, carrying what changed (the constitution's new text and ticks, each changed draft field's value now),
+ * since the agent cannot read the record, and opens it again with its conversation when a stop closed it, while a record with no agent,
+ * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
  * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
  * agent which. Git answers from the recordings of `src/testing/RecordedGit.ts`.
  */
@@ -272,14 +273,18 @@ describe('the message to the pipeline agent', () => {
     return messaged.map((record) => ({ jobId: record.jobId, message: JSON.parse(String((record.fields as { text: string }).text)) as unknown }));
   }
 
-  test('a draft edit, its Undo and a discard each message the live agent in the context\'s words, in the same hold', () => {
+  test('a draft edit, its Undo and a discard each message the live agent in the context\'s words, in the same hold, with each changed field\'s value now', () => {
     const fixture = liveAgentBoard();
 
     apply(fixture, {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: 0,
-      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:merge', value: ['test'] }],
+      edits:         [
+        { field: 'gate:test', value: { name: 'test', run: 'bun test' } },
+        { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
+        { field: 'phase-order:merge', value: ['test', 'lint'] },
+      ],
     });
     apply(fixture, { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' });
     apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
@@ -288,16 +293,38 @@ describe('the message to the pipeline agent', () => {
       {
         jobId:   'J1',
         message: {
-          kind: 'draft-edited', setupId: 'S1', draftRevision: 1, editIds: ['E1', 'E2'], fields: ['gate:test', 'phase-order:merge']
+          kind:          'draft-edited',
+          setupId:       'S1',
+          draftRevision: 1,
+          editIds:       ['E1', 'E2', 'E3'],
+          fields:        ['gate:test', 'gate:lint', 'phase-order:merge'],
+          changes:       [
+            { field: 'gate:test', value: { name: 'test', run: 'bun test' } },
+            { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
+            { field: 'phase-order:merge', value: ['test', 'lint'] },
+          ],
         }
       },
       {
         jobId:   'J1',
         message: {
-          kind: 'draft-edit-undone', setupId: 'S1', draftRevision: 2, editId: 'E1', field: 'gate:test'
+          kind:          'draft-edit-undone',
+          setupId:       'S1',
+          draftRevision: 2,
+          editId:        'E1',
+          field:         'gate:test',
+          changes:       [{ field: 'gate:test', value: null }, { field: 'phase-order:merge', value: ['lint'] }],
         }
       },
-      { jobId: 'J1', message: { kind: 'draft-discarded', setupId: 'S1', draftRevision: 3 } },
+      {
+        jobId:   'J1',
+        message: {
+          kind:          'draft-discarded',
+          setupId:       'S1',
+          draftRevision: 3,
+          changes:       [{ field: 'gate:lint', value: null }, { field: 'phase-order:merge', value: [] }],
+        }
+      },
     ]);
   });
 
@@ -327,7 +354,7 @@ describe('the message to the pipeline agent', () => {
       {
         jobId:   'J1',
         message: {
-          kind: 'constitution-edited', setupId: 'S1', revision: 1, markdownChanged: true, sourcesChanged: false
+          kind: 'constitution-edited', setupId: 'S1', revision: 1, markdown: '# Example Agency\n\n- Keep the basket fast.\n', draftedFrom: null
         }
       },
       {
@@ -337,6 +364,19 @@ describe('the message to the pipeline agent', () => {
         }
       },
     ]);
+  });
+
+  test('a constitution edit of the SOURCES ticks alone carries the new ticks and no text', () => {
+    const fixture = liveAgentBoard();
+    apply(fixture, {
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, draftedFrom: { contributing: false, research: true, installedDefault: false }
+    });
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J1',
+      message: {
+        kind: 'constitution-edited', setupId: 'S1', revision: 1, markdown: null, draftedFrom: { contributing: false, research: true, installedDefault: false }
+      }
+    }]);
   });
 
   test('a check messages the live agent with the gates the Overseer runs', () => {

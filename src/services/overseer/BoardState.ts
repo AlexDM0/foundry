@@ -266,11 +266,11 @@ function mergeQueueOf(board: Board, forecasting: MergeForecasting | null): Merge
   return { queuedTicketIds, slots, targets: targets.map((target) => mergeTargetOf(board, target, forecasting)) };
 }
 
-const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner']);
+const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner', 'pipeline-agent']);
 
 /**
  * The log records the Bridge's Questions, Assistant and Intake views read: every decision and incident record, and every record of an
- * Assistant or product-owner job, since an answered decision, a handled incident and a closed intake leave the board.
+ * Assistant, product-owner or pipeline agent job, since an answered decision, a handled incident and a closed intake leave the board.
  */
 function questionHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
   const sessionJobIds = new Set(logRecords.flatMap((record) => (record.kind === 'job-launched' && SESSION_JOB_KINDS.has(record.fields.kind) ? [record.jobId] : [])));

@@ -10,6 +10,7 @@ import type { Job }                    from '../../src/lib/tracker-model/@types/
 import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   CheckedGate,
+  ConstitutionSources,
   PipelineCheck,
   PipelineCheckResult,
   PipelineSetup,
@@ -31,7 +32,7 @@ import type {
   OverseerNotice
 } from '../../src/services/overseer/DrivePass.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/overseer/RedHandoff.ts';
-import type { SetupMessage }                                          from '../../src/shared/@types/ControlContext.ts';
+import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
 import { resourceFilePathOf }                                         from '../../src/shared/ResourceFilePath.ts';
 import { DISPATCH_PROTOCOL }                                          from '../../src/shared/constants/DispatchProtocol.ts';
@@ -358,18 +359,22 @@ function questionLinesOf(question: Readonly<SetupQuestion>): string[] {
   return [`- ${question.questionId} (${question.step}${subject}${question.multiple ? ', several options' : ''}): ${question.question}`, ...options, answerLine];
 }
 
+function sourceTicksTextOf(draftedFrom: Readonly<ConstitutionSources>): string {
+  const ticks = [
+    ...(draftedFrom.contributing ? ['CONTRIBUTING.md'] : []),
+    ...(draftedFrom.research ? ['the research findings'] : []),
+    ...(draftedFrom.installedDefault ? ['the installed default constitution'] : []),
+  ];
+  return ticks.length === 0 ? 'none' : ticks.join(', ');
+}
+
 function constitutionLinesOf(setup: Readonly<PipelineSetup>): string[] {
   const { constitution } = setup;
   if (constitution === null) return ['No constitution is drafted yet.'];
-  const ticks = [
-    ...(constitution.draftedFrom.contributing ? ['CONTRIBUTING.md'] : []),
-    ...(constitution.draftedFrom.research ? ['the research findings'] : []),
-    ...(constitution.draftedFrom.installedDefault ? ['the installed default constitution'] : []),
-  ];
   const sources = constitution.annotations.map((annotation) => `- Line "${annotation.lineText}" (occurrence ${annotation.occurrence}): `
     + `${annotation.kind}${annotation.path === null ? '' : `, ${annotation.path}`}`);
   return [
-    `Revision ${constitution.revision}. The SOURCES ticks select: ${ticks.length === 0 ? 'none' : ticks.join(', ')}.`,
+    `Revision ${constitution.revision}. The SOURCES ticks select: ${sourceTicksTextOf(constitution.draftedFrom)}.`,
     fencedBlockOf(constitution.markdown, 'markdown'),
     ...(sources.length === 0 ? ['No line names a source.'] : ['Sources:', ...sources]),
   ];
@@ -524,9 +529,24 @@ function checkEndedMessageOf(check: Readonly<PipelineCheck>): string {
   }).trim();
 }
 
+/** The constitution as User left it: the whole new text and the new SOURCES ticks, each only when the move changed it. */
+function constitutionEditedMessageOf(revision: number, markdown: string | null, draftedFrom: Readonly<ConstitutionSources> | null): string {
+  const lines = [`User changed the constitution (revision ${revision}). Keep User's change when you change the constitution.`];
+  if (markdown !== null) lines.push('The full text is now:', fencedBlockOf(markdown, 'markdown'));
+  if (draftedFrom !== null) lines.push(`The SOURCES ticks now select: ${sourceTicksTextOf(draftedFrom)}.`);
+  return lines.join('\n\n');
+}
+
+/** Each draft field the move changed, with the value the draft holds there now, so the agent never reads the draft again. */
+function draftChangesTextOf(changes: readonly DraftFieldValue[]): string {
+  if (changes.length === 0) return 'No value of the draft changed.';
+  const lines = changes.map(({ field, value }) => `- \`${field}\`: ${value === null ? 'null (the draft holds no value here)' : JSON.stringify(value)}`);
+  return ['The draft now holds these values:', ...lines].join('\n');
+}
+
 /**
- * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, which it must
- * read again, and when User's check ends.
+ * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, and when
+ * User's check ends. The agent has no read of the record, so each message carries what changed.
  */
 function setupMessageWordingOf(message: SetupMessage): string {
   switch (message.kind) {
@@ -536,17 +556,16 @@ function setupMessageWordingOf(message: SetupMessage): string {
         : `User answered ${message.questionId}: ${message.reply.text}`;
     case 'step-continued':
       return stepContinuedMessageOf(message.mode, message.step, message.currentStep);
-    case 'constitution-edited': {
-      const parts = [...(message.markdownChanged ? ['the text'] : []), ...(message.sourcesChanged ? ['the SOURCES ticks'] : [])];
-      return `User changed ${parts.join(' and ')} of the constitution (revision ${message.revision}). Read the constitution again before you change it.`;
-    }
+    case 'constitution-edited':
+      return constitutionEditedMessageOf(message.revision, message.markdown, message.draftedFrom);
     case 'draft-edited':
       return `User changed the draft pipeline (revision ${message.draftRevision}): ${message.fields.join(', ')}. `
-        + 'Read the draft again before you propose a change.';
+        + `Keep User's change when you propose a change.\n\n${draftChangesTextOf(message.changes)}`;
     case 'draft-edit-undone':
-      return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).`;
+      return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).\n\n`
+        + draftChangesTextOf(message.changes);
     case 'draft-discarded':
-      return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).`;
+      return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).\n\n${draftChangesTextOf(message.changes)}`;
     case 'setup-resumed':
       if (message.mainMovedByCommits === 0) return 'User resumed the setup. Main did not move.';
       return filledTemplateOf(promptOf('PipelineAgentMainMoved.md'), {

@@ -3,7 +3,7 @@
  * draft edits, Undo, discard, a check, Apply and its cancel. A body is untrusted JSON, so each applier checks its nested payload and
  * refuses `malformed-setup-command` before the Board is touched. A start and an advise launch the record's pipeline agent, and a start over
  * stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and a check also message the agent in the
- * same hold, in the caller's words, and open it again when a stop closed it. An update, an advise and an Apply read main's
+ * same hold, in the caller's words, with what the move changed, and open it again when a stop closed it. An update, an advise and an Apply read main's
  * `CONSTITUTION.md` through the context.
  */
 import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
@@ -12,7 +12,7 @@ import { GitProcess }                                      from '../../lib/git/G
 import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
 import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { PipelineBilling }                            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineBilling }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
   MainConstitution,
@@ -24,8 +24,10 @@ import type {
 import type { Board }                                             from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { PipelineChangeUtil }                                     from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
-import type { ControlContext, SetupMessage }                      from '../../shared/@types/ControlContext.ts';
+import type { ControlContext, DraftFieldValue, SetupMessage }     from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { mainLineOf }                                             from '../lifecycle/MergeTargets.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
@@ -288,12 +290,13 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
   if (markdown === undefined && draftedFrom === undefined) refuseMalformedSetupCommand(command.kind, 'markdown');
   const edit    = { revision, ...(markdown === undefined ? {} : { markdown }), ...(draftedFrom === undefined ? {} : { draftedFrom }) };
   const changed = change.board.editConstitution(setupId, edit, change.at);
+  const { constitution } = changed.setup;
   return messagedToTheAgent(changed, change, context, {
-    kind:            'constitution-edited',
+    kind:        'constitution-edited',
     setupId,
-    revision:        changed.setup.constitution?.revision ?? revision,
-    markdownChanged: markdown !== undefined,
-    sourcesChanged:  draftedFrom !== undefined,
+    revision:    constitution?.revision ?? revision,
+    markdown:    markdown === undefined ? null : constitution?.markdown ?? markdown,
+    draftedFrom: draftedFrom === undefined ? null : { ...(constitution?.draftedFrom ?? draftedFrom) },
   });
 }
 
@@ -308,11 +311,23 @@ export function requireStorableDraft(changed: PipelineSetupChanged): void {
   throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId: changed.setup.setupId, reason });
 }
 
+/** The draft a move works on: the record's own, else the base it starts from, the stored pipeline or the minimal one. */
+function workingDraftOf(board: Board): Pipeline {
+  return structuredClone(board.pipelineSetup()?.draft ?? board.pipeline() ?? PipelineUtil.minimalPipelineOf()) as Pipeline;
+}
+
+/** Each field a move changed with its value now, so the agent, which cannot read the record, keeps the draft as User left it. */
+function draftChangesOf(before: Readonly<Pipeline>, changed: PipelineSetupChanged): DraftFieldValue[] {
+  const after = changed.setup.draft ?? PipelineUtil.minimalPipelineOf();
+  return PipelineChangeUtil.changesBetween(before, after, false).map(({ field, after: value }) => ({ field, value }));
+}
+
 /** The edits land together at the next revision. */
 function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId  = textFieldOf(command, 'setupId');
   const revision = revisionFieldOf(command, 'draftRevision');
   const edits    = draftEditsFieldOf(command).map((edit) => ({ edit, summary: '' }));
+  const before   = workingDraftOf(change.board);
   const changed  = change.board.editDraft(setupId, { by: 'user', revision, edits }, change.at);
   requireStorableDraft(changed);
   const newEdits = changed.setup.edits.slice(-edits.length);
@@ -322,25 +337,30 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
     draftRevision: changed.setup.draftRevision,
     editIds:       newEdits.map((edit) => edit.editId),
     fields:        newEdits.map((edit) => edit.field),
+    changes:       draftChangesOf(before, changed),
   });
 }
 
 function undoDraftEdit(command: CommandOf<'pipeline-draft-undo'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const editId  = textFieldOf(command, 'editId');
+  const before  = workingDraftOf(change.board);
   const changed = change.board.undoDraftEdit(setupId, editId, change.at);
   requireStorableDraft(changed);
   const undone  = changed.setup.edits.find((edit) => edit.editId === editId);
   if (undone === undefined) return changed;
   return messagedToTheAgent(changed, change, context, {
-    kind: 'draft-edit-undone', setupId, draftRevision: changed.setup.draftRevision, editId, field: undone.field
+    kind: 'draft-edit-undone', setupId, draftRevision: changed.setup.draftRevision, editId, field: undone.field, changes: draftChangesOf(before, changed)
   });
 }
 
 function discardDraft(command: CommandOf<'pipeline-draft-discard'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
+  const before  = workingDraftOf(change.board);
   const changed = change.board.discardDraft(setupId, change.at);
-  return messagedToTheAgent(changed, change, context, { kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision });
+  return messagedToTheAgent(changed, change, context, {
+    kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision, changes: draftChangesOf(before, changed)
+  });
 }
 
 /** The Overseer runs the queued check at its next pass; the agent hears which gates it runs. */

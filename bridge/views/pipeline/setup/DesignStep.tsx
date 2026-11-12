@@ -76,7 +76,7 @@ export function DesignStep({
   const { record } = setup;
   const now = useTickingNow(clock, false);
   const agentState = DesignStepModel.agentStateOf(setup);
-  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts.pipelineChoices);
+  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts);
   const changeList = facts.pipelineFlow?.changeList ?? [];
   const apply = DesignStepModel.applyAvailabilityOf(setup.openQuestionCount);
   return (
@@ -113,14 +113,18 @@ export function DesignStep({
                     <span className="bridge-pipeline-design-status-dot" aria-hidden="true" />
                     {DesignStepModel.statusLineOf(setup)}
                   </span>
-                  <ModelEffortMeter
-                    model={meter.model}
-                    effort={meter.effort}
-                    level={meter.level}
-                    levelCount={meter.levelCount}
-                    accessibleName={meter.accessibleName}
-                    size="node"
-                  />
+                  {meter === null
+                    ? null
+                    : (
+                      <ModelEffortMeter
+                        model={meter.model}
+                        effort={meter.effort}
+                        level={meter.level}
+                        levelCount={meter.levelCount}
+                        accessibleName={meter.accessibleName}
+                        size="node"
+                      />
+                    )}
                 </div>
                 <PipelineAgentPanel
                   setup={setup}

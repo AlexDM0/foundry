@@ -1,6 +1,7 @@
 /**
  * The message a User setup move sends the pipeline agent. What matters: every kind is worded, an answer carries the letters or the free
- * text as given, and an edit names the fields and the revision, so the agent knows what to read again before its next proposal. A Continue
+ * text as given, and an edit names the fields and the revision and carries what changed: the constitution's whole new text and ticks, each
+ * draft field with its value now, since the agent has no read of the record and would otherwise lose User's change. A Continue
  * carries the next step's block, since the session works on in the same conversation, unless that block is the one it already works
  * under; a resume names how far main moved, in the singular for one commit, and the paths that changed. A check's request names the gates
  * it runs, and its end gives the agent each gate's verdict, its runs and the end of its output, or why the check could not run.
@@ -22,25 +23,69 @@ test.each<[SetupMessage, string]>([
   }, 'User completed the billing step. The current step is research.'],
   [
     {
-      kind: 'constitution-edited', setupId: 'S1', revision: 4, markdownChanged: true, sourcesChanged: true
+      kind: 'draft-edit-undone', setupId: 'S1', draftRevision: 6, editId: 'E6', field: 'gate:lint', changes: [{ field: 'gate:lint', value: null }]
     },
-    'User changed the text and the SOURCES ticks of the constitution (revision 4). Read the constitution again before you change it.',
+    'User undid edit E6 (gate:lint) of the draft pipeline (revision 6).\n\n'
+      + 'The draft now holds these values:\n- `gate:lint`: null (the draft holds no value here)',
   ],
   [
     {
-      kind: 'draft-edited', setupId: 'S1', draftRevision: 5, editIds: ['E6', 'E7'], fields: ['gate:lint', 'phase-order:build']
+      kind: 'draft-discarded', setupId: 'S1', draftRevision: 7, changes: []
     },
-    'User changed the draft pipeline (revision 5): gate:lint, phase-order:build. Read the draft again before you propose a change.',
+    'User discarded all proposed changes to the draft pipeline (revision 7).\n\nNo value of the draft changed.',
   ],
-  [
-    {
-      kind: 'draft-edit-undone', setupId: 'S1', draftRevision: 6, editId: 'E6', field: 'gate:lint'
-    },
-    'User undid edit E6 (gate:lint) of the draft pipeline (revision 6).',
-  ],
-  [{ kind: 'draft-discarded', setupId: 'S1', draftRevision: 7 }, 'User discarded all proposed changes to the draft pipeline (revision 7).'],
 ])('%o is worded for the agent', (message, wording) => {
   expect(OverseerWording.setupMessageWordingOf(message)).toBe(wording);
+});
+
+test('a constitution edit carries the whole new text and the new SOURCES ticks, so the agent keeps User\'s change without a read', () => {
+  const wording = OverseerWording.setupMessageWordingOf({
+    kind:        'constitution-edited',
+    setupId:     'S1',
+    revision:    4,
+    markdown:    '## Rules\n\n- Example rule with ``` a fence.\n',
+    draftedFrom: { contributing: true, research: false, installedDefault: true },
+  });
+  expect(wording).toBe([
+    'User changed the constitution (revision 4). Keep User\'s change when you change the constitution.',
+    'The full text is now:',
+    '````markdown\n## Rules\n\n- Example rule with ``` a fence.\n````',
+    'The SOURCES ticks now select: CONTRIBUTING.md, the installed default constitution.',
+  ].join('\n\n'));
+  expect(wording).not.toContain('again');
+});
+
+test('a constitution edit of the ticks alone carries no text, and one of the text alone no ticks', () => {
+  const ticksOnly = OverseerWording.setupMessageWordingOf({
+    kind: 'constitution-edited', setupId: 'S1', revision: 5, markdown: null, draftedFrom: { contributing: false, research: false, installedDefault: false }
+  });
+  expect(ticksOnly).toBe('User changed the constitution (revision 5). Keep User\'s change when you change the constitution.\n\nThe SOURCES ticks now select: none.');
+  const textOnly = OverseerWording.setupMessageWordingOf({
+    kind: 'constitution-edited', setupId: 'S1', revision: 6, markdown: 'Example text.', draftedFrom: null
+  });
+  expect(textOnly).not.toContain('SOURCES');
+  expect(textOnly).toContain('```markdown\nExample text.\n```');
+});
+
+test('a draft edit carries each changed field with its value now as JSON, so the agent never reads the draft again', () => {
+  const wording = OverseerWording.setupMessageWordingOf({
+    kind:          'draft-edited',
+    setupId:       'S1',
+    draftRevision: 5,
+    editIds:       ['E6', 'E7'],
+    fields:        ['gate:lint', 'phase-order:build'],
+    changes:       [
+      { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
+      { field: 'phase-order:build', value: ['lint', 'test'] },
+    ],
+  });
+  expect(wording).toBe([
+    'User changed the draft pipeline (revision 5): gate:lint, phase-order:build. Keep User\'s change when you propose a change.',
+    '',
+    'The draft now holds these values:',
+    '- `gate:lint`: {"name":"lint","run":"bun run lint"}',
+    '- `phase-order:build`: ["lint","test"]',
+  ].join('\n'));
 });
 
 test.each([

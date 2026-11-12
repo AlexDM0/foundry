@@ -955,7 +955,10 @@ question and edit id is read in either case (`s1`, `S1`).
 
 An answer, a constitution edit, a draft edit, an Undo, a discard, a check and a Continue also message the record's
 pipeline agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts
-from User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. A record with no
+from User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. The agent cannot read
+the record, so the message carries what the move changed: a constitution edit the whole new text and the new SOURCES
+ticks, each when it changed; a draft edit, an Undo and a discard each draft field the move changed, with the value the
+draft holds there now (`null` for none). A record with no
 agent, or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
 `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming the
 field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.

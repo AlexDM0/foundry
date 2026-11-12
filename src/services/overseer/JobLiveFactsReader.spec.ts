@@ -396,6 +396,14 @@ describe('the last line', () => {
     expect(pictureReads).toBe(0);
   });
 
+  test('a pipeline agent\'s newest words are its last line, as a product owner\'s are', () => {
+    const pipelineAgent = liveJobFixture({
+      id: 'J7', kind: 'pipeline-agent', role: 'pipeline-agent', target: null
+    });
+    expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Proposed two gates.')]], { ...pipelineAgent, watcherInstance: 2 }, userMessage).lastLine)
+      .toEqual({ role: 'assistant', text: 'Proposed two gates.', at: '2026-10-29T12:00:05Z' });
+  });
+
   test('a build has no last line, and a session that said nothing yet has none', () => {
     expect(liveFactsOfLoggedLines([[assistantTurn('message-1', null, 'Reading the code.')]]).lastLine).toBeNull();
     expect(liveFactsOfLoggedLines([[chat('Example intake prompt from the Overseer')]], productOwner).lastLine).toBeNull();

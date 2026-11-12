@@ -80,7 +80,7 @@ export interface JobLiveFacts {
   turn:                   JobTurn | null;
   /** User's `job message` records its session has not taken yet. */
   messagesWaiting:        number;
-  /** For an Assistant or product-owner job only; `null` for every other job, and before the session said anything. */
+  /** For an Assistant, product-owner or pipeline agent job only; `null` for every other job, and before the session said anything. */
   lastLine:               SessionLastLine | null;
 }
 
@@ -106,7 +106,7 @@ type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messa
 
 const BUDGETED_JOB_KINDS: readonly string[] = ['build', 'review'];
 
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
 
 const TRANSCRIPT_START = { instance: 1, sequence: 0 };
 

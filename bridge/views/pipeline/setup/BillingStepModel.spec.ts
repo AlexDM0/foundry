@@ -6,8 +6,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { pipelineBoardStateOf } from '../../../testing/PipelineFixture.ts';
-import { BillingStepModel }     from './BillingStepModel.ts';
+import { PIPELINE_CHOICES_FIXTURE, pipelineBoardStateOf } from '../../../testing/PipelineFixture.ts';
+import { BillingStepModel }                               from './BillingStepModel.ts';
 
 const {
   billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf
@@ -75,19 +75,25 @@ describe('the waiting tickets', () => {
 });
 
 describe('the pipeline agent\'s meter', () => {
-  test('shows opus and high over five bars before any draft', () => {
-    expect(pipelineAgentMeterOf(null, pipelineBoardStateOf('A0').pipelineChoices)).toEqual({
+  test('shows the Overseer\'s default pair over five bars before any draft', () => {
+    expect(pipelineAgentMeterOf(null, pipelineBoardStateOf('A0'))).toEqual({
       model: 'opus', effort: 'high', level: 3, levelCount: 5, accessibleName: 'Pipeline agent: opus, high effort',
     });
+    expect(pipelineAgentMeterOf(null, { ...pipelineBoardStateOf('A0'), pipelineAgentDefaults: { model: 'sonnet', effort: 'low' } }))
+      .toMatchObject({ model: 'sonnet', effort: 'low', level: 1 });
   });
 
   test('keeps five bars when the Overseer serves no choices', () => {
-    expect(pipelineAgentMeterOf(null, undefined).levelCount).toBe(5);
+    expect(pipelineAgentMeterOf(null, { pipelineAgentDefaults: { model: 'opus', effort: 'high' } })?.levelCount).toBe(5);
+  });
+
+  test('shows no meter when neither a draft nor the Overseer names a pair', () => {
+    expect(pipelineAgentMeterOf(null, { pipelineChoices: PIPELINE_CHOICES_FIXTURE })).toBeNull();
   });
 
   test('shows the pair a draft names for the pipeline agent', () => {
     const record = setupRecordOf('A0b-running');
     const draft = record.draft === null ? null : { ...record.draft, agents: { pipelineAgent: { model: 'fable', effort: 'max' } } } as const;
-    expect(pipelineAgentMeterOf({ ...record, draft }, undefined)).toMatchObject({ model: 'fable', effort: 'max', level: 5 });
+    expect(pipelineAgentMeterOf({ ...record, draft }, {})).toMatchObject({ model: 'fable', effort: 'max', level: 5 });
   });
 });

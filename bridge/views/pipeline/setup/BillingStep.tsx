@@ -99,7 +99,7 @@ function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBack
 export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepProps) {
   const record = facts.pipelineSetup?.record ?? null;
   const [choice, setChoice] = useState<BillingChoice>(() => BillingStepModel.billingChoiceOf(record?.billing ?? null));
-  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts.pipelineChoices);
+  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts);
   const pendingTicketCount = BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? []);
   const billingHeadingId = useId();
   const agentHeadingId = useId();
@@ -138,14 +138,18 @@ export function BillingStep({ facts, replacesUnreadablePipeline }: BillingStepPr
           <div className="bridge-pipeline-setup-agent-text">
             <span className="bridge-pipeline-setup-agent-title">
               <b>Work it out with the pipeline agent</b>
-              <ModelEffortMeter
-                model={meter.model}
-                effort={meter.effort}
-                level={meter.level}
-                levelCount={meter.levelCount}
-                accessibleName={meter.accessibleName}
-                size="node"
-              />
+              {meter === null
+                ? null
+                : (
+                  <ModelEffortMeter
+                    model={meter.model}
+                    effort={meter.effort}
+                    level={meter.level}
+                    levelCount={meter.levelCount}
+                    accessibleName={meter.accessibleName}
+                    size="node"
+                  />
+                )}
             </span>
             <ol className="bridge-pipeline-setup-agent-steps">
               {HOW_IT_WORKS_LINES.map((line) => <li key={line}>{line}</li>)}

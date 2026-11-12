@@ -46,7 +46,7 @@ export function ConstitutionStep({
   const mode = ConstitutionStepModel.stepModeOf(record.mode);
   const agentState = ConstitutionStepModel.agentStateOf(setup);
   const now = useTickingNow(clock, false);
-  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts.pipelineChoices);
+  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts);
   const outlineText = ConstitutionStepModel.outlineTextOf(setup.constitutionOutline);
   return (
     <div className="bridge-pipeline-constitution" data-mode={mode} data-state={agentState}>
@@ -90,14 +90,18 @@ export function ConstitutionStep({
           <div className="bridge-pipeline-constitution-aside-head">
             <span className="bridge-pipeline-constitution-status-dot" data-state={agentState} aria-hidden="true" />
             <b className="bridge-pipeline-constitution-aside-title">Pipeline agent</b>
-            <ModelEffortMeter
-              model={meter.model}
-              effort={meter.effort}
-              level={meter.level}
-              levelCount={meter.levelCount}
-              accessibleName={meter.accessibleName}
-              size="node"
-            />
+            {meter === null
+              ? null
+              : (
+                <ModelEffortMeter
+                  model={meter.model}
+                  effort={meter.effort}
+                  level={meter.level}
+                  levelCount={meter.levelCount}
+                  accessibleName={meter.accessibleName}
+                  size="node"
+                />
+              )}
           </div>
           <div className="bridge-pipeline-constitution-aside-body">
             <section className="bridge-pipeline-constitution-readers" aria-label="Read by">

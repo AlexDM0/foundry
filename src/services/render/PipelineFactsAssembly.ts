@@ -96,12 +96,14 @@ export interface PipelineFactsInput {
 }
 
 export interface PipelineFacts {
-  pipeline:        AppliedPipelineFacts;
-  pipelineSetup:   PipelineSetupFacts | null;
-  pipelineFlow:    PipelineFlowFacts | null;
-  profileRuns:     GateProfileRunFacts[];
-  pipelineHistory: LogRecord[];
-  pipelineChoices: PipelineChoices;
+  pipeline:              AppliedPipelineFacts;
+  pipelineSetup:         PipelineSetupFacts | null;
+  pipelineFlow:          PipelineFlowFacts | null;
+  profileRuns:           GateProfileRunFacts[];
+  pipelineHistory:       LogRecord[];
+  pipelineChoices:       PipelineChoices;
+  /** The pipeline agent's model and effort while no draft names them, which the setup steps show. */
+  pipelineAgentDefaults: AgentPair;
 }
 
 const NODE_IDS = PIPELINE_FLOW_NODE_IDS;
@@ -422,11 +424,12 @@ function pipelineHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
 export function pipelineFactsOf(input: PipelineFactsInput): PipelineFacts {
   const setup = input.pipelineSetupReading.verdict === 'readable' ? input.pipelineSetupReading.setup : null;
   return {
-    pipeline:        appliedPipelineOf(input),
-    pipelineSetup:   setup === null ? null : setupFactsOf(input, setup),
-    pipelineFlow:    pipelineFlowOf(input, setup),
-    profileRuns:     profileRunsOf(input.gateProfilesReading),
-    pipelineHistory: pipelineHistoryOf(input.logRecords),
-    pipelineChoices: { models: [...AGENT_MODELS], efforts: [...AGENT_EFFORTS] },
+    pipeline:              appliedPipelineOf(input),
+    pipelineSetup:         setup === null ? null : setupFactsOf(input, setup),
+    pipelineFlow:          pipelineFlowOf(input, setup),
+    profileRuns:           profileRunsOf(input.gateProfilesReading),
+    pipelineHistory:       pipelineHistoryOf(input.logRecords),
+    pipelineChoices:       { models: [...AGENT_MODELS], efforts: [...AGENT_EFFORTS] },
+    pipelineAgentDefaults: input.defaultSettingsOf('pipelineAgent'),
   };
 }
