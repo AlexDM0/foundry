@@ -1,3 +1,4 @@
+import type { Pipeline } from '../@types/Pipeline.ts';
 import type {
   ReviewedRound,
   ReviewedRoundWithRework,
@@ -21,6 +22,7 @@ function refusedVerdictOf(refusal: RoundRefusal): RoundVerdict {
  */
 function nextRoundVerdictOf(earlierRounds: readonly ReviewedRound[], current: ReviewedRoundWithRework, limits: RoundLimits): RoundVerdict {
   const requestedRound = current.round + 1;
+  if (limits.REWORK_ROUND_THRESHOLD_LINES === null) return refusedVerdictOf({ reason: 're-review-off', requestedRound });
   if (current.reworkedLines <= limits.REWORK_ROUND_THRESHOLD_LINES) {
     return refusedVerdictOf({ reason: 'rework-not-over-threshold', requestedRound, reworkedLines: current.reworkedLines });
   }
@@ -45,7 +47,17 @@ function nextRoundVerdictOf(earlierRounds: readonly ReviewedRound[], current: Re
   return { granted: true };
 }
 
+/**
+ * The limits a round verdict reads on this pipeline: its review's re-review sets the rework threshold, and a review with none grants no
+ * round. With no pipeline, the threshold of `fallback` holds.
+ */
+function roundLimitsOf(pipeline: Readonly<Pipeline> | null, fallback: RoundLimits): RoundLimits {
+  if (pipeline === null) return fallback;
+  return { ...fallback, REWORK_ROUND_THRESHOLD_LINES: pipeline.review?.reReview?.thresholdLines ?? null };
+}
+
 export const RoundVerdictUtil = {
   findingsOfRoundsBefore,
   nextRoundVerdictOf,
+  roundLimitsOf,
 } as const;

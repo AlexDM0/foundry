@@ -306,22 +306,25 @@ those fields measure is in [Measurement](measurement.md).
 ### Round verdicts
 
 **A large rework is itself unreviewed, so a fresh reviewer checks it.** `RoundVerdictUtil.nextRoundVerdictOf` decides
-whether a review with no `does-not-hold` claim earns another round: rework past `REWORK_ROUND_THRESHOLD_LINES`, and from
-the later rounds on, findings that converge.
+whether a review with no `does-not-hold` claim earns another round: rework past the threshold, and from the later rounds
+on, findings that converge. `RoundVerdictUtil.roundLimitsOf` takes the threshold from the pipeline's
+`review.reReview.thresholdLines`; a review with no `reReview` grants no round, and only with no pipeline does
+`REWORK_ROUND_THRESHOLD_LINES` hold.
 
 ![Strip of one ticket across five jobs. Review J2, round 1, reworks past the threshold and is granted round 2; review J3, round 2, has a claim that does not hold, so the builder session returns as J4. Review J5 starts again at round 1, reports no failed claim, stays under the threshold and queues the ticket for its Airlock.](../figures/build-and-review/review-rounds.png)
 
 *Notice J5: the round number restarts at `ticket-finished`, because only rounds granted since then count.*
 
 <details>
-<summary>The six tests</summary>
+<summary>The seven tests</summary>
 
 Tests run top to bottom. A failed test refuses with the code on its right. Row 2 grants at once when true. A round
 passing every test is granted.
 
 | Test | Refused with, when the test fails |
 | --- | --- |
-| Rework is over `REWORK_ROUND_THRESHOLD_LINES` | `rework-not-over-threshold` |
+| The pipeline's review has a `reReview` | `re-review-off` |
+| Rework is over the threshold | `rework-not-over-threshold` |
 | The requested round is `ROUND_GRANTED_ON_REWORK_ALONE` | Not a refusal: a true test grants the round |
 | The previous round is recorded | `previous-round-not-reviewed-in-this-run` |
 | Findings shrank by `FINDINGS_SHRINK_FACTOR_PER_ROUND` | `findings-not-halved` |

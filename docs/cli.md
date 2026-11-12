@@ -1394,10 +1394,15 @@ Each return to the builder counts with its red handoffs, so the return past the 
 `red-resumes-spent`. The review job checks only once, against the tip it recorded: a target that moves after the check
 is merged in by the Airlock.
 
+The threshold is the `pipeline.json` `review.reReview.thresholdLines`. A review with no `reReview` grants no further
+round at any rework, and shows no `rounds-not-converging` notice. With no readable `pipeline.json`, the threshold is
+`REWORK_ROUND_THRESHOLD_LINES` (750). Round 2 needs only the rework over the threshold; from round 3 on, the findings
+must also converge.
+
 | the review | what the Overseer does |
 | --- | --- |
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
-| reworked over `REWORK_ROUND_THRESHOLD_LINES` (750) and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on |
+| reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
 | claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling ([as built](reference/known-gaps.md#gap-waiver-answer-has-no-effect)) |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target |

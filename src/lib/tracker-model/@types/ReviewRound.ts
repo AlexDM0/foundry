@@ -15,6 +15,7 @@ export interface ReviewedRoundWithRework<Finding extends RoundFinding = RoundFin
 }
 
 export type RoundRefusal =
+  | { reason: 're-review-off'; requestedRound: number }
   | { reason: 'rework-not-over-threshold'; requestedRound: number; reworkedLines: number }
   | { reason: 'previous-round-not-reviewed-in-this-run'; requestedRound: number }
   | { reason: 'findings-not-halved'; requestedRound: number; findingCount: number; previousFindingCount: number }
@@ -25,7 +26,8 @@ export type RoundVerdict = { granted: true } | { granted: false; refusal: RoundR
 
 /** The thresholds a round verdict reads, which arrive in the lifecycle's `limits`. */
 export interface RoundLimits {
-  REWORK_ROUND_THRESHOLD_LINES:     number;
+  /** `null` when the pipeline's review has no re-review: then no round is granted at any rework. */
+  REWORK_ROUND_THRESHOLD_LINES:     number | null;
   ROUND_GRANTED_ON_REWORK_ALONE:    number;
   FINDINGS_SHRINK_FACTOR_PER_ROUND: number;
 }

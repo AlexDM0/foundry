@@ -12,6 +12,7 @@ import { GitWorktrees }                        from '../../lib/git/GitWorktrees.
 import type { DecisionAnswer }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                       from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { ReviewClaim, ReviewFinding }     from '../../lib/tracker-model/@types/ReviewRecord.ts';
 import type { RoundLimits }                    from '../../lib/tracker-model/@types/ReviewRound.ts';
@@ -33,6 +34,7 @@ export interface ReviewPassRequest {
   headTree:          string;
   /** The overseer-written folder of the job, where its waiver proposals wait for User's answer. */
   jobFolder:         string;
+  /** The fallback thresholds: the board's pipeline sets the rework threshold (`RoundVerdictUtil.roundLimitsOf`). */
   limits:            RoundLimits;
   decisionWordingOf: (draft: DecisionDraft) => DecisionWording;
 }
@@ -189,7 +191,8 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   const proposals = listOf(report, 'claims')
     .filter((claim) => claim['result'] === 'waiver-proposed')
     .map((claim) => ({ item: String(claim['item']).trim(), reason: String(claim['note'] ?? '').trim() }));
-  const verdict = failed ? null : RoundVerdictUtil.nextRoundVerdictOf(recordedRoundsOf(records, ticketId), { round, findings, reworkedLines }, request.limits);
+  const roundLimits = RoundVerdictUtil.roundLimitsOf(board.pipeline(), request.limits);
+  const verdict = failed ? null : RoundVerdictUtil.nextRoundVerdictOf(recordedRoundsOf(records, ticketId), { round, findings, reworkedLines }, roundLimits);
   const move: ReviewPassMove = failed ? 'fixer' : verdict?.granted === true ? 'fresh-reviewer' : proposals.length > 0 ? 'waiver' : 'merge-queued';
   const recordedVerdict = {
     'fixer': 'does-not-hold', 'fresh-reviewer': 'round-requested', 'waiver': 'not-released', 'merge-queued': 'released'
@@ -297,15 +300,20 @@ function answerWaiver(
 /** A failed pass takes no round verdict, and a granted one is converging: neither was refused another round. */
 const VERDICTS_TAKING_NO_REFUSED_ROUND: readonly string[] = ['round-requested', 'does-not-hold'];
 
-/** The tickets whose newest review reworked past the threshold yet was refused another round: the findings are not converging. */
-function nonConvergingTicketIdsOf(records: readonly LogRecord[], limits: RoundLimits): string[] {
+/**
+ * The tickets whose newest review reworked past the threshold yet was refused another round: the findings are not converging. A pipeline
+ * whose review has no re-review grants no round, so no ticket is refused one.
+ */
+function nonConvergingTicketIdsOf(records: readonly LogRecord[], pipeline: Readonly<Pipeline> | null, fallbackLimits: RoundLimits): string[] {
+  const thresholdLines = RoundVerdictUtil.roundLimitsOf(pipeline, fallbackLimits).REWORK_ROUND_THRESHOLD_LINES;
+  if (thresholdLines === null) return [];
   const newestByTicketId = new Map<string, Extract<LogRecord, { kind: 'review-recorded' }>>();
   for (const record of records) {
     if (record.kind === 'review-recorded') newestByTicketId.set(record.ticketId, record);
     if (record.kind === 'ticket-delivered' || record.kind === 'ticket-abandoned') newestByTicketId.delete(record.ticketId);
   }
   return [...newestByTicketId.values()]
-    .filter((record) => record.fields.totalReworkedCodeLines > limits.REWORK_ROUND_THRESHOLD_LINES && !VERDICTS_TAKING_NO_REFUSED_ROUND.includes(record.fields.verdict))
+    .filter((record) => record.fields.totalReworkedCodeLines > thresholdLines && !VERDICTS_TAKING_NO_REFUSED_ROUND.includes(record.fields.verdict))
     .map((record) => record.ticketId)
     .sort();
 }

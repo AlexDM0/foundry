@@ -382,8 +382,10 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A `SKILL.md` `description` is its trigger, naming the words a user says. Skill files cite only commands, paths in
   a tracked repository, or files beside them; naming a skill the host may offer, such as `grill-me`, is no citation.
 - `skills/agent-progress-orchestrate/` repeats nothing from `skills/agent-po/`, writes rules as instructions,
-  and never restates what the Overseer decides. Call budgets and the rework threshold are `DISPATCH_PROTOCOL`
+  and never restates what the Overseer decides. Call budgets are `DISPATCH_PROTOCOL`
   (`src/shared/constants/DispatchProtocol.ts`), stated by the Overseer's job prompts and never by an installed file.
+  The rework threshold is the pipeline's `review.reReview.thresholdLines`; with no re-review, no round is granted. Only
+  with no pipeline, `DISPATCH_PROTOCOL` gives the default through `LIFECYCLE_LIMITS`. No installed file states it.
   Neither skill nor the installed guidance names a by-hand lifecycle verb but `ticket deliver --by-hand`, held by
   `cli/HelpText.spec.ts`.
 - `init` and `update` copy both into the tracked repository's git-ignored `.claude/skills/`, never globally, and

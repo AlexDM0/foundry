@@ -1118,7 +1118,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           usageResetsAt,
           attributionTicketIds:     JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
           agentConfigHeldTicketIds: agentConfigHold.held,
-          nonConvergingTicketIds:   ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), LIFECYCLE_LIMITS),
+          nonConvergingTicketIds:   ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), change.board.pipeline(), LIFECYCLE_LIMITS),
         };
       },
     });

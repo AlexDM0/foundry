@@ -2,10 +2,12 @@
  * Whether a reviewer's call for another round is granted. What the run relies on is the threshold's edge (exactly the protocol's count is
  * refused), that round 2 asks for nothing but the count, and that from round 3 each convergence rule refuses on its own, with the refusal
  * naming what it found: classes and files are judged against every earlier round, the halving against the previous round's first record, and a
- * missing previous round is refused rather than judged against nothing.
+ * missing previous round is refused rather than judged against nothing. The pipeline sets the threshold: a review with no re-review grants no
+ * round at any rework, its re-review's `thresholdLines` is the threshold, and with no pipeline the fallback's threshold holds.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { Pipeline }           from '../@types/Pipeline.ts';
 import type { ReviewFindingClass } from '../@types/ReviewRecord.ts';
 import type {
   ReviewedRound,
@@ -16,9 +18,10 @@ import type {
 import { RoundVerdictUtil } from './RoundVerdictUtil.ts';
 
 /** The values `src/shared/constants/LifecycleLimits.ts` passes in, which the tracker model may not import. */
-const ROUND_LIMITS: RoundLimits = { REWORK_ROUND_THRESHOLD_LINES: 750, ROUND_GRANTED_ON_REWORK_ALONE: 2, FINDINGS_SHRINK_FACTOR_PER_ROUND: 2 };
+const THRESHOLD_LINES = 750;
+const ROUND_LIMITS: RoundLimits = { REWORK_ROUND_THRESHOLD_LINES: THRESHOLD_LINES, ROUND_GRANTED_ON_REWORK_ALONE: 2, FINDINGS_SHRINK_FACTOR_PER_ROUND: 2 };
 
-const OVER_THE_THRESHOLD_LINES = ROUND_LIMITS.REWORK_ROUND_THRESHOLD_LINES + 1;
+const OVER_THE_THRESHOLD_LINES = THRESHOLD_LINES + 1;
 
 interface ReviewFinding {
   class: ReviewFindingClass;
@@ -37,10 +40,10 @@ const ROUND_ONE_FINDINGS = [finding('convention', 'a.ts'), finding('correctness'
 
 describe('the rework threshold', () => {
   test('rework of exactly the threshold is refused, naming the count and the round asked for', () => {
-    const current = { round: 1, findings: ROUND_ONE_FINDINGS, reworkedLines: ROUND_LIMITS.REWORK_ROUND_THRESHOLD_LINES };
+    const current = { round: 1, findings: ROUND_ONE_FINDINGS, reworkedLines: THRESHOLD_LINES };
     expect(nextRoundVerdictOf([current], current)).toEqual({
       granted: false,
-      refusal: { reason: 'rework-not-over-threshold', requestedRound: 2, reworkedLines: ROUND_LIMITS.REWORK_ROUND_THRESHOLD_LINES },
+      refusal: { reason: 'rework-not-over-threshold', requestedRound: 2, reworkedLines: THRESHOLD_LINES },
     });
   });
 
@@ -141,5 +144,39 @@ describe('round 3 and later', () => {
     const secondRoundTwo = { round: 2, findings: [finding('acceptance-gap', 'a.ts')] };
     const current = { round: 3, findings: [finding('rebase', 'a.ts'), finding('out-of-scope', 'b.ts')], reworkedLines: OVER_THE_THRESHOLD_LINES };
     expect(nextRoundVerdictOf([roundOne, firstRoundTwo, secondRoundTwo, current], current)).toEqual({ granted: true });
+  });
+});
+
+describe('the threshold the pipeline sets', () => {
+  const pipelineWithoutReReview: Pipeline = {
+    version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'Review' }
+  };
+  const pipelineWithThreshold = (thresholdLines: number): Pipeline => ({ ...pipelineWithoutReReview, review: { name: 'Review', reReview: { thresholdLines } } });
+  const roundOneWith = (reworkedLines: number): ReviewedRoundWithRework => ({ round: 1, findings: ROUND_ONE_FINDINGS, reworkedLines });
+
+  test('a review with no re-review grants no round at any rework', () => {
+    const limits = RoundVerdictUtil.roundLimitsOf(pipelineWithoutReReview, ROUND_LIMITS);
+    for (const reworkedLines of [0, OVER_THE_THRESHOLD_LINES, Number.MAX_SAFE_INTEGER]) {
+      expect(RoundVerdictUtil.nextRoundVerdictOf([], roundOneWith(reworkedLines), limits)).toEqual({ granted: false, refusal: { reason: 're-review-off', requestedRound: 2 } });
+    }
+  });
+
+  test('a pipeline with no review step grants no round either', () => {
+    const { review: _review, ...pipelineWithoutReview } = pipelineWithoutReReview;
+    expect(RoundVerdictUtil.roundLimitsOf(pipelineWithoutReview, ROUND_LIMITS).REWORK_ROUND_THRESHOLD_LINES).toBeNull();
+  });
+
+  test('a re-review threshold of 800 is honoured: 800 lines are refused and 801 granted', () => {
+    const limits = RoundVerdictUtil.roundLimitsOf(pipelineWithThreshold(800), ROUND_LIMITS);
+    expect(RoundVerdictUtil.nextRoundVerdictOf([], roundOneWith(800), limits)).toMatchObject({ granted: false, refusal: { reason: 'rework-not-over-threshold' } });
+    expect(RoundVerdictUtil.nextRoundVerdictOf([], roundOneWith(801), limits)).toEqual({ granted: true });
+  });
+
+  test('with no pipeline the fallback threshold holds', () => {
+    expect(RoundVerdictUtil.roundLimitsOf(null, ROUND_LIMITS)).toEqual(ROUND_LIMITS);
+  });
+
+  test('only the threshold comes from the pipeline: the convergence limits stay the fallback\'s', () => {
+    expect(RoundVerdictUtil.roundLimitsOf(pipelineWithThreshold(800), ROUND_LIMITS)).toEqual({ ...ROUND_LIMITS, REWORK_ROUND_THRESHOLD_LINES: 800 });
   });
 });

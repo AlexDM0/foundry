@@ -2,7 +2,8 @@
  * `Board.followPlaybook` over real board records. What matters: the steps the policy derives are applied in the same pass (jobs launched as
  * records, a park held and asked about, decisions and incidents opened, defaults taken), every record stamped with `limits.now`; a ready
  * ticket is any pending, unheld one, a low one and one with an open question alike; failed passes, crashes on one ticket and usage limits
- * are acted on with no incident, and an Overseer restart counts toward no outage; and a group builds in parallel, each ticket as soon as the
+ * are acted on with no incident, and an Overseer restart counts toward no outage; a review past its first round launches as a
+ * `re-reviewer`; and a group builds in parallel, each ticket as soon as the
  * group tickets it names are integrated.
  */
 import { describe, expect, test } from 'bun:test';
@@ -214,6 +215,23 @@ describe('advancing the lifecycle applies what the policy derives', () => {
 
     expect(board.incidents()).toEqual([]);
     expect(records.map((record) => record.kind)).toEqual(['incident-defaulted']);
+  });
+});
+
+describe('a review round is stamped with its role', () => {
+  test('the first review launches as a reviewer, and the round after a granted one as a re-reviewer', () => {
+    const inReview = ticketWith('001', { status: 'in-review', started: FIXTURE_AT, finished: FIXTURE_AT });
+    const first = lifecycleBoardOf({ tickets: [inReview], storedLogRecords: finishedJobRecords('J5', 'build', '001', 'built') });
+    const second = lifecycleBoardOf({
+      tickets:          [inReview],
+      storedLogRecords: [...finishedJobRecords('J5', 'build', '001', 'built'), ...finishedJobRecords('J6', 'review', '001', 'round-granted')],
+    });
+
+    advance(first.board);
+    advance(second.board);
+
+    expect(first.board.jobs().filter((job) => job.kind === 'review').map((job) => [job.role, job.attempt])).toEqual([['reviewer', 1]]);
+    expect(second.board.jobs().filter((job) => job.kind === 'review').map((job) => [job.role, job.attempt])).toEqual([['re-reviewer', 2]]);
   });
 });
 

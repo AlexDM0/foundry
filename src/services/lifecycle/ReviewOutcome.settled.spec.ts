@@ -3,7 +3,8 @@
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
  * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
- * pass. A grant whose stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass.
+ * pass. A grant whose stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass. The
+ * board's pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
  * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
  * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
  */
@@ -19,6 +20,7 @@ import {
 } from 'bun:test';
 
 import type { LogRecord }                                   from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { ConditionalReReview }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }              from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Ticket }                                      from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TrackerProgress }                             from '../../lib/tracker-model/@types/TrackerProgress.ts';
@@ -71,7 +73,11 @@ function branchAt(scenario: string, head: string): void {
   });
 }
 
-function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY): Board {
+const DEFAULT_RE_REVIEW: ConditionalReReview = { thresholdLines: LIFECYCLE_LIMITS.REWORK_ROUND_THRESHOLD_LINES };
+
+function newBoard(
+  storedLogRecords: readonly LogRecord[] = [], storedBody = TICKET_BODY, reReview: ConditionalReReview | null = DEFAULT_RE_REVIEW
+): Board {
   const progress: TrackerProgress = {
     trackerId:        'example-review',
     project:          'Example Agency',
@@ -107,7 +113,11 @@ function newBoard(storedLogRecords: readonly LogRecord[] = [], storedBody = TICK
     logger:   createLogger((record) => logRecords.push(record)),
     storedLogRecords,
     pipeline: {
-      version: 2, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+      version: 2,
+      prepare: [],
+      gates:   [{ name: 'verify', run: 'bun run verify' }],
+      phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },
+      review:  { name: 'Review', ...(reReview === null ? {} : { reReview }) },
     },
   });
 }
@@ -273,7 +283,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const outcome = settle(reviewJobAtRound(2), report([claim('A1', 'holds'), claim('A2', 'holds')], [{ ...findingInANewFile, commit: secondFix }]));
 
     expect(outcome.move).toBe('merge-queued');
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, LIFECYCLE_LIMITS)).toEqual(['001']);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual(['001']);
   });
 
   test('a failed pass over the threshold takes no round verdict, so it shows no rounds-not-converging', () => {
@@ -281,7 +291,26 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'does-not-hold')]));
 
     expect(outcome).toMatchObject({ move: 'fixer', reworkedLines: OVER_THRESHOLD_LINES });
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, LIFECYCLE_LIMITS)).toEqual([]);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
+  });
+
+  test('a review with no re-review grants no round at any rework: the pass queues to merge and shows no rounds-not-converging', () => {
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_MANY_REWORKED_LINES, FIX_COMMIT);
+    board = newBoard([], TICKET_BODY, null);
+    const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'holds')]));
+
+    expect(outcome).toMatchObject({ move: 'merge-queued', reworkedLines: OVER_THRESHOLD_LINES });
+    expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
+  });
+
+  test('the re-review threshold of the pipeline is honoured: rework of exactly its lines is refused a round', () => {
+    branchAt(GIT_SCENARIOS.REVIEW_WITH_MANY_REWORKED_LINES, FIX_COMMIT);
+    board = newBoard([], TICKET_BODY, { thresholdLines: OVER_THRESHOLD_LINES });
+    const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'holds')]));
+
+    expect(outcome).toMatchObject({ move: 'merge-queued', reworkedLines: OVER_THRESHOLD_LINES });
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
   });
 
   test('a waiver proposal opens a waiver decision, keeps the ticket out of the merge queue and holds every launch on it', () => {
