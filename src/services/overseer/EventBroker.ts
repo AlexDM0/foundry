@@ -3,10 +3,12 @@
  * `Last-Event-ID` is of this generation and still buffered gets the events after it, and any other gets a fresh `board` first. A state
  * published after a pass is diffed against the last one: `board` when anything changed, and one event per changed job, newly ended job,
  * decision or incident, and for the Overseer and usage. A job first shown past `launching`, ended included, is published `launching` first.
+ * A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` just before `board`, so the
+ * flow can animate its marks from the slice before the whole state replaces it.
  */
 import type { BoardState, EndedJob, JobLiveFactsWithSilence } from './BoardState.ts';
 
-export type OverseerEventKind = 'board' | 'job' | 'decision' | 'incident' | 'overseer' | 'usage';
+export type OverseerEventKind = 'board' | 'job' | 'decision' | 'incident' | 'overseer' | 'usage' | 'profile' | 'pipeline';
 
 export interface OverseerEvent {
   id:   string;
@@ -29,6 +31,18 @@ export interface EventBroker {
 const REPLAY_BUFFER_EVENTS = 256;
 
 interface Identified { id: string }
+
+/** The slice a `pipeline` event carries: what changes when the stored pipeline, the setup record or its draft changes. */
+export type PipelineEventData = Pick<BoardState, 'pipeline' | 'pipelineSetup' | 'pipelineFlow'>;
+
+function pipelineSliceOf(state: BoardState): PipelineEventData {
+  return { pipeline: state.pipeline, pipelineSetup: state.pipelineSetup, pipelineFlow: state.pipelineFlow };
+}
+
+function changedProfileRunsOf(previous: BoardState, next: BoardState): BoardState['profileRuns'] {
+  const previousById = new Map(previous.profileRuns.map((run) => [run.profileRunId, JSON.stringify(run)]));
+  return next.profileRuns.filter((run) => previousById.get(run.profileRunId) !== JSON.stringify(run));
+}
 
 function changedItemsOf<Item>(previous: readonly unknown[], next: readonly Item[]): Item[] {
   const previousById = new Map(previous.map((item) => [(item as Identified).id, JSON.stringify(item)]));
@@ -105,6 +119,9 @@ function createEventBroker(generation: number): EventBroker {
       for (const incident of changedItemsOf(previous.incidents, state.incidents)) send('incident', incident);
       if (JSON.stringify(previous.overseer) !== JSON.stringify(state.overseer)) send('overseer', state.overseer);
       if (JSON.stringify(previous.usage) !== JSON.stringify(state.usage)) send('usage', state.usage);
+      for (const run of changedProfileRunsOf(previous, state)) send('profile', run);
+      const pipelineSlice = pipelineSliceOf(state);
+      if (JSON.stringify(pipelineSliceOf(previous)) !== JSON.stringify(pipelineSlice)) send('pipeline', pipelineSlice);
     }
     send('board', state);
   }

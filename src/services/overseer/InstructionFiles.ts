@@ -78,8 +78,11 @@ function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[
   return [...new Set(named.filter((path) => !isDataFolderPath(path)))];
 }
 
-/** A path leaving the repository on any host, a backslash included, is read as missing, never followed. */
-function fileTextOf(rootDirectory: string, mainLine: string, path: string): string | null {
+/**
+ * A path leaving the repository on any host, a backslash included, is read as missing, never followed. `mainRevision` is the main line's
+ * name or a commit of it.
+ */
+function fileTextOf(rootDirectory: string, mainRevision: string, path: string): string | null {
   if (!PathNestingUtil.relativeWirePathStaysInside(path)) return null;
   if (isDataFolderPath(path)) {
     try {
@@ -88,7 +91,7 @@ function fileTextOf(rootDirectory: string, mainLine: string, path: string): stri
       return null;
     }
   }
-  const shown = GitProcess.run(rootDirectory, ['show', `${mainLine}:${path}`]);
+  const shown = GitProcess.run(rootDirectory, ['show', `${mainRevision}:${path}`]);
   return GitProcess.succeeded(shown) ? shown.standardOutput : null;
 }
 
@@ -133,6 +136,11 @@ function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<
 function mainConstitutionOf(rootDirectory: string, mainLine: string): MainConstitutionReading {
   const mainTip = GitProcess.resolvedCommitOf(rootDirectory, mainLine);
   if (mainTip === null) return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
+  return mainConstitutionAt(rootDirectory, mainTip);
+}
+
+/** Main's `CONSTITUTION.md` at one resolved commit of the main line. */
+function mainConstitutionAt(rootDirectory: string, mainTip: string): MainConstitutionReading {
   const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${CONSTITUTION_FILE_PATH}`];
   const blobRun = GitProcess.run(rootDirectory, blobArguments);
   if (blobRun === null) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(blobRun, blobArguments) };
@@ -144,5 +152,12 @@ function mainConstitutionOf(rootDirectory: string, mainLine: string): MainConsti
 }
 
 export const InstructionFiles = Object.freeze({
-  readingFor, trackedInstructionPathsOf, instructionRoleOf, mainConstitutionOf
+  readingFor,
+  trackedInstructionPathsOf,
+  instructionRoleOf,
+  instructionPathOf,
+  isDataFolderPath,
+  fileTextOf,
+  mainConstitutionOf,
+  mainConstitutionAt
 });

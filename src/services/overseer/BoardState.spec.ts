@@ -3,24 +3,40 @@
  * `testing/fixtures/summary-v1.json` holds, so a change to the shape agent-dashboard reads fails here. A new shape is a new version and a
  * new fixture, never an edit of this one. The state carries each open ticket's forecast, its targets named by the reading's merge
  * forecasting and `null` without one; the launch slots, as many as the concurrency counts; each job's newest launch stamp, `null`
- * when the log lost it; and the picture limits, `null` when the agent takes no pictures.
+ * when the log lost it; and the picture limits, `null` when the agent takes no pictures. It carries the pipeline facts beside them, and a
+ * second state read whose main tip has not moved runs no `git show` for the instruction texts (PLAN 9.1, "Cost of a state read"): git
+ * answers from the recorded answers of `src/testing/RecordedGit.ts`, and a stage fails a call it does not hold, which counts the calls.
  */
-import { readFileSync }           from 'node:fs';
-import { join }                   from 'node:path';
-import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
-import type { LogRecord }                                       from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { MergeTargetOf }                                   from '../../lib/tracker-model/AirlockClaims.ts';
-import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/OverseerLimits.ts';
-import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
+import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { MergeTargetOf }                                     from '../../lib/tracker-model/AirlockClaims.ts';
+import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }   from '../../shared/constants/OverseerLimits.ts';
+import { boardFixture, ticketFixture }                            from '../../testing/BoardFixtures.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import {
   BoardStateAssembly,
   type BoardState,
   type BoardStateReading,
   type JobLiveFactsWithSilence,
-  type MergeForecasting
+  type MergeForecasting,
+  type PipelineSources
 } from './BoardState.ts';
+import { MainLineReads }  from './MainLineReads.ts';
 import { liveJobFixture } from './testing/LiveJobFixture.ts';
+
+const recordedGit = useRecordedGit();
 
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v1.json');
 
@@ -138,15 +154,31 @@ describe('BoardStateAssembly.summaryOf', () => {
   });
 });
 
+const EXAMPLE_PIPELINE: Pipeline = {
+  version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+};
+
+const NO_PIPELINE_SOURCES: PipelineSources = {
+  pipelineReading:      { verdict: 'readable', pipeline: EXAMPLE_PIPELINE },
+  pipelineFileText:     `${JSON.stringify(EXAMPLE_PIPELINE)}\n`,
+  pipelineSetupReading: { verdict: 'absent' },
+  gateProfilesReading:  { verdict: 'absent' },
+  mainLine:             null,
+  mainLineTexts:        BoardStateAssembly.NO_MAIN_LINE_TEXTS,
+};
+
 describe('BoardStateAssembly.boardStateOf', () => {
   const targetOf: MergeTargetOf = (ticket) => (ticket.group === undefined ? 'main' : `group-${ticket.group}`);
 
-  function readingOf(mergeForecasting: MergeForecasting | null, logRecords: readonly LogRecord[] = [], agentTakesPictures = true): BoardStateReading {
+  function readingOf(
+    mergeForecasting: MergeForecasting | null,
+    logRecords: readonly LogRecord[] = [],
+    agentTakesPictures = true,
+    pipelineSources: PipelineSources = NO_PIPELINE_SOURCES,
+  ): BoardStateReading {
     const { board, progress, tickets } = boardFixture({
       tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
-      pipeline: {
-        version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
-      },
+      pipeline: EXAMPLE_PIPELINE,
     });
     return {
       statusDocument: {},
@@ -164,6 +196,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
       usage:          EXAMPLE_STATE.usage,
       mergeForecasting,
       agentTakesPictures,
+      pipelineSources,
     };
   }
 
@@ -223,5 +256,94 @@ describe('BoardStateAssembly.boardStateOf', () => {
       mediaTypes:     ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
     });
     expect(BoardStateAssembly.boardStateOf(readingOf(null, [], false)).pictureLimits).toBeNull();
+  });
+
+  test('carries the pipeline facts beside the status keys: the stored pipeline, its live flow and every model and effort', () => {
+    const state = BoardStateAssembly.boardStateOf(readingOf(null));
+    expect(state.pipeline.readingVerdict).toBe('readable');
+    expect(state.pipelineSetup).toBeNull();
+    expect(state.pipelineFlow?.toolbarStage).toBe('live');
+    expect(state.profileRuns).toEqual([]);
+    expect(state.pipelineChoices).toEqual({ models: ['haiku', 'sonnet', 'opus', 'fable'], efforts: ['low', 'medium', 'high', 'xhigh', 'max'] });
+  });
+});
+
+describeWhenGitIsRecorded('the main line texts of a state read', () => {
+  const MAIN_LINE = 'main';
+  const MAIN_TIP = '2'.repeat(40);
+  const BRIEF_PATH = 'docs/example-brief.md';
+  const BRIEFED_PIPELINE: Pipeline = { ...EXAMPLE_PIPELINE, agents: { builder: { instructions: [{ kind: 'file', path: BRIEF_PATH }] } } };
+  let repositoryDirectory = '';
+
+  beforeEach(() => {
+    repositoryDirectory = createScratchDirectory('board-state-main-line');
+  });
+
+  afterEach(() => {
+    removeScratchDirectory(repositoryDirectory);
+  });
+
+  const tipRead = {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_LINE}^{commit}`],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MAIN_TIP },
+  };
+  const briefShown = {
+    gitArguments: ['show', `${MAIN_TIP}:${BRIEF_PATH}`],
+    answeredAs:   GIT_CALL_SHAPES.FILE_ON_BRANCH,
+    filledIn:     { [RECORDED_PLACEHOLDERS.TEXT]: 'Example brief of Example Agency.' },
+  };
+
+  function stateReadOf(reads: MainLineReads): BoardState {
+    const { board, progress, tickets } = boardFixture({ pipeline: BRIEFED_PIPELINE });
+    return BoardStateAssembly.boardStateOf({
+      statusDocument:     {},
+      board,
+      progress,
+      tickets,
+      epics:              [],
+      drafts:             [],
+      logRecords:         [],
+      generatedAt:        new Date('2026-11-12T10:00:00+01:00'),
+      renderMarkdown:     (markdown) => markdown,
+      liveFactsOf:        () => ({}) as JobLiveFactsWithSilence,
+      notices:            [],
+      overseer:           EXAMPLE_STATE.overseer,
+      usage:              EXAMPLE_STATE.usage,
+      mergeForecasting:   null,
+      agentTakesPictures: true,
+      pipelineSources:    {
+        ...NO_PIPELINE_SOURCES,
+        pipelineReading: { verdict: 'readable', pipeline: BRIEFED_PIPELINE },
+        mainLine:        MAIN_LINE,
+        mainLineTexts:   BoardStateAssembly.mainLineTextsOf(reads, repositoryDirectory, MAIN_LINE),
+      },
+    });
+  }
+
+  function builderBriefTextOf(state: BoardState): string | null | undefined {
+    return state.pipelineFlow?.nodes.find((node) => node.nodeId === 'builder')?.instructionEntries[0]?.text;
+  }
+
+  test('a second state read with the same main tip runs no git show for the instruction texts', async () => {
+    const reads = new MainLineReads(repositoryDirectory);
+
+    const first = await recordedGit.playStage([tipRead, briefShown], async () => stateReadOf(reads));
+    const second = await recordedGit.playStage([tipRead], async () => stateReadOf(reads));
+
+    expect([builderBriefTextOf(first), builderBriefTextOf(second)]).toEqual(['Example brief of Example Agency.\n', 'Example brief of Example Agency.\n']);
+  });
+
+  test('a moved main tip shows the texts again', async () => {
+    const reads = new MainLineReads(repositoryDirectory);
+    const movedTip = '3'.repeat(40);
+    await recordedGit.playStage([tipRead, briefShown], async () => stateReadOf(reads));
+
+    const moved = await recordedGit.playStage([
+      { ...tipRead, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: movedTip } },
+      { ...briefShown, gitArguments: ['show', `${movedTip}:${BRIEF_PATH}`] },
+    ], async () => stateReadOf(reads));
+
+    expect(builderBriefTextOf(moved)).toBe('Example brief of Example Agency.\n');
   });
 });

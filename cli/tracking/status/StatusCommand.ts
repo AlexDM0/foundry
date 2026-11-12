@@ -42,7 +42,7 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
       + 'Every write refuses until it is repaired or removed.');
   }
   const {
-    progress, storedLog, listing, epicListing, draftListing
+    progress, pipelineReading, storedLog, listing, epicListing, draftListing
   } = requireTracker(workspace);
   const wordedLog       = storedLog.records.map(LogUtil.wordedEntryOf);
   const logNewestFirst  = logNewestFirstOf(wordedLog);
@@ -58,8 +58,8 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
     ? await readConfinementInForce(context, workspace)
     : confinementInForceOf(null, context.platformPorts.gateConfinement);
   const asJson           = showsEverything
-    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, confinementInForce)
-    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, confinementInForce);
+    ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, confinementInForce, pipelineReading.verdict === 'readable')
+    : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, confinementInForce, pipelineReading.verdict === 'readable');
   const humanText        = humanStatusTextOf(progress, logNewestFirst, board, { showsEverything, showsTicketsOnly });
   OutputUtil.printEntityThenNextLine(commandArguments, context, asJson, humanText, NextLineUtil.nextLineOf(board));
 };

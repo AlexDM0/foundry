@@ -6,6 +6,9 @@
 import type { AgentEffort }                 from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { Job, JobRole }                from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { AgentPair }                   from '../../lib/tracker-model/@types/Ticket.ts';
+import { DEFAULT_AGENT_MODEL }              from '../../lib/tracker-model/constants/AgentSettings.ts';
+import { VocabularyUtil }                   from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import {
   ASSISTANT_EFFORT,
   ASSISTANT_MODEL,
@@ -47,6 +50,12 @@ function defaultLaunchSettingsOf(role: PipelineAgentRole): SessionLaunchSettings
   return DEFAULT_SETTINGS_OF_ROLE[role];
 }
 
+/** A role's default in the facts' vocabulary, which the flow shows on a step whose pipeline names no model or effort. */
+function defaultAgentPairOf(role: PipelineAgentRole): AgentPair {
+  const { model, effort } = DEFAULT_SETTINGS_OF_ROLE[role];
+  return { model: VocabularyUtil.agentModelIsKnown(model) ? model : DEFAULT_AGENT_MODEL, effort };
+}
+
 /** The pipeline step whose settings and instructions the job's sessions read; `null` for a merge or refresh job, which runs no agent. */
 function pipelineRoleOf(job: Readonly<Pick<Job, 'role'>>): PipelineAgentRole | null {
   return job.role === null ? null : PIPELINE_ROLE_OF_JOB_ROLE[job.role];
@@ -68,6 +77,7 @@ function launchSettingsOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pic
 
 export const LaunchSettings = Object.freeze({
   defaultLaunchSettingsOf,
+  defaultAgentPairOf,
   launchSettingsOf,
   pipelineRoleOf,
 });

@@ -3,7 +3,8 @@
  * event per changed item, a `job` per newly ended job, `overseer` and `usage` when theirs changed, then `board`; a job first shown past
  * `launching`, one launched and ended within a pass included, is published `launching` first, so every state reaches the stream; a
  * state differing only in the page's generation stamp sends nothing; ids are `<generation>-<n>`, and a replay serves only a buffered id
- * of this generation.
+ * of this generation. A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` directly
+ * before `board`, so the flow animates its marks from that slice (PLAN 9.5).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -11,7 +12,12 @@ import type { BoardState }    from './BoardState.ts';
 import { EventBroker }        from './EventBroker.ts';
 import type { OverseerEvent } from './EventBroker.ts';
 
-type ExampleChanges = Partial<Record<'jobs' | 'endedJobs' | 'decisions' | 'incidents', unknown[]>> & { paused?: boolean; resetsAt?: string; stamp?: number };
+type ExampleChanges = Partial<Record<'jobs' | 'endedJobs' | 'decisions' | 'incidents' | 'profileRuns', unknown[]>> & {
+  paused?:        boolean;
+  resetsAt?:      string;
+  stamp?:         number;
+  draftRevision?: number;
+};
 
 function exampleState(changes: ExampleChanges = {}): BoardState {
   return {
@@ -25,7 +31,11 @@ function exampleState(changes: ExampleChanges = {}): BoardState {
     overseer:   {
       state: 'serving', paused: changes.paused ?? false, url: null, generation: 3, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
     },
-    usage: { resetsAt: changes.resetsAt ?? null, window: null },
+    usage:         { resetsAt: changes.resetsAt ?? null, window: null },
+    pipeline:      { readingVerdict: 'absent' },
+    pipelineSetup: changes.draftRevision === undefined ? null : { record: { setupId: 'S1', draftRevision: changes.draftRevision } },
+    pipelineFlow:  null,
+    profileRuns:   changes.profileRuns ?? [],
   } as unknown as BoardState;
 }
 
@@ -96,5 +106,30 @@ describe('EventBroker', () => {
     expect(broker.replayAfter('3-99')).toEqual({ verdict: 'fresh' });
     expect(broker.replayAfter(null)).toEqual({ verdict: 'fresh' });
     expect(broker.snapshot()?.id).toBe('3-3');
+  });
+
+  test('a changed setup or draft sends pipeline directly before board, and an unchanged one sends none', () => {
+    const { broker, events } = recordingBroker();
+    broker.publishState(exampleState({ draftRevision: 1 }));
+    broker.publishState(exampleState({ draftRevision: 2, decisions: [{ id: 'D1' }] }));
+    broker.publishState(exampleState({ draftRevision: 2, decisions: [{ id: 'D1' }], paused: true }));
+    expect(events.slice(1).map((event) => event.kind)).toEqual(['decision', 'pipeline', 'board', 'overseer', 'board']);
+    expect(events[2]?.data).toEqual({ pipeline: { readingVerdict: 'absent' }, pipelineSetup: { record: { setupId: 'S1', draftRevision: 2 } }, pipelineFlow: null });
+  });
+
+  test('a changed gate profile run sends profile with that run alone', () => {
+    const { broker, events } = recordingBroker();
+    const queued = {
+      profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'queued', elapsedMilliseconds: null
+    };
+    const other  = {
+      profileRunId: 'P2', gateName: 'lint', phase: 'build', state: 'running', elapsedMilliseconds: null
+    };
+    broker.publishState(exampleState({ profileRuns: [queued, other] }));
+    broker.publishState(exampleState({ profileRuns: [{ ...queued, state: 'running' }, other] }));
+    expect(events.slice(1).map((event) => [event.kind, event.data])).toEqual([
+      ['profile', { ...queued, state: 'running' }],
+      ['board', expect.anything()],
+    ]);
   });
 });

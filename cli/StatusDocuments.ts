@@ -36,7 +36,7 @@ function selectedTasksOf(board: Board, showsTicketsOnly: boolean): readonly Read
 /**
  * The whole progress file plus every ticket in the version 1 document shape, with the derived `concurrency` and `readyTickets` beside it,
  * then the dispatch fields `reviewWaitingTickets`, `pausedBuilds` and `ticketRows`, `tokensByOwner` over every row and `ticketCountByStatus`
- * over every ticket.
+ * over every ticket. `pipelineIsSet` says whether `pipeline.json` reads as a pipeline: only Apply or a `gate` verb writes it.
  */
 export function fullDocumentOf(
   progress: TrackerProgress,
@@ -44,6 +44,7 @@ export function fullDocumentOf(
   board: Board,
   showsTicketsOnly: boolean,
   confinementInForce: ConfinementInForce,
+  pipelineIsSet: boolean,
 ): object {
   const progressDocument = ProgressFileMappingUtil.wordedDocumentOf(progress, wordedLog);
   return {
@@ -59,6 +60,7 @@ export function fullDocumentOf(
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
     confinement:         confinementInForce.confinement,
     confinementSource:   confinementInForce.confinementSource,
+    pipelineIsSet,
   };
 }
 
@@ -72,6 +74,7 @@ export function workingDocumentOf(
   board: Board,
   showsTicketsOnly: boolean,
   confinementInForce: ConfinementInForce,
+  pipelineIsSet: boolean,
 ): object {
   const tickets          = board.tickets();
   const selectedTasks    = selectedTasksOf(board, showsTicketsOnly);
@@ -98,5 +101,6 @@ export function workingDocumentOf(
     ...StatusDocumentUtil.decisionsAndIncidentsOf(board),
     confinement:         confinementInForce.confinement,
     confinementSource:   confinementInForce.confinementSource,
+    pipelineIsSet,
   };
 }

@@ -39,6 +39,7 @@ import { createDrivePass, type DrivePass }                          from '../../
 import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
 import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
 import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { MainLineReads }                                            from '../../src/services/overseer/MainLineReads.ts';
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
@@ -343,6 +344,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const log         = overseerLoggerOf(context, files);
   const mainLine    = mainLineOf(workspace.rootDirectory);
   const mergeForecastCache = createMergeForecastCache();
+  const mainLineReads = new MainLineReads(workspace.rootDirectory);
   const installWatch = createInstallChangeWatch({
     inMemory:        { codeVersion, installVersion: INSTALL_VERSION },
     versionsOnDisk:  () => versionsFromTheBinary(context.programCommand, workspace.rootDirectory),
@@ -413,6 +415,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         overseer:         overseerFactsNow,
         mainLine,
         mergeForecastCache,
+        mainLineReads,
         silentSweepsOf:   (jobId: string) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
         onRuntimeCommand: (command: RuntimeOverseerCommand) => {
           log(`${command.kind} received${command.now ? ' (now)' : ''}.`);
@@ -465,6 +468,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
           silentSweepsOf: (jobId) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
           mainLine,
           mergeForecastCache,
+          mainLineReads,
         }).state);
       } catch (thrown) {
         log(`The board state could not be read for the event stream: ${thrown instanceof Error ? thrown.message : String(thrown)}`);

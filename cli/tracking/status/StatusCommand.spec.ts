@@ -31,6 +31,7 @@ type StatusDocument = WordedProgressDocument & {
   tickets:             Array<TicketFrontmatter & { filePath: string }>;
   omitted?:            { settledTasks: number; settledTickets: number; olderLogEntries: number; freeStandingTasks?: number };
   ticketCountByStatus: Record<string, number>;
+  pipelineIsSet:       boolean;
   tokensByOwner: {
     owners:        Array<{ owner: string; tokens: number; rows: number }>;
     withoutOwner:  { tokens: number; rows: number };
@@ -463,11 +464,30 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
     const { working, full } = await bothDocuments();
     const progressKeys      = ['version', 'trackerId', 'project', 'startedAt', 'view', 'nextTaskId', 'concurrencyLimit', 'tasks', 'log'];
     const dispatchKeys      = [
-      'reviewWaitingTickets', 'pausedBuilds', 'ticketRows', 'tokensByOwner', 'ticketCountByStatus', 'jobs', 'decisions', 'incidents', 'confinement', 'confinementSource',
+      'reviewWaitingTickets',
+      'pausedBuilds',
+      'ticketRows',
+      'tokensByOwner',
+      'ticketCountByStatus',
+      'jobs',
+      'decisions',
+      'incidents',
+      'confinement',
+      'confinementSource',
+      'pipelineIsSet',
     ];
 
     expect(Object.keys(working)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', 'omitted', ...dispatchKeys]);
     expect(Object.keys(full)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', ...dispatchKeys]);
+  });
+
+  test('pipelineIsSet is false with no pipeline stored, and true once a gate verb stored one', async () => {
+    const before = await bothDocuments();
+    await run(['gate', 'none']);
+    const after = await bothDocuments();
+
+    expect([before.working.pipelineIsSet, before.full.pipelineIsSet]).toEqual([false, false]);
+    expect([after.working.pipelineIsSet, after.full.pipelineIsSet]).toEqual([true, true]);
   });
 
   test('the ids in flight end the concurrency block', async () => {

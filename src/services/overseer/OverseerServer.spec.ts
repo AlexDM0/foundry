@@ -75,15 +75,16 @@ afterEach(() => {
 function exampleState(ticketCount: number): BoardState {
   return {
     ticketCount,
-    page:       { payload: { generatedAtEpochMilliseconds: 1 }, tickets: [] },
-    jobs:       [],
-    endedJobs:  [],
-    decisions:  [],
-    incidents:  [],
-    notices:    [],
-    mergeQueue: { queuedTicketIds: [], slots: [] },
-    overseer:   { state: 'serving', paused: false },
-    usage:      { resetsAt: null, window: null, windows: [] },
+    page:        { payload: { generatedAtEpochMilliseconds: 1 }, tickets: [] },
+    jobs:        [],
+    endedJobs:   [],
+    decisions:   [],
+    incidents:   [],
+    notices:     [],
+    mergeQueue:  { queuedTicketIds: [], slots: [] },
+    overseer:    { state: 'serving', paused: false },
+    usage:       { resetsAt: null, window: null, windows: [] },
+    profileRuns: [],
   } as unknown as BoardState;
 }
 

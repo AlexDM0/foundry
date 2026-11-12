@@ -40,7 +40,7 @@ export interface PipelineFlowGraphInput {
 
 export type PipelineFlowGraph = Pick<PipelineFlowFacts, 'nodes' | 'edges' | 'insertSlots' | 'gateRows'>;
 
-const PIPELINE_FLOW_NODE_IDS = Object.freeze({
+export const PIPELINE_FLOW_NODE_IDS = Object.freeze({
   ticketCreation:                'ticket-creation',
   humanTicketReview:             'human-ticket-review',
   builder:                       'builder',

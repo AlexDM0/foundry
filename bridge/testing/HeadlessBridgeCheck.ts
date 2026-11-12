@@ -22,6 +22,7 @@ import {
 import { createInitializedRecordedGitRepository }         from '../../cli/testing/InitializedScratchRepository.ts';
 import { COMMON_FOLDER_OUTSIDE, idleOverseerAnswersIn }   from '../../cli/testing/RecordedGitStages.ts';
 import { ownerOnlyFilesFor }                              from '../../src/lib/owner-only-files/OwnerOnlyFilesFor.ts';
+import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { environmentCopy }                                from '../../src/shared/Environment.ts';
 import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
 import { type RecordedGit, type RecordedGitStage }        from '../../src/testing/RecordedGit.ts';
@@ -31,11 +32,13 @@ import { HashRouter }                                     from '../shell/HashRou
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
 
-/**
- * The scratch board has no ticket that depends on another and no epic, and its Overseer serves no pipeline facts yet, so it shows every
- * tab but Waves, Epics and Pipeline.
- */
-export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false, null);
+/** The scratch board has no ticket that depends on another and no epic, and a stored pipeline, so it shows every tab but Waves and Epics. */
+export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false, true);
+
+/** No gates, on purpose: a readable pipeline, so the Bridge shows the board's tabs and the live flow instead of the setup alone. */
+const HEADLESS_CHECK_PIPELINE_TEXT = `${JSON.stringify({
+  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+}, null, 2)}\n`;
 
 export interface HeadlessBridgeReading {
   /** Each console error, exception, failed request or error-level log entry, worded with its source. */
@@ -211,6 +214,7 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
   const repositoryDirectory = await createInitializedRecordedGitRepository(
     'headless-bridge', ['--project', HEADLESS_CHECK_PROJECT, '--no-hooks'], FIXED_CLOCK, recordedGit
   );
+  writeFileSync(workspacePathsFor(repositoryDirectory).pipelineFilePath, HEADLESS_CHECK_PIPELINE_TEXT);
   const homeDirectory = createScratchDirectory('headless-bridge-home');
   const chromeProfileDirectory = createScratchDirectory('headless-bridge-chrome');
   const openerStubDirectory = createScratchDirectory('headless-bridge-opener');

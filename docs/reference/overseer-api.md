@@ -233,12 +233,16 @@ Pass, at every [sweep](../glossary.md#sweep), and once at start. Each reads the 
 | `incident` | The open [incident](../glossary.md#incident) | It appeared or changed |
 | `overseer` | `BoardState.overseer` | It changed |
 | `usage` | `BoardState.usage` | It changed |
+| `profile` | One `profileRuns` entry | That gate profile run appeared or changed |
+| `pipeline` | `{pipeline, pipelineSetup, pipelineFlow}` of the `BoardState` | The stored pipeline, the setup record, its draft or the flow changed; always directly before `board`, so the flow can animate its marks |
 | `board` | The whole `BoardState` | Anything changed; always last |
 
 The rules of one publish:
 
 - An event id is `<generation>-<n>`, `n` counting from 1 within one broker.
-- Slices go in the table's order: jobs, ended jobs, decisions, incidents, `overseer`, `usage`, then `board`.
+- Slices go in the table's order: jobs, ended jobs, decisions, incidents, `overseer`, `usage`, `profile`, `pipeline`,
+  then `board`. A profile run's output lines are never events: they go only on [its own
+  stream](#the-gate-profile-stream).
 - The first state of a broker sends only `board`, so a job already past `launching` in it gets no `launching` event.
 - A state differing only in `page.payload.generatedAtEpochMilliseconds` sends nothing and spends no id.
 - A record that left a list sends no slice event. Only the `board` of that publish removes it.
@@ -324,6 +328,12 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
 | `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
 | `launchSlots` | `Board.launchSlots` | `{limit, slotJobIds, inProgressTicketIdsWithoutJob}`: the jobs holding a launch slot in launch order, counted through `LaunchSlotUtil` as `concurrency.agentsInFlight` is, so there are always as many; and, in board order, the `in-progress` tickets that no live job names. A view joins on these ids and copies no rule. Not in `status --json`. |
+| `pipeline` | `pipelineFactsOf` | The stored pipeline as read: `readingVerdict` `absent`, `older` or `malformed` (with its `reason`), each but `absent` with `fileText`; or `readable` with the `pipeline`, its `contentHash`, its `fileText` and `application`, the newest `pipeline-applied` record (`appliedRevision` counting the Applies from 1, `appliedAt`, `appliedBy`, `constitutionCommit`), `null` for a pipeline only the `gate` verbs wrote. Not in `status --json`. |
+| `pipelineSetup` | `pipelineFactsOf` | `null` with no readable setup record; else the `record` and what the Bridge reads off it, below. Not in `status --json`. |
+| `pipelineFlow` | `pipelineFactsOf`, `pipelineFlowGraphOf` | The flow the Pipeline view draws: of the record's draft (`toolbarStage` `proposal` in a first setup, `editing` in an update or advise), or of the stored pipeline with no record (`live`); `null` when there is nothing to draw. Below. Not in `status --json`. |
+| `profileRuns` | `pipelineFactsOf` | The newest [gate profile](../cli.md#gate-profiles) run of each gate and phase: `profileRunId`, `gateName`, `phase`, `state`, `elapsedMilliseconds`. Empty when `gate-profiles.json` holds none or cannot be read. Not in `status --json`. |
+| `pipelineHistory` | `pipelineFactsOf` | The newest `PIPELINE_HISTORY_RECORDS_SHOWN` (32) records that change the pipeline or pause and resume the board, newest first, for the live flow's "Earlier" list. A setup's own steps, findings and questions stay out. Not in `status --json`. |
+| `pipelineChoices` | `pipelineFactsOf` | `{models, efforts}`: every model and effort in their order, so the Bridge keeps no copy of the vocabulary. Not in `status --json`. |
 | `pictureLimits` | `boardStateOf`, from `OverseerLimits.ts` | `{perMessage, sizeLimitBytes, mediaTypes}`, the bounds a picture is refused by, so the Bridge refuses one before its upload and keeps no copy; `null` when the agent adapter's `capabilities.pictures` is false. Not in `status --json`. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
@@ -366,6 +376,50 @@ candidate's tip stay put, and never keeps a failed prediction.
 
 > **As built.** No `target-moved` decision opens, and one that did would name no ticket, so `targetMovedDecisionIds`
 > matches nothing, see [gap-dead-code-and-unused-states](known-gaps.md#gap-dead-code-and-unused-states).
+
+</details>
+
+<details>
+<summary><code>pipelineSetup</code> and <code>pipelineFlow</code> field by field</summary>
+
+`pipelineFactsOf` in `src/services/render/PipelineFactsAssembly.ts` builds them. It runs no git: the Overseer reads the
+main line and passes the texts in.
+
+| Field | Holds |
+| --- | --- |
+| `pipelineSetup.summary` | Counts for the resume summary: `stackItemCount`, `scriptCount`, `answeredQuestionCount`, `prepareStepCount`, `gateCountByPhase`, and `userEditsKeptCount`, User's edits that are not undone |
+| `pipelineSetup.openQuestionCount` | The questions with no answer |
+| `pipelineSetup.agentJobState` | The state of the record's agent job, `null` when no such job is on the board |
+| `pipelineSetup.mainMovedByCommits` | Main's commits past the record's `snapshotCommit`, read from git and never stored |
+| `pipelineSetup.constitutionHtml` | The constitution's markdown rendered by Marked, `null` with no constitution |
+| `pipelineSetup.constitutionOutline` | `{sectionCount, ruleCount}`: the `##` lines and the top-level `-` items |
+| `pipelineSetup.annotations[]` | Each annotation with `lineIndex`, the zero-based index of the line it anchors to; one that anchors nowhere is left out |
+| `pipelineSetup.readByRoles` | The roles whose instruction lists, of the draft or else the stored pipeline, hold the constitution |
+| `pipelineSetup.applyState` | `null` with no Apply waiting; else the record's `applyRequest` plus `blockingFiles`, from the newest `pipeline-apply-held` record while `held`, and `ticketIdHoldingMain`, the ticket whose Airlock job holds the main line |
+| `pipelineFlow.nodes[]` | From `pipelineFlowGraphOf`, each instruction entry with its file name and its text on main cut at `INSTRUCTION_PREVIEW_LIMIT_CHARACTERS` (4000), and `questionIds`: the questions whose subject is the node (by id or kind) or, on a gates node, one of its gates |
+| `pipelineFlow.occupants[]` | Live only: `{occupantKind, occupantId, nodeId, jobId, since}`, below |
+| `pipelineFlow.changeList[]` | `{field, changeKind, editId}`: each field the draft changes against the stored pipeline, or the minimal one, `editId` the newest edit of that field that is not undone; a constitution whose text main does not hold is a `constitution` row. Empty live. |
+| `pipelineFlow.ticketIdsInFlight` | The `in-progress`, `in-review` and `reviewed` tickets, which take a new pipeline at their next gate run |
+
+Where an occupant stands, on the first of its nodes the flow draws:
+
+| Job or ticket | Node |
+| --- | --- |
+| A build job | `gates-build` while `gating`, else `builder` |
+| A review job | `merge-before-review` while `preparing`, when it catches up with main (Q5); `gates-review` while `gating`; `re-review` as a `re-reviewer`; else `review` |
+| A build or review job in `merging-main` | `re-review-before-human-code-review` while a conflict re-reviewer judges it, else `merge-before-human-code-review` |
+| A merge job in the Airlock | `re-review-in-airlock` (`re-reviewing`), `gates-merge` (`gating`), `fast-forward-main` (`landing`), else `merge-in-airlock` |
+| A claimed filing draft, and a draft ticket a live product owner filed | `ticket-creation`, as `draft` and `ticket` occupants |
+| A ticket queued for a merge that no job holds | `human-code-review` with merge approval on, else `ready-for-airlock` |
+
+A refresh, a merge agent (its parent job stands for it), a session and the constitution commit job are no occupant: the
+constitution commit shows as `pipelineSetup.applyState`. `since` is the job's newest launch, the draft's claim or the
+ticket's newest `merge-queued` record; it is only shown.
+
+**Cost of a state read.** The tracked instruction texts and main's `CONSTITUTION.md` (one `git show` each) and
+`mainMovedByCommits` (a commit count) are git work. `MainLineReads` in `src/services/overseer/` keeps the texts by
+(main tip, path) and the count by (`snapshotCommit`, main tip) across reads, so a read whose main tip has not moved
+runs only the `rev-parse` of the tip. A data-folder file is read from disk.
 
 </details>
 
@@ -519,8 +573,9 @@ appended later.
 - The file is read again every `PROFILE_OUTPUT_FOLLOW_MILLISECONDS` (250), from where the last read stopped. An
   unterminated last line waits for its line feed. A line that is not a `{"text": …}` record keeps its number and is not
   sent.
-- The stream does not end when the run ends: the run's state is in `gate-profiles.json`, not in this stream. It sends
-  `: ping` every heartbeat, and Bun's idle timeout is off for it.
+- The stream does not end when the run ends: the run's state is in `gate-profiles.json`, and a client reads it from
+  `profileRuns` and the `profile` event, not from this stream. It sends `: ping` every heartbeat, and Bun's idle
+  timeout is off for it.
 - The output is never on [the event stream](#the-event-stream): the Overseer publishes no event for an output line, and
   this stream sends no board event.
 
@@ -592,6 +647,8 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
 | Board state | `src/services/overseer/BoardState.ts` | `BoardStateAssembly` | `src/services/overseer/BoardState.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |
+| Pipeline facts | `src/services/render/PipelineFactsAssembly.ts`, `src/services/render/PipelineFlowGraph.ts` | `pipelineFactsOf`, `pipelineFlowGraphOf` | `src/services/render/PipelineFactsAssembly.spec.ts`, `src/services/render/PipelineFlowGraph.spec.ts` |
+| Main line reads of a state read | `src/services/overseer/MainLineReads.ts` | `MainLineReads`, `BoardStateAssembly.mainLineTextsOf` | `src/services/overseer/MainLineReads.spec.ts`, `src/services/overseer/BoardState.spec.ts` |
 | Ticket forecast | `src/lib/tracker-model/TicketForecasts.ts` | `TicketForecasts`, `Board.ticketForecastsOf` | `src/lib/tracker-model/TicketForecasts.spec.ts`, `src/lib/tracker-model/Playbook.forecast.spec.ts` |
 | Reading the board | `cli/overseer/routes/BoardStateReader.ts` | `readBoardState`, `createMergeForecastCache` | `cli/overseer/routes/BoardStateReader.mergeForecasts.spec.ts` |
 | Publishing | `cli/overseer/OverseerForeground.ts` | `publishState` inside `startServing` | `cli/overseer/OverseerApi.integration.spec.ts` |

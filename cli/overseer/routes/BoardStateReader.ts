@@ -1,5 +1,6 @@
 /** Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it. */
 
+import { storedFileTextOf }  from '../../../src/adapters/StoredFileText.ts';
 import { UsageMarkerFile }   from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }  from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { LogUtil }           from '../../../src/adapters/utils/LogUtil.ts';
@@ -16,6 +17,7 @@ import {
   type UsageFacts
 } from '../../../src/services/overseer/BoardState.ts';
 import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
+import { MainLineReads }       from '../../../src/services/overseer/MainLineReads.ts';
 import { UsageLimits }         from '../../../src/services/overseer/UsageLimits.ts';
 import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
@@ -35,6 +37,8 @@ export interface BoardStateSource {
   mainLine?:           string;
   /** Held across reads, so a publish over unmoved branches reuses the last forecasts; without it every read predicts afresh. */
   mergeForecastCache?: MergeForecastCache;
+  /** Held across reads, so a read whose main tip has not moved runs no `git show`; without it every read asks git afresh. */
+  mainLineReads?:      MainLineReads;
 }
 
 /** One target's last forecasts, kept while its tip and every candidate's tip stay where they were; a failed prediction is never kept. */
@@ -107,17 +111,24 @@ function usageOf(context: CommandContext, apiBilling: boolean): UsageFacts {
   return UsageLimits.usageFactsOf(UsageMarkerFile.read(monitorFolder), UsageWindowsFile.read(monitorFolder), apiBilling);
 }
 
+/** The stored text, for "View pipeline.json"; null when none is stored or it could not be read. */
+function pipelineFileTextOf(workspace: Workspace, verdict: string): string | null {
+  if (verdict === 'absent') return null;
+  const stored = storedFileTextOf(workspace.pipelineFilePath);
+  return stored.verdict === 'readable' ? stored.text : null;
+}
+
 export function readBoardState(source: BoardStateSource): { state: BoardState; project: string; readyTicketIds: string[] } {
   const { context, workspace } = source;
   const {
-    progress, pipelineReading, storedLog, listing, epicListing, draftListing
+    progress, pipelineReading, pipelineSetupReading, gateProfilesReading, storedLog, listing, epicListing, draftListing
   } = requireTracker(workspace);
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
   const liveFactsSource = { trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board };
   const state = BoardStateAssembly.boardStateOf({
-    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, confinementInForce),
+    statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, confinementInForce, pipeline !== null),
     board,
     progress,
     tickets:        listing.tickets,
@@ -138,6 +149,14 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     usage:              usageOf(context, pipeline?.billing?.mode === 'api'),
     mergeForecasting:   source.mainLine === undefined ? null : mergeForecastingIn(workspace.rootDirectory, source.mainLine, source.mergeForecastCache ?? null),
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
+    pipelineSources:    {
+      pipelineReading,
+      pipelineFileText: pipelineFileTextOf(workspace, pipelineReading.verdict),
+      pipelineSetupReading,
+      gateProfilesReading,
+      mainLine:         source.mainLine ?? null,
+      mainLineTexts:    BoardStateAssembly.mainLineTextsOf(source.mainLineReads ?? new MainLineReads(workspace.rootDirectory), workspace.rootDirectory, source.mainLine ?? null),
+    },
   });
   return { state, project: progress.project, readyTicketIds: board.readyTicketEntries().map((ready) => ready.id) };
 }

@@ -3,11 +3,15 @@
  * every job with its live facts, the notices, the merge queue, the Overseer and usage, all from one reading Board. agent-dashboard's
  * subset, `summaryVersion: 1`, is derived from it.
  */
+import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
+import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
 import type { Draft }                                                                         from '../../lib/tracker-model/@types/Draft.ts';
 import type { Epic }                                                                          from '../../lib/tracker-model/@types/Epic.ts';
+import type { GateProfilesReading }                                                           from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
 import type { LaunchSlots }                                                                   from '../../lib/tracker-model/@types/LaunchSlots.ts';
 import type { LogRecord }                                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { PipelineSetupReading }                                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Ticket }                                                                        from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketPriority }                                                                from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketForecast }                                                                from '../../lib/tracker-model/@types/TicketForecast.ts';
@@ -18,7 +22,11 @@ import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }            
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/OverseerLimits.ts';
 import { boardFactsOf }                                                                       from '../render/BoardFacts.ts';
 import { assemblePagePayload, type AssembledPagePayload }                                     from '../render/PagePayloadAssembly.ts';
+import { pipelineFactsOf, type MainLineTexts, type PipelineFacts }                            from '../render/PipelineFactsAssembly.ts';
+import { InstructionFiles }                                                                   from './InstructionFiles.ts';
 import type { JobLiveFacts }                                                                  from './JobLiveFactsReader.ts';
+import { LaunchSettings }                                                                     from './LaunchSettings.ts';
+import type { MainLineReads }                                                                 from './MainLineReads.ts';
 
 export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
 
@@ -138,9 +146,21 @@ export interface BoardStateReading {
   mergeForecasting:   MergeForecasting | null;
   /** The agent adapter's `capabilities.pictures`: without it no message carries a picture. */
   agentTakesPictures: boolean;
+  pipelineSources:    PipelineSources;
 }
 
-export interface BoardState {
+/** The stored pipeline files as read, and what the main line holds, for the pipeline facts. */
+export interface PipelineSources {
+  pipelineReading:      PipelineReading;
+  /** The stored `pipeline.json` text; null when it could not be read. */
+  pipelineFileText:     string | null;
+  pipelineSetupReading: PipelineSetupReading;
+  gateProfilesReading:  GateProfilesReading;
+  mainLine:             string | null;
+  mainLineTexts:        MainLineTexts;
+}
+
+export interface BoardState extends PipelineFacts {
   [statusField: string]: unknown;
   page:                  AssembledPagePayload;
   jobs:                  JobWithLiveFacts[];
@@ -291,6 +311,27 @@ function launchedAtByJobIdOf(logRecords: readonly LogRecord[]): ReadonlyMap<stri
   return new Map(logRecords.flatMap((record) => (record.kind === 'job-launched' ? [[record.jobId, record.at] as const] : [])));
 }
 
+/** No main line read: no text, no constitution and no commit counted. */
+const NO_MAIN_LINE_TEXTS: MainLineTexts = Object.freeze({
+  textOf:               () => null,
+  mainConstitution:     () => ({ verdict: 'absent' as const }),
+  mainMovedByCommitsOf: () => 0,
+});
+
+/**
+ * The main line's texts for one state read: the tip is resolved once, and every text, main's constitution and the commit count go through
+ * the reads kept across calls, so a read whose main tip has not moved runs no `git show`.
+ */
+function mainLineTextsOf(reads: MainLineReads, rootDirectory: string, mainLine: string | null): MainLineTexts {
+  const mainTip = mainLine === null ? null : GitProcess.resolvedCommitOf(rootDirectory, mainLine);
+  if (mainTip === null) return NO_MAIN_LINE_TEXTS;
+  return {
+    textOf:               (path) => reads.textAt(mainTip, path),
+    mainConstitution:     () => reads.mainConstitutionAt(mainTip),
+    mainMovedByCommitsOf: (snapshotCommit) => reads.mainMovedByCommitsOf(snapshotCommit, mainTip),
+  };
+}
+
 function boardStateOf(reading: BoardStateReading): BoardState {
   const { board } = reading;
   const launchedAtByJobId = launchedAtByJobIdOf(reading.logRecords);
@@ -308,6 +349,15 @@ function boardStateOf(reading: BoardStateReading): BoardState {
   });
   return {
     ...reading.statusDocument,
+    ...pipelineFactsOf({
+      ...reading.pipelineSources,
+      board,
+      logRecords:        reading.logRecords,
+      renderMarkdown:    reading.renderMarkdown,
+      instructionPathOf: InstructionFiles.instructionPathOf,
+      defaultSettingsOf: LaunchSettings.defaultAgentPairOf,
+      generatedAt:       reading.generatedAt,
+    }),
     page,
     jobs:            board.jobs().map((job) => ({ ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job) })),
     decisions:       [...board.decisions()],
@@ -343,5 +393,5 @@ function summaryOf(state: BoardState, project: string, readyTicketIds: readonly 
 }
 
 export const BoardStateAssembly = Object.freeze({
-  boardStateOf, summaryOf, mergeQueueOf, questionHistoryOf, endedJobsOf
+  boardStateOf, summaryOf, mergeQueueOf, questionHistoryOf, endedJobsOf, mainLineTextsOf, NO_MAIN_LINE_TEXTS
 });

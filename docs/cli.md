@@ -472,6 +472,7 @@ priority resolved to their defaults.
 | `readyTickets` | See [Ready tickets](#ready-tickets). |
 | `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the Bridge header shows. |
 | `confinementSource` | Whose probe gave `confinement`: `overseer` when a live Overseer answered its `/api/state` with the Baton's token, so a sandboxed caller prints the Overseer's word; `this-process` when none answered and this process probed itself. |
+| `pipelineIsSet` | `true` when `<data>/pipeline.json` reads as a pipeline; `false` when none is stored, or it is older or malformed. Only Apply or a `gate` verb writes it. |
 | `omitted` | Working view only: `settledTasks`, `settledTickets`, `olderLogEntries`, and `freeStandingTasks` under `--tickets-only`. |
 | `reviewWaitingTickets` | `{ id, model, effort }` for every `in-review` ticket whose id is not in `inProgressReviewOfIds`, a held one included; `heldTicketIds` says which are held. A group awaiting its release is left out. |
 | `pausedBuilds` | `{ id, note, priority, model, effort }` for every `in-progress` ticket whose row is `paused`, `note` being that row's note, whoever paused it. A group awaiting its release is left out. |
@@ -958,6 +959,11 @@ from User's move; an agent a stop closed is opened again with the message, logge
 agent, or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
 `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming the
 field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
+
+The Overseer's board state carries the record as `pipelineSetup` (the [Overseer
+API](reference/overseer-api.md#boardstate)). Its `mainMovedByCommits` (main's commits past `snapshotCommit`) is read
+from git and never stored; the Overseer keeps the count by (`snapshotCommit`, main's tip), so a state read asks git
+again only when one of them changed.
 
 #### Gate profiles
 
