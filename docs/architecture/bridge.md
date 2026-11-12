@@ -122,8 +122,8 @@ The broker sends slice events, then `board`; the order and the no-change rule ar
 A `board` replaces the state, and a slice event before the first `board` is ignored. `job`, `decision` and `incident`
 add or replace their record by id; `profile` adds or replaces its run in `profileRuns` by run id; `pipeline` replaces
 the `pipeline`, `pipelineSetup` and `pipelineFlow` slices it carries; `overseer` and `usage` update their slice. Each
-publish closes with a `board`, so
-what a viewer reads settles with it. `EventStreamClient` drops a malformed event because the next `board` repairs it.
+publish closes with a `board`, so what a viewer reads settles with it. `EventStreamClient` drops a malformed event
+because the next `board` repairs it.
 
 > **As built.** Each publish carries every ticket body and the whole question history, see
 > [gap-scaling-whole-log-and-bodies](../reference/known-gaps.md#gap-scaling-whole-log-and-bodies).
