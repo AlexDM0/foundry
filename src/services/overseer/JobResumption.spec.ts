@@ -198,3 +198,30 @@ describe('a stale green that turned red', () => {
     expect(JobResumption.redHandoffTakenOverOf(trackerDirectory, withoutStaleGreen, reviewJob({ id: 'J3' }))).toBeNull();
   });
 });
+
+// The Airlock agent takes the launch pair of the worker it stands in for, also as a fresh session after one of its merge was replaced.
+describe('the last worker an Airlock agent stands in for', () => {
+  const airlockLaunch = (jobId: string): LogRecord => ({
+    at:     AT,
+    kind:   'job-launched',
+    jobId,
+    fields: {
+      kind: 'merge-agent', role: 'reviewer', ticketIds: ['001'], attempt: 1, target: 'main', parentJobId: 'M1'
+    }
+  });
+  const airlockReviewer = (jobId: string): Job => reviewJob({ id: jobId, kind: 'merge-agent', parentJobId: 'M1' });
+
+  test('is the ticket\'s newest ended review, also when an Airlock agent of the same merge was replaced', () => {
+    const reviewed = [launched('J1'), ended('J1'), launched('J2'), ended('J2')];
+
+    expect(JobResumption.lastWorkerJobIdOf([...reviewed, airlockLaunch('A1')], airlockReviewer('A1'))).toBe('J2');
+    const afterReplaced = [...reviewed, airlockLaunch('A1'), replaced('A1', 'resume-failed'), airlockLaunch('A2')];
+    expect(JobResumption.sessionOwnerJobIdOf(afterReplaced, airlockReviewer('A2'))).toBe('A2');
+    expect(JobResumption.lastWorkerJobIdOf(afterReplaced, airlockReviewer('A2'))).toBe('J2');
+  });
+
+  test('is none for a job that is no Airlock agent, and for an Airlock agent whose ticket has no ended worker of its role', () => {
+    expect(JobResumption.lastWorkerJobIdOf(RECORDS, reviewJob())).toBeNull();
+    expect(JobResumption.lastWorkerJobIdOf([airlockLaunch('A1')], airlockReviewer('A1'))).toBeNull();
+  });
+});

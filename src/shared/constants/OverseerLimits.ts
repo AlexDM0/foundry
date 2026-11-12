@@ -28,7 +28,12 @@ export const ASSISTANT_MODEL = 'sonnet';
 
 export const ASSISTANT_EFFORT = 'medium' as const;
 
-/** Every other role the Overseer launches: builders, reviewers, the Airlock roles and the product owner. */
+/** The pipeline agent's model and effort where the pipeline names none. */
+export const PIPELINE_AGENT_MODEL = 'opus';
+
+export const PIPELINE_AGENT_EFFORT = 'high' as const;
+
+/** Every other role the Overseer launches where the pipeline names no model and effort: builders, reviewers and the product owner. */
 export const WORKER_MODEL = 'opus';
 
 export const WORKER_EFFORT = 'medium' as const;

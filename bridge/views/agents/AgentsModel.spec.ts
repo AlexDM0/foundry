@@ -3,11 +3,12 @@
  * builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent jobs are sessions, so nothing that never takes
  * a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a kind
  * list, and a job is counted only when the Overseer named it; each role and each roleless kind draws its own icon and anything else a
- * dot, so no two roles read alike; calls read against the budget, warn near it and unbounded without one; subagents are squares worded in
- * every plural form, an older board's subagent without a state reading ended; the ask carries the open decision's first question and
- * its stamp sliced as the inbox slices it; every count leaves out its zero parts and names one in the singular; a session says what it
- * is about; a watch-only Watcher is worded as such; a job is stopping by its state or by a stop request alone; and a concurrency limit
- * is sendable only as a changed whole number the Overseer would take.
+ * dot, so no two roles read alike, but a re-reviewer and a conflict re-reviewer take the reviewer's icon with their own word; calls read
+ * against the budget, warn near it and unbounded without one; subagents are squares worded in every plural form, an older board's subagent
+ * without a state reading ended; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every
+ * count leaves out its zero parts and names one in the singular; a session says what it is about; a watch-only Watcher is worded as such; a
+ * job is stopping by its state or by a stop request alone; and a concurrency limit is sendable only as a changed whole number the Overseer
+ * would take.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -72,8 +73,14 @@ describe('which card a job sits in', () => {
     expect(AgentsModel.roleMarkOf({ role: null, kind: 'merge' })).toEqual({ icon: 'merge', state: 'pending', word: 'merge' });
   });
 
+  test('a re-reviewer and a conflict re-reviewer draw the reviewer\'s icon, each with its own word', () => {
+    const marks = (['re-reviewer', 'conflict-re-reviewer'] as const).map((role) => AgentsModel.roleMarkOf({ role, kind: 'review' }));
+    expect(marks.map((mark) => [mark.icon, mark.word])).toEqual([['magnifier', 're-reviewer'], ['magnifier', 'conflict re-reviewer']]);
+  });
+
   test('each role and each roleless kind draws its own icon, and an unknown role or kind draws a dot', () => {
-    const roleIcons = JOB_ROLES.map((role) => AgentsModel.roleMarkOf({ role, kind: 'build' }).icon);
+    const reviewerVariants: readonly string[] = ['re-reviewer', 'conflict-re-reviewer'];
+    const roleIcons = JOB_ROLES.filter((role) => !reviewerVariants.includes(role)).map((role) => AgentsModel.roleMarkOf({ role, kind: 'build' }).icon);
     const rolelessIcons = ROLELESS_JOB_KINDS.map((kind) => AgentsModel.roleMarkOf({ role: null, kind }).icon);
     expect(rolelessIcons).toEqual(['merge', 'cycle', 'document']);
     const everyIcon = [...roleIcons, ...rolelessIcons];

@@ -424,16 +424,15 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** `cli/HelpText.ts` says `--model` and `--effort` name what the agents building and reviewing a ticket run
   on, and `ticket agent` changes them.
-- **Does:** `AssistantBoot.launchSettingsOf` picks `WORKER_MODEL` and `WORKER_EFFORT`, or the Assistant's constants, by
-  job kind. Only `JobLaunch.reviewerLaunchSettingsOf` overrides that, from the pipeline's `agents.reviewer`.
+- **Does:** `LaunchSettings.launchSettingsOf` takes each role's pair from the pipeline's `agents`, else the role's
+  default.
   `TicketDefaultsUtil.agentModelOf` and `agentEffortOf` feed status documents, `review-stats` and `ticket agent`, and no
   launch reads them.
 - **Effect:** a ticket filed `--model haiku` builds on `WORKER_MODEL`, while `status`, `ticket show` and the `byBuilder`
   table of `review-stats` report `haiku`.
-- **Instead:** read a ticket's model and effort as labels. Set a reviewer's through the pipeline's `agents.reviewer`.
-  Nothing changes a builder's.
-- **Evidence:** `src/services/overseer/AssistantBoot.ts` `launchSettingsOf`; `src/services/overseer/JobLaunch.ts`
-  `reviewerLaunchSettingsOf`; `src/services/overseer/DrivePass.ts`, the launch request;
+- **Instead:** read a ticket's model and effort as labels. Set each role's through the pipeline's `agents`.
+- **Evidence:** `src/services/overseer/LaunchSettings.ts` `launchSettingsOf`; `src/services/overseer/DrivePass.ts`,
+  the launch request;
   `src/lib/tracker-model/utils/TicketDefaultsUtil.ts`; `cli/HelpText.ts`.
 - **Established:** read. **Severity:** bug.
 
@@ -1973,7 +1972,6 @@ Nothing in this section changes behaviour. All were established by reading, and 
 | `src/lib/tracker-model/@types/Job.ts`, `attempt` | A fresh agent after a failed pass or a replaced job is one attempt on | True of build jobs alone: a review stores its round there, and an Airlock its launch count |
 | `src/services/overseer/WatcherFleet.ts`, `reapEndedHostsIn` | An identifier that says host | It reaps ended Watchers |
 | `src/lib/tracker-model/utils/TicketChartUtil.ts`, `seededFilingOf` | A draft is never seeded | `clearTracker` seeds a draft with a linked row |
-| `src/shared/constants/OverseerLimits.ts`, `ASSISTANT_MODEL` | A per-role setting User can raise | A fixed constant with no pipeline key |
 | `src/services/overseer/OverseerServer.ts`, `OverseerRoutes.events` | `null` until the first state was published | `startServing` assigns the broker first, so `/api/events` answers 200 and stays silent in between |
 | `src/services/overseer/JobLiveFactsReader.ts`, `JobLiveFacts.calls` | The count its call budget is held against | False after a red handoff: `JobLaunch.sessionReadingOf` restarts at the attempt's instance |
 | `src/services/lifecycle/ProposalTwiceRun.ts`, `restoreSnapshot` | The next gate judges the snapshot as committed | See [the twice-run](#gap-twice-run-judges-a-changed-snapshot) |

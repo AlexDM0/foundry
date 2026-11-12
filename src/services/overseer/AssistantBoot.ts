@@ -1,26 +1,13 @@
 /**
- * What a fresh Assistant (the Overseer's `assistant` job, design section 8.3) boots with: its model and effort beside every other role's,
- * and the board it starts from, since it is booted clean and the board is its memory. Its first message carries every open incident, which
- * is its first delivery turn.
+ * What a fresh Assistant (the Overseer's `assistant` job, design section 8.3) boots with: the board it starts from, since it is booted clean
+ * and the board is its memory. Its first message carries every open incident, which is its first delivery turn.
  */
 
-import type { AgentEffort } from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { Incident }    from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }         from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }   from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }       from '../../lib/tracker-model/Board.ts';
-import {
-  ASSISTANT_EFFORT,
-  ASSISTANT_HISTORY_RECORDS,
-  ASSISTANT_MODEL,
-  WORKER_EFFORT,
-  WORKER_MODEL
-} from '../../shared/constants/OverseerLimits.ts';
-
-export interface LaunchSettings {
-  model:  string;
-  effort: AgentEffort;
-}
+import type { Incident }             from '../../lib/tracker-model/@types/Incident.ts';
+import type { Job }                  from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                from '../../lib/tracker-model/Board.ts';
+import { ASSISTANT_HISTORY_RECORDS } from '../../shared/constants/OverseerLimits.ts';
 
 export interface AssistantHistoryRecord {
   at:         string;
@@ -49,10 +36,6 @@ const ASSISTANT_JOB_KIND = 'assistant';
 
 function isAssistantJob(job: Readonly<Pick<Job, 'kind'>>): boolean {
   return job.kind === ASSISTANT_JOB_KIND;
-}
-
-function launchSettingsOf(job: Readonly<Job>): LaunchSettings {
-  return isAssistantJob(job) ? { model: ASSISTANT_MODEL, effort: ASSISTANT_EFFORT } : { model: WORKER_MODEL, effort: WORKER_EFFORT };
 }
 
 function incidentHistoryOf(logRecords: readonly LogRecord[]): AssistantHistoryRecord[] {
@@ -97,7 +80,6 @@ function assistantFactsOf(board: Board, job: Readonly<Job>): AssistantFacts | nu
 
 export const AssistantBoot = Object.freeze({
   isAssistantJob,
-  launchSettingsOf,
   deliverOpenIncidentsAtBoot,
   assistantFactsOf,
 });

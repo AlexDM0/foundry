@@ -160,6 +160,17 @@ describe('the allowed commands', () => {
   });
 });
 
+describe('the worker profile of each job role', () => {
+  test.each([
+    ['builder', 'builder'],
+    ['reviewer', 'reviewer'],
+    ['re-reviewer', 'reviewer'],
+    ['conflict-re-reviewer', 'reviewer'],
+  ] as const)('a %s on a ticket\'s worktree runs on the %s\'s profile', (jobRole, profiledRole) => {
+    expect(WorkerProfiles.workerRoleOf(jobRole)).toBe(profiledRole);
+  });
+});
+
 describe('a builder\'s profile', () => {
   const profile = profileOf('builder');
 

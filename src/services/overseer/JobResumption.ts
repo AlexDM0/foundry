@@ -169,28 +169,44 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pic
   return sessionOwnerByJobId.get(job.id) ?? job.id;
 }
 
-/**
- * An Airlock agent carries on the session of its ticket's newest ended job of its role: the reviewer's, or the builder's (itself perhaps
- * carried on). After an Airlock agent of the same merge job ended `replaced`, or with no such job, it is a fresh session of its own.
- */
-function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+interface AirlockAgentPredecessors {
+  /** The ticket's newest ended job of the agent's role launched before it: its build or review job. */
+  newestWorker:       string | null;
+  siblingWasReplaced: boolean;
+}
+
+function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): AirlockAgentPredecessors {
   const ownerKind: JobKind = job.role === 'builder' ? 'build' : 'review';
   const ownerJobIds   = new Set<string>();
   const siblingJobIds = new Set<string>();
-  let newestOwner: string | null = null;
+  let newestWorker: string | null = null;
   let siblingWasReplaced = false;
   for (const record of logRecords) {
     if (record.kind === 'job-launched' && record.jobId === job.id) break;
     const sharesTheTicket = record.kind === 'job-launched' && record.fields.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId));
     if (record.kind === 'job-launched' && record.fields.kind === ownerKind && sharesTheTicket) ownerJobIds.add(record.jobId);
     if (record.kind === 'job-launched' && job.parentJobId !== null && record.fields.parentJobId === job.parentJobId) siblingJobIds.add(record.jobId);
-    if (record.kind === 'job-ended' && ownerJobIds.has(record.jobId)) newestOwner = record.jobId;
+    if (record.kind === 'job-ended' && ownerJobIds.has(record.jobId)) newestWorker = record.jobId;
     if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
   }
-  if (siblingWasReplaced || newestOwner === null) return job.id;
+  return { newestWorker, siblingWasReplaced };
+}
+
+/**
+ * An Airlock agent carries on the session of its ticket's newest ended job of its role: the reviewer's, or the builder's (itself perhaps
+ * carried on). After an Airlock agent of the same merge job ended `replaced`, or with no such job, it is a fresh session of its own.
+ */
+function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+  const { newestWorker, siblingWasReplaced } = airlockAgentPredecessorsOf(logRecords, job);
+  if (siblingWasReplaced || newestWorker === null) return job.id;
   return sessionOwnerJobIdOf(logRecords, {
-    id: newestOwner, kind: ownerKind, role: job.role, ticketIds: job.ticketIds, parentJobId: null
+    id: newestWorker, kind: job.role === 'builder' ? 'build' : 'review', role: job.role, ticketIds: job.ticketIds, parentJobId: null
   });
+}
+
+/** The last worker an Airlock agent stands in for, whose launch pair it takes, even as a fresh session; `null` for every other job. */
+function lastWorkerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId'>>): string | null {
+  return job.kind === 'merge-agent' ? airlockAgentPredecessorsOf(logRecords, job).newestWorker : null;
 }
 
 /** The `## Review <round>` section a builder resumed after its review is sent: the newest one in the ticket's body. */
@@ -359,6 +375,7 @@ export const JobResumption = Object.freeze({
   applyResumeFailure,
   earlierSessionWasReplaced,
   sessionOwnerJobIdOf,
+  lastWorkerJobIdOf,
   newestReviewSectionOf,
   redHandoffTakenOverOf,
   staleGreenSessionOwnerOf,

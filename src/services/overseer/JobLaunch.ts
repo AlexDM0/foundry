@@ -8,7 +8,6 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                       from 'node:path';
 
 import type { AgentAdapter }            from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentEffort }             from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
 import { confinedLineOf }               from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                   from '../../lib/git/GitProcess.ts';
@@ -34,6 +33,7 @@ import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                     
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
 import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
@@ -60,6 +60,7 @@ import { GroupWorktrees }                                              from './G
 import { GuardCommand }                                                from './GuardCommand.ts';
 import { HatchInbox }                                                  from './HatchInbox.ts';
 import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
+import type { SessionLaunchSettings }                                  from './LaunchSettings.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                     from './ProcessStarts.ts';
 import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './ProcessWatcherSandbox.ts';
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
@@ -190,6 +191,7 @@ const JOB_FILES = {
   stopSent:               'stop-sent',
   profile:                'process-sandbox.sb',
   instructionsReadPrefix: 'instructions-',
+  launchSettings:         'launch-settings.json',
   targetMerge:            'target-merge.json',
   targetMergeSettlement:  'target-merge-settlement.json',
   targetConflict:         'target-conflict.json',
@@ -903,16 +905,6 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   if (queuesAtOnce) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
 }
 
-/** A reviewer runs on the pipeline reviewer's `model` and `effort` where set, while the pipeline has a review. */
-function reviewerLaunchSettingsOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): { model?: string; effort?: AgentEffort } {
-  const reviewerSettings = pipeline?.agents?.reviewer;
-  if (job.kind !== REVIEW_JOB_KIND || pipeline?.review === undefined || reviewerSettings === undefined) return {};
-  return {
-    ...(reviewerSettings.model === undefined ? {} : { model: reviewerSettings.model }),
-    ...(reviewerSettings.effort === undefined ? {} : { effort: reviewerSettings.effort }),
-  };
-}
-
 /**
  * The review ends `does-not-hold` and its ticket goes back `in-progress`, as a review whose claim did not hold: the builder's session is
  * resumed with the handover kept in the review's job folder, and the return counts in its handoff cycle, which parks the ticket past its resumes.
@@ -1491,8 +1483,32 @@ function recordInstructionsRead(jobFolder: string, watcherInstance: number, file
   writeFileAtomically(join(jobFolder, `${JOB_FILES.instructionsReadPrefix}${watcherInstance}.json`), `${JSON.stringify({ files }, null, 2)}\n`);
 }
 
+/** Written once, at the job's first launch: every later instance resumes on it. */
+function recordLaunchSettings(jobFolder: string, settings: SessionLaunchSettings): void {
+  if (existsSync(join(jobFolder, JOB_FILES.launchSettings))) return;
+  mkdirSync(jobFolder, { recursive: true });
+  writeFileAtomically(join(jobFolder, JOB_FILES.launchSettings), `${JSON.stringify({ model: settings.model, effort: settings.effort }, null, 2)}\n`);
+}
+
+/** The pair the job's first launch recorded; `null` with none, or one that is unreadable or names a value outside the vocabularies. */
+function recordedLaunchSettingsOf(jobFolder: string): SessionLaunchSettings | null {
+  let recorded: unknown;
+  try {
+    recorded = JSON.parse(readFileSync(join(jobFolder, JOB_FILES.launchSettings), 'utf8'));
+  } catch {
+    return null;
+  }
+  const model  = reportFieldOf(recorded, 'model');
+  const effort = reportFieldOf(recorded, 'effort');
+  if (typeof model !== 'string' || !VocabularyUtil.agentModelIsKnown(model)) return null;
+  if (typeof effort !== 'string' || !VocabularyUtil.agentEffortIsKnown(effort)) return null;
+  return { model, effort };
+}
+
 export const JobLaunch = Object.freeze({
   recordInstructionsRead,
+  recordLaunchSettings,
+  recordedLaunchSettingsOf,
   observeBuildJobs,
   applyBuildJobObservations,
   runBuildJobEffects,
@@ -1513,7 +1529,6 @@ export const JobLaunch = Object.freeze({
   holdAgentConfigHits,
   sessionReadingOf,
   callBudgetOf,
-  reviewerLaunchSettingsOf,
   bodyWithHandoffOf,
   targetCatchUpHandoverOf,
 });

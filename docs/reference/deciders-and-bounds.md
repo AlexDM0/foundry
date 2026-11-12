@@ -279,8 +279,10 @@ come from `pipeline.json` ([What configuration changes](#what-configuration-chan
 | --- | --- | --- | --- |
 | `ASSISTANT_MODEL` | `sonnet` | The Assistant | `OverseerLimits.ts` |
 | `ASSISTANT_EFFORT` | `medium` | The Assistant | `OverseerLimits.ts` |
-| `WORKER_MODEL` | `opus` | Every other role, unless the pipeline sets a reviewer's | `OverseerLimits.ts` |
-| `WORKER_EFFORT` | `medium` | Every other role, unless the pipeline sets a reviewer's | `OverseerLimits.ts` |
+| `PIPELINE_AGENT_MODEL` | `opus` | The pipeline agent | `OverseerLimits.ts` |
+| `PIPELINE_AGENT_EFFORT` | `high` | The pipeline agent | `OverseerLimits.ts` |
+| `WORKER_MODEL` | `opus` | Every other role | `OverseerLimits.ts` |
+| `WORKER_EFFORT` | `medium` | Every other role | `OverseerLimits.ts` |
 | `DEFAULT_AGENT_MODEL` | `opus` | Shown for a ticket with no `model` | `src/lib/tracker-model/constants/AgentSettings.ts` |
 | `DEFAULT_AGENT_EFFORT` | `medium` | Shown for a ticket with no `effort` | `AgentSettings.ts` |
 
@@ -485,7 +487,7 @@ timeout, budget or retry key.
 | --- | --- | --- | --- | --- |
 | [Concurrency limit](../glossary.md#concurrency-limit) | `forge concurrency <n>`, stored in `progress.json` | `LOWEST_CONCURRENCY_LIMIT_AGENTS` to `CONCURRENCY_LIMIT_CEILING_AGENTS` | `DEFAULT_CONCURRENCY_LIMIT_AGENTS` | The next launch; running agents go on |
 | Overseer port | `forge oversee --port <n>` | 0 to `HIGHEST_PORT`; 0 lets the system choose | Derived | That Overseer's start; given ports never move upward |
-| Reviewer model and effort | `agents.reviewer.model`, `agents.reviewer.effort` in `pipeline.json` | A model in `AGENT_MODELS`; an effort in `AGENT_EFFORTS` | `WORKER_MODEL`, `WORKER_EFFORT` | The next review launch; any other value makes the file malformed |
+| A role's model and effort | `agents.<role>.model`, `agents.<role>.effort` in `pipeline.json` | A model in `AGENT_MODELS`; an effort in `AGENT_EFFORTS` | The role's constants above | The role's next fresh session; a resume keeps its recorded pair; any other value makes the file malformed |
 
 [`cli.md`](../cli.md) holds the commands and the pipeline fields. A ticket's priority, `network` and dependencies steer
 one ticket, and bound nothing.

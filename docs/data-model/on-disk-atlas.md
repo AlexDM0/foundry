@@ -164,6 +164,7 @@ Code treats a missing job file as absent, with the [five exceptions](#job-files-
 | `start.json` | Overseer, once, for build and review jobs | [Customs](../glossary.md#customs), a retry's Customs, and the gate step | Plain, skipped when present | Start commit, body hash and the ref snapshot Customs compares | `JobStart` |
 | `pipeline-agent-start.json` | Overseer, once, for a [pipeline agent](../glossary.md#pipeline-agent) | Overseer | Plain | The same start facts for the snapshot worktree | `SnapshotStart` |
 | `instructions-<n>.json` | Overseer | Nothing in code; kept for people | Atomic | Path and content hash of every instruction file the session got | `InstructionFileRead` |
+| `launch-settings.json` | Overseer, once, at the job's first launch | Overseer, at each later launch of the session | Atomic, skipped when present | The model and effort the session runs on | `JobLaunch.recordLaunchSettings` |
 | `worktree-failure.txt` | Overseer | Overseer, for its presence | Plain | Git's error; stops a retry and raises `setup-failed` | `createWorktree` |
 | `worktree-unnormalised.txt` | Overseer | Overseer, for its presence | Plain | The paths a fresh checkout already changed, as line-ending normalisation leaves them; stops the install and raises `setup-failed` with cause `line-ending-normalisation` | `createWorktree` |
 

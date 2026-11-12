@@ -234,7 +234,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     expect(board.ticketIsMergeQueued('001')).toBe(false);
   });
 
-  test('over-threshold rework with a granted round ends round-granted, and the policy launches a fresh reviewer one round on', () => {
+  test('over-threshold rework with a granted round ends round-granted, and the policy launches a fresh re-reviewer one round on', () => {
     branchAt(GIT_SCENARIOS.REVIEW_WITH_MANY_REWORKED_LINES, FIX_COMMIT);
     const jobId = reviewJobAtRound(1);
     const outcome = settle(jobId, report([claim('A1', 'holds'), claim('A2', 'holds')]));
@@ -256,6 +256,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
       kind: 'launch-review', ticketId: '001', round: 2, target
     }]);
     expect(board.jobs().find((job) => job.kind === 'review')?.id).not.toBe(jobId);
+    expect(board.jobs().find((job) => job.kind === 'review')).toMatchObject({ role: 're-reviewer', attempt: 2 });
   });
 
   test('over-threshold rework refused another round for non-convergence passes on to the merge queue and shows rounds-not-converging', () => {

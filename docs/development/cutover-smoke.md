@@ -72,8 +72,8 @@ bun cli/testing/CutoverSmoke.ts --with-real-claude [--timeout-minutes 120] [--ma
 | `--model`, `--effort` | Go on `ticket add` for both tickets. |
 
 > **Careful.** `--model` and `--effort` reach the ticket file and no launch. Every session runs on the settings
-> `AssistantBoot.launchSettingsOf` returns, or the [pipeline](../glossary.md#pipeline)'s `review` settings for a
-> [reviewer](../glossary.md#reviewer), and the smoke's `review` names none. The two flags change neither what is spent
+> `LaunchSettings.launchSettingsOf` returns from the [pipeline](../glossary.md#pipeline)'s `agents`, and the smoke's
+> pipeline names none. The two flags change neither what is spent
 > nor what is proved.
 
 Exit codes: 0 when items 1 to 5 all hold; 1 on a refusal, when any item fails, or when the script throws before any

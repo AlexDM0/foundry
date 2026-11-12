@@ -1673,7 +1673,7 @@ explorer](interactive/state-explorer.html) walks them.
 |---|---|---|
 | `id` | no | `J<n>`. |
 | `kind` | no | `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. |
-| `role` | no | `builder`, `reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A `merge-agent` job has its ticket's `builder` or `reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
+| `role` | no | `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`, `product-owner` or `pipeline-agent`, or null for a merge or refresh job. A review job past its first round has `re-reviewer`. A `merge-agent` job has its ticket's `builder` or `reviewer`, or `conflict-re-reviewer`. A job whose kind or role an earlier release named, such as `onboarder`, is refused with the older-format advice. |
 | `ticketIds` | no | The job's tickets. |
 | `parentJobId` | no | A merge agent's merge or refresh job, else null. |
 | `attempt` | no | From 1. |
@@ -1821,7 +1821,7 @@ and `agents` change, and how to edit those three by hand. This is format version
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
 | `airlock` | no | the merge train: `reReview` (`thresholdLines`) when a re-review after a conflict merge is on |
 | `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md` |
-| `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. Each entry is listed at most once. Today only the reviewer's `model` and `effort` are applied |
+| `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer`. An Airlock agent takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 
@@ -1832,7 +1832,9 @@ or `run`, a name given twice or shared by a prepare step and a gate, a phase nam
 phase, a model or effort outside the lists above, an instruction entry listed twice or a path outside the repository
 makes it malformed: the board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1. Each
 launch writes `<data>/jobs/<J>/instructions-<instance>.json`, `{ files: [{ path, contentHash }] }`, the first 16 hex
-digits of each file's SHA-256 as it was read.
+digits of each file's SHA-256 as it was read. A job's first launch writes `<data>/jobs/<J>/launch-settings.json`,
+`{ model, effort }`, the pair its session runs on, and never rewrites it: every resume of that session, a later
+instance's or another job's that carries it on, runs on the recorded pair, whatever the pipeline says by then.
 
 #### API billing set-up
 

@@ -42,15 +42,16 @@ other job without a [worktree](../glossary.md#worktree), then builder or reviewe
 
 | Role | Job kind | Working directory | Model, effort | Profile source |
 | --- | --- | --- | --- | --- |
-| [`builder`](../glossary.md#builder) | `build` | `<worktrees>/ticket-<id>` | `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` |
-| [`reviewer`](../glossary.md#reviewer) | `review` | `<worktrees>/ticket-<id>` | Same, or [pipeline](../glossary.md#pipeline) `agents.reviewer.model` and `agents.reviewer.effort` while `review` is set | `WorkerProfiles.profileOf` |
-| `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | as its build or review job | `WorkerProfiles.profileOf` for its role, asking off |
-| [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
-| [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
-| [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/J<n>`, detached at the main line's tip | `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
+| [`builder`](../glossary.md#builder) | `build` | `<worktrees>/ticket-<id>` | [pipeline](../glossary.md#pipeline) `agents.builder`, else `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` |
+| [`reviewer`](../glossary.md#reviewer), or `re-reviewer` past the first round | `review` | `<worktrees>/ticket-<id>` | `agents.reviewer` or `agents.reReviewer`, else `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` (the reviewer's) |
+| `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | the pair its build or review job recorded | `WorkerProfiles.profileOf` for its role, asking off |
+| [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `agents.productOwner`, else `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
+| [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `agents.assistant`, else `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
+| [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/J<n>`, detached at the main line's tip | `agents.pipelineAgent`, else `PIPELINE_AGENT_MODEL`, `PIPELINE_AGENT_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
 
-A pipeline whose reviewer `model` or `effort` is outside the vocabulary is malformed, so it never reaches a launch
-(`JobLaunch.reviewerLaunchSettingsOf`). A ticket's `model` and `effort` reach no launch: see
+`LaunchSettings.launchSettingsOf` resolves each pair at a session's first launch, and the job folder's
+`launch-settings.json` keeps it, so every resume of the session runs on it. A pipeline whose `model` or `effort` is
+outside the vocabulary is malformed, so it never reaches a launch. A ticket's `model` and `effort` reach no launch: see
 [gap-ticket-model-not-launched](../reference/known-gaps.md#gap-ticket-model-not-launched).
 
 > **As built.** The product owner, Assistant and pipeline agent take the short profile in `DrivePass.ts`, not the

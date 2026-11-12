@@ -14,6 +14,7 @@ import type {
 import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
 import { GitProcess }                            from '../../lib/git/GitProcess.ts';
 import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
+import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
@@ -372,8 +373,14 @@ function liveBranchesOf(branches: readonly string[], worktreeListing: readonly s
   return branches.filter((branch) => checkedOut.has(branch));
 }
 
+/** A session on a ticket's worktree takes the builder's profile as its builder, in the Airlock too, and the reviewer's in every review role. */
+function workerRoleOf(jobRole: JobRole | null): Extract<ProfiledRole, 'builder' | 'reviewer'> {
+  return jobRole === 'builder' ? 'builder' : 'reviewer';
+}
+
 export const WorkerProfiles = Object.freeze({
   profileOf,
+  workerRoleOf,
   workerToolchainOf,
   sandboxFactsOf,
   otherWorktreeAdminFoldersOf,

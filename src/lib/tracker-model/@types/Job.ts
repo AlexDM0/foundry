@@ -8,8 +8,11 @@ import type { QuestionOptionNotes } from './OptionConsequences.ts';
 /** `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket. */
 export type JobKind = 'build' | 'review' | 'merge' | 'merge-agent' | 'refresh' | 'assistant' | 'product-owner' | 'pipeline-agent';
 
-/** A `merge-agent` job runs as its ticket's `builder` or `reviewer`, resumed into the Airlock. */
-export type JobRole = 'builder' | 'reviewer' | 'assistant' | 'product-owner' | 'pipeline-agent';
+/**
+ * A `merge-agent` job runs as its ticket's `builder` or `reviewer`, resumed into the Airlock, or as a `conflict-re-reviewer`. A review past
+ * its first round runs as a `re-reviewer`.
+ */
+export type JobRole = 'builder' | 'reviewer' | 're-reviewer' | 'conflict-re-reviewer' | 'assistant' | 'product-owner' | 'pipeline-agent';
 
 export type JobState =
   | 'launching'

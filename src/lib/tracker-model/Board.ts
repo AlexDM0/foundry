@@ -631,7 +631,7 @@ export class Board {
         }, at).logged;
       case 'launch-review':
         return this.launchJob({
-          kind: 'review', role: 'reviewer', ticketIds: [step.ticketId], parentJobId: null, attempt: step.round, target: step.target
+          kind: 'review', role: step.round > 1 ? 're-reviewer' : 'reviewer', ticketIds: [step.ticketId], parentJobId: null, attempt: step.round, target: step.target
         }, at).logged;
       case 'boot-assistant':
         return this.launchJob({

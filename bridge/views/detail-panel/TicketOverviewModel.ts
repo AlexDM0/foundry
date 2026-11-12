@@ -46,12 +46,14 @@ const HEADING_FOR_JOB_KIND: Readonly<Record<string, string>> = {
   'merge-agent': 'Resolving',
 };
 
-const REVIEWER_ROLE = 'reviewer';
+/** A review past its first round runs as a `re-reviewer`. */
+const REVIEW_ROLES: ReadonlySet<string> = new Set(['reviewer', 're-reviewer']);
 
 /** The job's role as its controls group names it, `Builder J4 controls`; a job with no role is named by its kind's word. */
 const CONTROLS_NAME_OF_ROLE: Readonly<Record<string, string>> = {
-  builder:  'Builder',
-  reviewer: 'Reviewer',
+  'builder':     'Builder',
+  'reviewer':    'Reviewer',
+  're-reviewer': 'Re-reviewer',
 };
 
 const CONTROLS_NAME_OF_ROLELESS_JOB = 'Job';
@@ -247,7 +249,7 @@ function headingOf(job: DetailJobDocument): string {
 
 /** A review counts from its newest review row's start; a build from its own row's newest `in-progress` phase, else the ticket's start. */
 function sinceStampOf(job: DetailJobDocument, reading: TicketOverviewReading): string | null {
-  if (job.role === REVIEWER_ROLE) return reading.reviewRows.at(-1)?.start ?? null;
+  if (job.role !== null && REVIEW_ROLES.has(job.role)) return reading.reviewRows.at(-1)?.start ?? null;
   const resumedAt = (reading.ownRow?.history ?? []).findLast((phase) => phase.status === 'in-progress')?.at;
   if (resumedAt !== undefined && resumedAt !== '') return resumedAt;
   return reading.ticket.started;
@@ -473,7 +475,7 @@ function nextStepsOf(forecasts: readonly DetailTicketForecastDocument[] | undefi
 
 /** A build job's attempt under Started; a review job's attempt is its round, which Next names. */
 function startedSecondaryOf(liveJob: DetailJobDocument | null): Partial<{ secondaryText: string }> {
-  return liveJob === null || liveJob.role === REVIEWER_ROLE ? {} : { secondaryText: `attempt ${String(liveJob.attempt)}` };
+  return liveJob === null || (liveJob.role !== null && REVIEW_ROLES.has(liveJob.role)) ? {} : { secondaryText: `attempt ${String(liveJob.attempt)}` };
 }
 
 function withSecondary(facts: readonly DetailFactModel[], secondary: Partial<{ secondaryText: string }>): DetailFactModel[] {

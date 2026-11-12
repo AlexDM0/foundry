@@ -47,7 +47,7 @@ export type BouncerVerdict =
   | { verdict: 'admitted'; command: ControlCommand }
   | { verdict: 'refused'; reason: RoleCommandRefusalReason };
 
-const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer']);
+const WORKER_ROLES: ReadonlySet<JobRole> = new Set(['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer']);
 
 /** Kinds the product owner may run on any ticket; its `intake-close` and `intake-title` act on its own job, stamped from the Hatch folder. */
 const PRODUCT_OWNER_KINDS: ReadonlySet<ControlCommandKind> = new Set([

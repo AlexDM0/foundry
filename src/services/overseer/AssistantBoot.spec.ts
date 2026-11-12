@@ -1,7 +1,7 @@
 /**
- * What a fresh Assistant boots with. What matters: it runs Sonnet at medium effort while every other role stays Opus at medium; its first
- * message is chat 1, carrying every open incident, the newest incident records and the board; and an incident opened after its boot pass is
- * never put into a first message already sent. The launch command line it renders is held by the Assistant rows of
+ * What a fresh Assistant boots with. What matters: its first message is chat 1, carrying every open incident, the newest incident records
+ * and the board; and an incident opened after its boot pass is never put into a first message already sent. Its model and effort are held by
+ * `src/services/overseer/LaunchSettings.spec.ts`, and the launch command line it renders by the Assistant rows of
  * `src/services/overseer/CrashMatrix.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
@@ -33,22 +33,6 @@ function jobOf(kind: JobKind, role: JobRole): Job {
 const ASSISTANT_LAUNCH = {
   kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
 } as const;
-
-describe('the model and effort per role (A1)', () => {
-  const roles: readonly [JobKind, JobRole, string, string][] = [
-    ['build', 'builder', 'opus', 'medium'],
-    ['review', 'reviewer', 'opus', 'medium'],
-    ['merge-agent', 'builder', 'opus', 'medium'],
-    ['merge-agent', 'reviewer', 'opus', 'medium'],
-    ['product-owner', 'product-owner', 'opus', 'medium'],
-    ['assistant', 'assistant', 'sonnet', 'medium'],
-  ];
-
-  test.each(roles)('a %s job as %s launches --model %s --effort %s', (kind, role, model, effort) => {
-    const settings = AssistantBoot.launchSettingsOf(jobOf(kind, role));
-    expect([settings.model, settings.effort]).toEqual([model, effort]);
-  });
-});
 
 describe('the first message comes from the board (A1)', () => {
   test('a booted Assistant is delivered every open incident as chat 1, with the newest incident records and the board summary', () => {

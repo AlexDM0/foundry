@@ -16,6 +16,8 @@ export const JOB_KINDS = ['build', 'review', 'merge', 'merge-agent', 'refresh', 
 export const JOB_ROLES = [
   'builder',
   'reviewer',
+  're-reviewer',
+  'conflict-re-reviewer',
   'assistant',
   'product-owner',
   'pipeline-agent',

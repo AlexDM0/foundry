@@ -81,6 +81,7 @@ import {
   type TargetCatchUpHandover
 } from './JobLaunch.ts';
 import { JobResumption }                                              from './JobResumption.ts';
+import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
@@ -314,7 +315,7 @@ const WORKER_LAUNCH_STEP = 'worker';
 
 // A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
-const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 'product-owner']);
+const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'product-owner']);
 
 /** Multi-turn sessions: finished only when the Overseer closed their input, never by a turn's `result`. */
 const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
@@ -608,9 +609,9 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   const isAirlockAgent = job.kind === 'merge-agent';
   if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
-  const role = job.kind === 'review' || job.role === 'reviewer' ? 'reviewer' : 'builder';
   const toolchain = WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine);
-  const profile = WorkerProfiles.profileOf(role, JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? workingDirectory : undefined), toolchain);
+  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? workingDirectory : undefined);
+  const profile = WorkerProfiles.profileOf(WorkerProfiles.workerRoleOf(job.role), sandboxFacts, toolchain);
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
@@ -744,6 +745,7 @@ function launchWatcher(
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
   const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
+  const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
     programPath:   program.path,
@@ -753,8 +755,7 @@ function launchWatcher(
     homeDirectory: request.homeDirectory,
     firstMessage:  launchParts.firstMessage,
     roleBrief:     text.roleBrief,
-    ...AssistantBoot.launchSettingsOf(job),
-    ...JobLaunch.reviewerLaunchSettingsOf(board.pipeline(), job),
+    ...launchSettings,
     environment:   launchEnvironment.launchEnvironmentOf(
       request.inheritedEnvironment,
       { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
@@ -783,11 +784,24 @@ function launchWatcher(
     ...JobLaunch.treeStopAtEndOf(job),
   });
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
+  JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
   (request.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(request.platformPorts, {
     bundlePath: request.watcherBundlePath, jobFolder, instance: job.watcherInstance, rootDirectory: workspace.rootDirectory
   });
   request.log(`Spawned Watcher instance ${job.watcherInstance} of job ${job.id} (${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}).`);
   return null;
+}
+
+/**
+ * The pair a launch runs its session on, so a later pipeline edit never changes a running session: the pair the job recorded at its first
+ * launch, else the one recorded by the job whose session it resumes, else resolved now.
+ */
+function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Readonly<Job>, sessionOwnerJobId: string): SessionLaunchSettings {
+  const recordedOf = (jobId: string): SessionLaunchSettings | null => JobLaunch.recordedLaunchSettingsOf(WatcherFleet.jobFolderOf(trackerDirectory, jobId));
+  const recorded = recordedOf(job.id) ?? (sessionOwnerJobId === job.id ? null : recordedOf(sessionOwnerJobId));
+  if (recorded !== null) return recorded;
+  const lastWorkerJobId = JobResumption.lastWorkerJobIdOf(board.logRecordsSoFar(), job);
+  return LaunchSettings.launchSettingsOf(board.pipeline(), job, lastWorkerJobId === null ? null : recordedOf(lastWorkerJobId));
 }
 
 /**

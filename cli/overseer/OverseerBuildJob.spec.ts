@@ -83,6 +83,7 @@ let monitorFolder = '';
 let overseerLog: string[] = [];
 let buildStates: string[] = [];
 let launchRequests: AgentLaunchRequest[] = [];
+let afterEachLaunchPlan: (request: AgentLaunchRequest) => void = () => undefined;
 let jobsNotingStateAssignments = new WeakSet<object>();
 
 async function run(commandLineArguments: readonly string[]) {
@@ -133,6 +134,7 @@ function launchCapturingAdapterOf(adapter: AgentAdapter): AgentAdapter {
     ...adapter,
     planOf: (request) => {
       launchRequests.push(request);
+      afterEachLaunchPlan(request);
       const isReviewer = (request.reportSchema as { title?: string } | null)?.title === 'reviewer report';
       return isReviewer ? fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }]).planOf(request) : adapter.planOf(request);
     },
@@ -144,6 +146,13 @@ function setReviewPhase(review: Readonly<PipelineReview>, reviewerSettings: Read
   const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
   const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
   writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review, agents: { reviewer: reviewerSettings } }, null, 2)}\n`);
+}
+
+/** As User edits the pipeline's agent settings by hand. */
+function setAgentSettings(agents: Readonly<Record<string, AgentStepSettings>>): void {
+  const pipelinePath = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json');
+  const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
+  writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, agents }, null, 2)}\n`);
 }
 
 function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = seatbeltThatApplies()): Promise<DrivePass> {
@@ -263,6 +272,7 @@ beforeEach(async () => {
   overseerLog = [];
   buildStates = [];
   launchRequests = [];
+  afterEachLaunchPlan = () => undefined;
   jobsNotingStateAssignments = new WeakSet<object>();
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
@@ -394,6 +404,26 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(readFileSync(join(jobFolder, 'red-handoff.json'), 'utf8')).toContain('"resume": 3');
     const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null }[] };
     expect(Object.keys(progress.tasks.find((task) => task.ticket === '001') ?? {})).not.toContain('greenTree');
+  });
+
+  test('a resumed session runs on the model and effort its first launch recorded, whatever the pipeline says now', async () => {
+    await run(['gate', 'add', 'tests', '--', RED_TESTS_LINE]);
+    setAgentSettings({ builder: { model: 'fable', effort: 'xhigh' } });
+    afterEachLaunchPlan = (request) => {
+      if (request.environment[JOB_ID_VARIABLE] === firstBuildJobId()) setAgentSettings({ builder: { model: 'haiku', effort: 'low' } });
+    };
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
+
+    const jobId = firstBuildJobId();
+    const buildLaunches = launchRequests.filter((request) => request.environment[JOB_ID_VARIABLE] === jobId);
+    expect(buildLaunches.map((request) => [request.resume, request.model, request.effort])).toEqual([
+      [false, 'fable', 'xhigh'],
+      [true, 'fable', 'xhigh'],
+      [true, 'fable', 'xhigh'],
+    ]);
+    expect(JSON.parse(readFileSync(join(jobFolderOf(jobId), 'launch-settings.json'), 'utf8'))).toEqual({ model: 'fable', effort: 'xhigh' });
+    expect(readFileSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json'), 'utf8')).toContain('"haiku"');
   });
 
   test('a changed pipeline is gated without a restart, and the row records the build phase and the hash of its gates', async () => {
