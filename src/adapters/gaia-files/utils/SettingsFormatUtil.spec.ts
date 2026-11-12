@@ -4,9 +4,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { StoredSettingsVersion1 }                from '../@types/StoredSettings.ts';
-import { GAIA_SETTINGS_DEFAULTS, NOTIFICATION_KINDS } from '../constants/GaiaSettingsDefaults.ts';
-import { SettingsFormatUtil }                         from './SettingsFormatUtil.ts';
+import { SETTINGS_CHOICES }            from '../../../shared/constants/SettingsChoices.ts';
+import type { StoredSettingsVersion1 } from '../@types/StoredSettings.ts';
+import { GAIA_SETTINGS_DEFAULTS }      from '../constants/GaiaSettingsDefaults.ts';
+import { SettingsFormatUtil }          from './SettingsFormatUtil.ts';
 
 const STORED_EXAMPLE: StoredSettingsVersion1 = {
   version:          1,
@@ -38,13 +39,13 @@ function exampleWithout(key: string): Record<string, unknown> {
 
 describe('the notification kinds', () => {
   test('list exactly the kinds the defaults name, once each', () => {
-    const listedKinds: string[] = [...NOTIFICATION_KINDS].sort();
+    const listedKinds: string[] = [...SETTINGS_CHOICES.notificationKinds].sort();
     expect(listedKinds).toEqual(Object.keys(GAIA_SETTINGS_DEFAULTS.notifications.kinds).sort());
-    expect(new Set(NOTIFICATION_KINDS).size).toBe(NOTIFICATION_KINDS.length);
+    expect(new Set(SETTINGS_CHOICES.notificationKinds).size).toBe(SETTINGS_CHOICES.notificationKinds.length);
   });
 
   test('are on by default except the machine at its limit and draft tickets', () => {
-    const offByDefault = NOTIFICATION_KINDS.filter((kind) => !GAIA_SETTINGS_DEFAULTS.notifications.kinds[kind]);
+    const offByDefault = SETTINGS_CHOICES.notificationKinds.filter((kind) => !GAIA_SETTINGS_DEFAULTS.notifications.kinds[kind]);
     expect(offByDefault).toEqual(['machine-at-agent-limit', 'draft-tickets']);
   });
 });
@@ -112,7 +113,7 @@ describe('storedSettingsOf', () => {
   });
 
   test('refuses notification kinds that miss a kind or hold a non-boolean', () => {
-    for (const kind of NOTIFICATION_KINDS) {
+    for (const kind of SETTINGS_CHOICES.notificationKinds) {
       const kindsWithoutOne = Object.fromEntries(Object.entries(STORED_EXAMPLE.notifications.kinds).filter(([storedKind]) => storedKind !== kind));
       expect(SettingsFormatUtil.storedSettingsOf(exampleWith('notifications', { enabled: true, kinds: kindsWithoutOne }))).toBeNull();
       const kindsWithText = { ...STORED_EXAMPLE.notifications.kinds, [kind]: 'on' };

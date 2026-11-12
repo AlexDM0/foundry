@@ -1,8 +1,8 @@
 /** The steps of reading and writing `settings.json`: find its version, validate version 1, map it in to `GaiaSettings` and back out. */
 import type { GaiaSettings, NotificationKind } from '../../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }                   from '../../../shared/constants/ContractVersions.ts';
+import { SETTINGS_CHOICES }                    from '../../../shared/constants/SettingsChoices.ts';
 import type { StoredSettingsVersion1 }         from '../@types/StoredSettings.ts';
-import { NOTIFICATION_KINDS, THEME_CHOICES }   from '../constants/GaiaSettingsDefaults.ts';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
@@ -21,7 +21,7 @@ function isStringList(value: unknown): value is readonly string[] {
 function kindsOf(value: unknown): Record<NotificationKind, boolean> | null {
   if (!isRecord(value)) return null;
   const kinds: Partial<Record<NotificationKind, boolean>> = {};
-  for (const kind of NOTIFICATION_KINDS) {
+  for (const kind of SETTINGS_CHOICES.notificationKinds) {
     const choice = ownValueOf(value, kind);
     if (typeof choice !== 'boolean') return null;
     kinds[kind] = choice;
@@ -39,7 +39,7 @@ function versionOf(parsed: unknown): number | null {
 /** Version 1 with every key present and of its type; null otherwise. Keys the format does not name are left out. */
 function storedSettingsOf(parsed: unknown): StoredSettingsVersion1 | null {
   if (!isRecord(parsed) || versionOf(parsed) !== CONTRACT_VERSIONS.gaiaSettings) return null;
-  const theme              = THEME_CHOICES.find((choice) => choice === ownValueOf(parsed, 'theme'));
+  const theme              = SETTINGS_CHOICES.themes.find((choice) => choice === ownValueOf(parsed, 'theme'));
   const hiddenTrackerIds   = ownValueOf(parsed, 'hiddenTrackerIds');
   const forgeProgramPath   = ownValueOf(parsed, 'forgeProgramPath');
   const notifications      = ownValueOf(parsed, 'notifications');
