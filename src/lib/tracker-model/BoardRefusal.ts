@@ -86,6 +86,7 @@ export type BoardRefusalDetail =
   | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }
   | { reason: 'setup-step-not-continued'; setupId: string; step: PipelineSetupStep }
   | { reason: 'unknown-setup-question'; setupId: string; questionId: string }
+  | { reason: 'empty-setup-answer'; setupId: string; questionId: string }
   | { reason: 'setup-question-option-count'; optionCount: number; minimum: number; maximum: number }
   | { reason: 'setup-question-without-recommendation' }
   | { reason: 'unknown-setup-option-letters'; unknownLetters: readonly string[]; optionLetters: readonly string[] }

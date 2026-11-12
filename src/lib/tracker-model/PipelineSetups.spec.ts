@@ -311,6 +311,9 @@ describe('the constitution', () => {
   test.each<[string, string, number]>([
     ['a line the text does not hold', '- Not in the text.', 1],
     ['more occurrences than the text holds', '- Name things in full.', 2],
+    for (const reply of [{ letters: [] }, { text: ' ' }]) {
+      expect(refusalDetailOf(() => board.answerSetupQuestion(setupId, 'Q1', reply, AT))).toEqual({ reason: 'empty-setup-answer', setupId, questionId: 'Q1' });
+    }
     ['a line ending inside the line', '- Name things in full.\n', 1],
     ['occurrence 0', '- Name things in full.', 0],
   ])('a source naming %s refuses constitution-source-unanchored', (_case, lineText, occurrence) => {

@@ -214,6 +214,8 @@ export class PipelineSetups {
     const setup    = this.requireMovableSetup(setupId);
     const question = setup.questions.find((candidate) => candidate.questionId === questionId);
     if (question === undefined) throw new BoardRefusal({ reason: 'unknown-setup-question', setupId, questionId });
+    const replyIsEmpty = 'letters' in reply ? reply.letters.length === 0 : reply.text.trim() === '';
+    if (replyIsEmpty) throw new BoardRefusal({ reason: 'empty-setup-answer', setupId, questionId });
     if ('letters' in reply) this.refuseLettersOutside(reply.letters, question.options.map((option) => option.letter), question.multiple);
 
     const reopened = this.userEditReopenRecords(setup, question.step, at);

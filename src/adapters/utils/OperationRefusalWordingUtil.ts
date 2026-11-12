@@ -235,6 +235,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `The ${detail.step} step of pipeline setup ${detail.setupId} ends with an Apply, not a Continue. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-setup-question':
       return `Pipeline setup ${detail.setupId} has no question ${detail.questionId}. ${NOTHING_WAS_WRITTEN}`;
+    case 'empty-setup-answer':
+      return `The answer to ${detail.questionId} of pipeline setup ${detail.setupId} names no option and holds no text. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-question-option-count':
       return `A setup question takes ${detail.minimum} to ${detail.maximum} options, and ${detail.optionCount} ${detail.optionCount === 1 ? 'was' : 'were'} given. `
         + NOTHING_WAS_WRITTEN;

@@ -481,6 +481,10 @@ test.each<[BoardRefusalDetail, string]>([
   [{ reason: 'setup-step-not-continued', setupId: 'S1', step: 'apply' }, 'The apply step of pipeline setup S1 ends with an Apply, not a Continue. Nothing was written.'],
   [{ reason: 'unknown-setup-question', setupId: 'S1', questionId: 'Q9' }, 'Pipeline setup S1 has no question Q9. Nothing was written.'],
   [
+    { reason: 'empty-setup-answer', setupId: 'S1', questionId: 'Q1' },
+    'The answer to Q1 of pipeline setup S1 names no option and holds no text. Nothing was written.',
+  ],
+  [
     {
       reason: 'setup-question-option-count', optionCount: 1, minimum: 2, maximum: 4
     },
