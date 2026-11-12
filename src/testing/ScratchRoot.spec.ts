@@ -1,4 +1,5 @@
 /** The scratch helpers are the guard that keeps every spec off live data, so they must refuse any path outside the scratch root. */
+import { existsSync }             from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
@@ -24,7 +25,7 @@ describe('the scratch root', () => {
     const made = createScratchDirectory('accepted');
     expect(pathLiesInsideScratchRoot(made)).toBe(true);
     removeScratchPath(made);
-    expect(pathLiesInsideScratchRoot(made)).toBe(true);
+    expect(existsSync(made)).toBe(false);
   });
 
   test('runs every spec under a scratch home inside the scratch root', () => {
