@@ -4,11 +4,11 @@
  * read as the document's own.
  */
 import type { DetachedStartAnswer, NotFoundAnswer, ProgramRunAnswer } from '../../../lib/process-run/ProcessRun.ts';
+import type { ForgeContracts }                                        from '../../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                                          from '../../../shared/constants/ContractVersions.ts';
 import type {
   ForgeAnswerNotUnderstoodReason,
   ForgeBatonPass,
-  ForgeContracts,
   ForgeInitAnswer,
   ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,

@@ -1,12 +1,5 @@
 /** The forge program's JSON answers (F8) mapped in, one per verb, and the verdict every run of the program ends in. */
-
-/** The contract numbers a forge serves (F1); a contract it does not serve is `null`. */
-export interface ForgeContracts {
-  readonly summary: number | null;
-  readonly monitor: number | null;
-  readonly control: number | null;
-  readonly embed:   number | null;
-}
+import type { ForgeContracts } from '../../../shared/@types/ForgeReading.ts';
 
 export type ForgeProgramOutcome = 'done' | 'nothing-to-do';
 
