@@ -1,7 +1,8 @@
 /**
  * The main line's Airlock (design section 6). What matters: candidates land one at a time in queue order, each on its gated merged tree
  * and by fast-forward alone; the merged tree runs the merge phase's gates, skipped only for a green current in that phase, and a stale green
- * is gated again in the phase it was taken in; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot
+ * is gated again in the phase it was taken in; a green records the stamp its gate run read at its start, so a pipeline edited while the
+ * gates ran never leaves a current green; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot
  * loop; and a job in landing whose commit the main line holds finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left
  * mid-merge, and `Airlocks.spec.ts` a group's slot. The folders are real; git answers from the recorded answer sets of
  * `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository, and a by-hand move of a branch is the
@@ -150,6 +151,7 @@ describe('the merged tree\'s gate', () => {
 
     expect(harness.gatedTrees).toEqual([MERGED_TREE]);
     expect(harness.gatedPhases).toEqual(['merge']);
+    expect(harness.board.greenPhaseOf('001')).toBe('review');
   });
 
   test('gates the branch\'s own tree the gates last passed when its green is current in review but not in the merge phase', async () => {
@@ -162,6 +164,31 @@ describe('the merged tree\'s gate', () => {
     expect(harness.gatedTrees).toEqual([TICKET_TREE]);
     expect(harness.gatedPhases).toEqual(['merge']);
     expect(kindsLogged(harness, 'merge-landed')).toHaveLength(1);
+  });
+
+  test('a pass on the branch\'s own tree records its merge green under the stamp the gate run read at its start', async () => {
+    harness = harnessAnswering();
+    const current = harness;
+    recordPassOn(current, TICKET_TREE);
+    current.board.addGate({ name: 'audit', run: 'bun run audit' }, HARNESS_AT, ['merge']);
+
+    await current.slots.sweep();
+
+    expect(current.board.greenPhaseOf('001')).toBe('merge');
+    expect(current.board.greenIsCurrent('001', TICKET_TREE, 'merge')).toBe(true);
+  });
+
+  test('a merge gate added while the merged tree is gated leaves the merge green it records not current', async () => {
+    harness = harnessAnswering();
+    const current = harness;
+    recordPassOn(current, TICKET_TREE);
+    current.board.addGate({ name: 'audit', run: 'bun run audit' }, HARNESS_AT, ['merge']);
+    current.settings.beforeGate = () => current.board.addGate({ name: 'smoke', run: 'bun run smoke' }, HARNESS_AT, ['merge']);
+
+    await current.slots.sweep();
+
+    expect(current.board.greenPhaseOf('001')).toBe('merge');
+    expect(current.board.greenIsCurrent('001', TICKET_TREE, 'merge')).toBe(false);
   });
 
   test('a failed prepare step opens setup-failed, launches no agent, and lands nothing', async () => {
@@ -287,13 +314,27 @@ describe('a stale green', () => {
 
   test.each(['build', 'review'] as const)('a stale green taken in the %s phase is gated again in that phase, which its new green records', async (phase) => {
     harness = harnessAnswering(MOVED_BRANCH);
-    harness.board.recordPipelineJudgedBy('001', TICKET_TREE, phase, HARNESS_AT);
+    harness.board.recordPipelineJudgedBy('001', TICKET_TREE, harness.board.gateRunStampOf(phase), HARNESS_AT);
 
     await harness.slots.sweep();
 
     expect(harness.gatedTrees[0]).toBe(MOVED_BRANCH_TREE);
     expect(harness.gatedPhases[0]).toBe(phase);
     expect(harness.board.greenPhaseOf('001')).toBe(phase);
+  });
+
+  test('a stale green\'s gate run records the stamp it read, so a pipeline edited while it ran leaves the ticket unqueued', async () => {
+    harness = harnessAnswering(MOVED_BRANCH);
+    const current = harness;
+    current.settings.beforeGate = () => current.board.addGate({ name: 'audit', run: 'bun run audit' }, HARNESS_AT, ['review']);
+
+    await current.slots.sweep();
+
+    expect(current.gatedTrees).toEqual([MOVED_BRANCH_TREE]);
+    expect(current.board.greenPhaseOf('001')).toBe('review');
+    expect(current.board.greenIsCurrent('001', MOVED_BRANCH_TREE, 'review')).toBe(false);
+    expect(current.board.ticketIsMergeQueued('001')).toBe(false);
+    expect(kindsLogged(current, 'merge-started')).toEqual([]);
   });
 
   test('a branch moved after its green loses mergeQueued even when its worktree is gone and cannot be gated', async () => {

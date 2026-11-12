@@ -7,18 +7,18 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                       from 'node:path';
 
-import type { AgentAdapter }     from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentEffort }      from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import { writeFileAtomically }   from '../../lib/atomic-file/AtomicFile.ts';
-import { confinedLineOf }        from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }            from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }          from '../../lib/git/GitWorktrees.ts';
-import { changedTrackedPathsOf } from '../../lib/git/Worktrees.ts';
-import { PORTABLE_GIT_SETTINGS } from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }      from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { PlatformPorts }    from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellExitReport }  from '../../lib/shell-line/ShellLine.ts';
-import type { GatePhase }        from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { AgentAdapter }            from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentEffort }             from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
+import { confinedLineOf }               from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                   from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                 from '../../lib/git/GitWorktrees.ts';
+import { changedTrackedPathsOf }        from '../../lib/git/Worktrees.ts';
+import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { PlatformPorts }           from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts';
+import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   Job,
@@ -26,7 +26,7 @@ import type {
   JobState
 } from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineStep }                                                            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineGate, PipelineStep }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
@@ -91,12 +91,26 @@ export type SetupProgress = 'creating-worktree' | 'worktree-failed' | 'worktree-
 
 export type GateStepOutcome = GateOutcome | 'setup-failed';
 
+/**
+ * A gate run's phase, its phase hash and the steps it runs, fixed as the run starts: a pipeline edited or reordered mid-run changes neither
+ * the gate a step folder runs nor the hash the settlement stamps.
+ */
+export interface GateRunManifest extends GateRunStamp {
+  prepare: PipelineStep[];
+  gates:   PipelineGate[];
+}
+
 export type GateProgress =
   | { verdict: 'pending' }
-  /** The step at `stepIndex` of the job's steps has yet to end, or to start while every gate slot of the machine is held. */
+  /** The step at `stepIndex` of the run's manifest has yet to end, or to start while every gate slot of the machine is held. */
   | { verdict: 'running'; treeId: string; stepIndex: number }
-  /** `step` names the red step, `null` on a pass; `ran` is false when a review left the tree the build's gates passed. */
-  | { verdict: 'judged'; treeId: string; outcome: GateStepOutcome; step: string | null; output: string; ran: boolean; exitCode?: number | null };
+  /**
+   * `step` names the red step, `null` on a pass; `ran` is false when a review left the tree the build's gates passed. `manifest` is what
+   * the run judged by: `null` when no gate ran, or when the run's manifest cannot be read, which no gate passes.
+   */
+  | {
+    verdict: 'judged'; treeId: string; outcome: GateStepOutcome; step: string | null; output: string; ran: boolean; exitCode?: number | null; manifest: GateRunManifest | null
+  };
 
 /** One Watcher of a job's gate run: one prepare step, or one gate. */
 interface GateStep {
@@ -108,7 +122,8 @@ interface GateStep {
   confinement: GateConfinement;
 }
 
-interface StepVerdict {
+/** Kept beside the step's folder with the stamp of the manifest it ran under, and reused only on the same tree under an equal manifest. */
+interface StepVerdict extends GateRunStamp {
   treeId:    string;
   outcome:   GateStepOutcome;
   output:    string;
@@ -186,6 +201,9 @@ const TARGET_MERGE_WATCHER_FOLDER = 'target-merge';
 const TARGET_GATE_FOLDER_PREFIX = 'target-';
 const GATE_PREPARE_WATCHER_FOLDER = 'gate-prepare';
 const GATE_WATCHER_FOLDER_PREFIX = 'gate-';
+/** Beside the run's step folders, with their prefix and Watcher instance suffix: `gate-run.json`, `gate-run-2.json`, `target-gate-run.json`. */
+const GATE_RUN_MANIFEST_NAME = 'gate-run';
+const GATE_RUN_MANIFEST_EXTENSION = '.json';
 const PREPARE_STEP_NAME = 'prepare';
 const FIRST_STEP_INDEX = 0;
 
@@ -328,36 +346,97 @@ function treeOfCommit(worktree: string, commit: string): string | null {
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
-/**
- * Each prepare step, then each gate of the phase in its run order, each in a Watcher folder of its own; a phase with no gates has no step,
- * so it passes at once. A session resumed after a red handoff gates again in fresh folders, suffixed with its Watcher instance, since a
- * Watcher folder runs once.
- */
-function gateStepsOf(pipeline: Readonly<Pipeline>, phase: GatePhase, watcherInstance: number = FIRST_WATCHER_INSTANCE, folderPrefix = ''): GateStep[] {
-  const gates = PipelineUtil.gatesOfPhase(pipeline, phase);
-  if (gates.length === 0) return [];
-  const suffix = watcherInstance === FIRST_WATCHER_INSTANCE ? '' : `-${watcherInstance}`;
-  const prepare = pipeline.prepare.map((step, stepIndex): GateStep => ({
-    kind:        'prepare',
-    name:        PREPARE_STEP_NAME,
-    line:        step.run,
-    folder:      `${folderPrefix}${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
-    in:          null,
-    confinement: GateRun.prepareConfinementOf(gates),
-  }));
-  return [...prepare, ...gates.map((gate, index): GateStep => ({
-    kind:        'gate',
-    name:        gate.name,
-    line:        gate.run,
-    folder:      `${folderPrefix}${GATE_WATCHER_FOLDER_PREFIX}${index + 1}${suffix}`,
-    in:          gate.in ?? null,
-    confinement: GateRun.gateConfinementOf(gate),
-  }))];
+/** Which gate run of a job: its own run in one Watcher instance, or a review's catch-up run before its reviewer. */
+interface GateRunPlace {
+  phase:           GatePhase;
+  watcherInstance: number;
+  folderPrefix:    string;
+}
+
+/** A job's own gate run: its phase's gates, in folders of the session's current Watcher instance. */
+function ownGateRunOf(job: Readonly<Job>): GateRunPlace {
+  return { phase: gatePhaseOfJob(job), watcherInstance: job.watcherInstance, folderPrefix: '' };
 }
 
 /** The merge before review gates the merged tree in the build phase, since what it finds goes back to the builder. */
-function targetGateStepsOf(pipeline: Readonly<Pipeline>): GateStep[] {
-  return gateStepsOf(pipeline, 'build', FIRST_WATCHER_INSTANCE, TARGET_GATE_FOLDER_PREFIX);
+const TARGET_GATE_RUN: GateRunPlace = { phase: 'build', watcherInstance: FIRST_WATCHER_INSTANCE, folderPrefix: TARGET_GATE_FOLDER_PREFIX };
+
+function instanceSuffixOf(watcherInstance: number): string {
+  return watcherInstance === FIRST_WATCHER_INSTANCE ? '' : `-${watcherInstance}`;
+}
+
+function gateRunManifestFileOf(place: GateRunPlace): string {
+  return `${place.folderPrefix}${GATE_RUN_MANIFEST_NAME}${instanceSuffixOf(place.watcherInstance)}${GATE_RUN_MANIFEST_EXTENSION}`;
+}
+
+function manifestOf(pipeline: Readonly<Pipeline>, phase: GatePhase): GateRunManifest {
+  return { ...PipelineUtil.gateRunStampOf(pipeline, phase), prepare: [...pipeline.prepare], gates: PipelineUtil.gatesOfPhase(pipeline, phase) };
+}
+
+function isNamedLine(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && typeof reportFieldOf(value, 'name') === 'string' && typeof reportFieldOf(value, 'run') === 'string';
+}
+
+function isAbsentOrTextList(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((entry) => typeof entry === 'string'));
+}
+
+/** A gate as `pipeline.json` stores it, so its confinement and red handoff read only what they expect. */
+function isStoredGate(value: unknown): boolean {
+  const optionalTexts = [reportFieldOf(value, 'fix'), reportFieldOf(value, 'in')];
+  const overseerOnly  = reportFieldOf(value, 'overseerOnly');
+  return isNamedLine(value) && optionalTexts.every((text) => text === undefined || typeof text === 'string')
+    && ['definedBy', 'network', 'writes'].every((field) => isAbsentOrTextList(reportFieldOf(value, field)))
+    && (overseerOnly === undefined || overseerOnly === true);
+}
+
+function isGateRunManifestOf(value: unknown, phase: GatePhase): value is GateRunManifest {
+  const prepare = reportFieldOf(value, 'prepare');
+  const gates   = reportFieldOf(value, 'gates');
+  return reportFieldOf(value, 'phase') === phase && typeof reportFieldOf(value, 'phaseHash') === 'string'
+    && Array.isArray(prepare) && prepare.every(isNamedLine) && Array.isArray(gates) && gates.every(isStoredGate);
+}
+
+/**
+ * The run's manifest. A run with none has not started: the manifest is written atomically from `pipeline` before its first step runs, and
+ * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced.
+ */
+function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>): GateRunManifest | 'unreadable' {
+  const manifestPath = join(jobFolderOf(context.workspace, job), gateRunManifestFileOf(place));
+  if (existsSync(manifestPath)) {
+    const stored = readJsonFile<unknown>(manifestPath);
+    return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
+  }
+  const manifest = manifestOf(pipeline, place.phase);
+  mkdirSync(dirname(manifestPath), { recursive: true });
+  writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return manifest;
+}
+
+/**
+ * Each prepare step, then each gate of the manifest in its run order, each in a Watcher folder of its own named by its position in the
+ * manifest; a manifest with no gates has no step, so it passes at once. A session resumed after a red handoff gates again in fresh folders,
+ * suffixed with its Watcher instance, since a Watcher folder runs once.
+ */
+function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace): GateStep[] {
+  if (manifest.gates.length === 0) return [];
+  const suffix = instanceSuffixOf(place.watcherInstance);
+  const prepare = manifest.prepare.map((step, stepIndex): GateStep => ({
+    kind:        'prepare',
+    name:        PREPARE_STEP_NAME,
+    line:        step.run,
+    folder:      `${place.folderPrefix}${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
+    in:          null,
+    confinement: GateRun.prepareConfinementOf(manifest.gates),
+  }));
+  return [...prepare, ...manifest.gates.map((gate, index): GateStep => ({
+    kind:        'gate',
+    name:        gate.name,
+    line:        gate.run,
+    folder:      `${place.folderPrefix}${GATE_WATCHER_FOLDER_PREFIX}${index + 1}${suffix}`,
+    in:          gate.in ?? null,
+    confinement: GateRun.gateConfinementOf(gate),
+  }))];
 }
 
 /** A per-instance marker, so a session resumed after a red handoff gets its own wind-down, closed input and stop. */
@@ -393,11 +472,11 @@ function readStepVerdict(verdictPath: string): StepVerdict | null {
  * The step's verdict once its Watcher ended, `null` before. Kept in the job folder as it is first read, so a later gate that changes the tree
  * never turns an earlier pass red; it is this job's record of its own run, never a result another job reads.
  */
-function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: string, step: GateStep): StepVerdict | null {
+function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: string, step: GateStep, stamp: GateRunStamp): StepVerdict | null {
   const jobFolder   = jobFolderOf(context.workspace, job);
   const verdictPath = join(jobFolder, `${step.folder}${STEP_VERDICT_SUFFIX}`);
   const kept        = readStepVerdict(verdictPath);
-  if (kept !== null && kept.treeId === treeId) return kept;
+  if (kept !== null && kept.treeId === treeId && kept.phase === stamp.phase && kept.phaseHash === stamp.phaseHash) return kept;
   const watcherFolder = join(jobFolder, step.folder);
   const end = processWatcherEnd(context.platformPorts, watcherFolder);
   if (end === 'pending') return null;
@@ -406,12 +485,16 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
     verdict = {
-      treeId, outcome: shellLine.exitMeaningOf(run) === 'passed' ? 'passed' : 'setup-failed', output: run.output, exitCode: run.exitCode
+      treeId, ...stamp, outcome: shellLine.exitMeaningOf(run) === 'passed' ? 'passed' : 'setup-failed', output: run.output, exitCode: run.exitCode
     };
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
     verdict = {
-      treeId, outcome: GateRun.gateOutcomeOf(shellLine, run, trackedChanges), output: GateRun.gateErrorOutputOf(shellLine, run, trackedChanges), exitCode: run.exitCode
+      treeId,
+      ...stamp,
+      outcome:  GateRun.gateOutcomeOf(shellLine, run, trackedChanges),
+      output:   GateRun.gateErrorOutputOf(shellLine, run, trackedChanges),
+      exitCode: run.exitCode,
     };
   }
   writeFileAtomically(verdictPath, `${JSON.stringify(verdict)}\n`);
@@ -433,21 +516,28 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'pending' };
   if (reviewLeftTheTreeAsItWas(context, job, treeId)) return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null
   };
-  return gateRunProgressOf(context, job, treeId, gateStepsOf(pipeline, gatePhaseOfJob(job), job.watcherInstance));
+  return gateRunProgressOf(context, job, treeId, ownGateRunOf(job), pipeline);
 }
 
-function gateRunProgressOf(context: JobLaunchContext, job: Readonly<Job>, treeId: string, steps: readonly GateStep[]): Exclude<GateProgress, { verdict: 'pending' }> {
-  for (const [stepIndex, step] of steps.entries()) {
-    const verdict = stepVerdictOf(context, job, treeId, step);
+/** Judged by the run's manifest alone, written at its first read; a manifest that cannot be read is a run that cannot go on. */
+function gateRunProgressOf(
+  context: JobLaunchContext, job: Readonly<Job>, treeId: string, place: GateRunPlace, pipeline: Readonly<Pipeline>
+): Exclude<GateProgress, { verdict: 'pending' }> {
+  const manifest = gateRunManifestOf(context, job, place, pipeline);
+  if (manifest === 'unreadable') return {
+    verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null
+  };
+  for (const [stepIndex, step] of gateStepsOf(manifest, place).entries()) {
+    const verdict = stepVerdictOf(context, job, treeId, step, manifest);
     if (verdict === null) return { verdict: 'running', treeId, stepIndex };
     if (verdict.outcome !== 'passed') return {
-      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null
+      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest
     };
   }
   return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true, manifest
   };
 }
 
@@ -503,7 +593,7 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   if (settlement.verdict === 'conflicted') return { verdict: 'conflicted', targetTip: record.mergedTip, conflictedFiles: settlement.conflictedFiles };
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'merge-failed', reason: `The tree of the merge commit ${settlement.mergeCommit} cannot be read.` };
-  const progress = gateRunProgressOf(context, job, treeId, targetGateStepsOf(pipeline));
+  const progress = gateRunProgressOf(context, job, treeId, TARGET_GATE_RUN, pipeline);
   if (progress.verdict === 'running') return { verdict: 'gating', stepIndex: progress.stepIndex };
   return { verdict: 'gated', targetTip: record.mergedTip, gate: progress };
 }
@@ -758,7 +848,8 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     writeFileAtomically(join(jobFolder, REGATE_MARKER_FILE), `${gate.treeId}\n`);
     return;
   }
-  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, phase, at);
+  // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
+  board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, gate.ran ? gate.manifest : board.gateRunStampOf(phase), at);
   if (gate.outcome === 'setup-failed') {
     openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
@@ -772,7 +863,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   }
   if (gate.outcome === 'failed') {
     hold.context.log(`The ${gate.step ?? ''} gate of job ${job.id} (#${ticketIdOf(job)}) is red on ${gate.treeId}; its output is in ${GATE_LOG_FILE}.`);
-    const pipelineGate = board.pipeline()?.gates.find((candidate) => candidate.name === gate.step);
+    const pipelineGate = gate.manifest?.gates.find((candidate) => candidate.name === gate.step);
     interruptOnRedHandoff(hold, job, {
       kind:        'gate',
       name:        gate.step ?? '',
@@ -806,8 +897,10 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
   hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(job), commit: headCommit }, at).logged);
-  // A pipeline without a review phase lands a gated build directly: it waits in review only for its Airlock.
-  if (board.pipeline()?.review === undefined) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
+  // A pipeline without a review phase lands a gated build directly: it waits in review only for its Airlock. A green the pipeline changed
+  // under while it ran is not current: the ticket waits unqueued, and the Airlock sweep gates it again.
+  const queuesAtOnce = board.pipeline()?.review === undefined && board.greenIsCurrent(ticketIdOf(job), gate.treeId, board.greenPhaseOf(ticketIdOf(job)));
+  if (queuesAtOnce) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
 }
 
 /** A reviewer runs on the pipeline reviewer's `model` and `effort` where set, while the pipeline has a review. */
@@ -833,7 +926,7 @@ function returnToBuilder(hold: HoldContext, job: Readonly<Job>, cause: string): 
 /** The red gate on the merged tree, written as the Baton pass of a red handoff in the review's job folder, which the resumed builder reads. */
 function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<GateProgress, { verdict: 'judged' }>): void {
   const jobFolder = jobFolderOf(hold.context.workspace, job);
-  const pipelineGate = hold.change.board.pipeline()?.gates.find((candidate) => candidate.name === gate.step);
+  const pipelineGate = gate.manifest?.gates.find((candidate) => candidate.name === gate.step);
   mkdirSync(jobFolder, { recursive: true });
   RedHandoff.writeRedHandoff(jobFolder, {
     kind:                'gate',
@@ -1231,9 +1324,7 @@ function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, j
   if (record === null) return;
   if (catchUp.verdict === 'merging') launchTargetMerge(context, trackerId, job, record);
   if (catchUp.verdict === 'merge-ended') writeTargetMergeSettlement(context, job, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
-  if (catchUp.verdict !== 'gating') return;
-  const step = targetGateStepsOf(pipeline)[catchUp.stepIndex];
-  if (step !== undefined) spawnGateStep(context, trackerId, job, step);
+  if (catchUp.verdict === 'gating') spawnGateRunStep(context, trackerId, job, { place: TARGET_GATE_RUN, pipeline, stepIndex: catchUp.stepIndex });
 }
 
 /** A checkout dirty before anyone touched it is a repository whose stored files `.gitattributes` would convert; its paths stop the install. */
@@ -1346,8 +1437,13 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
 /** Read afresh, since the hold may have moved the job into gating this pass; a gate waits for a free slot of the machine, a prepare step never. */
 function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
   const progress = gateProgressOf(context, job, pipeline);
-  if (progress.verdict !== 'running') return;
-  const step = gateStepsOf(pipeline, gatePhaseOfJob(job), job.watcherInstance)[progress.stepIndex];
+  if (progress.verdict === 'running') spawnGateRunStep(context, trackerId, job, { place: ownGateRunOf(job), pipeline, stepIndex: progress.stepIndex });
+}
+
+/** The step at `stepIndex` of the run's manifest, never of the pipeline now, so a reorder since the run started spawns no other gate. */
+function spawnGateRunStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }): void {
+  const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
+  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place)[run.stepIndex];
   if (step !== undefined) spawnGateStep(context, trackerId, job, step);
 }
 

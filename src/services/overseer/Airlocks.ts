@@ -8,12 +8,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
-import { readCurrentBranch }           from '../../lib/git/BranchIntegration.ts';
-import { GitProcess }                  from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                from '../../lib/git/GitWorktrees.ts';
-import { predictMerge, predictMerges } from '../../lib/git/MergeTree.ts';
-import type { DecisionKind }           from '../../lib/tracker-model/@types/Decision.ts';
-import type { GatePhase }              from '../../lib/tracker-model/@types/GatePhase.ts';
+import { readCurrentBranch }            from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }                   from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                 from '../../lib/git/GitWorktrees.ts';
+import { predictMerge, predictMerges }  from '../../lib/git/MergeTree.ts';
+import type { DecisionKind }            from '../../lib/tracker-model/@types/Decision.ts';
+import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
   Job,
@@ -63,7 +63,10 @@ export interface AirlocksContext {
   /** With the per-job ref denies holding, a target moved by someone else requeues silently; an unconfined job may have moved it itself. */
   refDeniesHold:         boolean;
   hold:                  AirlockHoldRunner;
-  /** Gates the tree with the gates of `phase` read afresh: `merge` for an Airlock's merged tree, the row's own phase for a stale green. */
+  /**
+   * Gates the tree with the gates of `phase`, read afresh once as the run starts: `merge` for an Airlock's merged tree, the row's own phase
+   * for a stale green. The result carries the stamp of what it read.
+   */
   gateMergedTree:        (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
   mergeAgentReadingOf:   (job: Readonly<Job>) => MergeAgentReading;
   /** The job's own Watcher, an agent's or a process Watcher's, is alive. */
@@ -91,6 +94,8 @@ export interface MergedTreeGate {
   /** The red gate or the failed or refused step; `null` on a pass. */
   step:    string | null;
   output:  string;
+  /** The phase and phase hash of the pipeline the run read as it started, which a row's green records; `null` when it read none. */
+  stamp:   GateRunStamp | null;
 }
 
 /** A red gate goes back to the ticket's agent; a gate that could not run and a failed prepare step are the incidents a build job opens too. */
@@ -101,15 +106,20 @@ function treeOfCommit(worktree: string, commit: string): string | null {
   return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
 }
 
+/** A ticket's merged tree that is its branch tip's own tree: the merge-in changed nothing. A refresh has no branch of its own. */
+function mergedTreeIsTheBranchTree(worktree: string, job: Readonly<Job>, treeId: string): boolean {
+  const branchTip = job.airlock?.branchTip;
+  return job.ticketIds.length > 0 && branchTip !== undefined && treeOfCommit(worktree, branchTip) === treeId;
+}
+
 /**
  * The merged tree is the branch's own tree, the newest gate run on it passed, and the ticket's row holds it as a green current in the merge
  * phase: the merge changed nothing the gates judged, and the gates that passed it are the merge phase's. A refresh has no row, so its merged
  * tree is always gated.
  */
-function mergedTreeWasLastPassed(board: Board, worktree: string, job: Readonly<Job>, treeId: string): boolean {
-  const branchTip  = job.airlock?.branchTip;
+function mergedTreeWasLastPassed(board: Board, job: Readonly<Job>, treeId: string, isTheBranchTree: boolean): boolean {
   const [ticketId] = job.ticketIds;
-  if (branchTip === undefined || ticketId === undefined || treeOfCommit(worktree, branchTip) !== treeId) return false;
+  if (!isTheBranchTree || ticketId === undefined) return false;
   const newestRunOnTheTree = board.logRecordsSoFar().findLast((record) => record.kind === 'gate-ran' && record.fields.tree === treeId);
   return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, 'merge');
 }
@@ -338,16 +348,16 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /** In the hold after a gate run outside the Airlock: green queues the ticket again, red returns it to its agent, else an incident holds it. */
-  function settleRegate(hold: AirlockHold, ticketId: string, target: string, treeId: string, regate: { phase: GatePhase; gate: MergedTreeGate }): void {
-    const { phase, gate } = regate;
+  function settleRegate(hold: AirlockHold, ticketId: string, target: string, treeId: string, gate: MergedTreeGate): void {
     const ticket = hold.board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
     const stillWaits = ticket?.frontmatter.status === 'in-review' && ticket.frontmatter.hold === undefined
       && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
     if (!stillWaits) return;
     if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome: gate.outcome, cached: false }, hold.at);
-    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, phase, hold.at);
+    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, gate.stamp, hold.at);
     if (gate.outcome === 'passed') {
-      hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
+      // A pipeline changed while the gates ran leaves this green not current: the ticket waits unqueued, and the next sweep gates it again.
+      if (hold.board.greenIsCurrent(ticketId, treeId, hold.board.greenPhaseOf(ticketId))) hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
       return;
     }
     if (gate.outcome === 'failed') {
@@ -397,7 +407,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
       moved = true;
       const gate = await context.gateMergedTree(worktree, treeId, settled.phase);
-      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, { phase: settled.phase, gate }));
+      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
     }
     return moved;
   }
@@ -543,18 +553,23 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.gitFailed, 'The merged tree cannot be read.');
       return true;
     }
+    const isTheBranchTree = mergedTreeIsTheBranchTree(worktree, job, treeId);
     const landsUngated = await context.hold((hold) => {
-      if (!mergedTreeWasLastPassed(hold.board, worktree, job, treeId)) return false;
+      if (!mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree)) return false;
       setPhase(hold, job, 'landing');
       return true;
     });
     if (landsUngated) return true;
-    const { outcome, step, output } = await context.gateMergedTree(worktree, treeId, 'merge');
+    const {
+      outcome, step, output, stamp
+    } = await context.gateMergedTree(worktree, treeId, 'merge');
     if (outcome === 'failed' && !isRefresh(job) && await mergeApprovalIsOn()) return returnRedMergeToTheReviewer(job, treeId, { step: step ?? '', output, worktree });
     const resumesSpent = await context.hold((hold) => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
       const agent = mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {
+        // Only the branch's own tree is the row's: a merged tree with a merge commit goes back to the branch tip when the slot frees.
+        if (isTheBranchTree) hold.board.recordPipelineJudgedBy(ticketIdOf(job), treeId, stamp, hold.at);
         if (agent !== undefined) hold.board.endJob(agent.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? treeId }, hold.at);
         setPhase(hold, job, 'landing');
         return false;

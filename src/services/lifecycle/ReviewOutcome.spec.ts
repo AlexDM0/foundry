@@ -96,7 +96,7 @@ test('a pass that changed nothing commits, and reads the commit back, with the w
   }, AT);
   board.startReviewBar('001', { round: 1, owner: launched.job.id }, AT);
   for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(launched.job.id, state, AT);
-  board.recordPipelineJudgedBy('001', EXAMPLE_TREE, 'review', AT);
+  board.recordPipelineJudgedBy('001', EXAMPLE_TREE, board.gateRunStampOf('review'), AT);
   const outcome = ReviewOutcome.settleReviewPass({
     board,
     at:     AT,

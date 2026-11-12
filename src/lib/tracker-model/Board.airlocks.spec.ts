@@ -40,7 +40,7 @@ describe('admitting only a current green to the Airlock', () => {
     board.setTicketMergeQueued('001', false, AT);
     const refusal = refusalDetailOf(() => board.queueTicketForMerge('001', 'main', OTHER_TREE, AT));
     expect(refusal).toEqual({ reason: 'merge-queue-without-a-current-green', ticketId: '001', headTree: OTHER_TREE });
-    board.recordPipelineJudgedBy('001', null, 'review', AT);
+    board.recordPipelineJudgedBy('001', null, board.gateRunStampOf('review'), AT);
     expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(false);
     expect(refusalDetailOf(() => board.queueTicketForMerge('001', 'main', EXAMPLE_GREEN_TREE, AT))).toMatchObject({ reason: 'merge-queue-without-a-current-green' });
   });
@@ -53,8 +53,32 @@ describe('the phase of a green', () => {
     if (pipeline === null) throw new Error('the fixture stores a pipeline');
     expect(progress.tasks[0]).toMatchObject({ greenPhase: 'review', pipelineHash: PipelineUtil.phaseHashOf(pipeline, 'review'), greenTree: EXAMPLE_GREEN_TREE });
 
-    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, 'merge', AT);
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, board.gateRunStampOf('merge'), AT);
     expect(progress.tasks[0]).toMatchObject({ greenPhase: 'merge', pipelineHash: PipelineUtil.phaseHashOf(pipeline, 'merge') });
+  });
+
+  test('a gate run records the stamp it read at its start, so a pipeline reordered while it ran leaves its green not current', () => {
+    const { board, progress } = queuedFixture();
+    board.addGate({ name: 'tests', run: 'bun test' }, AT, ['review']);
+    board.addGate({ name: 'lint', run: 'bun run lint' }, AT, ['review']);
+    const stampAtTheStart = board.gateRunStampOf('review');
+    if (stampAtTheStart === null) throw new Error('the fixture stores a pipeline');
+    board.orderPhaseGates('review', ['lint', 'tests'], AT);
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, stampAtTheStart, AT);
+
+    expect(progress.tasks[0]).toMatchObject({ greenPhase: 'review', pipelineHash: stampAtTheStart.phaseHash, greenTree: EXAMPLE_GREEN_TREE });
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(false);
+  });
+
+  test('a gate run that read no pipeline removes the row\'s phase, hash and green', () => {
+    const { board, progress } = queuedFixture();
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, null, AT);
+
+    expect(progress.tasks[0]?.pipelineHash).toBeUndefined();
+    expect(progress.tasks[0]?.greenPhase).toBeUndefined();
+    expect(progress.tasks[0]?.greenTree).toBeUndefined();
   });
 
   test('a row with a pipelineHash and no greenPhase is stale: it is no candidate, it waits for a gate run, and it cannot be queued', () => {

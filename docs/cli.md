@@ -778,6 +778,17 @@ never a red gate. The Overseer never runs a gate's `fix`. Customs and a worker's
 phases run it. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
 and their confinement.
 
+A job's gate run starts by writing its manifest, `<data>/jobs/<J>/gate-run.json`, atomically: `{ phase, phaseHash,
+prepare, gates }`, the phase, that phase's hash, and the prepare steps and gates it runs in order, as the pipeline held
+them then. A session resumed after a red handoff runs again under `gate-run-<instance>.json`, and the merge before
+review under `target-gate-run.json`. The run reads only its manifest and never rewrites it: each step's Watcher folder
+is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no gate that did
+not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase and hash.
+The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not current
+and the ticket is gated again; without a review phase such a build waits unqueued for that gate run. A manifest that
+cannot be read is never replaced: the run ends `gate-cannot-run`. An Airlock's merged tree and a stale green are gated
+from one read of the pipeline, and record that read's phase and hash in the same way.
+
 A line is stored for the machine that runs it, in that machine's grammar, which `gate add` in `help` names. On macOS
 and Linux, `/bin/sh` joins standard error onto standard output and runs the line in the user's `SHELL`. On Windows,
 cmd.exe runs it as `cmd.exe /d /s /c "(<line>) 2>&1 & call echo %^errorlevel%>"<status file>""`, the line's own
@@ -811,7 +822,7 @@ Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) tak
 atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
 `pipeline.json` at exit 1 rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal
 pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
-(`pipelineHash`) at its next gate run, which reads the pipeline afresh. `--json` on these writes prints
+(`pipelineHash`) at its next gate run, as the run read the pipeline at its start. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.
 
 #### The pipeline hashes
@@ -1289,9 +1300,9 @@ with an open ticket. A queued ticket merges in a `merge` job, whose record carri
 `airlock: {target, targetTip, branchTip, phase}`.
 
 The merged tree is gated with the merge phase's gates, unless it is the branch's own tree, that tree last passed and the
-row's green is current in the merge phase, then landed by a compare-and-swap fast-forward, logging `merge-landed`. A
-group ticket lands on `group-<name>` of kind `integrated` and moves to `reviewed`; the group's release ticket lands its
-whole bundle on the main line.
+row's green is current in the merge phase; a pass on the branch's own tree records the row's green in the merge phase.
+It is then landed by a compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of
+kind `integrated` and moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
 
 `merges` shows the queue. [Airlocks and groups](architecture/airlocks-and-groups.md) holds the order, the phases,
 refresh and release.

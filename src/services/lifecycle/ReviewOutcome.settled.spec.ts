@@ -151,7 +151,7 @@ function settle(jobId: string, reviewerReport: Record<string, unknown>) {
     decisionWordingOf: (_draft: DecisionDraft) => WORDING,
   };
   // As the Overseer's hold does once the gate passed on the tree.
-  board.recordPipelineJudgedBy('001', GATED_TREE, 'review', AT);
+  board.recordPipelineJudgedBy('001', GATED_TREE, board.gateRunStampOf('review'), AT);
   return ReviewOutcome.settleReviewPass(request);
 }
 

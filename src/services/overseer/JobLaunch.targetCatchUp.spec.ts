@@ -1,10 +1,10 @@
 /**
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
- * reviewer starts only once the build phase's gates are green on the merged tree, at once when that phase has none; a red gate and a
- * conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge and resets the worktree to
- * the branch tip. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the launcher is fake,
- * and the spec ends the Watchers itself.
+ * reviewer starts only once the build phase's gates are green on the merged tree, run from a manifest of its own, at once when that phase
+ * has none; a red gate and a conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge
+ * and resets the worktree to the branch tip. The folders are real; git answers from recorded answer sets, one for each state of the
+ * worktree, the launcher is fake, and the spec ends the Watchers itself.
  */
 import {
   mkdirSync,
@@ -234,6 +234,7 @@ testWhenGitIsRecorded('after a clean merge the reviewer starts only once the gat
   const scene = await cleanlyMergedScene();
   expect(scene.reviewJob()?.state).toBe('preparing');
   expect(JobLaunch.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
+  expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'target-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'build' });
 
   endWatcher(join(scene.jobFolder(), 'target-gate-1'), 0);
   await scene.pass();

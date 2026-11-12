@@ -302,7 +302,8 @@ its gate slot when the gate ends. Prepare steps take no gate slot.
 ### Verdict files and resumed gates
 
 Once a step's Watcher ends, the Overseer judges it once and writes `<folder>-verdict.json` in the job folder, keyed by
-tree id. Later Passes read that file instead of judging again. The atlas lays out
+tree id and by the phase and phase hash of the run's manifest, `gate-run.json`, which the run writes at its start and
+reads its steps from. Later Passes read that file instead of judging again. The atlas lays out
 [gate folders and verdict files](../data-model/on-disk-atlas.md#gate-folders-verdicts-and-red-handoff-files).
 
 ![Over four Passes gate-1 is judged passed on tree T and its verdict is kept in gate-1-verdict.json. gate-2 then changes a tracked file and is judged failed. Later Passes read gate-1's kept verdict; judging it again would see gate-2's diff and turn it red.](../figures/customs-and-gates/verdict-files-across-passes.png)

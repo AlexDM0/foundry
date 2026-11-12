@@ -228,7 +228,8 @@ Below, `<step>` is any of these folder names.
 | File | Writer | Reader | Mode | Purpose | Owning type |
 | --- | --- | --- | --- | --- | --- |
 | `<step>/process-sandbox.sb` | Overseer | `sandbox-exec` | Plain | The step's confinement | `ProcessWatcherSandbox` |
-| `<step>-verdict.json` | Overseer, the first time it reads the step's result | Overseer | Plain | For `gate-prepare` and each gate; `install` has none. Keeps a result by tree id, so a later gate that changes the tree never turns an earlier one red | `StepVerdict` |
+| `gate-run.json`, `gate-run-<n>.json`, `target-gate-run.json` | Overseer, once, at the gate run's start | Overseer, at each read of the run | Atomic, never rewritten | The run's manifest: its phase, phase hash, prepare steps and gates in order. The run's steps and folders come from it, and the settlement records its phase and hash | `GateRunManifest` |
+| `<step>-verdict.json` | Overseer, the first time it reads the step's result | Overseer | Plain | For `gate-prepare` and each gate; `install` has none. Keeps a result by tree id and the manifest's phase and hash, so a later gate that changes the tree never turns an earlier one red, and a verdict under another manifest is never reused | `StepVerdict` |
 | `gate.log` | Overseer, when `gate-prepare` or a gate does not pass; a failed `install` leaves its output in `install/events-1.ndjson` | Agents through the red-handoff note; the Bridge through `SERVED_JOB_FILE_NAMES` | Plain | The failing step's whole output, newest failure only | `stepVerdictOf` |
 | `gate-failure.md` | Overseer | The resumed session | Atomic | The [red-handoff](../glossary.md#red-handoff) note | `RedHandoff.batonPassTextOf` |
 | `red-handoff.json` | Overseer; copied into the job folder of a fresh session taking over (`adoptRedHandoff`) | Overseer, for the resume wording and budget | Atomic | What went red and which resume this is | `RedHandoffFacts` |

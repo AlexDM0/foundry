@@ -60,7 +60,7 @@ import type {
   EpicEdit,
   EpicRollup
 }                                                           from './@types/Epic.ts';
-import type { GatePhase } from './@types/GatePhase.ts';
+import type { GatePhase, GateRunStamp } from './@types/GatePhase.ts';
 import type {
   Incident,
   IncidentDefaultCause,
@@ -704,8 +704,8 @@ export class Board {
     return this.trackerChanges.setApproval(approval, on, at);
   }
 
-  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, phase: GatePhase, at: string): void {
-    this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, phase, at);
+  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, stamp: GateRunStamp | null, at: string): void {
+    this.trackerChanges.recordPipelineJudgedBy(ticketId, greenTree, stamp, at);
   }
 
   recordWorktreeRepaired(ticketId: string, fields: LogRecordFieldsOf<'worktree-repaired'>, at: string): Logged {
@@ -1054,6 +1054,11 @@ export class Board {
     if (!this.records.pipelineSetupChanged) return { write: 'unchanged' };
     const reading = this.records.pipelineSetupReading;
     return reading.verdict === 'readable' ? { write: 'record', setup: reading.setup } : { write: 'removed' };
+  }
+
+  /** What a gate run of `phase` that starts now records on a row: the stored pipeline's hash of that phase; `null` with none stored. */
+  gateRunStampOf(phase: GatePhase): GateRunStamp | null {
+    return this.records.pipeline === null ? null : PipelineUtil.gateRunStampOf(this.records.pipeline, phase);
   }
 
   gateWritablePaths(): readonly string[] {

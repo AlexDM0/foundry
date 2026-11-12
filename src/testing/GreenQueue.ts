@@ -10,6 +10,6 @@ export const EXAMPLE_GREEN_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
 
 export function queueOnCurrentGreen(board: Board, ticketId: string, target: string, at: string, tree: string = EXAMPLE_GREEN_TREE): Logged {
   if (board.pipeline() === null) board.setNoGates(at);
-  board.recordPipelineJudgedBy(ticketId, tree, 'review', at);
+  board.recordPipelineJudgedBy(ticketId, tree, board.gateRunStampOf('review'), at);
   return board.queueTicketForMerge(ticketId, target, tree, at);
 }

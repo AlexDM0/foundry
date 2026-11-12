@@ -388,7 +388,7 @@ export class LifecycleWorld {
     if (ticketId === undefined) return;
     if (outcome === 'built') this.moveTicketWhenBuilt(ticketId, 'in-progress', 'in-review');
     if (outcome === 'reviewed' && this.ticketStatusOf(ticketId) === 'in-review') {
-      this.board.recordPipelineJudgedBy(ticketId, worldBranchTreeOf(ticketId), 'review', FIXTURE_AT);
+      this.board.recordPipelineJudgedBy(ticketId, worldBranchTreeOf(ticketId), this.board.gateRunStampOf('review'), FIXTURE_AT);
       this.board.queueTicketForMerge(ticketId, worldTargetOf(this.groupOf(ticketId)), worldBranchTreeOf(ticketId), FIXTURE_AT);
     }
     if (outcome === 'does-not-hold') this.moveTicketWhenBuilt(ticketId, 'in-review', 'in-progress');

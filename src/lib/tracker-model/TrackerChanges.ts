@@ -6,8 +6,8 @@ import type {
   OverseerStateSet,
   TrackerCleared
 } from './@types/BoardChanges.ts';
-import { GATE_PHASES, type GatePhase } from './@types/GatePhase.ts';
-import type { LogRecordFieldsOf }      from './@types/LogRecord.ts';
+import { GATE_PHASES, type GatePhase, type GateRunStamp } from './@types/GatePhase.ts';
+import type { LogRecordFieldsOf }                         from './@types/LogRecord.ts';
 import {
   type Pipeline,
   type PipelineApproval,
@@ -144,23 +144,24 @@ export class TrackerChanges {
   }
 
   /**
-   * At a gate run in `phase`: the ticket's row records that phase and the stored pipeline's hash of it, or loses both when none is stored.
-   * A green run records its tree as `greenTree` beside them, filing the ticket's row when it has none; any other run removes it, so the row
-   * never names a tree the recorded gates did not pass.
+   * At a gate run's settlement: the ticket's row records the phase and phase hash the run read at its start, never the pipeline's now, so
+   * a pipeline edited mid-run leaves a green that is not current. With no pipeline stored, or none read by the run (`null`), the row loses
+   * both. A green run records its tree as `greenTree` beside them, filing the ticket's row when it has none; any other run removes it, so
+   * the row never names a tree the recorded gates did not pass.
    */
-  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, phase: GatePhase, at: string): void {
+  recordPipelineJudgedBy(ticketId: string, greenTree: string | null, stamp: GateRunStamp | null, at: string): void {
     const ticket       = this.records.requireTicket(ticketId);
-    const { pipeline } = this.records;
-    const row          = greenTree === null || pipeline === null ? this.records.linkedTaskRecordOf(ticket) : this.records.ensureTaskForTicket(ticket, at);
+    const judged       = this.records.pipeline === null ? null : stamp;
+    const row          = greenTree === null || judged === null ? this.records.linkedTaskRecordOf(ticket) : this.records.ensureTaskForTicket(ticket, at);
     if (row === undefined) return;
-    if (pipeline === null) {
+    if (judged === null) {
       delete row.pipelineHash;
       delete row.greenPhase;
       delete row.greenTree;
       return;
     }
-    row.pipelineHash = PipelineUtil.phaseHashOf(pipeline, phase);
-    row.greenPhase   = phase;
+    row.pipelineHash = judged.phaseHash;
+    row.greenPhase   = judged.phase;
     if (greenTree === null) delete row.greenTree;
     else row.greenTree = greenTree;
   }

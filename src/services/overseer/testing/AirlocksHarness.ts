@@ -60,7 +60,7 @@ export interface AirlocksHarness {
     reading:       MergeAgentReading;
     watcherIsLive: boolean;
     refDeniesHold: boolean;
-    /** Runs before each gate returns: a spec moves the main line here. */
+    /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
     beforeGate:    () => void;
   };
   worktreeOf:   (ticketId: string) => string;
@@ -149,8 +149,11 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
     gateMergedTree: (_worktreePath, treeId, phase) => {
       gatedTrees.push(treeId);
       gatedPhases.push(phase);
+      const stamp = board.gateRunStampOf(phase);
       settings.beforeGate();
-      return Promise.resolve({ outcome: settings.gateOutcome, step: settings.gateOutcome === 'passed' ? null : 'tests', output: 'Example gate output\nexpected 2, received 3' });
+      return Promise.resolve({
+        outcome: settings.gateOutcome, step: settings.gateOutcome === 'passed' ? null : 'tests', output: 'Example gate output\nexpected 2, received 3', stamp
+      });
     },
     mergeAgentReadingOf: () => settings.reading,
     watcherIsLive:       () => settings.watcherIsLive,

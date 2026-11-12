@@ -8,3 +8,9 @@ export type GatePhase = 'build' | 'review' | 'merge';
 
 /** The phases in the order a ticket meets them. */
 export const GATE_PHASES: readonly GatePhase[] = Object.freeze(['build', 'review', 'merge']);
+
+/** What a gate run judged a tree by: its phase, and the hash of that phase's prepare steps and gates as the run read them at its start. */
+export interface GateRunStamp {
+  phase:     GatePhase;
+  phaseHash: string;
+}

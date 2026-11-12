@@ -966,7 +966,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     },
     hold:           holdTracker,
     gateMergedTree: async (worktreePath, treeId, phase) => {
-      // Read afresh at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart.
+      // Read afresh once at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and
+      // the stamp names the gates this run ran, whatever changes while it runs.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
@@ -980,8 +981,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, commandArguments, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
-      if (verdict.outcome === 'passed') return { outcome: 'passed', step: null, output: '' };
-      return { outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output };
+      const stamp = pipeline === null ? null : PipelineUtil.gateRunStampOf(pipeline, phase);
+      if (verdict.outcome === 'passed') return {
+        outcome: 'passed', step: null, output: '', stamp
+      };
+      return {
+        outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output, stamp
+      };
     },
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
     watcherIsLive:       (job) => {

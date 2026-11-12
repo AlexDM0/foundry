@@ -3,7 +3,7 @@
  * phase, the instruction list a role reads, and the folders its gates write. The steps stay structured: each runs as its own process,
  * and a display line is the shell grammar's to render.
  */
-import { GATE_PHASES, type GatePhase } from '../@types/GatePhase.ts';
+import { GATE_PHASES, type GatePhase, type GateRunStamp } from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
   InstructionEntry,
@@ -89,6 +89,11 @@ function phaseHashOf(pipeline: Readonly<Pipeline>, phase: GatePhase): string {
   return TicketBodyHashUtil.bodyHashOf(JSON.stringify(canonical));
 }
 
+/** The stamp a gate run of `phase` under this pipeline records on a row: the phase and its hash now. */
+function gateRunStampOf(pipeline: Readonly<Pipeline>, phase: GatePhase): GateRunStamp {
+  return { phase, phaseHash: phaseHashOf(pipeline, phase) };
+}
+
 /** Every key but `billing`, in a fixed order: what tells Apply that someone changed the stored pipeline under it. */
 function contentHashOf(pipeline: Readonly<Pipeline>): string {
   const canonical = {
@@ -118,6 +123,7 @@ function writablePathsOf(pipeline: Readonly<Pipeline>): string[] {
 export const PipelineUtil = Object.freeze({
   contentHashOf,
   gateCatalogueOf,
+  gateRunStampOf,
   gatesOfPhase,
   minimalPipelineOf,
   phaseHashOf,

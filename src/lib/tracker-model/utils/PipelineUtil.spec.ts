@@ -109,6 +109,12 @@ describe('the phase hash', () => {
 
     for (const phase of GATE_PHASES) expect(PipelineUtil.phaseHashOf(reordered, phase)).toBe(PipelineUtil.phaseHashOf(ONE_STEP_ONE_GATE, phase));
   });
+
+  test('is the hash a gate run of that phase stamps, beside the phase', () => {
+    for (const phase of GATE_PHASES) {
+      expect(PipelineUtil.gateRunStampOf(FULL_PIPELINE, phase)).toEqual({ phase, phaseHash: PipelineUtil.phaseHashOf(FULL_PIPELINE, phase) });
+    }
+  });
 });
 
 describe('the content hash', () => {
