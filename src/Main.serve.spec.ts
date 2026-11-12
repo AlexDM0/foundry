@@ -15,10 +15,12 @@ import {
 
 import { FLEET_SNAPSHOT_EMPTY }                                         from './adapters/page-api/testing/fleet-snapshot-empty.ts';
 import { startPageServer }                                              from './features/page-server/PageServer.ts';
+import { forgeClientOf }                                                from './lib/forge-client/ForgeClient.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from './lib/local-http-guards/ContentSecurityPolicy.ts';
 import { environmentCopy }                                              from './services/Environment.ts';
 import { createFleetStore }                                             from './services/FleetStore.ts';
 import { manualTimers }                                                 from './testing/ManualTimers.ts';
+import { recordedOverseerFetch }                                        from './testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from './testing/ScratchRoot.ts';
 
 const PAGE_POLICY = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
@@ -131,15 +133,20 @@ describe('gaia serve', () => {
 
   test('refuses to start where Gaia already answers, and writes no token', async () => {
     const runningGaia = await startPageServer({
-      port:          0,
-      homeDirectory: scratchHome(),
-      fleetStore:    createFleetStore(FLEET_SNAPSHOT_EMPTY),
-      forgeCounts:   () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
-      pageFiles:     () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
-      carryCommand:  () => Promise.resolve({ verdict: 'not-supported' }),
-      timers:        manualTimers(),
-      now:           () => '2026-11-13T09:00:00.000Z',
-      processId:     process.pid,
+      port:                0,
+      homeDirectory:       scratchHome(),
+      fleetStore:          createFleetStore(FLEET_SNAPSHOT_EMPTY),
+      forgeCounts:         () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
+      pageFiles:           () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
+      carryCommand:        () => Promise.resolve({ verdict: 'not-supported' }),
+      frameSessionSources: {
+        readRegistry: () => Promise.resolve({ verdict: 'absent' }),
+        readings:     () => [],
+        forgeClient:  forgeClientOf({ overseerFetch: recordedOverseerFetch([]) }),
+      },
+      timers:    manualTimers(),
+      now:       () => '2026-11-13T09:00:00.000Z',
+      processId: process.pid,
     });
     if (runningGaia.verdict !== 'serving') throw new Error('The running Gaia of this spec did not start.');
     try {

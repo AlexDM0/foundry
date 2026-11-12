@@ -21,11 +21,13 @@ import { FleetDocumentMapUtil }                                         from '..
 import { FLEET_SNAPSHOT_EMPTY }                                         from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES }                                   from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
 import { eventStreamParserOf, type ServerSentEvent }                    from '../../lib/event-stream/EventStreamParser.ts';
+import { forgeClientOf }                                                from '../../lib/forge-client/ForgeClient.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
 import { createFleetStore, type FleetStore }                            from '../../services/FleetStore.ts';
 import type { CommandVerdict }                                          from '../../shared/@types/CommandVerdict.ts';
 import type { GaiaCommand }                                             from '../../shared/@types/GaiaCommand.ts';
 import { manualTimers, type ManualTimers }                              from '../../testing/ManualTimers.ts';
+import { recordedOverseerFetch, type RecordedOverseerFetch }            from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
 import { startPageServer, type PageServer, type PageServerOptions }     from './PageServer.ts';
 import { serverTokenPathIn }                                            from './ServerToken.ts';
@@ -60,6 +62,7 @@ let serversToStop: PageServer[];
 let streamsToAbort: AbortController[];
 let carriedCommands: GaiaCommand[];
 let nextCommandVerdict: CommandVerdict;
+let overseerFetch: RecordedOverseerFetch;
 
 beforeEach(() => {
   homeDirectory  = createScratchDirectory('page-server-home');
@@ -69,6 +72,7 @@ beforeEach(() => {
   streamsToAbort = [];
   carriedCommands    = [];
   nextCommandVerdict = { verdict: 'done' };
+  overseerFetch      = recordedOverseerFetch([]);
 });
 
 afterEach(async () => {
@@ -87,6 +91,11 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
     carryCommand: (command) => {
       carriedCommands.push(command);
       return Promise.resolve(nextCommandVerdict);
+    },
+    frameSessionSources: {
+      readRegistry: () => Promise.resolve({ verdict: 'absent' }),
+      readings:     () => [],
+      forgeClient:  forgeClientOf({ overseerFetch }),
     },
     timers,
     now:                            () => STARTED_AT,
@@ -344,6 +353,27 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }) });
     expect(response.status).toBe(401);
     expect(carriedCommands).toEqual([]);
+  });
+});
+
+describe('a frame session', () => {
+  test('is answered for a forge named in its path through the frame session route, behind the session guard', async () => {
+    const pageServer = await servingPageServer();
+    const framePath = '/api/forges/example-storefront-7c41/frame-session';
+    expect((await answerOf(pageServer, framePath, { method: 'POST' })).status).toBe(401);
+
+    const response = await answerOf(pageServer, framePath, { method: 'POST', headers: { cookie: await sessionCookieOf(pageServer) } });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
+    });
+    expect(overseerFetch.callsAnswered()).toEqual([]);
+  });
+
+  test('is not found at a path that names no forge, and not allowed under another method', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/forges//frame-session', { method: 'POST' })).status).toBe(404);
+    expect((await answerOf(pageServer, '/api/forges/example-storefront-7c41/frame-session')).status).toBe(405);
   });
 });
 

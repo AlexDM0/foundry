@@ -18,9 +18,15 @@ import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }             
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
 import { COMMANDS_PATH, commandAnswerFor, type CommandCarrier }                                    from './routes/CommandsRoute.ts';
-import { HEALTH_PATH, healthAnswerOf, type ForgeCounts }                                           from './routes/HealthRoute.ts';
-import { pageFileAnswerFor, type PageFilesSource }                                                 from './routes/PageFilesRoute.ts';
-import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }                     from './routes/SessionRoutes.ts';
+import {
+  FRAME_SESSION_METHOD,
+  frameSessionAnswerFor,
+  trackerIdOfFrameSessionPath,
+  type FrameSessionSources,
+} from './routes/FrameSessionRoute.ts';
+import { HEALTH_PATH, healthAnswerOf, type ForgeCounts }                       from './routes/HealthRoute.ts';
+import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
+import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -31,6 +37,8 @@ export interface PageServerOptions {
   readonly pageFiles:                       PageFilesSource;
   /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
   readonly carryCommand:                    CommandCarrier;
+  /** What the frame session route asks a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
+  readonly frameSessionSources:             FrameSessionSources;
   readonly timers:                          WatchTimers;
   /** The stamp the server record carries: recorded for a reader to show, never compared. */
   readonly now:                             () => string;
@@ -57,12 +65,12 @@ export type PageServerStartVerdict =
 type RouteAccess = 'open' | 'token' | 'session-or-token';
 
 interface PageServerRoute {
-  readonly method:   'GET' | 'POST';
-  readonly path:     string;
-  readonly access:   RouteAccess;
+  readonly method:      'GET' | 'POST';
+  readonly matchesPath: (pathname: string) => boolean;
+  readonly access:      RouteAccess;
   /** A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing. */
-  readonly isStream: boolean;
-  readonly answer:   (request: Request) => Response | Promise<Response>;
+  readonly isStream:    boolean;
+  readonly answer:      (request: Request, pathname: string) => Response | Promise<Response>;
 }
 
 const LOOPBACK_ADDRESS = '127.0.0.1';
@@ -101,50 +109,66 @@ function fleetAnswerOf(broker: FleetBroker): Response {
   return new Response(broker.fleetDocumentJson(), { headers: { 'content-type': JSON_CONTENT_TYPE, 'cache-control': 'no-store' } });
 }
 
+function exactly(path: string): (pathname: string) => boolean {
+  return (pathname) => pathname === path;
+}
+
+function frameSessionAnswerOf(pathname: string, sources: FrameSessionSources): Promise<Response> {
+  const trackerId = trackerIdOfFrameSessionPath(pathname);
+  return trackerId === null ? Promise.resolve(refusalAnswerOf('not-found')) : frameSessionAnswerFor(trackerId, sources);
+}
+
 function routesOf(context: RouteContext): readonly PageServerRoute[] {
   const { broker, sessionCodes, options } = context;
   return [
     {
-      method:   'GET',
-      path:     HEALTH_PATH,
-      access:   'open',
-      isStream: false,
-      answer:   () => healthAnswerOf(options.forgeCounts()),
+      method:      'GET',
+      matchesPath: exactly(HEALTH_PATH),
+      access:      'open',
+      isStream:    false,
+      answer:      () => healthAnswerOf(options.forgeCounts()),
     },
     {
-      method:   'POST',
-      path:     '/api/session-codes',
-      access:   'token',
-      isStream: false,
-      answer:   () => sessionCodeAnswerOf(sessionCodes),
+      method:      'POST',
+      matchesPath: exactly('/api/session-codes'),
+      access:      'token',
+      isStream:    false,
+      answer:      () => sessionCodeAnswerOf(sessionCodes),
     },
     {
-      method:   'POST',
-      path:     '/api/session',
-      access:   'open',
-      isStream: false,
-      answer:   (request) => sessionExchangeAnswerFor(request, sessionCodes),
+      method:      'POST',
+      matchesPath: exactly('/api/session'),
+      access:      'open',
+      isStream:    false,
+      answer:      (request) => sessionExchangeAnswerFor(request, sessionCodes),
     },
     {
-      method:   'GET',
-      path:     '/api/fleet',
-      access:   'session-or-token',
-      isStream: false,
-      answer:   () => fleetAnswerOf(broker),
+      method:      'GET',
+      matchesPath: exactly('/api/fleet'),
+      access:      'session-or-token',
+      isStream:    false,
+      answer:      () => fleetAnswerOf(broker),
     },
     {
-      method:   'GET',
-      path:     '/api/events',
-      access:   'session-or-token',
-      isStream: true,
-      answer:   () => broker.openEventStream(),
+      method:      'GET',
+      matchesPath: exactly('/api/events'),
+      access:      'session-or-token',
+      isStream:    true,
+      answer:      () => broker.openEventStream(),
     },
     {
-      method:   'POST',
-      path:     COMMANDS_PATH,
-      access:   'session-or-token',
-      isStream: false,
-      answer:   (request) => commandAnswerFor(request, options.carryCommand),
+      method:      'POST',
+      matchesPath: exactly(COMMANDS_PATH),
+      access:      'session-or-token',
+      isStream:    false,
+      answer:      (request) => commandAnswerFor(request, options.carryCommand),
+    },
+    {
+      method:      FRAME_SESSION_METHOD,
+      matchesPath: (pathname) => trackerIdOfFrameSessionPath(pathname) !== null,
+      access:      'session-or-token',
+      isStream:    false,
+      answer:      (_request, pathname) => frameSessionAnswerOf(pathname, options.frameSessionSources),
     },
   ];
 }
@@ -165,7 +189,7 @@ async function routedAnswerFor(request: Request, server: Bun.Server<undefined>, 
   const originVerdict = originGuardVerdictFor(request, port);
   if (originVerdict !== 'admitted') return refusalAnswerOf(originVerdict);
   const { pathname } = new URL(request.url);
-  const routesOfPath = routes.filter((route) => route.path === pathname);
+  const routesOfPath = routes.filter((route) => route.matchesPath(pathname));
   if (routesOfPath.length === 0) {
     const isPageFile = request.method === 'GET' && !pathname.startsWith(API_PATH_PREFIX);
     return isPageFile ? pageFileAnswerFor(context.options.pageFiles, pathname) : refusalAnswerOf('not-found');
@@ -174,7 +198,7 @@ async function routedAnswerFor(request: Request, server: Bun.Server<undefined>, 
   if (route === undefined) return refusalAnswerOf('method-not-allowed');
   if (!accessIsGranted(request, route.access, context)) return refusalAnswerOf(refusalOfAccess(route.access));
   if (route.isStream) server.timeout(request, NO_IDLE_TIMEOUT);
-  return route.answer(request);
+  return route.answer(request, pathname);
 }
 
 export async function startPageServer(options: PageServerOptions): Promise<PageServerStartVerdict> {

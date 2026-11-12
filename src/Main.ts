@@ -146,14 +146,15 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
 
   const startVerdict = await startPageServer({
     port,
-    homeDirectory: home,
+    homeDirectory:       home,
     fleetStore,
-    forgeCounts:   () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
-    pageFiles:     builtPageFilesOf(pageIndexFilePath()),
-    carryCommand:  forgeControl.carry,
-    timers:        realWatchTimers(),
-    now:           stampOfNow,
-    processId:     process.pid,
+    forgeCounts:         () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
+    pageFiles:           builtPageFilesOf(pageIndexFilePath()),
+    carryCommand:        forgeControl.carry,
+    frameSessionSources: { readRegistry, readings: forgeWatch.readings, forgeClient },
+    timers:              realWatchTimers(),
+    now:                 stampOfNow,
+    processId:           process.pid,
   });
   if (startVerdict.verdict !== 'serving') throw refusalOfStart(startVerdict);
   const { pageServer } = startVerdict;
