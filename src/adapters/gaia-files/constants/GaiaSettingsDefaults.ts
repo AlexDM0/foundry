@@ -1,4 +1,4 @@
-import type { GaiaSettings, NotificationKind, ThemeChoice } from '../@types/GaiaSettings.ts';
+import type { GaiaSettings, NotificationKind, ThemeChoice } from '../../../shared/@types/GaiaSettings.ts';
 
 export const THEME_CHOICES: readonly ThemeChoice[] = ['auto', 'light', 'dark'];
 

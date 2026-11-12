@@ -173,9 +173,9 @@ export type FleetDocumentNotificationKind =
   | 'escalated-questions'
   | 'questions'
   | 'reviews-and-merge-accepts'
-  | 'forge-holds-or-stops-answering'
+  | 'forges-held-or-unreachable'
   | 'quiet-agents'
-  | 'machine-at-limit'
+  | 'machine-at-agent-limit'
   | 'draft-tickets';
 
 export interface FleetDocumentSettings {

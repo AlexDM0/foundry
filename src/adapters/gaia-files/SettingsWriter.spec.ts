@@ -17,8 +17,8 @@ import {
   test
 } from 'bun:test';
 
+import type { GaiaSettings }                         from '../../shared/@types/GaiaSettings.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
-import type { GaiaSettings }                         from './@types/GaiaSettings.ts';
 import { SettingsFile, settingsFilePathIn }          from './SettingsFile.ts';
 import { createSettingsWriter }                      from './SettingsWriter.ts';
 import { GAIA_SETTINGS_DEFAULTS }                    from './constants/GaiaSettingsDefaults.ts';

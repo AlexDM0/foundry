@@ -1,6 +1,6 @@
 /** The steps of reading and writing `settings.json`: find its version, validate version 1, map it in to `GaiaSettings` and back out. */
+import type { GaiaSettings, NotificationKind } from '../../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }                   from '../../../shared/constants/ContractVersions.ts';
-import type { GaiaSettings, NotificationKind } from '../@types/GaiaSettings.ts';
 import type { StoredSettingsVersion1 }         from '../@types/StoredSettings.ts';
 import { NOTIFICATION_KINDS, THEME_CHOICES }   from '../constants/GaiaSettingsDefaults.ts';
 

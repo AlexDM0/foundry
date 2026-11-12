@@ -1,5 +1,5 @@
 /** `~/.gaia/settings.json` at version 1, exactly as it is stored (PLAN 6.2). */
-import type { NotificationKind, ThemeChoice } from './GaiaSettings.ts';
+import type { NotificationKind, ThemeChoice } from '../../../shared/@types/GaiaSettings.ts';
 
 export interface StoredSettingsVersion1 {
   readonly version:            1;

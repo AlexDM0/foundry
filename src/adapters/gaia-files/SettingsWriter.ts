@@ -1,5 +1,5 @@
 /** Writes `GaiaSettings` to `~/.gaia/settings.json` at version 1, atomically, and never over a file of a newer version. */
-import type { GaiaSettings }                from './@types/GaiaSettings.ts';
+import type { GaiaSettings }                from '../../shared/@types/GaiaSettings.ts';
 import { SettingsFile, settingsFilePathIn } from './SettingsFile.ts';
 import { GaiaFileWriteUtil }                from './utils/GaiaFileWriteUtil.ts';
 import { SettingsFormatUtil }               from './utils/SettingsFormatUtil.ts';

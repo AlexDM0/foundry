@@ -5,20 +5,20 @@ export type NotificationKind =
   | 'escalated-questions'
   | 'questions'
   | 'reviews-and-merge-accepts'
-  | 'forge-holds-or-stops-answering'
+  | 'forges-held-or-unreachable'
   | 'quiet-agents'
-  | 'machine-at-limit'
+  | 'machine-at-agent-limit'
   | 'draft-tickets';
 
 export interface NotificationSettings {
-  enabled: boolean;
-  kinds:   Record<NotificationKind, boolean>;
+  readonly enabled: boolean;
+  readonly kinds:   Readonly<Record<NotificationKind, boolean>>;
 }
 
 export interface GaiaSettings {
-  theme:              ThemeChoice;
-  hiddenTrackerIds:   string[];
-  forgeProgramPath:   string | null;
-  notifications:      NotificationSettings;
-  startForgesAtLogin: boolean;
+  readonly theme:              ThemeChoice;
+  readonly hiddenTrackerIds:   readonly string[];
+  readonly forgeProgramPath:   string | null;
+  readonly notifications:      NotificationSettings;
+  readonly startForgesAtLogin: boolean;
 }
