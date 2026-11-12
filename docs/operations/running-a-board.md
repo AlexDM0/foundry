@@ -218,10 +218,13 @@ holds the intake, Assistant and pipeline agent jobs, which never count toward th
 and how many wait on User, and links to the Intake and Assistant tabs.
 
 A job that asks User comes first in its card, its row tinted, with an Asks User strip under it: the decision, its first
-question, the job it blocks, how long it has been open, and Answer, which opens the Questions tab. Each row shows the
-job's state (with a "quiet" tag while its event log stands still, and "watch only" on an older Watcher), its calls
-against its budget as a bar that turns to its warning colour from 80% of the budget, its subagents as squares (filled
-while one runs, outlined once it ended; hover one for what it does), its last tool call and its tokens. Show diagnostics
+question, the job it blocks, how long it has been open, and Answer, which opens the Questions tab. Each row leads with
+its role as an icon in the role's colours, the role's word beside it: a hammer for a builder, a magnifier for a
+reviewer, an inbox for intake, a lifebuoy for the Assistant and a flow for the pipeline agent; a merge or refresh job
+draws its kind, and any other job a dot. The Sessions tallies lead with the same icons. Each row then shows the job's
+state (with a "quiet" tag while its event log stands still, and "watch only" on an older Watcher), its calls against
+its budget as a bar that turns to its warning colour from 80% of the budget, its subagents as squares (filled while one
+runs, outlined once it ended; hover one for what it does), its last tool call and its tokens. Show diagnostics
 adds Phase, Tool calls, Silent sweeps and Watcher to both cards. Silent sweeps counts the [sweeps](../glossary.md#sweep)
 a job's [event log](../glossary.md#event-log) stood still, and the last tool's elapsed time turns to its warning colour
 only while that count is above zero. A long tool call alone is no sign of trouble.

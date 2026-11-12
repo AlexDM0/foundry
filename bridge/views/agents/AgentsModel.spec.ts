@@ -2,15 +2,17 @@
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table;
  * builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent jobs are sessions, so nothing that never takes
  * a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a kind
- * list, and a job is counted only when the Overseer named it; calls read against the budget, warn near it and unbounded without one;
- * subagents are squares worded in every plural form, an older board's subagent without a state reading ended; the ask carries the open
- * decision's first question and its stamp sliced as the inbox slices it; every count leaves out its zero parts and names one in the
- * singular; a session says what it is about; a watch-only Watcher is worded as such; a job is stopping by its state or by a stop request
- * alone; and a concurrency limit is sendable only as a changed whole number the Overseer would take.
+ * list, and a job is counted only when the Overseer named it; each role and each roleless kind draws its own icon and anything else a
+ * dot, so no two roles read alike; calls read against the budget, warn near it and unbounded without one; subagents are squares worded in
+ * every plural form, an older board's subagent without a state reading ended; the ask carries the open decision's first question and
+ * its stamp sliced as the inbox slices it; every count leaves out its zero parts and names one in the singular; a session says what it
+ * is about; a watch-only Watcher is worded as such; a job is stopping by its state or by a stop request alone; and a concurrency limit
+ * is sendable only as a changed whole number the Overseer would take.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { CONCURRENCY_LIMIT_CEILING_AGENTS }                        from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { JOB_ROLES }                                               from '../../../src/lib/tracker-model/constants/JobStates.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }              from '../../@types/BoardStateDocument.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent } from '../../testing/BoardStateFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                from '../../testing/TimestampSlicesFixture.ts';
@@ -18,6 +20,9 @@ import type { AgentJobDocument, SubagentDocument }                 from './Agent
 import { AgentsModel, CALL_BUDGET_WARNING_FRACTION }               from './AgentsModel.ts';
 
 const BUILD_JOB = exampleAgentJob({ id: 'J12' });
+
+/** The job kinds that carry no role; `constitution-commit` is the kind the constitution commit job will take. */
+const ROLELESS_JOB_KINDS = ['merge', 'refresh', 'constitution-commit'] as const;
 
 const LAUNCH_SLOTS: LaunchSlotsDocument = { limit: 5, slotJobIds: ['J2', 'J3'], inProgressTicketIdsWithoutJob: ['010'] };
 
@@ -59,10 +64,24 @@ describe('which card a job sits in', () => {
   });
 
   test('a role marks its glyph, lane and word, and a roleless job takes its kind', () => {
-    expect(AgentsModel.roleMarkOf({ role: 'builder', kind: 'build' })).toEqual({ letter: 'B', state: 'in-progress', word: 'builder' });
-    expect(AgentsModel.roleMarkOf({ role: 'product-owner', kind: 'product-owner' })).toEqual({ letter: 'P', state: 'draft', word: 'intake' });
-    expect(AgentsModel.roleMarkOf({ role: 'assistant', kind: 'assistant' })).toEqual({ letter: 'A', state: 'reviewing', word: 'Assistant' });
-    expect(AgentsModel.roleMarkOf({ role: null, kind: 'merge' })).toEqual({ letter: 'M', state: 'pending', word: 'merge' });
+    expect(AgentsModel.roleMarkOf({ role: 'builder', kind: 'build' })).toEqual({ icon: 'hammer', state: 'in-progress', word: 'builder' });
+    expect(AgentsModel.roleMarkOf({ role: 'product-owner', kind: 'product-owner' })).toEqual({ icon: 'inbox', state: 'draft', word: 'intake' });
+    expect(AgentsModel.roleMarkOf({ role: 'assistant', kind: 'assistant' })).toEqual({ icon: 'lifebuoy', state: 'reviewing', word: 'Assistant' });
+    expect(AgentsModel.roleMarkOf({ role: 'pipeline-agent', kind: 'pipeline-agent' }))
+      .toEqual({ icon: 'flow', state: 'pending', word: 'pipeline agent' });
+    expect(AgentsModel.roleMarkOf({ role: null, kind: 'merge' })).toEqual({ icon: 'merge', state: 'pending', word: 'merge' });
+  });
+
+  test('each role and each roleless kind draws its own icon, and an unknown role or kind draws a dot', () => {
+    const roleIcons = JOB_ROLES.map((role) => AgentsModel.roleMarkOf({ role, kind: 'build' }).icon);
+    const rolelessIcons = ROLELESS_JOB_KINDS.map((kind) => AgentsModel.roleMarkOf({ role: null, kind }).icon);
+    expect(rolelessIcons).toEqual(['merge', 'cycle', 'document']);
+    const everyIcon = [...roleIcons, ...rolelessIcons];
+    expect(new Set(everyIcon).size).toBe(everyIcon.length);
+    expect(everyIcon).not.toContain('dot');
+    expect(AgentsModel.roleMarkOf({ role: 'example-role', kind: 'build' })).toEqual({ icon: 'dot', state: 'pending', word: 'example-role' });
+    expect(AgentsModel.roleMarkOf({ role: null, kind: 'example-kind' })).toEqual({ icon: 'dot', state: 'pending', word: 'example-kind' });
+    expect(AgentsModel.roleMarkOf({ role: null, kind: 'toString' }).icon).toBe('dot');
   });
 });
 

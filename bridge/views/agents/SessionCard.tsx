@@ -35,8 +35,8 @@ function TallyPill({ tally, openIncidentCount }: { readonly tally: SessionTally;
   const roleMark = AgentsModel.roleMarkOf({ role: TALLY_ROLE[tally.kind], kind: tally.kind });
   return (
     <a className="agents-tally" href={HashRouter.fragmentOf({ tab: TALLY_TAB[tally.kind], item: null })}>
-      <RoleGlyph mark={roleMark} />
-      <span className="agents-tally-name">{TALLY_NAME[tally.kind]}</span>
+      <RoleGlyph mark={roleMark} label={TALLY_NAME[tally.kind]} />
+      <span className="agents-tally-name" aria-hidden="true">{TALLY_NAME[tally.kind]}</span>
       <span className="agents-figure">{tally.liveCount}</span>
       <span className="agents-muted">live</span>
       {tally.kind === 'assistant'

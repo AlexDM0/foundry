@@ -67,9 +67,9 @@ export function JobRow({
       >
         <td data-column="job">
           <div className="agents-job-cell">
-            <RoleGlyph mark={roleMark} />
+            <RoleGlyph mark={roleMark} label={roleMark.word} />
             <a className="agents-job-link" href={HashRouter.fragmentOf({ tab: 'agents', item: job.id })}>{job.id}</a>
-            <span className="agents-muted">{roleMark.word}</span>
+            <span className="agents-muted" aria-hidden="true">{roleMark.word}</span>
           </div>
         </td>
         <td data-column="subject">{subject}</td>

@@ -7,6 +7,7 @@
 import type { DisplayState }                                                 from '../../../src/lib/tracker-model/@types/Task.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }                        from '../../@types/BoardStateDocument.ts';
+import type { IconName }                                                     from '../../design-system/Icon.tsx';
 import { TimeUtil, type TimestampSlices }                                    from '../../utils/TimeUtil.ts';
 import type {
   AgentJobDocument,
@@ -23,11 +24,11 @@ export interface ProjectGroup {
 }
 
 export interface RoleMark {
-  /** The letter of the role glyph. */
-  readonly letter: string;
+  /** The drawing in the role glyph's tile. */
+  readonly icon:  IconName;
   /** The lane state the role's work shows in, which colours its glyph, meter and squares. */
-  readonly state:  DisplayState;
-  readonly word:   string;
+  readonly state: DisplayState;
+  readonly word:  string;
 }
 
 export interface SlotMeterFacts {
@@ -86,12 +87,21 @@ export const CALL_BUDGET_WARNING_FRACTION = 0.8;
 const SESSION_ROLES: ReadonlySet<string> = new Set(['product-owner', 'assistant', 'pipeline-agent']);
 
 const ROLE_MARKS: Readonly<Record<string, RoleMark>> = {
-  'builder':        { letter: 'B', state: 'in-progress', word: 'builder' },
-  'reviewer':       { letter: 'R', state: 'reviewing', word: 'reviewer' },
-  'product-owner':  { letter: 'P', state: 'draft', word: 'intake' },
-  'assistant':      { letter: 'A', state: 'reviewing', word: 'Assistant' },
-  'pipeline-agent': { letter: 'L', state: 'pending', word: 'pipeline agent' },
+  'builder':        { icon: 'hammer', state: 'in-progress', word: 'builder' },
+  'reviewer':       { icon: 'magnifier', state: 'reviewing', word: 'reviewer' },
+  'product-owner':  { icon: 'inbox', state: 'draft', word: 'intake' },
+  'assistant':      { icon: 'lifebuoy', state: 'reviewing', word: 'Assistant' },
+  'pipeline-agent': { icon: 'flow', state: 'pending', word: 'pipeline agent' },
 };
+
+/** The drawing of each roleless job kind; any other role or kind takes `UNKNOWN_ROLE_ICON`. */
+const ROLELESS_KIND_ICONS: Readonly<Record<string, IconName>> = {
+  'merge':               'merge',
+  'refresh':             'cycle',
+  'constitution-commit': 'document',
+};
+
+const UNKNOWN_ROLE_ICON: IconName = 'dot';
 
 const ROLELESS_JOB_STATE: DisplayState = 'pending';
 
@@ -115,7 +125,8 @@ function roleMarkOf(job: RoleMarkedJob): RoleMark {
     const mark = ROLE_MARKS[job.role];
     if (mark !== undefined) return mark;
   }
-  return { letter: job.kind.slice(0, 1).toUpperCase(), state: ROLELESS_JOB_STATE, word: job.role ?? job.kind };
+  const icon = job.role === null && Object.hasOwn(ROLELESS_KIND_ICONS, job.kind) ? ROLELESS_KIND_ICONS[job.kind] : undefined;
+  return { icon: icon ?? UNKNOWN_ROLE_ICON, state: ROLELESS_JOB_STATE, word: job.role ?? job.kind };
 }
 
 /** The open decision a job asks User, worded from its first question; `null` when no open decision names the job. */

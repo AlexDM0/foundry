@@ -239,13 +239,16 @@ describe('the two cards', () => {
     expect(within(card('Agents')).getByText('2 jobs')).toBeDefined();
   });
 
-  test('a row names its role and links its id to the job, and each ticket is a chip of its id and title linked to its ticket row', () => {
+  test('a row names its role once, as its tile\'s image, and links its id to the job, and each ticket is a chip of its id and title linked to its ticket row', () => {
     renderAgents([BUILD_JOB, { ...REVIEW_JOB, ticketIds: ['043', '099'] }]);
-    expect(cellOf(jobRow('J12'), 'job').textContent).toBe('BJ12builder');
+    expect(cellOf(jobRow('J12'), 'job').textContent).toBe('J12builder');
+    expect(within(jobRow('J12')).getAllByRole('img', { name: 'builder' }).map((image) => image.getAttribute('data-icon'))).toEqual(['hammer']);
+    expect(within(jobRow('J12')).getByText('builder').getAttribute('aria-hidden')).toBe('true');
     expect(within(jobRow('J12')).getByRole('link', { name: 'J12' }).getAttribute('href')).toBe('#agents/J12');
     const chip = within(jobRow('J12')).getByRole('link', { name: '#042 Example gift card ignored' });
     expect(chip.getAttribute('href')).toBe('#tickets/ticket-row/042');
-    expect(cellOf(jobRow('J14'), 'job').textContent).toBe('RJ14reviewer');
+    expect(cellOf(jobRow('J14'), 'job').textContent).toBe('J14reviewer');
+    expect(within(jobRow('J14')).getByRole('img', { name: 'reviewer' }).getAttribute('data-icon')).toBe('magnifier');
     expect(within(jobRow('J14')).getByRole('link', { name: '#099' }).getAttribute('href')).toBe('#tickets/ticket-row/099');
   });
 
@@ -297,10 +300,12 @@ describe('a job that asks User', () => {
     });
     const intakeTally = within(card('Sessions')).getByRole('link', { name: /^Intake/ });
     expect(intakeTally.getAttribute('href')).toBe('#intake');
-    expect(intakeTally.textContent).toBe('PIntake2live1 waits on User');
+    expect(intakeTally.textContent).toBe('Intake2live1 waits on User');
+    expect(within(intakeTally).getByRole('img', { name: 'Intake' }).getAttribute('data-icon')).toBe('inbox');
     const assistantTally = within(card('Sessions')).getByRole('link', { name: /^Assistant/ });
     expect(assistantTally.getAttribute('href')).toBe('#assistant');
-    expect(assistantTally.textContent).toBe('AAssistant1live0 incidents open');
+    expect(assistantTally.textContent).toBe('Assistant1live0 incidents open');
+    expect(within(assistantTally).getByRole('img', { name: 'Assistant' }).getAttribute('data-icon')).toBe('lifebuoy');
     expect(card('Sessions').querySelector('.agents-project-row')?.textContent).toBe('Example Storefront3 sessions · 1 waits on User');
   });
 });
