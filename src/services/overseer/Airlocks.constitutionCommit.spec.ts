@@ -5,7 +5,8 @@
  * a main checkout that stops the fast-forward holds the request with its reason and files and never refuses it, and a clean main lands it
  * on the next sweep; a moved main line gets a fresh job on the new tip, and a changed `CONSTITUTION.md` refuses `constitution-moved`; a
  * signing failure refuses with git's text and leaves no commit, and no call overrides the signing; a commit with any other path never
- * lands; no `merge-refused` decision ever opens for the job. The crash rows are in `CrashMatrix.merges.spec.ts`. The folders are real; git
+ * lands; no `merge-refused` decision ever opens for the job; a job's refusal never reaches a request that User cancelled and asked again
+ * while the job ran. The crash rows are in `CrashMatrix.merges.spec.ts`. The folders are real; git
  * answers from the recorded answer sets of `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
  */
 import { existsSync } from 'node:fs';
@@ -31,6 +32,7 @@ import {
   commitWorktreeOf,
   CONSTITUTION_COMMIT_IDS,
   ConstitutionCommitAnswers,
+  MAIN_CONSTITUTION,
   PLANTED_MERGE_GATE,
   requestConstitutionApply,
   UPDATE_SUBJECT,
@@ -263,5 +265,33 @@ describe('a request that changes while its job runs', () => {
 
     expect(fieldsOf(current, 'job-ended')).toEqual([{ outcome: 'stopped', cause: 'apply-cancelled', deniedPermissions: [] }]);
     expect(current.board.jobs()).toEqual([]);
+  });
+
+  test('a request cancelled and asked again while the commit runs is not refused for the old job\'s failure', async () => {
+    const { current, setupId } = harnessWithAnApply();
+    const { board, settings } = current;
+    board.claimConstitutionCommitSlot({ setupId, target: 'main', targetTip: MAIN_TIP }, HARNESS_AT);
+    let askedAgain = false;
+    // The signing setting is read as the commit starts: the cancel and the new Apply land while the old job commits.
+    Object.defineProperty(settings, 'signsCommits', {
+      get: () => {
+        if (!askedAgain) {
+          askedAgain = true;
+          board.cancelApply(setupId, HARNESS_AT);
+          board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, HARNESS_AT);
+        }
+        return false;
+      },
+    });
+    recordedGit.answerFrom([...walkOf(current, { jobId: 'J2' }), ...walkOf(current, { commit: 'unsigned' })]);
+
+    await current.slots.sweep();
+
+    expect(fieldsOf(current, 'job-ended')).toEqual([
+      { outcome: 'failed', cause: 'git-failed', deniedPermissions: [] },
+      expect.objectContaining({ outcome: 'committed', commit: COMMITTED_TIP }),
+    ]);
+    expect(recordsOf(current, 'pipeline-apply-refused')).toEqual([]);
+    expect(recordsOf(current, 'pipeline-applied')).toEqual([expect.objectContaining({ setupId })]);
   });
 });

@@ -1030,12 +1030,20 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
   }
 
-  /** Ends a constitution commit job with its worktree removed; `inHold` runs in the same hold, after the end. */
-  async function endConstitutionCommit(job: Readonly<Job>, ending: JobEnding, inHold: (hold: AirlockHold) => void = () => undefined): Promise<boolean> {
+  /**
+   * Ends a constitution commit job with its worktree removed. `requestMove` runs in the same hold, after the end, and only when the request
+   * still named the job: a request that User cancelled and asked again is not this job's to hold or refuse.
+   */
+  async function endConstitutionCommit(
+    job: Readonly<Job>,
+    ending: JobEnding,
+    requestMove: (hold: AirlockHold, setupId: string) => void = () => undefined
+  ): Promise<boolean> {
     removeConstitutionCommitWorktree(job);
     await context.hold((hold) => {
+      const namingRequest = pendingApplyOf(hold.board, job.id);
       hold.board.endConstitutionCommitJob(job.id, ending, hold.at);
-      inHold(hold);
+      if (namingRequest !== null) requestMove(hold, namingRequest.setupId);
     });
     return true;
   }
@@ -1060,9 +1068,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       signsCommits:   context.repositorySignsCommits(),
     });
     if (verdict.verdict === 'refused') {
-      return endConstitutionCommit(job, { outcome: 'failed', cause: verdict.reason }, (hold) => {
-        if (pendingApplyOf(hold.board)?.setupId !== request.setupId) return;
-        hold.board.refuseApply(request.setupId, { reason: verdict.reason, gitFailure: verdict.gitFailure }, hold.at);
+      return endConstitutionCommit(job, { outcome: 'failed', cause: verdict.reason }, (hold, setupId) => {
+        hold.board.refuseApply(setupId, { reason: verdict.reason, gitFailure: verdict.gitFailure }, hold.at);
       });
     }
     const stillNamed = await context.hold((hold) => {
@@ -1102,7 +1109,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         recordedLandings:  hold.board.recordedLandingsOn(mainLine),
         hookPolicy:        'hooks-off',
       });
-      if (verdict.verdict === 'refused') return { verdict: 'refused', refusal: verdict, setupId: request.setupId } as const;
+      if (verdict.verdict === 'refused') return { verdict: 'refused', refusal: verdict } as const;
       hold.board.recordMergeLanded(job.id, { target: mainLine, commit: verdict.commit, kind: 'landed' }, hold.at);
       hold.board.endConstitutionCommitJob(job.id, { outcome: 'committed', commit: verdict.commit }, hold.at);
       hold.board.finishApply(request.setupId, {
@@ -1115,7 +1122,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       removeConstitutionCommitWorktree(job);
       return true;
     }
-    const { refusal, setupId } = landed;
+    const { refusal } = landed;
     const heldReason = HELD_APPLY_REASONS.find((reason) => reason === refusal.reason);
     // A main line moved by anyone: only `CONSTITUTION.md` changes, so a fresh job commits again on the new tip.
     if (heldReason === undefined) return endConstitutionCommit(job, { outcome: 'stopped', cause: refusal.reason });
@@ -1124,7 +1131,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     heldTargets.set(mainLine, {
       target: mainLine, branch: currentBranchIn(context.repositoryRoot), blockingFiles, heldFiles
     });
-    return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld }, (hold) => {
+    return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld }, (hold, setupId) => {
       hold.board.holdApply(setupId, { reason: heldReason, blockingFiles: [...blockingFiles, ...heldFiles] }, hold.at);
     });
   }
