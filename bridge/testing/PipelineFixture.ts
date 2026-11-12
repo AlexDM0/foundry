@@ -663,6 +663,9 @@ const LIVE_OCCUPANTS: readonly PipelineOccupant[] = [
   {
     occupantKind: 'ticket', occupantId: '15', nodeId: 'merge-before-review', jobId: 'J13', since: '2026-11-12T11:50:00',
   },
+  {
+    occupantKind: 'ticket', occupantId: '12', nodeId: 'gates-build', jobId: null, since: '2026-11-12T11:58:00',
+  },
 ];
 
 const EDITING_CHANGES: readonly PipelineChange[] = [
@@ -903,8 +906,10 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
   ),
   'A5': () => pipelineBoardState({
     pipeline:        APPLIED_PIPELINE,
-    pipelineFlow:    liveFlow({ occupants: [...LIVE_OCCUPANTS], ticketIdsInFlight: ['14', '15'] }),
+    pipelineFlow:    liveFlow({ occupants: [...LIVE_OCCUPANTS], ticketIdsInFlight: ['14', '15', '12'] }),
     pipelineHistory: [
+      { kind: 'overseer-set', fields: { state: 'running' }, at: '2026-11-12T10:31:00' },
+      { kind: 'gate-ran', fields: { tree: 'example-tree', outcome: 'passed', cached: false }, at: '2026-11-12T10:30:30', },
       { kind: 'pipeline-gate-added', fields: { name: 'browser-tests', run: 'bun run test:browser' }, at: '2026-11-12T10:29:00' },
       { kind: 'pipeline-approval-set', fields: { approval: 'tickets', state: 'on' }, at: '2026-11-12T10:28:00' },
     ],

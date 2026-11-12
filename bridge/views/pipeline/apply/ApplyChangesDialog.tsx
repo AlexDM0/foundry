@@ -12,14 +12,16 @@ import { ApplyFoot, ApplyPendingState }                                     from
 import { InFlightNote }                                                     from './InFlightNote.tsx';
 
 export interface ApplyChangesDialogProps {
-  readonly setup:    PipelineSetupFacts;
-  readonly flow:     PipelineFlowFacts;
-  readonly pipeline: AppliedPipelineFacts | undefined;
-  readonly onClose:  () => void;
+  readonly setup:        PipelineSetupFacts;
+  readonly flow:         PipelineFlowFacts;
+  readonly pipeline:     AppliedPipelineFacts | undefined;
+  readonly onClose:      () => void;
+  /** Called once the Overseer took the Apply, which never resumes the board. */
+  readonly onApplySent?: () => void;
 }
 
 export function ApplyChangesDialog({
-  setup, flow, pipeline, onClose
+  setup, flow, pipeline, onClose, onApplySent
 }: ApplyChangesDialogProps) {
   const { record, applyState } = setup;
   const rows = ApplyChangesDialogModel.changeRowsOf(flow.changeList, flow);
@@ -40,6 +42,7 @@ export function ApplyChangesDialog({
           onClose={onClose}
           applyLabel={ApplyChangesDialogModel.applyLabelOf(rows.length)}
           applyCommand={ApplyChangesDialogModel.applyCommandOf(record)}
+          {...(onApplySent === undefined ? {} : { onApplySent })}
         />
       )}
     >

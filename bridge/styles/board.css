@@ -71,6 +71,11 @@
  *   .bridge-pipeline-editing-body editing an applied pipeline (A6Editing): the -main holding the flow workspace and the -aside (tabs over
  *                           an -aside-panel: the .bridge-pipeline-change-list cards and the in-flight callout, or the agent panel;
  *                           the -aside-foot); the footer's -summary
+ *   .bridge-pipeline-live-body the live flow (A5Live): the -main holding the flow workspace and the .bridge-pipeline-activity aside
+ *                           (tabs over an -activity-panel: the micro-caps headings, the -activity-rows of activity rows, the
+ *                           -activity-history of -activity-history-line entries with their -activity-history-clock, or the
+ *                           -activity-empty line; the -activity-foot); the footer's .bridge-pipeline-live-version and -live-hash; the
+ *                           .bridge-pipeline-toast holder of the toast after an Apply
  *   .bridge-pipeline-apply[data-kind?] the apply dialogs (A4Confirm; A6bApplyChanges with data-kind="changes"): the -note, the
  *                           -resume checkbox label (-resume-text, -resume-detail), the -changes-rows list of -changes-row change rows,
  *                           the in-flight callout (.bridge-pipeline-in-flight-text, -tickets of -ticket chips), and the
@@ -3888,6 +3893,36 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 @media (max-width: 900px) {
   .bridge-pipeline-editing-body { flex-direction: column; }
   .bridge-pipeline-editing-aside { flex-basis: auto; }
+}
+
+/* The live flow (A5Live): the flow workspace beside the 400 px activity aside, whose "On the flow" tab lists the running rows and the
+ * earlier pipeline records, and whose foot holds Ask the pipeline agent; the footer's version line and mono hashes; the toast after an
+ * Apply, laid over the flow without moving it. */
+.bridge-pipeline-live-body { display: flex; align-items: stretch; gap: var(--sp-4); min-height: 0; }
+.bridge-pipeline-live-main { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.bridge-pipeline-activity {
+  display: flex; flex: 0 0 400px; flex-direction: column; min-width: 0;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-pipeline-activity > .bridge-tabs { padding: 0 6px; border-bottom: 1px solid var(--line-hairline); }
+.bridge-pipeline-activity-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-1); min-height: 0; padding: 12px 8px; }
+.bridge-pipeline-activity-panel > .bridge-micro-caps { margin: 0; padding: 4px 8px 8px; }
+.bridge-pipeline-activity-panel > .bridge-micro-caps:not(:first-child) { padding-top: var(--sp-4); }
+.bridge-pipeline-activity-rows, .bridge-pipeline-activity-history { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-activity-history-line { display: flex; gap: 10px; padding: 4px 8px; color: var(--ink-3); }
+.bridge-pipeline-activity-history-clock { flex: none; width: 40px; font-size: var(--fs-small); }
+.bridge-pipeline-activity-empty { margin: 0; padding: 4px 8px; line-height: 19px; color: var(--ink-3); }
+.bridge-pipeline-activity-foot { display: flex; flex-direction: column; padding: var(--sp-4); border-top: 1px solid var(--line-hairline); }
+.bridge-pipeline-live-version { color: var(--ink-1); }
+.bridge-pipeline-live-hash { font: var(--fs-small) var(--font-mono); color: var(--ink-3); }
+.bridge-pipeline-toast {
+  position: fixed; top: 152px; left: 0; right: 0; z-index: 30;
+  display: flex; justify-content: center; padding: 0 var(--sp-4); pointer-events: none;
+}
+.bridge-pipeline-toast > .bridge-toast { pointer-events: auto; }
+@media (max-width: 900px) {
+  .bridge-pipeline-live-body { flex-direction: column; }
+  .bridge-pipeline-activity { flex-basis: auto; }
 }
 
 /* The apply dialogs (A4Confirm, A6bApplyChanges): the constitution note, the "Resume the board" checkbox on an info surface, the change

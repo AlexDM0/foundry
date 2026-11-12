@@ -4,7 +4,8 @@
  * and keeps its derived meter focusable with its tooltip; every merge step's meter is derived; a double-click or Enter asks for what the
  * node opens and never sends a command, so never a profile; a switch sends its edit, and on a live board sends `pipeline-update-start`
  * first and the edit once the update record shows; a refusal shows verbatim; the arrows come from the measured boxes and run only on a
- * live flow; marked chips carry their change; the zoom scales the canvas and is remembered per board.
+ * live flow, and there only on the active edges; a live node shows the tickets and drafts on it as links; marked chips carry their
+ * change; the zoom scales the canvas and is remembered per board.
  */
 import {
   act,
@@ -256,6 +257,21 @@ describe('arrows, marks and zoom', () => {
     renderFlow('A2');
     expect(document.querySelectorAll('.bridge-flow-arrow[data-active]')).toHaveLength(0);
     expect([...document.querySelectorAll('.bridge-flow-arrow-label')].map((label) => label.textContent)).toContain('all green');
+  });
+
+  test('A5: each node shows the ticket and draft ids the facts place on it, as links; only the active edges run', () => {
+    renderFlow('A5');
+    const liveFlow = pipelineBoardStateOf('A5').pipelineFlow;
+    if (liveFlow === null || liveFlow === undefined) throw new Error('A5 has no flow');
+    const chipsOn = (nodeId: string) => [...cellOf(nodeId).querySelectorAll<HTMLAnchorElement>('a.bridge-tag')]
+      .map((chip) => [chip.textContent, chip.getAttribute('href')]);
+    expect(chipsOn('ticket-creation')).toEqual([['D3 drafting', '#kanban/draft/D3']]);
+    expect(chipsOn('builder')).toEqual([['14', '#kanban/ticket/14']]);
+    expect(chipsOn('merge-before-review')).toEqual([['15 · catching up', '#kanban/ticket/15']]);
+    expect(chipsOn('gates-build')).toEqual([['12', '#kanban/ticket/12']]);
+    expect(chipsOn('review')).toEqual([]);
+    expect(document.querySelectorAll('.bridge-flow-arrow[data-active]')).toHaveLength(liveFlow.edges.filter((edge) => edge.active).length);
+    expect(liveFlow.edges.some((edge) => !edge.active)).toBe(true);
   });
 
   test('a removed gate stays drawn as a struck chip, and proposed chips are dashed', () => {

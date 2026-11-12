@@ -7,19 +7,22 @@
  * pipeline's note beside it, the gates area under them and the dialog a node, a gate row or a + opens). While an applied pipeline is
  * edited, the editing aside stands beside it (the smallest pipeline keeps its note instead), and the footer counts the changes, or names
  * the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply dialog. Once a
- * setup is applied, the live flow takes back the bare `#pipeline` route.
+ * setup is applied, the live flow takes back the bare `#pipeline` route; it stands beside the activity aside over the applied footer, and
+ * an Apply sent from this view shows its toast once the facts carry the version it made.
  */
 import { useEffect, useState } from 'react';
 
-import type { TranscriptFollower }      from '../../conversation/TranscriptLog.tsx';
-import { ActionBar }                    from '../../design-system/ActionBar.tsx';
-import { Banner }                       from '../../design-system/Banner.tsx';
-import { Button }                       from '../../design-system/Button.tsx';
-import { Tag }                          from '../../design-system/Tag.tsx';
-import type { PreferenceStore }         from '../../preferences/PreferenceStore.ts';
-import type { BridgeClock }             from '../../shell/BridgeClock.ts';
-import { CommandButton }                from '../../shell/CommandButton.tsx';
-import { HashRouter, type BridgeRoute } from '../../shell/HashRouter.ts';
+import type { TranscriptFollower }         from '../../conversation/TranscriptLog.tsx';
+import { ActionBar }                       from '../../design-system/ActionBar.tsx';
+import { Banner }                          from '../../design-system/Banner.tsx';
+import { Button }                          from '../../design-system/Button.tsx';
+import { Tag }                             from '../../design-system/Tag.tsx';
+import { Toast }                           from '../../design-system/Toast.tsx';
+import type { PreferenceStore }            from '../../preferences/PreferenceStore.ts';
+import { useTickingNow, type BridgeClock } from '../../shell/BridgeClock.ts';
+import { CommandButton }                   from '../../shell/CommandButton.tsx';
+import { HashRouter, type BridgeRoute }    from '../../shell/HashRouter.ts';
+import { TimeUtil }                        from '../../utils/TimeUtil.ts';
 
 import { FlowWorkspace, useFlowSelection }                                from './FlowWorkspace.tsx';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
@@ -28,6 +31,10 @@ import { ApplyChangesDialogModel }                                        from '
 import { EditingAside }                                                   from './editing/EditingAside.tsx';
 import { PipelineEditingModel }                                           from './editing/PipelineEditingModel.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
+import { FlowActivityPanel }                                              from './live/FlowActivityPanel.tsx';
+import type { StampFormat }                                               from './live/FlowActivityPanelModel.ts';
+import { LiveFooter }                                                     from './live/LiveFooter.tsx';
+import { LivePipelineModel, type LiveToastView }                          from './live/LivePipelineModel.ts';
 import { MinimalPipelineNote }                                            from './live/MinimalPipelineNote.tsx';
 import { MinimalPipelineNoteModel }                                       from './live/MinimalPipelineNoteModel.ts';
 import { BillingStep }                                                    from './setup/BillingStep.tsx';
@@ -50,6 +57,7 @@ interface FlowScreenProps {
   readonly boardStore:       PreferenceStore | null;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
+  readonly onApplySent:      (resumesBoard: boolean) => void;
 }
 
 interface EditingFooterProps {
@@ -103,9 +111,16 @@ function EditingFooter({
   );
 }
 
+/** The page's stamp slices with the viewer's day; null on a board whose page carries none. */
+function stampFormatOf(facts: PipelineViewFacts, now: Date): StampFormat | null {
+  const slices = facts.page?.payload?.limits ?? null;
+  return slices === null ? null : { todayCalendarDate: TimeUtil.calendarDateOf(now.getTime()), slices };
+}
+
 function FlowScreen({
-  facts, boardStore, followTranscript, clock
+  facts, boardStore, followTranscript, clock, onApplySent
 }: FlowScreenProps) {
+  const now = useTickingNow(clock, false);
   const selection = useFlowSelection();
   const setup = facts.pipelineSetup ?? null;
   const [applyChangesIsAsked, setApplyChangesIsAsked] = useState((setup?.applyState ?? null) !== null);
@@ -120,6 +135,18 @@ function FlowScreen({
       flowAside={minimal ? <MinimalPipelineNote flow={flow} /> : null}
     />
   );
+  if (flow.toolbarStage === 'live') {
+    const footer = LivePipelineModel.footerOf(facts.pipeline, stampFormatOf(facts, now));
+    return (
+      <>
+        <div className="bridge-pipeline-live-body">
+          <div className="bridge-pipeline-live-main">{workspace}</div>
+          <FlowActivityPanel facts={facts} stampFormat={stampFormatOf(facts, now)} clock={clock} />
+        </div>
+        {footer === null ? null : <LiveFooter footer={footer} />}
+      </>
+    );
+  }
   if (flow.toolbarStage !== 'editing' || setup === null) return workspace;
   return (
     <>
@@ -139,7 +166,15 @@ function FlowScreen({
         onApplyAsked={() => setApplyChangesIsAsked(true)}
       />
       {applyChangesIsAsked
-        ? <ApplyChangesDialog setup={setup} flow={flow} pipeline={facts.pipeline} onClose={() => setApplyChangesIsAsked(false)} />
+        ? (
+          <ApplyChangesDialog
+            setup={setup}
+            flow={flow}
+            pipeline={facts.pipeline}
+            onClose={() => setApplyChangesIsAsked(false)}
+            onApplySent={() => onApplySent(false)}
+          />
+        )
         : null}
     </>
   );
@@ -151,10 +186,11 @@ interface ScreenContentProps {
   readonly boardStore:       PreferenceStore | null;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
+  readonly onApplySent:      (resumesBoard: boolean) => void;
 }
 
 function ScreenContent({
-  facts, screen, boardStore, followTranscript, clock
+  facts, screen, boardStore, followTranscript, clock, onApplySent
 }: ScreenContentProps) {
   const setup = facts.pipelineSetup ?? null;
   if (screen.screen === 'setup-landing') {
@@ -173,16 +209,42 @@ function ScreenContent({
   if (constitutionIsShown && setup !== null) return <ConstitutionStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />;
   if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
   if (screen.screen === 'setup-step' && screen.step === 'design' && setup !== null) {
-    return <DesignStep facts={facts} setup={setup} boardStore={boardStore} followTranscript={followTranscript} clock={clock} />;
+    return (
+      <DesignStep facts={facts} setup={setup} boardStore={boardStore} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
+    );
   }
   const title = <h2 className="bridge-pipeline-title">{PipelineViewModel.screenTitleOf(screen)}</h2>;
   if (screen.screen !== 'flow') return title;
   return (
     <>
       {title}
-      <FlowScreen facts={facts} boardStore={boardStore} followTranscript={followTranscript} clock={clock} />
+      <FlowScreen facts={facts} boardStore={boardStore} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
     </>
   );
+}
+
+/** An Apply this view sent: the applied version before it, and whether it resumes the board. */
+interface AwaitedApply {
+  readonly revisionBefore: number | null;
+  readonly resumesBoard:   boolean;
+}
+
+/** The toast after an Apply this view sent, shown once the facts carry the newer applied version. */
+function useAppliedToast(facts: PipelineViewFacts): { toast: LiveToastView | null; awaitApply: (resumesBoard: boolean) => void; dismiss: () => void } {
+  const [awaitedApply, setAwaitedApply] = useState<AwaitedApply | null>(null);
+  const [toast, setToast] = useState<LiveToastView | null>(null);
+  const landedRevision = awaitedApply === null ? null : LivePipelineModel.landedRevisionOf(awaitedApply.revisionBefore, facts.pipeline);
+  // The facts of this render carry the landing: the state moves here, as React's adjusting-state-on-new-props pattern does.
+  if (awaitedApply !== null && landedRevision !== null) {
+    setToast(LivePipelineModel.toastOf(awaitedApply.resumesBoard, landedRevision));
+    setAwaitedApply(null);
+  }
+  const revisionBefore = ApplyChangesDialogModel.appliedRevisionOf(facts.pipeline);
+  return {
+    toast,
+    awaitApply: (resumesBoard) => setAwaitedApply({ revisionBefore, resumesBoard }),
+    dismiss:    () => setToast(null),
+  };
 }
 
 export function PipelineView({
@@ -190,12 +252,27 @@ export function PipelineView({
 }: PipelineViewProps) {
   const screen = PipelineViewModel.screenOf(facts, route);
   const setupRouteIsLeft = PipelineViewModel.setupRouteIsLeftOf(screen, route);
+  const appliedToast = useAppliedToast(facts);
   useEffect(() => {
     if (setupRouteIsLeft) HashRouter.navigateTo(PipelineViewModel.liveRoute);
   }, [setupRouteIsLeft]);
   return (
     <section className="bridge-pipeline" aria-label={PipelineViewModel.screenTitleOf(screen)} data-screen={screen.screen}>
-      <ScreenContent facts={facts} screen={screen} boardStore={boardStore} followTranscript={followTranscript} clock={clock} />
+      <ScreenContent
+        facts={facts}
+        screen={screen}
+        boardStore={boardStore}
+        followTranscript={followTranscript}
+        clock={clock}
+        onApplySent={appliedToast.awaitApply}
+      />
+      {appliedToast.toast === null
+        ? null
+        : (
+          <div className="bridge-pipeline-toast">
+            <Toast title={appliedToast.toast.title} text={appliedToast.toast.text} glyph="check" onExpired={appliedToast.dismiss} />
+          </div>
+        )}
     </section>
   );
 }

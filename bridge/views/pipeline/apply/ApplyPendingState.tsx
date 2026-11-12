@@ -64,10 +64,12 @@ export interface ApplyFootProps {
   readonly onClose:      () => void;
   readonly applyLabel:   string;
   readonly applyCommand: ControlCommandBody;
+  /** Called once the Overseer took the Apply: it may still commit `CONSTITUTION.md` before the pipeline lands. */
+  readonly onApplySent?: () => void;
 }
 
 export function ApplyFoot({
-  setupId, applyState, closeLabel, onClose, applyLabel, applyCommand
+  setupId, applyState, closeLabel, onClose, applyLabel, applyCommand, onApplySent
 }: ApplyFootProps) {
   const offersApply = applyState === null || ApplyPendingStateModel.pendingViewOf(applyState).offersApplyAgain;
   return (
@@ -76,7 +78,17 @@ export function ApplyFoot({
       {applyState === null
         ? <Button label={closeLabel} onPress={onClose} />
         : <CommandButton label="Cancel apply" command={ApplyPendingStateModel.cancelCommandOf(setupId)} />}
-      {offersApply ? <CommandButton label={applyLabel} command={applyCommand} primary attention={applyState === null} /> : null}
+      {offersApply
+        ? (
+          <CommandButton
+            label={applyLabel}
+            command={applyCommand}
+            primary
+            attention={applyState === null}
+            {...(onApplySent === undefined ? {} : { onApplied: onApplySent })}
+          />
+        )
+        : null}
     </div>
   );
 }

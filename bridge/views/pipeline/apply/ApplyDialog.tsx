@@ -17,10 +17,12 @@ export interface ApplyDialogProps {
   /** Null when the facts carry no concurrency. */
   readonly concurrencyLimit:   number | null;
   readonly onClose:            () => void;
+  /** Called with the board's resume choice once the Overseer took the Apply. */
+  readonly onApplySent?:       (resumesBoard: boolean) => void;
 }
 
 export function ApplyDialog({
-  setup, pendingTicketCount, concurrencyLimit, onClose
+  setup, pendingTicketCount, concurrencyLimit, onClose, onApplySent
 }: ApplyDialogProps) {
   const { record, applyState } = setup;
   const [resumesBoard, setResumesBoard] = useState(applyState?.resumesBoard ?? true);
@@ -42,6 +44,7 @@ export function ApplyDialog({
           onClose={onClose}
           applyLabel="Apply"
           applyCommand={ApplyDialogModel.applyCommandOf(record, resumesBoard)}
+          {...(onApplySent === undefined ? {} : { onApplySent: () => onApplySent(resumesBoard) })}
         />
       )}
     >

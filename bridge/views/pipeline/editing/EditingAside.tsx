@@ -1,7 +1,7 @@
 /**
  * The aside of an applied pipeline being edited (A6Editing): its Changes tab first, the change cards with the tickets in flight under
  * them, then the Pipeline agent tab with the agent's chat; under both, Ask the pipeline agent to check sends `pipeline-check` and turns to
- * the agent's tab.
+ * the agent's tab. An advise session, which Ask the pipeline agent opened on the live flow, opens on the agent's tab.
  */
 import { useState } from 'react';
 
@@ -31,7 +31,7 @@ export interface EditingAsideProps {
 export function EditingAside({
   facts, setup, followTranscript, clock
 }: EditingAsideProps) {
-  const [asideTab, setAsideTab] = useState<AsideTab>('changes');
+  const [asideTab, setAsideTab] = useState<AsideTab>(setup.record.mode === 'advise' ? 'agent' : 'changes');
   const now = useTickingNow(clock, false);
   const { record } = setup;
   const flow = facts.pipelineFlow ?? null;

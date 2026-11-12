@@ -1,8 +1,9 @@
 /**
  * The pipeline flow on every stage (proposal, live, editing): the toolbar over a canvas of the left spine with the merge train's frame
  * under it and the right column beside it, the arrows drawn over them from the nodes' measured boxes, and a + wherever the facts name a
- * missing step. A double-click or Enter on a node asks for what it opens, or for the question it waits on, which a marker shows; a switch
- * and a + choice send their draft edits, first opening an update on a live board. The zoom scales the canvas and is remembered per board.
+ * missing step. A live flow's nodes carry a chip linking to each ticket or draft on them. A double-click or Enter on a node asks for what
+ * it opens, or for the question it waits on, which a marker shows; a switch and a + choice send their draft edits, first opening an update
+ * on a live board. The zoom scales the canvas and is remembered per board.
  */
 import {
   useCallback,
@@ -12,16 +13,17 @@ import {
   type CSSProperties
 } from 'react';
 
-import type { GatePhase }                              from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { Pipeline }                               from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { GateProfileRunFacts, PipelineFlowFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { FlowArrows }                                  from '../../../design-system/FlowArrows.tsx';
-import { FlowFrame }                                   from '../../../design-system/FlowFrame.tsx';
-import { FlowNode }                                    from '../../../design-system/FlowNode.tsx';
-import { ModelEffortMeter }                            from '../../../design-system/ModelEffortMeter.tsx';
-import { Switch }                                      from '../../../design-system/Switch.tsx';
-import { Tag }                                         from '../../../design-system/Tag.tsx';
-import type { PreferenceStore }                        from '../../../preferences/PreferenceStore.ts';
+import type { GatePhase }                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { Pipeline }                                 from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { GateProfileRunFacts, PipelineFlowFacts }   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { FlowArrows }                                    from '../../../design-system/FlowArrows.tsx';
+import { FlowFrame }                                     from '../../../design-system/FlowFrame.tsx';
+import { FlowNode }                                      from '../../../design-system/FlowNode.tsx';
+import { ModelEffortMeter }                              from '../../../design-system/ModelEffortMeter.tsx';
+import { Switch }                                        from '../../../design-system/Switch.tsx';
+import { Tag }                                           from '../../../design-system/Tag.tsx';
+import type { PreferenceStore }                          from '../../../preferences/PreferenceStore.ts';
+import { FlowActivityPanelModel, type OccupantChipView } from '../live/FlowActivityPanelModel.ts';
 
 import { FlowToolbar }                    from './FlowToolbar.tsx';
 import { InsertSlot }                     from './InsertSlot.tsx';
@@ -108,6 +110,8 @@ function useFlowZoom(boardStore: PreferenceStore | null): [number, (zoomPercent:
 
 interface NodeCellProps {
   readonly view:      FlowNodeView;
+  /** The tickets and drafts on the node now; only a live flow has any. */
+  readonly occupants: readonly OccupantChipView[];
   readonly column:    FlowColumn;
   readonly riseOrder: number;
   readonly selected:  boolean;
@@ -126,7 +130,7 @@ function openPropsOf(view: FlowNodeView, asking: boolean, onOpen: (request: Flow
 }
 
 function NodeCell({
-  view, column, riseOrder, selected, asking, editable, onOpen, onEdits
+  view, occupants, column, riseOrder, selected, asking, editable, onOpen, onEdits
 }: NodeCellProps) {
   const { meter, switchView } = view;
   const gateChips = view.gateChips.map((chip) => (
@@ -141,6 +145,7 @@ function NodeCell({
   const markers = [
     ...(view.markChip === null ? [] : [<Tag key="mark" text={view.markChip} tone="warn" />]),
     ...(asking ? [<Tag key="question" text="Question" tone="warn" glyph="warning" pops />] : []),
+    ...occupants.map((occupant) => <Tag key={occupant.key} text={occupant.text} tone="state" state={occupant.state} href={occupant.href} pops />),
   ];
   const hasChips = view.chipsLead !== null || gateChips.length > 0 || markers.length > 0;
   return (
@@ -254,6 +259,7 @@ export function PipelineFlow({
       <NodeCell
         key={item.node.nodeId}
         view={view}
+        occupants={FlowActivityPanelModel.occupantChipsOf(flow, item.node.nodeId)}
         column={column}
         riseOrder={riseOrderById.get(item.node.nodeId) ?? 0}
         selected={selectedNodeId === item.node.nodeId}

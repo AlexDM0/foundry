@@ -36,6 +36,8 @@ export interface DesignStepProps {
   readonly boardStore:       PreferenceStore | null;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
+  /** Called with the board's resume choice once the Overseer took the Apply. */
+  readonly onApplySent?:     (resumesBoard: boolean) => void;
 }
 
 interface NewestAgentChangeProps {
@@ -66,7 +68,7 @@ function NewestAgentChange({ facts, setup, selection }: NewestAgentChangeProps) 
 }
 
 export function DesignStep({
-  facts, setup, boardStore, followTranscript, clock
+  facts, setup, boardStore, followTranscript, clock, onApplySent
 }: DesignStepProps) {
   const selection = useFlowSelection();
   const [asideTab, setAsideTab] = useState<AsideTab>('agent');
@@ -174,6 +176,7 @@ export function DesignStep({
             pendingTicketCount={BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? [])}
             concurrencyLimit={facts.concurrency?.limit ?? null}
             onClose={() => setApplyIsAsked(false)}
+            {...(onApplySent === undefined ? {} : { onApplySent })}
           />
         )
         : null}

@@ -4,6 +4,7 @@
  * step, or the resume summary on the bare `#pipeline`; a record in `update` or `advise` mode is the flow being edited; a readable pipeline
  * is the live flow; anything else is the setup landing, which names an unreadable file's reason.
  */
+import type { LogRecord } from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
   AppliedPipelineFacts,
   GateProfileRunFacts,
@@ -14,6 +15,7 @@ import type {
 import type { PipelineSetup, PipelineSetupMode, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { StepperStatus }                                       from '../../design-system/Stepper.tsx';
 import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
+import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
 
 /** The setup steps in their order. */
 export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
@@ -45,10 +47,15 @@ export interface PipelineViewFacts {
   readonly pipelineFlow?:    PipelineFlowFacts | null;
   readonly profileRuns?:     readonly GateProfileRunFacts[];
   readonly pipelineChoices?: PipelineChoices;
-  /** The setup landing and the first Apply count the pending tickets in it. */
-  readonly page?:            { readonly tickets: readonly { readonly status: string }[] };
+  /** The newest pipeline records, newest first, for the live flow's "Earlier" list. */
+  readonly pipelineHistory?: readonly LogRecord[];
+  /** The setup landing and the first Apply count the pending tickets in it; the live flow cuts its stamps by the payload's limits. */
+  readonly page?:            {
+    readonly tickets:  readonly { readonly status: string }[];
+    readonly payload?: { readonly limits?: TimestampSlices };
+  };
   /** The first Apply says how many tickets start building at a time. */
-  readonly concurrency?:     { readonly limit: number };
+  readonly concurrency?: { readonly limit: number };
 }
 
 export type UnreadablePipeline =

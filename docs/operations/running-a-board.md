@@ -91,6 +91,15 @@ Save, and on a live board the first Save opens an edit. The two switches, Human 
 change the pipeline at once; on a live board the first change opens an edit. A + sits where a step is missing and offers
 what fits there. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.
 
+On a live board, each step carries a chip for every ticket on it, and for a filing draft being written on Ticket
+creation; a chip opens that ticket's or draft's panel, and the arrows a ticket takes now run. The aside's **On the
+flow** tab lists the same items under "Now", each with its step, its model and effort when an agent runs it, and how
+long it has been there, then the newest pipeline records under "Earlier". **Ask the pipeline agent** starts an advise
+session, which opens as an edit with the agent's tab first. The footer names the applied version, when you applied it,
+the pipeline's content hash and the commit the newest Apply made of `CONSTITUTION.md`; **View pipeline.json** shows the
+stored file, and **Update pipeline** opens an edit. After an Apply from this page, a toast says the pipeline is applied,
+and "Board resumed" only when the Apply resumed the board.
+
 While you edit an applied pipeline, the toolbar says how many changes are not applied, and changed, new and removed
 gates carry their colour on the flow and in the gates area; a removed gate stays drawn, struck through, until Apply,
 while a removed agent step leaves its + behind. The aside beside the flow opens on **Changes**: one card per change,

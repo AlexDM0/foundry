@@ -297,6 +297,15 @@ and `pipeline-apply` with `resumesBoard: false`). Both read the setup's `applySt
 the dialog's Cancel. A dialog stays open on a refusal and shows it verbatim. Once the facts show the pipeline applied,
 the record is gone, the view draws the live flow, and a `#pipeline/setup/<step>` route goes back to `#pipeline`.
 
+The live flow (`bridge/views/pipeline/live/`) draws the workspace beside `FlowActivityPanel` and over `LiveFooter`.
+`FlowActivityPanelModel` words `pipelineFlow.occupants`: a chip per occupant on its node, linking to the ticket or draft
+detail over Kanban, and one "Now" row each, with a meter only on a node with a role; it words the `pipelineHistory`
+records it knows and leaves out the rest. Ask the pipeline agent sends `pipeline-agent-advise`; the `advise` record it
+opens draws the editing aside on its agent tab. `LivePipelineModel` words the footer from `pipeline.application` and
+`contentHash`, with the stamp cut by the page's slices, and `PipelineFileDialog` shows `fileText`. An Apply dialog
+reports the Apply the Overseer took to `PipelineView`, which shows the `Toast` once the facts carry a newer applied
+version, with "Board resumed" only when that Apply carried `resumesBoard`.
+
 An applied pipeline being edited (an `update` or `advise` record) draws the flow screen with `EditingAside`
 (`bridge/views/pipeline/editing/`) beside the workspace: the Changes tab first, the change list given the applied
 pipeline, the draft, the flow and the profile runs (`PipelineEditingModel.changeListEditingOf`), so a gate card shows
