@@ -119,6 +119,20 @@
  *   .bridge-reorder-list    a list of .bridge-reorder-row[data-dragging?][data-shifted?] rows (dragging: pointer | keyboard;
  *                           shifted: up | down), each led by its .bridge-reorder-grip button; a .bridge-reorder-drop-line marks where
  *                           a dragged row lands, and the .bridge-reorder-announcer speaks each move
+ *   .bridge-stepper[data-orientation]  an ol of .bridge-stepper-step[data-status] steps (done | current | upcoming | recheck): a
+ *                           .bridge-stepper-circle (a number or the svg.bridge-stepper-check), .bridge-stepper-body (the
+ *                           .bridge-stepper-label, a link on a step that reopens, and a .bridge-stepper-detail), an optional
+ *                           .bridge-stepper-action link and the .bridge-stepper-line[data-status] to the next step
+ *   .bridge-action-bar      a screen's footer: .bridge-action-bar-start, .bridge-action-bar-end
+ *   .bridge-toast[data-paused?]  a notice that leaves by itself: .bridge-toast-body (.bridge-toast-check, .bridge-toast-text with its
+ *                           .bridge-toast-title and .bridge-toast-message), then the .bridge-toast-track of its .bridge-toast-timer bar
+ *   .bridge-log-tail        an ol of mono .bridge-log-tail-line[data-kind] lines (command | output)
+ *   .bridge-listed-file[data-change?]  an instruction file row: .bridge-listed-file-name, .bridge-listed-file-role, an action, a remove ×
+ *   .bridge-change-row[data-change][data-density]  a change (changed | new | removed) as a card or a row: .bridge-change-row-edge,
+ *                           .bridge-change-row-head (.bridge-change-row-title, .bridge-change-row-location, .bridge-change-row-actions),
+ *                           .bridge-change-row-values (.bridge-change-row-before, .bridge-change-row-after), .bridge-change-row-note
+ *   .bridge-activity-row[data-status]  a link to a running step or check: .bridge-activity-row-mark, -id, -step, a meter, -elapsed
+ *   .bridge-typing          .bridge-typing-dots of three .bridge-typing-dot, then the .bridge-typing-text line
  *   @keyframes bridge-rise, -pop, -glow, -bar, -sheen, -modal, -fade, -menu, -ring, -flowdash, -edge, -grow, -spin,
  *                           -indeterminate, -line, -blink, -caret, -mark, -draw, -toast, -shrink, -shimmer: the parts' shared motion
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
@@ -1269,6 +1283,203 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
 .bridge-reorder-announcer { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   .bridge-reorder-row { transition: none; }
+}
+
+/* The steps of a process: a circle each (a number, a check once done), its label and detail, a line to the next. Current is the link
+   colour, done green, recheck amber, upcoming outlined. In a column the circles grow to 28 px, the line runs down to the next circle,
+   and the current step stands in a card. */
+.bridge-stepper { display: flex; margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); }
+.bridge-stepper[data-orientation="horizontal"] { align-items: center; gap: 10px; }
+.bridge-stepper[data-orientation="vertical"] { flex-direction: column; gap: var(--sp-1); font-size: var(--fs-body); }
+.bridge-stepper-step { position: relative; display: flex; align-items: center; gap: var(--sp-2); color: var(--ink-4); }
+.bridge-stepper-step[data-status="current"] { font-weight: 600; color: var(--ink-1); }
+.bridge-stepper-step[data-status="done"] { color: var(--ink-2); }
+.bridge-stepper-step[data-status="recheck"] { color: var(--change-changed-ink); }
+.bridge-stepper-circle {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  font: 400 var(--fs-micro)/1 var(--font-ui);
+  color: var(--ink-4); background: transparent;
+  border: 1px solid var(--line-control); border-radius: 50%;
+  transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out), color 240ms var(--ease-out);
+}
+.bridge-stepper-step[data-status="current"] .bridge-stepper-circle { font-weight: 700; color: var(--accent-ink-on); background: var(--link); border-color: var(--link); }
+.bridge-stepper-step[data-status="done"] .bridge-stepper-circle { color: var(--done-ink); background: var(--done-fill); border-color: var(--done-edge); }
+.bridge-stepper-step[data-status="recheck"] .bridge-stepper-circle { color: var(--change-changed-ink); background: var(--change-changed-fill); border-color: var(--change-changed-edge); }
+.bridge-stepper-check { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
+.bridge-stepper-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+a.bridge-stepper-label { color: inherit; }
+a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.bridge-stepper-label:focus-visible,
+.bridge-stepper-action:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-stepper-detail { font-weight: 400; color: var(--ink-3); }
+.bridge-stepper-action { flex: none; margin-left: auto; font-size: var(--fs-small); font-weight: 400; }
+.bridge-stepper-line { flex: none; width: 28px; height: 1px; margin-left: 2px; background: var(--line-hairline); }
+.bridge-stepper-line[data-status="done"] { background: var(--done-edge); }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-step { align-items: flex-start; gap: var(--sp-4); padding: 10px 0; }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-step[data-status="current"] {
+  margin-left: -12px; padding: 14px var(--sp-4) 14px 12px;
+  background: var(--surface-panel); border: 1px solid var(--line-control); border-radius: var(--r-3);
+}
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-circle { width: 28px; height: 28px; font-size: var(--fs-body); }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-check { width: 12px; height: 12px; }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-body { flex: 1 1 auto; padding-top: 4px; }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-action { padding-top: 6px; }
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-line {
+  position: absolute; top: 38px; bottom: -14px; left: 13px;
+  width: 2px; height: auto; margin: 0;
+  transform-origin: top;
+  animation: bridge-grow 700ms var(--ease-out) 200ms both;
+}
+.bridge-stepper[data-orientation="vertical"] .bridge-stepper-step[data-status="current"] .bridge-stepper-line { top: 42px; left: 25px; }
+
+/* A screen's footer bar: its status at the start, its actions at the end. */
+.bridge-action-bar {
+  display: flex; align-items: center; gap: var(--sp-4);
+  height: 64px; padding: 0 20px;
+  background: var(--surface-panel); border-top: 1px solid var(--line-hairline);
+}
+.bridge-action-bar-start { display: flex; flex: 1 1 auto; align-items: center; gap: var(--sp-4); min-width: 0; }
+.bridge-action-bar-end { display: flex; flex: none; align-items: center; gap: var(--sp-2); margin-left: auto; }
+
+/* A notice that leaves by itself: it drops in, holds while its bar runs down, and fades out; a pointer or the focus on it pauses both.
+   Under reduced motion it neither moves nor runs its bar down, and its part ends it by a timer. */
+.bridge-toast {
+  display: flex; flex-direction: column;
+  width: 380px; max-width: 100%;
+  overflow: hidden;
+  color: var(--ink-1); background: var(--toast-fill);
+  border: 1px solid var(--done-edge); border-radius: var(--r-3);
+  box-shadow: var(--shadow-toast);
+  animation: bridge-toast calc(var(--toast-duration) * 1.2) var(--ease-out) 300ms both;
+}
+.bridge-toast-body { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) 14px; }
+.bridge-toast-check {
+  display: flex; flex: none; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  color: var(--toast-check); background: var(--done-edge); border-radius: 50%;
+  animation: bridge-pop var(--motion-pop) var(--ease-out) both;
+}
+.bridge-toast-check svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+.bridge-toast-check path { stroke-dasharray: 14; animation: bridge-draw 420ms var(--ease-out) 500ms both; }
+.bridge-toast-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bridge-toast-title { font-weight: 600; }
+.bridge-toast-message { color: var(--done-ink); }
+.bridge-toast-track { display: flex; height: 3px; background: var(--toast-track); }
+.bridge-toast-timer { height: 3px; background: var(--live-dot); animation: bridge-shrink var(--toast-duration) linear 600ms both; }
+.bridge-toast[data-paused],
+.bridge-toast[data-paused] .bridge-toast-timer { animation-play-state: paused; }
+
+/* The tail of a command's output: a mono list on the log surface, a command led by `$`, its output indented; new lines rise in. */
+.bridge-log-tail {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 168px; margin: 0; padding: var(--sp-2) 10px;
+  overflow: auto; list-style: none;
+  font: 11.5px/1.45 var(--font-mono);
+  color: var(--ink-3); background: var(--log-surface);
+  border-radius: var(--r-2);
+}
+.bridge-log-tail:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-log-tail-line { white-space: pre-wrap; overflow-wrap: anywhere; animation: bridge-line 300ms ease-out both; }
+.bridge-log-tail-line[data-kind="command"]::before { content: "$ "; color: var(--ink-4); }
+.bridge-log-tail-line[data-kind="output"] { padding-left: 2ch; }
+
+/* One instruction file: its mono name, what it is, an action and a remove ×; a change colours its edge, and a removed name is struck. */
+.bridge-listed-file {
+  display: flex; align-items: center; gap: 10px;
+  height: 32px; padding: 0 10px;
+  font-size: var(--fs-small);
+  background: var(--surface-page);
+  border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+  transition: var(--feedback-transition);
+}
+.bridge-listed-file:hover { box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-listed-file-name { flex: 1 1 auto; min-width: 0; overflow: hidden; font-family: var(--font-mono); white-space: nowrap; text-overflow: ellipsis; }
+.bridge-listed-file-role { flex: none; font-size: var(--fs-micro); color: var(--ink-4); }
+.bridge-listed-file > .bridge-icon-button { width: 18px; height: 18px; font-size: 14px; color: var(--ink-4); background: transparent; border: 0; border-radius: var(--r-1); }
+.bridge-listed-file > .bridge-icon-button:hover { color: var(--ink-1); }
+.bridge-listed-file[data-change="changed"] { border-color: var(--change-changed-edge); }
+.bridge-listed-file[data-change="new"] { border-color: var(--change-new-edge); }
+.bridge-listed-file[data-change="removed"] { border-color: var(--change-removed-edge); }
+.bridge-listed-file[data-change="removed"] .bridge-listed-file-name { text-decoration: line-through; color: var(--ink-3); }
+
+/* One change: an edge that grows down in its kind's colour, the title and where it is, the old value struck over the new, a note. A row
+   sets the values on one line, the old one leading to the new by an arrow. */
+.bridge-change-row {
+  position: relative;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px var(--sp-3) 10px var(--sp-4);
+  overflow: hidden;
+  background: var(--surface-page);
+  border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-change-row[data-density="row"] { gap: var(--sp-1); }
+.bridge-change-row[data-density="card"] { transition: var(--feedback-transition); }
+.bridge-change-row[data-density="card"]:hover { box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-change-row-edge { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; transform-origin: top; animation: bridge-edge 420ms var(--ease-out) 200ms both; }
+.bridge-change-row[data-change="changed"] .bridge-change-row-edge { background: var(--change-changed-dot); }
+.bridge-change-row[data-change="new"] .bridge-change-row-edge { background: var(--live-dot); }
+.bridge-change-row[data-change="removed"] .bridge-change-row-edge { background: var(--change-removed-edge); }
+.bridge-change-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.bridge-change-row-title { font-weight: 600; }
+.bridge-change-row-location { color: var(--ink-3); }
+.bridge-change-row-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); }
+.bridge-change-row-values { display: flex; flex-direction: column; gap: 6px; font: 11.5px/1.45 var(--font-mono); }
+.bridge-change-row-before { color: var(--ink-3); text-decoration: line-through; }
+.bridge-change-row[data-change="changed"] .bridge-change-row-after { color: var(--change-changed-ink); }
+.bridge-change-row[data-change="new"] .bridge-change-row-after { color: var(--change-new-ink); }
+.bridge-change-row[data-change="removed"] .bridge-change-row-after { color: var(--change-removed-ink); }
+.bridge-change-row[data-density="row"] .bridge-change-row-values { flex-flow: row wrap; gap: 0 6px; }
+.bridge-change-row[data-density="row"] .bridge-change-row-before { color: var(--change-changed-ink); text-decoration: none; }
+.bridge-change-row[data-density="row"] .bridge-change-row-before + .bridge-change-row-after::before { content: "→"; margin-right: 6px; color: var(--ink-4); }
+.bridge-change-row-note { margin: 0; line-height: 18px; color: var(--ink-3); }
+
+/* One running thing, a link: a live dot for an agent's step or a spinner for a check, its mono id, the step, a meter and the time run.
+   A hover changes only the background. */
+.bridge-activity-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: var(--sp-2);
+  color: var(--ink-1); text-decoration: none;
+  border-radius: var(--r-3);
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+.bridge-activity-row:hover { color: var(--ink-1); text-decoration: none; background-color: var(--surface-info); }
+.bridge-activity-row:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.bridge-activity-row-mark { flex: none; width: 7px; height: 7px; border-radius: 50%; }
+.bridge-activity-row[data-status="step"] .bridge-activity-row-mark { background: var(--live-dot); animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
+.bridge-activity-row[data-status="check"] .bridge-activity-row-mark {
+  width: 10px; height: 10px;
+  border: 2px solid var(--link); border-left-color: transparent;
+  animation: bridge-spin 0.9s linear infinite;
+}
+.bridge-activity-row-id { flex: none; width: 52px; font: var(--fs-small) var(--font-mono); }
+.bridge-activity-row-step { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bridge-activity-row-elapsed { flex: none; width: 40px; font-size: var(--fs-small); text-align: right; color: var(--ink-3); }
+
+/* An agent at work: three dots blinking in turn in a bubble, then the line of what it does now. */
+.bridge-typing { display: flex; align-items: center; gap: 10px; }
+.bridge-typing-dots { display: flex; flex: none; gap: var(--sp-1); padding: 10px var(--sp-3); background: var(--surface-raised); border-radius: var(--r-3); }
+.bridge-typing-dot { width: 6px; height: 6px; background: var(--ink-2); border-radius: 50%; animation: bridge-blink 1.2s infinite; }
+.bridge-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.bridge-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.bridge-typing-text { font-size: var(--fs-small); color: var(--ink-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-stepper-circle { transition: none; }
+  .bridge-stepper-check,
+  .bridge-stepper[data-orientation="vertical"] .bridge-stepper-line,
+  .bridge-toast,
+  .bridge-toast-check,
+  .bridge-toast-check path,
+  .bridge-toast-timer,
+  .bridge-log-tail-line,
+  .bridge-change-row-edge,
+  .bridge-activity-row-mark,
+  .bridge-typing-dot { animation: none; }
+  .bridge-toast-check path { stroke-dasharray: none; }
+  .bridge-listed-file,
+  .bridge-change-row[data-density="card"],
+  .bridge-activity-row { transition: none; }
 }
 
 /* The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets
