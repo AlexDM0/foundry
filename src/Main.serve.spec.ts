@@ -1,7 +1,7 @@
 /**
  * `gaia serve` run as the program it is, under a scratch home on any free port, since the launcher starts and stops it as a program: it
- * prints its address once it listens, writes its token and its server record, serves its health, the fleet and the built page with the
- * CSP, and at a stop signal removes the record and exits 0. Where Gaia already answers, or the port setting names no port, it refuses with
+ * prints its address once it listens, writes its token and its server record, serves its health, the fleet, a command and the built page
+ * with the CSP, and at a stop signal removes the record and exits 0. Where Gaia already answers, or the port setting names no port, it refuses with
  * exit code 1 and writes nothing.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -81,7 +81,7 @@ function serverRecordIn(home: string): unknown {
 }
 
 describe('gaia serve', () => {
-  test('serves its health, the fleet and the page once it prints its address, and removes its record at a stop signal', async () => {
+  test('serves its health, the fleet, a command and the page once it prints its address, and removes its record at a stop signal', async () => {
     const home = scratchHome();
     const servingProgram = startServe(home, '0');
     const address = await servedAddressOf(servingProgram);
@@ -115,6 +115,11 @@ describe('gaia serve', () => {
       },
     });
 
+    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }) });
+    expect(await lookAgain.json()).toEqual({
+      answerVersion: 1, outcome: 'done', refusal: null, text: null
+    });
+
     const page = await answerOf(address, '/');
     expect(page.status).toBe(200);
     expect(await page.text()).toContain('id="gaia-root"');
@@ -131,6 +136,7 @@ describe('gaia serve', () => {
       fleetStore:    createFleetStore(FLEET_SNAPSHOT_EMPTY),
       forgeCounts:   () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
       pageFiles:     () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
+      carryCommand:  () => Promise.resolve({ verdict: 'not-supported' }),
       timers:        manualTimers(),
       now:           () => '2026-11-13T09:00:00.000Z',
       processId:     process.pid,

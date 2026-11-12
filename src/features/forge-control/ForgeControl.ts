@@ -10,10 +10,10 @@ import type { RegistryReading }                            from '../../adapters/
 import type { ForgeCommandAnswer }                         from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeControlCommand }                        from '../../lib/forge-client/@types/ForgeControlCommand.ts';
 import type { ForgeClient }                                from '../../lib/forge-client/ForgeClient.ts';
+import type { CommandVerdict, GaiaRefusal }                from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeFidelity, ForgeReading }                from '../../shared/@types/ForgeReading.ts';
 import type { ForgeCommand, ForgeStopAgents, GaiaCommand } from '../../shared/@types/GaiaCommand.ts';
 import { CONTRACT_VERSIONS }                               from '../../shared/constants/ContractVersions.ts';
-import type { CommandVerdict, GaiaRefusal }                from './@types/CommandVerdict.ts';
 
 export interface ForgeControlOptions {
   /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */

@@ -1,6 +1,6 @@
 /**
- * How forge-control ended one command. A forge's refusal carries its code and its sentence unchanged; Gaia's own refusals carry a code
- * only, which the page words. Only the page server maps a verdict to a status and an answer.
+ * How Gaia ended one command. A forge's refusal carries its code and its sentence unchanged; Gaia's own refusals carry a code only, which
+ * the page words. Only the page server maps a verdict to a status, and only the page contract's mapper to an answer.
  */
 
 /**

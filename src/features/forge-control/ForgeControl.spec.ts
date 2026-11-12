@@ -22,6 +22,7 @@ import { forgeClientOf }                                                        
 import type { OverseerAnswer, OverseerFetch }                                                           from '../../lib/forge-client/OverseerFetch.ts';
 import type { ProcessRun }                                                                              from '../../lib/process-run/ProcessRun.ts';
 import { WatchReadingUtil }                                                                             from '../../services/utils/WatchReadingUtil.ts';
+import type { CommandVerdict }                                                                          from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeReading }                                                                            from '../../shared/@types/ForgeReading.ts';
 import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
 import {
@@ -33,7 +34,6 @@ import {
 import { recordedProcessRun, recordedRunsOf, runCallShapeOf } from '../../testing/RecordedRuns.ts';
 import { createScratchDirectory, removeScratchPath }          from '../../testing/ScratchRoot.ts';
 
-import type { CommandVerdict }                   from './@types/CommandVerdict.ts';
 import { createForgeControl, type ForgeControl } from './ForgeControl.ts';
 
 const STOREFRONT_TRACKER_ID = 'example-storefront-7c41';

@@ -4,16 +4,19 @@ import { availableParallelism } from 'node:os';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
+import { createForgeProgram }                           from './adapters/forge-program/ForgeProgram.ts';
 import { RegistryFile, registryFilePathIn }             from './adapters/forge-registry/RegistryFile.ts';
 import { SettingsFile }                                 from './adapters/gaia-files/SettingsFile.ts';
 import { createSettingsWriter }                         from './adapters/gaia-files/SettingsWriter.ts';
 import { fleetSnapshotOf }                              from './features/fleet/FleetAssembly.ts';
+import { createForgeControl }                           from './features/forge-control/ForgeControl.ts';
 import { startPageServer, type PageServerStartVerdict } from './features/page-server/PageServer.ts';
 import { builtPageFilesOf, pageIndexFilePath }          from './features/page-server/routes/PageFilesRoute.ts';
 import { forgeClientOf }                                from './lib/forge-client/ForgeClient.ts';
 import { realOverseerFetch }                            from './lib/forge-client/OverseerFetch.ts';
+import { realProcessRun }                               from './lib/process-run/ProcessRun.ts';
 import { stampOfNow }                                   from './services/Clock.ts';
-import { gaiaPort, homeDirectory }                      from './services/Environment.ts';
+import { environmentCopy, gaiaPort, homeDirectory }     from './services/Environment.ts';
 import { createFleetStore }                             from './services/FleetStore.ts';
 import { createForgeWatch, realWatchTimers }            from './services/ForgeWatch.ts';
 import { createSettingsStore }                          from './services/SettingsStore.ts';
@@ -85,7 +88,10 @@ function refusalOfStart(startVerdict: Exclude<PageServerStartVerdict, { readonly
   return new GaiaError('unrepaired', startVerdict.verdict, `${PRODUCT_NAMES.applicationName} cannot write its ${fileName}: ${startVerdict.failure}.`);
 }
 
-/** Wires the forge watch and the settings into the fleet store, serves the store to the page, and stops it all at a stop signal. */
+/**
+ * Wires the forge watch and the settings into the fleet store and forge-control into the command port, serves both to the page, and
+ * stops it all at a stop signal.
+ */
 async function serve(_remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const port = gaiaPort();
   if (port === null) throw new GaiaError('refused', 'port-invalid', `${PRODUCT_NAMES.environmentPrefix}PORT names no port Gaia can listen on.`);
@@ -95,9 +101,11 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   await settingsStore.load();
   let address = `http://127.0.0.1:${port}`;
 
+  const readRegistry = () => new RegistryFile(registryPath).read();
+  const forgeClient = forgeClientOf({ overseerFetch: realOverseerFetch() });
   const forgeWatch = createForgeWatch({
-    readRegistry:      () => new RegistryFile(registryPath).read(),
-    forgeClient:       forgeClientOf({ overseerFetch: realOverseerFetch() }),
+    readRegistry,
+    forgeClient,
     hiddenTrackerIds:  () => settingsStore.settings().hiddenTrackerIds,
     timers:            realWatchTimers(),
     now:               stampOfNow,
@@ -128,12 +136,21 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     fleetStore.publish(snapshotNow());
   }
 
+  const forgeControl = createForgeControl({
+    readRegistry,
+    readings:     forgeWatch.readings,
+    forgeClient,
+    forgeProgram: createForgeProgram({ processRun: realProcessRun(environmentCopy), settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    lookAgain:    forgeWatch.lookAgain,
+  });
+
   const startVerdict = await startPageServer({
     port,
     homeDirectory: home,
     fleetStore,
     forgeCounts:   () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
     pageFiles:     builtPageFilesOf(pageIndexFilePath()),
+    carryCommand:  forgeControl.carry,
     timers:        realWatchTimers(),
     now:           stampOfNow,
     processId:     process.pid,

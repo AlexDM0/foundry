@@ -1,8 +1,10 @@
 /**
  * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
  * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
- * per guard, and the CSP on every answer, refusals and failures included. It refuses to start where Gaia already answers. The page's files
- * are a stand-in for the build, whose own spec builds the real page; the heartbeat's timers are fired by hand.
+ * per guard, a command carried through the command port and answered with its verdict, and the CSP on every answer, refusals and
+ * failures included. It refuses to start where Gaia already answers. The page's files are a stand-in for the build, whose own spec builds
+ * the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the heartbeat's timers are fired by
+ * hand.
  */
 import { readFileSync, statSync } from 'node:fs';
 import { join }                   from 'node:path';
@@ -21,6 +23,8 @@ import { FLEET_SNAPSHOT_FIVE_FORGES }                                   from '..
 import { eventStreamParserOf, type ServerSentEvent }                    from '../../lib/event-stream/EventStreamParser.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
 import { createFleetStore, type FleetStore }                            from '../../services/FleetStore.ts';
+import type { CommandVerdict }                                          from '../../shared/@types/CommandVerdict.ts';
+import type { GaiaCommand }                                             from '../../shared/@types/GaiaCommand.ts';
 import { manualTimers, type ManualTimers }                              from '../../testing/ManualTimers.ts';
 import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
 import { startPageServer, type PageServer, type PageServerOptions }     from './PageServer.ts';
@@ -54,6 +58,8 @@ let fleetStore: FleetStore;
 let timers: ManualTimers;
 let serversToStop: PageServer[];
 let streamsToAbort: AbortController[];
+let carriedCommands: GaiaCommand[];
+let nextCommandVerdict: CommandVerdict;
 
 beforeEach(() => {
   homeDirectory  = createScratchDirectory('page-server-home');
@@ -61,6 +67,8 @@ beforeEach(() => {
   timers         = manualTimers();
   serversToStop  = [];
   streamsToAbort = [];
+  carriedCommands    = [];
+  nextCommandVerdict = { verdict: 'done' };
 });
 
 afterEach(async () => {
@@ -71,11 +79,15 @@ afterEach(async () => {
 
 function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOptions {
   return {
-    port:                           0,
+    port:         0,
     homeDirectory,
     fleetStore,
-    forgeCounts:                    () => ({ forgesRegistered: 5, forgesAnswered: 3 }),
-    pageFiles:                      standInPageFiles,
+    forgeCounts:  () => ({ forgesRegistered: 5, forgesAnswered: 3 }),
+    pageFiles:    standInPageFiles,
+    carryCommand: (command) => {
+      carriedCommands.push(command);
+      return Promise.resolve(nextCommandVerdict);
+    },
     timers,
     now:                            () => STARTED_AT,
     processId:                      PROCESS_ID,
@@ -262,6 +274,76 @@ describe('a headless start under a scratch home', () => {
     const pageServer = await servingPageServer();
     const response = await answerOf(pageServer, '/api/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
     expect(response.status).toBe(200);
+  });
+});
+
+function commandRequest(cookie: string, commandDocument: unknown): RequestInit {
+  return { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify(commandDocument) };
+}
+
+describe('a command', () => {
+  test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 1, kind: 'fleet-look-again' }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      answerVersion: 1, outcome: 'done', refusal: null, text: null
+    });
+    expect(carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
+  });
+
+  test('answers a forge\'s refusal with its code and its sentence unchanged, under a conflict status', async () => {
+    const pageServer = await servingPageServer();
+    nextCommandVerdict = {
+      verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
+    };
+    const stopCommand = {
+      commandVersion: 1, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+    };
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      answerVersion: 1,
+      outcome:       'refused',
+      refusal:       'overseer-held',
+      text:          'The Overseer is held by an install change.',
+    });
+    expect(carriedCommands).toEqual([{ kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep' }]);
+  });
+
+  test('answers each verdict under its own status', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const verdicts: readonly CommandVerdict[] = [
+      { verdict: 'nothing-to-do' },
+      { verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' },
+      { verdict: 'unreachable' },
+      { verdict: 'not-supported' },
+    ];
+    const statuses: number[] = [];
+    for (const verdict of verdicts) {
+      nextCommandVerdict = verdict;
+      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 1, kind: 'fleet-look-again' }))).status);
+    }
+    expect(statuses).toEqual([200, 409, 502, 501]);
+  });
+
+  test('that Gaia cannot read is answered as not supported, and nothing is carried', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 2, kind: 'fleet-look-again' }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      answerVersion: 1, outcome: 'not-supported', refusal: 'other-version', text: null
+    });
+    expect(carriedCommands).toEqual([]);
+  });
+
+  test('is refused without a session, and nothing is carried', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }) });
+    expect(response.status).toBe(401);
+    expect(carriedCommands).toEqual([]);
   });
 });
 

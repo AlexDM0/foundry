@@ -16,6 +16,7 @@ import { createFleetBroker, type FleetBroker }                                  
 import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                                from './HealthProbe.ts';
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
+import { COMMANDS_PATH, commandAnswerFor, type CommandCarrier }                                    from './routes/CommandsRoute.ts';
 import { HEALTH_PATH, healthAnswerOf, type ForgeCounts }                                           from './routes/HealthRoute.ts';
 import { pageFileAnswerFor, type PageFilesSource }                                                 from './routes/PageFilesRoute.ts';
 import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }                     from './routes/SessionRoutes.ts';
@@ -27,6 +28,8 @@ export interface PageServerOptions {
   readonly fleetStore:                      FleetStore;
   readonly forgeCounts:                     () => ForgeCounts;
   readonly pageFiles:                       PageFilesSource;
+  /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
+  readonly carryCommand:                    CommandCarrier;
   readonly timers:                          WatchTimers;
   /** The stamp the server record carries: recorded for a reader to show, never compared. */
   readonly now:                             () => string;
@@ -132,6 +135,13 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
       access:   'session-or-token',
       isStream: true,
       answer:   () => broker.openEventStream(),
+    },
+    {
+      method:   'POST',
+      path:     COMMANDS_PATH,
+      access:   'session-or-token',
+      isStream: false,
+      answer:   (request) => commandAnswerFor(request, options.carryCommand),
     },
   ];
 }
