@@ -45,7 +45,6 @@ const FEEDBACK_PROPERTIES = new Set([
   'border-right-color',
   'border-bottom-color',
   'border-left-color',
-  'border-style',
   'box-shadow',
   'opacity',
   'outline-color',
@@ -369,10 +368,14 @@ describe('the readers, on known and planted values', () => {
   });
 
   test('a hover or press rule that sizes or places a box is named, and one that changes only colours is not', () => {
-    const planted = '.a:hover { background: var(--surface-2); color: var(--ink); } .b:active { transform: translateY(1px); } .c:hover:not(:disabled) { padding: 0 2px; }';
+    const planted = [
+      '.a:hover { background: var(--surface-2); color: var(--ink); } .b:active { transform: translateY(1px); } .c:hover:not(:disabled) { padding: 0 2px; }',
+      '.d:hover { border-style: solid; }',
+    ].join(' ');
     expect(feedbackSentencesOf(planted)).toEqual([
       '.b:active sets transform, which may size or place a box',
       '.c:hover:not(:disabled) sets padding, which may size or place a box',
+      '.d:hover sets border-style, which may size or place a box',
     ]);
   });
 
