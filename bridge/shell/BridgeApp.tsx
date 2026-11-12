@@ -65,14 +65,15 @@ import {
   TAB_CHOICE_NAME,
   type BridgeTab
 } from './HashRouter.ts';
-import { Header }                                 from './Header.tsx';
-import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
-import { IncidentNotice }                         from './IncidentNotice.tsx';
-import { IncidentNoticeModelUtil }                from './IncidentNoticeModel.ts';
-import { QuestionPanelOpenerContext }             from './QuestionPanelOpener.ts';
-import type { SessionLoss }                       from './SessionWordingUtil.ts';
-import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
-import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts';
+import { Header }                                               from './Header.tsx';
+import { HeaderModelUtil, type HeaderFigureLane }               from './HeaderModel.ts';
+import { IncidentNotice }                                       from './IncidentNotice.tsx';
+import { IncidentNoticeModelUtil }                              from './IncidentNoticeModel.ts';
+import { QuestionPanelOpenerContext }                           from './QuestionPanelOpener.ts';
+import type { SessionLoss }                                     from './SessionWordingUtil.ts';
+import { ThemeBootstrap, type EmbeddingHost, type ThemeChoice } from './ThemeBootstrap.ts';
+import { VersionedEmbedChannel }                                from './VersionedEmbedChannel.ts';
+import { WaitingOnUserModel }                                   from './WaitingOnUserModel.ts';
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
@@ -82,7 +83,8 @@ export interface BridgeServices {
   readonly fetchIdentity:        () => Promise<OverseerIdentity | null>;
   readonly reload:               () => void;
   readonly storage:              () => PreferenceStorage;
-  readonly embedded:             boolean;
+  /** The program framing the page, `null` when it is not embedded. */
+  readonly embeddingHost:        EmbeddingHost | null;
   readonly embeddedSurroundings: () => EmbeddedSurroundings;
   readonly now:                  () => Date;
   readonly followTranscript:     TranscriptFollower;
@@ -209,10 +211,24 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   }, [panelIsOpen]);
 
   useEffect(() => {
-    if (!services.embedded) return undefined;
-    const escapeForwarder = EmbeddedChannel.forwardEscape(services.embeddedSurroundings(), () => panelIsOpenNow.current);
+    if (services.embeddingHost === null) return undefined;
+    const surroundings = services.embeddedSurroundings();
+    const escapeForwarder = services.embeddingHost === 'gaia'
+      ? VersionedEmbedChannel.forwardEscape(surroundings, () => panelIsOpenNow.current)
+      : EmbeddedChannel.forwardEscape(surroundings, () => panelIsOpenNow.current);
     return () => escapeForwarder.close();
   }, [services]);
+
+  const routeFragment = HashRouter.fragmentOf({ tab: routeTab, item: routeItem });
+  useGaiaEmbedChannel(services, routeFragment, sessionLoss !== null);
+
+  // `#questions/<id>` opens that open question's panel, when the route arrives and when the question does.
+  const routedQuestionId = routeTab === 'questions' ? routeItem : null;
+  const routedQuestionIsOpen = routedQuestionId !== null && questionQueue.some(({ decision }) => decision.id === routedQuestionId);
+  const openQuestionPanel = questionPanel.open;
+  useEffect(() => {
+    if (routedQuestionIsOpen && routedQuestionId !== null) openQuestionPanel(routedQuestionId);
+  }, [routedQuestionIsOpen, routedQuestionId, openQuestionPanel]);
 
   useEffect(() => {
     boardStore?.writeChoice(TAB_CHOICE_NAME, route.tab, DEFAULT_TAB);
@@ -463,6 +479,47 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
       </QuestionPanelOpenerContext.Provider>
     </ControlSurroundingsContext.Provider>
   );
+}
+
+/**
+ * Gaia's side of the versioned embed channel: `ready` once per load after the shell painted and listens, `route` whenever the shown route
+ * changes, `session-lost` when the session goes, and a parent's `navigate` followed; a `navigate` to the route shown answers `route` at once.
+ */
+function useGaiaEmbedChannel(services: BridgeServices, routeFragment: string, sessionIsLost: boolean): void {
+  const readyWasPosted = useRef(false);
+  const postedRouteFragment = useRef<string | null>(null);
+  const shownRouteFragment = useRef(routeFragment);
+  const isGaia = services.embeddingHost === 'gaia';
+
+  useEffect(() => {
+    shownRouteFragment.current = routeFragment;
+  }, [routeFragment]);
+
+  useEffect(() => {
+    if (!isGaia) return undefined;
+    const surroundings = services.embeddedSurroundings();
+    const follower = VersionedEmbedChannel.followParent(surroundings, {
+      onNavigate: (fragment) => {
+        if (fragment === shownRouteFragment.current) VersionedEmbedChannel.post(surroundings, { kind: 'route', fragment });
+        else window.location.hash = fragment;
+      },
+    });
+    if (!readyWasPosted.current) {
+      readyWasPosted.current = true;
+      VersionedEmbedChannel.post(surroundings, { kind: 'ready' });
+    }
+    return () => follower.close();
+  }, [services, isGaia]);
+
+  useEffect(() => {
+    if (!isGaia || postedRouteFragment.current === routeFragment) return;
+    postedRouteFragment.current = routeFragment;
+    VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'route', fragment: routeFragment });
+  }, [services, isGaia, routeFragment]);
+
+  useEffect(() => {
+    if (isGaia && sessionIsLost) VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'session-lost' });
+  }, [services, isGaia, sessionIsLost]);
 }
 
 function BoardCounts({ boardState, tab }: { readonly boardState: BoardStateDocument; readonly tab: string }) {

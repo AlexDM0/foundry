@@ -18,7 +18,7 @@
  *                           .bridge-tab with an optional .bridge-count-badge of what waits on User, the
  *                           .bridge-theme switch, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
- *                           .bridge-stale-notice while the stream is down
+ *                           .bridge-stale-notice while the stream is down; framed by Gaia ([data-embedded="gaia"]) only the tab bar
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
@@ -648,6 +648,11 @@ html[data-embedded="dashboard"] .bridge-activity.bridge-stale-notice {
 }
 /* It would lie over an open detail panel's contents, so it waits for the panel to close. */
 html[data-embedded="dashboard"]:has(.bridge-side-panel) .bridge-activity.bridge-stale-notice { display: none; }
+/* Framed by Gaia, which draws the board's name, state, controls and theme above the frame, so the tab bar is the first row. */
+html[data-embedded="gaia"] body { padding: 18px 20px 24px; }
+html[data-embedded="gaia"] .bridge-head-title-row { display: none; }
+html[data-embedded="gaia"] .bridge-activity { display: none; }
+html[data-embedded="gaia"] .bridge-tab-bar > .bridge-theme { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 .bridge-button {

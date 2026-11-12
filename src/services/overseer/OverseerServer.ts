@@ -10,16 +10,18 @@ import { timingSafeEqual } from 'node:crypto';
 
 import type { HTMLBundle } from 'bun';
 
-import { WATCHER_PROTOCOL_VERSION }                                               from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { TranscriptEntry }                                                   from '../../shared/@types/TranscriptEntry.ts';
-import { PICTURE_SIZE_LIMIT_BYTES, SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
-import { BrowserSessions }                                                        from './BrowserSessions.ts';
-import type { EventBroker, OverseerEvent }                                        from './EventBroker.ts';
-import { OverseerPort, type OverseerPortChoice }                                  from './OverseerPort.ts';
-import { MILLISECONDS_PER_SECOND }                                                from './constants/TimeUnits.ts';
+import { WATCHER_PROTOCOL_VERSION }                                                    from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { TranscriptEntry }                                                        from '../../shared/@types/TranscriptEntry.ts';
+import { IDENTITY_VERSION, OVERSEER_CONTRACT_VERSIONS, type OverseerContractVersions } from '../../shared/constants/OverseerContracts.ts';
+import { PICTURE_SIZE_LIMIT_BYTES, SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS }      from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                                               from '../../shared/constants/ProductNames.ts';
+import { BrowserSessions }                                                             from './BrowserSessions.ts';
+import type { EventBroker, OverseerEvent }                                             from './EventBroker.ts';
+import { OverseerPort, type OverseerPortChoice }                                       from './OverseerPort.ts';
+import { MILLISECONDS_PER_SECOND }                                                     from './constants/TimeUnits.ts';
 
 export interface OverseerIdentity {
+  identityVersion:        number;
   application:            string;
   trackerId:              string;
   project:                string;
@@ -27,6 +29,7 @@ export interface OverseerIdentity {
   installVersion:         number;
   watcherProtocolVersion: number;
   processId:              number;
+  contracts:              OverseerContractVersions;
 }
 
 /** A route's answer: the status and the JSON body. */
@@ -64,7 +67,7 @@ export interface OverseerRoutes {
   storePicture: (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
   picture:      (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
-  /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
+  /** The origins allowed to frame the Bridge, read per response: agent-dashboard's and Gaia's. */
   frameOrigins: () => readonly string[];
   /**
    * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through
@@ -75,7 +78,7 @@ export interface OverseerRoutes {
 
 export interface OverseerServerRequest {
   portChoice:             OverseerPortChoice;
-  identity:               Omit<OverseerIdentity, 'application' | 'watcherProtocolVersion'>;
+  identity:               Omit<OverseerIdentity, 'identityVersion' | 'application' | 'watcherProtocolVersion' | 'contracts'>;
   routes:                 OverseerRoutes;
   /** The clock a session code's life is measured on. */
   now:                    () => Date;
@@ -430,7 +433,13 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
   };
   const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
-  const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
+  const identity: OverseerIdentity = {
+    identityVersion:        IDENTITY_VERSION,
+    application:            PRODUCT_NAMES.PROGRAM,
+    ...serverRequest.identity,
+    watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
+    contracts:              OVERSEER_CONTRACT_VERSIONS,
+  };
   const server = OverseerPort.bindFirstFree(serverRequest.portChoice, (port) => Bun.serve({
     hostname:    LOOPBACK_ADDRESS,
     port,

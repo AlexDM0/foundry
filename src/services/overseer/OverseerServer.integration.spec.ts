@@ -20,6 +20,7 @@ import {
 import { WATCHER_PROTOCOL_VERSION }                           from '../../lib/watcher/constants/WatcherProtocol.ts';
 import type { TranscriptEntry }                               from '../../shared/@types/TranscriptEntry.ts';
 import { OperationRefusal }                                   from '../../shared/OperationRefusal.ts';
+import { IDENTITY_VERSION }                                   from '../../shared/constants/OverseerContracts.ts';
 import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
 import { recordAnswer }                                       from '../../testing/RecordedAnswers.ts';
@@ -178,6 +179,7 @@ describe('OverseerServer guards', () => {
     expect(server.url).toBe(`http://127.0.0.1:${server.port}/`);
     const response = await fetch(new URL('api/identity', server.url));
     expect(await response.json()).toEqual({
+      identityVersion:        IDENTITY_VERSION,
       application:            PRODUCT_NAMES.PROGRAM,
       trackerId:              EXAMPLE_TRACKER_ID,
       project:                'Example Agency',
@@ -185,6 +187,7 @@ describe('OverseerServer guards', () => {
       installVersion:         17,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
+      contracts:              { embed: 1 },
     });
   });
 

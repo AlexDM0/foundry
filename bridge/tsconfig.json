@@ -11,6 +11,7 @@
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
+    "../src/shared/constants/OverseerContracts.ts",
     "../src/shared/constants/ProductNames.ts",
     "../src/lib/html-escape/HtmlEscapeUtil.ts",
     "../src/lib/local-time/LocalTimeUtil.ts",
