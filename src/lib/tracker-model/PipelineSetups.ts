@@ -22,6 +22,7 @@ import type {
   SetupQuestionAsking,
   SetupQuestionReply,
   SetupQuestionStep,
+  SnapshotRefusal,
   SourceAnnotation
 } from './@types/PipelineSetup.ts';
 import type { BoardRecords }      from './BoardRecords.ts';
@@ -172,6 +173,33 @@ export class PipelineSetups {
     this.store(setup);
     const fields = { snapshotCommit, changedPaths: [...changedPaths] };
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-resumed', setupId, fields }, at)], setup };
+  }
+
+  /**
+   * The pipeline agent that serves the record, and the main commit its snapshot holds when none is set yet. It logs nothing: the job's
+   * launch is logged.
+   */
+  attachSetupAgent(setupId: string, agentJobId: string, snapshotCommit: string | null): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    setup.agentJobId = agentJobId;
+    setup.snapshotCommit ??= snapshotCommit;
+    this.store(setup);
+    return { logged: [], setup };
+  }
+
+  /** A turn end's Customs refusal: Apply refuses until a resume checks the snapshot out clean again. It is logged also while an Apply waits. */
+  recordSetupSnapshotTouched(setupId: string, refusal: SnapshotRefusal, at: string): PipelineSetupChanged {
+    const setup  = this.requireOpenSetup(setupId);
+    const fields = { check: refusal.check, reason: refusal.reason };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-snapshot-touched', setupId, fields }, at)], setup };
+  }
+
+  /** The newest of the record's touched and resumed records is a touch: its snapshot is not clean. */
+  setupSnapshotIsTouched(setupId: string): boolean {
+    const newest = [...this.records.storedLogRecords, ...this.records.loggedRecords].findLast((record) => 'setupId' in record
+      && record.setupId === setupId
+      && (record.kind === 'pipeline-snapshot-touched' || record.kind === 'pipeline-setup-resumed'));
+    return newest?.kind === 'pipeline-snapshot-touched';
   }
 
   recordFinding(setupId: string, recording: ResearchFindingRecording, at: string): PipelineSetupChanged {
@@ -376,14 +404,19 @@ export class PipelineSetups {
     return structuredClone(this.records.pipeline ?? PipelineUtil.minimalPipelineOf()) as Pipeline;
   }
 
-  private requireMovableSetup(setupId: string): PipelineSetup {
+  private requireOpenSetup(setupId: string): PipelineSetup {
     const reading = this.records.pipelineSetupReading;
     if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
     if (reading.verdict === 'absent' || reading.setup.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
-    const { applyRequest } = reading.setup;
+    return reading.setup;
+  }
+
+  private requireMovableSetup(setupId: string): PipelineSetup {
+    const setup = this.requireOpenSetup(setupId);
+    const { applyRequest } = setup;
     const states: readonly string[] = PENDING_APPLY_REQUEST_STATES;
     if (applyRequest !== null && states.includes(applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
-    return reading.setup;
+    return setup;
   }
 
   private store(setup: PipelineSetup): void {

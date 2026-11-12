@@ -130,7 +130,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-pass-memory-effects-lost](#gap-pass-memory-effects-lost) | Runtime | bug | A crash between hold and effect loses three effects |
 | [gap-fingerprint-omits-files](#gap-fingerprint-omits-files) | Runtime | bug | A hand edit of a ticket starts no Pass |
 | [gap-settled-fingerprint-hides-a-write](#gap-settled-fingerprint-hides-a-write) | Runtime | bug | A write after the hold can go unacted on |
-| [gap-pipeline-agent-settling-blocks-pass](#gap-pipeline-agent-settling-blocks-pass) | Runtime | bug | A proposal's twice-run stalls the whole Pass |
 | [gap-merge-gate-outlives-its-overseer](#gap-merge-gate-outlives-its-overseer) | Runtime | bug | A dead Overseer's gate runs on beside its rerun |
 | [gap-recycled-group-can-be-signalled](#gap-recycled-group-can-be-signalled) | Runtime | bug | An age check can pass on a reused group id |
 | [gap-managed-block-unseen-on-idle-group](#gap-managed-block-unseen-on-idle-group) | Runtime | bug | A managed block on an idle group goes unseen |
@@ -1333,28 +1332,26 @@ named in the [Glossary](../glossary.md#reading-names).
 
 <a id="gap-stop-of-merge-agent-sends-no-frame"></a>
 
-### `job stop` of a merge agent or pipeline agent sends no frame
+### `job stop` of a merge agent sends no frame
 
 - **Expected:** `job stop` stops the session, and the job ends.
 - **Does:** `requestJobStop` moves the job to `stopping`, and `job fresh` of a merge agent does the same.
-  `deliverBuildJobFrames` sends the stop for build and review jobs, and `deliverJobControls` for the Assistant and
-  product owner. A merge agent or pipeline agent is neither. `applyWatcherEvents` ends only session kinds from `stopping`,
-  `settleAirlockAgent` acts only on `running` or `in-customs`, and `settleEndedPipelineAgents` only on
-  `in-customs`.
+  `deliverBuildJobFrames` sends the stop for build and review jobs, and `deliverJobControls` for the Assistant,
+  product owner and pipeline agent. A merge agent is none of them. `applyWatcherEvents` ends only session kinds from
+  `stopping`, and `settleAirlockAgent` acts only on `running` or `in-customs`.
 - **Effect:** the job reads `stopping` while its session runs on, and it stays `stopping` after the session ends. A
-  merge agent's merge stalls in its Airlock slot with its call budget unchecked. A pipeline agent stays on the board, so
-  `pipelineAgentAnsweredChecksNotSet` launches no other. A `job stop` of the parent merge job leaves both `stopping`.
+  merge agent's merge stalls in its Airlock slot with its call budget unchecked. A `job stop` of the parent merge job
+  leaves both `stopping`.
 - **Instead:** for a ticket's merge agent, run `forge ticket park <id> -- <reason>`. `parked:user` replaces
   the `stopped by User` hold, and the next sweep's `abortParkedMerge` aborts the merge, frees the slot and ends the
-  agent `stopped`. A live session still needs its process ended by hand. A refresh's merge agent and a pipeline agent have
-  no ticket, so no verb frees them, and a refresh's Airlock stays held.
+  agent `stopped`. A live session still needs its process ended by hand. A refresh's merge agent has no ticket, so no
+  verb frees it, and a refresh's Airlock stays held.
 - **Evidence:** `src/lib/tracker-model/JobControls.ts` `requestJobStop`; `src/services/overseer/JobLaunch.ts`
   `deliverBuildJobFrames`; `src/services/overseer/JobControlDelivery.ts` `deliverJobControls`;
   `src/services/overseer/DrivePass.ts` `applyWatcherEvents`; `src/services/overseer/Airlocks.ts`
-  `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`; `src/services/overseer/PipelineAgentSessions.ts`
-  `settleEndedPipelineAgents`; `src/lib/tracker-model/Playbook.ts` `pipelineAgentAnsweredChecksNotSet`.
-- **Established:** probed through `AirlocksHarness` on the real `createAirlocks` for a ticket's merge agent, and on a
-  real `DrivePass` for a pipeline agent; the refresh case read. **Severity:** bug.
+  `settleAirlockAgent`, `advanceTheSlot`, `abortParkedMerge`, `freeSlot`.
+- **Established:** probed through `AirlocksHarness` on the real `createAirlocks` for a ticket's merge agent; the
+  refresh case read. **Severity:** bug.
 
 <a id="gap-misshapen-request-stops-the-pass"></a>
 
@@ -1476,22 +1473,6 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`, `wake`, `drain`, `sweep`.
 - **Established:** read for the cause; the stall seen once in a scratch repository, and its cause there not proved.
   **Severity:** bug.
-
-<a id="gap-pipeline-agent-settling-blocks-pass"></a>
-
-### Pipeline agent settling blocks the Pass
-
-- **Expected:** slow work stays outside the Pass: `settleEndedPipelineAgents` runs outside the hold since gates take
-  minutes.
-- **Does:** `runOnePass` awaits `PipelineAgentSessions.settleEndedPipelineAgents`, which awaits `settledOutcomeOf` and
-  `ProposalTwiceRun.runProposalTwice`. Every effect after it in that Pass waits, and no other Pass runs. The twice-run
-  takes no [gate slot](../glossary.md#gate-slot) and has no timeout.
-- **Effect:** a slow or hung proposal stops the board as [a merged-tree gate does](#gap-merge-gate-blocks-pass).
-- **Instead:** keep proposed gates short. If one hangs, find it by its line with `pgrep -lf`, confirm its working
-  directory is the pipeline agent's snapshot, and kill its process group.
-- **Evidence:** `src/services/overseer/DrivePass.ts` `runOnePass`; `src/services/overseer/PipelineAgentSessions.ts`
-  `settleEndedPipelineAgents`, `settledOutcomeOf`; `src/services/lifecycle/ProposalTwiceRun.ts` `runProposalTwice`.
-- **Established:** read. **Severity:** bug.
 
 <a id="gap-merge-gate-outlives-its-overseer"></a>
 

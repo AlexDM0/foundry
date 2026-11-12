@@ -1,8 +1,11 @@
 /**
- * A pipeline agent's proposed lines at their one call site. What matters: both runs reach the port's `confinedArgvOf`, in the gates' narrowed
- * environment; an `unavailable` answer starts no child and settles as `sandbox-unavailable`, which opens the incident and ends the job failed.
- * A snapshot the removal leaves is named in the log as a leftover, and a refused pass names the tree findings in its facts. The gate lines run
- * through the production gate run in a plain scratch folder; git answers from the recordings of `src/testing/RecordedGit.ts`.
+ * The pipeline agent as a session, on the Overseer's side. What matters: each turn end runs Customs on the setup's snapshot, and a refusal
+ * marks the record's snapshot touched, which Apply refuses, and opens one incident, never a second one for the same touch; a resume clears
+ * the mark; with no snapshot start the check fails closed; an agent no record names gets the incident alone. The record gives the agent's
+ * snapshot commit, its billing and its mode; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a
+ * resume moved it, and takes the snapshot start again. A snapshot no open record and no live agent holds is removed once per Overseer, and one the
+ * removal leaves is named as a leftover. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of
+ * `src/testing/RecordedGitScenarios.ts`, whose snapshot is setup S1's under a worktrees root at the repository.
  */
 import {
   existsSync,
@@ -10,183 +13,236 @@ import {
   readFileSync,
   writeFileSync
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import path, { join } from 'node:path';
 
-import { afterEach, beforeEach, expect } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+} from 'bun:test';
 
-import { confinedLineOf }                                                                               from '../../lib/gate-confinement/ConfinedLine.ts';
-import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_STEP_MILLISECONDS, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
-import { watcherFilesOf }                                                                               from '../../lib/watcher/WatcherFiles.ts';
-import { boardFixture }                                                                                 from '../../testing/BoardFixtures.ts';
-import { fakeGateConfinement, FAKE_MISSING_TOOLS_REASON, type FakeGateConfinement }                     from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                                                          from '../../testing/NativePlatformPorts.ts';
-import type { RecordedGitStage, RecordedGitStep }                                                       from '../../testing/RecordedGit.ts';
-import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                                       from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                                               from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                                                                        from '../../testing/ToolGuard.ts';
-import { PipelineAgentProposal, type PipelineProposal }                                                 from '../lifecycle/PipelineAgentProposal.ts';
-import type { TrackerChange }                                                                           from '../tracker/TrackerPipeline.ts';
-import { PipelineAgentSessions, type PipelineAgentContext }                                             from './PipelineAgentSessions.ts';
-import { WatcherFleet }                                                                                 from './WatcherFleet.ts';
+import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
+import type { Board }                                               from '../../lib/tracker-model/Board.ts';
+import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
+import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }   from '../../testing/RecordedGit.ts';
+import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }                      from '../../testing/RecordedGitScenarioCalls.ts';
+import { GIT_SCENARIOS }                                            from '../../testing/RecordedGitScenarios.ts';
+import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                    from '../../testing/ToolGuard.ts';
+import { launchSnapshotOf }                                         from '../lifecycle/Customs.ts';
+import type { TrackerChange }                                       from '../tracker/TrackerPipeline.ts';
+import type { Workspace }                                           from '../tracker/Workspace.ts';
+import { PIPELINE_AGENT_SNAPSHOT_FOLDER, PipelineAgentSessions }    from './PipelineAgentSessions.ts';
+import { WatcherFleet }                                             from './WatcherFleet.ts';
 
 const AT = '2026-10-31T12:00:00+01:00';
 const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
+const START_COMMIT = '1'.repeat(40);
+const MOVED_COMMIT = '2'.repeat(40);
+const SETUP_ID = 'S1';
 
 const recordedGit = useRecordedGit();
 
-const UNPORTABLE_TREE: RecordedGitStep = { gitArguments: ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'], answeredAs: GIT_CALL_SHAPES.TREE_OF_AN_UNPORTABLE_COMMIT };
-const UNCHANGED_TREE: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
-const PRUNE_WITH_NOTHING_STALE: RecordedGitStep = { gitArguments: ['worktree', 'prune'], answeredAs: GIT_CALL_SHAPES.WORKTREE_PRUNE_WITH_NOTHING_STALE };
-/** One gate, run twice, each run checked for tracked changes, then the tree listed for its findings. */
-const PROPOSAL_OF_ONE_GATE: RecordedGitStage = [UNCHANGED_TREE, UNCHANGED_TREE, UNPORTABLE_TREE];
-
-let snapshot = '';
+let repositoryDirectory = '';
 let trackerDirectory = '';
 
 beforeEach(() => {
-  snapshot = createScratchDirectory('pipeline-agent-snapshot');
-  writeFileSync(join(snapshot, 'example.txt'), 'Example Agency\n');
+  repositoryDirectory = createScratchDirectory('pipeline-agent-sessions');
   trackerDirectory = createScratchDirectory('pipeline-agent-tracker');
+  mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
+  mkdirSync(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME), { recursive: true });
 });
 
 afterEach(() => {
-  removeScratchDirectory(snapshot);
+  removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(trackerDirectory);
 });
 
-function proposalRunning(line: string): PipelineProposal {
-  return {
-    mode: 'setup', prepare: [], gates: [{ name: 'example', run: line }], review: null, constitution: [], agents: {}, notes: ''
-  } as unknown as PipelineProposal;
+function workspace(): Workspace {
+  return { rootDirectory: repositoryDirectory, trackerDirectory } as unknown as Workspace;
 }
 
-function contextUnder(confinement: FakeGateConfinement) {
+function turnEndContext() {
   return {
-    platformPorts:   nativePlatformPorts(),
-    gateEnvironment: { EXAMPLE_NARROWED: 'kept', PATH: '/usr/bin:/bin' },
-    millisecondsNow: () => 0,
-    confinedLineOf:  (directory: string, argv: readonly string[]) => confinedLineOf(confinement, () => ({
-      worktree:            directory,
-      worktreeAdminFolder: null,
-      temporaryDirectory:  null,
-      writableCachePaths:  [],
-      deniedWritableRoots: [],
-      deniedReadableRoots: [],
-      network:             false,
-      confinementFilePath: join(trackerDirectory, 'example.sb'),
-    }), argv),
+    workspace: workspace(), worktreesRoot: repositoryDirectory, groupTargetPrefix: 'group/', pathStyle: { pathModule: path, foldsCase: false }
   };
 }
 
-testWhenGitIsRecorded('both runs go through the port, on the snapshot, in the narrowed environment', async () => {
-  const confinement = fakeGateConfinement('confined');
-  const printed = join(trackerDirectory, 'environment.txt');
+function changeOf(board: Board): TrackerChange {
+  return { board, at: AT, workspace: workspace() } as unknown as TrackerChange;
+}
 
-  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => PipelineAgentSessions.proposalOutcomeOf(
-    contextUnder(confinement), proposalRunning(`echo "$EXAMPLE_NARROWED" > '${printed}'`), snapshot, 'example-commit'
-  ));
-
-  expect(outcome).toMatchObject({ verdict: 'proposed', runRecord: { gates: [{ verdict: 'green' }] } });
-  expect(confinement.plans.map((plan) => plan.worktree)).toEqual([snapshot, snapshot]);
-  expect(readFileSync(printed, 'utf8').trim()).toBe('kept');
-});
-
-testWhenGitIsRecorded('a proposal reports a reserved name, a case collision and a symbolic link in one finding each', async () => {
-  const outcome = await recordedGit.playStage(PROPOSAL_OF_ONE_GATE, () => PipelineAgentSessions.proposalOutcomeOf(
-    contextUnder(fakeGateConfinement('confined')), proposalRunning('true'), snapshot, 'example-commit'
-  ));
-
-  expect(outcome).toMatchObject({ verdict: 'proposed' });
-  if (outcome.verdict !== 'proposed') return;
-  expect(outcome.treeFindings).toEqual([
-    { kind: 'reserved-name', paths: ['aux.c'] },
-    { kind: 'symbolic-link', paths: ['example-link'] },
-    { kind: 'case-collision', paths: ['README.md', 'readme.md'] },
-  ]);
-  expect(PipelineAgentProposal.proposalFactsOf(outcome).treeFindings).toEqual(outcome.treeFindings);
-});
-
-testWhenGitIsRecorded('an unavailable answer starts no child and settles as sandbox-unavailable', async () => {
-  const marker = join(trackerDirectory, 'ran.txt');
-
-  const outcome = await recordedGit.playStage([], () => PipelineAgentSessions.proposalOutcomeOf(
-    contextUnder(fakeGateConfinement('unavailable')), proposalRunning(`touch '${marker}'`), snapshot, 'example-commit'
-  ));
-
-  expect(outcome).toEqual({ verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
-  expect(existsSync(marker)).toBe(false);
-});
-
-testWhenGitIsRecorded('a settled sandbox-unavailable opens the incident and ends the job failed', async () => {
+/** A first setup on API billing whose agent runs, its snapshot at the start commit. */
+function boardWithSetupAgent(): { board: Board; jobId: string } {
   const { board } = boardFixture();
-  const { job } = board.launchJob({
-    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
+  board.openSetup({
+    mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 5 }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
   }, AT);
-  PipelineAgentProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'sandbox-unavailable', reason: FAKE_MISSING_TOOLS_REASON });
-  const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
-
-  const noWording = () => ({ questions: [], context: '' });
-  await recordedGit.playStage([PRUNE_WITH_NOTHING_STALE], async () => PipelineAgentSessions.applySettledPipelineAgents(change, trackerDirectory, noWording));
-
-  expect(board.incidents().map((incident) => [incident.kind, incident.facts['reason']])).toEqual([['sandbox-unavailable', FAKE_MISSING_TOOLS_REASON]]);
-  expect(board.jobs()).toEqual([]);
-});
-
-testWhenGitIsRecorded('a snapshot the removal leaves is reported as a leftover in the log, and a repository there is never deleted by hand', async () => {
-  const { board } = boardFixture();
-  const { job } = board.launchJob({
-    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
-  }, AT);
-  PipelineAgentProposal.storeOutcome(trackerDirectory, job.id, { verdict: 'advised' });
-  const leftoverSnapshot = join(trackerDirectory, 'pipeline-agent', job.id);
-  mkdirSync(join(leftoverSnapshot, '.git'), { recursive: true });
-  const change = { board, at: AT, workspace: { rootDirectory: snapshot, trackerDirectory } } as unknown as TrackerChange;
-  const declinedRemoval: RecordedGitStep = {
-    gitArguments: ['worktree', 'remove', '--force', leftoverSnapshot],
-    answeredAs:   GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LEFTOVER,
-    filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: leftoverSnapshot },
-  };
-  const everyRemovalTryThenPrune = [...Array.from({ length: WORKTREE_REMOVAL_TRIES }, () => declinedRemoval), PRUNE_WITH_NOTHING_STALE];
-  const pausesAsked: number[] = [];
-  const pausesNoted = { ...REAL_WORKTREE_REMOVAL_PRIMITIVES, pause: (milliseconds: number) => { pausesAsked.push(milliseconds); } };
-
-  const noWording = () => ({ questions: [], context: '' });
-  await recordedGit.playStage(everyRemovalTryThenPrune, async () => PipelineAgentSessions.applySettledPipelineAgents(change, trackerDirectory, noWording, pausesNoted));
-
-  const notes = board.logRecordsSoFar().flatMap((record) => (record.kind === 'note' ? [record.fields.text] : []));
-  expect(notes).toEqual([expect.stringContaining(`The pipeline agent snapshot ${leftoverSnapshot} is a leftover: git worktree remove`)]);
-  expect(existsSync(join(leftoverSnapshot, '.git'))).toBe(true);
-  expect(pausesAsked).toEqual(Array.from({ length: WORKTREE_REMOVAL_TRIES - 1 }, () => WORKTREE_REMOVAL_STEP_MILLISECONDS));
-});
-
-testWhenGitIsRecorded('a pass Customs refuses names the tree findings at the end of its facts', async () => {
-  const { board } = boardFixture();
-  const { job } = board.launchJob({
-    kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
-  }, AT);
+  const { job } = board.startPipelineAgent(AT);
+  board.attachSetupAgent(SETUP_ID, job.id, START_COMMIT);
   board.moveJob(job.id, 'running', AT);
-  board.moveJob(job.id, 'in-customs', AT);
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+  return { board, jobId: job.id };
+}
+
+function enter(scenario: string): void {
+  recordedGit.enterScenario(scenario, { repositoryDirectory, commits: { '<start>': START_COMMIT, '<moved>': MOVED_COMMIT } });
+}
+
+/** The start the launch writes: the snapshot's HEAD and every ref, taken on the untouched snapshot. */
+function writeSnapshotStart(jobId: string): void {
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
+  const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME));
+  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
-  writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit: 'example-commit', launchSnapshot: {} })}\n`);
-  const { eventLogPath } = watcherFilesOf(jobFolder, job.watcherInstance);
-  mkdirSync(dirname(eventLogPath), { recursive: true });
-  writeFileSync(eventLogPath, `${JSON.stringify({
-    sequence: 1, origin: 'agent', line: 'example-result', at: AT
-  })}\n`);
-  const context = {
-    ...contextUnder(fakeGateConfinement('confined')),
-    workspace:             { rootDirectory: snapshot, trackerDirectory },
-    worktreesRoot:         join(trackerDirectory, 'worktrees'),
-    mainLine:              'main',
-    agentAdapter:          { eventsOf: () => [{ kind: 'result', structuredReport: { example: 'no field of the schema' } }] },
-    stopGraceMilliseconds: 0,
-  } as unknown as PipelineAgentContext;
+  writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
+}
 
-  // The report fails its schema, so Customs refuses at its first check before it asks git anything; only the tree listing is asked.
-  await recordedGit.playStage([UNPORTABLE_TREE], () => PipelineAgentSessions.settleEndedPipelineAgents(context, board));
+function touchedIncidentsOf(board: Board): readonly (readonly [string | null, Readonly<Record<string, string>>])[] {
+  return board.incidents().filter((incident) => incident.kind === 'setup-snapshot-touched').map((incident) => [incident.jobId, incident.facts] as const);
+}
 
-  const outcome = PipelineAgentProposal.storedOutcomeOf(trackerDirectory, job.id);
-  expect(outcome).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
-  expect(outcome?.verdict === 'refused' ? outcome.facts.at(-1) : null).toBe('case-collision: README.md, readme.md');
+testWhenGitIsRecorded('an untouched snapshot passes a turn end and opens nothing', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  writeSnapshotStart(jobId);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(false);
+  expect(touchedIncidentsOf(board)).toEqual([]);
+});
+
+testWhenGitIsRecorded('a refused turn end marks the snapshot touched and opens one incident, and a resume clears the mark', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  writeSnapshotStart(jobId);
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_FILE_CHANGED);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(true);
+  expect(touchedIncidentsOf(board)).toEqual([[jobId, {
+    setupId: SETUP_ID, check: 'V4', reason: 'worktree-dirty', paths: ' M package.json'
+  }]]);
+  expect(board.logRecordsSoFar().filter((record) => record.kind === 'pipeline-snapshot-touched')).toHaveLength(1);
+  board.resumeSetup(SETUP_ID, MOVED_COMMIT, ['package.json'], AT);
+  expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(false);
+});
+
+function headResolvedAs(commit: string): RecordedGitStep {
+  return {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', 'HEAD^{commit}'],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: commit },
+  };
+}
+
+function snapshotStartWritten(jobId: string): unknown {
+  return JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as unknown;
+}
+
+testWhenGitIsRecorded('a launch adds the record\'s snapshot, detached at its snapshot commit, and takes the snapshot start', async () => {
+  const { board, jobId } = boardWithSetupAgent();
+  const job = board.jobById(jobId);
+  if (job === undefined) throw new Error('the agent is on the board');
+  const snapshot = join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME);
+  removeScratchDirectory(snapshot);
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
+  const added: RecordedGitStep = {
+    gitArguments: ['worktree', 'add', '--quiet', '--detach', snapshot, START_COMMIT],
+    answeredAs:   GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED,
+    leavesFolder: snapshot,
+  };
+  const context = { workspace: workspace(), worktreesRoot: repositoryDirectory, mainLine: 'main' };
+
+  const prepared = await recordedGit.playStage([added], async () => PipelineAgentSessions.prepareSnapshot(context, board, job));
+
+  expect(prepared).toBe(snapshot);
+  expect(snapshotStartWritten(jobId)).toMatchObject({ startCommit: START_COMMIT });
+});
+
+testWhenGitIsRecorded('a launch checks an existing snapshot out at the record\'s snapshot commit when a resume moved it', async () => {
+  const { board, jobId } = boardWithSetupAgent();
+  board.resumeSetup(SETUP_ID, MOVED_COMMIT, ['package.json'], AT);
+  const job = board.jobById(jobId);
+  if (job === undefined) throw new Error('the agent is on the board');
+  const snapshot = join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME);
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
+  const resetToTheMovedCommit: RecordedGitStep = { gitArguments: ['reset', '--hard', '--quiet', MOVED_COMMIT], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT };
+  const context = { workspace: workspace(), worktreesRoot: repositoryDirectory, mainLine: 'main' };
+
+  await recordedGit.playStage([headResolvedAs(START_COMMIT), resetToTheMovedCommit], async () => PipelineAgentSessions.prepareSnapshot(context, board, job));
+
+  expect(existsSync(snapshot)).toBe(true);
+  expect(snapshotStartWritten(jobId)).toHaveProperty('launchSnapshot');
+});
+
+test('a turn end with no snapshot start fails closed, and an agent no record names gets the incident alone', () => {
+  const { board } = boardFixture();
+  const { job } = board.startPipelineAgent(AT);
+  board.moveJob(job.id, 'running', AT);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [job.id]);
+
+  expect(touchedIncidentsOf(board)).toEqual([[job.id, { check: 'V16', reason: 'git-failed', paths: 'no snapshot start' }]]);
+  expect(board.logRecordsSoFar().some((record) => record.kind === 'pipeline-snapshot-touched')).toBe(false);
+});
+
+test('the record gives its agent the billing, before any pipeline is stored, and the mode', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  const job = board.jobById(jobId);
+  if (job === undefined) throw new Error('the agent is on the board');
+
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
+  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell')?.mode).toBe('setup');
+});
+
+testWhenGitIsRecorded('a record whose agent has no snapshot commit takes main\'s tip, once', async () => {
+  const { board } = boardFixture();
+  board.openSetup({
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, AT);
+  const { job } = board.startPipelineAgent(AT);
+  board.attachSetupAgent(SETUP_ID, job.id, null);
+  const mainResolved: RecordedGitStep = {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', 'main^{commit}'],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: START_COMMIT },
+  };
+
+  await recordedGit.playStage([mainResolved], async () => PipelineAgentSessions.pinSnapshotCommit(changeOf(board), 'main'));
+  await recordedGit.playStage([], async () => PipelineAgentSessions.pinSnapshotCommit(changeOf(board), 'main'));
+
+  expect(board.pipelineSetup()?.snapshotCommit).toBe(START_COMMIT);
+});
+
+testWhenGitIsRecorded('a snapshot no open record holds is removed once with no agent running, and one the removal leaves is a leftover', async () => {
+  const { board } = boardFixture();
+  board.openSetup({
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, AT);
+  const snapshotsFolder = join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER);
+  const discardedSnapshot = join(snapshotsFolder, 'S0');
+  mkdirSync(join(discardedSnapshot, '.git'), { recursive: true });
+  const declinedRemoval: RecordedGitStep = {
+    gitArguments: ['worktree', 'remove', '--force', discardedSnapshot],
+    answeredAs:   GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LEFTOVER,
+    filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: discardedSnapshot },
+  };
+  const prune: RecordedGitStep = { gitArguments: ['worktree', 'prune'], answeredAs: GIT_CALL_SHAPES.WORKTREE_PRUNE_WITH_NOTHING_STALE };
+  const noPause = { ...REAL_WORKTREE_REMOVAL_PRIMITIVES, pause: () => undefined };
+  const logged: string[] = [];
+  const tried = new Set<string>();
+  const context = { workspace: workspace(), worktreesRoot: repositoryDirectory };
+
+  const { job } = board.startPipelineAgent(AT);
+  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
+  board.endJob(job.id, { outcome: 'closed' }, AT);
+  const everyTryThenPrune = [...Array.from({ length: WORKTREE_REMOVAL_TRIES }, () => declinedRemoval), prune];
+  await recordedGit.playStage(everyTryThenPrune, async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
+  await recordedGit.playStage([], async () => PipelineAgentSessions.removeUnheldSnapshots(board, context, tried, (line) => logged.push(line), noPause));
+
+  expect(logged).toEqual([expect.stringContaining(`The pipeline agent snapshot ${discardedSnapshot} is a leftover: git worktree remove`)]);
+  expect(existsSync(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME))).toBe(true);
 });

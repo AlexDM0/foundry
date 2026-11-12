@@ -204,11 +204,8 @@ A frame with a marker is sent first and marked after, by `WatcherFleet.sendFrame
 [Watchers](watchers.md) draws the order. What may repeat and what may not is the at-most-once table in
 [Failure and recovery](failure-and-recovery.md).
 
-> **As built.** Two effects run long inside the Pass, and no other Pass runs meanwhile. Pipeline agent settling awaits its
-> twice-run, so the delivery, spawns and answers of that Pass wait for it
-> ([gap-pipeline-agent-settling-blocks-pass](../reference/known-gaps.md#gap-pipeline-agent-settling-blocks-pass)). The Airlock
-> sweep awaits its merge gates; see
-> [a merge gate blocks the Pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
+> **As built.** One effect runs long inside the Pass, and no other Pass runs meanwhile: the Airlock sweep awaits its
+> merge gates; see [a merge gate blocks the Pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
 
 > **As built.** One misshapen [Hatch](../glossary.md#hatch) request fails every Pass that meets it:
 > [gap-misshapen-request-stops-the-pass](../reference/known-gaps.md#gap-misshapen-request-stops-the-pass).

@@ -1,9 +1,8 @@
 /**
- * The pipeline agent's Customs column on a scratch main-line snapshot: it reads the repository and writes only its Hatch, so a changed or added
- * file in the snapshot, a commit on it and a moved ref each fail the pass; and each optimisation an `advise` names must be a draft low ticket
- * this job filed, read from its filing record as V12 reads a reviewer's filed finding. A clean proposal passes every check of the column.
- * Git answers from the scenarios `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call a scenario did not record
- * fails the case.
+ * The pipeline agent's Customs column on a scratch main-line snapshot, run at each turn end of its session: it reads the repository and
+ * writes only its Hatch, so a changed or added file in the snapshot, a commit on it and a moved ref each fail the check. The session owes no
+ * report and files nothing, so the column asks for neither: no V1 and no V12. Git answers from the scenarios
+ * `src/lib/git/RecordedGitScenarios.integration.spec.ts` records; a call a scenario did not record fails the case.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -15,9 +14,8 @@ import {
   test
 } from 'bun:test';
 
-import { pipelineAgentReportOf }                          from '../../adapters/reports/testing/PipelineAgentReportFixture.ts';
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
+import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }            from '../../testing/RecordedGitScenarioCalls.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
@@ -29,7 +27,6 @@ import {
   type LaunchSnapshot
 } from './Customs.ts';
 
-const AT = '2026-10-28T10:00:00+01:00';
 const JOB_ID = 'J7';
 const START_COMMIT = '1'.repeat(40);
 const MOVED_COMMIT = '2'.repeat(40);
@@ -44,16 +41,16 @@ function enter(scenario: string): void {
   enterScenario(scenario, { repositoryDirectory, commits: { '<start>': START_COMMIT, '<moved>': MOVED_COMMIT } });
 }
 
-function pipelineAgentSubject(report: unknown = pipelineAgentReportOf(START_COMMIT), logRecords: readonly LogRecord[] = []): CustomsSubject {
+function pipelineAgentSubject(): CustomsSubject {
   return {
     role:             'pipeline-agent',
     worktreePath:     snapshotDirectory,
     startCommit:      START_COMMIT,
-    report,
+    report:           undefined,
     ticketBody:       '',
     bodyHashAtLaunch: '',
     jobId:            JOB_ID,
-    logRecords,
+    logRecords:       [],
     launchSnapshot,
     refMovesAllowed:  {
       ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], refreshWorktreeHeads: []
@@ -61,26 +58,11 @@ function pipelineAgentSubject(report: unknown = pipelineAgentReportOf(START_COMM
   };
 }
 
-function lowDraftFiledByThisJob(ticketId: string): LogRecord {
-  return {
-    at:     AT,
-    kind:   'ticket-filed',
-    ticketId,
-    fields: {
-      title: 'Cache the test gate', status: 'draft', priority: 'low', filedByJob: JOB_ID
-    },
-  };
-}
-
-function adviceNaming(filedTicketId: string): Record<string, unknown> {
-  return pipelineAgentReportOf(START_COMMIT, { mode: 'advise', optimisations: [{ summary: 'Cache the test gate.', filedTicketId, hatchRequestId: null }] });
-}
-
 beforeEach(() => {
   repositoryDirectory = createScratchDirectory('pipeline-agent-verification');
-  snapshotDirectory   = join(repositoryDirectory, '.pipeline-agent-snapshot');
+  snapshotDirectory   = join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME);
   mkdirSync(join(repositoryDirectory, '.git', 'hooks'), { recursive: true });
-  mkdirSync(snapshotDirectory);
+  mkdirSync(snapshotDirectory, { recursive: true });
   enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
   launchSnapshot = launchSnapshotOf(snapshotDirectory) ?? launchSnapshot;
 });
@@ -90,7 +72,7 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('the pipeline agent passes Customs only having changed nothing', () => {
-  test('a clean proposal on an untouched snapshot is verified', () => {
+  test('an untouched snapshot is verified at a turn end with no report', () => {
     expect(clearCustoms(pipelineAgentSubject())).toEqual({ verdict: 'verified' });
   });
 
@@ -109,7 +91,7 @@ describeWhenGitIsRecorded('the pipeline agent passes Customs only having changed
   test('a commit on the snapshot, though it descends from the start, fails V16', () => {
     enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_COMMITTED);
 
-    expect(clearCustoms(pipelineAgentSubject(pipelineAgentReportOf(MOVED_COMMIT)))).toEqual({
+    expect(clearCustoms(pipelineAgentSubject())).toEqual({
       verdict: 'refused', check: 'V16', reason: 'head-moved', facts: [START_COMMIT, MOVED_COMMIT]
     });
   });
@@ -127,36 +109,7 @@ describeWhenGitIsRecorded('the pipeline agent passes Customs only having changed
     expect(takeUnansweredCalls()[0]).toEndWith(`the scenario "${GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED}" recorded no such call`);
   });
 
-  test('a report missing a field is a failed pass before any other check', () => {
-    const { constitution: _constitution, ...withoutConstitution } = pipelineAgentReportOf(START_COMMIT);
-
-    expect(clearCustoms(pipelineAgentSubject(withoutConstitution))).toMatchObject({ verdict: 'refused', check: 'V1', reason: 'report-invalid' });
-  });
-
-  test('its column checks the report first and never asks for a commit, a ticket body or an Acceptance', () => {
-    expect(CHECKS_OF_ROLE['pipeline-agent'][0]).toBe('V1');
-    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V3');
-    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V6');
-    expect(CHECKS_OF_ROLE['pipeline-agent']).not.toContain('V8');
-  });
-});
-
-describeWhenGitIsRecorded('an advice optimisation is a draft low ticket this job filed', () => {
-  test('one the job filed as a low draft passes', () => {
-    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [lowDraftFiledByThisJob('31')]))).toEqual({ verdict: 'verified' });
-  });
-
-  test('one naming a ticket another job filed fails V12', () => {
-    const filedByAnother = { ...lowDraftFiledByThisJob('31'), fields: { ...lowDraftFiledByThisJob('31').fields, filedByJob: 'J2' } } as LogRecord;
-
-    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [filedByAnother]))).toEqual({
-      verdict: 'refused', check: 'V12', reason: 'finding-not-filed-by-job', facts: ['31']
-    });
-  });
-
-  test('one filed at normal priority fails V12', () => {
-    const normal = { ...lowDraftFiledByThisJob('31'), fields: { ...lowDraftFiledByThisJob('31').fields, priority: 'normal' } } as LogRecord;
-
-    expect(clearCustoms(pipelineAgentSubject(adviceNaming('31'), [normal]))).toMatchObject({ verdict: 'refused', check: 'V12' });
+  test('its column is the snapshot checks alone: no report, no commit, no ticket body, no Acceptance and no filed finding', () => {
+    expect(CHECKS_OF_ROLE['pipeline-agent']).toEqual(['V16', 'V4', 'V5', 'V13', 'V14']);
   });
 });

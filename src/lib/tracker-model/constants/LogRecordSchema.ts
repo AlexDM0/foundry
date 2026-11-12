@@ -154,6 +154,8 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-step-ready-suggested': { subject: 'pipeline-setup', fields: { step: 'setup-step' } },
   // The snapshot moved to `snapshotCommit`; `changedPaths` changed on main since the earlier one.
   'pipeline-setup-resumed':        { subject: 'pipeline-setup', fields: { snapshotCommit: 'text', changedPaths: 'file-paths' } },
+  // A turn end of the pipeline agent found its snapshot changed: Customs `check` refused it for `reason`, until the next resume.
+  'pipeline-snapshot-touched':     { subject: 'pipeline-setup', fields: { check: 'text', reason: 'text' } },
   'pipeline-finding-recorded':     { subject: 'pipeline-setup', fields: { findingId: 'text', topic: 'text' } },
   'pipeline-question-asked':       { subject: 'pipeline-setup', fields: { questionId: 'text', step: 'setup-step' } },
   // `answer` is the option letters joined by commas, or the free text.

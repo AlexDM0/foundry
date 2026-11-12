@@ -1,5 +1,5 @@
 /**
- * `pipeline setup|billing|continue|start-over|answer|constitution|update|edit|undo|discard`: User's verbs of the pipeline setup record;
+ * `pipeline setup|billing|continue|start-over|resume|answer|constitution|update|edit|undo|discard`: User's verbs of the pipeline setup record;
  * `pipeline finding|ask|draft-constitution|propose|ready`: the pipeline agent's, relayed under its job.
  */
 import type { CommandHandler }                       from '../CommandHandler.ts';
@@ -15,6 +15,7 @@ import { editPipelineDraft }                         from './PipelineEdit.ts';
 import { recordPipelineFinding }                     from './PipelineFinding.ts';
 import { proposePipelineEdits }                      from './PipelinePropose.ts';
 import { suggestPipelineStepReady }                  from './PipelineReady.ts';
+import { resumePipelineSetup }                       from './PipelineResume.ts';
 import { startPipelineSetup }                        from './PipelineSetupStart.ts';
 import { startPipelineSetupOver }                    from './PipelineStartOver.ts';
 import { undoPipelineDraftEdit }                     from './PipelineUndo.ts';
@@ -28,6 +29,7 @@ const SUBCOMMANDS: Readonly<Record<PipelineSubcommand, CommandHandler>> = {
   'billing':            setPipelineBilling,
   'continue':           continuePipelineStep,
   'start-over':         startPipelineSetupOver,
+  'resume':             resumePipelineSetup,
   'answer':             answerPipelineQuestion,
   'constitution':       editPipelineConstitution,
   'update':             startPipelineUpdate,

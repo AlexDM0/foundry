@@ -669,11 +669,9 @@ never carries it.
                               Under the product owner's own job it names no job.
 
   advise [--json]             Record a pipeline agent job (no ticket, no build slot) the Overseer
-                              launches on a main-line snapshot: it reads the repository and the
-                              gate history, files each optimisation as a draft low ticket, and
-                              proposes the pipeline. With no pipeline one starts by itself
-                              (checks-not-set); its verified proposal, its gates run twice, opens
-                              a pipeline-proposal decision whose Accept writes them.
+                              launches as a session on a main-line snapshot: it reads the
+                              repository and the gate history, and never writes it. Nothing starts
+                              one by itself; job stop closes it and job message opens it again.
 
   pipeline setup [--billing subscription|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]
   pipeline update [--json]
@@ -685,10 +683,11 @@ never carries it.
   pipeline undo <S> <E> [--json]
   pipeline discard <S> [--json]
   pipeline start-over <S> [--json]
+  pipeline resume <S> [--json]
                               The pipeline setup record, <data>/pipeline-setup.json, one open at a
-                              time (setup-in-progress): setup opens a first one (--replace-unreadable
-                              lets its Apply write over an unreadable pipeline.json), update one on
-                              the stored pipeline. continue completes the current step (billing,
+                              time (setup-in-progress): setup opens a first one and starts its
+                              pipeline agent (--replace-unreadable lets its Apply write over an
+                              unreadable pipeline.json), update one on the stored pipeline. continue completes the current step (billing,
                               research, constitution, design); answer answers a setup question;
                               constitution stores the whole text from a file or standard input and
                               the SOURCES ticks (contributing, research, installed-default); edit
@@ -697,9 +696,12 @@ never carries it.
                               review, airlock, approval:<approval>, constitution), each to a JSON
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
-                              every proposed change; start-over removes the record. A stale
+                              every proposed change; start-over removes the record and stops its
+                              agent; resume opens the agent again, and when main moved it moves
+                              the snapshot to main's tip and sends research to a recheck. A stale
                               --revision is refused at exit 1. An answer, constitution, edit, undo,
-                              discard or continue also messages a live pipeline agent.
+                              discard or continue also messages the pipeline agent, and opens it
+                              again when a stop closed it.
 
   await [--json] [--after <n>]
                               Wait until the log holds a decision-opened or incident-escalated

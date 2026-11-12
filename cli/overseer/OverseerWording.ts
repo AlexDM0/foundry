@@ -416,6 +416,10 @@ function setupMessageWordingOf(message: SetupMessage): string {
       return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).`;
     case 'draft-discarded':
       return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).`;
+    case 'setup-resumed':
+      if (message.mainMovedByCommits === 0) return 'User resumed the setup. Main did not move.';
+      return `User resumed the setup. Main moved ${message.mainMovedByCommits} commits. These paths changed: `
+        + `${message.changedPaths.length === 0 ? 'none' : message.changedPaths.join(', ')}. Check the findings that name them.`;
   }
 }
 

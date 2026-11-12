@@ -6,7 +6,8 @@
  * launch logs User's request as `intakeText` and its title as `intake-titled`, so a closed session keeps both after its job leaves the board;
  * a title names only a product-owner intake, is never blank, and a later one replaces an earlier one, on the job and across a reopening.
  * A request's pictures are logged as `intakePictures` and kept on the job only when there are some; a blank request with none is refused
- * `intake-empty`; only a product owner takes pictures.
+ * `intake-empty`; only a product owner takes pictures. A pipeline agent is a session too: a stop closes it, even before its session started,
+ * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -188,6 +189,39 @@ describe('an intake\'s request and title', () => {
     board.messageJob(job.id, 'Add a gift card too.', [], AT);
 
     expect(board.jobById(job.id)?.intake).toEqual({ text: 'Add a gift card too.', title: 'Example basket and wishlist' });
+  });
+});
+
+describe('the pipeline agent as a session', () => {
+  test('a stop before its session started ends it closed, and User\'s message opens it again in its next Watcher instance', () => {
+    const { board, records } = boardFixture();
+    const { job } = board.startPipelineAgent(AT);
+
+    board.requestJobStop(job.id, 'stop', AT);
+    board.messageJob(job.id, 'Check the test script again.', [], AT);
+
+    expect(records.filter((record) => record.kind === 'job-ended').map((record) => record.fields)).toMatchObject([{ outcome: 'closed' }]);
+    expect(board.jobById(job.id)).toMatchObject({ kind: 'pipeline-agent', state: 'running', watcherInstance: 2 });
+    expect(records.at(-1)).toMatchObject({ kind: 'job-reopened', fields: { text: 'Check the test script again.', offeredTicketIds: [] } });
+  });
+
+  test('a running one moves to stopping, which its session ending closes', () => {
+    const { board } = boardFixture();
+    const { job } = board.startPipelineAgent(AT);
+    board.moveJob(job.id, 'running', AT);
+
+    board.requestJobStop(job.id, 'stop', AT);
+
+    expect(board.jobById(job.id)?.state).toBe('stopping');
+  });
+
+  test('one that ended other than closed is refused job-finished, and opens nothing', () => {
+    const { board } = boardFixture();
+    const { job } = board.startPipelineAgent(AT);
+    board.endJob(job.id, { outcome: 'replaced' }, AT);
+
+    expect(refusalDetailOf(() => board.messageJob(job.id, 'Hello.', [], AT))).toEqual({ reason: 'job-finished', jobId: job.id });
+    expect(board.jobById(job.id)).toBeUndefined();
   });
 });
 

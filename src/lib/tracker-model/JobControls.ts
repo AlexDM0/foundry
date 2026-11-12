@@ -27,6 +27,11 @@ const STOPPABLE_BY_ALL_KINDS: readonly Job['kind'][] = ['build', 'review', 'prod
 
 const PRODUCT_OWNER_KIND = 'product-owner';
 
+const PIPELINE_AGENT_KIND = 'pipeline-agent';
+
+/** Sessions that a stop closes and that User's next message opens again, with their conversation. */
+const REOPENABLE_SESSION_KINDS: readonly Job['kind'][] = [PRODUCT_OWNER_KIND, PIPELINE_AGENT_KIND];
+
 export const STOPPED_BY_USER_CAUSE = 'stopped by User';
 
 export const FRESH_AGENT_CAUSE = 'fresh agent asked by User';
@@ -44,7 +49,8 @@ export class JobControls {
 
   /**
    * `stop` and `wind-down` hold the job's ticket "stopped by User (J<n>)" or "wound down by User (J<n>)", which the policy never undoes;
-   * a stopped product owner is finished, its open questions withdrawn. A job with no session to stop ends here.
+   * a stopped product owner is finished, its open questions withdrawn. A job with no session to stop ends here; a pipeline agent with none
+   * ends `closed`, so a later message opens it again.
    */
   requestJobStop(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
@@ -60,6 +66,7 @@ export class JobControls {
       return { job, logged };
     }
     if (SESSIONLESS_STATES.includes(job.state)) {
+      if (job.kind === PIPELINE_AGENT_KIND) return this.endJob(jobId, { outcome: 'closed' }, logged, at);
       const ending: JobEnding = mode === 'fresh' ? { outcome: 'replaced', cause: FRESH_AGENT_CAUSE } : { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE };
       return this.endJob(jobId, ending, logged, at);
     }
@@ -74,15 +81,17 @@ export class JobControls {
   }
 
   /**
-   * A product owner that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the text and pictures as
-   * its first line, keeping the title its intake was given, and the log records the tickets its intake filed before. Every other finished
-   * job is refused `job-finished`. Only a product owner takes pictures: any other job is refused `pictures-not-taken`.
+   * A product owner or pipeline agent that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the
+   * text and pictures as its first line. A product owner keeps the title its intake was given, and the log records the tickets its intake
+   * filed before. Every other finished job is refused `job-finished`. Only a product owner takes pictures: any other job is refused
+   * `pictures-not-taken`.
    */
   messageJob(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
     const kind = ended?.kind ?? this.jobRules.jobById(jobId)?.kind;
     if (pictures.length > 0 && kind !== undefined && kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'pictures-not-taken', jobId, kind });
-    if (ended?.kind !== PRODUCT_OWNER_KIND || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, text, pictures, at);
+    if (ended === undefined || !REOPENABLE_SESSION_KINDS.includes(ended.kind) || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, text, pictures, at);
+    if (ended.kind === PIPELINE_AGENT_KIND) return this.jobRules.reopenEndedJob(jobId, { text, pictures, offeredTicketIds: [] }, at);
     const offeredTicketIds = this.records.ticketRecords
       .filter(({ frontmatter }) => frontmatter.filedByJob !== undefined && this.intakeChainOfJobId(jobId).includes(frontmatter.filedByJob))
       .map(({ frontmatter }) => frontmatter.id);
@@ -105,10 +114,10 @@ export class JobControls {
     }, at);
   }
 
-  /** Recorded `launching` with no ticket, target or build slot: the lifecycle's answer to `checks-not-set`, or `advise` on demand. */
+  /** Recorded `launching` with no ticket, target or build slot, on User's command alone: a setup's start or `advise`. */
   startPipelineAgent(at: string): JobChanged {
     return this.jobRules.launchJob({
-      kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], parentJobId: null, attempt: 1, target: null
+      kind: PIPELINE_AGENT_KIND, role: PIPELINE_AGENT_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null
     }, at);
   }
 

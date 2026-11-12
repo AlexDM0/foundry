@@ -74,6 +74,7 @@ import type {
   JobEnding,
   JobEventCursor,
   JobLaunch,
+  JobOutcome,
   JobStopMode,
   Airlock,
   OverseerStopReason,
@@ -101,7 +102,8 @@ import type {
   ResearchFindingRecording,
   SetupQuestionAsking,
   SetupQuestionReply,
-  SetupQuestionStep
+  SetupQuestionStep,
+  SnapshotRefusal
 } from './@types/PipelineSetup.ts';
 import type {
   DecisionDraft,
@@ -131,45 +133,45 @@ import {
   type RefreshSlotClaim,
   type TicketAwaitingGreen
 }                                              from './AirlockClaims.ts';
-import { BoardRecords }                  from './BoardRecords.ts';
-import { BoardRefusal }                  from './BoardRefusal.ts';
-import { Decisions }                     from './Decisions.ts';
-import { DispatchQueries }               from './DispatchQueries.ts';
-import { DisplayQueries }                from './DisplayQueries.ts';
-import { DraftContents }                 from './DraftContents.ts';
-import { Drafts }                        from './Drafts.ts';
-import { Epics }                         from './Epics.ts';
-import { Findings }                      from './Findings.ts';
-import { GroupReleases }                 from './GroupReleases.ts';
-import { IncidentMoves }                 from './IncidentMoves.ts';
-import type { IncidentEscalation }       from './Incidents.ts';
-import { Incidents }                     from './Incidents.ts';
-import { JobControls }                   from './JobControls.ts';
-import type { SteppedJobState }          from './Jobs.ts';
-import { Jobs }                          from './Jobs.ts';
-import type { Logger }                   from './Logger.ts';
-import { MergeQueueMarks }               from './MergeQueueMarks.ts';
-import { PipelineSetups }                from './PipelineSetups.ts';
-import type { PlaybookFacts }            from './Playbook.ts';
-import { Playbook }                      from './Playbook.ts';
-import { ReviewBars }                    from './ReviewBars.ts';
-import type { ReviewStatisticsReport }   from './ReviewStatistics.ts';
-import { ReviewStatistics }              from './ReviewStatistics.ts';
-import { TaskRows }                      from './TaskRows.ts';
-import { TicketClaims }                  from './TicketClaims.ts';
-import { TicketDependencies }            from './TicketDependencies.ts';
-import type { TicketEdit, TicketEdited } from './TicketEdits.ts';
-import { TicketEdits }                   from './TicketEdits.ts';
-import { TicketForecasts }               from './TicketForecasts.ts';
-import { TicketLinks }                   from './TicketLinks.ts';
-import { TicketMoves }                   from './TicketMoves.ts';
-import { TicketSettings }                from './TicketSettings.ts';
-import { TokenCredits }                  from './TokenCredits.ts';
-import { TrackerChanges }                from './TrackerChanges.ts';
-import { PARKED_HOLD_PREFIX }            from './constants/DecisionAndIncidentVocabulary.ts';
-import { GroupNameUtil }                 from './utils/GroupNameUtil.ts';
-import { OptionConsequencesUtil }        from './utils/OptionConsequencesUtil.ts';
-import { PipelineUtil }                  from './utils/PipelineUtil.ts';
+import { BoardRecords }                                from './BoardRecords.ts';
+import { BoardRefusal }                                from './BoardRefusal.ts';
+import { Decisions }                                   from './Decisions.ts';
+import { DispatchQueries }                             from './DispatchQueries.ts';
+import { DisplayQueries }                              from './DisplayQueries.ts';
+import { DraftContents }                               from './DraftContents.ts';
+import { Drafts }                                      from './Drafts.ts';
+import { Epics }                                       from './Epics.ts';
+import { Findings }                                    from './Findings.ts';
+import { GroupReleases }                               from './GroupReleases.ts';
+import { IncidentMoves }                               from './IncidentMoves.ts';
+import type { IncidentEscalation }                     from './Incidents.ts';
+import { Incidents }                                   from './Incidents.ts';
+import { JobControls }                                 from './JobControls.ts';
+import type { SteppedJobState }                        from './Jobs.ts';
+import { Jobs }                                        from './Jobs.ts';
+import type { Logger }                                 from './Logger.ts';
+import { MergeQueueMarks }                             from './MergeQueueMarks.ts';
+import { PipelineSetups }                              from './PipelineSetups.ts';
+import type { PlaybookFacts }                          from './Playbook.ts';
+import { Playbook }                                    from './Playbook.ts';
+import { ReviewBars }                                  from './ReviewBars.ts';
+import type { ReviewStatisticsReport }                 from './ReviewStatistics.ts';
+import { ReviewStatistics }                            from './ReviewStatistics.ts';
+import { TaskRows }                                    from './TaskRows.ts';
+import { TicketClaims }                                from './TicketClaims.ts';
+import { TicketDependencies }                          from './TicketDependencies.ts';
+import type { TicketEdit, TicketEdited }               from './TicketEdits.ts';
+import { TicketEdits }                                 from './TicketEdits.ts';
+import { TicketForecasts }                             from './TicketForecasts.ts';
+import { TicketLinks }                                 from './TicketLinks.ts';
+import { TicketMoves }                                 from './TicketMoves.ts';
+import { TicketSettings }                              from './TicketSettings.ts';
+import { TokenCredits }                                from './TokenCredits.ts';
+import { TrackerChanges }                              from './TrackerChanges.ts';
+import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
+import { GroupNameUtil }                               from './utils/GroupNameUtil.ts';
+import { OptionConsequencesUtil }                      from './utils/OptionConsequencesUtil.ts';
+import { PipelineUtil }                                from './utils/PipelineUtil.ts';
 
 export interface BoardInput {
   progress:          TrackerProgress;
@@ -514,6 +516,11 @@ export class Board {
     return this.jobRules.jobById(jobId);
   }
 
+  /** A job's kind and how it ended, read from the log; `undefined` while it is on the board, or for a job never launched. */
+  endedJobOutcomeOf(jobId: string): { kind: Job['kind']; outcome: JobOutcome } | undefined {
+    return this.jobRules.endedJobOutcomeOf(jobId);
+  }
+
   openDecision(opening: DecisionOpening, at: string): DecisionOpened {
     return this.decisionRules.openDecision(opening, at);
   }
@@ -638,8 +645,8 @@ export class Board {
         return this.launchJob({
           kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
         }, at).logged;
-      case 'launch-pipeline-agent':
-        return this.jobControls.startPipelineAgent(at).logged;
+      case 'withdraw-retired-decision':
+        return this.withdrawDecision(step.decisionId, RETIRED_DECISION_REASON, at).logged;
       case 'resume-job':
         return this.moveJob(step.jobId, 'running', at).logged;
       case 'replace-job':
@@ -840,6 +847,18 @@ export class Board {
 
   resumeSetup(setupId: string, snapshotCommit: string, changedPaths: readonly string[], at: string): PipelineSetupChanged {
     return this.pipelineSetups.resumeSetup(setupId, snapshotCommit, changedPaths, at);
+  }
+
+  attachSetupAgent(setupId: string, agentJobId: string, snapshotCommit: string | null): PipelineSetupChanged {
+    return this.pipelineSetups.attachSetupAgent(setupId, agentJobId, snapshotCommit);
+  }
+
+  recordSetupSnapshotTouched(setupId: string, refusal: SnapshotRefusal, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.recordSetupSnapshotTouched(setupId, refusal, at);
+  }
+
+  setupSnapshotIsTouched(setupId: string): boolean {
+    return this.pipelineSetups.setupSnapshotIsTouched(setupId);
   }
 
   recordFinding(setupId: string, recording: ResearchFindingRecording, at: string): PipelineSetupChanged {

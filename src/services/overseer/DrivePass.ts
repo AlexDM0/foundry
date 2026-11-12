@@ -7,38 +7,33 @@ import { createHash }                          from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { basename, join }                      from 'node:path';
 
-import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
-import {
-  BUILDER_REPORT_SCHEMA,
-  PIPELINE_AGENT_REPORT_SCHEMA,
-  AIRLOCK_AGENT_REPORT_SCHEMA,
-  REVIEWER_REPORT_SCHEMA
-} from '../../adapters/reports/ReportSchemas.ts';
-import type { JsonSchema }                           from '../../adapters/reports/ReportValidation.ts';
-import { type UsageMarkerReading, UsageMarkerFile }  from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { UsageWindowObservation }               from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter }                         from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentConfinement, AgentLaunchRequest } from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                        from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ExecutableRefusalCause }               from '../../lib/executable-resolver/ExecutableResolver.ts';
-import { type ConfinedLine, confinedLineOf }         from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                        from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ShellLine }                            from '../../lib/shell-line/ShellLine.ts';
-import type { DecisionAnswer }                       from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentDefaultCause, IncidentMove }   from '../../lib/tracker-model/@types/Incident.ts';
-import type { InterruptionCause, Job, JobKind }      from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }       from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                  from '../../lib/tracker-model/Playbook.ts';
-import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
-import { PipelineUtil }                              from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
-import { WorktreesFolder }                           from '../../shared/WorktreesFolder.ts';
-import { AIRLOCK_LIMITS }                            from '../../shared/constants/AirlockLimits.ts';
-import { LIFECYCLE_LIMITS }                          from '../../shared/constants/LifecycleLimits.ts';
+import { PipelineFile }                                                               from '../../adapters/pipeline/PipelineFile.ts';
+import { BUILDER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
+import type { JsonSchema }                                                            from '../../adapters/reports/ReportValidation.ts';
+import { type UsageMarkerReading, UsageMarkerFile }                                   from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }                                                from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { AgentAdapter }                                                          from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentConfinement, AgentLaunchRequest }                                  from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                                         from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ExecutableRefusalCause }                                                from '../../lib/executable-resolver/ExecutableResolver.ts';
+import { type ConfinedLine, confinedLineOf }                                          from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                                                 from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ShellLine }                                                             from '../../lib/shell-line/ShellLine.ts';
+import type { DecisionAnswer }                                                        from '../../lib/tracker-model/@types/Decision.ts';
+import type { IncidentDefaultCause, IncidentMove }                                    from '../../lib/tracker-model/@types/Incident.ts';
+import type { InterruptionCause, Job, JobKind }                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording }                                        from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                                                 from '../../lib/tracker-model/Board.ts';
+import { Playbook }                                                                   from '../../lib/tracker-model/Playbook.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
+import { PipelineUtil }                                                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { EventLogEntry }                                                         from '../../lib/watcher/EventLog.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }                                  from '../../shared/Environment.ts';
+import { WorktreesFolder }                                                            from '../../shared/WorktreesFolder.ts';
+import { AIRLOCK_LIMITS }                                                             from '../../shared/constants/AirlockLimits.ts';
+import { LIFECYCLE_LIMITS }                                                           from '../../shared/constants/LifecycleLimits.ts';
 import {
   GATE_RUNS_AT_ONCE,
   GATE_SLOT_RETRY_MILLISECONDS,
@@ -318,16 +313,15 @@ const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'product-owner']);
 
 /** Multi-turn sessions: finished only when the Overseer closed their input, never by a turn's `result`. */
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
 
 /** The jobs whose session owes a closing report: one that exits cleanly without it ends `failed`, cause `no-report`. */
 const REPORTING_JOB_KINDS: readonly JobKind[] = ['build', 'review'];
 
 const REPORT_SCHEMA_OF_JOB_KIND: Partial<Record<JobKind, JsonSchema>> = {
-  'build':          BUILDER_REPORT_SCHEMA,
-  'review':         REVIEWER_REPORT_SCHEMA,
-  'merge-agent':    AIRLOCK_AGENT_REPORT_SCHEMA,
-  'pipeline-agent': PIPELINE_AGENT_REPORT_SCHEMA,
+  'build':       BUILDER_REPORT_SCHEMA,
+  'review':      REVIEWER_REPORT_SCHEMA,
+  'merge-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
 };
 
 function fileTextOrEmpty(filePath: string): string {
@@ -435,6 +429,8 @@ interface AppliedWatcherEvents {
   usageWindowObservations: UsageWindowObservation[];
   /** Sessions a refused key or a budget stop ended the work of, which the pass stops after the hold. */
   stoppedSessions:         StoppedSession[];
+  /** The pipeline agents whose turn ended in a `result`, whose snapshot Customs checks in the same hold. */
+  pipelineAgentTurnEnds:   string[];
 }
 
 /** What the watcher events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
@@ -460,6 +456,7 @@ function applyWatcherEvents(
   const usageLimitHits: UsageLimitHit[] = [];
   const usageWindowObservations: UsageWindowObservation[] = [];
   const stoppedSessions: StoppedSession[] = [];
+  const pipelineAgentTurnEnds: string[] = [];
   const apiRateLimitResetsAt = apiBilling === null ? null : UsageLimits.apiRateLimitResetsAtOf(at);
   for (const watcher of watchers) {
     if (board.jobById(watcher.jobId)?.watcherInstance !== watcher.instance) continue;
@@ -489,7 +486,9 @@ function applyWatcherEvents(
         if (event.kind === 'started' && (state === 'launching' || state === 'preparing')) board.moveJob(watcher.jobId, 'running', at);
         if (event.kind === 'question' && state === 'running') QuestionRouting.openQuestion(board, watcher.jobId, event.requestId, event.questions, at);
         // A session's turn ends in a `result` too; it finishes only once the Overseer closed its input.
-        if (event.kind === 'result' && state === 'running' && !SESSION_JOB_KINDS.includes(board.jobById(watcher.jobId)?.kind ?? 'build')) {
+        const kind = board.jobById(watcher.jobId)?.kind ?? 'build';
+        if (event.kind === 'result' && state === 'running' && kind === 'pipeline-agent') pipelineAgentTurnEnds.push(watcher.jobId);
+        if (event.kind === 'result' && state === 'running' && !SESSION_JOB_KINDS.includes(kind)) {
           board.moveJob(watcher.jobId, 'in-customs', at);
           closedWithResult = true;
         }
@@ -511,6 +510,7 @@ function applyWatcherEvents(
     )) {
       JobResumption.applyResumeFailure(board, job, at);
     } else if (watcherIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
+      // An Assistant or pipeline agent ends `closed`, so User's next message opens a pipeline agent again with its conversation.
       board.endJob(watcher.jobId, { outcome: 'closed' }, at);
     } else if (watcherIsGone && !closedWithResult && state === 'running' && job !== undefined && AnswerDelivery.stoppedForAnswerDelivery(trackerDirectory, job)) {
       board.interruptJob(watcher.jobId, 'answer-delivery', at);
@@ -520,7 +520,9 @@ function applyWatcherEvents(
       board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : 'agent-crashed', at);
     }
   }
-  return { usageLimitHits, usageWindowObservations, stoppedSessions };
+  return {
+    usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
+  };
 }
 
 /** One decision per folder, its context the folder itself, so a restart finding the same folder opens no second one. */
@@ -693,7 +695,7 @@ function launchWatcher(
   job: Readonly<Job>,
 ): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null {
   const { workspace, agentAdapter } = request;
-  const billing = board.pipeline()?.billing;
+  const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
@@ -710,7 +712,7 @@ function launchWatcher(
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
   const workingDirectory = PipelineAgentSessions.isPipelineAgentJob(job)
-    ? PipelineAgentSessions.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, job)
+    ? PipelineAgentSessions.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, board, job)
     : workingDirectoryOf(workspace, job);
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
@@ -909,6 +911,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   };
   const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
+  const triedPipelineAgentSnapshots = new Set<string>();
 
   /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
   function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
@@ -1068,7 +1071,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         request.afterHoldPhase?.('relayed-commands', change.board);
         const billing = change.board.pipeline()?.billing;
         const watcherEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
-        const { usageLimitHits, usageWindowObservations, stoppedSessions } = applyWatcherEvents(
+        const {
+          usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
+        } = applyWatcherEvents(
           change,
           request.agentAdapter,
           observation.watchers,
@@ -1080,7 +1085,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
-        PipelineAgentSessions.applySettledPipelineAgents(change, WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory), request.decisionWordingOf);
+        PipelineAgentSessions.verifyTurnEnds(change, {
+          workspace:         request.workspace,
+          worktreesRoot:     WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
+          groupTargetPrefix: GROUP_TARGET_PREFIX,
+          pathStyle:         platformPorts.dataFolders,
+        }, pipelineAgentTurnEnds);
+        PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
         request.afterHoldPhase?.('watcher-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
@@ -1136,18 +1147,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
-    const settledPipelineAgents = await PipelineAgentSessions.settleEndedPipelineAgents({
-      platformPorts,
-      workspace:             request.workspace,
-      worktreesRoot:         WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
-      mainLine:              request.mainLine,
-      agentAdapter:          request.agentAdapter,
-      gateEnvironment:       JobLaunch.gateEnvironmentOf(jobLaunchContext),
-      confinedLineOf:        mergeGateLineOf,
-      millisecondsNow:       () => request.now().getTime(),
-      stopGraceMilliseconds: sessionStopGraceMilliseconds,
-    }, written.board);
-    if (settledPipelineAgents > 0) wake(true);
+    const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
+    PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
     await JobResumption.deliverFirstMessages(platformPorts, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({

@@ -11,7 +11,8 @@ export type SetupMessage =
   | { kind: 'constitution-edited'; setupId: string; revision: number; markdownChanged: boolean; sourcesChanged: boolean }
   | { kind: 'draft-edited'; setupId: string; draftRevision: number; editIds: readonly string[]; fields: readonly PipelineDraftField[] }
   | { kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField }
-  | { kind: 'draft-discarded'; setupId: string; draftRevision: number };
+  | { kind: 'draft-discarded'; setupId: string; draftRevision: number }
+  | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] };
 
 export interface ControlContext {
   setupMessageWordingOf: (message: SetupMessage) => string;

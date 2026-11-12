@@ -2,24 +2,36 @@
  * User's setup kinds of the control contract, applied to a Board in a change. What matters: a body is untrusted JSON, so every kind
  * refuses a missing or misshapen nested field as `malformed-setup-command`, naming the field, and never fails on a `TypeError`, with the
  * Board untouched; a draft edit is checked against the revision User saw and the draft it leaves against the `pipeline.json` validator;
- * an update starts from a readable stored pipeline only; and an answer, edit, Undo, discard, constitution edit or Continue messages a live
- * pipeline agent in the same hold, in the words the injected context gives, while a record with no live agent sends none.
+ * an update starts from a readable stored pipeline only; a start launches the record's pipeline agent, the only launch besides `advise`,
+ * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
+ * words the injected context gives, and opens it again with its conversation when a stop closed it, while a record with no agent, or one
+ * that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
+ * research recheck, naming the paths in its message. Git answers from the recordings of `src/testing/RecordedGit.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { UnreadablePipelineReading }  from '../../adapters/pipeline/PipelineFile.ts';
-import type { Pipeline }                   from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }              from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { BoardRefusal }                    from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                from '../../shared/OperationRefusal.ts';
-import { boardFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }          from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }              from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }               from '../tracker/Workspace.ts';
-import { ControlService }                  from './ControlService.ts';
+import type { UnreadablePipelineReading }                         from '../../adapters/pipeline/PipelineFile.ts';
+import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
+import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
+import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
+import { ControlService }                                         from './ControlService.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
+
+const SNAPSHOT_COMMIT = '1'.repeat(40);
+
+const MOVED_MAIN_TIP = '2'.repeat(40);
+
+const recordedGit = useRecordedGit();
 
 const WORKSPACE = workspacePathsFor('/example-agency/storefront');
 
@@ -326,5 +338,125 @@ describe('the message to the pipeline agent', () => {
 
       expect(fixture.records.map((record) => record.kind)).toEqual(['pipeline-draft-discarded']);
     }
+  });
+
+  test('an agent a stop closed opens again with its conversation on User\'s next move, in its next Watcher instance', () => {
+    const fixture = liveAgentBoard();
+    fixture.board.requestJobStop('J1', 'stop', CHANGED_AT);
+
+    apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
+
+    expect(fixture.records.map((record) => record.kind)).toEqual(['job-stop-requested', 'job-ended', 'pipeline-draft-discarded', 'job-reopened']);
+    expect(fixture.board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
+  });
+
+  test('an agent that ended other than by a stop is not opened again: the record is what a later agent starts from', () => {
+    const fixture = liveAgentBoard();
+    fixture.board.endJob('J1', { outcome: 'replaced' }, CHANGED_AT);
+    fixture.records.length = 0;
+
+    apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
+
+    expect(fixture.records.map((record) => record.kind)).toEqual(['pipeline-draft-discarded']);
+  });
+});
+
+describe('the record\'s pipeline agent', () => {
+  test('pipeline-setup-start launches it, recorded launching with no ticket, and the record names it', () => {
+    const fixture = boardFixture();
+
+    apply(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+
+    expect(fixture.board.jobs().map((job) => [job.id, job.kind, job.state, job.ticketIds])).toEqual([['J1', 'pipeline-agent', 'launching', []]]);
+    expect(fixture.board.pipelineSetup()?.agentJobId).toBe('J1');
+  });
+
+  test('pipeline-update-start launches none: an update has no agent until User asks for one', () => {
+    const fixture = boardFixture({ pipeline: STORED_PIPELINE });
+
+    apply(fixture, { kind: 'pipeline-update-start' });
+
+    expect(fixture.board.jobs()).toEqual([]);
+  });
+
+  test('a start over stops its live agent in the same hold', () => {
+    const fixture = boardAtDesign('J1');
+    fixture.board.startPipelineAgent(CHANGED_AT);
+    fixture.board.moveJob('J1', 'running', CHANGED_AT);
+
+    apply(fixture, { kind: 'pipeline-setup-start-over', setupId: 'S1' });
+
+    expect(fixture.board.pipelineSetup()).toBeNull();
+    expect(fixture.board.jobById('J1')).toMatchObject({ state: 'stopping', stopRequest: 'stop' });
+  });
+});
+
+describe('a resume', () => {
+  const mainLineRead: RecordedGitStep = {
+    gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+    answeredAs:   GIT_CALL_SHAPES.CURRENT_BRANCH,
+    filledIn:     { [RECORDED_PLACEHOLDERS.BRANCH]: 'main' },
+  };
+
+  function mainTipRead(commit: string): RecordedGitStep {
+    return {
+      gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', 'main^{commit}'],
+      answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+      filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: commit },
+    };
+  }
+
+  /** S1 at the design step, its snapshot at `SNAPSHOT_COMMIT`, its agent J1 closed by a stop. */
+  function closedAgentBoard(): BoardFixture {
+    const fixture = boardAtDesign('J1');
+    fixture.board.startPipelineAgent(CHANGED_AT);
+    fixture.board.requestJobStop('J1', 'stop', CHANGED_AT);
+    fixture.board.attachSetupAgent('S1', 'J1', SNAPSHOT_COMMIT);
+    fixture.records.length = 0;
+    return fixture;
+  }
+
+  testWhenGitIsRecorded('after main moved it takes main\'s tip and the changed paths, sends research to a recheck and opens the agent naming them', async () => {
+    const fixture = closedAgentBoard();
+    const moveRead: RecordedGitStep[] = [
+      mainLineRead,
+      mainTipRead(MOVED_MAIN_TIP),
+      { gitArguments: ['rev-list', '--count', '--end-of-options', `${SNAPSHOT_COMMIT}..${MOVED_MAIN_TIP}`], answeredAs: GIT_CALL_SHAPES.COMMITS_AHEAD_ONE },
+      {
+        gitArguments: ['diff', '--name-only', '--no-renames', '-z', SNAPSHOT_COMMIT, MOVED_MAIN_TIP, '--'],
+        answeredAs:   GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT,
+        filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: 'package.json' },
+      },
+    ];
+
+    await recordedGit.playStage(moveRead, async () => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' }));
+
+    expect(fixture.board.pipelineSetup()).toMatchObject({ snapshotCommit: MOVED_MAIN_TIP, stepStates: { research: 'needs-recheck' } });
+    const reopened = fixture.records.find((record) => record.kind === 'job-reopened');
+    expect(reopened?.kind === 'job-reopened' ? JSON.parse(reopened.fields.text) as unknown : null).toEqual({
+      kind: 'setup-resumed', setupId: 'S1', mainMovedByCommits: 1, changedPaths: ['package.json']
+    });
+    expect(fixture.records.map((record) => record.kind)).toEqual(['pipeline-setup-resumed', 'job-reopened']);
+  });
+
+  testWhenGitIsRecorded('with main where the snapshot is, it moves nothing and only opens the agent', async () => {
+    const fixture = closedAgentBoard();
+
+    await recordedGit.playStage([mainLineRead, mainTipRead(SNAPSHOT_COMMIT)], async () => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' }));
+
+    expect(fixture.board.pipelineSetup()?.snapshotCommit).toBe(SNAPSHOT_COMMIT);
+    expect(fixture.records.map((record) => record.kind)).toEqual(['job-reopened']);
+  });
+
+  testWhenGitIsRecorded('a record with no agent gets a new one, and one with no open record is refused no-setup-open', async () => {
+    const fixture = boardFixture({ pipeline: STORED_PIPELINE });
+    apply(fixture, { kind: 'pipeline-update-start' });
+
+    await recordedGit.playStage([], async () => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' }));
+
+    expect(fixture.board.pipelineSetup()?.agentJobId).toBe('J1');
+    expect(fixture.board.jobs().map((job) => job.kind)).toEqual(['pipeline-agent']);
+    const thrown = thrownBy(() => apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S9' }));
+    expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-setup-open', setupId: 'S9' });
   });
 });

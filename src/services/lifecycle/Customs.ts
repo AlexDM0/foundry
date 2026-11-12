@@ -11,28 +11,26 @@ import {
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
 
-import {
-  AIRLOCK_AGENT_REPORT_SCHEMA,
-  BUILDER_REPORT_SCHEMA,
-  PIPELINE_AGENT_REPORT_SCHEMA,
-  REVIEWER_REPORT_SCHEMA
-} from '../../adapters/reports/ReportSchemas.ts';
-import { reportVerdictOf, type JsonSchema }            from '../../adapters/reports/ReportValidation.ts';
-import { TicketAcceptanceUtil }                        from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { type GitPathStyle, GitPaths }                 from '../../lib/git/GitPaths.ts';
-import { type GitHookPolicy, type GitRun, GitProcess } from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                from '../../lib/git/GitWorktrees.ts';
-import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }            from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                            from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { JobOutcome }                             from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineGate }                           from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }                          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { PRODUCT_NAMES }                               from '../../shared/constants/ProductNames.ts';
+import { AIRLOCK_AGENT_REPORT_SCHEMA, BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
+import { reportVerdictOf, type JsonSchema }                                           from '../../adapters/reports/ReportValidation.ts';
+import { TicketAcceptanceUtil }                                                       from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { type GitPathStyle, GitPaths }                                                from '../../lib/git/GitPaths.ts';
+import { type GitHookPolicy, type GitRun, GitProcess }                                from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                               from '../../lib/git/GitWorktrees.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                           from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                                           from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { JobOutcome }                                                            from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                                             from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }                                                         from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { PRODUCT_NAMES }                                                              from '../../shared/constants/ProductNames.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
 /** `airlock-agent` is a builder or reviewer resumed into the Airlock for a conflict or a red merged tree. */
 export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-agent';
+
+/** The roles that end with a report: the pipeline agent is a session, verified at each turn end with no report. */
+export type ReportingRole = Exclude<VerifiedRole, 'pipeline-agent'>;
 
 export type VerificationCheck = 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16';
 
@@ -152,11 +150,10 @@ function protectedFormOf(gitPath: string): string {
 
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
 
-const REPORT_SCHEMA_OF_ROLE: Readonly<Record<VerifiedRole, JsonSchema>> = {
-  'builder':        BUILDER_REPORT_SCHEMA,
-  'reviewer':       REVIEWER_REPORT_SCHEMA,
-  'airlock-agent':  AIRLOCK_AGENT_REPORT_SCHEMA,
-  'pipeline-agent': PIPELINE_AGENT_REPORT_SCHEMA,
+const REPORT_SCHEMA_OF_ROLE: Readonly<Record<ReportingRole, JsonSchema>> = {
+  'builder':       BUILDER_REPORT_SCHEMA,
+  'reviewer':      REVIEWER_REPORT_SCHEMA,
+  'airlock-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
 };
 
 function refused(reason: VerificationRefusalReason, facts: readonly string[] = []): CheckVerdict {
@@ -224,6 +221,7 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 }
 
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
+  if (subject.role === 'pipeline-agent') return refused('report-invalid', ['no report']);
   const verdict = reportVerdictOf(REPORT_SCHEMA_OF_ROLE[subject.role], subject.report);
   if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems);
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
@@ -410,11 +408,11 @@ function filingIsThisJobsLowFinding(records: readonly LogRecord[], jobId: string
     && record.fields.priority === 'low');
 }
 
-/** A reviewer's filed findings and a pipeline agent's optimisations, each a draft low ticket this job filed through its Hatch. */
+/** A reviewer's filed findings, each a draft low ticket this job filed through its Hatch. */
 function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict {
   const records = subject.logRecords ?? [];
   const jobId = subject.jobId ?? '';
-  const filed = [...reportListOf(subject.report, 'findings').filter((finding) => finding['outcome'] === 'filed'), ...reportListOf(subject.report, 'optimisations')];
+  const filed = reportListOf(subject.report, 'findings').filter((finding) => finding['outcome'] === 'filed');
   const unproven = filed.flatMap((finding) => {
     const namedTicketId = typeof finding['filedTicketId'] === 'string' ? finding['filedTicketId'] : null;
     const requestId = typeof finding['hatchRequestId'] === 'string' ? finding['hatchRequestId'] : null;
@@ -626,7 +624,7 @@ export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly Verification
   'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
   'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
   'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
-  'pipeline-agent': ['V1', 'V16', 'V4', 'V5', 'V12', 'V13', 'V14'],
+  'pipeline-agent': ['V16', 'V4', 'V5', 'V13', 'V14'],
 };
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */

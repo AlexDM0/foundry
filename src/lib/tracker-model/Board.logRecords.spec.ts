@@ -135,6 +135,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-finding-recorded","setupId":"S1","fields":{"findingId":"F1","topic":"scripts"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-asked","setupId":"S1","fields":{"questionId":"Q1","step":"research"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-answered","setupId":"S1","fields":{"questionId":"Q1","answer":"a"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-snapshot-touched","setupId":"S1","fields":{"check":"V4","reason":"worktree-dirty"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-step-ready-suggested","setupId":"S1","fields":{"step":"research"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-resumed","setupId":"S1","fields":{"snapshotCommit":"e5f60718293a4b5c6d7e8f9012345678901234ab",'
     + '"changedPaths":["package.json"]}}',

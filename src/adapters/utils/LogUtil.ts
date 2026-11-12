@@ -172,6 +172,8 @@ function sentenceOf(record: LogRecordContent): string {
     case 'pipeline-setup-resumed':
       return `Pipeline setup ${record.setupId} resumed on ${record.fields.snapshotCommit}`
         + `${record.fields.changedPaths.length === 0 ? '' : `; changed on main: ${record.fields.changedPaths.join(', ')}`}`;
+    case 'pipeline-snapshot-touched':
+      return `Pipeline setup ${record.setupId} snapshot touched: ${record.fields.check} ${record.fields.reason}`;
     case 'pipeline-finding-recorded':
       return `Pipeline setup ${record.setupId} recorded finding ${record.fields.findingId} (${record.fields.topic})`;
     case 'pipeline-question-asked':

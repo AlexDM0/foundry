@@ -27,7 +27,7 @@ export interface JobControlDeliveryRequest {
 
 const MARKERS_FOLDER = 'control-frames';
 
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
+const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
 
 /**
  * Whether the frames were taken, on this pass or an earlier one: a later frame of the job waits on an earlier one, so none overtakes it. The

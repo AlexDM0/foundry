@@ -11,6 +11,7 @@ export const PIPELINE_USAGE = {
   billing:      `${PROGRAM} pipeline billing <S> subscription|api [--max-budget-usd <n>] [--json]`,
   continue:     `${PROGRAM} pipeline continue <S> billing|research|constitution|design [--json]`,
   'start-over': `${PROGRAM} pipeline start-over <S> [--json]`,
+  resume:       `${PROGRAM} pipeline resume <S> [--json]`,
   answer:       `${PROGRAM} pipeline answer <S> <Q> <letters>... | -- <text> [--json]`,
   constitution: `${PROGRAM} pipeline constitution <S> --revision <n> [--file <path>|-] [--sources <source>,…|none] [--json]`,
   update:       `${PROGRAM} pipeline update [--json]`,

@@ -34,6 +34,7 @@ export const INCIDENT_KINDS = [
   'gate-cannot-run',
   'sandbox-unavailable',
   'quiet-job',
+  'setup-snapshot-touched',
 ] as const satisfies readonly IncidentKind[];
 
 export const INCIDENT_MOVES = [
@@ -51,6 +52,9 @@ export const INCIDENT_MOVES = [
 export const INCIDENT_DEFAULT_CAUSES = ['turn-closed', 'turn-budget', 'no-assistant'] as const satisfies readonly IncidentDefaultCause[];
 
 export const DECISION_ID_PREFIX = 'E';
+
+/** Why an open decision of a retired kind is withdrawn at the next pass. */
+export const RETIRED_DECISION_REASON = 'its kind retired: the pipeline is set up through the setup record';
 
 /** A ticket the lifecycle parks is held with this prefix before its park cause, as `parked:failed-passes`. */
 export const PARKED_HOLD_PREFIX = 'parked:';

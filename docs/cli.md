@@ -925,8 +925,8 @@ question and edit id is read in either case (`s1`, `S1`).
 
 | command | what it does |
 |---|---|
-| `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the billing step, billed by subscription unless `--billing api` says otherwise, with an optional cap. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. Refused `setup-in-progress` beside an open record. |
-| `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`. |
+| `pipeline setup [--billing subscription\|api] [--max-budget-usd <n>] [--replace-unreadable] [--json]` | Open the record of a first setup (`pipeline-setup-start`), logged `pipeline-setup-opened`, at the billing step, billed by subscription unless `--billing api` says otherwise, with an optional cap, and launch its [pipeline agent](#advise) in the same hold, `launching`, billed as the record says; the record names it as `agentJobId`. `--replace-unreadable` lets its Apply write over a `pipeline.json` the board cannot read. Refused `setup-in-progress` beside an open record. |
+| `pipeline update [--json]` | Open an update record on the stored pipeline (`pipeline-update-start`): its draft is the stored pipeline, billed as it is, at the design step, with no agent until `pipeline resume` asks for one. An older or malformed `pipeline.json` is refused with its own reason, and no pipeline as `no-pipeline-to-update`. |
 | `pipeline billing <S> subscription\|api [--max-budget-usd <n>] [--json]` | Change the record's billing (`pipeline-setup-billing`), logged `pipeline-setup-billing-set`. A cap of 0 or below is refused `billing-cap-not-positive`. |
 | `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. |
 | `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
@@ -934,11 +934,16 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. |
 | `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`. |
 | `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
-| `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`. The setup id is not used again. |
+| `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`, and stop its live agent in the same hold. The setup id is not used again. |
+| `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
 An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
 agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts from
-User's move. A record with no live agent gets no message: the record is what a later agent starts from. A body sent
+User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. A record with no agent,
+or with one that ended otherwise, gets no message: the record is what a later agent starts from.
+
+Facts read `mainMovedByCommits` (main's commits past `snapshotCommit`) from git and never store it; the Overseer keeps
+the count by (`snapshotCommit`, main's tip), so a state read asks git again only when one of them changed. A body sent
 to `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`,
 naming the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
@@ -1206,15 +1211,15 @@ forge question options -- '{"question": "Which export format?", "options": [{"la
 | `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer stops its Watcher, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
 | `job stop --all [--wind-down] [--json]` | `oversee pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
 | `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
-| `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. [Where it runs and what it writes](#advise) is below. |
+| `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
 | `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: the Overseer stamps its own. [What follows](#intake-close) is below. |
 | `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with the Overseer up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: the Overseer stamps its own. [Who runs it](#intake-title) is below. |
 
 #### `job message`
 
-A product-owner job that ended `closed` (its own `intake-close` or `job stop`) is reopened instead, logged
-`job-reopened`: back on the board `running` in its next Watcher instance, which resumes its session by id in the same
-folder with the text as its first line.
+A product-owner job that ended `closed` (its own `intake-close` or `job stop`), or a pipeline agent that a `job stop`
+closed, is reopened instead, logged `job-reopened`: back on the board `running` in its next Watcher instance, which
+resumes its session by id in the same folder with the text as its first line.
 
 - Any other finished job, or a session whose input is closing, is refused `job-finished`.
 - The verb takes no picture. A `job-message` control command from the Bridge may name pictures uploaded to
@@ -1230,29 +1235,40 @@ folder with the text as its first line.
 - A job with no session yet (launching, preparing, interrupted, awaiting an answer) ends `stopped` in the same hold.
 - A stopped product owner is finished: its open decisions are withdrawn (`decision-withdrawn`), its draft tickets stay
   draft tickets, and it resumes only when User sends it a `job message`.
+- A stopped pipeline agent ends `closed`, also one with no session yet, and a `job message` or User's next setup move
+  opens it again.
 
 [State machines](data-model/state-machines.md) draws the job states and the stop modes, and the [state
 explorer](interactive/state-explorer.html) walks them.
 
 > **As built.** A `job stop` does not stop a merge: [job stop misses a
-> merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent or pipeline agent: [a
+> merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent: [a
 > stop of a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
 > On POSIX, a stop reaches the groups below a job only through a live parent, so a tree whose leader died with its
 > Watcher stays unreachable: [gap-bash-group-survives-kill](reference/known-gaps.md#gap-bash-group-survives-kill).
 
 #### `advise`
 
-With no pipeline stored the lifecycle starts one by itself, answering `checks-not-set`, once per opening of that
-decision. The Overseer launches it in a detached snapshot of the main line, `<worktrees>/pipeline-agent/<J>/`, writing
-only its Hatch folder, with no network.
+Nothing starts a pipeline agent by itself: with no pipeline stored the lifecycle opens `checks-not-set` and waits for
+User's `pipeline setup` or `advise`, and a paused board does not hold the launch. The agent is a session, like the
+product owner: a turn's `result` never ends it, `job stop` closes it, and a message opens it again with its
+conversation. A crashed one resumes, also while no pipeline is stored.
 
-A verified `setup` proposal ends the job `closed` and opens a `pipeline-proposal` decision: `Accept` writes the prepare
-steps and gates through the `gate prepare`, `gate add` and `gate none` moves in the answering hold, `Decline` changes
-nothing. The review, constitution and agent arrays are shown, never written. The decision also names, read from git's
-index of the snapshot and so the same on every OS, what the tree cannot represent everywhere: a path part that is a
-reserved device name (`aux.c`), one Windows cannot store, paths differing only in case (`README.md`, `readme.md`) and
-symbolic links (mode 120000), one finding each; a refused pass adds them to its facts. Nothing is repaired. [Customs and
-gates](architecture/customs-and-gates.md) holds the report, the two runs and the hand-edit route.
+The Overseer launches it in a detached snapshot of the main line, writing only its Hatch folder, with no network and
+no skill. The snapshot belongs to the [setup record](#datapipeline-setupjson), not to the job:
+`<worktrees>/pipeline-agent/<S>/`, at the record's `snapshotCommit` (main's tip when the agent first launched), kept
+across the record's jobs and checked out at a new `snapshotCommit` after `pipeline resume` moved it. An agent no record
+names has its own, `<worktrees>/pipeline-agent/<J>/`. Once no open record and no live pipeline agent holds a snapshot,
+the Overseer removes it, and names one the removal leaves in `overseer.log`. A `<worktrees>/onboard/` folder an earlier
+release left is a leftover worktree.
+
+At each turn end Customs checks the snapshot: V16 (HEAD unmoved), V4 (clean), V5 (data folder untouched), V13 (agent
+configuration untouched) and V14 (no foreign ref moved). The agent owes no report and files nothing, so V1 and V12 do
+not run. A refusal logs `pipeline-snapshot-touched` once and opens the incident `setup-snapshot-touched`; the record's
+Apply refuses `setup-snapshot-touched` until a resume checks the snapshot out at main's new tip.
+
+A stored open `pipeline-proposal` decision, which an earlier release opened for the one-shot proposal, is withdrawn at
+the next pass (`decision-withdrawn`).
 
 > **As built.** An `advise` run cannot file its optimisations: [pipeline agent advise
 > filing](reference/known-gaps.md#gap-pipeline-agent-advise-filing).
@@ -1330,10 +1346,11 @@ checks and how each refusal routes, and [Confinement](architecture/confinement.m
 | a gate exits 126 or 127, or a signal kills it | incident `gate-cannot-run`; the job ends `stopped` | `gate retry`, `worktree repair`, `ticket park` |
 | a gate, prepare or install line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the job ends `stopped`; the line never starts | `gate retry`, `ticket park` |
 | on Linux, the worktree's `.claude/` folder cannot be made before a gate, prepare, install or worker launch | incident `sandbox-unavailable`; the job ends `stopped`; the launch never starts | `gate retry`, `ticket park` |
-| no `pipeline.json` is stored | the `checks-not-set` decision; nothing launches | `gate add`, `gate none`, `advise` |
+| no `pipeline.json` is stored | the `checks-not-set` decision; nothing launches, no pipeline agent either | `pipeline setup`, `gate add`, `gate none`, `advise` |
 | `pipeline.json` is malformed | the `checks-not-set` decision; nothing launches | repair or delete `<data>/pipeline.json`: every `gate` write refuses it until then |
 | `pipeline.json` is older, written by an earlier release with no `version` | the `checks-not-set` decision; nothing launches | set the pipeline up again: every `gate` write refuses it (`older-pipeline`) until it is deleted |
 | a running build or review's event log stands still for `QUIET_JOB_SWEEPS` (6) sweeps | incident `quiet-job` | `job message`, `job fresh` |
+| a pipeline agent's turn end finds its snapshot changed (Customs V16, V4, V5, V13 or V14) | `pipeline-snapshot-touched` and incident `setup-snapshot-touched`, facts `setupId`, `check`, `reason`, `paths`; Apply refuses `setup-snapshot-touched` | `job message`, `incident note`; `pipeline resume` once main moved, or `pipeline start-over` |
 
 A ticket an open incident names launches no new job until the incident is settled.
 
@@ -1722,8 +1739,8 @@ explorer](interactive/state-explorer.html) walks them.
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal`, `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) or `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets). |
-| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable` or `quiet-job`. |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) or `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets). |
+| `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `quiet-job` or `setup-snapshot-touched`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
 | `askedBy` | decision | A job role, `overseer` or `assistant`. |
@@ -2028,6 +2045,7 @@ gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-rec
 | `pipeline-setup-billing-set` | `setupId` | `mode` (`subscription` or `api`), `maxBudgetUsd` only for a cap |
 | `pipeline-setup-step-moved` | `setupId` | `step`, its new `state`, the `currentStep`, and `needsRecheck`: the later steps a reopening sent back |
 | `pipeline-setup-resumed` | `setupId` | `snapshotCommit`, `changedPaths` (changed on main since the earlier snapshot) |
+| `pipeline-snapshot-touched` | `setupId` | `check` and `reason` of the Customs refusal at a turn end of the pipeline agent; Apply refuses `setup-snapshot-touched` until the next `pipeline-setup-resumed` |
 | `pipeline-finding-recorded` | `setupId` | `findingId`, `topic` |
 | `pipeline-question-asked` | `setupId` | `questionId`, `step` |
 | `pipeline-question-answered` | `setupId` | `questionId`, `answer`: the option letters joined by commas, or the free text |

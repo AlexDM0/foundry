@@ -114,6 +114,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
   },
   'pipeline-setup-start-over': { kind: 'pipeline-setup-start-over', setupId: 'S1' },
+  'pipeline-setup-resume':     { kind: 'pipeline-setup-resume', setupId: 'S1' },
   'pipeline-setup-answer':     {
     kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
   },

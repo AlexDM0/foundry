@@ -61,8 +61,8 @@ the outcome in a line:
 - answer an open decision with `decide`, the user's own choice and never yours;
 - message, wind down or stop a job;
 - start a product-owner intake with `intake`, which the Overseer launches in a session of its own;
-- ask the pipeline agent to `advise` on the pipeline from the gate history: its optimisations arrive as draft low
-  tickets, and with no pipeline one runs by itself. Its `pipeline-proposal` decision is the user's to answer.
+- start the pipeline agent with `pipeline setup`, or ask it to `advise` on the pipeline from the gate history. Nothing
+  starts it by itself.
 
 A command refused at exit 1 is reported with its reason and what would lift it. A refusal naming the install
 version means `{{program}} update` is due: ask before running it in the main checkout.

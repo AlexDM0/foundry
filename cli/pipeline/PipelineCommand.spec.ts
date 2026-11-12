@@ -73,12 +73,14 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('the pipeline verbs', () => {
-  test('pipeline setup opens S1 billed as named, prints the record under --json, and logs the opening', async () => {
+  test('pipeline setup opens S1 billed as named, launches its pipeline agent, prints the record under --json, and logs both', async () => {
     const context = await run(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
 
     const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
-    expect(printed.setup).toMatchObject({ setupId: 'S1', mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 15 } });
-    expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-opened']);
+    expect(printed.setup).toMatchObject({
+      setupId: 'S1', mode: 'setup', billing: { mode: 'api', maxBudgetUsd: 15 }, agentJobId: 'J1'
+    });
+    expect(printed.logged.map((record) => record.kind)).toEqual(['pipeline-setup-opened', 'job-launched']);
     expect(storedSetup().setupId).toBe('S1');
   });
 

@@ -338,8 +338,14 @@ function redHandoffStepsOf(job: Readonly<Job>, facts: IndexedPlaybookFacts, limi
   return resumeIsHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];
 }
 
+interface ResumeHolds {
+  resumesAreHeld:              boolean;
+  pipelineAgentResumesAreHeld: boolean;
+}
+
 /** A child tree that refused the forced stop may still run: nothing resumes or replaces its job beside it. */
-function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
+function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits, holds: ResumeHolds): PlaybookStep[] {
+  const { resumesAreHeld } = holds;
   const settledJobs = facts.jobs.filter((job) => job.state !== 'interrupted' || job.interruption !== FORCED_STOP_REFUSED_INTERRUPTION);
   const productOwnerSteps = settledJobs
     .filter((job) => job.kind === 'product-owner' && (job.state === 'interrupted' || job.state === 'awaiting-answer'))
@@ -348,6 +354,7 @@ function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits,
     if (job.interruption === HANDOFF_RED_INTERRUPTION) return redHandoffStepsOf(job, facts, limits, resumesAreHeld);
     if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job', jobId: job.id }];
     if (crashResumesAreSpent(job, limits)) return [{ kind: 'replace-job', jobId: job.id }];
+    if (job.kind === 'pipeline-agent') return holds.pipelineAgentResumesAreHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];
     if (resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts)) return [];
     return [{ kind: 'resume-job', jobId: job.id }];
   })];
@@ -461,15 +468,14 @@ function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: bool
   });
 }
 
-/** One pipeline agent answers each `checks-not-set`: live now, or launched since the newest one opened, which this pass may be opening. */
-function pipelineAgentAnsweredChecksNotSet(facts: PlaybookFacts): boolean {
-  if (facts.jobs.some((job) => job.kind === 'pipeline-agent')) return true;
-  let launchedSinceTheDecision = false;
-  for (const record of facts.logRecords) {
-    if (record.kind === 'decision-opened' && record.fields.kind === 'checks-not-set') launchedSinceTheDecision = false;
-    if (record.kind === 'job-launched' && record.fields.kind === 'pipeline-agent') launchedSinceTheDecision = true;
-  }
-  return launchedSinceTheDecision;
+/**
+ * A `pipeline-proposal` decision an earlier release opened cannot be answered: the one-shot proposal it accepted retired. It is withdrawn at
+ * the next pass, and the pipeline is set up through the setup record instead.
+ */
+function retiredDecisionStepsOf(facts: PlaybookFacts): PlaybookStep[] {
+  return facts.decisions
+    .filter((decision) => decision.kind === 'pipeline-proposal')
+    .map((decision) => ({ kind: 'withdraw-retired-decision', decisionId: decision.id }));
 }
 
 /** A decision about the whole board, which names no ticket and no job. */
@@ -501,9 +507,9 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   const steps: PlaybookStep[] = [];
   if (outageNow) steps.push({ kind: 'pause-overseer', cause: 'outage' }, boardDecisionStepOf('outage'));
   if (!facts.pipelineIsSet && !openDecisionOfKind(facts, 'checks-not-set')) steps.push(boardDecisionStepOf('checks-not-set'));
-  const pipelineAgentIsHeld = versionOrUsageHolds || outageHolds || facts.overseerState === 'paused';
-  if (!facts.pipelineIsSet && !pipelineAgentIsHeld && !pipelineAgentAnsweredChecksNotSet(facts)) steps.push({ kind: 'launch-pipeline-agent' });
-  steps.push(...crashBoundStepsOf(facts, limits, resumesAreHeld));
+  steps.push(...retiredDecisionStepsOf(facts));
+  // The pipeline agent sets the pipeline up, so neither the missing pipeline nor the pause holds its resume.
+  steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));
   if (!assistantIsLive && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
   const parkSteps    = parkStepsOf(facts, limits);
   const jobLostSteps = jobLostStepsOf(facts, limits);

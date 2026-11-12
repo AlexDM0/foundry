@@ -114,6 +114,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-setup-billing':     ['pipeline', 'billing', 'S1', 'subscription'],
   'pipeline-setup-step':        ['pipeline', 'continue', 'S1', 'research'],
   'pipeline-setup-start-over':  ['pipeline', 'start-over', 'S1'],
+  'pipeline-setup-resume':      ['pipeline', 'resume', 'S1'],
   'pipeline-setup-answer':      ['pipeline', 'answer', 'S1', 'Q1', 'a'],
   'pipeline-constitution-edit': ['pipeline', 'constitution', 'S1', '--revision', '2', '--sources', 'contributing,research'],
   'pipeline-update-start':      ['pipeline', 'update'],

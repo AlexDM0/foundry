@@ -87,6 +87,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'pipeline-setup-billing':      'pipeline billing',
   'pipeline-setup-step':         'pipeline continue',
   'pipeline-setup-start-over':   'pipeline start-over',
+  'pipeline-setup-resume':       'pipeline resume',
   'pipeline-setup-answer':       'pipeline answer',
   'pipeline-constitution-edit':  'pipeline constitution',
   'pipeline-update-start':       'pipeline update',

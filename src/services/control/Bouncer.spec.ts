@@ -238,16 +238,17 @@ describe('ticket review', () => {
 
 /** Design section 8.3's table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
-  'system-question':     ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
-  'malformed-ticket':    ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
-  'setup-failed':        ['worktree-repair', 'ticket-park', 'incident-note'],
-  'out-of-calls':        ['job-fresh', 'ticket-park', 'incident-note'],
-  'blocked':             ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
-  'job-lost':            ['job-fresh', 'ticket-park', 'incident-note'],
-  'resume-failed':       ['job-fresh', 'ticket-park'],
-  'gate-cannot-run':     ['gate-retry', 'worktree-repair', 'ticket-park'],
-  'sandbox-unavailable': ['gate-retry', 'ticket-park'],
-  'quiet-job':           ['job-message', 'job-fresh', 'incident-note'],
+  'system-question':        ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],
+  'malformed-ticket':       ['incident-answer', 'incident-escalate', 'ticket-park', 'incident-note'],
+  'setup-failed':           ['worktree-repair', 'ticket-park', 'incident-note'],
+  'out-of-calls':           ['job-fresh', 'ticket-park', 'incident-note'],
+  'blocked':                ['job-fresh', 'worktree-repair', 'ticket-park', 'incident-note'],
+  'job-lost':               ['job-fresh', 'ticket-park', 'incident-note'],
+  'resume-failed':          ['job-fresh', 'ticket-park'],
+  'gate-cannot-run':        ['gate-retry', 'worktree-repair', 'ticket-park'],
+  'sandbox-unavailable':    ['gate-retry', 'ticket-park'],
+  'quiet-job':              ['job-message', 'job-fresh', 'incident-note'],
+  'setup-snapshot-touched': ['job-message', 'incident-note'],
 };
 
 /** A command of each move kind the contract has so far; the repair and merge moves arrive with their commands. */

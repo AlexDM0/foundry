@@ -18,7 +18,7 @@
       "callShape": "branch -d <branch>, the branch merged",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Deleted branch <branch> (was 3921cf6).\n",
+        "standardOutput": "Deleted branch <branch> (was 9e79320).\n",
         "standardError": ""
       }
     },
@@ -2226,7 +2226,7 @@
       "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at a3075be Change CLAUDE.md\n",
+        "standardOutput": "HEAD is now at 2a0b590 Change CLAUDE.md\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -3130,7 +3130,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
-        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
+        "standardOutput": "?? .gitignore\u0000",
         "standardError": ""
       }
     },
@@ -3154,7 +3154,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at d0f135d Change .gitattributes\n",
+        "standardOutput": "HEAD is now at d5cf038 Change .gitattributes\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -4410,7 +4410,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git diff --no-ext-diff HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..453d694 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..af01fbb 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
         "standardError": ""
       }
     },
@@ -6258,15 +6258,15 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add --detach <repository>/.forge-worktrees/pipeline-agent/J1 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 558ac2d Initial commit\n",
-        "standardError": "Preparing worktree (detached HEAD 558ac2d)"
+        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
+        "standardError": "Preparing worktree (detached HEAD f1aaf75)"
       }
     },
     {
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 558ac2d Initial commit\n",
+        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -7322,7 +7322,7 @@
       "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
-        "standardOutput": " M example.txt\u0000?? .gitignore\u0000",
+        "standardOutput": "?? .gitignore\u0000",
         "standardError": ""
       }
     },
@@ -8615,18 +8615,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames 0af5c31b2211d46e6681f4a04b137dac305d9507 HEAD --",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "target.ts\n",
-        "standardError": ""
-      }
-    },
-    {
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames 27bde8a953653eb805d5370914b2873bcbeb87e1 HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "package.json\ntarget.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames fce7197962cd276423c225a5bb3fbd7a576f934d HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "target.ts\n",
         "standardError": ""
       }
     },
@@ -8695,7 +8695,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 110d522403d91a9caa2103969dcf0f4bb4ce0a13",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 8ee7909828bd7bb623b24c11a2493e2ab51f98ed",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -8703,7 +8703,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 9befb8aa8f169a6d799ef916f1587deadeb99a08",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 978f52826de4b724b1caf5867b153e6a9911017e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -8762,7 +8762,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "0af5c31b2211d46e6681f4a04b137dac305d9507\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "fce7197962cd276423c225a5bb3fbd7a576f934d\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -8810,7 +8810,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\n110d522403d91a9caa2103969dcf0f4bb4ce0a13\n",
+        "standardOutput": "<head>\n<target tip>\n8ee7909828bd7bb623b24c11a2493e2ab51f98ed\n",
         "standardError": ""
       }
     },
@@ -8834,7 +8834,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n9befb8aa8f169a6d799ef916f1587deadeb99a08\n110d522403d91a9caa2103969dcf0f4bb4ce0a13\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n978f52826de4b724b1caf5867b153e6a9911017e\n8ee7909828bd7bb623b24c11a2493e2ab51f98ed\n",
         "standardError": ""
       }
     },
@@ -9255,7 +9255,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B abb86c84fe8cb14a8bfad3c5d2966d036f9eadcd",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 19b283ca776a81d783522f4aabdd2189fafd382c",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -9263,7 +9263,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B c40718f5cf159c7d0a85f7b9378f032622d0b90a",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 48885ad605abdb5fcd5ad29dae004ab0a2170bc6",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -9271,7 +9271,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B e03565d4bd0ed00abc501177e5592255ddd1a146",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B ff1227145c14c81c1749d31a499cb9c62a9f7f16",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9378,7 +9378,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\nc40718f5cf159c7d0a85f7b9378f032622d0b90a\nabb86c84fe8cb14a8bfad3c5d2966d036f9eadcd\ne03565d4bd0ed00abc501177e5592255ddd1a146\n",
+        "standardOutput": "<head>\n<target tip>\n48885ad605abdb5fcd5ad29dae004ab0a2170bc6\n19b283ca776a81d783522f4aabdd2189fafd382c\nff1227145c14c81c1749d31a499cb9c62a9f7f16\n",
         "standardError": ""
       }
     },
@@ -9402,7 +9402,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\nc40718f5cf159c7d0a85f7b9378f032622d0b90a\nabb86c84fe8cb14a8bfad3c5d2966d036f9eadcd\ne03565d4bd0ed00abc501177e5592255ddd1a146\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n48885ad605abdb5fcd5ad29dae004ab0a2170bc6\n19b283ca776a81d783522f4aabdd2189fafd382c\nff1227145c14c81c1749d31a499cb9c62a9f7f16\n",
         "standardError": ""
       }
     },
@@ -9551,15 +9551,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B c2135a67d8913745bdbc18eeaac426e1933a3c2d",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change .forge/progress.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B dd96dabda06e455970b09b1a82c4ef9e5f911238",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 7b948a6098a84d6a46d811615ff63da973f9c0e7",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -9567,7 +9559,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B eab1fb2177b88450d154b95dfcfbf2113c30bf29",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9575,10 +9567,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B f850d9c9a0a0a7cffae674c379dff87748270116",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B b1cacd52b0d64ad84ce6cca65ddcd419c0217d50",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Merge the example target\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B dc7a5c449fbbc8f2b2222160039b171d90509ec1",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -9642,7 +9642,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "f850d9c9a0a0a7cffae674c379dff87748270116\n",
+        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
         "standardError": ""
       }
     },
@@ -9650,7 +9650,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "f850d9c9a0a0a7cffae674c379dff87748270116\n",
+        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
         "standardError": ""
       }
     },
@@ -9658,7 +9658,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "f850d9c9a0a0a7cffae674c379dff87748270116\n",
+        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
         "standardError": ""
       }
     },
@@ -9666,15 +9666,15 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "f850d9c9a0a0a7cffae674c379dff87748270116\n",
+        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 f850d9c9a0a0a7cffae674c379dff87748270116",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 b1cacd52b0d64ad84ce6cca65ddcd419c0217d50",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "f850d9c9a0a0a7cffae674c379dff87748270116 <branch tip> <target tip>\n",
+        "standardOutput": "b1cacd52b0d64ad84ce6cca65ddcd419c0217d50 <branch tip> <target tip>\n",
         "standardError": ""
       }
     },
@@ -9682,7 +9682,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf850d9c9a0a0a7cffae674c379dff87748270116\n<target tip>\ndd96dabda06e455970b09b1a82c4ef9e5f911238\nc2135a67d8913745bdbc18eeaac426e1933a3c2d\neab1fb2177b88450d154b95dfcfbf2113c30bf29\n",
+        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n<target tip>\n7b948a6098a84d6a46d811615ff63da973f9c0e7\ndc7a5c449fbbc8f2b2222160039b171d90509ec1\n912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d\n",
         "standardError": ""
       }
     },
@@ -9690,7 +9690,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf850d9c9a0a0a7cffae674c379dff87748270116\n",
+        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n",
         "standardError": ""
       }
     },
@@ -9706,7 +9706,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf850d9c9a0a0a7cffae674c379dff87748270116\n<branch tip>\n<target tip>\ndd96dabda06e455970b09b1a82c4ef9e5f911238\nc2135a67d8913745bdbc18eeaac426e1933a3c2d\neab1fb2177b88450d154b95dfcfbf2113c30bf29\n",
+        "standardOutput": "<head>\nb1cacd52b0d64ad84ce6cca65ddcd419c0217d50\n<branch tip>\n<target tip>\n7b948a6098a84d6a46d811615ff63da973f9c0e7\ndc7a5c449fbbc8f2b2222160039b171d90509ec1\n912ce090ed4646e35a4e68f2d4b7c0fae14f7e0d\n",
         "standardError": ""
       }
     },
@@ -9831,7 +9831,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B fa7c495ede70f5c6539e7abf117f440f9c0b0bd0",
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 1ad1381a82e09364b4188b30c7ff7d31ae779848",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9882,7 +9882,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nfa7c495ede70f5c6539e7abf117f440f9c0b0bd0\n",
+        "standardOutput": "<head>\n1ad1381a82e09364b4188b30c7ff7d31ae779848\n",
         "standardError": ""
       }
     },
@@ -9898,7 +9898,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nfa7c495ede70f5c6539e7abf117f440f9c0b0bd0\n<feature>\n",
+        "standardOutput": "<head>\n1ad1381a82e09364b4188b30c7ff7d31ae779848\n<feature>\n",
         "standardError": ""
       }
     },
@@ -10423,7 +10423,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 3d54423b6a7b992d5e334a1aba3449356cd77dda",
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 8749897b414677045bb314e7359c1db7461076e9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10474,7 +10474,7 @@
       "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n3d54423b6a7b992d5e334a1aba3449356cd77dda\n",
+        "standardOutput": "<head>\n8749897b414677045bb314e7359c1db7461076e9\n",
         "standardError": ""
       }
     },
@@ -10575,7 +10575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B b3d93a82e2d3fcdcb0a8d148c678d6f5a7c33c4d",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 45699f0deabb29937fda57d5e0f3c7069b4f70a9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10626,7 +10626,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb3d93a82e2d3fcdcb0a8d148c678d6f5a7c33c4d\n",
+        "standardOutput": "<head>\n45699f0deabb29937fda57d5e0f3c7069b4f70a9\n",
         "standardError": ""
       }
     },
@@ -10751,7 +10751,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B b3d93a82e2d3fcdcb0a8d148c678d6f5a7c33c4d",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B 45699f0deabb29937fda57d5e0f3c7069b4f70a9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10818,7 +10818,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<honest start>\nb3d93a82e2d3fcdcb0a8d148c678d6f5a7c33c4d\n",
+        "standardOutput": "<head>\n<honest start>\n45699f0deabb29937fda57d5e0f3c7069b4f70a9\n",
         "standardError": ""
       }
     },
@@ -10919,7 +10919,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 0c5a5a9bf6c99206829a4727f9ed6038c8ba132a",
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 2535e58c610e5ce6601032163bbe3e82e91eddab",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -10970,7 +10970,7 @@
       "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n0c5a5a9bf6c99206829a4727f9ed6038c8ba132a\n",
+        "standardOutput": "<head>\n2535e58c610e5ce6601032163bbe3e82e91eddab\n",
         "standardError": ""
       }
     },
@@ -11071,7 +11071,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 03137cc4d6363d46f94f611c14da416fe5f9497b",
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 8385f02eb074c1027ee0aeff14fda042a08612bf",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11122,7 +11122,7 @@
       "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n03137cc4d6363d46f94f611c14da416fe5f9497b\n",
+        "standardOutput": "<head>\n8385f02eb074c1027ee0aeff14fda042a08612bf\n",
         "standardError": ""
       }
     },
@@ -11223,7 +11223,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 9e896cb41e0dbfa572febb2a2e7f882bb9290a29",
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 4e176485c130f9aa3fdfb1326fc99ca82b1a01cd",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11274,7 +11274,7 @@
       "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n9e896cb41e0dbfa572febb2a2e7f882bb9290a29\n",
+        "standardOutput": "<head>\n4e176485c130f9aa3fdfb1326fc99ca82b1a01cd\n",
         "standardError": ""
       }
     },
@@ -11375,15 +11375,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 17586a2715acdaab16a10f5893dcd72275ad892d",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 8749897b414677045bb314e7359c1db7461076e9",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .forge/progress.json\n\n",
+        "standardOutput": "Change feature.ts\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 2fea852071a6b6d2d4e7f97a8f5e110346de4087",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B b8f5ba3a4b83ba3b4742f2add9f25b2c4ae7c331",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -11391,10 +11391,10 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 3d54423b6a7b992d5e334a1aba3449356cd77dda",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B c9821462a7e5f2bd3c7d78aeec40419418947410",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change feature.ts\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -11442,7 +11442,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n2fea852071a6b6d2d4e7f97a8f5e110346de4087\n17586a2715acdaab16a10f5893dcd72275ad892d\n3d54423b6a7b992d5e334a1aba3449356cd77dda\n",
+        "standardOutput": "<head>\nb8f5ba3a4b83ba3b4742f2add9f25b2c4ae7c331\nc9821462a7e5f2bd3c7d78aeec40419418947410\n8749897b414677045bb314e7359c1db7461076e9\n",
         "standardError": ""
       }
     },
@@ -11543,7 +11543,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B bfccbd2076d41a494f6f6ce2063fbae3a56096bb",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B d54a1f71065cd09b27f410c780498e6704e55c8a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11594,7 +11594,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nbfccbd2076d41a494f6f6ce2063fbae3a56096bb\n",
+        "standardOutput": "<head>\nd54a1f71065cd09b27f410c780498e6704e55c8a\n",
         "standardError": ""
       }
     },
@@ -11695,7 +11695,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B bfccbd2076d41a494f6f6ce2063fbae3a56096bb",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B d54a1f71065cd09b27f410c780498e6704e55c8a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11746,7 +11746,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nbfccbd2076d41a494f6f6ce2063fbae3a56096bb\n",
+        "standardOutput": "<head>\nd54a1f71065cd09b27f410c780498e6704e55c8a\n",
         "standardError": ""
       }
     },
@@ -11791,7 +11791,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git config --get core.hooksPath",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
@@ -11799,7 +11799,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11807,7 +11807,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git for-each-ref --format=%(refname) %(objectname)",
       "answer": {
         "exitCode": 0,
         "standardOutput": "refs/heads/main <start>\n",
@@ -11815,7 +11815,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11823,7 +11823,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git ls-files -u",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git ls-files -u",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11831,7 +11831,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <start> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <start> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11839,7 +11839,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git merge-base main HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git merge-base main HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -11847,7 +11847,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git rev-list <start>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11855,7 +11855,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git rev-parse --path-format=absolute --git-common-dir",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>/.git\n",
@@ -11863,7 +11863,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -11871,7 +11871,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all",
       "answer": {
         "exitCode": 0,
         "standardOutput": " M package.json\n",
@@ -11879,7 +11879,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all --no-renames",
       "answer": {
         "exitCode": 0,
         "standardOutput": " M package.json\n",
@@ -11887,15 +11887,15 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/.pipeline-agent-snapshot: git worktree list --porcelain",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, package.json changed\", in <repository>/pipeline-agent/S1: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.pipeline-agent-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/pipeline-agent/S1\nHEAD <start>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git config --get core.hooksPath",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
@@ -11903,7 +11903,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11911,7 +11911,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git for-each-ref --format=%(refname) %(objectname)",
       "answer": {
         "exitCode": 0,
         "standardOutput": "refs/heads/main <start>\n",
@@ -11919,7 +11919,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11927,7 +11927,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git ls-files -u",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git ls-files -u",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11935,7 +11935,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <start> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <start> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11943,7 +11943,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git merge-base main HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git merge-base main HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -11951,7 +11951,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git rev-list <start>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -11959,7 +11959,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git rev-parse --path-format=absolute --git-common-dir",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>/.git\n",
@@ -11967,7 +11967,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -11975,7 +11975,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all",
       "answer": {
         "exitCode": 0,
         "standardOutput": "?? pipeline.json\n",
@@ -11983,7 +11983,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all --no-renames",
       "answer": {
         "exitCode": 0,
         "standardOutput": "?? pipeline.json\n",
@@ -11991,15 +11991,15 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/.pipeline-agent-snapshot: git worktree list --porcelain",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, pipeline.json untracked\", in <repository>/pipeline-agent/S1: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.pipeline-agent-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/pipeline-agent/S1\nHEAD <start>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git config --get core.hooksPath",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
@@ -12007,7 +12007,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12015,7 +12015,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git for-each-ref --format=%(refname) %(objectname)",
       "answer": {
         "exitCode": 0,
         "standardOutput": "refs/heads/main <start>\nrefs/heads/pipeline-agent-moved <start>\n",
@@ -12023,7 +12023,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12031,7 +12031,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git ls-files -u",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git ls-files -u",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12039,7 +12039,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <start> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <start> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12047,7 +12047,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git merge-base main HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git merge-base main HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -12055,7 +12055,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git rev-list <start>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12063,7 +12063,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git rev-parse --path-format=absolute --git-common-dir",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>/.git\n",
@@ -12071,7 +12071,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -12079,7 +12079,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12087,7 +12087,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all --no-renames",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12095,15 +12095,15 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/.pipeline-agent-snapshot: git worktree list --porcelain",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the branch pipeline-agent-moved made at <start>\", in <repository>/pipeline-agent/S1: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.pipeline-agent-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/pipeline-agent/S1\nHEAD <start>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git config --get core.hooksPath",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
@@ -12111,7 +12111,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <moved> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <moved> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12119,7 +12119,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "turbo.json\n",
@@ -12127,7 +12127,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git for-each-ref --format=%(refname) %(objectname)",
       "answer": {
         "exitCode": 0,
         "standardOutput": "refs/heads/main <start>\n",
@@ -12135,7 +12135,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <moved>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <moved>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12143,7 +12143,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "turbo.json\n",
@@ -12151,7 +12151,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git log -1 --format=%B <moved>",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git log -1 --format=%B <moved>",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change turbo.json\n\n",
@@ -12159,7 +12159,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git ls-files -u",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git ls-files -u",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12167,7 +12167,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <moved> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <moved> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12175,7 +12175,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <start> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <start> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12183,7 +12183,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git merge-base main HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git merge-base main HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -12191,7 +12191,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git rev-list <moved>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git rev-list <moved>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12199,7 +12199,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git rev-list <start>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<moved>\n",
@@ -12207,7 +12207,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git rev-parse --path-format=absolute --git-common-dir",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>/.git\n",
@@ -12215,7 +12215,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<moved>\n",
@@ -12223,7 +12223,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12231,7 +12231,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all --no-renames",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12239,15 +12239,15 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/.pipeline-agent-snapshot: git worktree list --porcelain",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, the commit <moved> made on it\", in <repository>/pipeline-agent/S1: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.pipeline-agent-snapshot\nHEAD <moved>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/pipeline-agent/S1\nHEAD <moved>\ndetached\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git config --get core.hooksPath",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git config --get core.hooksPath",
       "answer": {
         "exitCode": 1,
         "standardOutput": "",
@@ -12255,7 +12255,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git diff --name-only --no-renames <start> HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git diff --name-only --no-renames <start> HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12263,7 +12263,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git for-each-ref --format=%(refname) %(objectname)",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git for-each-ref --format=%(refname) %(objectname)",
       "answer": {
         "exitCode": 0,
         "standardOutput": "refs/heads/main <start>\n",
@@ -12271,7 +12271,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git log --name-only --no-renames --format= <start>..HEAD --",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git log --name-only --no-renames --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12279,7 +12279,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git ls-files -u",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git ls-files -u",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12287,7 +12287,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git merge-base --is-ancestor <start> HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git merge-base --is-ancestor <start> HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12295,7 +12295,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git merge-base main HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git merge-base main HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -12303,7 +12303,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git rev-list <start>..HEAD",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12311,7 +12311,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git rev-parse --path-format=absolute --git-common-dir",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git rev-parse --path-format=absolute --git-common-dir",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>/.git\n",
@@ -12319,7 +12319,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<start>\n",
@@ -12327,7 +12327,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12335,7 +12335,7 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git status --porcelain=v1 --untracked-files=all --no-renames",
       "answer": {
         "exitCode": 0,
         "standardOutput": "",
@@ -12343,10 +12343,10 @@
       }
     },
     {
-      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/.pipeline-agent-snapshot: git worktree list --porcelain",
+      "callShape": "scenario \"a pipeline agent snapshot at <start>, untouched\", in <repository>/pipeline-agent/S1: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.pipeline-agent-snapshot\nHEAD <start>\ndetached\n\n",
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/pipeline-agent/S1\nHEAD <start>\ndetached\n\n",
         "standardError": ""
       }
     },
@@ -14223,7 +14223,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 0f7ceac5733cb2c17f8f41379e47035606a2aee5",
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 26a8d84f8984ebd168b72ee161ff6a84b3259b3e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -14274,7 +14274,7 @@
       "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n0f7ceac5733cb2c17f8f41379e47035606a2aee5\n",
+        "standardOutput": "<head>\n26a8d84f8984ebd168b72ee161ff6a84b3259b3e\n",
         "standardError": ""
       }
     },
@@ -14519,7 +14519,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 26432d7907d8c53534379de4b42b728d4f96dc20",
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 311ddb7acc103f9f8093d6f8c44defba7b4c508e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change other-hooks/pre-commit\n\n",
@@ -14570,7 +14570,7 @@
       "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n26432d7907d8c53534379de4b42b728d4f96dc20\n",
+        "standardOutput": "<head>\n311ddb7acc103f9f8093d6f8c44defba7b4c508e\n",
         "standardError": ""
       }
     },
@@ -14959,7 +14959,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 0c04195ac47fb4d88ea193f81e926c907b4d176a",
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 74ce2ea99c59f737edc096f0ce3b6fc5555f270d",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change Src/Example.ts\n\n",
@@ -15010,7 +15010,7 @@
       "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n0c04195ac47fb4d88ea193f81e926c907b4d176a\n",
+        "standardOutput": "<head>\n74ce2ea99c59f737edc096f0ce3b6fc5555f270d\n",
         "standardError": ""
       }
     },
@@ -16999,7 +16999,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 33897cf6cb786e23c52835bb648874f900db8118",
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 5c31225a076415ca43090cb531e0ce836ca0dcf4",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change built.ts\n\n",
@@ -17050,7 +17050,7 @@
       "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<landed>\n33897cf6cb786e23c52835bb648874f900db8118\n",
+        "standardOutput": "<landed>\n5c31225a076415ca43090cb531e0ce836ca0dcf4\n",
         "standardError": ""
       }
     },
@@ -17234,7 +17234,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 558ac2d Initial commit\n",
+        "standardOutput": "HEAD is now at f1aaf75 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

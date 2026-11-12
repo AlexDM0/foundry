@@ -185,6 +185,12 @@ export interface PipelineSetup {
   extra:                      Array<[string, unknown]>;
 }
 
+/** What a turn end's Customs refused in the pipeline agent's snapshot: the check and its reason, as stored values. */
+export interface SnapshotRefusal {
+  check:  string;
+  reason: string;
+}
+
 /** `pipeline-setup.json` as read: no open record, the record, or a file the board cannot use, which nothing writes over. */
 export type PipelineSetupReading =
   | { verdict: 'absent' }

@@ -1,11 +1,14 @@
 /**
- * User's kinds of the pipeline setup record: start and update, billing, Continue, start over, an answer, the constitution, draft edits, Undo
- * and discard. A body is untrusted JSON, so each applier checks its nested payload and refuses `malformed-setup-command` before the Board
- * is touched. An answer, a constitution or draft edit, an Undo, a discard or a Continue also messages a live pipeline agent in the same
- * hold, in the caller's words.
+ * User's kinds of the pipeline setup record: start and update, billing, Continue, start over, resume, an answer, the constitution, draft
+ * edits, Undo and discard. A body is untrusted JSON, so each applier checks its nested payload and refuses `malformed-setup-command` before
+ * the Board is touched. A start launches the record's pipeline agent, and a start over stops it. An answer, a constitution or draft edit, an
+ * Undo, a discard, a Continue and a resume also message the agent in the same hold, in the caller's words, and open it again when a stop
+ * closed it.
  */
 import { PipelineFile }              from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
+import { GitProcess }                from '../../lib/git/GitProcess.ts';
+import { commitCountAheadOf }        from '../../lib/git/MergeTree.ts';
 import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { PipelineBilling }      from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -15,10 +18,12 @@ import type {
   PipelineSetupStep,
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { PIPELINE_SETUP_STEPS }                                   from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
+import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, SetupMessage }                      from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
+import { mainLineOf }                                             from '../lifecycle/MergeTargets.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
 import { requireReadablePipeline }                                from './SettingControls.ts';
 
@@ -111,24 +116,38 @@ function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
 }
 
 /**
- * A live pipeline agent hears User's move in the same hold, so the next turn starts from it. A record with no agent yet, or an agent
- * that has ended or is stopping, gets no message: the record is what a later agent starts from.
+ * The record's pipeline agent hears User's move in the same hold, so the next turn starts from it: a live one gets the message, and one a
+ * stop closed opens again with its conversation. A record with no agent, an agent whose input is closing, or one that ended otherwise gets
+ * no message: the record is what a later agent starts from.
  */
 function messagedToTheAgent(changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage): PipelineSetupChanged {
   const { agentJobId } = changed.setup;
-  const agent = agentJobId === null ? undefined : change.board.jobById(agentJobId);
-  if (agent === undefined || agent.state === 'stopping') return changed;
-  const messaged = change.board.messageJob(agent.id, context.setupMessageWordingOf(message), [], change.at);
+  if (agentJobId === null || !agentTakesAMessage(change, agentJobId)) return changed;
+  const messaged = change.board.messageJob(agentJobId, context.setupMessageWordingOf(message), [], change.at);
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
+}
+
+function agentTakesAMessage(change: TrackerChange, agentJobId: string): boolean {
+  const live = change.board.jobById(agentJobId);
+  if (live !== undefined) return live.state !== 'stopping';
+  return change.board.endedJobOutcomeOf(agentJobId)?.outcome === 'closed';
+}
+
+/** A new pipeline agent for the record: launched by User's command alone, never by the lifecycle. */
+function startedAgentOf(changed: PipelineSetupChanged, change: TrackerChange): PipelineSetupChanged {
+  const launched = change.board.startPipelineAgent(change.at);
+  const attached = change.board.attachSetupAgent(changed.setup.setupId, launched.job.id, null);
+  return { setup: attached.setup, logged: [...changed.logged, ...launched.logged] };
 }
 
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerChange): PipelineSetupChanged {
   const billing = billingFieldOf(command);
   const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
   if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
-  return change.board.openSetup({
+  const opened = change.board.openSetup({
     mode: 'setup', billing, replacesUnreadablePipeline, mainConstitution: null, storedAnnotations: []
   }, change.at);
+  return startedAgentOf(opened, change);
 }
 
 /** An update starts from the stored pipeline, so an older or malformed file refuses with its own reason; its billing is the stored one. */
@@ -154,8 +173,60 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: TrackerChan
   });
 }
 
+/** The record's live agent is stopped in the same hold; the Overseer removes the snapshot once no pipeline agent runs. */
 function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: TrackerChange): PipelineSetupChanged {
-  return change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at);
+  const changed  = change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at);
+  const { agentJobId } = changed.setup;
+  const agent = agentJobId === null ? undefined : change.board.jobById(agentJobId);
+  if (agent === undefined || agent.state === 'stopping') return changed;
+  return { setup: changed.setup, logged: [...changed.logged, ...change.board.requestJobStop(agent.id, 'stop', change.at).logged] };
+}
+
+/** Every path whose content differs between the two commits, as git spells it; `null` when git cannot answer. */
+function pathsChangedBetween(repositoryRoot: string, fromCommit: string, toCommit: string): string[] | null {
+  const run = GitProcess.run(repositoryRoot, ['diff', '--name-only', '--no-renames', '-z', fromCommit, toCommit, '--']);
+  if (!GitProcess.succeeded(run)) return null;
+  return run.standardOutput.split('\0').filter((path) => path !== '');
+}
+
+interface MainLineMove {
+  mainTip:            string;
+  mainMovedByCommits: number;
+  changedPaths:       string[];
+}
+
+/** Read-only: how far main moved past the snapshot. `null` when it did not move, or when git cannot tell, which moves nothing. */
+function mainLineMoveOf(repositoryRoot: string, snapshotCommit: string | null): MainLineMove | null {
+  if (snapshotCommit === null) return null;
+  const mainTip = GitProcess.resolvedCommitOf(repositoryRoot, mainLineOf(repositoryRoot));
+  if (mainTip === null || mainTip === snapshotCommit) return null;
+  const mainMovedByCommits = commitCountAheadOf(repositoryRoot, snapshotCommit, mainTip);
+  const changedPaths = pathsChangedBetween(repositoryRoot, snapshotCommit, mainTip);
+  return mainMovedByCommits === null || changedPaths === null ? null : { mainTip, mainMovedByCommits, changedPaths };
+}
+
+/**
+ * Opens the record's agent again. When main moved past the snapshot, the record takes main's tip as its snapshot commit and the changed
+ * paths, research needs a recheck, and the message names the paths; the Overseer checks the snapshot out at that commit before the
+ * agent's next launch. An agent that ended other than by a stop is replaced by a new one, which starts from the record.
+ */
+function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  const setupId = textFieldOf(command, 'setupId');
+  const setup   = change.board.pipelineSetup();
+  if (setup?.setupId !== setupId) throw new BoardRefusal({ reason: 'no-setup-open', setupId });
+  const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+  if (setup.applyRequest !== null && pendingStates.includes(setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
+  const move    = mainLineMoveOf(change.workspace.rootDirectory, setup.snapshotCommit);
+  const resumed = move === null ? { setup, logged: [] } : change.board.resumeSetup(setupId, move.mainTip, move.changedPaths, change.at);
+  const message: SetupMessage = {
+    kind: 'setup-resumed', setupId, mainMovedByCommits: move?.mainMovedByCommits ?? 0, changedPaths: move?.changedPaths ?? []
+  };
+  const { agentJobId } = resumed.setup;
+  if (agentJobId === null) return startedAgentOf(resumed, change);
+  if (agentTakesAMessage(change, agentJobId)) return messagedToTheAgent(resumed, change, context, message);
+  // A live agent whose input is closing ends `closed`, and User's next move opens it again.
+  if (change.board.jobById(agentJobId) !== undefined) return resumed;
+  return startedAgentOf(resumed, change);
 }
 
 function answerQuestion(command: CommandOf<'pipeline-setup-answer'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
@@ -236,6 +307,7 @@ export const PIPELINE_SETUP_CONTROLS = {
   'pipeline-setup-billing':     setBilling,
   'pipeline-setup-step':        moveStep,
   'pipeline-setup-start-over':  startOver,
+  'pipeline-setup-resume':      resumeSetup,
   'pipeline-setup-answer':      answerQuestion,
   'pipeline-constitution-edit': editConstitution,
   'pipeline-update-start':      startUpdate,

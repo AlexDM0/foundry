@@ -158,6 +158,8 @@ export type ControlCommand =
   | { kind: 'pipeline-setup-billing'; setupId: string; billing: PipelineBilling }
   | { kind: 'pipeline-setup-step'; setupId: string; step: PipelineSetupStep; move: 'continue' }
   | { kind: 'pipeline-setup-start-over'; setupId: string }
+  /** Opens the record's pipeline agent again; when main moved, its snapshot moves to main's tip first. */
+  | { kind: 'pipeline-setup-resume'; setupId: string }
   | { kind: 'pipeline-setup-answer'; setupId: string; questionId: string; answer: DecisionAnswerForm }
   /** `markdown` is the whole document; `draftedFrom` the SOURCES ticks; `revision` the constitution revision User saw. */
   | { kind: 'pipeline-constitution-edit'; setupId: string; revision: number; markdown?: string; draftedFrom?: ConstitutionSources }

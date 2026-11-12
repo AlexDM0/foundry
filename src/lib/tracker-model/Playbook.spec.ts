@@ -59,14 +59,10 @@ function pipelineAgentJob(): Job {
   });
 }
 
-function checksNotSetOpenedRecord(): LogRecord {
-  return {
-    at: FIXTURE_AT, kind: 'decision-opened', decisionId: 'E1', fields: { kind: 'checks-not-set', ticketIds: [] }
-  };
-}
-
-function finishedPipelineAgentRecords(): LogRecord[] {
-  return [launchedRecord('J7', 'pipeline-agent', []), endedRecord('J7', 'failed')];
+function interruptedPipelineAgentJob(): Job {
+  return jobFixture({
+    id: 'J7', kind: 'pipeline-agent', role: 'pipeline-agent', target: null, state: 'interrupted', interruption: 'agent-crashed'
+  });
 }
 
 function decisionOf(kind: Decision['kind']): Decision {
@@ -119,7 +115,7 @@ const CLAIMS: PolicyClaim[] = [
     name:   'a resume comes before any launch',
     facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'pending')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job launch-build',
-    mutant: policyLine('  steps.push(...crashBoundStepsOf(facts, limits, resumesAreHeld));', ''),
+    mutant: policyLine('  steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));', ''),
   },
   {
     name:   'a review goes ahead of a ready build of its own rank',
@@ -366,9 +362,9 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine('  if (facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id))) return true;\n', ''),
   },
   {
-    name:   'with no checks line nothing launches and one checks-not-set decision opens',
+    name:   'with no checks line nothing launches, no pipeline agent either, and one checks-not-set decision opens',
     facts:  factsWith({ tickets: [ticketOf('001', 'pending')], pipelineIsSet: false }),
-    holds:  (steps) => stepKindsOf(steps).join(' ') === 'open-decision launch-pipeline-agent',
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'open-decision',
     mutant: policyLine(' || !facts.pipelineIsSet', ''),
   },
   {
@@ -378,32 +374,25 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine(' && !openDecisionOfKind(facts, \'checks-not-set\')', ''),
   },
   {
-    name:   'a live pipeline agent answers checks-not-set, so no second one launches',
-    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, pipelineAgentJob()] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
-    mutant: policyLine('  if (facts.jobs.some((job) => job.kind === \'pipeline-agent\')) return true;\n', ''),
-  },
-  {
-    name:  'a pipeline agent launched since checks-not-set opened answered it, though it ended',
+    name:  'an interrupted pipeline agent resumes with no pipeline stored and on a paused board',
     facts: factsWith({
-      pipelineIsSet: false,
-      decisions:     [decisionOf('checks-not-set')],
-      logRecords:    [checksNotSetOpenedRecord(), ...finishedPipelineAgentRecords()],
+      pipelineIsSet: false, overseerState: 'paused', decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, interruptedPipelineAgentJob()]
     }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
-    mutant: policyLine('launchedSinceTheDecision = true;', 'launchedSinceTheDecision = false;'),
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
+    mutant: policyLine('    if (job.kind === \'pipeline-agent\') return holds.pipelineAgentResumesAreHeld ? [] : [{ kind: \'resume-job\', jobId: job.id }];\n', ''),
   },
   {
-    name:   'a checks-not-set opened again after the pipeline agent ended launches a fresh one',
-    facts:  factsWith({ pipelineIsSet: false, logRecords: [...finishedPipelineAgentRecords(), checksNotSetOpenedRecord()] }),
-    holds:  (steps) => stepKindsOf(steps).includes('launch-pipeline-agent'),
-    mutant: policyLine('\'checks-not-set\') launchedSinceTheDecision = false;', '\'checks-not-set\') launchedSinceTheDecision = true;'),
+    name:   'a usage limit holds the resume of an interrupted pipeline agent',
+    facts:  factsWith({ pipelineIsSet: false, decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, interruptedPipelineAgentJob()] }),
+    limits: USAGE_LIMIT_AHEAD,
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds', 'pipelineAgentResumesAreHeld: false'),
   },
   {
-    name:   'a paused board launches no pipeline agent',
-    facts:  factsWith({ pipelineIsSet: false, overseerState: 'paused' }),
-    holds:  (steps) => !stepKindsOf(steps).includes('launch-pipeline-agent'),
-    mutant: policyLine('outageHolds || facts.overseerState === \'paused\'', 'outageHolds'),
+    name:   'an open pipeline-proposal decision of an earlier release is withdrawn at the next pass',
+    facts:  factsWith({ decisions: [{ ...decisionOf('pipeline-proposal'), id: 'E4', jobId: 'J7' }] }),
+    holds:  (steps) => steps.some((step) => step.kind === 'withdraw-retired-decision' && step.decisionId === 'E4'),
+    mutant: policyLine('.filter((decision) => decision.kind === \'pipeline-proposal\')', '.filter(() => false)'),
   },
   {
     name:   'a usage limit holds launches and resumes until its reset',
