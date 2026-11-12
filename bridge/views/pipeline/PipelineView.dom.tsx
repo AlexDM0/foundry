@@ -17,35 +17,35 @@ import {
   test
 } from 'bun:test';
 
-import { clickSettled, fakeControls } from '../../testing/FakeControls.ts';
-import { pipelineBoardStateOf }       from '../../testing/PipelineFixture.ts';
-import { PipelineView }               from './PipelineView.tsx';
+import { clickSettled, fakeControls }                   from '../../testing/FakeControls.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf } from '../../testing/PipelineFixture.ts';
+import { PipelineView }                                 from './PipelineView.tsx';
 
 afterEach(cleanup);
 
 describe('the Pipeline view', () => {
   test('a board with no pipeline shows the setup landing and no banner', () => {
-    render(<PipelineView facts={pipelineBoardStateOf('A0')} route={{ tab: 'pipeline', item: null }} />);
+    render(<PipelineView facts={pipelineBoardStateOf('A0')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('region', { name: 'Set up the pipeline' }).getAttribute('data-screen')).toBe('setup-landing');
     expect(document.querySelector('.bridge-banner')).toBeNull();
   });
 
   test('an unreadable pipeline.json lands on setup with a banner naming the reason', () => {
-    render(<PipelineView facts={pipelineBoardStateOf('A0-unreadable')} route={{ tab: 'pipeline', item: null }} />);
+    render(<PipelineView facts={pipelineBoardStateOf('A0-unreadable')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('status').textContent).toContain('gates[1] has no run line');
   });
 
   test('a routed setup step shows that step, and a readable pipeline the live flow', () => {
-    const { unmount } = render(<PipelineView facts={pipelineBoardStateOf('A1')} route={{ tab: 'pipeline', item: 'setup/research' }} />);
-    expect(screen.getByRole('heading', { name: 'Research' })).toBeDefined();
+    const { unmount } = render(<PipelineView facts={pipelineBoardStateOf('A1')} route={{ tab: 'pipeline', item: 'setup/research' }} {...pipelineViewServicesOf()} />);
+    expect(screen.getByRole('region', { name: 'Research' }).getAttribute('data-screen')).toBe('setup-step');
     unmount();
-    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} />);
+    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('region', { name: 'Pipeline' }).getAttribute('data-screen')).toBe('flow');
   });
 
   test('the smallest pipeline being edited shows its aside and a footer naming the removed steps, Discard and Apply changes', async () => {
     const controls = fakeControls();
-    controls.render(<PipelineView facts={pipelineBoardStateOf('A7')} route={{ tab: 'pipeline', item: null }} />);
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A7')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('editing');
     expect(screen.getByRole('complementary', { name: 'About this pipeline' })).toBeDefined();
     const footer = screen.getByRole('region', { name: 'Pipeline changes' });
@@ -56,7 +56,7 @@ describe('the Pipeline view', () => {
   });
 
   test('a live flow with a review step has no aside and no footer', () => {
-    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} />);
+    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('live');
     expect(screen.queryByRole('complementary', { name: 'About this pipeline' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Pipeline changes' })).toBeNull();

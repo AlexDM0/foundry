@@ -35,7 +35,10 @@ import type {
 import type { AgentPair }                                             from '../../src/lib/tracker-model/@types/Ticket.ts';
 import type { BoardStateDocument, PageTicketDocument, UsageDocument } from '../@types/BoardStateDocument.ts';
 
-import { boardStateFixture } from './BoardStateFixture.ts';
+import type { TranscriptFollower } from '../conversation/TranscriptLog.tsx';
+import type { BridgeClock }        from '../shell/BridgeClock.ts';
+
+import { boardStateFixture, exampleAgentJob } from './BoardStateFixture.ts';
 
 export type PipelineFixtureName =
   | 'A0'
@@ -76,6 +79,22 @@ export type PipelineFixtureName =
 export const PIPELINE_FIXTURE_SETUP_ID = 'S1';
 
 export const PIPELINE_FIXTURE_AGENT_JOB_ID = 'J4';
+
+/** The moment a pipeline spec's clock stands at: 2 minutes 40 seconds after the pipeline agent's launch in `A1`. */
+export const PIPELINE_FIXTURE_NOW = new Date('2026-11-12T09:30:00Z');
+
+const PIPELINE_AGENT_LAUNCHED_AT = '2026-11-12T09:27:20Z';
+
+/** What the Pipeline view takes beside its facts and route: a follower that streams nothing, and a clock that stands still. */
+export function pipelineViewServicesOf(followTranscript: TranscriptFollower = () => ({ close: () => undefined })): {
+  readonly followTranscript: TranscriptFollower;
+  readonly clock:            BridgeClock;
+} {
+  return {
+    followTranscript,
+    clock: { now: () => PIPELINE_FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined },
+  };
+}
 
 export const PIPELINE_CHOICES_FIXTURE: PipelineChoices = {
   models:  ['haiku', 'sonnet', 'opus', 'fable'],
@@ -456,6 +475,10 @@ function setupQuestion(changes: Partial<SetupQuestion> & Pick<SetupQuestion, 'qu
   };
 }
 
+const PIPELINE_AGENT_JOB = exampleAgentJob({
+  id: PIPELINE_FIXTURE_AGENT_JOB_ID, kind: 'pipeline-agent', role: 'pipeline-agent', ticketIds: [], launchedAt: PIPELINE_AGENT_LAUNCHED_AT
+});
+
 const ANSWERED_RESEARCH_QUESTION = setupQuestion({
   questionId: 'Q1',
   step:       'research',
@@ -700,7 +723,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
     readyToContinue: ['research'],
     questions:       [setupQuestion({ questionId: 'Q1', step: 'research', subject: { kind: 'finding', reference: 'F4' } })],
     nextNumbers:     { finding: 5, question: 2, edit: 1 },
-  })),
+  }), {}, { jobs: [...boardStateFixture().jobs, PIPELINE_AGENT_JOB] }),
   'A3b': () => setupState(setupRecord({
     stepStates: {
       billing: 'done', research: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started',

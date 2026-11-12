@@ -1,19 +1,21 @@
 /**
  * The Pipeline tab: the screen `PipelineViewModel.screenOf` picks from the board's pipeline facts and the route. The setup landing and a
- * reopened billing step show the billing step, the bare `#pipeline` of an open setup the resume summary; each of them carries its own
- * heading, and every other screen shows its title. The setup landing names an unreadable `pipeline.json` in a warn banner. The flow
- * screen draws the pipeline flow, the smallest pipeline's note beside it, and, while editing, the footer with the removed steps, Discard
- * and Apply changes.
+ * reopened billing step show the billing step, the research step its page, the bare `#pipeline` of an open setup the resume summary; each
+ * of them carries its own heading, and every other screen shows its title. The setup landing names an unreadable `pipeline.json` in a
+ * warn banner. The flow screen draws the pipeline flow, the smallest pipeline's note beside it, and, while editing, the footer with the
+ * removed steps, Discard and Apply changes.
  */
 import { useState } from 'react';
 
-import { ActionBar }            from '../../design-system/ActionBar.tsx';
-import { Banner }               from '../../design-system/Banner.tsx';
-import { Button }               from '../../design-system/Button.tsx';
-import { Tag }                  from '../../design-system/Tag.tsx';
-import type { PreferenceStore } from '../../preferences/PreferenceStore.ts';
-import { CommandButton }        from '../../shell/CommandButton.tsx';
-import type { BridgeRoute }     from '../../shell/HashRouter.ts';
+import type { TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
+import { ActionBar }               from '../../design-system/ActionBar.tsx';
+import { Banner }                  from '../../design-system/Banner.tsx';
+import { Button }                  from '../../design-system/Button.tsx';
+import { Tag }                     from '../../design-system/Tag.tsx';
+import type { PreferenceStore }    from '../../preferences/PreferenceStore.ts';
+import type { BridgeClock }        from '../../shell/BridgeClock.ts';
+import { CommandButton }           from '../../shell/CommandButton.tsx';
+import type { BridgeRoute }        from '../../shell/HashRouter.ts';
 
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
 import { PipelineFlow, type FlowOpenRequest }                             from './flow/PipelineFlow.tsx';
@@ -21,12 +23,16 @@ import { PipelineFlowModel }                                              from '
 import { MinimalPipelineNote }                                            from './live/MinimalPipelineNote.tsx';
 import { MinimalPipelineNoteModel }                                       from './live/MinimalPipelineNoteModel.ts';
 import { BillingStep }                                                    from './setup/BillingStep.tsx';
+import { ResearchStep }                                                   from './setup/ResearchStep.tsx';
 import { ResumeSummary }                                                  from './setup/ResumeSummary.tsx';
 
 export interface PipelineViewProps {
-  readonly facts:       PipelineViewFacts;
-  readonly route:       BridgeRoute;
-  readonly boardStore?: PreferenceStore | null;
+  readonly facts:            PipelineViewFacts;
+  readonly route:            BridgeRoute;
+  readonly boardStore?:      PreferenceStore | null;
+  /** Follows the pipeline agent's transcript for its chat. */
+  readonly followTranscript: TranscriptFollower;
+  readonly clock:            BridgeClock;
 }
 
 interface FlowScreenProps {
@@ -82,12 +88,16 @@ function FlowScreen({ facts, boardStore }: FlowScreenProps) {
 }
 
 interface ScreenContentProps {
-  readonly facts:      PipelineViewFacts;
-  readonly screen:     PipelineScreen;
-  readonly boardStore: PreferenceStore | null;
+  readonly facts:            PipelineViewFacts;
+  readonly screen:           PipelineScreen;
+  readonly boardStore:       PreferenceStore | null;
+  readonly followTranscript: TranscriptFollower;
+  readonly clock:            BridgeClock;
 }
 
-function ScreenContent({ facts, screen, boardStore }: ScreenContentProps) {
+function ScreenContent({
+  facts, screen, boardStore, followTranscript, clock
+}: ScreenContentProps) {
   const setup = facts.pipelineSetup ?? null;
   if (screen.screen === 'setup-landing') {
     return (
@@ -98,6 +108,9 @@ function ScreenContent({ facts, screen, boardStore }: ScreenContentProps) {
     );
   }
   if (screen.screen === 'setup-step' && screen.step === 'billing') return <BillingStep facts={facts} replacesUnreadablePipeline={false} />;
+  if (screen.screen === 'setup-step' && screen.step === 'research' && setup !== null) {
+    return <ResearchStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />;
+  }
   if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
   const title = <h2 className="bridge-pipeline-title">{PipelineViewModel.screenTitleOf(screen)}</h2>;
   if (screen.screen !== 'flow') return title;
@@ -109,11 +122,13 @@ function ScreenContent({ facts, screen, boardStore }: ScreenContentProps) {
   );
 }
 
-export function PipelineView({ facts, route, boardStore = null }: PipelineViewProps) {
+export function PipelineView({
+  facts, route, boardStore = null, followTranscript, clock
+}: PipelineViewProps) {
   const screen = PipelineViewModel.screenOf(facts, route);
   return (
     <section className="bridge-pipeline" aria-label={PipelineViewModel.screenTitleOf(screen)} data-screen={screen.screen}>
-      <ScreenContent facts={facts} screen={screen} boardStore={boardStore} />
+      <ScreenContent facts={facts} screen={screen} boardStore={boardStore} followTranscript={followTranscript} clock={clock} />
     </section>
   );
 }

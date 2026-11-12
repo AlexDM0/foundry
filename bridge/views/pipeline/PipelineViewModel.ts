@@ -30,8 +30,16 @@ const SETUP_ITEM_PREFIX = 'setup/';
 
 const CONSTITUTION_EDIT_ITEM = 'edit/constitution';
 
+/** A board job as the research step reads it: the pipeline agent's newest launch, for the elapsed time it only shows. */
+export interface PipelineViewJob {
+  readonly id:          string;
+  readonly launchedAt?: string | null;
+}
+
 /** The facts the view reads; an Overseer that serves no pipeline facts leaves both out. */
 export interface PipelineViewFacts {
+  readonly project?:         string;
+  readonly jobs?:            readonly PipelineViewJob[];
   readonly pipeline?:        AppliedPipelineFacts;
   readonly pipelineSetup?:   PipelineSetupFacts | null;
   readonly pipelineFlow?:    PipelineFlowFacts | null;

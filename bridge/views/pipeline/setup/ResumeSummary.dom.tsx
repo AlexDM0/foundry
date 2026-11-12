@@ -16,9 +16,9 @@ import {
   test
 } from 'bun:test';
 
-import { clickSettled, fakeControls }                     from '../../../testing/FakeControls.ts';
-import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import { PipelineView }                                   from '../PipelineView.tsx';
+import { clickSettled, fakeControls }                                             from '../../../testing/FakeControls.ts';
+import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { PipelineView }                                                           from '../PipelineView.tsx';
 
 afterEach(() => {
   cleanup();
@@ -27,7 +27,7 @@ afterEach(() => {
 
 function renderResume(name: PipelineFixtureName) {
   const controls = fakeControls();
-  controls.render(<PipelineView facts={pipelineBoardStateOf(name)} route={{ tab: 'pipeline', item: null }} />);
+  controls.render(<PipelineView facts={pipelineBoardStateOf(name)} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
   return controls;
 }
 

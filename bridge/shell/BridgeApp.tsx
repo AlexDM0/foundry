@@ -433,7 +433,17 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             {conversationBoard !== null && route.tab === 'intake'
               ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
               : null}
-            {boardState !== null && route.tab === 'pipeline' ? <PipelineView facts={boardState} route={route} boardStore={boardStore} /> : null}
+            {boardState !== null && route.tab === 'pipeline'
+              ? (
+                <PipelineView
+                  facts={boardState}
+                  route={route}
+                  boardStore={boardStore}
+                  followTranscript={services.followTranscript}
+                  clock={bridgeClock}
+                />
+              )
+              : null}
             <BridgeClockContext.Provider value={bridgeClock}>
               <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
                 <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>

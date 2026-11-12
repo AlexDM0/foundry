@@ -46,6 +46,14 @@ the open questions and the pipeline agent's job on the current step, a note when
 billing step reopened from the stepper saves a change with `pipeline-setup-billing` and offers **Back to <step>** in
 place of a second start.
 
+The research step (`#pipeline/setup/research`) shows what the pipeline agent finds as it finds it: the stack, the
+conventions and the scripts, each with the files it came from. A script that needs a network or a service is marked
+with an amber dot; nothing on the page runs a script. The agent's research questions sit under the findings
+(**Answer** sends `pipeline-setup-answer`), with its chat and a line saying what it does while a turn runs; the box
+under them sends `job-message`, which is how you correct a finding. **Continue to constitution** (`pipeline-setup-step`)
+is offered the whole time, and lights up once the agent says the research is done; **Stop the pipeline agent** stops
+its job and returns to the resume summary.
+
 Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
 left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
 to open its settings; the merge of main before review has none, since the builder's settings drive it. The two switches,

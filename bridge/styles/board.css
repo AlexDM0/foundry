@@ -41,6 +41,14 @@
  *                           .bridge-pipeline-flow-slot[data-disabled?] + menus, the spine's ending in the .bridge-pipeline-flow-train
  *                           frame) beside the .bridge-pipeline-minimal-note aside (-lead, -title, -warning, -warning-mark, -steps,
  *                           -steps-title, -step-list, -step, -step-mark, -closing); the editing footer's .bridge-pipeline-footer-note
+ *   .bridge-pipeline-research[data-state] the research step (A1Reading): the .bridge-pipeline-research-hero (-hero-text with the
+ *                           -status[data-state] line and its -status-dot, the meter), the -cards grid of
+ *                           .bridge-pipeline-research-card[data-topic] (-card-head: -check, -card-title, -source, -count; the
+ *                           -chips of -chip, or the -lines of -line: -label, -value, -paths), the .bridge-pipeline-scripts rows
+ *                           (.bridge-pipeline-script: -script-name, -script-run, -script-meaning[data-not-a-gate?] or
+ *                           -script-needs with its -needs-dot), and the action bar's -footer-status and -footer-hint
+ *   .bridge-pipeline-agent-panel[data-variant] the pipeline agent panel: its .bridge-pipeline-agent-questions of
+ *                           -agent-question (the question card, its -question-context), the chat, the typing line, the composer
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -3465,6 +3473,7 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-pipeline-setup-hero, .bridge-pipeline-setup-section, .bridge-pipeline-resume > .bridge-stepper {
     animation: bridge-rise var(--motion-rise) var(--ease-out) both;
   }
+}
 
 /* The flow screen: the flow beside the smallest pipeline's note. The canvas is a dot grid holding the left column (the spine, the merge
    train's frame under it) and the right column, scaled by the zoom from its top left corner; the arrow layer lies under the columns, so a
@@ -3527,3 +3536,65 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 @media (prefers-reduced-motion: no-preference) {
   :root[data-freshness="live"] .bridge-pipeline-flow-stage-mark[data-stage="live"] { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
 }
+
+/* The research step (A1Reading): the status line and meter over the page, the finding cards two by two, the script rows, the agent
+   panel under them and the action bar. Hover changes only background and shadow. */
+.bridge-pipeline-research { display: flex; flex-direction: column; gap: var(--sp-4); width: 100%; max-width: 1120px; margin: 0 auto; }
+.bridge-pipeline-research-hero { display: flex; align-items: flex-end; gap: var(--sp-4); }
+.bridge-pipeline-research-hero-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 6px; min-width: 0; }
+.bridge-pipeline-research .bridge-pipeline-setup-heading { font-size: 24px; }
+.bridge-pipeline-research-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-research-status-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--ink-4); }
+.bridge-pipeline-research-status:not([data-state="stopped"]) .bridge-pipeline-research-status-dot { background: var(--live-dot); }
+.bridge-pipeline-research-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+.bridge-pipeline-research-card {
+  display: flex; flex-direction: column; gap: 10px; padding: var(--sp-4); border-radius: var(--r-3);
+  background: var(--surface-panel); border: 1px solid var(--line-hairline);
+}
+.bridge-pipeline-research-card:hover { box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-pipeline-research-card-head { display: flex; align-items: center; gap: 10px; margin: 0; font: 600 14px/1.3 var(--font-ui); color: var(--ink-1); }
+.bridge-pipeline-research-check {
+  flex: none; width: 18px; height: 18px; padding: 4px; box-sizing: border-box; border-radius: var(--r-pill);
+  fill: none; stroke: currentColor; stroke-width: 2; color: var(--done-ink); background: var(--done-fill);
+}
+.bridge-pipeline-research-card-title { flex: none; }
+.bridge-pipeline-research-source { min-width: 0; font-size: var(--fs-small); font-weight: 400; color: var(--ink-4); }
+.bridge-pipeline-research-count { margin-left: auto; font-size: var(--fs-small); font-weight: 400; color: var(--ink-2); }
+.bridge-pipeline-research-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0 0 0 28px; list-style: none; }
+.bridge-pipeline-research-chip { display: inline-flex; align-items: center; gap: 4px; }
+.bridge-pipeline-research-lines { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 0 28px; list-style: none; }
+.bridge-pipeline-research-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.bridge-pipeline-research-label { font-weight: 600; color: var(--ink-1); }
+.bridge-pipeline-research-value { color: var(--ink-2); }
+.bridge-pipeline-research-paths { font: var(--fs-small)/1.4 var(--font-mono); color: var(--ink-3); }
+.bridge-pipeline-scripts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--sp-4); margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-script {
+  display: grid; grid-template-columns: 90px 150px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 6px 8px 6px 28px; border-radius: var(--r-2);
+}
+.bridge-pipeline-script:hover { background: var(--surface-info); }
+.bridge-pipeline-script-name { min-width: 0; overflow-wrap: anywhere; color: var(--ink-1); }
+.bridge-pipeline-script-run { min-width: 0; overflow-wrap: anywhere; font: var(--fs-small)/1.4 var(--font-mono); color: var(--ink-3); }
+.bridge-pipeline-script-meaning { color: var(--ink-2); }
+.bridge-pipeline-script-meaning[data-not-a-gate] { color: var(--ink-3); }
+.bridge-pipeline-script-needs { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--change-changed-ink); }
+.bridge-pipeline-script-needs-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--change-changed-dot); }
+.bridge-pipeline-research-footer-status { color: var(--ink-1); }
+.bridge-pipeline-research-footer-hint { color: var(--ink-3); }
+@media (max-width: 900px) {
+  .bridge-pipeline-research-cards, .bridge-pipeline-scripts { grid-template-columns: minmax(0, 1fr); }
+  .bridge-pipeline-research-hero { flex-direction: column; align-items: flex-start; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-pipeline-research-status:not([data-state="stopped"]) .bridge-pipeline-research-status-dot {
+    animation: bridge-pulse var(--pulse-status) ease-in-out infinite;
+  }
+  .bridge-pipeline-research-hero, .bridge-pipeline-research-card { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
+}
+
+/* The pipeline agent panel: the step's question cards (side by side inline, stacked in an aside), the chat, the typing line and the
+   composer. */
+.bridge-pipeline-agent-panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.bridge-pipeline-agent-questions { display: flex; flex-direction: column; gap: 10px; }
+.bridge-pipeline-agent-question { display: flex; flex-direction: column; gap: 6px; }
+.bridge-pipeline-agent-question-context { margin: 0; font-size: var(--fs-small); color: var(--ink-3); }
