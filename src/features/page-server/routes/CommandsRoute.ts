@@ -15,6 +15,7 @@ export type CommandCarrier = (command: GaiaCommand) => Promise<CommandVerdict>;
 
 const HTTP_STATUS_OF_VERDICT: Readonly<Record<CommandVerdict['verdict'], number>> = {
   'done':          200,
+  'path-chosen':   200,
   'nothing-to-do': 200,
   'refused':       409,
   'unreachable':   502,

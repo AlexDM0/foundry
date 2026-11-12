@@ -1,6 +1,6 @@
 /**
  * Maps how a command ended out to the page contract's command answer (PLAN 6.3): a verdict of a command Gaia carried, or the reason it
- * could not read the command at all. A forge's refusal code and sentence pass through unchanged.
+ * could not read the command at all. A forge's refusal code and sentence pass through unchanged, and a chosen path is the answer's text.
  */
 import type { CommandAnswerDocument } from '../../../page/@types/CommandDocument.ts';
 import type { CommandVerdict }        from '../../shared/@types/CommandVerdict.ts';
@@ -20,6 +20,7 @@ function answerOf(outcome: CommandAnswerDocument['outcome'], refusal: string | n
 
 export const CommandAnswerMapUtil = {
   commandAnswerOf(verdict: CommandVerdict): CommandAnswerDocument {
+    if (verdict.verdict === 'path-chosen') return answerOf('done', null, verdict.path);
     if (verdict.verdict !== 'refused') return answerOf(verdict.verdict);
     return verdict.refusedBy === 'forge' ? answerOf('refused', verdict.refusal, verdict.text) : answerOf('refused', verdict.refusal);
   },

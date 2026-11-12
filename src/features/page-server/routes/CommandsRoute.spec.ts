@@ -45,6 +45,7 @@ describe('a command Gaia can read', () => {
   test('is answered under the status of its verdict', async () => {
     const verdicts: readonly CommandVerdict[] = [
       { verdict: 'done' },
+      { verdict: 'path-chosen', path: '/Users/example/Development/example-storefront' },
       { verdict: 'nothing-to-do' },
       { verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' },
       {
@@ -56,7 +57,7 @@ describe('a command Gaia can read', () => {
     const statuses = await Promise.all(verdicts.map(async (verdict) => {
       return (await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrierAnswering(verdict).carryCommand)).status;
     }));
-    expect(statuses).toEqual([200, 200, 409, 409, 502, 501]);
+    expect(statuses).toEqual([200, 200, 200, 409, 409, 502, 501]);
   });
 });
 

@@ -8,6 +8,7 @@ import { createForgeProgram }                           from './adapters/forge-p
 import { RegistryFile, registryFilePathIn }             from './adapters/forge-registry/RegistryFile.ts';
 import { SettingsFile }                                 from './adapters/gaia-files/SettingsFile.ts';
 import { createSettingsWriter }                         from './adapters/gaia-files/SettingsWriter.ts';
+import { createPathChooser }                            from './adapters/path-chooser/PathChooser.ts';
 import { fleetSnapshotOf }                              from './features/fleet/FleetAssembly.ts';
 import { createForgeControl }                           from './features/forge-control/ForgeControl.ts';
 import { startPageServer, type PageServerStartVerdict } from './features/page-server/PageServer.ts';
@@ -136,11 +137,14 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     fleetStore.publish(snapshotNow());
   }
 
+  const processRun = realProcessRun(environmentCopy);
   const forgeControl = createForgeControl({
     readRegistry,
     readings:     forgeWatch.readings,
     forgeClient,
-    forgeProgram: createForgeProgram({ processRun: realProcessRun(environmentCopy), settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    forgeProgram: createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    settingsStore,
+    pathChooser:  createPathChooser({ processRun, workingDirectory: () => home }),
     lookAgain:    forgeWatch.lookAgain,
   });
 

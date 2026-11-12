@@ -1,7 +1,7 @@
 /**
  * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, a forge's refusal keeps its code and
- * its sentence unchanged, Gaia's own refusal carries its code with no sentence, and a command Gaia could not read answers not-supported
- * with the reason as its code.
+ * its sentence unchanged, Gaia's own refusal carries its code with no sentence, a chosen path is a done answer's text, and a command Gaia
+ * could not read answers not-supported with the reason as its code.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -28,6 +28,15 @@ describe('the command answer of a verdict', () => {
         answerVersion: 1, outcome: 'not-supported', refusal: null, text: null
       },
     ]);
+  });
+
+  test('answers a chosen path as done, with the path as its text', () => {
+    expect(CommandAnswerMapUtil.commandAnswerOf({ verdict: 'path-chosen', path: '/Users/example/Development/example-storefront' })).toEqual({
+      answerVersion: 1,
+      outcome:       'done',
+      refusal:       null,
+      text:          '/Users/example/Development/example-storefront',
+    });
   });
 
   test('passes a forge\'s refusal code and sentence through unchanged', () => {
