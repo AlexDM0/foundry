@@ -1094,7 +1094,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
         for (const jobId of slotJobIdsBefore) agentSlots.tryAcquire(observation.trackerId, jobId);
         const machineAgentSlotsFree = agentSlots.reserve(observation.trackerId, change.board.concurrency().freeSlots);
-        const { steps } = change.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt }, { ...observations, machineAgentSlotsFree }, request.decisionWordingOf);
+        let steps: ReturnType<Board['followPlaybook']>['steps'];
+        try {
+          ({ steps } = change.board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt }, { ...observations, machineAgentSlotsFree }, request.decisionWordingOf));
+        } catch (thrown) {
+          // A refused hold writes no job, so its reservations would only keep other boards' tickets waiting until this board's next pass.
+          agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
+          throw thrown;
+        }
         const slotJobIdsAfter = LaunchSlotUtil.slotJobIdsOf(change.board.jobs());
         agentSlots.assignReservations(observation.trackerId, slotJobIdsAfter.filter((jobId) => !slotJobIdsBefore.includes(jobId)));
         agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
@@ -1276,7 +1283,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const quietAssistants = assistantQuietWatch.sweep(jobsAtTheLastPass, assistantsMidTurnAtTheLastPass);
     const noAssistantIsLive = !jobsAtTheLastPass.some((job) => AssistantBoot.isAssistantJob(job));
     const forcedStopRetries = RefusedForcedStops.jobIdsToRetryOf(jobsAtTheLastPass);
-    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0) return;
+    // Another board's job that ended frees a machine slot without a change on this board, so only a sweep tries a waiting ticket again.
+    const ticketsAwaitMachineSlot = state.ticketsWaitingForMachineSlot > 0;
+    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0 && !ticketsAwaitMachineSlot) return;
     quietJobIdsDue.push(...due);
     forcedStopRetryJobIdsDue.push(...forcedStopRetries);
     quietAssistantIdsDue.push(...quietAssistants);

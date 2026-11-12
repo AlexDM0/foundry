@@ -1,8 +1,9 @@
 /**
  * The machine-wide agent slots and the limit they keep, over scratch monitor folders and an injected liveness. What matters: two boards
- * together never hold more slots than the limit; a slot whose Overseer is gone is taken over by the next claim of any Overseer; a lowered
- * limit stops nothing but takes no new claim until the holdings drain; a reservation becomes the launched job's slot and an unused one is
- * freed; and the stored limit survives as a file, refused above the CPU ceiling with nothing written.
+ * together never hold more slots than the limit; a slot whose Overseer is gone is taken over by the next claim of any Overseer, and by the
+ * restarted Overseer whose job still runs; a lowered limit stops nothing but takes no new claim until the holdings drain; a reservation
+ * becomes the launched job's slot and an unused one is freed; and the stored limit survives as a file, refused above the CPU ceiling with
+ * nothing written.
  */
 import {
   existsSync,
@@ -28,6 +29,7 @@ import { MachineAgentLimit }                              from './MachineAgentLi
 
 const FIRST_OVERSEER: ProcessIdentity = { processId: 7001, startStamp: '1700000001', bootIdentity: 'boot-example' };
 const SECOND_OVERSEER: ProcessIdentity = { processId: 7002, startStamp: '1700000002', bootIdentity: 'boot-example' };
+const THIRD_OVERSEER: ProcessIdentity = { processId: 7003, startStamp: '1700000003', bootIdentity: 'boot-example' };
 
 const scratchDirectories: string[] = [];
 
@@ -66,6 +68,19 @@ describe('agent slots', () => {
     const second = slotsOf(folder, 1, SECOND_OVERSEER, live);
     expect(second.tryAcquire('tracker-b', 'J7')).toBe(true);
     expect(second.liveHoldings()).toEqual([{ trackerId: 'tracker-b', jobId: 'J7', overseer: SECOND_OVERSEER }]);
+  });
+
+  test('a job that runs on past its Overseer\'s restart has its slot taken over by the new Overseer, so other Overseers count it again', () => {
+    const folder = monitorFolder();
+    const live = new Set([FIRST_OVERSEER.processId]);
+    expect(slotsOf(folder, 1, FIRST_OVERSEER, live).tryAcquire('tracker-a', 'J1')).toBe(true);
+    live.delete(FIRST_OVERSEER.processId);
+    live.add(SECOND_OVERSEER.processId);
+    const restarted = slotsOf(folder, 1, SECOND_OVERSEER, live);
+    expect(restarted.tryAcquire('tracker-a', 'J1')).toBe(true);
+    expect(restarted.liveHoldings()).toEqual([{ trackerId: 'tracker-a', jobId: 'J1', overseer: SECOND_OVERSEER }]);
+    live.add(THIRD_OVERSEER.processId);
+    expect(slotsOf(folder, 1, THIRD_OVERSEER, live).tryAcquire('tracker-b', 'J7')).toBe(false);
   });
 
   test('a limit lowered under the live holdings frees none of them and takes no new claim', () => {

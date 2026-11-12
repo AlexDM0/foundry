@@ -131,9 +131,23 @@ function createAgentSlots(options: AgentSlotsOptions): AgentSlots {
     removeHeldFile(asidePath, fileReplace);
   }
 
+  /**
+   * A job's own slot stays its slot while the Overseer it names runs. One that names a gone Overseer, as after a restart or a Baton pass
+   * while the job ran on, is taken over for this Overseer, so other Overseers count it again.
+   */
+  function jobKeepsItsSlot(slotPath: string, trackerId: string, jobId: string): boolean {
+    const slotText = slotTextIn(slotPath);
+    if (slotText === null) return false;
+    const holding = holdingOf(slotText);
+    if (holding !== null && options.overseerIsLive(holding.overseer)) return true;
+    freedIfStale(slotPath, slotText);
+    return createFileAtomically(slotPath, slotTextOf({ trackerId, jobId, overseer: options.ownProcess }), fileReplace) === 'created';
+  }
+
   function tryAcquire(trackerId: string, jobId: string): boolean {
     mkdirSync(folder, { recursive: true });
-    if (slotPathHeldBy(trackerId, jobId) !== null) return true;
+    const heldSlotPath = slotPathHeldBy(trackerId, jobId);
+    if (heldSlotPath !== null && jobKeepsItsSlot(heldSlotPath, trackerId, jobId)) return true;
     // A limit lowered under the live holdings leaves no slot free until they end, whichever slot files they hold.
     if (liveHoldings().length >= options.limit) return false;
     const ownText = slotTextOf({ trackerId, jobId, overseer: options.ownProcess });
