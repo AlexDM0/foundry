@@ -911,8 +911,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * Design section 6.2's order: priority, clean first, fewest conflicts caused among the clean, readiness, ticket id. With merge approval
    * on, User's press order alone: readiness is the accept's place in the log, then ticket id.
    */
-  function orderedPredictions(target: string, candidates: readonly MergeCandidate[], pressOrder: boolean): ReturnType<typeof predictionOf>[] {
-    if (pressOrder) {
+  function orderedPredictions(target: string, candidates: readonly MergeCandidate[], followsPressOrder: boolean): ReturnType<typeof predictionOf>[] {
+    if (followsPressOrder) {
       const [first] = MergeQueueUtil.pressOrderOf(candidates.map((candidate) => ({ ...candidate, queuedLogPosition: candidate.readiness })));
       const prediction = first === undefined ? null : predictionOf(target, first);
       return prediction === null || prediction.branchTip === null ? [] : [prediction];
@@ -979,7 +979,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const isGroup = target !== mainLine;
       return {
         candidates:               hold.board.mergeCandidatesOf(target, targetOf, branchTreeOf),
-        pressOrder:               hold.board.mergeApprovalIsOn(),
+        followsPressOrder:        hold.board.mergeApprovalIsOn(),
         releaseIsQueuedOrSlotted: isGroup && hold.board.groupReleaseQueuedOrSlotted(groupOf(target)) !== null,
         refreshWasRefused:        isGroup && hold.board.decisions().some((decision) => (
           decision.kind === 'merge-refused' && decision.ticketIds.length === 0 && decision.context.startsWith(`${target}${REFRESH_REFUSAL_SEPARATOR}`)
@@ -988,7 +988,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (queue === null) return false;
     if (target !== mainLine && await allocateRefresh(target, queue.releaseIsQueuedOrSlotted, queue.refreshWasRefused)) return true;
-    const [first] = orderedPredictions(target, queue.candidates, queue.pressOrder);
+    const [first] = orderedPredictions(target, queue.candidates, queue.followsPressOrder);
     if (first?.branchTip === undefined || first.branchTip === null) return false;
     const targetTip = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`);
     if (targetTip === null) return false;
