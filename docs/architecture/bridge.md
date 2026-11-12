@@ -273,6 +273,13 @@ The nodes are DOM boxes; `PipelineFlow` measures them and `PipelineFlowLayoutUti
 util) turns the boxes into arrow paths. A switch or a + choice sends `pipeline-draft-edit` to the open record; on a live
 board it sends `pipeline-update-start` first and the edit once the update record shows. The zoom is a board preference.
 
+The gates area (`bridge/views/pipeline/gates/`) stands under the flow: a tab per phase with its gate count, then the
+tab's rows in a `ReorderableList`, the prepare steps first and in a band of their own, so a gate never moves above one.
+`GatesAreaModel` words the rows and builds the edits: a reorder sends `phase-order:<phase>` (a prepare row
+`prepare-order`), Delete on a focused row sends the phase's order without the gate, or `prepare:<name>` as `null`, through
+the same sender as the flow. The stopwatch chip sends `gate-profile-start` for that gate in that tab's phase. A Gates
+node's Enter selects its phase's tab and scrolls to the area.
+
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 
 *Notice the order: the route resolves before the store exists, so the stored tab goes unread, and only a later

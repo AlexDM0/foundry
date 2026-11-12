@@ -2,10 +2,12 @@
  * The Pipeline tab: the screen `PipelineViewModel.screenOf` picks from the board's pipeline facts and the route. The setup landing and a
  * reopened billing step show the billing step, the research step its page, the bare `#pipeline` of an open setup the resume summary; each
  * of them carries its own heading, and every other screen shows its title. The setup landing names an unreadable `pipeline.json` in a
- * warn banner. The flow screen draws the pipeline flow, the smallest pipeline's note beside it, and, while editing, the footer with the
- * removed steps, Discard and Apply changes.
+ * warn banner. The flow screen draws the pipeline flow, the smallest pipeline's note beside it, the gates area under them (a Gates node
+ * selects its phase's tab and scrolls to it), and, while editing, the footer with the removed steps, Discard and Apply changes.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+
+import type { GatePhase } from '../../../src/lib/tracker-model/@types/GatePhase.ts';
 
 import type { TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
 import { ActionBar }               from '../../design-system/ActionBar.tsx';
@@ -20,6 +22,8 @@ import type { BridgeRoute }        from '../../shell/HashRouter.ts';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
 import { PipelineFlow, type FlowOpenRequest }                             from './flow/PipelineFlow.tsx';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
+import { GatesArea }                                                      from './gates/GatesArea.tsx';
+import type { GatesOpenRequest }                                          from './gates/GatesAreaModel.ts';
 import { MinimalPipelineNote }                                            from './live/MinimalPipelineNote.tsx';
 import { MinimalPipelineNoteModel }                                       from './live/MinimalPipelineNoteModel.ts';
 import { BillingStep }                                                    from './setup/BillingStep.tsx';
@@ -41,11 +45,20 @@ interface FlowScreenProps {
 }
 
 function FlowScreen({ facts, boardStore }: FlowScreenProps) {
-  const [openRequest, setOpenRequest] = useState<FlowOpenRequest | null>(null);
+  const [openRequest, setOpenRequest] = useState<FlowOpenRequest | GatesOpenRequest | null>(null);
   const [applyChangesIsAsked, setApplyChangesIsAsked] = useState(false);
+  const [gatesPhase, setGatesPhase] = useState<GatePhase>('build');
+  const gatesAreaRef = useRef<HTMLElement | null>(null);
   const flow = facts.pipelineFlow ?? null;
   if (flow === null) return null;
   const record = facts.pipelineSetup?.record ?? null;
+  const editTarget = record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision };
+  const openFromFlow = (request: FlowOpenRequest): void => {
+    setOpenRequest(request);
+    if (request.kind !== 'node' || request.action.kind !== 'gates-tab') return;
+    setGatesPhase(request.action.phase);
+    gatesAreaRef.current?.scrollIntoView({ block: 'nearest' });
+  };
   const livePipeline = facts.pipeline?.readingVerdict === 'readable' ? facts.pipeline.pipeline : null;
   const editing = flow.toolbarStage === 'editing' && record !== null;
   const removedStepsText = PipelineFlowModel.removedStepsTextOf(flow.changeList);
@@ -55,15 +68,25 @@ function FlowScreen({ facts, boardStore }: FlowScreenProps) {
         <PipelineFlow
           flow={flow}
           draft={record?.draft ?? livePipeline}
-          editTarget={record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision }}
+          editTarget={editTarget}
           efforts={facts.pipelineChoices?.efforts ?? []}
           profileRuns={facts.profileRuns ?? []}
           boardStore={boardStore}
           selectedNodeId={openRequest?.kind === 'node' ? openRequest.nodeId : null}
-          onOpen={setOpenRequest}
+          onOpen={openFromFlow}
         />
         {MinimalPipelineNoteModel.noteIsShownFor(flow) ? <MinimalPipelineNote flow={flow} /> : null}
       </div>
+      <GatesArea
+        gateRows={flow.gateRows}
+        stage={flow.toolbarStage}
+        editTarget={editTarget}
+        profileRuns={facts.profileRuns ?? []}
+        phase={gatesPhase}
+        onSelectPhase={setGatesPhase}
+        onOpen={setOpenRequest}
+        areaRef={gatesAreaRef}
+      />
       {editing
         ? (
           <ActionBar

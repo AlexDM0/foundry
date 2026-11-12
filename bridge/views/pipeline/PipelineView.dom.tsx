@@ -2,10 +2,12 @@
  * The Pipeline view in a happy-dom document. What matters: it names the screen the facts and the route pick, and the setup landing of an
  * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the flow;
  * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
- * Apply changes, while a live flow has no footer.
+ * Apply changes, while a live flow has no footer. The gates area stands under the flow, and Enter on a Gates node selects that phase's
+ * tab.
  */
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   within
@@ -60,5 +62,16 @@ describe('the Pipeline view', () => {
     expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('live');
     expect(screen.queryByRole('complementary', { name: 'About this pipeline' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Pipeline changes' })).toBeNull();
+  });
+
+  test('the gates area stands under the flow, and Enter on a Gates node selects its phase\'s tab', () => {
+    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
+    const gates = screen.getByRole('region', { name: 'Gates' });
+    expect(within(gates).getByRole('tab', { selected: true }).getAttribute('aria-label')).toBe('Build, 3 gates');
+    const mergeGatesNode = document.querySelector<HTMLElement>('[data-flow-node-id="gates-merge"] .bridge-flow-node');
+    if (mergeGatesNode === null) throw new Error('no merge gates node');
+    fireEvent.keyDown(mergeGatesNode, { key: 'Enter' });
+    expect(within(gates).getByRole('tab', { selected: true }).getAttribute('aria-label')).toBe('Merge, 3 gates');
+    expect(within(gates).getByRole('tabpanel', { name: 'Merge gates' })).toBeDefined();
   });
 });

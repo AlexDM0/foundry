@@ -61,6 +61,13 @@ Human ticket review and Human code review, change the pipeline at once; on a liv
 edit. A + sits where a step is missing and offers what fits there. While you edit, the footer lists the steps you
 removed, with Discard and Apply changes. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.
 
+Under the flow, the gates area has a tab for each phase: Build, Review and Merge, each with its gate count. Drag a row by
+its grip, or focus the grip and use Space and the arrow keys, to change the order the gates run in; prepare steps stay
+before the gates. Focus a row and press Delete to take a gate out of that phase, or to remove a prepare step.
+Double-click a row to open its settings. The stopwatch chip of a gate profiles it once in that phase and shows its time;
+nothing profiles a gate until you press it. **Add <phase> gate**, and **Add prepare step** in the Build tab, are there
+while you set up or edit a pipeline.
+
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
 A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of
 its own. Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >
