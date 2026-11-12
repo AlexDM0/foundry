@@ -60,20 +60,23 @@ One rule covers every kind. When the last open decision naming a waiting job clo
 
 *Amber marks a step the answer does not take. In the right column the answer only records a sentence in the log.*
 
+A `pipeline-proposal` is never answered as the figure draws it: an open one, left by an earlier release, is withdrawn
+at the next Pass (row below).
+
 Most decisions offer no options, so User answers with free text (`decide E7 -- <text>`), which nothing reads.
-`ready-drafts` and `pipeline-proposal` have options of their own, and free text is read the same way on these two, so
-`decide E7 -- Accept` accepts a proposal and `decide E7 -- #12` readies a draft. A `parked` decision keeps the options
+`ready-drafts` has options of its own, and free text is read the same way on it, so `decide E7 -- #12` readies a
+draft. A `parked` decision keeps the options
 of any agent's questions it carries.
 
 | Kind | Means | Opened by | What the answer does in code | What User must do besides |
 | --- | --- | --- | --- | --- |
 | `agent-question` | An agent asked what only User can settle | `QuestionRouting.openQuestion`, or an incident's escalation | Moves the job from `waiting-for-answer` back to `running`; the next Pass sends the answer. For an ended job, writes `## Questions` and lifts the hold (see [Answer delivery](#answer-delivery)) | Nothing |
 | `ready-drafts` | An intake closed and left draft tickets | `Board.endIntakeJob` | Readies each `#<id>` in the answer that the decision lists, that is still a draft and has no readiness gaps | Nothing |
-| `pipeline-proposal` | The [pipeline agent](../glossary.md#pipeline-agent) proposed a [pipeline](../glossary.md#pipeline) | `PipelineAgentSessions` `applySettledPipelineAgents`, on a `proposed` outcome | An answer starting `ACCEPT_PROPOSAL_LABEL` writes the [prepare steps](../glossary.md#prepare-step) and [gates](../glossary.md#gate) in the same write as the answer; any other answer changes nothing. Review, constitution and agents are shown, never written | Nothing |
+| `pipeline-proposal` | An earlier release's one-shot [pipeline](../glossary.md#pipeline) proposal, still open in `progress.json` | Nothing in this release opens it | Not answered: the next Pass withdraws it (`Playbook` `retiredDecisionStepsOf`) | Set the pipeline up with `pipeline setup` |
 | `branch-touches-agent-config` | A branch changes the agents' own configuration, so a person reads it first | `JobLaunch` `openAgentConfigDecision`, [Customs](../glossary.md#customs) V13 or the check before a launch | No kind-specific code. As with any decision naming a job, the last answer moves a waiting job back to `running`. Open, it holds the ticket, and `agentConfigHitIsSettled` counts any answer as settled until another job on the ticket ends | Read the branch first: "no" releases it too |
 | `outage` | Agents died in a row across tickets, so the Overseer paused | `Playbook.nextStepsOf`, with `pause-overseer`, past `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` | No code. Open, it holds every launch and resume, so closing it lets interrupted jobs resume | `oversee resume`: the Overseer stays paused for new work |
 | `merge-refused` | An [Airlock](../glossary.md#airlock) gave up on a merge or a [refresh](../glossary.md#refresh) | `Airlocks` `refuseMerge` | No code. On a [board](../glossary.md#board) with no review phase the open decision keeps the ticket out of the [merge queue](../glossary.md#merge-queue); a refused refresh's open decision keeps that [group](../glossary.md#group)'s next refresh waiting | Read the refusal in the decision's context, repair the cause, then answer. No verb requeues: closing it lets the next Pass queue the ticket on such a board, or lets the refresh rerun |
-| `checks-not-set` | No pipeline is stored | `Playbook.nextStepsOf` | No code. With no pipeline set, the next Pass opens another, and an unheld board launches another pipeline agent | Set a pipeline with `gate add`, or accept a `pipeline-proposal` |
+| `checks-not-set` | No pipeline is stored | `Playbook.nextStepsOf` | No code. With no pipeline set, the next Pass opens another. An Apply withdraws it, its reason `a pipeline was applied` (`PIPELINE_APPLIED_DECISION_REASON`) | Set the pipeline up with `pipeline setup` and Apply; or set it with `gate add` or `gate none`, then answer it ([as built](../reference/known-gaps.md#gap-checks-not-set-stays-open)) |
 | `waiver` | A reviewer proposes [waiving](../glossary.md#waiver) [Acceptance](../glossary.md#acceptance) items | `ReviewOutcome.settleReviewPass`, on a `waiver-proposed` claim | No code. Open, it holds every launch on its ticket and that ticket's Airlock claim; the job stays `awaiting-answer` | Answer it **and** run `job fresh <J>`, or the fresh review stays blocked. To grant, first make the `ticket edit --force` step in the known gap below |
 | `landing-refused` | The [landing](../glossary.md#landing)'s Acceptance check refused | `Airlocks` `runLanding`, on an acceptance refusal | No code. Open, it keeps the ticket from the Airlock claim; the ticket also keeps its `landing-refused:<reason>` hold | Repair the Acceptance, answer it **and** run `ticket unhold <id>`: neither alone lands |
 | `quiet-job` | A silent job's incident took its default | `IncidentMoves.defaultIncident`, the `quiet-job` default | No kind-specific code. As with any decision naming a job, the last answer moves a waiting job back to `running`. Open, it holds an interrupted job's resume; a running job is untouched | `job message <J>`, `job fresh <J>` or `job stop <J>`, and answer it |
@@ -110,8 +113,8 @@ whatever its kind.
 
 Ten kinds exist in `OverseerNotice`, and `DrivePass` `noticesOf` recomputes the list each Pass. No command answers a
 notice: it stays until its condition goes away. `cli/overseer/OverseerWording.ts` words them for `oversee status`, and
-the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and every `incident-defaulted`
-in one incident line above the header, whose drawer lists each default with its trail.
+the [Bridge](../glossary.md#bridge) header shows them; it shows `new-code` as its own line and every
+`incident-defaulted` in one incident line above the header, whose drawer lists each default with its trail.
 
 | Kind | Raised by | Means | Action |
 | --- | --- | --- | --- |
@@ -149,10 +152,17 @@ A `question` event on a `running` job reaches `QuestionRouting.openQuestion`, wh
 | Every question headed `ticket` | `malformed-ticket` incident | The Assistant, with the limit in [Answer delivery](#answer-delivery) |
 | Anything else, a mix of the two included | `agent-question` decision | User |
 
-Only builders, reviewers and product owners can ask. `ROLES_THAT_MAY_ASK` lists those three
-[roles](../glossary.md#role), and every other session starts with `AskUserQuestion` disallowed by `ClaudeCodeAdapter`
-`disallowedToolsOf`. That covers the Assistant and the pipeline agent. A builder or reviewer resumed in the Airlock as a
-[merge agent](../glossary.md#merge-agent) cannot ask either: `launchProfileOf` turns asking off for it.
+Only builders, reviewers, re-reviewers and product owners can ask. `ROLES_THAT_MAY_ASK` lists `builder`, `reviewer`,
+`re-reviewer`, `conflict-re-reviewer` and `product-owner` [roles](../glossary.md#role), and every other session starts
+with `AskUserQuestion` disallowed by `ClaudeCodeAdapter` `disallowedToolsOf`. That covers the Assistant and the pipeline
+agent. A builder, reviewer or conflict re-reviewer working as a [merge agent](../glossary.md#merge-agent) cannot ask
+either: `launchProfileOf` turns asking off for it.
+
+The [pipeline agent](../glossary.md#pipeline-agent) asks through its own verb instead: `pipeline ask` stores a setup
+question in its [setup record](../glossary.md#setup-record), never a decision. It has two to four options, one marked
+recommended, and User answers it with `pipeline answer` or on the Bridge, by letter or free text. Several may be open at
+once and none holds the session; Apply refuses `setup-question-open` while any one is unanswered. The answer reaches a
+live session as a message in the same lock hold.
 
 - **The job waits.** It moves to `waiting-for-answer` and keeps its [launch slot](../glossary.md#launch-slot), because
   `Playbook` `freeSlotsOf` counts every live build and review job. The [Watcher](../glossary.md#watcher) and session
@@ -162,16 +172,17 @@ Only builders, reviewers and product owners can ask. `ROLES_THAT_MAY_ASK` lists 
   `BoardRecords.questionRequestStanding` gives back what stands for a request already open. An escalation carries the
   request over.
 - **The words stay the agent's.** Questions are stored field for field. An escalation adds no word of the Assistant's.
-- **Options carry their consequences.** AskUserQuestion takes only a label and a description per option, and Claude
-  Code strips any other key before the `can_use_tool` request (probe `.platform-probes/claude-p20-question-option-fields.js`).
-  So the three prompts tell an agent to run `question options -- '<json>'` before it asks, giving each option the paths
-  it changes (`touches`), what User gets and loses (`tradeOff`) and its effect on the Acceptance (`acceptanceEffect`).
-  The notes wait on the job as `pendingOptionNotes`. `openQuestion` takes the notes whose question text matches a
-  question it routes and puts each option's facts on the option with the same label, on a decision and in an incident's
-  `questions` fact alike, so an escalation keeps them. An option no note names keeps its label and description alone,
-  and notes for a question never asked leave with the job. A job keeps the notes of its newest eight questions. The
-  Bridge shows each fact the option carries under it, in the question panel and on the Questions and Intake cards, and
-  shows nothing for an option without them; it never derives a fact.
+- **Options carry their consequences.** AskUserQuestion takes only a label and a description per option, and Claude Code
+  strips any other key before the `can_use_tool` request (probe
+  `.platform-probes/claude-p20-question-option-fields.js`). So the three prompts tell an agent to run `question options
+  -- '<json>'` before it asks, giving each option the paths it changes (`touches`), what User gets and loses
+  (`tradeOff`) and its effect on the Acceptance (`acceptanceEffect`). The notes wait on the job as `pendingOptionNotes`.
+  `openQuestion` takes the notes whose question text matches a question it routes and puts each option's facts on the
+  option with the same label, on a decision and in an incident's `questions` fact alike, so an escalation keeps them. An
+  option no note names keeps its label and description alone, and notes for a question never asked leave with the job. A
+  job keeps the notes of its newest eight questions. The Bridge shows each fact the option carries under it, in the
+  question panel and on the Questions and Intake cards, and shows nothing for an option without them; it never derives a
+  fact.
 - **A second request while the job waits is dropped.** `DrivePass` `applyWatcherEvents` applies a question event only on
   a `running` job, and the event cursor moves past it. Nothing ever answers that request, so its tool call stays open.
 - **Any open decision keeps the job waiting.** `AgentQuestions.jobIsStillAsking` holds it while any decision naming the
@@ -252,8 +263,9 @@ settles an incident, chat by chat, is in [The Assistant and intake](assistant-an
 | `job-lost` | A ticket's agents kept being replaced without finishing | `Playbook` `jobLostStepsOf`, past `REPLACED_JOBS_BEFORE_JOB_LOST` | `ticket-park` | `job-fresh`, `ticket-park`, `incident-note` |
 | `resume-failed` | A session could not be resumed | `JobResumption.applyResumeFailure` | `job-fresh` | `job-fresh`, `ticket-park` |
 | `gate-cannot-run` | A gate could not judge the tree at all | `JobLaunch` `settleGate`; the merged-tree gate | `gate-retry` | `gate-retry`, `worktree-repair`, `ticket-park` |
-| `sandbox-unavailable` | The `GateConfinement` port refused a gate, prepare or install line, so it never started | `JobLaunch` `applyObservation`; the merged-tree gate; `PipelineAgentSessions` `applySettledPipelineAgents` | `gate-retry` | `gate-retry`, `ticket-park` |
+| `sandbox-unavailable` | The `GateConfinement` port refused a gate, prepare or install line, so it never started | `JobLaunch` `applyObservation`; the merged-tree gate | `gate-retry` | `gate-retry`, `ticket-park` |
 | `quiet-job` | A running job's [event log](../glossary.md#event-log) stopped growing | `IncidentRouter.openQuietJobIncidents` | `open-quiet-job-decision` | `job-message`, `job-fresh`, `incident-note` |
+| `setup-snapshot-touched` | A pipeline agent's turn end found its snapshot changed: Customs V16, V4, V5, V13 or V14 refused | `PipelineAgentSessions.verifyTurnEnds` | `incident-note` | `job-message`, `incident-note` |
 
 No kind allows `merge-land` on a failed merge gate, because that would land a red tree (invariant 9).
 
@@ -328,6 +340,9 @@ If nobody acts, every kind falls to one of four ends.
 
 *A failing ticket reaches User on the second default, so a retry cannot loop.*
 
+The figure leaves out `setup-snapshot-touched`, which names no ticket: its default only records a note, and the setup
+record stays held until User starts it over or resumes it once main moved.
+
 `IncidentMoves.defaultIncident` applies these in order, and the first that fits wins.
 
 | When | What happens |
@@ -354,6 +369,25 @@ Airlock and opens a decision for User in the same write.
 
 > **As built.** A refresh has no ticket, so a default parks nothing and the Airlock stays held, rerunning the gate:
 > [known gap](../reference/known-gaps.md#gap-refresh-gate-default-loops).
+
+### What a pipeline setup asks of User
+
+A pipeline setup asks User through its [setup record](../glossary.md#setup-record), not through decisions, and it
+opens no incident but one.
+
+- **Setup questions.** The pipeline agent's questions wait in the record until User answers; Apply refuses while one
+  is open. They hold no ticket and no session.
+- **A touched snapshot.** A refusal at a turn end opens `setup-snapshot-touched`, the one incident of a setup, and
+  Apply refuses until the setup starts over or resumes.
+- **A held Apply.** The constitution commit of an Apply that the main checkout blocks holds the main line under the
+  `dirty-main-checkout` or `target-file-held` notice, the same as a landing, and the request reads `held` with the
+  blocking files. It is never refused for that, and no decision opens: User cleans the checkout and the next sweep
+  commits `CONSTITUTION.md`. A commit git cannot make or sign is `refused` in the record, with git's text in the log.
+- **Profiles and checks.** They run only on User's press, and a red or unrunnable result is only shown: no incident,
+  no decision.
+- **Gate phases.** A red gate or a conflict in any phase goes to its worker, as [Who fixes
+  what](roles-and-launch.md#who-fixes-what) says: the builder for the merge before review, the last worker in the
+  Airlock. A gate that cannot run opens `gate-cannot-run`, whatever its phase.
 
 ## Quiet job detection
 

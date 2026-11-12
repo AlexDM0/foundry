@@ -19,8 +19,10 @@ Customs catches a false story. Gates catch a bad tree. Customs runs first becaus
 report lies is not worth gating.
 
 A repository plugs in through one file, `pipeline.json`, its [pipeline](../glossary.md#pipeline). The `gate` verbs write
-it, or an accepted proposal from the [pipeline agent](../glossary.md#pipeline-agent), the agent that fits a repository with a
-pipeline. A gate is an opaque shell line. Until that file exists, no ticket work launches.
+it, or User's Apply of a [setup record](../glossary.md#setup-record) designed with the
+[pipeline agent](../glossary.md#pipeline-agent), the agent that reads a repository and proposes its pipeline. A gate is
+an opaque shell line that runs in one or more [gate phases](../glossary.md#gate-phase): build, review and merge. Until
+that file exists, no ticket work launches.
 
 ![An agent report goes to Customs, then to gates, then is believed. V3, V4, V15 and a red gate resume the same session, any other Customs refusal ends the job failed, and a gate that cannot run stops the job with an incident.](../figures/customs-and-gates/two-stages.png)
 
@@ -36,7 +38,7 @@ The two stages answer different questions, so neither can stand in for the other
 | Question | Is the story true? | Is the tree good? |
 | Reads | The report, git, the ticket body, the log | An exit code and `git diff HEAD` |
 | Knows the stack | No | No: the repository's commands know it |
-| Runs where | On the [Overseer](../glossary.md#overseer), in a [lock hold](../glossary.md#lock-hold) (a pipeline agent's outside one) | In a [Watcher](../glossary.md#watcher) or the Overseer's process |
+| Runs where | On the [Overseer](../glossary.md#overseer), in a [lock hold](../glossary.md#lock-hold) | In a [Watcher](../glossary.md#watcher) or the Overseer's process |
 | Cost | Git commands | As long as the repository's commands take |
 | Trusts the report | Tests it | Never reads it |
 
@@ -63,20 +65,22 @@ reason code with facts and no prose; the facts are paths, commits or labels.
 | --- | --- | --- |
 | `builder` | V1, V2, V3, V4, V5, V6, V7, V8, V11, V13, V14, V15 | `clearCustoms` |
 | `reviewer` | V1, V2, V4, V5, V6, V7, V8, V9, V11, V12, V13, V14 | `clearCustoms` |
-| `pipeline-agent` | V1, V16, V4, V5, V12, V13, V14 | `clearCustoms` |
+| `pipeline-agent` | V16, V4, V5, V13, V14 | `clearCustoms`, at each turn end, on the snapshot |
 | `airlock-agent` | V1, V2, V3, V4, V5, V6, V7, V10, V11, V13, V14 | V10 alone, by hand, on a conflict |
 
 </details>
 
-Every column runs in check order except the pipeline agent's, which runs V16 second.
+Every column runs in check order except the pipeline agent's, which runs V16 first. The pipeline agent owes no report,
+so its column has no V1: it checks only that the snapshot stayed as it was.
 
-What an agent says it did is checked; what it judges or chooses is not. A builder's `outcome`, a reviewer's claim
-results and a pipeline agent's `mode` are validated by V1 and then taken as given.
+What an agent says it did is checked; what it judges or chooses is not. A builder's `outcome` and a reviewer's claim
+results are validated by V1 and then taken as given.
 
 ### The sixteen checks
 
 Each check turns one claim or one rule into a git or log question. The table gives each check for a build or review
-[job](../glossary.md#job); a pipeline agent refusal always ends its job `failed`.
+[job](../glossary.md#job); a pipeline agent's refusal is handled as [Customs at each turn
+end](#customs-at-each-turn-end) says.
 
 The range is the commits since `start`, the HEAD recorded when the job launched. V10 also leaves out what the
 [target](../glossary.md#target) tip already contains. Each `failed` job on a ticket counts as a
@@ -105,7 +109,7 @@ alone adds the worktree to its commits, on a Pass from the merge base.*
 | V13 | `agentConfigUntouched` | `branch-touches-agent-config` | A change to `.claude/`, `.mcp.json` or the hooks folder | Job `failed`, and the `branch-touches-agent-config` [decision](../glossary.md#decision) unless one is open or already answered for this hit |
 | V14 | `onlyOwnRefsMoved` | `foreign-ref-moved` | A session moving a ref that is not its own | Job `failed` |
 | V15 | `everyAgentGateClaimedOnHead` | `gate-unclaimed` | A gate not claimed on HEAD itself, a stale claim included | Red handoff |
-| V16 | `headUnmoved` | `head-moved` | A pipeline agent commit; it reads and changes nothing | Job `failed` |
+| V16 | `headUnmoved` | `head-moved` | A pipeline agent commit; it reads and changes nothing | The `setup-snapshot-touched` incident; Apply refuses |
 
 ### Routing a refusal
 
@@ -172,17 +176,17 @@ nothing proves no ref moved. The allowance comes from board state and the log, n
 | A branch of a job that ended after this one launched | While the branch exists | `loggedJobBranches`, from `job-ended` |
 | A target | Only at the commit a `landed`, `integrated` or `refreshed` ending recorded | `recordedLandings` |
 | A landed ticket's branch, a released [group](../glossary.md#group)'s branch | Only once gone | `removedAfterLandings` |
-| A refresh worktree's detached HEAD | Always | `refreshWorktreeHeads`, from a `refresh` job's launch |
+| A refresh worktree's or a constitution commit worktree's detached HEAD | Always | `airlockWorktreeHeads`, from a `refresh` or `constitution-commit` job's launch |
 
 </details>
 
-A pipeline agent gets an empty allowance, because `src/services/overseer/PipelineAgentSessions.ts` passes every list empty. Its
-snapshot's own HEAD is the only exempt ref, and every other ref in the repository must stand still for the length of
-its session.
+A pipeline agent gets the same allowance with no branch of its own (`refMovesAllowedFor` in
+`src/services/overseer/PipelineAgentSessions.ts`): other jobs' branches and the Overseer's own landings, refreshes and
+constitution commits may move, and its snapshot's HEAD must stand still.
 
 ### How V12 proves a filing
 
-A reviewer or pipeline agent cannot file directly, so its report names either a ticket id or the
+A reviewer cannot file directly, so its report names either a ticket id or the
 [Hatch](../glossary.md#hatch) request id printed with `queued` when the Hatch reply did not arrive in time (see
 [Control and Hatch](control-and-hatch.md)). V12 turns either into proof from the log, never from the ticket as it
 stands, because the filing's own submission, or User, may have moved it since.
@@ -204,16 +208,19 @@ No report carries a round, a rework count, a verdict or a release. An agent stat
 follows. Objects are closed, so an extra key is invalid. An Acceptance item is its label, `A1`, never its text.
 
 <details>
-<summary>The four schemas</summary>
+<summary>The three schemas</summary>
 
 | Schema | Roles | Claims it carries |
 | --- | --- | --- |
 | `BUILDER_REPORT_SCHEMA` | builder | `outcome`, `headCommit`, Acceptance evidence, `alsoFixed`, gate claims, [Handoff](../glossary.md#handoff) text |
 | `REVIEWER_REPORT_SCHEMA` | reviewer | `headCommit`, a claim per Acceptance item, findings fixed or filed, review text |
 | `AIRLOCK_AGENT_REPORT_SCHEMA` | a builder or reviewer in the Airlock | `outcome`, `headCommit`, resolved files, semantic changes, `reportKind` |
-| `PIPELINE_AGENT_REPORT_SCHEMA` | pipeline agent | `mode`, `headCommit`, a whole proposed pipeline, `optimisations`, notes |
 
 </details>
+
+A conflict re-reviewer reports with `REVIEWER_REPORT_SCHEMA` while it re-reviews. The pipeline agent, the
+[product owner](../glossary.md#product-owner) and the [Assistant](../glossary.md#assistant) owe no report: their moves
+are relayed verbs.
 
 ## Gates
 
@@ -223,6 +230,22 @@ A gate is a named shell line. `gateOutcomeOf` judges it, and nothing else in the
 
 *Notice the last rung: a formatter that rewrites a file and exits 0 is red, because the tree it approved is not the tree
 on disk.*
+
+### Gate phases
+
+A gate is defined once and runs in one or more phases. `pipeline.json`'s `phases` lists each phase's gates in run
+order, and each place a tree is gated runs exactly one phase, so each phase answers one question.
+
+| Phase | What it asks | Where it runs | Red goes to |
+| --- | --- | --- | --- |
+| `build` | May the builder's work be reviewed? | A build job's worktree, and the [merge before review](../glossary.md#merge-before-review) | The builder |
+| `review` | Does the tree stay green after the reviewer's fixes? | A review job's worktree, and the merge before User's Merge with merge approval on (`build` with no review phase) | The reviewer, or the builder with no review phase |
+| `merge` | Does the tree pass once the target's tip is merged in? | The Airlock's merged tree, before the fast-forward | The ticket's [last worker](../glossary.md#last-worker) |
+
+A stale green is gated again in its row's `greenPhase`. A phase with no gates passes at once and runs no prepare step,
+and a gate in no phase makes the file malformed. Customs, V15 and a worker's sandbox read every gate, whatever phases
+run it. The [CLI reference](../cli.md#concurrency-and-gates) lists every site with its phase, and the job folder files
+each run keeps.
 
 | Run | Tracked diff | `GateOutcome` | Reported output |
 | --- | --- | --- | --- |
@@ -237,8 +260,8 @@ on disk.*
 The diff is `git diff HEAD`: an untracked file a gate creates does not turn it red. A `git diff` that fails reads as no
 change.
 
-In a job or an Airlock, gates run in list order and the first one that is not `passed` stops the rest. For a build or
-review job, the outcome decides who owns it next:
+In a job or an Airlock, gates run in their phase's order and the first one that is not `passed` stops the rest. For a
+build or review job, the outcome decides who owns it next:
 
 - `failed` goes to the agent, through a red handoff that names the gate's `fix` line if it has one. The Overseer never
   runs a `fix`: repairing is the agent's work, and the result must pass Customs and gates like any other commit.
@@ -258,14 +281,14 @@ tree: `reviewLeftTheTreeAsItWas` counts it as passed, because the build's gates 
 
 ### Where a gate runs
 
-Three callers share the judge and differ in how they run and whether they take a
+Four callers share the judge and differ in how they run and whether they take a
 [gate slot](../glossary.md#gate-slot).
 
 | Caller | Tree | How it runs | Gate slot | Red gates |
 | --- | --- | --- | --- | --- |
-| `JobLaunch.gateProgressOf` | A build or review HEAD | One Watcher for the joined prepare steps, then one per gate, across many Passes | Taken by `tryAcquire`; the step waits for a later Pass | The first stops the rest |
-| `GateRun.runPipeline` | The merged tree in an Airlock | In the Overseer's process, awaited | `acquire`, waiting in a retry loop | The first stops the rest |
-| `GateLineRun.runOnce`, for the twice-run | A [main line](../glossary.md#main-line) snapshot | In the Overseer's process, awaited | None | All run, so one never hides the next |
+| `JobLaunch.gateProgressOf` | A build or review HEAD, and the trees of the merge before review and the merge before User's Merge | One Watcher for the joined prepare steps, then one per gate, across many Passes | Taken by `tryAcquire`; the step waits for a later Pass | The first stops the rest |
+| `GateRun.runPipeline` | The merged tree in an Airlock, and a stale green | In the Overseer's process, awaited | `acquire`, waiting in a retry loop | The first stops the rest |
+| `GateLineRun.runOnce`, for a pipeline check | A fresh worktree of the [main line](../glossary.md#main-line), `<worktrees>/pipeline-checks/<S>` | In the Overseer's process, not awaited by the Pass | `tryAcquireAfterRealGates`, after every waiting real gate | All run, so one never hides the next |
 | `GateLineRun.runOnce`, for a gate profile | A fresh worktree of main, `<worktrees>/gate-profiles/<P>` | In the Overseer's process, not awaited by the Pass | `tryAcquireAfterRealGates`, after every waiting real gate | One gate per run |
 
 > **As built.** The merged-tree gate runs inside the Pass. See
@@ -280,13 +303,14 @@ worktree.
 
 A gate never inherits the job's variables (`gateEnvironmentOf`), so a mutating verb a repository test runs inside a gate
 runs as written instead of relaying through the Hatch to the Overseer. What keeps such a verb off the real board is the
-sandbox's deny on `<data>`, not the missing variables; see [Confinement](confinement.md). A proposed line in a
-[twice-run](#twice-run) has no such deny.
+sandbox's deny on `<data>`, not the missing variables; see [Confinement](confinement.md). A pipeline check and a gate
+profile run their lines under the same confinement as the Overseer's own gate runs.
 
 ### Gate slots
 
-A gate slot caps job and Airlock gate runs across every board on the machine at `GATE_RUNS_AT_ONCE` (2); pipeline agent
-twice-runs take none. Gates are the expensive step, and two boards side by side would otherwise each run theirs.
+A gate slot caps gate runs across every board on the machine at `GATE_RUNS_AT_ONCE` (2). A pipeline check or a gate
+profile takes one only when no job or Airlock gate run of its Overseer waits for one. Gates are the expensive step, and
+two boards side by side would otherwise each run theirs.
 
 ![Overseer A creates the gate slot file exclusively, naming the Watcher folder and itself, then records the spawned Watcher. The Watcher claims, runs the gate and ends without writing. The file stays with a holder no longer live. Overseer B renames it aside, removes it and creates its own file exclusively.](../figures/customs-and-gates/gate-slot-life.png)
 
@@ -346,7 +370,7 @@ Across jobs only the `gate-ran` log record is read, with three readers.
 
 `pipeline.json` is the one place a repository configures the lifecycle. It lives in `<data>`, beside `progress.json`,
 the board's main store, so it is never tracked and never inside a branch: a branch cannot change the pipeline. Its
-fields, and the `gate` verbs that write it, are in the [CLI reference](../cli.md).
+fields, and the `gate` and `pipeline` verbs that write it, are in the [CLI reference](../cli.md).
 
 ![Three zones. Out of reach: pipeline.json in the data folder, outside every branch. Refused by V11 unless the ticket body names the path: definedBy files and tracked instruction files. Reachable, as the repository's choice: the script of a gate with no definedBy.](../figures/customs-and-gates/what-a-branch-can-reach.png)
 
@@ -363,11 +387,13 @@ One small file steers every role, because each stage reads the keys it needs.
 | `version` | The format, `2`; a file without it is older |
 | `prepare` | How to make a fresh tree runnable |
 | `gates` | What must be true of a tree, each defined once |
-| `phases` | Which gates run in the build, review and merge phase, in run order; today every gate run site runs every gate |
-| `review` | Whether a review phase exists, and its re-review threshold |
-| `airlock` | The merge train's re-review threshold |
-| `constitution` | The one constitution file, `{ path }` |
+| `phases` | Which gates run in the build, review and merge phase, in run order |
+| `review` | Whether a review phase exists, and its [conditional re-review](../glossary.md#conditional-re-review) |
+| `airlock` | The merge train's conditional re-review after a conflict merge |
+| `constitution` | The one constitution file, `{ path }`: `CONSTITUTION.md` once applied |
 | `agents` | Each role's model, effort and ordered instruction list |
+| `approvals` | Whether User readies tickets and accepts merges |
+| `billing` | Who pays for the sessions: the subscription, or an API key with an optional cap |
 
 The Overseer reads the file afresh, each lock hold and each merged-tree run, so an edit reaches the next gate run
 without a restart. Tickets in flight never block a pipeline change.
@@ -378,8 +404,8 @@ No file stops all ticket work; `gates: []` runs all work with no gates.
 
 | `pipeline.json` | `pipelineIsSet` | Effect |
 | --- | --- | --- |
-| Absent | No | `checks-not-set` opens, a pipeline agent starts, and no ticket work launches or resumes |
-| Malformed | No | The same, and `gate list` and every `gate` write refuse it; an accepted proposal does not refuse and writes over it |
+| Absent | No | `checks-not-set` opens, and no ticket work launches or resumes; `pipeline setup` is the one start of a pipeline agent |
+| Malformed | No | The same, and `gate list` and every `gate` write refuse it; an Apply writes over it only from a record opened with `--replace-unreadable` |
 | Older (no `version`) | No | The same, and `gate list` and every `gate` write refuse it with `older-pipeline`: set the pipeline up again |
 | `gates: []` | Yes | Counts as set: work runs and [landing](../glossary.md#landing) runs no gate. `gate none` sets it on purpose; a first `gate prepare` on a board with no file, or removing the last gate, also leaves it |
 | `{ "version": 2, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }` | Yes | The minimal pipeline: valid, with no review and no gates |
@@ -402,21 +428,31 @@ makes the file malformed. [The file format](../cli.md#datapipelinejson) lists ev
 > **Why.** `progress.json` keeps unknown keys. This file decides what judges work, so a typo that silently disabled a
 > gate would be the worst outcome.
 
-### What `review`, `constitution` and `agents` change
+### What the other keys change
 
-No verb and no accepted proposal writes these three keys: to set one, edit `<data>/pipeline.json` by hand. The next read
-picks it up, and a malformed edit stops ticket work.
+The `gate` verbs write the prepare steps, the gates, their phases and the approvals. An Apply writes the whole file,
+every key, from the setup record's draft. A hand edit of `<data>/pipeline.json` reaches the next read too, and a
+malformed edit stops ticket work.
 
 - With no `review` key the Playbook's `reviewIsSet` is false and no review job launches. `settleGate` queues a gated
   build to merge in the same lock hold, and the Airlock skips `Landing.ticketRefusalOf`, since only a review accounts
-  for Acceptance. See `src/services/overseer/Airlocks.ts`. This is the default of a fitted board; see
-  [what acceptance writes](#the-decision-and-what-acceptance-writes).
-- With `review`, `name` labels each [review bar](../glossary.md#review-bar). A `reReview` threshold is stored and
-  read, and no lifecycle step acts on it yet. Each role's `agents.<role>.model` and `effort` set its launch, with or
-  without `review`.
-- `constitution.path` replaces the default constitution file. A listed `agents.<role>.instructions` list replaces the
-  role's default list (`DEFAULT_INSTRUCTIONS_OF_ROLE`); keep its `constitution` and `default-brief` entries to extend it.
-- An Airlock agent reads its builder or reviewer files. By default only builder and reviewer read the constitution.
+  for Acceptance. See `src/services/overseer/Airlocks.ts`. A board set only with the `gate` verbs has no `review`
+  key.
+- With `review`, `name` labels each [review bar](../glossary.md#review-bar). `review.reReview` is the conditional
+  re-review after the review's fixes: a review that reworked more than its `thresholdLines` lines may grant one more
+  round, run by a fresh session in the role `re-reviewer`. With no `reReview` no further round runs at any rework.
+  [A review job](../cli.md#a-review-job) holds the round rules.
+- `airlock.reReview` is the conditional re-review after a conflict merge. A resolution of more lines than its
+  `thresholdLines`, or one git cannot measure, gets a fresh `conflict-re-reviewer` before the merged tree's gates: in
+  the Airlock, and in the merge before User's Merge with merge approval on. With no `reReview` the gates run at once.
+- Each role's `agents.<role>.model` and `effort` set its launch, with or without `review`. A merge agent fixing a
+  conflict or a red merged tree takes its last worker's recorded pair.
+- `constitution.path` names the constitution: `CONSTITUTION.md` at the repository root once an Apply committed it,
+  read from the main line at each launch; with no key, `<data>/briefs/defaults/constitution.md`. A listed
+  `agents.<role>.instructions` list replaces the role's default list (`DEFAULT_INSTRUCTIONS_OF_ROLE`); keep its
+  `constitution` and `default-brief` entries to extend it.
+- An Airlock agent reads its builder or reviewer files. By default the builder, reviewer, re-reviewer and conflict
+  re-reviewer read the constitution.
 
 Paths, defaults, how the texts are read and how they are joined are in [Roles and launch](roles-and-launch.md); V11
 guards the tracked ones.
@@ -431,59 +467,101 @@ because run order means something; agent settings, instructions, the constitutio
 leave it as it was, so editing them never makes a green stale.
 
 A [row](../glossary.md#row) holds the hash as `pipelineHash` beside the phase it was taken in, `greenPhase`, both set by
-`recordPipelineJudgedBy` when a gate run settles. `MergeQueueMarks.greenIsCurrent` holds a green current in a phase while
-the row has a `greenPhase`, its `greenTree` is the tree and its `pipelineHash` equals that phase's hash now; a row
+`recordPipelineJudgedBy` when a gate run settles. `MergeQueueMarks.greenIsCurrent` holds a green current in a phase
+while the row has a `greenPhase`, its `greenTree` is the tree and its `pipelineHash` equals that phase's hash now; a row
 stored before `greenPhase` existed is never current, so its ticket is gated again. `gate list --json` and the `gate`
-writes print `PipelineUtil.contentHashOf` and one `phaseHashOf` per phase
-([the pipeline hashes](../cli.md#the-pipeline-hashes)).
+writes print `PipelineUtil.contentHashOf` and one `phaseHashOf` per phase ([the pipeline
+hashes](../cli.md#the-pipeline-hashes)).
 
 ## The pipeline agent
 
-The pipeline agent's output is never trusted into `pipeline.json`: every line it proposes is run first, and User reads what
-happened.
+The pipeline agent writes nothing the board runs on. It fills a setup record, and only User's Apply turns that record
+into `pipeline.json` and the repository's `CONSTITUTION.md`.
 
-![With no pipeline or on the advise command, a detached snapshot is taken and a pipeline agent session reports. Customs refusal ends the job failed. A report saying advise ends closed. A report saying setup runs twice with caching checks, then opens pipeline-proposal. Accept writes prepare steps and gates while review, constitution and agents stay shown. Decline changes nothing.](../figures/customs-and-gates/pipeline-agent-flow.png)
+![User's pipeline setup opens the setup record and launches the pipeline agent in a snapshot of the main line. The agent relays findings, questions, the constitution and draft edits into the record, and Customs checks the snapshot at each turn end; a refusal opens setup-snapshot-touched and Apply refuses. User answers, edits, continues each step and may press a check or a profile. Apply then has the main line's Airlock commit CONSTITUTION.md in an ungated job, unless main holds the text, and in the hold of that landing pipeline.json is written and the record removed.](../figures/customs-and-gates/pipeline-agent-flow.png)
 
-*Notice that accepting writes less than was proposed: `review`, `constitution` and `agents` have no verb, so they stay
-shown, and a board with no `review` has no review phase.*
+*Notice that every arrow into `pipeline.json` passes User's Apply: the agent's own moves stop at the record.*
 
-The mode is `setup` when no pipeline is stored and `advise` when one is. `setup` proposes a whole pipeline to run twice
-and offer to User. `advise` looks at a stored pipeline and its gate history and reports optimisations, each meant as a
-low draft ticket; no proposal follows.
+### The setup record
 
-The Playbook starts one pipeline agent per opening of `checks-not-set`; the `advise` verb starts one on demand. Its first
-message states the mode it was launched in and the newest `gate-ran` records (`pipelineAgentFactsOf`).
+`pipeline setup` opens `<data>/pipeline-setup.json`, the [setup record](../glossary.md#setup-record), and launches the
+agent in the same lock hold. One record is open at a time, and every finding, question, answer, edit and step move is
+stored in it as it happens. The record is the session's memory: a session replaced after a crash starts from it, and so
+does one opened again after a stop.
 
-Routing follows the mode the report states, and nothing compares it with the mode the session was launched in. A
-`setup` session reporting `advise` ends `closed` with no proposal, and `pipelineAgentAnsweredChecksNotSet` then starts no
-other pipeline agent for that opening. An `advise` session reporting `setup` gets a proposal too, and accepting it merges
-into the stored pipeline: replacing by name, or clearing the gates when it proposes none.
+| Step | The agent | User |
+| --- | --- | --- |
+| `billing` | Nothing yet | Chooses who pays: the subscription, or an API key with an optional cap per launch |
+| `research` | Reads the snapshot and records findings: stack, scripts, conventions, continuous integration; it runs no script | Answers its questions, corrects findings in the chat |
+| `constitution` | Drafts the whole constitution as one markdown text, with a source for a line where one exists | Edits the text |
+| `design` | Proposes the whole pipeline as draft edits, each with one summary sentence | Edits the draft, undoes an edit, presses a check or a profile |
+| `apply` | Nothing | Applies |
 
-### The snapshot
+Only User's Continue moves a step; the agent's `pipeline ready` is a suggestion. An answer or edit at an earlier step
+reopens it, and every later `done` step then needs a recheck: a Continue on it, never a redo. The record has three
+modes: `setup`, a first setup; `update`, the stored pipeline as the draft and main's `CONSTITUTION.md` as the
+constitution, with no agent until User asks for one; and `advise`, the same with an agent that reads the stored
+pipeline and its newest `gate-ran` records and proposes edits. No mode files a ticket. The record's fields are in [the
+file format](../cli.md#datapipeline-setupjson), its verbs in [Pipeline setup](../cli.md#pipeline-setup), and its step
+states in [State machines](../data-model/state-machines.md).
 
-`PipelineAgentSessions.prepareSnapshot` adds a detached worktree at the main line's tip, `<worktrees>/pipeline-agent/J<n>`, and writes
-`pipeline-agent-start.json` with the start commit and launch snapshot. The Overseer removes it when the job settles.
-[Regrouping](../glossary.md#regrouping) does not count the `pipeline-agent` folder as leftover, so a snapshot of a job that
-ended any other way stays until removed by hand.
+### What the session may do
 
-Its profile is in [Confinement](confinement.md). V4, V16 and V14 prove that it changed nothing: a changed file, a commit
-or a moved ref fails the job.
+The session works in a detached snapshot of the main line, `<worktrees>/pipeline-agent/<S>`, one per record and kept
+across its jobs. `prepareSnapshot` checks it out at the record's `snapshotCommit` before each launch, so `pipeline
+resume` after main moved only resets it to the new commit. Its profile (`pipelineAgentProfileOf`) writes only its
+Hatch folder, with no network, no skill and no question tool; its profile is in [Confinement](confinement.md).
+
+Its only moves are five verbs relayed through the [Hatch](../glossary.md#hatch), each stamped by the
+[Bouncer](../glossary.md#bouncer) with its job and its record: `pipeline finding`, `pipeline ask`, `pipeline
+draft-constitution`, `pipeline propose` and `pipeline ready`, and `question options`. Every ticket verb is refused for
+its role. A question is a setup question in the record, never a [decision](../glossary.md#decision): two to four
+options, one recommended, and User's free text in place of an "Other" option. Apply refuses while one is open.
+
+The session is multi-turn: a turn's `result` never ends it. A stop ends it `closed`, and User's next answer, edit or
+message opens it again with that move as its next line.
+
+### Customs at each turn end
+
+A pipeline agent owes no report. In the lock hold that reads each turn's `result`,
+`PipelineAgentSessions.verifyTurnEnds` runs its column on the snapshot: V16, then V4, V5, V13 and V14. A commit, a
+changed or untracked file, a write to `<data>`, a change to the agents' configuration or a moved ref is a refusal.
+
+A refusal does not end the session. It marks the record's snapshot touched, logged `pipeline-snapshot-touched`, and
+opens one `setup-snapshot-touched` [incident](../glossary.md#incident), so the Assistant or User reads it. Apply then
+refuses `setup-snapshot-touched` until User starts the setup over, or resumes it once main moved. V14 lets pass the
+refs other jobs move and the Overseer's own landings, refreshes and constitution commits, and gives the session no ref
+of its own.
+
+### Checks and profiles, on User's press
+
+No proposed line runs by itself. Two runs exist, and each starts only when User presses for it: `pipeline check` or
+"Ask the pipeline agent to check", and `pipeline profile` or a gate row's stopwatch. The agent may relay neither.
+
+| | Pipeline check | Gate profile |
+| --- | --- | --- |
+| Runs | The draft's prepare steps and each gate the draft changes or adds, each gate on its own, `PROPOSAL_RUN_COUNT` (2) times | The phase's prepare steps and one gate in one phase, once |
+| Where | A fresh detached worktree of main's tip, `<worktrees>/pipeline-checks/<S>` | A fresh detached worktree of main's tip, `<worktrees>/gate-profiles/<P>` |
+| Result | A verdict per gate, stored in the record and sent to the agent as a message | The ending and the duration, stored in `gate-profiles.json`; the output streams as it arrives |
+| Code | `PipelineChecking`, through `ProposalTwiceRun.runProposalTwice` | `GateProfiling`, through `GateLineRun` |
+
+Both run under the confinement of the Overseer's own gate runs, with no `writes` folder granted, so a gate that needs
+one ends red or `cannot-run`. Both take a [gate slot](../glossary.md#gate-slot) only when no job or Airlock gate of
+this Overseer waits for one. Neither records a green or a `gate-ran` record, and Apply never waits on either. An
+Overseer start records a run it finds `running` as `stopped` and removes the worktrees; nothing runs it again.
 
 ### Twice-run
 
-A verified `setup` report goes to `ProposalTwiceRun.runProposalTwice`, `PROPOSAL_RUN_COUNT` (2) times. A command that
-passes once proves little; two runs catch a flaky gate and one whose result depends on what the first run left behind.
-Each gate runs alone. A gate that changes a tracked file fails and that change is undone, so the next gate sees the
-tracked files as committed. Untracked output stays for later gates and the second run.
-
-Proposed lines run confined as a merge gate does, or not at all: a refused line opens `sandbox-unavailable`. They take no
-gate slot, and the Overseer awaits them from the Pass, outside the lock hold.
+A pipeline check runs each gate `PROPOSAL_RUN_COUNT` (2) times. A command that passes once proves little; two runs
+catch a flaky gate and one whose result depends on what the first run left behind. Each gate runs alone. A gate that
+changes a tracked file fails and that change is undone, so the next gate sees the tracked files as committed. Untracked
+output stays for later gates and the second run.
 
 ![Three gates in two runs. gate-a passes both times and is green. gate-b rewrites a tracked file, fails both times with the change undone, and is red. gate-c passes in run 1, fails in run 2 on a file run 1 left behind, and is disagreeing.](../figures/customs-and-gates/twice-run-grid.png)
 
 *Notice the last row: only a second run on the same folder can expose a gate that leans on what the first left behind.*
 
-| What the two runs did | `ProposedGateVerdict` |
+| What the two runs did | `CheckedGateVerdict` |
 | --- | --- |
 | Passed both times | `green` |
 | Failed both times | `red` |
@@ -491,15 +569,17 @@ gate slot, and the Overseer awaits them from the Pass, outside the lock hold.
 | Differed | `disagreeing` |
 
 A failed prepare step records each gate of that run as `cannot-run`, with the prepare's output. Durations never change a
-verdict; `CachingChecks` reads them only to suggest a caching tool.
+verdict.
 
 ### `CachingChecks`
 
 <details>
 <summary>Caching checks only suggest; the four suggestions</summary>
 
-`CachingChecks.cachingSuggestionsOf` reads `turbo.json` and the measured times. It installs nothing and edits no tracked
-file.
+When a profile of the open record ends, `CachingChecks.cachingSuggestionsOf` reads `turbo.json` and the durations the
+profiles recorded so far, and records each new suggestion as a finding of topic `note`. It installs nothing and edits no
+tracked file. The agent's first proposal also records, the same way, what the snapshot's tree cannot hold on every OS,
+read from git's index (`TreePortability.treeFindingsAt`).
 
 | Suggestion | When |
 | --- | --- |
@@ -510,28 +590,37 @@ file.
 
 </details>
 
-### The decision and what acceptance writes
+### Apply
 
-Accepting writes only the prepare steps and gates; declining changes nothing.
+Apply writes the whole pipeline in one step, after the constitution is on the main line.
 
-The outcome goes to `pipeline-agent-outcome.json` in the job folder. The next lock hold ends the job, removes the snapshot
-and, for a proposal, opens `pipeline-proposal`. The `PipelineAgentOutcome` type has no proposal without its twice-run
-record, so none can be shown without what it did.
+The constitution is the tracked file `CONSTITUTION.md` at the repository root, and every launch reads it from the main
+line. Only a commit on main changes it, so Apply has two stages ([Apply](../cli.md#apply) states each refusal and the
+write order).
 
-On acceptance, `acceptProposal` writes through the same Board moves as `gate prepare`, `gate add` and `gate none`, in
-the answering lock hold. Nothing filters on verdict: a `red` gate is written if User accepts it. The report's gate shape
-has no `fix`, `in` or `overseerOnly` (see the field list in the [CLI reference](../cli.md)), so a proposal cannot set
-them.
+1. **The request.** `pipeline apply` refuses an open question, a stale revision, a step that needs a recheck, a touched
+   snapshot, a `CONSTITUTION.md` on main that changed since the record opened (`constitution-moved`) and a stored
+   pipeline that changed since (`pipeline-moved`). When main already holds the draft's text, stage 2 runs at once.
+   Otherwise the record stores an Apply request, `committing`, and nothing else changes.
+2. **The commit.** The main line's [Airlock](../glossary.md#airlock) commits the text in a `constitution-commit` job,
+   before any ticket and also while the board is paused. The job has no role, no agent and no Customs, and runs no
+   gate: it changes one document, and it refuses to land a commit that changes any other path. It is the one write of
+   the program to the main line outside a ticket's landing. A main checkout that blocks it holds the request with the
+   reason; it is never refused for that. The job and its cases are in [The constitution
+   commit](../cli.md#the-constitution-commit).
+3. **The finish.** In the hold that records the landing, `finishApply` writes `pipeline.json` whole: every key,
+   `constitution.path` set to `CONSTITUTION.md`. It writes the agent's sources to `constitution-sources.json`, withdraws
+   `checks-not-set`, resumes the board when User asked, logs `pipeline-applied` and removes the record.
 
-> **Careful.** A board fitted by the `gate` verbs or an accepted proposal has no `review` key, so it has no review
-> phase: gated builds land on their gates alone, whatever the proposal showed. Only a hand edit of `pipeline.json` adds
-> one.
+In-flight tickets take the new phase hashes at their next gate run, and every launch after the landing reads the
+committed constitution. Nothing is written under `<data>/briefs/defaults/`, which `update` replaces.
 
-> **Careful.** The Board moves carry none of the verbs' checks. A proposed name or `writes` folder is written
-> unvalidated, and one the strict parser refuses makes the file malformed.
+> **Why.** A constitution in the data folder would differ per checkout and reach no reviewer of the code's history.
+> As a tracked file it is reviewed like code, and Customs V11 refuses a ticket branch that changes it unless its ticket
+> names it.
 
-> **As built.** `advise` opens an advise setup record, and its pipeline agent proposes each optimisation as an edit of
-> that record's draft, which User applies.
+> **Careful.** An older or malformed `pipeline.json` holds the board like no pipeline, and Apply writes over it only
+> when the record was opened with `pipeline setup --replace-unreadable`.
 
 ## Why gates are opaque
 
@@ -549,10 +638,10 @@ interprets them.
 
 ## Invariants
 
-1. A build, review or pipeline agent report moves nothing until V1 accepts it. An `outcome` of `blocked`, `wound-down` or
+1. A build or review report moves nothing until V1 accepts it. An `outcome` of `blocked`, `wound-down` or
    `cannot-build` is then believed.
-2. A build, review or pipeline agent report reaches gates, a twice-run or a `closed` advise ending only once its role's whole
-   column passed. The first refusal stops the column and is the only one acted on.
+2. A build or review report reaches gates only once its role's whole column passed. The first refusal stops the column
+   and is the only one acted on. A pipeline agent's refusal at a turn end keeps its record from being applied.
 3. A git failure reading a check's range is a refusal, never a green check, except V7's read of a single message after
    the range is listed.
 4. A gate passes only by exiting 0 with `git diff HEAD` showing no tracked change.
@@ -560,7 +649,9 @@ interprets them.
 6. A branch cannot change `pipeline.json`. A build or review branch cannot change a `definedBy` or tracked instruction
    file its ticket does not name.
 7. A verdict file is read only by its own job; across jobs only the `gate-ran` log record is read.
-8. A pipeline proposal reaches User only with its twice-run record.
+8. Nothing the pipeline agent proposes reaches `pipeline.json` or `CONSTITUTION.md` but through User's Apply, and no
+   proposed line runs before User presses a check or a profile.
+10. Each place a tree is gated runs the gates of one phase, and records that phase and its hash on the row.
 9. Gate runs through Watchers and the Airlock on one machine never exceed `GATE_RUNS_AT_ONCE`.
 
 ## In the code
@@ -577,7 +668,7 @@ interprets them.
 | Pipeline agent's column | `src/services/lifecycle/Customs.ts` | `headUnmoved` | `src/services/lifecycle/Customs.pipelineAgent.spec.ts` |
 | Routing a refusal | `src/services/overseer/JobLaunch.ts` | `verifyAndRoute`, `RESUMABLE_CUSTOMS_CHECKS` | `src/services/overseer/JobLaunch.redHandoff.spec.ts` |
 | V13 before launch | `src/services/overseer/JobLaunch.ts` | `ticketIdsTouchingAgentConfigOf`, `holdAgentConfigHits` | `src/lib/tracker-model/Playbook.spec.ts` |
-| An open decision keeps launches off | `src/lib/tracker-model/Playbook.ts` | `TICKET_HOLDING_DECISION_KINDS`, `pipelineAgentAnsweredChecksNotSet` | `src/lib/tracker-model/Playbook.spec.ts` |
+| An open decision keeps launches off | `src/lib/tracker-model/Playbook.ts` | `TICKET_HOLDING_DECISION_KINDS` | `src/lib/tracker-model/Playbook.spec.ts` |
 | V10 in the Airlock | `src/services/lifecycle/MergeRun.ts` | `resolutionIsSound` | `src/services/lifecycle/Customs.verification.spec.ts` (V10) |
 | A held job gets no Watcher | `src/services/overseer/DrivePass.ts` | `jobsNeedingAWatcher` | |
 | Report schemas | `src/adapters/reports/ReportSchemas.ts` | `BUILDER_REPORT_SCHEMA` and siblings | `src/adapters/reports/ReportSchemas.spec.ts` |
@@ -592,9 +683,14 @@ interprets them.
 | Pipeline hashes | `src/lib/tracker-model/utils/PipelineUtil.ts` | `phaseHashOf`, `contentHashOf` | `src/lib/tracker-model/utils/PipelineUtil.spec.ts` |
 | Row's phase hash and green phase | `src/lib/tracker-model/TrackerChanges.ts`, `src/lib/tracker-model/MergeQueueMarks.ts` | `recordPipelineJudgedBy`, `greenIsCurrent`, `greenPhaseOf` | `src/lib/tracker-model/Board.airlocks.spec.ts` |
 | Instruction files | `src/services/overseer/InstructionFiles.ts` | `trackedInstructionPathsOf`, `DEFAULT_INSTRUCTIONS_OF_ROLE` (`src/lib/tracker-model/constants/PipelineDefaults.ts`) | |
-| Pipeline agent job | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `pipelineAgentFactsOf`, `pipelineAgentProfileOf`, `settleEndedPipelineAgents` | |
+| Gates of a phase | `src/lib/tracker-model/utils/PipelineUtil.ts` | `gatesOfPhase` | `src/lib/tracker-model/Board.pipelinePhases.spec.ts` |
+| Pipeline agent job | `src/services/overseer/PipelineAgentSessions.ts` | `prepareSnapshot`, `pipelineAgentFactsOf`, `pipelineAgentProfileOf`, `verifyTurnEnds` | `src/services/overseer/PipelineAgentSessions.spec.ts` |
+| Setup record moves | `src/lib/tracker-model/PipelineSetups.ts` | `openSetup`, `continueSetupStep`, `editDraft`, `requestApply`, `finishApply` | `src/lib/tracker-model/PipelineSetups.spec.ts`, `src/lib/tracker-model/PipelineSetups.apply.spec.ts` |
+| The agent's relayed verbs | `src/services/control/Bouncer.ts`, `src/services/control/PipelineAgentControls.ts` | `pipelineAgentVerdictOf` | `src/services/control/PipelineAgentControls.spec.ts` |
+| Pipeline check | `src/services/overseer/PipelineChecking.ts` | `createPipelineChecking` | `src/services/overseer/PipelineChecking.spec.ts` |
 | Twice-run | `src/services/lifecycle/ProposalTwiceRun.ts` | `runProposalTwice`, `verdictOf` | `src/services/lifecycle/ProposalTwiceRun.spec.ts` |
+| Gate profile | `src/services/overseer/GateProfiling.ts` | `createGateProfiling` | `src/services/overseer/GateProfiling.spec.ts` |
 | Caching suggestions | `src/services/lifecycle/CachingChecks.ts` | `cachingSuggestionsOf` | `src/services/lifecycle/CachingChecks.spec.ts` |
-| Acceptance | `src/services/lifecycle/PipelineAgentProposal.ts` | `acceptProposal` | |
+| The constitution commit | `src/services/overseer/Airlocks.ts`, `src/services/overseer/ConstitutionCommits.ts` | `allocateConstitutionCommit` | `src/services/overseer/Airlocks.constitutionCommit.spec.ts`, `src/services/overseer/ConstitutionCommits.spec.ts` |
 
 </details>

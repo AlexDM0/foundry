@@ -35,8 +35,8 @@ Four modes cover every file, and two questions place each one.
 ![A grid of two questions. Columns ask whether one caller wins or every caller writes; rows ask whether a reader sees whole files or can see a partial file. createFileAtomically wins and shows whole files. writeFileAtomically writes for every caller and shows whole files. writeFileSync with flag wx wins but can be read mid-write. Plain write and append write for every caller and can be read partial.](../figures/on-disk-atlas/write-modes-grid.png)
 
 *Notice that exclusive create sits in both rows: `createFileAtomically` shows no partial file wherever hard links work,
-while `writeFileSync` with flag `wx` can be read mid-write, which gate slots and repair patches accept. Where hard
-links fail `createFileAtomically` falls back to that same open, and `createWholeFileAtomically`, for the Baton, refuses.*
+while `writeFileSync` with flag `wx` can be read mid-write, which gate slots and repair patches accept. Where hard links
+fail `createFileAtomically` falls back to that same open, and `createWholeFileAtomically`, for the Baton, refuses.*
 
 | Mode | How | Used for | Package call |
 | --- | --- | --- | --- |
@@ -63,7 +63,11 @@ files. A verb in the tables below is one `forge` command.
 <data>/
   progress.json              the rows, jobs, decisions, incidents and counters
   log.jsonl                  the log, one record per line
-  pipeline.json              the gates, once a board has them
+  pipeline.json              the pipeline, once a gate verb or an Apply wrote it
+  pipeline-setup.json        the open pipeline setup record, while one is open
+  gate-profiles.json         the gate profiles User started; appears with the first
+  gate-profile-runs/<P>.ndjson  one profile run's output, appended as it arrives
+  constitution-sources.json  the pipeline agent's sources of the applied constitution; appears with the first Apply
   hold-journal.json          the write a lock hold committed to, present only until its files are written
   version.json               the install version, written last by init and update
   progress.html              a stub naming the live Overseer's URL, or saying it is down
@@ -96,7 +100,11 @@ lock files it is a [generation](../glossary.md#generation), and in `D<n>` a fili
 | --- | --- | --- | --- | --- | --- |
 | `progress.json` | Every mutating verb and the Overseer, in a lock hold | Everything; `status` reads it with no lock | Exclusive at `init`, then atomic; `CURRENT_PROGRESS_FILE_VERSION` | The board's life | No |
 | `log.jsonl` | Every mutating verb and the Overseer, in a lock hold, after the other files | The `Board` class, as an input: [storage](storage.md) | Atomic whole file; no version, strict read | Restarted at `clear` with one `tracker-cleared` record | No: the `Board` reads it as input, so lifecycle facts vanish with it: [storage](storage.md) |
-| `pipeline.json` | `gate` verbs; an accepted `pipeline-proposal`; User by hand (the only way to set a [review phase](../architecture/customs-and-gates.md)) | Overseer every [Pass](../glossary.md#pass), `gate list`, `TrackerReader` | Atomic; no version, strict read | The board's life | No |
+| `pipeline.json` | `gate` verbs; an Apply's stage 2, in a lock hold; User by hand | Overseer every [Pass](../glossary.md#pass), `gate list`, `TrackerReader` | Atomic; `PIPELINE_FORMAT_VERSION`, strict read | The board's life | No |
+| `pipeline-setup.json` | `pipeline` verbs, the pipeline agent's relayed verbs and the Overseer, in a lock hold | `Board`, the pipeline agent's first message, the Bridge | Atomic; `formatVersion` 1 | From `pipeline setup`, `pipeline update` or `advise` to an Apply's stage 2 or `pipeline start-over` | No: the [setup record](../glossary.md#setup-record) is the only memory of the setup |
+| `gate-profiles.json` | `pipeline profile`, `pipeline profile-stop` and the Overseer, in a lock hold | `Board`, the Bridge | Atomic; `formatVersion` 1 | The board's life; a newer run of a gate and phase replaces the older | Yes, with no run live: the times shown go |
+| `gate-profile-runs/<P>.ndjson` | The Overseer, outside the hold, as the output arrives | The profile stream route | Append in place; one JSON line per piece | Stays | Yes, with its run ended: its output goes |
+| `constitution-sources.json` | An Apply's stage 2, in a lock hold | `pipeline setup`, `pipeline update` and `advise`, while its blob is main's | Atomic; `formatVersion` 1 | Until the next Apply | Yes: the constitution's lines show no source |
 | `hold-journal.json` | `src/adapters/hold-journal/HoldJournalWriter.ts`, in a lock hold | The next lock taker, which replays it; `status`, lock-free | Atomic; `HOLD_JOURNAL_FORMAT_VERSION` | One lock hold | Never: it is the only redo record |
 | `.lock/generation-<n>` | `src/services/tracker/TrackerLock.ts` | Every lock taker | Exclusive; no version | The newest stays; older ones go at each take | No |
 | `tickets/<id>-<slug>.md` | Verbs in a lock hold; User below the frontmatter | `Board`, [Bridge](../glossary.md#bridge), launch text | Atomic; no version, line parse | Until `clear --all` | No |
@@ -121,6 +129,7 @@ This folder holds no secret. The API token is in [`<monitor>/watchers/<trackerId
 | `baton-pass-<n>.json` | The progress report of one Overseer hand-over | Old Overseer and successor, in turn | Old Overseer, successor, and `oversee restart` and `update` waiting for the outcome | Atomic; `BatonPassReport` | Stays | Yes, when no Baton pass runs |
 | `watcher-<codeVersion>.js` | The bundled Watcher code pinned for one code version, so a change to the checkout never changes what a Watcher runs | `WatcherBundle.pinWatcherBundle` | The Bun runtime (`process.execPath`), at each Watcher spawn | Atomic; bundle | Stays | Yes for any [code version](../glossary.md#code-version) but the live Overseer's |
 | `merge-gate-profiles/<worktree>.sb` | The sandbox profile that confines a merge gate step | The Pass, before a merge gate step | `sandbox-exec` | Atomic; sandbox profile | Rewritten before each use | Yes, when no merge gate runs |
+| `gate-profile-sandboxes/<P>.sb`, `pipeline-check-sandboxes/<S>.sb` | The sandbox profile that confines a gate profile's or a pipeline check's lines | The Overseer, before the run | `sandbox-exec` | Atomic; sandbox profile | Rewritten before each use | Yes, when no profile or check runs |
 
 > **As built.** Old bundles, profiles and Baton pass files stay on disk:
 > [gap-nothing-is-ever-removed](../reference/known-gaps.md#gap-nothing-is-ever-removed).
@@ -162,7 +171,7 @@ Code treats a missing job file as absent, with the [five exceptions](#job-files-
 | `report.schema.json` | Overseer, for kinds with a [report](../glossary.md#report) | Nothing | Atomic | The schema reaches the session inline through `--json-schema` | `REPORT_SCHEMA_OF_JOB_KIND` |
 | `first-message-<n>.txt` | Overseer, for a fresh instance, so `<n>` is always 1 | Overseer, until delivered | Atomic | Holds the task text across an Overseer restart | `JobResumption.storeFirstMessage` |
 | `start.json` | Overseer, once, for build and review jobs | [Customs](../glossary.md#customs), a retry's Customs, and the gate step | Plain, skipped when present | Start commit, body hash and the ref snapshot Customs compares | `JobStart` |
-| `pipeline-agent-start.json` | Overseer, once, for a [pipeline agent](../glossary.md#pipeline-agent) | Overseer | Plain | The same start facts for the snapshot worktree | `SnapshotStart` |
+| `pipeline-agent-start.json` | Overseer, before each launch of a [pipeline agent](../glossary.md#pipeline-agent)'s instance | Overseer, at each turn end | Plain | The snapshot's HEAD and every ref at the launch, which Customs compares | `SnapshotStart` |
 | `instructions-<n>.json` | Overseer | Nothing in code; kept for people | Atomic | Path and content hash of every instruction file the session got | `InstructionFileRead` |
 | `launch-settings.json` | Overseer, once, at the job's first launch | Overseer, at each later launch of the session | Atomic, skipped when present | The model and effort the session runs on | `JobLaunch.recordLaunchSettings` |
 | `worktree-failure.txt` | Overseer | Overseer, for its presence | Plain | Git's error; stops a retry and raises `setup-failed` | `createWorktree` |
@@ -229,7 +238,7 @@ Below, `<step>` is any of these folder names.
 | File | Writer | Reader | Mode | Purpose | Owning type |
 | --- | --- | --- | --- | --- | --- |
 | `<step>/process-sandbox.sb` | Overseer | `sandbox-exec` | Plain | The step's confinement | `ProcessWatcherSandbox` |
-| `gate-run.json`, `gate-run-<n>.json`, `target-gate-run.json` | Overseer, once, at the gate run's start | Overseer, at each read of the run | Atomic, never rewritten | The run's manifest: its phase, phase hash, prepare steps and gates in order. The run's steps and folders come from it, and the settlement records its phase and hash | `GateRunManifest` |
+| `gate-run.json`, `gate-run-<n>.json`, `target-gate-run.json`, `main-gate-run.json`, `main-gate-run-<n>.json` | Overseer, once, at the gate run's start | Overseer, at each read of the run | Atomic, never rewritten | The run's manifest: its [gate phase](../glossary.md#gate-phase), phase hash, prepare steps and gates in order. The run's steps and folders come from it, and the settlement records its phase and hash. `target-` is the [merge before review](../glossary.md#merge-before-review), `main-` the merge before User's Merge | `GateRunManifest` |
 | `<step>-verdict.json` | Overseer, the first time it reads the step's result | Overseer | Plain | For `gate-prepare` and each gate; `install` has none. Keeps a result by tree id and the manifest's phase and hash, so a later gate that changes the tree never turns an earlier one red, and a verdict under another manifest is never reused | `StepVerdict` |
 | `gate.log` | Overseer, when `gate-prepare` or a gate does not pass; a failed `install` leaves its output in `install/events-1.ndjson` | Agents through the red-handoff note; the Bridge through `SERVED_JOB_FILE_NAMES` | Plain | The failing step's whole output, newest failure only | `stepVerdictOf` |
 | `gate-failure.md` | Overseer | The resumed session | Atomic | The [red-handoff](../glossary.md#red-handoff) note | `RedHandoff.batonPassTextOf` |
@@ -251,7 +260,8 @@ Each of these files belongs to one [job kind](../glossary.md#job-kind), or to an
 | --- | --- | --- | --- | --- | --- | --- |
 | `assistant-chats.json` | `assistant` | Overseer | Overseer | Atomic | The chats sent, with their incident ids, across a Baton pass | `AssistantChat` |
 | `airlock-facts.json` | `merge` | Overseer | Overseer, launching a merge agent | Atomic | Merge commit and gate tail, kept because the incident that held them is closed by launch time | `keepAirlockFacts` |
-| `pipeline-agent-outcome.json` | `pipeline-agent` | Overseer | Overseer, once settled; the answer to a `pipeline-proposal` decision (`answerPipelineProposal`) | Atomic | The verified outcome; the job ends from it | `PipelineAgentOutcome` |
+| `target-merge.json`, `target-merge-settlement.json`, `target-conflict.json`, and the `target-merge/` process Watcher folder | `review` | Overseer | Overseer | Atomic | The merge before review: both tips, how the merge ended, the conflicted files for the builder | `JOB_FILE_NAMES` in `JobLaunch.ts` |
+| `main-merge.json`, `main-merge-settlement.json`, `main-conflict.json`, `main-resolution.json`, `main-gate-required.json`, each `-<n>` past the first round, and the `main-merge/` folder | `build`, `review` in `merging-main` | Overseer | Overseer | Atomic | The merge before User's Merge, per round: both tips, the settlement, a conflict sent to the session, the resolution kept for the conflict re-review, the tree to gate | `MAIN_MERGE_FILES` in `JobLaunch.ts` |
 | `waiver-proposals.json` | `review` | Overseer | The decision answer (`ReviewOutcome.answerWaiver`), in the process applying it, such as the `decide` verb | Plain | The items a reviewer proposes to waive | `WaiverProposal` |
 | `recreate-<k>.patch` | any with a ticket | `worktree repair --step recreate` | People | Exclusive | Uncommitted work saved before a worktree is removed; `<k>` is a running count, not an instance | `WorktreeRepair` |
 
@@ -264,7 +274,7 @@ Five job files stop something when they cannot be read. Every other reader treat
 | `watcher-<n>.json` | Unreadable | Reads as a lost Watcher (`WatcherFleet.livenessOf`) |
 | `launch-<n>.json` | Missing or unreadable | Its Watcher ends with `launch-unreadable` |
 | `start.json` | Missing or unreadable | The job fails at Customs with cause `git-failed` |
-| `pipeline-agent-start.json` | Missing or unreadable | The pipeline agent is refused at check V16, and its job ends `failed` with cause `git-failed` |
+| `pipeline-agent-start.json` | Missing or unreadable | The turn end is refused at check V16 with `git-failed`: the record's snapshot reads as touched and `setup-snapshot-touched` opens |
 | `events-<n>.ndjson` | Malformed | `WatcherFleet.eventsAfter` answers `malformed`, and its callers refuse to read in part: [storage](storage.md#what-breaks-and-what-still-works) |
 
 ### Deleting a job folder
@@ -285,14 +295,18 @@ is in [Every worktree kind](../architecture/build-and-review.md#every-worktree-k
 | `group-<name>/` | A [group](../glossary.md#group) branch checked out | Git |
 | `refresh-group-<name>/` | A temporary checkout for a group [refresh](../glossary.md#refresh) | Git |
 | `sessions/<J>/` | The working folder of a session with no ticket worktree; empty at start | The session |
-| `pipeline-agent/<J>/` | A detached snapshot of the [main line](../glossary.md#main-line) for a pipeline agent | Git |
+| `pipeline-agent/<S>/` | A setup record's detached snapshot of the [main line](../glossary.md#main-line), kept across its pipeline agents; `<J>` for an `advise` agent no record names | Git |
+| `pipeline-checks/<S>/` | A pipeline check's fresh detached worktree of main | Git and the checked lines |
+| `gate-profiles/<P>/` | A gate profile's fresh detached worktree of main | Git and the profiled line |
+| `constitution-commits/<J>/` | A constitution commit job's detached worktree of main's tip, holding its commit of `CONSTITUTION.md` | Git and the Overseer |
 | `hatch/<J>/requests/<request>.json` | What a session asks of the Overseer | Hatch verb under the job, atomic, `hatchFormatVersion` |
 | `hatch/<J>/replies/<request>.json` | The Overseer's answer | Overseer, atomic, `hatchFormatVersion` |
 
-The `sessions`, `hatch` and `pipeline-agent` folders belong to the Overseer, so Regrouping never counts them as leftover
-worktrees (`OVERSEER_OWNED_FOLDERS`). The contract behind the Hatch files is in
-[Control: one contract, three doors](../architecture/control-and-hatch.md). A ticket worktree is repaired with
-`worktree repair`, never removed by hand.
+The `sessions`, `hatch`, `pipeline-agent`, `pipeline-checks` and `gate-profiles` folders belong to the Overseer, so
+Regrouping never counts them as leftover worktrees (`OVERSEER_OWNED_FOLDERS`). A worktree under
+`constitution-commits/` is its job's, as a refresh worktree is: Regrouping counts one only when no live job owns it.
+The contract behind the Hatch files is in [Control: one contract, three doors](../architecture/control-and-hatch.md).
+A ticket worktree is repaired with `worktree repair`, never removed by hand.
 
 > **As built.** A [landed](../glossary.md#landing) ticket's worktree stays:
 > [gap-landed-worktrees-stay](../reference/known-gaps.md#gap-landed-worktrees-stay).
@@ -308,6 +322,7 @@ lists a machine's boards from `projects.json`, and the folder is named for it; a
 | `projects.json` | The list of boards on this machine | `registerWithTheMonitor`, after a CLI verb's tracker write and `init`, and at Overseer start and stop, under its own lock | A monitor; `registerWithTheMonitor`, merging | Atomic; `MONITOR_REGISTRY_FILES.SUPPORTED_VERSION` | Grows with boards; a tracker under a temp folder never enters | Yes: the next CLI write or Overseer start adds the board back; until the Overseer next starts, its entry has no `overseer` pointer |
 | `.lock/generation-<n>` | The lock over `projects.json` | `registerWithTheMonitor` | Every writer of `projects.json` | Exclusive | The newest stays | Not during a write |
 | `usage-limit.json` | The usage marker: when launches on this machine may go on | Any Overseer that meets a usage limit, only moving the reset later | Every Overseer's Pass, `BoardStateReader` | Atomic; `UsageMarker` | Stays until overwritten | After `resetsAt`, yes. Before it, no: every board on the machine launches again and meets the limit |
+| `usage-windows.json` | The newest observation of each usage window of the vendor's plan | Any Overseer's Pass, after its lock hold, only when a value changes | `/api/state`, as `usage.windows` | Atomic; no version, keeps unknown keys | Stays until overwritten | Yes: no window shows until the next observation |
 | `gate-slots/slot-<k>` | One gate slot; `<k>` runs to `GATE_RUNS_AT_ONCE` | The Overseer taking a gate slot | Every Overseer | Exclusive, then atomic for the holder's process | A merge gate's goes when that gate ends; a gate Watcher's stays until a later gate takes it over | Not while its holder runs: that lets one more gate run. A stale one is taken over without help |
 | `watchers/<hash>.sock` | How the Overseer reaches one Watcher | Each Watcher | The Overseer, with the secret | Unix socket; `WATCHER_PROTOCOL_VERSION` | Until the Watcher closes; a killed Watcher's socket stays, and nothing removes it | Not while its Watcher lives: the Overseer loses its connection to that Watcher. A dead Watcher's socket does nothing |
 
@@ -337,6 +352,12 @@ it.
 | `.claude/settings.local.json`, or `.claude/settings.json` when it already holds the entry | `init`, `update`, unless `--no-hooks` | The vendor's CLI, for the `SessionStart` hook | The hook only: `update` restores it |
 | `.gitignore` entries for `<data>/`, `<worktrees>/` and both skills | `init` for `<data>/`; `init` and `update` for `<worktrees>/` and both skills | Git | No |
 | `~/Library/LaunchAgents/<label>.plist` | `setup.sh --login-overseer`, label default `LOGIN_ITEM_LABEL` | launchd, at login | Yes: it only runs `oversee --detach` |
+
+One tracked file belongs to the program without being installed: `CONSTITUTION.md` at the repository root. Only an
+Apply's constitution commit writes it, on the main line, through the Airlock; User may commit it by hand too. Every
+launch reads it from the main line once the pipeline names it, never from a ticket's branch, and a ticket branch that
+changes it is refused by Customs V11 unless its ticket names the file. A commit that deletes it stops the next launch
+with the notice `instructions-missing`.
 
 `init` and `update` also remove what an older install version left: retired files (`retiredInstalledFilePathsIn`), hooks
 (`RETIRED_HOOKS`, unless `--no-hooks`), a retired skill folder, and the [managed block](../glossary.md#managed-block) in
@@ -396,7 +417,9 @@ While the board runs, code removes coordination files and temporary checkouts; a
 | `filing-cabinet/D<n>.json` | When the filing draft closes |
 | The old contents of `log.jsonl`, and the rows in `progress.json` | At `clear`, which restarts the log and rebuilds the rows |
 | `epics/<key>.md`, `tickets/*.md` | At `clear --all`; an epic also at its own removal |
-| `pipeline-agent/<J>/` | When the pipeline agent settles |
+| `pipeline-agent/<S>/` | After the hold that applies or starts over its record, once no pipeline agent is live |
+| `pipeline-checks/<S>/`, `gate-profiles/<P>/` | When the check or profile ends, and every one at an Overseer start |
+| `constitution-commits/<J>/` | After the job's landing hold, and at every other end of the job |
 | `refresh-group-<name>/`, `group-<name>/` | When the [Airlock](../glossary.md#airlock) frees, and after a release, when git allows it |
 | A ticket worktree | By `worktree repair --step recreate`; the next launch creates it again |
 

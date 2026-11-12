@@ -32,18 +32,22 @@ review that finds a false claim loops back, and the amber rails are the by-hand 
 
 ## Every machine and its home
 
-Seven entries are defined here; the rest link their home.
+Eleven entries are defined here; the rest link their home.
 
 | Machine | Stored in | States | Home |
 | --- | --- | --- | --- |
 | Ticket | ticket file, `status` | 7 | [below](#ticket) |
 | Hold | ticket file, `hold` | present or absent | [below](#hold-an-overlay-on-any-status) |
 | Row | `progress.json`, `tasks` | 8 stored, 2 [display](../glossary.md#display-state) | [below](#row) |
-| Job | `progress.json`, `jobs` | 11 plus `ended` | [below](#job) |
+| Job | `progress.json`, `jobs` | 12 plus `ended` | [below](#job) |
 | Overseer | process, and `overseerState` | 4 runtime, 2 stored | [below](#overseer) |
 | Filing draft | derived from the filing draft's file | 3 | [below](#filing-draft) |
 | Decision | `progress.json`, `decisions` | open or gone | [below](#decision) |
-| Airlock phase | `job.airlock.phase` | 6 | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
+| Setup step | `pipeline-setup.json`, `stepStates` | 4 per step | [below](#pipeline-setup) |
+| Apply request | `pipeline-setup.json`, `applyRequest` | 3, or none | [below](#pipeline-setup) |
+| Pipeline check | `pipeline-setup.json`, `check` | 5 | [below](#pipeline-setup) |
+| Gate profile run | `gate-profiles.json`, `runs` | 7 | [below](#pipeline-setup) |
+| Airlock phase | `job.airlock.phase` | 7 | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
 | [Watcher](../glossary.md#watcher) | the job's Watcher record | see home | [Watchers](../architecture/watchers.md) |
 | [Baton pass](../glossary.md#baton-pass) | the Baton pass file | see home | [Baton](../architecture/baton.md) |
 | [Incident](../glossary.md#incident) | `progress.json`, `incidents` | see home | [Questions and incidents](../architecture/questions-and-incidents.md) |
@@ -271,11 +275,13 @@ the bar says nothing about the result. The verdict is in the `review-recorded` l
 
 A job moves through one legality table and leaves the board when it ends. Only `build` and `review` use the full path;
 the other [job kinds](../glossary.md#job-kind) use part of it. `merge` is the Airlock's own job for one landing,
-[`refresh`](../glossary.md#refresh) its job for a group branch, and neither runs an agent: `role` is `null`.
-`merge-agent` is a [merge agent](../glossary.md#merge-agent), launched inside a merge, in a
-[role](../glossary.md#role) of the ticket's `builder` or `reviewer`.
-`SESSION_JOB_KINDS` are `assistant` and `product-owner`; their `result` ends a turn, never the job. An
-[pipeline agent](../glossary.md#pipeline-agent) proposes the [pipeline](../glossary.md#pipeline).
+[`refresh`](../glossary.md#refresh) its job for a group branch, and `constitution-commit` its job for an Apply's commit
+of `CONSTITUTION.md`; none runs an agent: `role` is `null`. `merge-agent` is a [merge
+agent](../glossary.md#merge-agent), launched inside a merge in the role of the ticket's [last
+worker](../glossary.md#last-worker), `builder` or `reviewer`, or as a `conflict-re-reviewer`; a conflict re-reviewer
+also runs under a build or review job in `merging-main`. `SESSION_JOB_KINDS` are `assistant`, `product-owner` and
+`pipeline-agent`; their `result` ends a turn, never the job. The [pipeline agent](../glossary.md#pipeline-agent) designs
+the [pipeline](../glossary.md#pipeline) with User through its [setup record](../glossary.md#setup-record).
 
 No record of a live job says what process runs it; that lives in the job's folder
 ([Watchers](../architecture/watchers.md)).
@@ -301,7 +307,8 @@ review job:
 | `awaiting-answer` | no process; the job waits on an answer |
 | `in-customs` | the agent closed its turn, and [Customs](../glossary.md#customs) checks its [report](../glossary.md#report) |
 | `gating` | the gates run on the worktree |
-| `merging` | a merge or refresh job holds an Airlock slot, and `airlock.phase` says how far it is |
+| `merging-main` | with merge approval on, a green build or review brings its worktree up to the target's tip before User's Merge: the merge, a conflict re-review when one is due, the gates again |
+| `merging` | a merge, refresh or constitution commit job holds an Airlock slot, and `airlock.phase` says how far it is |
 | `landing` | nothing: [no production path](#unused-in-production) reaches it |
 | `stopping` | asked to stop, waiting for the Watcher to finish |
 | `ended` | off the board, its outcome in the log |
@@ -319,11 +326,12 @@ From `src/lib/tracker-model/constants/JobMoveLegality.ts`, `LEGAL_SOURCE_STATES_
 | `preparing` | `launching` | `applyObservation` |
 | `running` | `launching`, `preparing`, `waiting-for-answer`, `interrupted`, `awaiting-answer` | from `launching` or `preparing`: the `started` event; from `preparing`: install done; from `waiting-for-answer`: an answer; from `interrupted`: the `resume-job` step; from `awaiting-answer`: [no production path](#unused-in-production) |
 | `waiting-for-answer` | `running` | `QuestionRouting.openQuestion` |
-| `interrupted` | `preparing`, `running`, `waiting-for-answer`, `stopping`, `in-customs`, `gating` | `interruptJob`, with a cause |
+| `interrupted` | `preparing`, `running`, `waiting-for-answer`, `stopping`, `in-customs`, `gating`, `merging-main` | `interruptJob`, with a cause; from `merging-main`, a conflict or red gate of the merge before User's Merge goes back to the job's own session |
 | `awaiting-answer` | `interrupted`, `gating` | from `interrupted`: the `await-answer` step; from `gating`: a [waiver](../glossary.md#waiver) move |
 | `in-customs` | `running` | a closing `result` event, `applyWatcherEvents` |
 | `gating` | `in-customs`, `merging` | from `in-customs`: Customs verified, or a merge agent's `resolved` report; from `merging`: [no production path](#unused-in-production) |
-| `merging` | `launching` | `holdSlot` in `AirlockClaims` |
+| `merging-main` | `gating` | `ReviewOutcome.settleReviewPass` with merge approval on, or a green build with no review phase (`JobLaunch`) |
+| `merging` | `launching` | `holdSlot` and `claimConstitutionCommitSlot` in `AirlockClaims` |
 | `landing` | `gating` | [no production path](#unused-in-production) |
 | `stopping` | every state but itself | a stop request, a spent [call budget](../glossary.md#call-budget), a product owner closing its intake, an idle Assistant past `ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH` |
 | `ended` | every state | `endJob` |
@@ -367,11 +375,10 @@ the grid's columns do not cover.*
 <details>
 <summary>How the other kinds read <code>stopping</code></summary>
 
-- An Assistant ends `closed` once its Watcher is gone.
+- An Assistant or a pipeline agent ends `closed` once its Watcher is gone, though the figure keeps a pipeline agent in
+  `stopping`; User's next message, answer or edit opens a closed pipeline agent again.
 - A `merge` or `refresh` job moves to `stopping` and a merge's ticket takes the hold, but the Airlock does not read that
   state, so the merge carries on ([gap-job-stop-misses-merge](../reference/known-gaps.md#gap-job-stop-misses-merge)).
-- A pipeline agent receives no stop frame, and nothing ends it from `stopping`. It stays on the board, and a new pipeline agent
-  does not launch beside it.
 - A merge agent receives no stop frame and stays `stopping`. Its merge stalls with it, until the merge gives up its
   Airlock slot, which ends the agent `stopped`
   ([gap-stop-of-merge-agent-sends-no-frame](../reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame)).
@@ -381,7 +388,8 @@ the grid's columns do not cover.*
 ### Reopening
 
 An ended job comes back in one case. `reopenEndedJob` rebuilds a job from its log records, `running` in the last
-instance + 1. Only a product owner that ended `closed` reaches it, through `messageJob`.
+instance + 1. Only a product owner or a pipeline agent that ended `closed` reaches it (`REOPENABLE_SESSION_KINDS`),
+through `messageJob` or a setup move that messages the agent.
 
 ### Which kinds use which states
 
@@ -393,6 +401,11 @@ instance + 1. Only a product owner that ended `closed` reaches it, through `mess
 
 *These two shapes sit furthest from the build path. For a merge job, read `airlock.phase` for progress: the job state
 says nothing more than `merging`.*
+
+The two figures leave out three entries. A `pipeline-agent` is a session job like the Assistant: it uses `launching`,
+`running`, `interrupted`, `stopping` and `ended`, and never `in-customs`, since it owes no report. A
+`constitution-commit` job is `merging` like a merge, in the phases `committing` and then `landing`, never `merge-in`,
+`gating` or `fixing`. A build or review job adds `merging-main` with merge approval on.
 
 An interrupted `assistant` ends in the next lock hold, `replaced` or `failed`. An interrupted `product-owner` past its
 crash bound waits in `awaiting-answer` if a question is open, and otherwise a fresh session takes its intake over.
@@ -438,6 +451,7 @@ An ended job leaves the board, so its outcome lives in the `job-ended` log recor
 | `landed` | a merge reached the main line |
 | `integrated` | a merge reached a group branch ([integrated](../glossary.md#integrated)) |
 | `refreshed` | a refresh finished |
+| `committed` | a constitution commit landed on the main line, with the commit |
 | `wound-down` | a builder reported it wound down |
 | `failed` | the attempt failed; a failed Airlock merge too; `cause` says why |
 | `blocked` | a builder reported it is blocked |
@@ -446,6 +460,37 @@ An ended job leaves the board, so its outcome lives in the `job-ended` log recor
 | `closed` | a session or pipeline agent ended normally |
 
 </details>
+
+## Pipeline setup
+
+A [setup record](../glossary.md#setup-record) has no single state: each step has one, and an Apply request and a check
+each have their own. A gate profile run is stored beside it. Formats are in the [CLI
+reference](../cli.md#datapipeline-setupjson); the moves are in [Customs and
+gates](../architecture/customs-and-gates.md#the-pipeline-agent).
+
+**Steps.** `billing`, `research`, `constitution`, `design` and `apply`, each `not-started`, `in-progress`, `done` or
+`needs-recheck`. The record opens at `billing` (an `update` or `advise` record at `design`, the earlier steps `done`).
+
+| Move | From | To | By |
+| --- | --- | --- | --- |
+| Continue | the current step, `in-progress` or `needs-recheck` | `done`, and the next step `in-progress` | User only (`pipeline continue`) |
+| Reopen | a `done` step at or before the current one | `in-progress`; every later `done` step `needs-recheck`, never `not-started` | User's answer or edit at that step |
+| Resume after main moved | a `done` research step | `needs-recheck`, with each finding that names a changed path | `pipeline resume` |
+
+The agent's `pipeline ready` only adds the step to `readyToContinue`; no agent move changes a step's state. Apply
+refuses while a step before it is `needs-recheck`.
+
+**Apply request.** None, then `committing` from stage 1. A held landing makes it `held`, with a reason and the blocking
+files, and the next sweep commits again, `committing`. A failed commit, a moved constitution or pipeline, or unexpected
+paths make it `refused`, and the record is editable again. Stage 2 removes the record; `pipeline apply-cancel` clears
+the request from any state.
+
+**Pipeline check.** `queued` by `pipeline check`, `running` when the Overseer takes it, then `checked` with a result,
+`cannot-run` with a reason, or `stopped` by an Overseer stop or start. A newer check replaces it.
+
+**Gate profile run.** `queued` by `pipeline profile`, `running` when the Overseer takes it, then `passed`, `red`,
+`cannot-run` or `stopped`; `timed-out` is read and never written. A Stop of a `queued` run makes it `stopped` at once,
+and of a `running` one sets `stopRequested` until the Overseer records `stopped`.
 
 ## Overseer
 
@@ -477,9 +522,10 @@ Stored `overseerState`, from `OVERSEER_STATES` in `src/lib/tracker-model/constan
 `paused`. An absent value reads as `DEFAULT_OVERSEER_STATE`, `paused`, so a first start waits for User's go.
 `oversee pause` and `oversee resume` set it, `job stop --all` pauses, and the `pause-overseer` step pauses on an outage.
 
-`paused` stops launches and `queue-merge` (`newWorkIsHeld`) and the pipeline agent (`pipelineAgentIsHeld`), and opens no Airlock
-slot (`dispatchIsStopped`). It does not stop a running job, a resume, an incident default, `boot-assistant`, or a merge
-already holding an Airlock slot.
+`paused` stops launches and `queue-merge` (`newWorkIsHeld`), and opens no Airlock slot for a ticket
+(`dispatchIsStopped`). It does not stop a running job, a resume, an incident default, `boot-assistant`, a merge already
+holding an Airlock slot, a pipeline agent that `pipeline setup` starts, or a constitution commit: an Apply that resumes
+the board resumes it only once its commit landed.
 
 Compared with `paused`, `held-by-install-change` also stops resumes but does not stop the Airlock:
 
@@ -567,7 +613,7 @@ Kinds, and what an answer does, are in [Questions and incidents](../architecture
 | Job moves | `src/lib/tracker-model/Jobs.ts` | `moveJob`, `interruptJob`, `endJob` | `src/lib/tracker-model/Board.jobs.spec.ts` |
 | Job controls | `src/lib/tracker-model/JobControls.ts`, `src/services/overseer/JobControlDelivery.ts` | `requestJobStop`, `messageJob`; `deliverJobControls` | `src/lib/tracker-model/Board.jobs.spec.ts`, `src/services/overseer/JobControlDelivery.integration.spec.ts` |
 | Ending a stopped job | `src/services/overseer/JobLaunch.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/IntakeSessions.ts` | `userStopEndingOf`, `applyWatcherEvents` | `src/services/overseer/JobLaunch.integration.spec.ts` |
-| Pause and hold queries | `src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/InstallChangeWatch.ts` | `newWorkIsHeld`, `resumesAreHeld`, `pipelineAgentIsHeld` in `nextStepsOf`; `dispatchIsStopped`; `installVersionChanged` | `src/lib/tracker-model/Playbook.spec.ts`, `src/services/overseer/InstallChangeWatch.spec.ts` |
+| Pause and hold queries | `src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`, `src/services/overseer/InstallChangeWatch.ts` | `newWorkIsHeld`, `resumesAreHeld` in `nextStepsOf`; `dispatchIsStopped`; `installVersionChanged` | `src/lib/tracker-model/Playbook.spec.ts`, `src/services/overseer/InstallChangeWatch.spec.ts` |
 | Runtime state | `src/services/overseer/BoardState.ts` | `OverseerRuntimeState` | `src/services/overseer/BoardState.spec.ts` |
 | Stored state | `src/lib/tracker-model/constants/OverseerStates.ts` | `OVERSEER_STATES` | `src/lib/tracker-model/constants/OverseerStates.spec.ts` |
 | Command refusal when held | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |

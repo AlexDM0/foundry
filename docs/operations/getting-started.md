@@ -12,9 +12,9 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 [gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves a
 [board](../glossary.md#board) in your browser, the [Bridge](../glossary.md#bridge).
 
-![The path from clone to first merged ticket: you run setup.sh, init and oversee --detach, press Resume, accept the pipeline agent's proposal, describe the work in Intake and ready the draft tickets, and the Overseer builds, gates and merges each ticket. The exits: gates stored before Resume skip the pipeline agent, and you may set gates by hand in place of accepting. The board waits on you four times, and only Resume goes unannounced.](../figures/getting-started/adoption-path.png)
+![The path from clone to first merged ticket: you run setup.sh, init and open, and the Overseer serves the Bridge paused with checks-not-set open. You start the pipeline setup; the pipeline agent researches the repository, drafts the constitution and proposes the pipeline, and you continue each step. Apply commits CONSTITUTION.md to the main line, stores the pipeline and resumes the board. You describe the work in Intake, a product owner files draft tickets, you ready them, and the Overseer builds, gates and merges each ticket onto the main line. The gate commands, which store a pipeline by hand, are under Set up the pipeline.](../figures/getting-started/adoption-path.png)
 
-*Notice the heavy box: a new board is paused (`DEFAULT_OVERSEER_STATE`), builds nothing and does not ask you to resume.*
+*Notice the heavy box: nothing builds before an Apply, and the Apply is what resumes a new, paused board.*
 
 ```sh
 git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
@@ -22,12 +22,12 @@ git switch group-code-lifecycle && ./setup.sh           # once per machine; setu
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 forge open                                  # starts the Overseer when none runs
-forge oversee resume                        # starts a pipeline agent; set gates first to skip it
+forge pipeline setup                        # the pipeline agent designs the pipeline with you
 ```
 
-The Questions tab then shows `checks-not-set`, a generic line with an empty text box. Typing there stores no gates: they
-come from a `pipeline-proposal` [decision](../glossary.md#decision) or the `gate` commands. Answer `checks-not-set` once
-gates are stored, then describe the work in Intake and ready the [draft tickets](../glossary.md#draft-ticket).
+The pipeline agent then works through billing, research, constitution and design with you, and an Apply commits
+`CONSTITUTION.md`, stores the pipeline and, with `--resume`, resumes the board. Then describe the work in Intake and
+ready the [draft tickets](../glossary.md#draft-ticket).
 
 ## Before you start
 
@@ -147,65 +147,64 @@ agents carry on under their Watchers.
 If you open `<data>/progress.html` by habit or from a link, you get a stub, not the board. It links the live URL, or
 says the Overseer is down.
 
-## Resume the board
+## Set up the pipeline
 
-A new board is paused, and it stays paused until you say otherwise. Until then no ticket builds and no
-[pipeline agent](../glossary.md#pipeline-agent) starts. Resume starts a pipeline agent, a session you pay for, so to set gates by
-hand and skip it, run the `gate` commands in [Settle the gates](#settle-the-gates) first.
+A board builds nothing until it has a [pipeline](../glossary.md#pipeline), `<data>/pipeline.json`, which names the
+commands that judge a commit and the steps a ticket takes. Until one is stored, the Overseer shows the
+`checks-not-set` [decision](../glossary.md#decision) in Questions and holds every launch. A new board is also paused
+(`DEFAULT_OVERSEER_STATE`), but the pause does not hold the setup: you can set the pipeline up first and resume the
+board when you apply it.
 
-The Bridge header shows the word `paused` and a Resume button; [Running a board](running-a-board.md) tours the header.
-The same thing from a terminal:
+![The checks-not-set decision is open on a new board. Two routes store a pipeline. pipeline setup, then Apply, designs it with the pipeline agent; gate add or gate none stores it by hand, at once. Both reach a stored pipeline. After an Apply, checks-not-set is withdrawn by the Apply itself; after a gate command it stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass open it again.](../figures/getting-started/settling-gates.png)
+
+*Notice the left route closes the question itself: only an Apply withdraws `checks-not-set`.*
+
+**Let the pipeline agent design it.** One command opens the [setup record](../glossary.md#setup-record) and starts the
+[pipeline agent](../glossary.md#pipeline-agent), a session you pay for, which reads a snapshot of your main line and
+never runs a script:
 
 ```sh
-forge oversee resume
+forge pipeline setup                          # or --billing api --max-budget-usd 2
 ```
 
-Expect `Overseer set to running (was paused).`
+Expect one line per record it wrote, naming the setup `S1`. The Agents tab then lists the agent, and the Bridge's
+Pipeline tab walks the same steps ([Running a board](running-a-board.md)). Each step waits for your Continue; the
+agent's moves never move a step.
 
-Paused holds new work, not sessions you asked for. A paused board shows this:
-
-| | While paused | After Resume |
+| Step | What happens | You move it on with |
 | --- | --- | --- |
-| `checks-not-set` decision | Opens | Stays until answered |
-| [Assistant](../glossary.md#assistant) | Boots | Runs |
-| A request sent to Intake | Starts its [product owner](../glossary.md#product-owner) | Starts its product owner |
-| Pipeline agent | Waits | Starts |
-| Ticket builds | Wait | Start once a [pipeline](../glossary.md#pipeline) is set |
-| Landings | Wait | Start once a pipeline is set |
+| Billing | You choose who pays: your subscription, or an API key with an optional cap per launch | `forge pipeline continue S1 billing` |
+| Research | The agent records findings (stack, scripts, conventions, continuous integration) and asks questions with two to four options, one recommended | `forge pipeline answer S1 Q1 a`, then `forge pipeline continue S1 research` |
+| Constitution | The agent drafts the repository's rules as one markdown text, `CONSTITUTION.md` to be; you may change it | `forge pipeline constitution S1 --revision <n> --file <your text>`, then `forge pipeline continue S1 constitution` |
+| Design | The agent proposes the whole pipeline: prepare steps, gates and their [phases](../glossary.md#gate-phase), the review and its conditional re-review, each role's model and effort | `forge pipeline edit`, `undo`, `check`, `profile`, then `forge pipeline continue S1 design` |
+| Apply | You apply the draft | `forge pipeline apply S1 --revision <n> --resume` |
 
-The [Next line](../glossary.md#next-line) under `status` says so too: it ends `Overseer paused: wait for the user's go`.
+The questions, findings, draft and revisions are in `<data>/pipeline-setup.json`, and `--json` on any `pipeline` verb
+prints the record as the move left it. Every verb and its refusals are in [Pipeline setup](../cli.md#pipeline-setup).
 
-## Settle the gates
+Nothing runs a proposed gate until you press for it: `forge pipeline check S1` runs the gates the draft changes or adds
+two times in a fresh worktree and sends the result to the agent, and `forge pipeline profile <gate> build S1` times one
+gate in one phase. Neither is needed to apply.
 
-A board builds nothing until it has a pipeline, which names the commands that judge a commit. Any stored pipeline, even
-an empty one, lets work start. The Overseer flags the gap with `checks-not-set` in the Questions tab, a generic line
-with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands. What
-a gate means is in [Customs and gates](../architecture/customs-and-gates.md).
+**Apply.** Apply refuses while a question is open or a step needs a recheck. It commits the constitution to your main
+line first: the [Airlock](../glossary.md#airlock) commits `CONSTITUTION.md` with the subject `Add the repository
+constitution`, ungated, while the Overseer runs. Then it stores `pipeline.json`, withdraws `checks-not-set` and, with
+`--resume`, resumes the board. The command prints the log lines it wrote. Until the commit lands, the record's
+`applyRequest` reads `committing`; once it landed, `<data>/pipeline-setup.json` is gone, `forge gate list` prints the
+pipeline and `git log --oneline -1` on your main line shows the commit.
 
-![The checks-not-set decision is open, and three routes store a pipeline: accept the pipeline agent's proposal, gate add with gate prepare, or gate none. All reach one state, and the decision stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass reopen it, and a fresh pipeline agent follows unless the board is paused or held.](../figures/getting-started/settling-gates.png)
+> **Careful.** The commit fast-forwards your repository's main checkout, as a landing does. If that checkout is off the
+> main line, or holds its own change to `CONSTITUTION.md`, Apply waits and says so; clean it and the next Pass commits.
+> In a repository that signs its commits, the Overseer signs through your gpg-agent; if it cannot, commit the text as
+> `CONSTITUTION.md` yourself, signed, and apply again.
 
-*Notice the top loop: an answer before any pipeline exists does not skip the question. The next
-[Pass](../glossary.md#pass) reopens it and, unless the board is paused or [held](../glossary.md#hold), another pipeline agent
-follows.*
-
-> **Careful.** Wait until a pipeline is stored, then answer `checks-not-set` in the Questions tab, or with
-> `forge decide <decision id> -- <text>`; `forge decisions` lists the id. Any text clears it.
-> Left open it holds nothing, but it stays in Questions and counts on the Questions tab and in Waiting on User.
-
-**Let the pipeline agent propose.** After Resume, one pipeline agent reads a snapshot of the main line and proposes
-[prepare steps](../glossary.md#prepare-step) and gates. While it runs, the Agents tab lists it. The Overseer then runs
-each proposed gate `PROPOSAL_RUN_COUNT` (2) times, and `pipeline-proposal` appears in Questions showing what happened.
-Choose Accept to store the steps and gates. Choose Decline to store nothing and set them by hand.
-
-If its job ends with no proposal, for example `failed` after [Customs](../glossary.md#customs) refuses its report, no
-second pipeline agent starts by itself. Set gates by hand, or answer `checks-not-set`: a fresh pipeline agent follows once the
-next Pass reopens the decision.
-
-**Set them yourself.** A gate is any shell line: its exit code is the verdict, so the program needs no knowledge of your
-stack. A gate runs confined: no network unless `--network` names a domain, and writes only to its worktree, its git
-admin folder and temp, plus `--writes` folders. See [Confinement](../architecture/confinement.md). A prepare step sets a
-fresh worktree up before the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run
-before fixing by hand; the Overseer never runs it. For Example Storefront, with its own scripts:
+**Set gates yourself.** The `gate` commands store a pipeline at once, with no agent and no constitution. A gate is any
+shell line: its exit code is the verdict, so the program needs no knowledge of your stack. A gate runs confined: no
+network unless `--network` names a domain, and writes only to its worktree, its git admin folder and temp, plus
+`--writes` folders. See [Confinement](../architecture/confinement.md). A prepare step sets a fresh worktree up before
+the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run before fixing by hand; the
+Overseer never runs it. A gate runs in every phase unless `--phases` names some. For Example Storefront, with its own
+scripts:
 
 ```sh
 forge gate prepare dependencies -- ./scripts/install-dependencies.sh
@@ -222,17 +221,45 @@ Prepare:
 Gates:
   unit-tests: ./scripts/run-unit-tests.sh
   lint: ./scripts/lint.sh
+Ticket review: on
+Merge approval: off
 ```
 
-Every flag is in the [CLI reference](../cli.md).
+`gate list --json` adds each phase's run order. For a repository with nothing to run, `gate none` stores an empty list
+on purpose, and the board counts that as set. Every flag is in the [CLI reference](../cli.md).
 
-**Declare none.** For a repository with nothing to run, `gate none` stores an empty list on purpose, and the board
-counts that as set.
+> **Careful.** The `gate` commands leave `checks-not-set` open
+> ([as built](../reference/known-gaps.md#gap-checks-not-set-stays-open)). Once a pipeline is stored, answer it in the
+> Questions tab, or with `forge decide <decision id> -- <text>`; `forge decisions` lists the id, and any text clears
+> it. An answer before a pipeline exists only makes the next [Pass](../glossary.md#pass) open it again. The `gate`
+> commands set no reviewer either, so tickets go from gates straight to the merge; a later `forge pipeline update`
+> adds one.
 
-> **Careful.** No route sets a [reviewer](../glossary.md#reviewer): tickets go from gates straight to the merge. No
-> `gate` verb writes the pipeline's `review` key and accepting a proposal does not either. To add review, write the
-> `review` key into `<data>/pipeline.json`; its format is in the [CLI reference](../cli.md) and its effect in
-> [Customs and gates](../architecture/customs-and-gates.md).
+## Resume the board
+
+A new board is paused, and it stays paused until you say otherwise. `pipeline apply --resume` resumes it once the
+pipeline is stored. If you applied without it, or set gates by hand, press Resume in the Bridge header; [Running a
+board](running-a-board.md) tours the header. The same thing from a terminal:
+
+```sh
+forge oversee resume
+```
+
+Expect `Overseer set to running (was paused).`
+
+Paused holds new work, not sessions you asked for. A paused board shows this:
+
+| | While paused | After Resume |
+| --- | --- | --- |
+| `checks-not-set` decision | Opens while no pipeline is stored | Withdrawn by an Apply; otherwise stays until answered |
+| [Assistant](../glossary.md#assistant) | Boots | Runs |
+| A request sent to Intake | Starts its [product owner](../glossary.md#product-owner) | Starts its product owner |
+| Pipeline agent | Starts from `pipeline setup` | Starts from `pipeline setup` |
+| The constitution commit of an Apply | Lands | Lands |
+| Ticket builds | Wait | Start once a pipeline is set |
+| Landings | Wait | Start once a pipeline is set |
+
+The [Next line](../glossary.md#next-line) under `status` says so too: it ends `Overseer paused: wait for the user's go`.
 
 ## File the first work
 
@@ -296,6 +323,7 @@ Once a ticket is ready, nothing waits on you unless Questions or a header notice
 | Agents | Which sessions are running |
 | Questions | Every decision waiting on you; its count is on its tab and in the header's Waiting on User, and the question panel shows one of them beside every tab |
 | Intake | Your product-owner sessions |
+| Pipeline | The pipeline as a flow, with each ticket on its step |
 | Assistant | The session that settles [incidents](../glossary.md#incident) |
 | Progress | Each ticket's phases on a timeline |
 | Tickets | One ticket's timeline, description and log |
@@ -303,8 +331,11 @@ Once a ticket is ready, nothing waits on you unless Questions or a header notice
 Each tab is explained in [Running a board](running-a-board.md).
 
 A builder commits on its own worktree under `<worktrees>/`, never in your repository's main checkout. The Overseer then
-runs your gates on that commit, a reviewer follows if the pipeline sets one, and the
-[Airlock](../glossary.md#airlock) merges one ticket at a time.
+runs the build phase's gates on that commit. A reviewer follows if the pipeline sets one: its job first merges your
+main line into the branch and runs the build gates again, a conflict going back to the builder; then the reviewer works
+and the review phase's gates run, with a fresh re-reviewer when its fixes were large and the pipeline asks for one.
+The [Airlock](../glossary.md#airlock) merges one ticket at a time and runs the merge phase's gates; a conflict or a red
+gate there goes to the ticket's last worker. Every agent reads your `CONSTITUTION.md` from the main line.
 
 **Done means merged.** The ticket reaches the Done lane, status [`delivered`](../glossary.md#delivered),
 when its commit is on the main line. Confirm it in the repository itself:
@@ -351,10 +382,11 @@ Each row is one stage; stop at the first that does not match.
 | Tracker | `forge status` | `Next:` line ending `Overseer paused: wait for the user's go` | Rerun `init` |
 | Overseer | `forge oversee status` | `overseer: serving at http://127.0.0.1:<port>/`, then `paused` | `oversee --detach`, then read `<data>/overseer.log` |
 | Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before the Overseer started | Wait one Pass, then reread `<data>/overseer.log` |
-| Resume | `forge oversee status` | `not paused` | `oversee resume` |
 | Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
-| Proposal | `forge decisions` | A `pipeline-proposal` line once the pipeline agent ends, unless you set gates by hand | Read the log in `forge status`: a `failed` pipeline agent job opens none. Set gates by hand, or answer `checks-not-set` for a fresh pipeline agent |
-| Gates | `forge gate list` | Your gates, or `none, on purpose` | Settle `checks-not-set` |
+| Setup | `forge jobs` | A `pipeline-agent` job while the setup runs | `forge pipeline resume S1`: it opens the agent again, or starts a new one from the record |
+| Apply | `git log --oneline -1` on the main line | `Add the repository constitution` | Read the reason in `applyRequest` in `<data>/pipeline-setup.json`; clean the main checkout, or commit the text yourself |
+| Gates | `forge gate list` | Your gates, or `none, on purpose` | Set the pipeline up; see [Set up the pipeline](#set-up-the-pipeline) |
+| Resume | `forge oversee status` | `not paused` | `oversee resume` |
 | Drafts | `forge ticket list` | Your ticket as `draft` | Check the Intake tab |
 | Ready | `forge ticket list` | Your ticket as `pending` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
 | Worktree | `git worktree list` | A line for `<worktrees>/ticket-<id>` | Check the board is not paused |
@@ -377,6 +409,8 @@ Anything else is in the [Runbook](runbook.md), which also has
 | The stub | `src/adapters/progress-page/ProgressPageStubWriter.ts` | `progressPageStubTextOf` | `src/adapters/progress-page/ProgressPageStubWriter.spec.ts` |
 | A new board is paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
 | What paused holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
+| The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |
+| The constitution commit | `src/services/overseer/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/overseer/Airlocks.constitutionCommit.spec.ts` |
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
 | Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
 | Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/overseer/OverseerWording.intake.spec.ts` |

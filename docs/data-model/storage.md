@@ -54,15 +54,20 @@ The file list has a fixed order, and only `progress.json` is always on it:
 | Position | File | On the list when |
 | --- | --- | --- |
 | 1 | `progress.json` | Always. |
-| 2 | `pipeline.json` | A [`gate`](../glossary.md#gate) verb, or an accepted `pipeline-proposal`, changed it. |
-| 3 | [Ticket](../glossary.md#ticket) files | The `Board` changed them. |
-| 4 | [Epic](../glossary.md#epic) files | The `Board` changed or removed one. Writes come before removals. |
-| 5 | [Filing draft](../glossary.md#filing-draft) files | The `Board` changed or removed one. Writes come before removals. |
-| 6 | Every ticket and epic file | Only on `forge clear --all`: all of them are removed, malformed ones included. |
-| 7 | `log.jsonl` | The lock hold logged at least one record. |
+| 2 | `pipeline.json` | A [`gate`](../glossary.md#gate) verb, or an Apply's stage 2, changed it. |
+| 3 | `constitution-sources.json` | An Apply's stage 2 stored the constitution's sources. |
+| 4 | [Ticket](../glossary.md#ticket) files | The `Board` changed them. |
+| 5 | [Epic](../glossary.md#epic) files | The `Board` changed or removed one. Writes come before removals. |
+| 6 | [Filing draft](../glossary.md#filing-draft) files | The `Board` changed or removed one. Writes come before removals. |
+| 7 | `gate-profiles.json` | A profile move changed it. |
+| 8 | Every ticket and epic file | Only on `forge clear --all`: all of them are removed, malformed ones included. |
+| 9 | `log.jsonl` | The lock hold logged at least one record. |
+| 10 | `pipeline-setup.json` | A setup move changed it, or an Apply or a start over removed it. |
 
-Two reasons fix that order. The log goes last, so a log line never describes an unstored change. `progress.json` goes
-first, so it is never behind the tickets it names.
+Three reasons fix that order. The log goes after every board file, so a log line never describes an unstored change.
+`progress.json` goes first, so it is never behind the tickets it names. The [setup
+record](../glossary.md#setup-record) goes last, so an Apply cut short leaves its record open, and the next holder
+finishes what is missing.
 
 The commit writes only the files whose bytes change. `commitHold` compares each file's new contents with its bytes on
 disk, inside the hold, and keeps a removal only of a file that exists; it never asks a clock or an mtime. A file left in
@@ -130,7 +135,8 @@ in [Failure and recovery](../architecture/failure-and-recovery.md). The
 > board state can read `progress.json` from one lock hold beside a log from the one before. The same mix shows for the
 > moment a healthy commit takes. The Pass's read step, `observe` in `src/services/overseer/DrivePass.ts`, reads
 > `progress.json` and `pipeline.json` without the lock; its [Playbook](../glossary.md#playbook) then works on the
-> `Board` read under the lock after replay. `cli/HoldJournalCrash.integration.spec.ts` asserts the torn state, then the repair.
+> `Board` read under the lock after replay. `cli/HoldJournalCrash.integration.spec.ts` asserts the torn state, then the
+> repair.
 
 ## The lock
 
@@ -196,7 +202,8 @@ spends the lock's time.
 | Customs' git commands on a finished job | `verifyAndRoute` in `src/services/overseer/JobLaunch.ts`, `clearCustoms` |
 | An Overseer-made empty commit for a [review round](../glossary.md#review-round) with no changes | `commitNoChanges` in `src/services/lifecycle/ReviewOutcome.ts` |
 | The [landing](../glossary.md#landing) on a [target](../glossary.md#target) | `Landing.landOnTarget` in `src/services/lifecycle/Landing.ts`, called from a lock hold in `src/services/overseer/Airlocks.ts` |
-| Removing a [pipeline agent](../glossary.md#pipeline-agent)'s snapshot [worktree](../glossary.md#worktree) | `applySettledPipelineAgents` in `src/services/overseer/PipelineAgentSessions.ts` |
+| The landing of a constitution commit on the [main line](../glossary.md#main-line), whose hold runs Apply's stage 2 | `runConstitutionLanding` in `src/services/overseer/Airlocks.ts` |
+| Reading main's `CONSTITUTION.md` and its blob id for an Apply's stage 1 | `applySetup` in `src/services/control/PipelineSetupControls.ts` |
 | A worktree repair | `repairWorktree` in `src/services/control/RepairControls.ts` |
 | Reading each [Watcher instance](../glossary.md#watcher-instance)'s [event log](../glossary.md#event-log) for token credit | `creditEndedJob` in `src/services/overseer/EndedJobTokens.ts` |
 
@@ -256,7 +263,6 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | Airlock agents launched and resumed | `job-launched`, `job-resumed` | `launchesUnder`, `redResumesOf`, same file |
 | [Builder](../glossary.md#builder) returns from review | `job-ended`, `ticket-unheld` | `builderReturnsFromReview` in `src/lib/tracker-model/Playbook.ts` |
 | Red handoff carries to a fresh [session](../glossary.md#session) | `job-interrupted`, `job-ended` `replaced` | `redHandoffCarriesOver`, same file |
-| One pipeline agent per `checks-not-set` | `decision-opened`, `job-launched` | `pipelineAgentAnsweredChecksNotSet`, same file |
 | Session owner of a resumed job | `job-launched`, `job-ended` | `sessionOwnerJobIdOf` in `src/services/overseer/JobResumption.ts` |
 | An agent-config decision answered | `decision-opened`, `decision-answered`, `job-ended` | `agentConfigHitIsSettled` in `src/services/overseer/JobLaunch.ts` |
 | Non-converging reviews | `review-recorded`, `ticket-delivered`, `ticket-abandoned` | `nonConvergingTicketIdsOf` in `src/services/lifecycle/ReviewOutcome.ts` |
@@ -271,6 +277,9 @@ The facts below steer the lifecycle. The folded table lists other readers, and i
 | The Assistant's incident history | Every record naming an incident | `incidentHistoryOf` in `src/services/overseer/AssistantBoot.ts` |
 | User's messages to an Assistant | `job-messaged` | `userMessagesOf` in `src/services/overseer/AssistantSession.ts` |
 | A pipeline agent's gate history | `gate-ran` | `pipelineAgentFactsOf` in `src/services/overseer/PipelineAgentSessions.ts` |
+| A ticket's [last worker](../glossary.md#last-worker) | `job-launched`, `job-ended` | `lastWorkerOf` in `src/services/overseer/JobResumption.ts` |
+| An accepted ticket's place in the merge train | `merge-acceptance-set` | `acceptPositionByTicketId` in `src/lib/tracker-model/AirlockClaims.ts` |
+| A revision already applied | `pipeline-applied` | `src/lib/tracker-model/PipelineSetups.ts` |
 | The job a worktree patch belongs to | `job-launched` | `jobIdForPatchOf` in `src/services/control/RepairControls.ts` |
 | Tickets showing the attribution notice | `job-launched`, `job-ended` with the attribution cause | `attributionTicketIdsOf` in `src/services/overseer/JobLaunch.ts` |
 | What wakes a waiting `await` | `decision-opened`, `incident-escalated` | `wakingRecordsAfter` in `cli/tracking/await/AwaitCommand.ts` |
@@ -347,7 +356,11 @@ its lock hold opens. `progress.json` and `log.jsonl` are the exception to the St
 | `progress.json` | Atomic; `init` exclusive | Strict, keeps unknown keys | Equals `CURRENT_PROGRESS_FILE_VERSION` | `unreadable-tracker`, exit 2 | No command that reads the board, `status` included. |
 | `log.jsonl` | Atomic, whole file | Strict | None, kinds checked | `unreadable-tracker`, exit 2 | Reads through `requireProgressFile`, such as `concurrency`, `decisions`, `incidents`, `oversee status`. No write. |
 | `hold-journal.json` | Atomic | Strict, whole or nothing | Equals `HOLD_JOURNAL_FORMAT_VERSION` | `malformed-hold-journal`, exit 2 | Every lock-free read. `status` names it. No write. |
-| `pipeline.json` | Atomic | Strict, refuses unknown keys | None | Board reads no pipeline; `gate` verbs refuse `malformed-pipeline` | Reads and CLI moves work. The board behaves as if no pipeline were set: launches, resumes, merge-queue steps and [Airlock](../glossary.md#airlock) [sweeps](../glossary.md#sweep) stop, `checks-not-set` opens and a pipeline agent launches. An accepted `pipeline-proposal` is not guarded: it writes a whole pipeline over the malformed file, starting from empty. |
+| `pipeline.json` | Atomic | Strict, refuses unknown keys | `PIPELINE_FORMAT_VERSION`: lower or none reads `older` | Board reads no pipeline; `gate` verbs refuse `malformed-pipeline` or `older-pipeline` | Reads and CLI moves work. The board behaves as if no pipeline were set: launches, resumes, merge-queue steps and [Airlock](../glossary.md#airlock) [sweeps](../glossary.md#sweep) stop and `checks-not-set` opens. An Apply writes over the file only from a record opened with `--replace-unreadable`. |
+| `pipeline-setup.json` | Atomic | Keeps unknown top-level keys | Equals 1 | The board reads no open record; every setup move refuses `pipeline-setup-unreadable` | Every other command. Nothing writes over the file. |
+| `gate-profiles.json` | Atomic | Keeps unknown top-level keys | Equals 1 | The board reads no run; every profile move refuses `gate-profiles-unreadable` | Every other command. Nothing writes over the file. |
+| `constitution-sources.json` | Atomic | Keeps unknown top-level keys | Equals 1 | No source shows | Every command; only an Apply writes over it. |
+| `gate-profile-runs/<P>.ndjson` | Append in place | Ignores an unterminated last line | None | Not applicable | Everything. |
 | Ticket file | Atomic | One line-oriented parse, keeps unknown lines | None | Skipped and reported | Every other ticket. Its id stays spent. |
 | Epic file | Atomic | Keeps unknown lines | None | Skipped and reported | Every other epic. |
 | Filing draft file | Atomic | Keeps unknown keys | Equals `CURRENT_DRAFT_FILE_VERSION` | Skipped and reported | Every other filing draft. |

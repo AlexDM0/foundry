@@ -14,6 +14,11 @@
 [ticket](../glossary.md#ticket) files, the [epic](../glossary.md#epic) files, the
 [filing drafts](../glossary.md#filing-draft) and `pipeline.json`, which holds the [pipeline](../glossary.md#pipeline).
 The [log](../glossary.md#log) is `log.jsonl`. A job folder holds what one [job](../glossary.md#job) needs for itself.
+Three pipeline files are board files too, written in the same lock hold: `pipeline-setup.json`, the open
+[setup record](../glossary.md#setup-record); `gate-profiles.json`, the gate profiles User started; and
+`constitution-sources.json`, the pipeline agent's sources of the applied constitution. The constitution itself,
+`CONSTITUTION.md`, is no board file: it is tracked on the [main line](../glossary.md#main-line), and only a commit
+changes it.
 
 **One transaction.** `writeTracker` commits the board files and the log together in one
 [lock hold](../glossary.md#lock-hold). Job folders sit outside it. [Storage](storage.md) gives the mechanics.
@@ -36,7 +41,8 @@ counters, so a low id that is gone means closed. [Relations](#relations) maps wh
 ![Stored files enter as a BoardInput, and the Board's rule modules change the records in place. The change lists come back as a write-set for the lock hold to write. A rule that refuses throws BoardRefusal and nothing is written.](../figures/entities/board-for-one-command.png)
 *The Board never touches a file: its caller supplies the records and writes what the Board marked as changed.*
 
-- **`BoardInput`** carries `progress`, `tickets`, `epics`, `drafts`, `logger`, `storedLogRecords` and `pipeline`.
+- **`BoardInput`** carries `progress`, `tickets`, `epics`, `drafts`, `logger`, `storedLogRecords` and `pipeline`, and
+  the readings of `pipelineSetup`, `gateProfiles` and `constitutionSources`.
 - **`BoardRecords`** holds those records plus the write-set: `changedTicketRecords`, `changedEpicRecords`,
   `removedEpicRecords`, `changedDraftRecords`, `removedDraftRecords`, `loggedRecords` and `pipelineChanged`.
   `progress.json` is not in the list because `plannedHoldOf` writes it on every lock hold.
@@ -65,20 +71,23 @@ lifetimes. Bare verbs below are `forge` commands.
 | Job | `Job` | `<data>/progress.json`, `jobs` | One thing the Overseer launches and tracks to act on tickets, usually one agent session. | On the board until it ends. Holds no process id: [Watcher](../glossary.md#watcher) facts live in its job folder. |
 | Decision | `Decision` | `<data>/progress.json`, `decisions` | A question for User. | On the board while open. The first answer wins. |
 | Incident | `Incident` | `<data>/progress.json`, `incidents` | Operational trouble for the [Assistant](../glossary.md#assistant). | On the board while open. Never addressed to User. |
-| Pipeline | `Pipeline` | `<data>/pipeline.json` | The board's gates, prepare steps and agent instruction lists. | At most one. Absent until a `gate` verb or an accepted `pipeline-proposal` decision writes it. An empty `gates` list means no gates on purpose. |
+| Pipeline | `Pipeline` | `<data>/pipeline.json` | The board's prepare steps and gates, the gates of each [gate phase](../glossary.md#gate-phase), the review and its re-review, the merge train's re-review, the constitution's path, and each role's model, effort and instructions. | At most one. Absent until a `gate` verb or an Apply writes it. An empty `gates` list means no gates on purpose. Only format version 2 is read. |
+| Setup record | `PipelineSetup` | `<data>/pipeline-setup.json` | One pipeline setup, update or advise session: its steps, findings, questions, constitution draft, draft pipeline and edits. | At most one open. Known by `S<n>` from `nextSetupId`, never reused. Removed by Apply's stage 2 or a start over. |
+| Gate profile run | `GateProfileRun` | `<data>/gate-profiles.json` | One gate in one phase, run once on User's press. | Known by `P<n>`, never reused. Only the newest run of each gate and phase is kept. Never a green. |
+| Constitution sources | `ConstitutionSources` | `<data>/constitution-sources.json` | The pipeline agent's source for each annotated line of the applied constitution. | Keyed by the blob id of the text main holds; read only while that blob is main's. |
 | Log record | `LogRecord` | `<data>/log.jsonl` | One event, as ids and values with no wording. | Each has a `kind`, its subject's ids, `fields` and `at`. The vocabulary is `LOG_RECORD_SCHEMA`. |
 
 **TrackerProgress keys that carry meaning.** `trackerId` namespaces browser storage. `view` is the chart range.
 [`concurrencyLimit`](../glossary.md#concurrency-limit), absent, reads as `DEFAULT_CONCURRENCY_LIMIT_AGENTS`.
-`overseerState`, absent, reads as `paused`, so the Overseer launches no build, review, merge or pipeline agent work until
-User's go. The Assistant still boots and interrupted jobs still resume; [The Pass](../architecture/the-pass.md) gives
-the rule. `overseerFirstStartedAt` records the Overseer's first start on the board, so first-run handling
-(`submitFirstRunLeftovers`) happens once. [`forge clear`](../cli.md) throws away every row and the log and
-keeps this key; `clear --all` also deletes the tickets and epics.
+`overseerState`, absent, reads as `paused`, so the Overseer launches no build, review or merge work until User's go.
+The Assistant still boots, a pipeline agent still starts from `pipeline setup`, a constitution commit still lands, and
+interrupted jobs still resume; [The Pass](../architecture/the-pass.md) gives the rule. `overseerFirstStartedAt` records the Overseer's first start on the board, so first-run handling
+(`submitFirstRunLeftovers`) happens once. [`forge clear`](../cli.md) throws away every row and the log and keeps this
+key; `clear --all` also deletes the tickets and epics.
 
 **Job.** `kind` is its [job kind](../glossary.md#job-kind) and `role` is the [role](../glossary.md#role) of the agent
-doing it. `role` is `null` for `merge` and `refresh`, which run no agent of their own. `target` is the
-[target](../glossary.md#target): the [main line](../glossary.md#main-line) or `group-<name>`, and `null` for a
+doing it. `role` is `null` for `merge`, `refresh` and `constitution-commit`, which run no agent of their own. `target`
+is the [target](../glossary.md#target): the [main line](../glossary.md#main-line) or `group-<name>`, and `null` for a
 [session](../glossary.md#session). The job's state lives here and is never logged.
 [Roles](../architecture/roles-and-launch.md) and [State machines](state-machines.md) give the vocabularies. A job's
 Watcher facts live in its folder, see [Watchers](../architecture/watchers.md).
@@ -163,7 +172,8 @@ ticket and its own row point at each other.
 | Ticket | Group | many to 0..1 | `group` | A string. `releasesGroup` marks the one release ticket. |
 | Ticket | Job | many to 0..1 | `filedByJob` | The Overseer sets it from the job whose [Hatch](../glossary.md#hatch) folder carried the filing. |
 | Job | Ticket | many to many | `ticketIds` | Empty for a `refresh` job, its merge agents and every session. |
-| Job | Job | many to 0..1 | `parentJobId` | A [merge agent](../glossary.md#merge-agent)'s job names the `merge` or `refresh` job that launched it, and a fresh product owner names the one it took over from. `null` otherwise. |
+| Job | Job | many to 0..1 | `parentJobId` | A [merge agent](../glossary.md#merge-agent)'s job names the `merge` or `refresh` job that launched it, a conflict re-reviewer before User's Merge names its build or review job, and a fresh product owner names the one it took over from. `null` otherwise. |
+| Setup record | Job | 1 to 0..1 | `agentJobId`; `applyRequest.commitJobId` | The record's pipeline agent, and the `constitution-commit` job committing its Apply. |
 | Decision, Incident | Ticket | many to many | `ticketIds` | |
 | Decision, Incident | Job | many to 0..1 | `jobId` | `null` when no job is behind it. A build or review job ending `replaced` or `stopped` hands its open `agent-question` decisions to the ticket: `jobId` becomes `null` and the answer goes to `## Questions`. |
 | Row | Pipeline | many to 0..1 | `pipelineHash`, `greenPhase` | A phase hash, not a pointer: the prepare steps and gates of the phase the ticket was last gated in. |
@@ -183,6 +193,9 @@ return. Gaps stay. *Not reused after* names the events the number outlives; the 
 | Incident | `I<n>` | Stored `nextIncidentId` | Its closing |
 | Filing draft | `D<n>`, also its file name | Stored `nextDraftId` | Its closing |
 | Filing draft note, question | `N<n>`, `Q<n>` | `nextNoteNumber`, `nextQuestionNumber` on the filing draft | Being dropped |
+| Setup record | `S<n>` | Stored `nextSetupId` | Its Apply or start over |
+| Setup finding, question, edit | `F<n>`, `Q<n>`, `E<n>` | `nextNumbers` on the setup record | The record's removal |
+| Gate profile run | `P<n>` | `nextRunNumber` in `gate-profiles.json` | A newer run of the same gate and phase |
 | Epic | `key`, matching `EPIC_KEY_PATTERN`, also its file name | Chosen by the caller | Nothing: a key may be reused after its file is removed |
 | Board | `trackerId` | Supplied by the caller at `init` | Kept by `clear` |
 
@@ -271,8 +284,9 @@ Code writes change only the section or heading named above, through `Board.editT
 
 ## Preservation and strictness
 
-Four stored formats keep content they do not know: `progress.json`, tickets, epics and filing drafts. Two refuse it:
-`pipeline.json` and `log.jsonl`. [What breaks](storage.md#what-breaks-and-what-still-works) gives what each failure
+Seven stored formats keep content they do not know: `progress.json`, tickets, epics, filing drafts, and at their top
+level `pipeline-setup.json`, `gate-profiles.json` and `constitution-sources.json`. Two refuse it: `pipeline.json` and
+`log.jsonl`. [What breaks](storage.md#what-breaks-and-what-still-works) gives what each failure
 does.
 
 | File | Unknown content | Reader | Version check |
@@ -281,7 +295,8 @@ does.
 | Ticket | Kept: unknown keys, `#` comments and blank lines, moved below the known keys once a known key other than `title` or a stored `claimedBodyHash` changes. CRLF kept | One line-by-line read, deliberately not YAML | None |
 | Epic | Kept, after its three keys | The same frontmatter subset | None |
 | Filing draft | Kept, after its own keys | Validated JSON | `CURRENT_DRAFT_FILE_VERSION` (1), by equality |
-| `pipeline.json` | **Refused**: an unknown key makes the file malformed | `PipelineFile.read`, field by field | None |
+| `pipeline.json` | **Refused**: an unknown key makes the file malformed | `PipelineFile.read`, field by field | `PIPELINE_FORMAT_VERSION` (2): no `version`, or a lower one, reads `older`; a higher one is malformed |
+| `pipeline-setup.json`, `gate-profiles.json`, `constitution-sources.json` | Kept at the top level, in stored order; refused below it | Validated JSON | `formatVersion` 1, by equality |
 | `log.jsonl` | **Refused**: an unknown kind makes the line a problem | Each line validated; one bad line makes the log unreadable | None |
 
 ![Three frontmatter blocks. The hand-edited original has an owner key and a comment between known keys, and a body edit leaves it byte-identical. After a transition the known keys come first in fixed order, with the owner key and the comment kept below them.](../figures/entities/frontmatter-rewrite.png)

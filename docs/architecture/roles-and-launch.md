@@ -16,8 +16,9 @@ The [Overseer](../glossary.md#overseer) then writes everything a session needs t
 
 *Notice that `claude` starts with no task: the message arrives last, and a crash in any zone loses nothing.*
 
-- Eight [roles](../glossary.md#role) run an [agent](../glossary.md#agent), listed in [What each role
-  gets](#what-each-role-gets). [Job kinds](../glossary.md#job-kind) `merge` and `refresh` have role `null` and run none.
+- Seven [roles](../glossary.md#role) run an [agent](../glossary.md#agent), listed in [What each role
+  gets](#what-each-role-gets). [Job kinds](../glossary.md#job-kind) `merge`, `refresh` and `constitution-commit` have
+  role `null` and run none.
 - A role differs by data: a `WorkerProfile`, a model, a [call budget](../glossary.md#call-budget), a
   [report](../glossary.md#report) schema, two texts.
 - Launch text is assembled under `cli/` from `resources/` and instruction files, which come from
@@ -30,8 +31,8 @@ The [Overseer](../glossary.md#overseer) then writes everything a session needs t
 ## What each role gets
 
 **A role is a row of settings, and three tables hold them.** `launchProfileOf` in `src/services/overseer/DrivePass.ts`
-picks the profile; the first match wins: product owner, pipeline agent, any [`merge-agent`](../glossary.md#merge-agent), any
-other job without a [worktree](../glossary.md#worktree), then builder or reviewer. A
+picks the profile; the first match wins: product owner, pipeline agent, any [`merge-agent`](../glossary.md#merge-agent),
+any other job without a [worktree](../glossary.md#worktree), then builder or reviewer. A
 [`<worktrees>`](../glossary.md#reading-names) path below is a folder under the repository.
 
 ![Five roles on the left enter the tests in first-match order. Product owner stops at the first test and pipeline agent at the second, each taking the short profileOf plus its wrapper. The Assistant stops at the no-worktree test and takes the short profileOf. Builder and reviewer, in a ticket worktree or as a merge-agent in the Airlock, take WorkerProfiles.profileOf for their own role; in the Airlock asking is turned off.](../figures/roles-and-launch/profile-choice.png)
@@ -44,14 +45,18 @@ other job without a [worktree](../glossary.md#worktree), then builder or reviewe
 | --- | --- | --- | --- | --- |
 | [`builder`](../glossary.md#builder) | `build` | `<worktrees>/ticket-<id>` | [pipeline](../glossary.md#pipeline) `agents.builder`, else `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` |
 | [`reviewer`](../glossary.md#reviewer), or `re-reviewer` past the first round | `review` | `<worktrees>/ticket-<id>` | `agents.reviewer` or `agents.reReviewer`, else `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` (the reviewer's) |
-| `builder` or `reviewer` in the [Airlock](../glossary.md#airlock) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | the pair its build or review job recorded | `WorkerProfiles.profileOf` for its role, asking off |
+| `builder` or `reviewer` in the [Airlock](../glossary.md#airlock), the ticket's [last worker](../glossary.md#last-worker) | `merge-agent` | the Airlock worktree, `<worktrees>/ticket-<id>` | the pair its build or review job recorded | `WorkerProfiles.profileOf` for its role, asking off |
+| `conflict-re-reviewer` | `merge-agent` | the Airlock worktree, or the ticket worktree before User's Merge | `agents.conflictReReviewer`, else `WORKER_MODEL`, `WORKER_EFFORT` | `WorkerProfiles.profileOf` (the reviewer's), asking off |
 | [`product-owner`](../glossary.md#product-owner) | `product-owner` | `<worktrees>/sessions/J<n>` | `agents.productOwner`, else `WORKER_MODEL`, `WORKER_EFFORT` | `profileOf` in `DrivePass.ts`, then `productOwnerProfileOf` |
 | [`assistant`](../glossary.md#assistant) | `assistant` | `<worktrees>/sessions/J<n>` | `agents.assistant`, else `ASSISTANT_MODEL`, `ASSISTANT_EFFORT` | `profileOf` in `DrivePass.ts` |
-| [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/J<n>`, detached at the main line's tip | `agents.pipelineAgent`, else `PIPELINE_AGENT_MODEL`, `PIPELINE_AGENT_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
+| [`pipeline-agent`](../glossary.md#pipeline-agent) | `pipeline-agent` | `<worktrees>/pipeline-agent/<S>`, the [setup record](../glossary.md#setup-record)'s detached snapshot of the main line; `<J>` for an `advise` agent no record names | `agents.pipelineAgent`, else `PIPELINE_AGENT_MODEL`, `PIPELINE_AGENT_EFFORT` | `profileOf` in `DrivePass.ts`, then `pipelineAgentProfileOf` |
 
 `LaunchSettings.launchSettingsOf` resolves each pair at a session's first launch, and the job folder's
-`launch-settings.json` keeps it, so every resume of the session runs on it. A pipeline whose `model` or `effort` is
-outside the vocabulary is malformed, so it never reaches a launch. A ticket's `model` and `effort` reach no launch: see
+`launch-settings.json` keeps it, so every resume of the session runs on it and a later pipeline edit never changes a
+running session. A builder or reviewer in the Airlock, fixing a conflict or a red merged tree, takes the pair its last
+worker recorded: the ticket's newest ended build or review job, read from the log whatever the pipeline says now. A
+pipeline whose `model` or `effort` is outside the vocabulary is malformed, so it never reaches a launch. A ticket's
+`model` and `effort` reach no launch: see
 [gap-ticket-model-not-launched](../reference/known-gaps.md#gap-ticket-model-not-launched).
 
 > **As built.** The product owner, Assistant and pipeline agent take the short profile in `DrivePass.ts`, not the
@@ -65,17 +70,18 @@ outside the vocabulary is malformed, so it never reaches a launch. A ticket's `m
 | `builder` | `BUILDER_API_CALL_BUDGET` (150); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a [red handoff](../glossary.md#red-handoff) | [Wind-down](../glossary.md#wind-down) message, `WIND_DOWN_GRACE_CALLS` (10) more calls, stop; after a red handoff the session goes red again instead | `BUILDER_REPORT_SCHEMA` | `builder` |
 | `reviewer` | `REVIEWER_API_CALL_BUDGET` (75); `RED_HANDOFF_RESUME_CALL_BUDGET` (30) after a red handoff | Same | `REVIEWER_REPORT_SCHEMA` | `reviewer` |
 | `builder` or `reviewer` in the Airlock | `RED_HANDOFF_RESUME_CALL_BUDGET` (30) per resume; a fresh replacement its role's full budget until its first resume | Stopped, merge refused | `AIRLOCK_AGENT_REPORT_SCHEMA` | `airlock-agent` |
+| `conflict-re-reviewer` | `REVIEWER_API_CALL_BUDGET` (75) | Stopped; the re-review fails | `REVIEWER_REPORT_SCHEMA` while it re-reviews | `airlock-agent` |
 | `product-owner` | None | | None | None |
 | `assistant` | `ASSISTANT_TURN_CALL_BUDGET` (40) per turn | Interrupted, the turn's open [incidents](../glossary.md#incident) take their default | None | None |
-| `pipeline-agent` | None | | `PIPELINE_AGENT_REPORT_SCHEMA` | `pipeline-agent` |
+| `pipeline-agent` | None | | None: its moves are relayed verbs | `pipeline-agent`, at each turn end |
 
 A Customs column is the ordered list of checks a role owes. A red handoff follows a failed [gate](../glossary.md#gate)
 or Customs check. How a session runs out of calls, and what a stop then causes, is in [Build and
 review](build-and-review.md). The columns' checks, the schemas' fields and what happens to a report are in [Customs and
 gates](customs-and-gates.md).
 
-> **As built.** The `airlock-agent` column exists, but `clearCustoms` runs for build, review and pipeline agent jobs alone.
-> See [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
+> **As built.** The `airlock-agent` column exists, but `clearCustoms` runs for build, review and pipeline agent jobs
+> alone. See [gap-merge-agents-skip-customs](../reference/known-gaps.md#gap-merge-agents-skip-customs).
 
 ### What it can reach
 
@@ -83,10 +89,10 @@ gates](customs-and-gates.md).
 | --- | --- | --- | --- | --- | --- | --- |
 | `builder` | Yes | Off | Ticket `network` plus the gates' | The Bash list; `none` when it is empty | gpg-agent socket if present | Files low-priority tickets only |
 | `reviewer` | Yes | Off | Ticket `network` plus the gates' | The Bash list; `none` when it is empty | gpg-agent socket if present | Files low-priority tickets only |
-| `builder` or `reviewer` in the Airlock | No | Off | As its role | As its role | gpg-agent socket if present | Files low-priority tickets only |
+| `builder`, `reviewer` or `conflict-re-reviewer` in the Airlock | No | Off | As its role | As its role | gpg-agent socket if present | Files low-priority tickets only |
 | `product-owner` | Yes | On | None | `any` | Unsigned | [Filing drafts](../glossary.md#filing-draft) and filing, `intake close` |
 | `assistant` | No | Off | None | `none` | Unsigned | Moves on incidents delivered to it |
-| `pipeline-agent` | No | Off | None | `none` | Unsigned | Nothing |
+| `pipeline-agent` | No | Off | None | `none` | Unsigned | Five `pipeline` verbs on its own setup record, and `question options` |
 
 Web: `none` turns WebFetch off, a list allows those domains, `any` allows every domain and WebSearch.
 
@@ -100,7 +106,26 @@ Every `merge-agent` gets the profile of its role, builder or reviewer, in the Ai
 > `ticket add` requires: [gap-worker-filing-omits-type](../reference/known-gaps.md#gap-worker-filing-omits-type). The
 > Assistant's job-targeting moves stop at the Hatch:
 > [gap-assistant-job-moves-refused-at-hatch](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch). The
-> pipeline agent files nothing: under `advise` it proposes edits of an advise setup record's draft.
+> pipeline agent files nothing: under `advise` it proposes edits of an advise setup record's draft. Its questions are
+> setup questions in the record, never `AskUserQuestion`.
+
+### Who fixes what
+
+**A red gate or a conflict goes back to an agent that already knows the ticket, never to a separate fixer.** Each
+[gate phase](../glossary.md#gate-phase) has one worker who answers for it:
+
+| Where it goes red or conflicts | Who fixes it | How |
+| --- | --- | --- |
+| A build's gates (`build`) | The builder | Its own session, on a red handoff |
+| The [merge before review](../glossary.md#merge-before-review): the review job merges the target's tip in, then runs the `build` gates | The builder | The review job ends, and the builder's session resumes with the conflicted files or the red gate |
+| A review's gates (`review`) | The reviewer | Its own session, on a red handoff |
+| The merge before User's Merge, with merge approval on (`review`, or `build` with no review phase) | The job's own session: the reviewer, or the builder with no review phase | A red handoff; a large resolution adds a conflict re-reviewer |
+| The Airlock's merged tree (`merge`) | The [last worker](../glossary.md#last-worker), as a merge agent | Its session resumed in the Airlock; a large resolution adds a conflict re-reviewer |
+
+The last worker is read from the log, so a review step removed since still gives the reviewer. A conflict
+re-reviewer is never a later merge's last worker: a freed Airlock slot drops its fixes with the merge. Every agent here
+reads the [constitution](../glossary.md#constitution), `CONSTITUTION.md` once an Apply committed it. A gate profile and
+a pipeline check run no agent: their result is only shown, to User and to the pipeline agent.
 
 ## The launch pipeline
 
@@ -108,7 +133,7 @@ Every `merge-agent` gets the profile of its role, builder or reviewer, in the Ai
 
 | Layer | Holds | File |
 | --- | --- | --- |
-| Policy | Decides that a job exists | `src/lib/tracker-model/Playbook.ts` for builds, reviews, the Assistant and setup pipeline agent; `src/services/overseer/Airlocks.ts` for merge agents; `src/lib/tracker-model/JobControls.ts` for intake and on-demand pipeline agent |
+| Policy | Decides that a job exists | `src/lib/tracker-model/Playbook.ts` for builds, reviews and the Assistant; `src/services/overseer/Airlocks.ts` for merge agents and conflict re-reviewers in the Airlock; `src/services/overseer/JobLaunch.ts` for a conflict re-reviewer before User's Merge; `src/lib/tracker-model/JobControls.ts` for intake and for the pipeline agent, which `src/services/control/PipelineSetupControls.ts` starts from `pipeline setup`, `pipeline resume` and `advise` |
 | Launch | Reads, picks the folder, assembles the request | `src/services/overseer/DrivePass.ts`, `launchWatcher` |
 | Wording | Assembles what a session is told | `cli/overseer/OverseerWording.ts`, `launchTextOf` |
 | Port | Vendor-neutral types | `src/lib/agent-launch/` |
@@ -133,7 +158,8 @@ order; the twelve steps below are each visible on disk or as a return value.
    with the notice `agent-program-refused`, and an endpoint this platform cannot bind with
    `watcher-endpoint-does-not-fit`.
 2. Create `<worktrees>/hatch/J<n>/requests`.
-3. Pick the working directory. `PipelineAgentSessions.prepareSnapshot` for a pipeline agent, `workingDirectoryOf` for the rest.
+3. Pick the working directory. `PipelineAgentSessions.prepareSnapshot` for a pipeline agent, `workingDirectoryOf` for
+   the rest.
 4. `launchFactsOf`, then `request.launchTextOf`, give `firstMessage` and `roleBrief`.
 5. `JobResumption.resumeLineOf` and `launchPartsOf`: a resumed instance is told it was interrupted, never handed its
    task again.
@@ -291,18 +317,20 @@ keeps the text it started with.*
 `reReviewer` list, and an Airlock agent reads the list of the role it stands in for.
 
 1. The role reads the pipeline's `agents.<role>.instructions`, or the role's default list
-   (`DEFAULT_INSTRUCTIONS_OF_ROLE`): the constitution, then its default brief, for `builder` and `reviewer`; the
-   constitution, the reviewer's default brief, then its own, for `reReviewer` and `conflictReReviewer`; its default
-   brief alone for the others. A set list replaces the default list entirely. An empty list reads the role's built-in
-   brief, `resources/prompts/BuiltInBrief<Role>.md`, which is never installed.
-2. Each entry resolves to a path: `constitution` to the pipeline's `constitution.path`, or
-   `<data>/briefs/defaults/constitution.md`; `default-brief` to `<data>/briefs/defaults/<role>.md`; `file` to its path.
+   (`DEFAULT_INSTRUCTIONS_OF_ROLE`): the [constitution](../glossary.md#constitution), then its default brief, for
+   `builder` and `reviewer`; the constitution, the reviewer's default brief, then its own, for `reReviewer` and
+   `conflictReReviewer`; its default brief alone for the others. A set list replaces the default list entirely. An empty
+   list reads the role's built-in brief, `resources/prompts/BuiltInBrief<Role>.md`, which is never installed.
+2. Each entry resolves to a path: `constitution` to the pipeline's `constitution.path`, which an Apply sets to the
+   tracked `CONSTITUTION.md` at the repository root, or with no key to `<data>/briefs/defaults/constitution.md`;
+   `default-brief` to `<data>/briefs/defaults/<role>.md`; `file` to its path.
 3. A path under `<data>/` reads from disk. Any other path is tracked and reads through `git show <mainLine>:<path>`.
 4. An absolute path, or one holding `..`, reads as missing.
 
 Files are read whole at each launch and resume, so a changed file reaches the next launch. On a resume, only `roleBrief`
-is delivered. The fields of `pipeline.json` are in the [command reference](../cli.md); what they change is in [Customs
-and gates](customs-and-gates.md).
+is delivered. A `CONSTITUTION.md` that Apply committed reaches every launch after its landing, and so does one User
+commits to main by hand. The fields of `pipeline.json` are in the [command reference](../cli.md); what they change is in
+[Customs and gates](customs-and-gates.md).
 
 > **Why.** A file read from the ticket's branch would let the branch write its reviewer's instructions. Reading the main
 > line closes that, and Customs check V11 (`checksDefinitionUnchanged`) refuses a branch changing a listed tracked file
@@ -329,13 +357,21 @@ fresh side.*
 - A product owner taking over from a replaced session also gets its filing drafts and the answers to its questions.
 
 An Airlock agent resumed on a conflict gets `AirlockConflictMessage.md`, naming the target tip and the conflicted files;
-on a red merged tree it gets the red handoff message. A refresh launches no agent.
+on a red merged tree it gets the red handoff message. A conflict re-reviewer is a fresh session, with
+`AirlockReReviewMessage.md` in the Airlock and `HumanCodeReviewReReviewMessage.md` before User's Merge. A refresh and a
+constitution commit launch no agent.
+
+A pipeline agent's first message is built from its setup record (`pipelineAgentFactsOf`): the record, the stored
+pipeline and the newest `gate-ran` records, with the current step's instructions. A session replaced after a crash
+reads the record again, so it loses nothing the record holds. User's answers, edits, Continue and check results reach a
+live session as messages in the same lock hold.
 
 ### Installed against read at runtime
 
-Six texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the other seven stay in
-`resources/prompts/` and are read from there. The installed file is the one to look at. To customise a role, list a path
-in the pipeline's `agents`.
+Eight texts are copied into `<data>/briefs/defaults/` at install and change only on `update`; the rest stay in
+`resources/prompts/` and are read from there. The installed constitution is read only while the pipeline names no
+`constitution.path`; after an Apply the tracked `CONSTITUTION.md` takes its place. The installed file is the one to look
+at. To customise a role, list a path in the pipeline's `agents`.
 
 <details>
 <summary>Every text, where it is read and when it changes</summary>
@@ -351,7 +387,8 @@ in the pipeline's `agents`.
 | `resources/templates/Constitution.md`, installed as `constitution.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/PipelineAgentBrief.md`, installed as `pipelineAgent.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
 | `resources/templates/AssistantBrief.md`, installed as `assistant.md` | `init`, `update` | `<data>/briefs/defaults/` at each launch | `update` runs |
-| `AirlockConflictMessage.md`, `AirlockReportMessage.md`, `PipelineAgentPrompt.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
+| `AirlockConflictMessage.md`, `AirlockReportMessage.md`, `AirlockReReviewMessage.md`, `HumanCodeReviewReReviewMessage.md`, `MainMergeConflictMessage.md`, `TargetConflictMessage.md`, `RedHandoffMessage.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
+| `PipelineAgentPrompt.md` and its step texts `PipelineAgentResearch.md`, `PipelineAgentConstitution.md`, `PipelineAgentDesign.md`, `PipelineAgentAdvise.md`, `PipelineAgentCheck.md`, `PipelineAgentMainMoved.md` | Nobody | `resources/prompts/` at each use | The checkout changes |
 | `WindDownMessage.md`, `ResumeMessage.md` | Nobody | `resources/prompts/` once, at Overseer start | The next Overseer start |
 
 </details>
@@ -459,7 +496,10 @@ The intake session is in [The Assistant and intake](assistant-and-intake.md).
 | Profile choice | `src/services/overseer/DrivePass.ts` | `launchProfileOf` | No spec of its own; the profile specs hold its results |
 | Worker profiles | `src/services/overseer/WorkerProfiles.ts` | `profileOf` | `src/services/overseer/WorkerProfiles.spec.ts`, `src/services/overseer/WorkerProfiles.airlock.integration.spec.ts` |
 | Launch text | `cli/overseer/OverseerWording.ts` | `launchTextOf` | `cli/overseer/OverseerWording.build.spec.ts`, `cli/overseer/OverseerWording.airlock.spec.ts`, `cli/overseer/OverseerWording.intake.spec.ts` |
-| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.spec.ts` |
+| Instruction files | `src/services/overseer/InstructionFiles.ts` | `readingFor` | `cli/overseer/OverseerWording.instructions.spec.ts`, `src/services/overseer/InstructionFiles.spec.ts` |
+| Model and effort per role | `src/services/overseer/LaunchSettings.ts` | `launchSettingsOf` | `src/services/overseer/LaunchSettings.spec.ts` |
+| The last worker | `src/services/overseer/JobResumption.ts` | `lastWorkerOf` | `src/services/overseer/JobResumption.spec.ts` |
+| A pipeline agent's first message | `src/services/overseer/PipelineAgentSessions.ts` | `pipelineAgentFactsOf` | `src/services/overseer/PipelineAgentSessions.spec.ts` |
 | Resume and first message | `src/services/overseer/JobResumption.ts` | `sessionOwnerJobIdOf`, `deliverFirstMessages` | `src/services/overseer/JobResumption.integration.spec.ts` |
 | Rendered plan | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `planOf`, `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Child environment | `src/lib/agent-launch/LaunchEnvironment.ts` | `launchEnvironmentOf` | `src/lib/agent-launch/LaunchEnvironment.spec.ts` |

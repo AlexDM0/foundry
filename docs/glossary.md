@@ -74,7 +74,9 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | a review pass, the same thing as a [review round](#review-round) | code comments, `reviewPassCount`; this documentation says review round | [Build and review](architecture/build-and-review.md) |
 | | a [Baton pass](#baton-pass), the Overseer hand-over | `src/services/overseer/BatonPass.ts` | [Baton](architecture/baton.md) |
 | | the red-handoff note, `gate-failure.md` | "The Baton pass is in ..." in `RedHandoffMessage.md`; `batonPass` in `RedHandoff.ts`. No Overseer hand-over is involved | [Build and review](architecture/build-and-review.md) |
-| | a pipeline agent's whole run | "its pass" in `src/services/overseer/PipelineAgentSessions.ts` | [Customs and gates](architecture/customs-and-gates.md) |
+| **phase** | a [gate phase](#gate-phase): `build`, `review` or `merge` | `phases` in `pipeline.json`, `greenPhase` on a row, `GatePhase` | [Customs and gates](architecture/customs-and-gates.md) |
+| | an Airlock phase, how far a merge, refresh or constitution commit job is | `airlock.phase`: `merge-in` … `landing`, `AirlockPhase` | [Airlocks and groups](architecture/airlocks-and-groups.md) |
+| | a setup step of a [setup record](#setup-record) | `stepStates`, `currentStep`: `billing` … `apply` | [Customs and gates](architecture/customs-and-gates.md) |
 | **draft** | a [filing draft](#filing-draft), `D<n>` | `draft` verbs; no status, no [row](#row) | [Assistant and intake](architecture/assistant-and-intake.md) |
 | | a [draft ticket](#draft-ticket), status `draft` | `#003`; a real ticket, not yet ready | [State machines](data-model/state-machines.md) |
 | **slot** | a [launch slot](#launch-slot) | `LaunchSlotUtil` counts build and review jobs; the Overseer launches by this, and `status` and the [Next line](#next-line) print it | [The Pass](architecture/the-pass.md) |
@@ -347,12 +349,26 @@ the hold always completes, by replay if need be. Home: [Storage](data-model/stor
 The stored number of build and review jobs that may run at once, set with `concurrency`. It sizes the [launch
 slots](#launch-slot). Home: [The Pass](architecture/the-pass.md).
 
+### conditional re-review
+
+A re-review the [pipeline](#pipeline) asks for only past a size: `review.reReview` grants one more review round, run by
+a fresh `re-reviewer`, when the review's fixes changed more than `thresholdLines` lines, and `airlock.reReview` runs a
+fresh `conflict-re-reviewer` on a conflict resolution of more lines, or one git cannot measure. With no `reReview` key
+none runs. Home: [Customs and gates](architecture/customs-and-gates.md).
+
 ### constitution
 
-The file an agent that changes or reviews code reads first: the [pipeline](#pipeline)'s `constitution.path`, or
-`<data>/briefs/defaults/constitution.md`, where its instruction list names `constitution`
-(`DEFAULT_INSTRUCTIONS_OF_ROLE` names it for `builder` and `reviewer`). Home: [Roles and
+The repository's own rules, which an agent that changes or reviews code reads first: the [pipeline](#pipeline)'s
+`constitution.path`, which an Apply sets to the tracked `CONSTITUTION.md` at the repository root, read from the
+[main line](#main-line); with no key, `<data>/briefs/defaults/constitution.md`. `DEFAULT_INSTRUCTIONS_OF_ROLE` names it
+for `builder`, `reviewer`, `reReviewer` and `conflictReReviewer`. Home: [Roles and
 launch](architecture/roles-and-launch.md).
+
+### constitution commit
+
+The job of kind `constitution-commit` that commits an Apply's `CONSTITUTION.md` to the [main line](#main-line) through
+its [Airlock](#airlock): no role, no agent, no gate, and no path but that file. It is the one write of the program to
+the main line outside a ticket's [landing](#landing). Home: [CLI reference](cli.md#the-constitution-commit).
 
 ### context roll-over
 
@@ -527,6 +543,19 @@ and [review bar](#review-bar). Home: [Entities](data-model/entities.md).
 One named check in the [pipeline](#pipeline) (`PipelineGate`), run on a tree by `GateRun`. Its outcome is `passed`,
 `failed` or `cannot-run`. Home: [Customs and gates](architecture/customs-and-gates.md).
 
+### gate phase
+
+One of `build`, `review` and `merge`: which [gates](#gate) a tree runs at one place. `build` gates a builder's work and
+the [merge before review](#merge-before-review), `review` a reviewer's work and the merge before User's Merge, `merge`
+the [Airlock](#airlock)'s merged tree. A gate runs in one or more phases. Home: [Customs and
+gates](architecture/customs-and-gates.md).
+
+### gate profile
+
+One gate run once in one [gate phase](#gate-phase), on User's press only, in a fresh worktree of the main line, to
+show how long it takes (`GateProfiling`, `P<n>`). It records no green. Home: [Customs and
+gates](architecture/customs-and-gates.md).
+
 ### gate slot
 
 One of the machine-wide files in `<monitor>/gate-slots/` that cap gate runs (`GateRunSlots`, `GATE_RUNS_AT_ONCE`). Home:
@@ -639,14 +668,21 @@ merge or refresh job runs no agent of its own. Home: [Watchers](architecture/wat
 
 ### job kind
 
-`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `assistant`, `product-owner` or `pipeline-agent`. It differs
-from a job's [role](#role). Home: [Entities](data-model/entities.md).
+`JobKind`: `build`, `review`, `merge`, `merge-agent`, `refresh`, `constitution-commit`, `assistant`, `product-owner` or
+`pipeline-agent`. It differs from a job's [role](#role). Home: [Entities](data-model/entities.md).
 
 ### landing
 
 Moving a gated commit onto its [target](#target), `src/services/lifecycle/Landing.ts`. The word covers both targets; the
 outcome `landed` means the main line and `integrated` a group branch. Home: [Airlocks and
 groups](architecture/airlocks-and-groups.md).
+
+### last worker
+
+A ticket's newest ended build or review job, read from the log whatever the [pipeline](#pipeline) says now, and its
+role: the builder, or the reviewer or re-reviewer. With none ended, the reviewer, or the builder with no review step.
+It fixes the conflicts and red gates of the [Airlock](#airlock), and a [merge agent](#merge-agent) carries on its
+session and its model and effort (`lastWorkerOf`). Home: [Roles and launch](architecture/roles-and-launch.md).
 
 ### launch file
 
@@ -700,10 +736,18 @@ things](#words-that-mean-several-things).
 
 ### merge agent
 
-A job of kind `merge-agent`, with the role of the ticket's last worker, `builder`, `reviewer` or `re-reviewer`, working
-under a merge job (`parentJobId`). It resolves a conflict or fixes a red merged tree in the [Airlock](#airlock), and
-resumes that worker's session when it can. A `conflict-re-reviewer` is a merge agent too: a fresh session that
-re-reviews a large conflict resolution when the merge train asks for it. Home: [Airlocks and groups](architecture/airlocks-and-groups.md).
+A job of kind `merge-agent`, with the role of the ticket's [last worker](#last-worker), `builder`, `reviewer` or
+`re-reviewer`, working under a merge job (`parentJobId`). It resolves a conflict or fixes a red merged tree in the
+[Airlock](#airlock), and resumes that worker's session when it can. A `conflict-re-reviewer` is a merge agent too: a
+fresh session that re-reviews a large conflict resolution as a [conditional re-review](#conditional-re-review), in the
+Airlock, or under its build or review job before User's Merge. Home: [Airlocks and
+groups](architecture/airlocks-and-groups.md).
+
+### merge before review
+
+The merge of the [target](#target)'s tip into a ticket's branch that a review job makes before its reviewer starts,
+when the branch lacks that tip, followed by the build [gate phase](#gate-phase). A conflict or a red gate goes back to
+the builder. Home: [CLI reference](cli.md#a-review-job).
 
 ### merge job
 
@@ -780,14 +824,22 @@ One turn of the Overseer's loop, `runOnePass` in `src/services/overseer/DrivePas
 
 ### pipeline
 
-The board's `<data>/pipeline.json`: prepare steps, [gates](#gate), and optional review, constitution and agent settings
+The board's `<data>/pipeline.json`, format version 2: prepare steps, [gates](#gate) and their
+[gate phases](#gate-phase), and optional review, merge train, constitution, agent, approval and billing settings
 (`Pipeline`). Meaning: [Customs and gates](architecture/customs-and-gates.md). Fields: [CLI reference](cli.md).
 
 ### pipeline agent
 
-The job kind and role (`pipeline-agent`; `pipelineAgent` in `pipeline.json`) that reads a repository and proposes its
-[pipeline](#pipeline), or advises on the one it has. It never touches a ticket. Home: [Customs and
+The job kind and role (`pipeline-agent`; `pipelineAgent` in `pipeline.json`) of the session that reads a repository and
+designs its [pipeline](#pipeline) and constitution with User, through a [setup record](#setup-record), or advises on
+the pipeline it has. It runs no script, files no ticket and writes nothing but its relayed verbs. Home: [Customs and
 gates](architecture/customs-and-gates.md).
+
+### pipeline check
+
+User's check of the gates a [setup record](#setup-record)'s draft changes or adds: the [twice-run](#twice-run) in a
+fresh worktree of the main line, its result sent to the [pipeline agent](#pipeline-agent). It records no green. Home:
+[Customs and gates](architecture/customs-and-gates.md).
 
 ### Playbook
 
@@ -954,8 +1006,9 @@ review](architecture/build-and-review.md).
 
 ### role
 
-`JobRole`, what an agent is in a job: `builder`, `reviewer`, `assistant`, `product-owner` or `pipeline-agent`. A
-[merge agent](#merge-agent) takes `builder` or `reviewer`. Home: [Roles and launch](architecture/roles-and-launch.md).
+`JobRole`, what an agent is in a job: `builder`, `reviewer`, `re-reviewer`, `conflict-re-reviewer`, `assistant`,
+`product-owner` or `pipeline-agent`. A [merge agent](#merge-agent) takes its [last worker](#last-worker)'s role, or
+`conflict-re-reviewer`. Home: [Roles and launch](architecture/roles-and-launch.md).
 
 ### role brief
 
@@ -1020,6 +1073,12 @@ Finished, for good, and said of several things. See [Words that mean several thi
 The [fingerprint](#fingerprint) `runOnePass` kept from the last Pass that left no unapplied events (`lastFingerprint`).
 A wake that observes the same one skips the Pass, unless forced. Home: [The Pass](architecture/the-pass.md).
 
+### setup record
+
+`<data>/pipeline-setup.json`, the one open pipeline setup, update or advise session (`PipelineSetup`, `S<n>`): its
+steps, findings, questions, constitution draft, draft pipeline and edits, saved as each happens. Only User's Apply
+turns it into `pipeline.json`. Home: [Customs and gates](architecture/customs-and-gates.md).
+
 ### side-by-side build
 
 This build under `PRODUCT_NAMES`, whose names differ from the [released program](#released-program)'s so both fit on one
@@ -1079,8 +1138,9 @@ Home: [On-disk atlas](data-model/on-disk-atlas.md).
 
 ### twice-run
 
-Running a proposed [pipeline](#pipeline)'s gates `PROPOSAL_RUN_COUNT` times on one folder (`ProposalTwiceRun`), to catch
-a flaky gate and one that leans on what the first run left. Home: [Customs and
+Running the gates a draft [pipeline](#pipeline) changes or adds `PROPOSAL_RUN_COUNT` times on one folder
+(`ProposalTwiceRun`), on User's [pipeline check](#pipeline-check), to catch a flaky gate and one that leans on what the
+first run left. Home: [Customs and
 gates](architecture/customs-and-gates.md).
 
 ### undriven gap
@@ -1143,8 +1203,8 @@ kind sets which [frames](#frame) a Watcher accepts. Home: [Watchers](architectur
 ### wave
 
 A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). Drafts and pending
-low-priority tickets enter no wave, yet still hold their dependents out of Now. It says nothing about readiness, which the
-`Board` class decides. Home: [Running a board](operations/running-a-board.md).
+low-priority tickets enter no wave, yet still hold their dependents out of Now. It says nothing about readiness, which
+the `Board` class decides. Home: [Running a board](operations/running-a-board.md).
 
 ### wind-down
 
