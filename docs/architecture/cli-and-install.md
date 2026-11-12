@@ -342,7 +342,7 @@ The refresh's `briefs` part writes nine instruction files into `<data>`, and onl
 
 `filledTemplateOf` does both fills. Each [role](../glossary.md#role)'s text is read whole at each launch or resume, so a
 changed default reaches the next one. A [pipeline](../glossary.md#pipeline) can name other files for a role through its
-`constitution` and `agents` arrays.
+`constitution.path` and its `agents.<role>.instructions` lists.
 
 <details>
 <summary>Each installed brief and who reads it</summary>

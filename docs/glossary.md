@@ -349,8 +349,9 @@ slots](#launch-slot). Home: [The Pass](architecture/the-pass.md).
 
 ### constitution
 
-The files an agent that changes or reviews code reads first: the [pipeline](#pipeline)'s `constitution` list, or
-`<data>/briefs/defaults/constitution.md` (`ROLES_GIVEN_THE_CONSTITUTION`). Home: [Roles and
+The file an agent that changes or reviews code reads first: the [pipeline](#pipeline)'s `constitution.path`, or
+`<data>/briefs/defaults/constitution.md`, where its instruction list names `constitution`
+(`DEFAULT_INSTRUCTIONS_OF_ROLE` names it for `builder` and `reviewer`). Home: [Roles and
 launch](architecture/roles-and-launch.md).
 
 ### context roll-over

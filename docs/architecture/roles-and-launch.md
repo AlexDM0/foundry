@@ -290,10 +290,11 @@ keeps the text it started with.*
 `InstructionFiles.readingFor` resolves a list of paths per pipeline role; an Airlock agent reads its builder or
 reviewer files.
 
-1. `builder` and `reviewer` start with the pipeline's `constitution`, or
-   `<data>/briefs/defaults/constitution.md` (`ROLES_GIVEN_THE_CONSTITUTION`).
-2. Then the pipeline's `agents.<role>`, or `<data>/briefs/defaults/<role>.md`. When `agents.<role>` is set, its paths
-   replace the default file entirely.
+1. The role reads the pipeline's `agents.<role>.instructions`, or the role's default list
+   (`DEFAULT_INSTRUCTIONS_OF_ROLE`): the constitution, then its default brief, for `builder` and `reviewer`; its default
+   brief alone for the others. A set list replaces the default list entirely.
+2. Each entry resolves to a path: `constitution` to the pipeline's `constitution.path`, or
+   `<data>/briefs/defaults/constitution.md`; `default-brief` to `<data>/briefs/defaults/<role>.md`; `file` to its path.
 3. A path under `<data>/` reads from disk. Any other path is tracked and reads through `git show <mainLine>:<path>`.
 4. An absolute path, or one holding `..`, reads as missing.
 
