@@ -74,6 +74,8 @@ const MAXIMUM_REQUEST_BODY_BYTES = 65_536;
 
 const NO_IDLE_TIMEOUT = 0;
 
+const JSON_CONTENT_TYPE = 'application/json;charset=utf-8';
+
 function urlOfPort(port: number): URL {
   return new URL(`http://${LOOPBACK_ADDRESS}:${port}/`);
 }
@@ -96,7 +98,7 @@ interface Routing {
 }
 
 function fleetAnswerOf(broker: FleetBroker): Response {
-  return Response.json(broker.fleetDocument(), { headers: { 'cache-control': 'no-store' } });
+  return new Response(broker.fleetDocumentJson(), { headers: { 'content-type': JSON_CONTENT_TYPE, 'cache-control': 'no-store' } });
 }
 
 function routesOf(context: RouteContext): readonly PageServerRoute[] {

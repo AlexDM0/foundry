@@ -35,10 +35,10 @@ async function fleetEventDataIn(response: Response): Promise<string[]> {
 }
 
 describe('the fleet document', () => {
-  test('is the latest snapshot mapped out to the page contract', () => {
+  test('is the latest snapshot mapped out to the page contract, in JSON', () => {
     const { fleetStore, broker } = brokerOver(FLEET_SNAPSHOT_EMPTY);
     fleetStore.publish(FLEET_SNAPSHOT_FIVE_FORGES);
-    expect(broker.fleetDocument()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES));
+    expect(JSON.parse(broker.fleetDocumentJson())).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES));
   });
 });
 

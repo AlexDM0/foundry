@@ -1,8 +1,7 @@
 /**
- * The fleet as the page reads it: the latest snapshot mapped out as a `FleetDocument` on request, and every open event stream sent the
+ * The fleet as the page reads it: the latest snapshot mapped out as a `FleetDocument` in JSON on request, and every open event stream sent the
  * current document first and then each one the store publishes, as a `fleet` event. A heartbeat runs only while a stream is open.
  */
-import type { FleetDocument }                          from '../../../page/@types/FleetDocument.ts';
 import { FleetDocumentMapUtil }                        from '../../adapters/page-api/FleetDocumentMapUtil.ts';
 import { servedEventStreamOf, type ServedEventStream } from '../../lib/event-stream/ServedEventStream.ts';
 import type { FleetStore }                             from '../../services/FleetStore.ts';
@@ -16,12 +15,13 @@ export interface FleetBrokerOptions {
 }
 
 export interface FleetBroker {
-  readonly fleetDocument:   () => FleetDocument;
+  /** The latest snapshot as the page contract's `FleetDocument`, in JSON: the same text a `fleet` event carries. */
+  readonly fleetDocumentJson: () => string;
   /** An event stream that holds the current document as its first `fleet` event. */
-  readonly openEventStream: () => Response;
-  readonly openStreamCount: () => number;
+  readonly openEventStream:   () => Response;
+  readonly openStreamCount:   () => number;
   /** Ends every open stream, cancels the heartbeat and hears the store no more. */
-  readonly stop:            () => void;
+  readonly stop:              () => void;
 }
 
 export const FLEET_EVENT_NAME = 'fleet';
@@ -31,7 +31,7 @@ const FLEET_HEARTBEAT_INTERVAL_MILLISECONDS = 5_000;
 
 const HEARTBEAT_COMMENT = 'heartbeat';
 
-function fleetEventDataOf(snapshot: FleetSnapshot): string {
+function fleetDocumentJsonOf(snapshot: FleetSnapshot): string {
   return JSON.stringify(FleetDocumentMapUtil.fleetDocumentOf(snapshot));
 }
 
@@ -57,7 +57,7 @@ export function createFleetBroker(options: FleetBrokerOptions): FleetBroker {
   }
 
   const unsubscribe = fleetStore.subscribe((snapshot) => {
-    const eventData = fleetEventDataOf(snapshot);
+    const eventData = fleetDocumentJsonOf(snapshot);
     for (const stream of [...openStreams]) stream.sendEvent(FLEET_EVENT_NAME, eventData);
   });
 
@@ -73,7 +73,7 @@ export function createFleetBroker(options: FleetBrokerOptions): FleetBroker {
       return stream.response;
     }
     openStreams.add(stream);
-    stream.sendEvent(FLEET_EVENT_NAME, fleetEventDataOf(fleetStore.latest()));
+    stream.sendEvent(FLEET_EVENT_NAME, fleetDocumentJsonOf(fleetStore.latest()));
     scheduleHeartbeat();
     return stream.response;
   }
@@ -86,9 +86,9 @@ export function createFleetBroker(options: FleetBrokerOptions): FleetBroker {
   }
 
   return {
-    fleetDocument:   () => FleetDocumentMapUtil.fleetDocumentOf(fleetStore.latest()),
+    fleetDocumentJson: () => fleetDocumentJsonOf(fleetStore.latest()),
     openEventStream,
-    openStreamCount: () => openStreams.size,
+    openStreamCount:   () => openStreams.size,
     stop,
   };
 }

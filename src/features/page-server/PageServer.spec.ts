@@ -211,7 +211,7 @@ describe('a headless start under a scratch home', () => {
     const cookie = await sessionCookieOf(pageServer);
 
     const fleetAnswer = await answerOf(pageServer, '/api/fleet', { headers: { cookie } });
-    expect(fleetAnswer.status).toBe(200);
+    expect([fleetAnswer.status, fleetAnswer.headers.get('content-type')]).toEqual([200, 'application/json;charset=utf-8']);
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
 
     const { response, events } = await openEvents(pageServer, cookie);
