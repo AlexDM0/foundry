@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
-import ts                         from 'typescript';
+import typescript                 from 'typescript';
 
 const PAGE_FOLDER = import.meta.dir;
 const TOKENS_PATH = join(PAGE_FOLDER, 'styles', 'tokens.css');
@@ -260,10 +260,10 @@ function shippingComponentSources(): ComponentSource[] {
     .map((path) => ({ path, text: readFileSync(join(PAGE_FOLDER, path), 'utf8') }));
 }
 
-function literalTextsOf(expression: ts.Expression): string[] | null {
-  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return [expression.text];
-  if (ts.isParenthesizedExpression(expression)) return literalTextsOf(expression.expression);
-  if (ts.isConditionalExpression(expression)) {
+function literalTextsOf(expression: typescript.Expression): string[] | null {
+  if (typescript.isStringLiteral(expression) || typescript.isNoSubstitutionTemplateLiteral(expression)) return [expression.text];
+  if (typescript.isParenthesizedExpression(expression)) return literalTextsOf(expression.expression);
+  if (typescript.isConditionalExpression(expression)) {
     const whenTrue = literalTextsOf(expression.whenTrue);
     const whenFalse = literalTextsOf(expression.whenFalse);
     return whenTrue === null || whenFalse === null ? null : [...whenTrue, ...whenFalse];
@@ -275,17 +275,17 @@ function emittedClassesOf(sources: readonly ComponentSource[]): EmittedClasses {
   const classNames = new Set<string>();
   const unreadable: string[] = [];
   for (const { path, text } of sources) {
-    const sourceFile = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-    const visit = (node: ts.Node): void => {
-      if (ts.isJsxAttribute(node) && node.name.getText(sourceFile) === 'className') {
+    const sourceFile = typescript.createSourceFile(path, text, typescript.ScriptTarget.Latest, true, typescript.ScriptKind.TSX);
+    const visit = (node: typescript.Node): void => {
+      if (typescript.isJsxAttribute(node) && node.name.getText(sourceFile) === 'className') {
         const { initializer } = node;
         let texts: string[] | null = null;
-        if (initializer !== undefined && ts.isStringLiteral(initializer)) texts = [initializer.text];
-        else if (initializer !== undefined && ts.isJsxExpression(initializer) && initializer.expression !== undefined) texts = literalTextsOf(initializer.expression);
+        if (initializer !== undefined && typescript.isStringLiteral(initializer)) texts = [initializer.text];
+        else if (initializer !== undefined && typescript.isJsxExpression(initializer) && initializer.expression !== undefined) texts = literalTextsOf(initializer.expression);
         if (texts === null) unreadable.push(`${path}:${sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1}`);
         else texts.flatMap((classText) => classText.split(/\s+/)).filter((className) => className !== '').forEach((className) => classNames.add(className));
       }
-      ts.forEachChild(node, visit);
+      typescript.forEachChild(node, visit);
     };
     visit(sourceFile);
   }
