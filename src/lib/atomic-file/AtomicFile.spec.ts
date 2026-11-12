@@ -47,14 +47,14 @@ describe('an atomic write', () => {
     const target   = join(folder, 'settings.json');
     const oldBytes = `{"version":1,"old":"${'o'.repeat(4096)}"}`;
     writeFileSync(target, oldBytes);
-    const heldOpen = openSync(target, 'r');
+    const heldOpenDescriptor = openSync(target, 'r');
     try {
-      const firstHalf = bytesReadThrough(heldOpen, oldBytes.length / 2);
+      const firstHalf = bytesReadThrough(heldOpenDescriptor, oldBytes.length / 2);
       expect(await AtomicFile.write(target, '{"version":1}')).toEqual({ verdict: 'written' });
-      const rest = bytesReadThrough(heldOpen, oldBytes.length);
+      const rest = bytesReadThrough(heldOpenDescriptor, oldBytes.length);
       expect(firstHalf + rest).toBe(oldBytes);
     } finally {
-      closeSync(heldOpen);
+      closeSync(heldOpenDescriptor);
     }
     expect(readFileSync(target, 'utf8')).toBe('{"version":1}');
   });
@@ -62,13 +62,14 @@ describe('an atomic write', () => {
   test('leaves a reader that holds the old file open reading only the old bytes when the new file is longer', async () => {
     const target   = join(folder, 'settings.json');
     const oldBytes = '{"version":1}';
+    const newBytes = `{"version":1,"new":"${'n'.repeat(4096)}"}`;
     writeFileSync(target, oldBytes);
-    const heldOpen = openSync(target, 'r');
+    const heldOpenDescriptor = openSync(target, 'r');
     try {
-      expect(await AtomicFile.write(target, `{"version":1,"new":"${'n'.repeat(4096)}"}`)).toEqual({ verdict: 'written' });
-      expect(bytesReadThrough(heldOpen, 8192)).toBe(oldBytes);
+      expect(await AtomicFile.write(target, newBytes)).toEqual({ verdict: 'written' });
+      expect(bytesReadThrough(heldOpenDescriptor, newBytes.length)).toBe(oldBytes);
     } finally {
-      closeSync(heldOpen);
+      closeSync(heldOpenDescriptor);
     }
   });
 
