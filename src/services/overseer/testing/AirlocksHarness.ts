@@ -38,8 +38,8 @@ export interface HarnessTicket {
   group?:         string;
   releasesGroup?: true;
   dependsOn?:     string[];
-  /** `in-review` and queued unless set; a ticket of the bundle already integrated is `reviewed`. */
-  status?:        'in-review' | 'reviewed';
+  /** `in-review` and queued unless set; a ticket of the bundle already integrated is `reviewed`; a `pending` one is not built yet. */
+  status?:        'pending' | 'in-review' | 'reviewed';
 }
 
 export interface AirlocksHarness {
