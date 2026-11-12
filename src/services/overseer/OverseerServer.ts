@@ -3,7 +3,7 @@
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
  * origin's page. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the bearer token; the data routes the token or
  * the session cookie a one-time code buys at `POST /api/session`; and every answer carries the Bridge's CSP, a served file a sandbox of its
- * own. What a command does, and how a refusal is worded,
+ * own. A 401, a 403, a read route's 500 and a page build's 500 answer `{refusal, text}`. What a command does, and how a refusal is worded,
  * is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
@@ -12,14 +12,17 @@ import type { HTMLBundle } from 'bun';
 
 import { WATCHER_PROTOCOL_VERSION }                                               from '../../lib/watcher/constants/WatcherProtocol.ts';
 import type { TranscriptEntry }                                                   from '../../shared/@types/TranscriptEntry.ts';
+import { IDENTITY_VERSION, SERVED_CONTRACT_VERSIONS }                             from '../../shared/constants/OverseerApiContracts.ts';
 import { PICTURE_SIZE_LIMIT_BYTES, SERVED_JOB_FILE_NAMES, SSE_HEARTBEAT_SECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
 import { BrowserSessions }                                                        from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }                                        from './EventBroker.ts';
+import type { MonitorStream }                                                     from './MonitorStream.ts';
 import { OverseerPort, type OverseerPortChoice }                                  from './OverseerPort.ts';
 import { MILLISECONDS_PER_SECOND }                                                from './constants/TimeUnits.ts';
 
 export interface OverseerIdentity {
+  identityVersion:        typeof IDENTITY_VERSION;
   application:            string;
   trackerId:              string;
   project:                string;
@@ -27,7 +30,12 @@ export interface OverseerIdentity {
   installVersion:         number;
   watcherProtocolVersion: number;
   processId:              number;
+  /** The version of each API contract this program serves; a contract it does not serve has no key. */
+  contracts:              typeof SERVED_CONTRACT_VERSIONS;
 }
+
+/** What a 401, a 403 or a 500 refuses, which the routes word as `text` beside it. */
+export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'page-build-failed';
 
 /** A route's answer: the status and the JSON body. */
 export interface RouteAnswer {
@@ -45,37 +53,43 @@ export type TranscriptFollower = () => TranscriptEntry[];
 
 export interface OverseerRoutes {
   /** Read at each request, so a token written after the Baton was won is the one checked. */
-  token:        () => string | null;
+  token:         () => string | null;
   /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
-  started:      () => boolean;
+  started:       () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
-  command:      (body: unknown) => Promise<RouteAnswer>;
+  command:       (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
-  onNudge:      () => void;
-  state:        () => unknown;
-  summary:      () => unknown;
+  onNudge:       () => void;
+  state:         () => unknown;
+  summary:       () => unknown;
+  /** `GET /api/monitor`: 200 and the `MonitorSnapshot`, or 503 `starting` before the Overseer knows its generation. */
+  monitor:       () => RouteAnswer;
+  /** `null` until the first monitor snapshot was published. */
+  monitorStream: () => MonitorStream | null;
+  /** The sentence beside a 401, a 403 or a 500. */
+  refusalTextOf: (refusal: ServerRefusal) => string;
   /** `null` until the first state was published. */
-  events:       () => EventBroker | null;
+  events:        () => EventBroker | null;
   /** `null` for an unknown job or a cursor that is no `<instance>.<sequence>`. */
-  transcriptOf: (jobId: string, after: string | null) => TranscriptFollower | null;
+  transcriptOf:  (jobId: string, after: string | null) => TranscriptFollower | null;
   /** A served job file's text, `null` when the job or the file does not exist. */
-  jobFileText:  (jobId: string, fileName: string) => string | null;
+  jobFileText:   (jobId: string, fileName: string) => string | null;
   /** A non-empty `POST /api/pictures` body behind a valid token: 200 `{ pictureId, bytes, mediaType }`, or 413 or 415 worded. */
-  storePicture: (upload: PictureUpload) => RouteAnswer;
+  storePicture:  (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
-  picture:      (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
+  picture:       (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
   /** The origins allowed to frame the Bridge, read per response: agent-dashboard's. */
-  frameOrigins: () => readonly string[];
+  frameOrigins:  () => readonly string[];
   /**
    * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through
    * `fetch`, so every file carries the page CSP: Bun's own HTML route takes no headers. Absent, `GET /` is a 404 like any unknown path.
    */
-  page?:        HTMLBundle;
+  page?:         HTMLBundle;
 }
 
 export interface OverseerServerRequest {
   portChoice:             OverseerPortChoice;
-  identity:               Omit<OverseerIdentity, 'application' | 'watcherProtocolVersion'>;
+  identity:               Omit<OverseerIdentity, 'identityVersion' | 'application' | 'watcherProtocolVersion' | 'contracts'>;
   routes:                 OverseerRoutes;
   /** The clock a session code's life is measured on. */
   now:                    () => Date;
@@ -122,6 +136,10 @@ const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
 const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
 const PICTURE_PATH    = /^\/api\/pictures\/([0-9a-f]{64})$/;
 
+const EVENTS_PATH         = '/api/events';
+const MONITOR_PATH        = '/api/monitor';
+const MONITOR_EVENTS_PATH = '/api/monitor/events';
+
 function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
   const frameAncestors = frameOrigins.length === 0 ? '\'none\'' : frameOrigins.join(' ');
   return 'default-src \'self\'; script-src \'self\'; style-src \'self\'; connect-src \'self\'; img-src \'self\' data:; object-src \'none\'; '
@@ -130,6 +148,30 @@ function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
 
 function jsonResponse(answer: RouteAnswer): Response {
   return Response.json(answer.body, { status: answer.status });
+}
+
+const STATUS_OF_SERVER_REFUSAL: Readonly<Record<ServerRefusal, number>> = {
+  'unauthorized':      HTTP_STATUS.UNAUTHORIZED,
+  'forbidden':         HTTP_STATUS.FORBIDDEN,
+  'read-failed':       HTTP_STATUS.SERVER_ERROR,
+  'page-build-failed': HTTP_STATUS.SERVER_ERROR,
+};
+
+function refusalResponse(routes: OverseerRoutes, refusal: ServerRefusal): Response {
+  return jsonResponse({ status: STATUS_OF_SERVER_REFUSAL[refusal], body: { refusal, text: routes.refusalTextOf(refusal) } });
+}
+
+function unauthorizedResponse(routes: OverseerRoutes): Response {
+  return refusalResponse(routes, 'unauthorized');
+}
+
+/** A read route that throws, as on a malformed board file, answers its refusal rather than Bun's plain-text 500. */
+function readAnswerOf(routes: OverseerRoutes, answer: () => Response): Response {
+  try {
+    return answer();
+  } catch {
+    return refusalResponse(routes, 'read-failed');
+  }
 }
 
 function hostIsLoopback(request: Request, port: number): boolean {
@@ -152,7 +194,7 @@ function bearerTokenMatches(request: Request, expectedToken: string | null): boo
 }
 
 async function answerCommand(request: Request, routes: OverseerRoutes): Promise<Response> {
-  if (!bearerTokenMatches(request, routes.token())) return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
+  if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   let body: unknown;
   try {
     body = await request.json();
@@ -189,7 +231,7 @@ async function pictureUploadOf(request: Request, sizeLimitBytes: number): Promis
 
 /** The raw body is the picture; what it is and whether it fits is the route's, read from its bytes. */
 async function answerPictureUpload(request: Request, routes: OverseerRoutes): Promise<Response> {
-  if (!bearerTokenMatches(request, routes.token())) return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
+  if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   const upload = await pictureUploadOf(request, PICTURE_SIZE_LIMIT_BYTES);
   if (upload.verdict === 'read' && upload.bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
   return jsonResponse(routes.storePicture(upload));
@@ -204,10 +246,6 @@ function pictureResponse(routes: OverseerRoutes, pictureId: string): Response {
       'content-type': picture.mediaType, 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox', 'cache-control': 'no-store'
     },
   });
-}
-
-function unauthorizedResponse(): Response {
-  return jsonResponse({ status: HTTP_STATUS.UNAUTHORIZED, body: { refusal: 'unauthorized' } });
 }
 
 function sessionCookieNameOf(port: number): string {
@@ -231,11 +269,11 @@ function readerIsAuthorized(request: Request, access: RouteAccess): boolean {
 
 function sessionTokenResponse(routes: OverseerRoutes): Response {
   const token = routes.token();
-  return token === null ? unauthorizedResponse() : jsonResponse({ status: HTTP_STATUS.OK, body: { token } });
+  return token === null ? unauthorizedResponse(routes) : jsonResponse({ status: HTTP_STATUS.OK, body: { token } });
 }
 
 function sessionCodeResponse(request: Request, access: RouteAccess): Response {
-  if (!bearerTokenMatches(request, access.routes.token())) return unauthorizedResponse();
+  if (!bearerTokenMatches(request, access.routes.token())) return unauthorizedResponse(access.routes);
   return jsonResponse({ status: HTTP_STATUS.OK, body: { code: access.sessions.issueCode() } });
 }
 
@@ -245,10 +283,10 @@ async function sessionExchangeResponse(request: Request, access: RouteAccess): P
   try {
     ({ code } = await request.json() as { code?: unknown });
   } catch {
-    return unauthorizedResponse();
+    return unauthorizedResponse(access.routes);
   }
   const sessionSecret = typeof code === 'string' ? access.sessions.exchangeCode(code) : null;
-  if (sessionSecret === null) return unauthorizedResponse();
+  if (sessionSecret === null) return unauthorizedResponse(access.routes);
   const response = jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
   response.headers.set('set-cookie', `${access.sessionCookieName}=${sessionSecret}; Path=/; HttpOnly; SameSite=Strict`);
   return response;
@@ -303,6 +341,22 @@ function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: 
     if (replay.verdict === 'replayed') replay.events.forEach((event) => write(eventText(event)));
     else if (snapshot !== null) write(eventText(snapshot));
     const unsubscribe = broker.subscribe((event) => write(eventText(event)));
+    return { tick: () => undefined, stop: unsubscribe };
+  });
+}
+
+function monitorEventText(snapshot: unknown): string {
+  return `event: monitor\ndata: ${JSON.stringify(snapshot)}\n\n`;
+}
+
+/** A whole snapshot on connect, then each one that changed; no ids and no replay, since every event is whole. */
+function monitorEventsResponse(routes: OverseerRoutes, eventStreams: EventStreams): Response {
+  const monitorStream = routes.monitorStream();
+  const latest = monitorStream?.latest() ?? null;
+  if (monitorStream === null || latest === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
+  return eventStreamResponse(eventStreams, (write) => {
+    write(monitorEventText(latest));
+    const unsubscribe = monitorStream.subscribe((snapshot) => write(monitorEventText(snapshot)));
     return { tick: () => undefined, stop: unsubscribe };
   });
 }
@@ -367,9 +421,9 @@ function notFoundResponse(): Response {
   return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
 }
 
-async function pageFileResponse(pageFiles: () => Promise<BuiltPageOutcome>, pathname: string): Promise<Response> {
+async function pageFileResponse(routes: OverseerRoutes, pageFiles: () => Promise<BuiltPageOutcome>, pathname: string): Promise<Response> {
   const outcome = await pageFiles();
-  if (outcome.verdict === 'failed') return jsonResponse({ status: HTTP_STATUS.SERVER_ERROR, body: { refusal: 'page-build-failed' } });
+  if (outcome.verdict === 'failed') return refusalResponse(routes, 'page-build-failed');
   const file = outcome.files.get(pathname);
   return file === undefined ? notFoundResponse() : new Response(file, { headers: { 'content-type': file.type } });
 }
@@ -382,7 +436,9 @@ function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: Eve
   if (request.method !== 'GET') return null;
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
-  if (pathname === '/api/events') return () => eventsResponse(request, routes, eventStreams);
+  if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams);
+  if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
+  if (pathname === MONITOR_EVENTS_PATH) return () => monitorEventsResponse(routes, eventStreams);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
   if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
   const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
@@ -397,13 +453,13 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
   const { pathname } = new URL(request.url);
   const { method } = request;
   const dataRoute = dataRouteOf(request, routes, eventStreams);
-  if (dataRoute !== null) return readerIsAuthorized(request, access) ? dataRoute() : unauthorizedResponse();
+  if (dataRoute !== null) return readerIsAuthorized(request, access) ? readAnswerOf(routes, dataRoute) : unauthorizedResponse(routes);
   if (method === 'GET' && pathname === '/api/identity') {
     return routes.started()
       ? jsonResponse({ status: HTTP_STATUS.OK, body: identity })
       : jsonResponse({ status: HTTP_STATUS.UNAVAILABLE, body: { refusal: 'starting' } });
   }
-  if (method === 'GET' && pathname === '/api/summary') return jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() });
+  if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
   if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
   if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);
   if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
@@ -412,7 +468,7 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
     routes.onNudge();
     return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
   }
-  if (method === 'GET' && pageFiles !== null && !pathname.startsWith('/api/')) return pageFileResponse(pageFiles, pathname);
+  if (method === 'GET' && pageFiles !== null && !pathname.startsWith('/api/')) return pageFileResponse(routes, pageFiles, pathname);
   return notFoundResponse();
 }
 
@@ -422,7 +478,19 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
   return response;
 }
 
-function start(serverRequest: OverseerServerRequest): OverseerServer {
+/** What answers a request: the server's routes, sessions, identity, open streams and built page, kept apart from the socket. */
+export interface OverseerRequestHandler {
+  /** Answers one request as the server bound at `boundPort` does; `holdOpen` turns the idle timeout off for a stream that is quiet by design. */
+  answer:           (request: Request, boundPort: number, holdOpen?: () => void) => Promise<Response>;
+  closeEveryStream: () => void;
+}
+
+/** Every request but a stream is answered within the idle timeout; a stream stays open, between its heartbeats, until a side ends it. */
+function pathIsStream(pathname: string): boolean {
+  return pathname === EVENTS_PATH || pathname === MONITOR_EVENTS_PATH || JOB_STREAM_PATH.test(pathname);
+}
+
+function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequestHandler {
   const { routes } = serverRequest;
   const eventStreams: EventStreams = {
     open:                  new Set(),
@@ -430,25 +498,39 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
   };
   const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
-  const identity: OverseerIdentity = { application: PRODUCT_NAMES.PROGRAM, ...serverRequest.identity, watcherProtocolVersion: WATCHER_PROTOCOL_VERSION };
+  const identity: OverseerIdentity = {
+    identityVersion:        IDENTITY_VERSION,
+    application:            PRODUCT_NAMES.PROGRAM,
+    ...serverRequest.identity,
+    watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
+    contracts:              SERVED_CONTRACT_VERSIONS,
+  };
+  return {
+    answer: async (request, boundPort, holdOpen) => {
+      const frameOrigins = routes.frameOrigins();
+      // A preflight is refused like a foreign Origin: no route answers one, so no browser of another origin may send a write.
+      if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
+        return withPagePolicy(refusalResponse(routes, 'forbidden'), frameOrigins);
+      }
+      if (pathIsStream(new URL(request.url).pathname)) holdOpen?.();
+      const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
+      return withPagePolicy(await routeOf(request, access, identity, eventStreams, pageFiles), frameOrigins);
+    },
+    closeEveryStream: () => {
+      for (const close of [...eventStreams.open]) close();
+    },
+  };
+}
+
+function start(serverRequest: OverseerServerRequest): OverseerServer {
+  const handler = requestHandlerOf(serverRequest);
   const server = OverseerPort.bindFirstFree(serverRequest.portChoice, (port) => Bun.serve({
     hostname:    LOOPBACK_ADDRESS,
     port,
     reusePort:   false,
     development: false,
-    async fetch(request, ownServer) {
-      const boundPort = ownServer.port ?? port;
-      const frameOrigins = routes.frameOrigins();
-      // A preflight is refused like a foreign Origin: no route answers one, so no browser of another origin may send a write.
-      if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
-        return withPagePolicy(jsonResponse({ status: HTTP_STATUS.FORBIDDEN, body: { refusal: 'forbidden' } }), frameOrigins);
-      }
-      // A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing.
-      const { pathname } = new URL(request.url);
-      if (pathname === '/api/events' || JOB_STREAM_PATH.test(pathname)) ownServer.timeout(request, 0);
-      const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
-      return withPagePolicy(await routeOf(request, access, identity, eventStreams, pageFiles), frameOrigins);
-    },
+    // A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing.
+    fetch:       (request, ownServer) => handler.answer(request, ownServer.port ?? port, () => ownServer.timeout(request, 0)),
   }));
   const boundPort = server.port ?? 0;
   return {
@@ -456,10 +538,10 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
     url:  `http://${LOOPBACK_ADDRESS}:${boundPort}/`,
     // Graceful: the answer to the `overseer-stop` that ended the Overseer is still in flight when the listener closes.
     stop: async () => {
-      for (const close of [...eventStreams.open]) close();
+      handler.closeEveryStream();
       await server.stop(false);
     },
   };
 }
 
-export const OverseerServer = Object.freeze({ start, pictureUploadOf });
+export const OverseerServer = Object.freeze({ start, requestHandlerOf, pictureUploadOf });

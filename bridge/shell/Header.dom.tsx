@@ -46,7 +46,7 @@ import type { BridgeClock }                             from './BridgeClock.ts';
 import { ControlSurroundingsContext }                   from './ControlAvailability.ts';
 import { BRIDGE_TABS }                                  from './HashRouter.ts';
 import { Header, STALE_NOTICE_TEXT }                    from './Header.tsx';
-import { HeaderModelUtil, type HeaderFigureLane }       from './HeaderModel.ts';
+import { headerModelOf, type HeaderFigureLane }         from './HeaderModel.ts';
 import type { ThemeChoice }                             from './ThemeBootstrap.ts';
 import { WaitingOnUserModel }                           from './WaitingOnUserModel.ts';
 
@@ -111,7 +111,7 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <Header
         project="Example Agency"
-        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, surroundings.connection ?? 'live')}
+        model={headerModelOf(state, FIXTURE_NOW, surroundings.connection ?? 'live')}
         selectedTab="kanban"
         shownTabs={BRIDGE_TABS}
         themeChoice={surroundings.themeChoice ?? 'auto'}
@@ -405,14 +405,14 @@ describe('waiting on User', () => {
     expect(rows.map((row) => [row.querySelector('.bridge-ask-line .bridge-ticket-id')?.textContent,
       row.querySelector('.bridge-ask-side a')?.textContent,
       row.querySelector('.bridge-ask-side a')?.getAttribute('href')])).toEqual([
-      ['E3', 'Answer', '#questions'],
+      ['E3', 'Answer', '#questions/E3'],
       ['D2', 'Answer', '#kanban/draft/D2'],
-      ['E2', 'Answer', '#questions'],
+      ['E2', 'Answer', '#questions/E2'],
       ['#009', 'Ready', '#kanban/ticket/009'],
       ['#006', 'Review', '#kanban/ticket/006'],
       ['#005', 'Accept', '#kanban/ticket/005'],
       ['#015', 'Ready', '#kanban/ticket/015'],
-      ['E4', 'Answer', '#questions'],
+      ['E4', 'Answer', '#questions/E4'],
     ]);
     const escalatedAction = rows[0]?.querySelector('.bridge-ask-side a');
     expect([rows[0]?.hasAttribute('data-escalated'), escalatedAction?.hasAttribute('data-primary'), rows[1]?.querySelector('.bridge-ask-side a')?.hasAttribute('data-primary')])

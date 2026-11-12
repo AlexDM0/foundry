@@ -87,13 +87,16 @@ function startExampleServer(
       commands.push(body);
       return { status: 200, body: { outcome: 'done', result: null } };
     },
-    onNudge:      () => nudges.push('nudge'),
-    state:        () => ({ notices: [{ kind: 'install-version-changed' }] }),
-    summary:      () => ({ summaryVersion: 1 }),
-    events:       () => broker,
-    transcriptOf: (jobId) => (jobId === 'J1' ? () => [] : null),
-    jobFileText:  (_jobId, fileName) => `text of ${fileName}`,
-    storePicture: (upload) => {
+    onNudge:       () => nudges.push('nudge'),
+    state:         () => ({ notices: [{ kind: 'install-version-changed' }] }),
+    summary:       () => ({ summaryVersion: 1 }),
+    monitor:       () => ({ status: 200, body: { monitorVersion: 1 } }),
+    monitorStream: () => null,
+    refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
+    events:        () => broker,
+    transcriptOf:  (jobId) => (jobId === 'J1' ? () => [] : null),
+    jobFileText:   (_jobId, fileName) => `text of ${fileName}`,
+    storePicture:  (upload) => {
       if (upload.verdict === 'over-limit') return { status: 413, body: { refusal: 'too-large' } };
       pictureUploads.push(upload.bytes);
       return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: upload.bytes.length, mediaType: 'image/png' } };
@@ -178,6 +181,7 @@ describe('OverseerServer guards', () => {
     expect(server.url).toBe(`http://127.0.0.1:${server.port}/`);
     const response = await fetch(new URL('api/identity', server.url));
     expect(await response.json()).toEqual({
+      identityVersion:        1,
       application:            PRODUCT_NAMES.PROGRAM,
       trackerId:              EXAMPLE_TRACKER_ID,
       project:                'Example Agency',
@@ -185,6 +189,7 @@ describe('OverseerServer guards', () => {
       installVersion:         17,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
+      contracts:              { summary: 1, monitor: 1 },
     });
   });
 

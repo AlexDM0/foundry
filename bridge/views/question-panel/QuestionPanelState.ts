@@ -5,16 +5,17 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 
-import type { OpenDecision }    from '../../conversation/OpenDecisionsUtil.ts';
-import type { PreferenceStore } from '../../preferences/PreferenceStore.ts';
-import { QuestionPanelModel }   from './QuestionPanelModel.ts';
+import type { OpenDecision }     from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { DecisionDocument } from '../../@types/ConversationDocuments.ts';
+import type { PreferenceStore }  from '../../preferences/PreferenceStore.ts';
+import { QuestionPanelModel }    from './QuestionPanelModel.ts';
 
 /** The board's preference holding the decisions open when User last folded the panel. */
 export const QUESTION_PANEL_CHOICE_NAME = 'question-panel';
 
 export interface QuestionPanelState {
   /** What the panel shows; `null` while it is folded or nothing is open. */
-  readonly shownDecision: OpenDecision | null;
+  readonly shownDecision: OpenDecision<DecisionDocument> | null;
   /** User opened the panel at a decision, rather than a decision opening it. */
   readonly openedByUser:  boolean;
   /** Shows the panel at the decision. */
@@ -32,7 +33,7 @@ interface UserChoice {
 
 const NOTHING_CHOSEN: UserChoice = { pointedDecisionId: null, openedByUser: false };
 
-export function useQuestionPanelState(boardStore: PreferenceStore | null, queue: readonly OpenDecision[]): QuestionPanelState {
+export function useQuestionPanelState(boardStore: PreferenceStore | null, queue: readonly OpenDecision<DecisionDocument>[]): QuestionPanelState {
   const [choice, setChoice] = useState<UserChoice>(NOTHING_CHOSEN);
   const [foldedNow, setFoldedNow] = useState<readonly string[] | null>(null);
   const foldedDecisionIds = useMemo(() => foldedNow ?? boardStore?.readTextList(QUESTION_PANEL_CHOICE_NAME) ?? [], [foldedNow, boardStore]);

@@ -4,6 +4,7 @@
  * is open closes it; an epic is no detail form but a place on the Epics tab, `#epics/epic/<key>`. The ticket form opens on a section,
  * `#<tab>/ticket/<id>/<section>`, Overview with none; the section is where the form stands, never which item it is.
  */
+import { BridgeFragmentUtil }          from '../../src/shared/monitor/utils/BridgeFragmentUtil.ts';
 import type { BridgeRoute, BridgeTab } from './HashRouter.ts';
 
 export const DETAIL_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets'] as const;
@@ -46,11 +47,11 @@ function itemTextOf(item: DetailItem): string {
   switch (item.form) {
     case 'ticket':
     case 'ticket-row':
-      return `${item.form}/${item.ticketId}`;
+      return BridgeFragmentUtil.detailItemTextOf(item.form, item.ticketId);
     case 'task-row':
-      return `${item.form}/${String(item.taskId)}`;
+      return BridgeFragmentUtil.detailItemTextOf(item.form, String(item.taskId));
     case 'draft':
-      return `${item.form}/${item.draftId}`;
+      return BridgeFragmentUtil.detailItemTextOf(item.form, item.draftId);
     default:
       return '';
   }

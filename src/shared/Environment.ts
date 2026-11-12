@@ -112,6 +112,22 @@ export function hatchDirectoryVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNam
   return `${ENVIRONMENT_PREFIX}HATCH_DIRECTORY`;
 }
 
+export function launchingProgramVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
+  return `${ENVIRONMENT_PREFIX}LAUNCHING_PROGRAM`;
+}
+
+export const LAUNCHING_PROGRAM_VARIABLE = launchingProgramVariableOf(PRODUCT_NAMES);
+
+/** The compiled launcher that started this process, which sets it on the program it starts; empty or whitespace-only reads as unset. */
+export function launchingProgram(): string | undefined {
+  return nonBlankValueOf(LAUNCHING_PROGRAM_VARIABLE);
+}
+
+/** The whole environment plus the launcher's own path, for the program the launcher starts, so the monitor registry can name the launcher. */
+export function launchedProgramEnvironment(launcherPath: string): Record<string, string> {
+  return { ...environmentCopy(), [LAUNCHING_PROGRAM_VARIABLE]: launcherPath };
+}
+
 export const JOB_ID_VARIABLE = jobIdVariableOf(PRODUCT_NAMES);
 
 export const HATCH_DIRECTORY_VARIABLE = hatchDirectoryVariableOf(PRODUCT_NAMES);

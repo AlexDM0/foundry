@@ -102,6 +102,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     renderState:          createRenderState(),
     // No program to start again and no signal to take: an Overseer is started in a spec only as a child through `cli/testing/CliProcess.ts`.
     programCommand:       [],
+    programPath:          '/example/bin/forge',
     onStopSignal:         () => () => undefined,
     outputText:           () => outputLines.join('\n'),
     errorText:            () => errorLines.join('\n'),

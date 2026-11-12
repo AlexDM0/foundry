@@ -381,6 +381,9 @@ on the server.
 tab counts read it, from facts already on the board: open decisions, `incident-escalated` log records for which of them
 an Assistant escalated, the page's tickets and filing drafts, and the merge queue's tickets waiting for the merge
 accept. It orders by the stamp strings and judges no move; each inbox row only links to the place that holds the move.
+The list itself is `attentionEntriesOf` in `src/shared/monitor/AttentionEntries.ts`, which the Overseer's
+`GET /api/monitor` answers as `attention` too, so a monitor and the Bridge show the same entries. The header's notice
+sentences, its warnings and its today figures come from `src/shared/monitor/` in the same way.
 
 The wave forecast, `WaveForecastUtil`, is the one substantial computation, and it decides nothing: only
 `WavesModel` reads the result. The clock arrives as a parameter. It plays the open tickets forward from the build

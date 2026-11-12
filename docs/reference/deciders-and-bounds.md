@@ -528,7 +528,7 @@ Changes only what a person reads:
 | `cohortSplitAt` in `src/lib/claude-code/utils/TranscriptCohortUtil.ts` | Which cohort a transcript is summarised in | Docblock |
 | `bridge/utils/TimeUtil.ts` | The text a stamp prints as | File header |
 | `BridgeApp` in `bridge/shell/BridgeApp.tsx` | Hands `now` to the header, the chart's now line and Fit range, the detail panel, and the finished, epics and tickets views | Inline, for the chart only |
-| `statisticsOf` in `bridge/shell/HeaderModel.ts` | Which tickets and tokens count as today in the header | None |
+| `todayFiguresOf` in `src/shared/monitor/TodayFigures.ts` | Which tickets and tokens count as today in the header and the monitor snapshot | File header |
 | `bridge/utils/FinishedWorkUtil.ts` | What the finished view shows | File header |
 | `ticketIsInWindow` in `bridge/views/tickets/TicketsModel.ts` | Which closed tickets the unnarrowed Tickets table shows | Docblock |
 | `pauseTextOf` in `bridge/views/tickets/TicketsModel.ts` | A paused build's "since 11:45 · 1h 51m" | File header |

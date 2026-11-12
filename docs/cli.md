@@ -977,11 +977,12 @@ API](reference/overseer-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
 than the API's own, and every preflight. Behind those guards, `POST /api/commands`, `POST /api/pictures` and
-`POST /api/session-codes` need the bearer token from the file the Baton names. The six data routes
-(`GET /api/session-token`, `/api/state`, `/api/events`, `/api/jobs/<J>/stream`, `/api/jobs/<J>/files/<name>`,
-`/api/pictures/<id>`) need that token or the HttpOnly, SameSite=Strict
+`POST /api/session-codes` need the bearer token from the file the Baton names. The eight data routes
+(`GET /api/session-token`, `/api/state`, `/api/events`, `/api/monitor`, `/api/monitor/events`, `/api/jobs/<J>/stream`,
+`/api/jobs/<J>/files/<name>`, `/api/pictures/<id>`) need that token or the HttpOnly, SameSite=Strict
 session cookie that one code from `open` buys once at `POST /api/session`, and answer 401 otherwise; no request header a
-local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open.
+local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open. A 401, a 403
+and a read that fails answer `{refusal, text}`: a fixed word, and the sentence a client shows.
 
 | command | what it does |
 |---|---|
@@ -2026,10 +2027,16 @@ A file recording another version, holding anything else or unreadable is a misma
       "progressHtml": "/Users/alex.example/development/example-agency/.forge/progress.html",
       "progressJson": "/Users/alex.example/development/example-agency/.forge/progress.json",
       "gitOrigin": "git@example.invalid:example/example-agency.git",
+      "program": "/Users/alex.example/.bun/bin/forge",
       "registeredAt": "2026-10-21T10:00:00+02:00",
       "lastChangedAt": "2026-10-21T11:30:00+02:00",
       "lastCommand": "ticket ready",
-      "overseer": { "url": "http://127.0.0.1:4987/", "processId": 4242, "startedAt": "2026-10-21T10:05:00+02:00" }
+      "overseer": {
+        "url": "http://127.0.0.1:4987/",
+        "processId": 4242,
+        "startedAt": "2026-10-21T10:05:00+02:00",
+        "tokenPath": "/Users/alex.example/.forge-monitor/watchers/5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37/token"
+      }
     }
   }
 }
@@ -2049,9 +2056,15 @@ the registry stays.
 
 An entry is keyed by the tracker's `trackerId`, so a moved or renamed folder updates its one entry. It holds the board's
 `project` name, the `root` folder, the absolute paths of `progressHtml` and `progressJson`, `gitOrigin` (the `origin`
-remote's URL, or `null`), `registeredAt` (the first registration, kept), `lastChangedAt` (this write) and `lastCommand`
-(the verb that wrote, the command word and its subcommand), and, while an Overseer serves the board, `overseer`
-(`{url, processId, startedAt}`, removed by a stop).
+remote's URL, or `null`), `program` (the absolute path of the program that last wrote the entry: the compiled launcher
+when one started it, else the entry point), `registeredAt` (the first registration, kept), `lastChangedAt` (this write)
+and `lastCommand` (the verb that wrote, the command word and its subcommand), and, while an Overseer serves the board,
+`overseer` (`{url, processId, startedAt, tokenPath}`, written at its start and removed by a stop). `tokenPath` is the
+absolute path of that Overseer's owner-only token file, which a monitor reads its bearer token from.
+
+`program` and `overseer.tokenPath` are keys added to version 1: an optional key added to a stored format keeps its
+version, since every reader keeps a key it does not know. An entry an older program wrote has neither until its next
+write.
 
 No board summary is copied: the monitor reads each project's own files. The CLI never removes an entry and has no
 command for the registry.

@@ -6,6 +6,7 @@
  */
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketStatus } from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type { OpenDecision } from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type {
   AcceptanceItemDocument,
   DecisionDocument,
@@ -18,12 +19,14 @@ import type { ChatTurn }                                   from '../../conversat
 import type { ChatThreadItem }                             from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                             from '../../conversation/ChatTurnWordingUtil.ts';
 import { DecisionAnswerUtil }                              from '../../conversation/DecisionAnswerUtil.ts';
-import type { OpenDecision }                               from '../../conversation/OpenDecisionsUtil.ts';
 import { OptionConsequencesUtil, type OptionConsequences } from '../../conversation/OptionConsequencesUtil.ts';
 import { DependencyGraphUtil }                             from '../../utils/DependencyGraphUtil.ts';
 import { HeldCountUtil }                                   from '../../utils/HeldCountUtil.ts';
 import { JobLiveFactsUtil }                                from '../../utils/JobLiveFactsUtil.ts';
 import { TimeUtil, type TimestampSlices }                  from '../../utils/TimeUtil.ts';
+
+/** An open decision of the question queue, as the Bridge's board documents carry it. */
+export type QueuedDecision = OpenDecision<DecisionDocument>;
 
 /** How many of the asking job's last tool calls the background lists. */
 export const QUESTION_PANEL_STEPS_SHOWN = 6;
@@ -180,7 +183,7 @@ function askerTextOf(decision: DecisionDocument): string {
 }
 
 /** The pointed decision while it is open, else the first one opened since User last folded the panel, else the first; `null` with none. */
-function shownDecisionOf(queue: readonly OpenDecision[], pointedDecisionId: string | null, foldedDecisionIds: readonly string[]): OpenDecision | null {
+function shownDecisionOf(queue: readonly QueuedDecision[], pointedDecisionId: string | null, foldedDecisionIds: readonly string[]): QueuedDecision | null {
   const folded = new Set(foldedDecisionIds);
   return queue.find(({ decision }) => decision.id === pointedDecisionId)
     ?? queue.find(({ decision }) => !folded.has(decision.id))
@@ -189,14 +192,14 @@ function shownDecisionOf(queue: readonly OpenDecision[], pointedDecisionId: stri
 }
 
 /** It shows while User opened it or a decision opened that was not open when User last folded it; never with nothing open. */
-function panelIsShownOf(queue: readonly OpenDecision[], foldedDecisionIds: readonly string[], openedByUser: boolean): boolean {
+function panelIsShownOf(queue: readonly QueuedDecision[], foldedDecisionIds: readonly string[], openedByUser: boolean): boolean {
   if (queue.length === 0) return false;
   const folded = new Set(foldedDecisionIds);
   return openedByUser || queue.some(({ decision }) => !folded.has(decision.id));
 }
 
 /** The decision after the shown one, wrapping round; the shown one itself in a queue of one. */
-function nextDecisionIdOf(queue: readonly OpenDecision[], shownDecisionId: string): string | null {
+function nextDecisionIdOf(queue: readonly QueuedDecision[], shownDecisionId: string): string | null {
   const position = queue.findIndex(({ decision }) => decision.id === shownDecisionId);
   return queue[(position + 1) % queue.length]?.decision.id ?? null;
 }
@@ -292,7 +295,7 @@ function earlierAnswersOf(history: readonly HistoryRecordDocument[], ticketId: s
     .reverse();
 }
 
-function queueFootOf(queue: readonly OpenDecision[], shownDecisionId: string): QueueFoot {
+function queueFootOf(queue: readonly QueuedDecision[], shownDecisionId: string): QueueFoot {
   const position = Math.max(0, queue.findIndex(({ decision }) => decision.id === shownDecisionId));
   const later = [...queue.slice(position + 1), ...queue.slice(0, position)];
   return {
@@ -302,7 +305,7 @@ function queueFootOf(queue: readonly OpenDecision[], shownDecisionId: string): Q
   };
 }
 
-function questionPanelModelOf(board: QuestionPanelBoard, queue: readonly OpenDecision[], shown: OpenDecision, format: QuestionPanelFormat): QuestionPanelViewModel {
+function questionPanelModelOf(board: QuestionPanelBoard, queue: readonly QueuedDecision[], shown: QueuedDecision, format: QuestionPanelFormat): QuestionPanelViewModel {
   const { decision, escalated } = shown;
   const askerText = askerTextOf(decision);
   const askingJob = decision.jobId === null ? null : board.jobs.find((job) => job.id === decision.jobId) ?? null;

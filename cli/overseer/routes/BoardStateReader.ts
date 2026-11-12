@@ -4,6 +4,8 @@ import { UsageMarkerFile }   from '../../../src/adapters/usage-marker/UsageMarke
 import { LogUtil }           from '../../../src/adapters/utils/LogUtil.ts';
 import { GitProcess }        from '../../../src/lib/git/GitProcess.ts';
 import { predictMerges }     from '../../../src/lib/git/MergeTree.ts';
+import type { LogRecord }    from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { Board }        from '../../../src/lib/tracker-model/Board.ts';
 import { readingBoardOf }    from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { mergeTargetRuleOf } from '../../../src/services/lifecycle/MergeTargets.ts';
 import {
@@ -105,7 +107,16 @@ function usageOf(context: CommandContext): UsageFacts {
   return reading.verdict === 'read' ? { resetsAt: reading.marker.resetsAt, window: reading.marker.window } : { resetsAt: null, window: null };
 }
 
-export function readBoardState(source: BoardStateSource): { state: BoardState; project: string; readyTicketIds: string[] } {
+/** The state, and the Board and the log records it was read from, which the monitor snapshot reads beside it. */
+export interface BoardStateRead {
+  state:          BoardState;
+  project:        string;
+  readyTicketIds: string[];
+  board:          Board;
+  logRecords:     readonly LogRecord[];
+}
+
+export function readBoardState(source: BoardStateSource): BoardStateRead {
   const { context, workspace } = source;
   const {
     progress, pipelineReading, storedLog, listing, epicListing, draftListing
@@ -137,5 +148,7 @@ export function readBoardState(source: BoardStateSource): { state: BoardState; p
     mergeForecasting:   source.mainLine === undefined ? null : mergeForecastingIn(workspace.rootDirectory, source.mainLine, source.mergeForecastCache ?? null),
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
   });
-  return { state, project: progress.project, readyTicketIds: board.readyTicketEntries().map((ready) => ready.id) };
+  return {
+    state, project: progress.project, readyTicketIds: board.readyTicketEntries().map((ready) => ready.id), board, logRecords: storedLog.records
+  };
 }

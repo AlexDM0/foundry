@@ -1656,10 +1656,10 @@ named in the [Glossary](../glossary.md#reading-names).
 ### The header shows `instructions-missing` as a bare word
 
 - **Expected:** every notice reads as a sentence.
-- **Does:** `noticeTextOf` in `HeaderModel.ts` has no case for `instructions-missing`, so its default returns the kind.
+- **Does:** `NoticeWordingUtil.noticeTextOf` has no case for `instructions-missing`, so its default returns the kind.
 - **Effect:** the header says `instructions-missing`, naming neither the job nor the path.
 - **Instead:** run `forge oversee status`, whose wording names both.
-- **Evidence:** `bridge/shell/HeaderModel.ts` `noticeTextOf`; `cli/overseer/OverseerWording.ts` `noticeTextOf`.
+- **Evidence:** `src/shared/monitor/utils/NoticeWordingUtil.ts` `noticeTextOf`; `cli/overseer/OverseerWording.ts` `noticeTextOf`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-reconnect-reload-check-skipped"></a>

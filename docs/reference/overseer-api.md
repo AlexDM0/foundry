@@ -31,18 +31,22 @@ Request guards stop a browser page of another origin. They are not what holds an
 ## Routes
 
 Every route passes the shared [request guards](#request-guards), so every route can also answer 403
-`{refusal: 'forbidden'}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what the
-route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except on
-409, 413, 415 and 423, where it is a sentence. A bare verb such as `oversee status` is `forge oversee status`.
+`{refusal: 'forbidden', text}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what
+the route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except
+on 409, 413, 415 and 423, where it is a sentence. A 401, a 403 and the 500s `read-failed` and `page-build-failed` are
+`{refusal, text}`: the fixed word, and beside it the sentence a client shows unedited, worded in
+`cli/overseer/routes/OverseerRoutes.ts`. A bare verb such as `oversee status` is `forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
-| `GET /api/identity` | none | `OverseerIdentity`: `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId` | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status` |
+| `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor |
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
 | `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
-| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 when the read throws | `oversee status`; never the Bridge |
-| `GET /api/summary` | none | `BoardSummary` | 500 when the read throws | agent-dashboard; never the Bridge |
+| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
+| `GET /api/summary` | none | `BoardSummary` | 500 `read-failed` when the read throws | agent-dashboard; never the Bridge |
+| `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor such as Gaia |
+| `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor such as Gaia |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
@@ -60,10 +64,10 @@ looks at the job.
 A [job](../glossary.md#job) route needs a job id matching `/^J\d+$/` and an existing job folder. A path segment holding
 a percent escape matches no route and gets 404, because neither job ids nor served names need decoding.
 
-> **Careful.** A route that throws has no handler above it, so Bun answers a plain-text 500 `Something went wrong!`,
-> with no JSON body and no CSP. `GET /api/state` and `GET /api/summary` do this on a malformed `progress.json`, and
-> `POST /api/commands` on any throw other than `OperationRefusal` or `TypeError`. The event stream behaves differently,
-> see [BoardState](#boardstate).
+> **Careful.** A read route that throws, `GET /api/state`, `GET /api/summary` or `GET /api/monitor` on a malformed
+> `progress.json` for one, answers 500 `{refusal: 'read-failed', text}`. `POST /api/commands` has no handler above it
+> for any throw other than `OperationRefusal` or `TypeError`, so Bun answers a plain-text 500 `Something went wrong!`,
+> with no JSON body and no CSP. The event stream behaves differently, see [BoardState](#boardstate).
 
 ## Request guards
 
@@ -82,7 +86,7 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
 | Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, agent-dashboard's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
-| Reader | In the six data routes: session token, state, events, job stream, job files, pictures | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
+| Reader | In the eight data routes: session token, state, events, monitor, monitor events, job stream, job files, pictures | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
 | Bearer token | In `/api/commands`, `/api/pictures` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
 | Page CSP | On the answer | Every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | Injected script reaching out; a foreign page framing the Bridge's controls |
 | File CSP | On the answer | `sandbox` on a served job file and a served picture, which is also `nosniff` | None, it is a header | Agent text or a picture opened in a browser running as the API's origin |
@@ -165,7 +169,7 @@ server.
 | --- | --- | --- |
 | 200 | `{outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
 | 400 | `{refusal: 'malformed-body'}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, or a control function reading a field the body lacks. Nothing was written. |
-| 401 | `{refusal: 'unauthorized'}` | No token, a wrong one, or no token written yet. |
+| 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{refusal: <sentence>}` | The write was refused. The sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{refusal: <sentence>}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs, see [Baton](../architecture/baton.md). |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
@@ -489,6 +493,64 @@ lines before it first.
 Each open transcript holds one browser connection. The Bridge opens one only for a transcript it shows: the Intake tab
 follows the selected session alone and reads every other session's last line from `BoardState`.
 
+## Contracts
+
+`GET /api/identity` answers `identityVersion`, the version of its own shape, now 1, and `contracts`, an object of whole
+numbers: the version of each contract this program serves. A contract it does not serve has no key.
+
+| Contract | Version | What it covers |
+| --- | --- | --- |
+| `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
+| `monitor` | 1 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+
+A change of shape in a contract raises its number in the same change: a key added, removed or renamed, a value that
+changes type or meaning, or a union that gains or loses a value. The numbers are `SERVED_CONTRACT_VERSIONS` in
+`src/shared/constants/OverseerApiContracts.ts`, and a new contract is one entry there. A client reads a contract only at
+a number it knows; a forge with no `contracts` key serves `summary` 1 alone.
+
+## The monitor contract
+
+`GET /api/monitor` answers one `MonitorSnapshot`: what a monitor outside the board needs, and nothing else. It holds no
+ticket body, no transcript and no draft text. Every sentence in it is worded by the forge and shown unedited.
+`monitorVersion` is the version of the shape, `contracts.monitor` on the identity. The snapshot is read fresh for each
+request, from the same reading as `BoardState`.
+
+<details>
+<summary><code>MonitorSnapshot</code> keys</summary>
+
+| Key | Holds |
+| --- | --- |
+| `monitorVersion` | 1 |
+| `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
+| `overseer` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
+| `concurrency` | `{limit, agentsInFlight}`, as `status --json` counts them |
+| `ticketCountByStatus` | Every status counted |
+| `readyTicketIds` | The ready tickets' ids, in dispatch order |
+| `openIncidents` | A count |
+| `attention[]` | What waits on User, the Bridge's Waiting on User list entry for entry: escalated questions first, then every other entry oldest first, a tie in key order. Each is `{key, kind, idText, ticketIds, subject, jobId, askedBy, decisionKind, escalatedFromIncidentId, metaText, stamp, stampWord, actionLabel, route}`; `kind` is `escalated-question`, `question`, `draft-ticket`, `filing-draft`, `review` or `merge-accept`; `stamp` is empty when the board does not hold it; `route` is the Bridge fragment that opens the entry, such as `#questions/E3` or `#kanban/ticket/009`. |
+| `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, route}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `route` is `#agents/<J>`. |
+| `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
+| `warnings[]` | The header's warnings: a failed Baton pass, and an Assistant that cannot come up |
+| `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
+| `usage` | `{resetsAt, window}` |
+| `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |
+
+</details>
+
+The Bridge's Waiting on User list, its notices, its warnings and its today figures come from the same functions under
+`src/shared/monitor/`, so the snapshot and the page agree.
+
+## The monitor stream
+
+`GET /api/monitor/events` is server-sent events, with the same reader guard and the same `: ping` heartbeat as
+`GET /api/events`. On connect it sends one `monitor` event with the whole newest `MonitorSnapshot`, then one more after
+each publish that changed the snapshot. A publish that changes no key sends nothing. Every event carries the whole
+snapshot with its `monitorVersion`, so a client never needs the identity to read one.
+
+The stream has no event ids and no replay: a client that reconnects starts from the next whole snapshot. The Overseer's
+stop and a [Baton](../architecture/baton.md) pass close every open stream, and the successor's stream starts with a
+whole snapshot of its own.
+
 ## The agent-dashboard contract
 
 agent-dashboard is a separate program outside this repository that lists boards and frames the Bridge. Four things bind
@@ -498,7 +560,7 @@ it to this API. [Porting](../development/porting.md#the-agent-dashboard-contract
 
 *Notice that the page gets 403 from the API and may still frame the Bridge.*
 
-**Finding a board.** The Overseer adds `overseer: {url, processId, startedAt}` to its entry in
+**Finding a board.** The Overseer adds `overseer: {url, processId, startedAt, tokenPath}` to its entry in
 [`<monitor>`](../glossary.md#reading-names)`/projects.json` at start and removes that key at stop. The file's format is
 in the [CLI reference](../cli.md).
 
@@ -546,13 +608,19 @@ that shows the board, so a Bridge it frames directly answers in the shapes its b
 8. A served job file is only a name in `SERVED_JOB_FILE_NAMES`.
 9. A read route takes no lock.
 10. A picture is known by the sha256 of its bytes and its type by its first bytes; no transcript entry carries its bytes.
+11. A change of shape in a contract raises its number in `contracts` in the same change.
+12. A `monitor` event is sent only when the snapshot changed, and every one carries the whole snapshot.
 
 ## In the code
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Guards, routes, CSP, page build | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `routeOf`, `contentSecurityPolicyOf`, `pageFilesOf` | `src/services/overseer/OverseerServer.integration.spec.ts` |
-| Route wiring, frame origins | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `dashboardFrameOriginsOf` | `cli/overseer/OverseerApi.integration.spec.ts` |
+| Guards, routes, CSP, page build | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `OverseerServer.requestHandlerOf`, `routeOf`, `contentSecurityPolicyOf`, `pageFilesOf` | `src/services/overseer/OverseerServer.integration.spec.ts`, `src/services/overseer/OverseerServer.monitor.spec.ts` |
+| Contract versions | `src/shared/constants/OverseerApiContracts.ts` | `IDENTITY_VERSION`, `SERVED_CONTRACT_VERSIONS` | `src/services/overseer/OverseerServer.monitor.spec.ts` |
+| Monitor snapshot | `src/services/overseer/MonitorSnapshotAssembly.ts` | `MonitorSnapshotAssembly` | `src/services/overseer/MonitorSnapshotAssembly.spec.ts` |
+| Monitor stream | `src/services/overseer/MonitorStream.ts` | `MonitorStream.createMonitorStream` | `src/services/overseer/MonitorStream.spec.ts` |
+| Waiting on User, notices, today | `src/shared/monitor/` | `attentionEntriesOf`, `NoticeWordingUtil`, `todayFiguresOf` | the `.spec.ts` beside each, `bridge/shell/WaitingOnUserModel.spec.ts` |
+| Route wiring, frame origins, refusal sentences | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `dashboardFrameOriginsOf`, `SERVER_REFUSAL_TEXT` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
 | Board state | `src/services/overseer/BoardState.ts` | `BoardStateAssembly` | `src/services/overseer/BoardState.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |

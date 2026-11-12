@@ -2,14 +2,14 @@
  * The Questions view as data: the open decisions, `agent-question` first, with the ones an Assistant escalated marked; the answered ones
  * from the log; and the notices, each with the id it is about and its sentence, which add nothing to the count.
  */
+import { NoticeWordingUtil }                    from '../../../src/shared/monitor/utils/NoticeWordingUtil.ts';
+import { OpenDecisionsUtil, type OpenDecision } from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type {
   ConversationBoardDocument,
   DecisionDocument,
   HistoryRecordDocument,
   NoticeDocument
 } from '../../@types/ConversationDocuments.ts';
-import { OpenDecisionsUtil, type OpenDecision } from '../../conversation/OpenDecisionsUtil.ts';
-import { HeaderModelUtil }                      from '../../shell/HeaderModel.ts';
 
 export interface AnsweredDecision {
   readonly decisionId: string;
@@ -26,7 +26,7 @@ export interface NoticeEntry {
 }
 
 export interface QuestionsModel {
-  readonly openDecisions:     readonly OpenDecision[];
+  readonly openDecisions:     readonly OpenDecision<DecisionDocument>[];
   readonly answeredDecisions: readonly AnsweredDecision[];
   readonly notices:           readonly NoticeEntry[];
   readonly openQuestionCount: number;
@@ -56,7 +56,7 @@ function subjectTextOf(notice: NoticeDocument): string | null {
 }
 
 function noticeEntryOf(notice: NoticeDocument): NoticeEntry {
-  return { kind: notice.kind, subjectText: subjectTextOf(notice), sentence: HeaderModelUtil.noticeSentenceOf(notice) };
+  return { kind: notice.kind, subjectText: subjectTextOf(notice), sentence: NoticeWordingUtil.noticeSentenceOf(notice) };
 }
 
 function questionsModelOf(board: ConversationBoardDocument): QuestionsModel {

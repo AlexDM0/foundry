@@ -26,9 +26,9 @@ import {
 import { useMemo, type ReactElement } from 'react';
 
 import { PRODUCT_NAMES }                                        from '../../../src/shared/constants/ProductNames.ts';
+import { OpenDecisionsUtil }                                    from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { DecisionDocument }                                from '../../@types/ConversationDocuments.ts';
 import type { CommandOutcome, ControlCommandBody }              from '../../api/CommandClient.ts';
-import { OpenDecisionsUtil }                                    from '../../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                              from '../../conversation/TranscriptLog.tsx';
 import { boardPreferenceStoreOf }                               from '../../preferences/PreferenceStore.ts';
 import { ControlSurroundingsContext, type ControlAvailability } from '../../shell/ControlAvailability.ts';

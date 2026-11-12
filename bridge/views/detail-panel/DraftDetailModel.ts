@@ -3,8 +3,8 @@
  * question tree, each follow-up under the answer that raised it.
  */
 import type { DraftQuestion }                                        from '../../../src/lib/tracker-model/@types/Draft.ts';
+import { DraftWordingUtil }                                          from '../../../src/shared/monitor/utils/DraftWordingUtil.ts';
 import type { DetailBoardState }                                     from '../../@types/DetailBoardState.ts';
-import { DraftWordingUtil }                                          from '../../utils/DraftWordingUtil.ts';
 import { DetailFactsModel, type DetailFactModel, type DetailFormat } from './DetailFactsModel.ts';
 
 export const NO_QUESTION_TEXT = 'No question asked yet.';

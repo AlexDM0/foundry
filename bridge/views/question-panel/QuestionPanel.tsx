@@ -11,8 +11,9 @@ import {
   useState
 } from 'react';
 
+import type { OpenDecision }                                                    from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { DecisionDocument }                                                from '../../@types/ConversationDocuments.ts';
 import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';
-import type { OpenDecision }                                                    from '../../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                              from '../../conversation/TranscriptLog.tsx';
 import { Button }                                                               from '../../design-system/Button.tsx';
 import { MonoId }                                                               from '../../design-system/MonoId.tsx';
@@ -27,9 +28,9 @@ import { QuestionPanelModel }                                                   
 
 export interface QuestionPanelProps {
   readonly board:                QuestionPanelBoard;
-  readonly queue:                readonly OpenDecision[];
+  readonly queue:                readonly OpenDecision<DecisionDocument>[];
   /** `null` while the panel is folded or nothing is open: a shown panel then slides out. */
-  readonly shownDecision:        OpenDecision | null;
+  readonly shownDecision:        OpenDecision<DecisionDocument> | null;
   /** True while the detail panel shows: one right-edge panel shows at a time. */
   readonly isHiddenBehindDetail: boolean;
   readonly format:               QuestionPanelFormat;
@@ -126,8 +127,8 @@ function useOpenerFocusReturn(panelIsMounted: boolean): () => void {
 }
 
 /** The decision to show, kept while the panel slides out so its contents stay put; forgotten once the slide ends. */
-function useKeptDecision(shownDecision: OpenDecision | null): [OpenDecision | null, () => void] {
-  const [kept, setKept] = useState<OpenDecision | null>(shownDecision);
+function useKeptDecision(shownDecision: OpenDecision<DecisionDocument> | null): [OpenDecision<DecisionDocument> | null, () => void] {
+  const [kept, setKept] = useState<OpenDecision<DecisionDocument> | null>(shownDecision);
   if (shownDecision !== null && shownDecision !== kept) setKept(shownDecision);
   return [shownDecision ?? kept, () => setKept(null)];
 }

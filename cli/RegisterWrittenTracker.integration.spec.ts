@@ -201,15 +201,18 @@ testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastC
   expect(Object.keys(registry().projects)).toEqual([trackerId]);
 });
 
-testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
+testWhenGitIsRecorded('an Overseer key with its token path is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
-  const overseer              = { url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW) };
+  const overseer              = {
+    url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW), tokenPath: join(homeDirectory, 'example-token')
+  };
   const registration = {
     workspace:            workspacePathsFor(repositoryDirectory),
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     temporaryDirectories: [folderOutsideEveryRepository],
     command:              'oversee',
+    program:              '/example/bin/forge',
     now:                  () => FIRST_NOW,
   };
 
@@ -218,7 +221,7 @@ testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept b
   )).verdict;
 
   expect(await registered(overseer)).toBe('registered');
-  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'oversee' });
+  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'oversee', program: '/example/bin/forge' });
   await requireExitZero(['log', 'Example milestone'], await registeringContext(repositoryDirectory, SECOND_NOW));
   expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'log' });
   expect(await registered('removed')).toBe('registered');
@@ -287,7 +290,12 @@ testWhenGitIsRecorded('A2: a tracker under the system temp folder registers noth
 /** Registers straight through the service, since no spec may write a tracker under `/tmp` or `/var/tmp` themselves. A refused one asks no origin. */
 async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDirectories: readonly string[], stage: RecordedGitStage = []): Promise<string> {
   const outcome = await recordedGit.playStage(stage, async () => registerWithTheMonitor({
-    workspace: workspacePathsFor(rootDirectory), monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER), temporaryDirectories, command: 'log', now: () => FIRST_NOW
+    workspace:     workspacePathsFor(rootDirectory),
+    monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    temporaryDirectories,
+    command:       'log',
+    program:       '/example/bin/forge',
+    now:           () => FIRST_NOW,
   }));
   return outcome.verdict;
 }

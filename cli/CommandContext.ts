@@ -4,6 +4,7 @@
  * `src/shared/Environment.ts` is the one module that reads the environment.
  */
 import { homedir }         from 'node:os';
+import { resolve }         from 'node:path';
 import { createInterface } from 'node:readline';
 
 import type { AgentAdapter }                    from '../src/lib/agent-launch/AgentAdapter.ts';
@@ -17,6 +18,7 @@ import {
   fakeAgentIsOn,
   fakeAgentKeepsWorking,
   hatchDirectory,
+  launchingProgram,
   overseerJobId
 } from '../src/shared/Environment.ts';
 import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
@@ -55,6 +57,8 @@ export interface CommandContext {
   job?:                    JobContext;
   /** The runtime and the entry point this process was started with, which `oversee --detach` starts again with the Overseer's arguments. */
   programCommand:          readonly string[];
+  /** The absolute path of the program User runs: the compiled launcher that started this process, else its entry point. */
+  programPath:             string;
   /** Calls `listener` on each of the platform's stop signals, which a foreground Overseer takes as a stop; returns the unsubscribe. */
   onStopSignal:            (listener: () => void) => () => void;
   /** What the Overseer launches its sessions through: Claude Code, or the scripted fake agent under the fake-agent switch. */
@@ -79,6 +83,11 @@ function programCommandOfThisProcess(): string[] {
   const entryPoint = process.argv[1];
   const runtime = [process.execPath, ...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout()];
   return entryPoint === undefined ? runtime : [...runtime, entryPoint];
+}
+
+function programPathOfThisProcess(): string {
+  const entryPoint = process.argv[1];
+  return launchingProgram() ?? (entryPoint === undefined ? process.execPath : resolve(entryPoint));
 }
 
 export interface JobContext {
@@ -121,6 +130,7 @@ export function createProcessContext(): CommandContext {
     commandVerb:             '',
     renderState:             createRenderState(),
     programCommand:          programCommandOfThisProcess(),
+    programPath:             programPathOfThisProcess(),
     onStopSignal:            (listener) => onStopSignalOfThisProcess(platformPorts.processSupervision.stopSignals, listener),
     agentAdapter:            agentAdapterOfThisProcess(),
   };

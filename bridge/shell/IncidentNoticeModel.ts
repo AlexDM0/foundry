@@ -3,6 +3,7 @@
  * `incident-defaulted` notices), and a drawer of the open incidents and the applied defaults. Names come from the log, so a record missing
  * from it degrades a sentence, never throws.
  */
+import { NoticeWordingUtil }                                                     from '../../src/shared/monitor/utils/NoticeWordingUtil.ts';
 import type { ConversationBoardDocument, HistoryRecordDocument, NoticeDocument } from '../@types/ConversationDocuments.ts';
 import {
   IncidentTrailUtil,
@@ -153,7 +154,7 @@ function openMetaOf(entry: IncidentEntry, liveAssistantId: string | null, format
 /** `22:40 · job-fresh: its delivery turn closed`. */
 function defaultedMetaOf(entry: IncidentEntry, notice: DefaultNotice, format: NoticeStampFormat | null): IncidentMetaPart[] {
   const settled = stampOf(entry.settledAt, format);
-  const moveText = `${notice.move}: ${IncidentTrailUtil.defaultCauseTextOf(notice.cause)}`;
+  const moveText = `${notice.move}: ${NoticeWordingUtil.defaultCauseTextOf(notice.cause)}`;
   return [{ kind: 'text', text: settled === null ? moveText : `${settled.shortText} · ${moveText}` }];
 }
 

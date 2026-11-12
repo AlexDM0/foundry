@@ -5,6 +5,8 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 
+import { BridgeFragmentUtil } from '../../src/shared/monitor/utils/BridgeFragmentUtil.ts';
+
 /** The board tabs in their order, then the others. */
 export const BRIDGE_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake'] as const;
 
@@ -30,9 +32,8 @@ function routeOf(fragment: string, storedTab: string | null): BridgeRoute {
   return { tab: isBridgeTab(storedTab) ? storedTab : DEFAULT_TAB, item: null };
 }
 
-/** Each segment of the item is encoded on its own, so an item's own `/` reads as a separator in the address bar. */
 function fragmentOf(route: BridgeRoute): string {
-  return route.item === null ? `#${route.tab}` : `#${route.tab}/${route.item.split('/').map(encodeURIComponent).join('/')}`;
+  return BridgeFragmentUtil.fragmentOf(route.tab, route.item);
 }
 
 /** The route itself while its tab is shown, else the first tab alone. */

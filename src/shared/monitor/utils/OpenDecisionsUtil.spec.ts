@@ -6,18 +6,24 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { DecisionDocument, HistoryRecordDocument } from '../@types/ConversationDocuments.ts';
-import { OpenDecisionsUtil }                            from './OpenDecisionsUtil.ts';
+import { OpenDecisionsUtil, type EscalationRecord } from './OpenDecisionsUtil.ts';
 
 const AT = '2026-10-29T20:00:00+01:00';
 
-function decisionOf(id: string, kind: string): DecisionDocument {
+interface ExampleDecision {
+  readonly id:       string;
+  readonly kind:     string;
+  readonly context:  string;
+  readonly openedAt: string;
+}
+
+function decisionOf(id: string, kind: string): ExampleDecision {
   return {
-    id, kind, ticketIds: ['042'], jobId: 'J3', askedBy: 'builder', questions: [], context: 'Example context', openedAt: AT
+    id, kind, context: 'Example context', openedAt: AT
   };
 }
 
-const HISTORY: readonly HistoryRecordDocument[] = [
+const HISTORY: readonly (EscalationRecord & { readonly at: string })[] = [
   {
     kind: 'incident-escalated', at: AT, incidentId: 'I4', fields: { decisionId: 'E3' }
   },

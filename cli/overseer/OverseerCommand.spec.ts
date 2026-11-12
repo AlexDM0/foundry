@@ -201,8 +201,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
       monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
       temporaryDirectories: [],
       command:              'oversee',
+      program:              '/example/bin/forge',
       now:                  SPEC_CLOCK,
-      overseer:             { url: UNANSWERING_URL, processId: WEDGED_PROCESS_ID, startedAt: '2026-09-18T20:11:03+00:00' },
+      overseer:             {
+        url: UNANSWERING_URL, processId: WEDGED_PROCESS_ID, startedAt: '2026-09-18T20:11:03+00:00', tokenPath: '/example/monitor/watchers/example/token'
+      },
     });
   }
 

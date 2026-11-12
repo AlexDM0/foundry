@@ -13,13 +13,13 @@ import {
   useState
 } from 'react';
 
+import { OpenDecisionsUtil }                                                             from '../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardStateDocument, OverseerIdentity }                                     from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                                                from '../@types/ConversationDocuments.ts';
 import type { CommandClient }                                                            from '../api/CommandClient.ts';
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
 import type { PictureUploadClient }                                                      from '../api/PictureUploadClient.ts';
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
-import { OpenDecisionsUtil }                                                             from '../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
@@ -65,14 +65,14 @@ import {
   TAB_CHOICE_NAME,
   type BridgeTab
 } from './HashRouter.ts';
-import { Header }                                 from './Header.tsx';
-import { HeaderModelUtil, type HeaderFigureLane } from './HeaderModel.ts';
-import { IncidentNotice }                         from './IncidentNotice.tsx';
-import { IncidentNoticeModelUtil }                from './IncidentNoticeModel.ts';
-import { QuestionPanelOpenerContext }             from './QuestionPanelOpener.ts';
-import type { SessionLoss }                       from './SessionWordingUtil.ts';
-import { ThemeBootstrap, type ThemeChoice }       from './ThemeBootstrap.ts';
-import { WaitingOnUserModel }                     from './WaitingOnUserModel.ts';
+import { Header }                               from './Header.tsx';
+import { headerModelOf, type HeaderFigureLane } from './HeaderModel.ts';
+import { IncidentNotice }                       from './IncidentNotice.tsx';
+import { IncidentNoticeModelUtil }              from './IncidentNoticeModel.ts';
+import { QuestionPanelOpenerContext }           from './QuestionPanelOpener.ts';
+import type { SessionLoss }                     from './SessionWordingUtil.ts';
+import { ThemeBootstrap, type ThemeChoice }     from './ThemeBootstrap.ts';
+import { WaitingOnUserModel }                   from './WaitingOnUserModel.ts';
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
@@ -281,7 +281,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   };
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
-  const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
+  const headerModel = headerModelOf(boardState, services.now(), connection);
   const mergeQueueIsOpen = route.tab === 'kanban' && route.item === MERGE_QUEUE_ITEM;
   const boardViewIsShown = route.tab === 'agents' || route.tab === 'questions' || route.tab === 'assistant' || route.tab === 'intake' || mergeQueueIsOpen
     || (route.tab === 'kanban' && kanbanBoardState !== null)

@@ -13,6 +13,7 @@ export async function registerWrittenTracker(context: CommandContext, workspace:
     monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
+    program:              context.programPath,
     now:                  context.now,
     lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
   });
