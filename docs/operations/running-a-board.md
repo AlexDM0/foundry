@@ -94,8 +94,8 @@ what fits there. The zoom and Fit sit in the flow's toolbar, and the zoom is kep
 While you edit an applied pipeline, the toolbar says how many changes are not applied, and changed, new and removed gates
 carry their colour on the flow and in the gates area; a removed gate stays drawn, struck through, until Apply, while a
 removed agent step leaves its + behind. The aside beside the flow opens on **Changes**: one card per change, with Undo,
-a gate's command before and after, and for a new gate **Benchmark in the <phase> phase**, the only way it is profiled
-before Apply. Under the cards, the tickets in flight take the new version at their next gate run. The **Pipeline agent**
+a gate's command before and after, and for a new gate **Benchmark in the <phase> phase**, which profiles it once in
+that phase when you press it. Under the cards, the tickets in flight take the new version at their next gate run. The **Pipeline agent**
 tab holds its chat, and **Ask the pipeline agent to check** (`pipeline-check`) asks it to run the touched gates. The
 footer counts the changes and the version they make; the board keeps running on its version until you press **Apply N
 changes**, and **Discard** drops the edit and returns to the live flow. The smallest pipeline keeps its "About this
