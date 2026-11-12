@@ -6,7 +6,8 @@
  * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
  * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
  * behind a routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a
- * view that throws leaves the error banner, not a blank page.
+ * view that throws leaves the error banner, not a blank page. A board with no readable pipeline shows the Pipeline tab alone, routes there
+ * even from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
  */
 import {
   act,
@@ -31,6 +32,7 @@ import type { EventStreamHandlers }                                from '../api/
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
+import { pipelineBoardStateOf }                                    from '../testing/PipelineFixture.ts';
 import { DARK_MODE_QUESTION }                                      from '../testing/QuestionPanelFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
 import { ESCALATED_DECISION, WAITING_TICKETS, waitingOnUserBoard } from '../testing/WaitingOnUserFixture.ts';
@@ -481,6 +483,30 @@ describe('the shell\'s routing', () => {
     const tabs = [...document.querySelectorAll('.bridge-tab')].map((tab) => tab.textContent);
     expect(tabs).toEqual(['Kanban', 'Progress', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
     expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('kanban');
+  });
+
+  test('a board with no readable pipeline routes to the Pipeline tab even from a stored Kanban, with the header in setup', async () => {
+    const bridge = fakeBridge();
+    const storedTabKey = `${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:tab`;
+    bridge.storage.set(storedTabKey, 'kanban');
+    await renderedLive(bridge, { ...BOARD, pipeline: pipelineBoardStateOf('A0').pipeline, pipelineSetup: null });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('pipeline');
+    expect(screen.getByRole('region', { name: 'Set up the pipeline' })).toBeDefined();
+    expect(screen.getByRole('list', { name: 'Setup steps' })).toBeDefined();
+    expect(document.querySelector('.bridge-tabs')).toBeNull();
+  });
+
+  test('a board with a readable pipeline shows the Pipeline tab last, and #pipeline opens the view', async () => {
+    window.location.hash = '#pipeline';
+    await renderedLive(fakeBridge(), { ...BOARD, pipeline: pipelineBoardStateOf('A5').pipeline, pipelineSetup: null });
+    const tabs = [...document.querySelectorAll('.bridge-tab')].map((tab) => tab.textContent);
+    expect(tabs.at(-1)).toBe('Pipeline');
+    expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('pipeline');
+    expect(screen.getByRole('region', { name: 'Pipeline' })).toBeDefined();
+    expect(screen.queryByRole('list', { name: 'Setup steps' })).toBeNull();
   });
 
   test('a route naming a ticket section opens the panel on that section', async () => {

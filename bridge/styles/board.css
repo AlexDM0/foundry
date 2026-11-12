@@ -18,8 +18,12 @@
  *                           .bridge-tab with an optional .bridge-count-badge of what waits on User, the
  *                           .bridge-theme switch, then .bridge-filter: .bridge-filter-line opening a .bridge-popover);
  *                           embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar show, and the
- *                           .bridge-stale-notice while the stream is down
+ *                           .bridge-stale-notice while the stream is down; in setup, while the board has no readable pipeline, the
+ *                           title row is the identity, the .bridge-head-setup-chip (its pulsing .bridge-head-setup-dot) and the
+ *                           .bridge-theme switch, over the .bridge-head-setup-row of the setup .bridge-stepper
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
+ *   .bridge-pipeline[data-screen] the Pipeline view (bridge/views/pipeline/): its .bridge-pipeline-title over the screen that the
+ *                           facts and the route pick
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -363,6 +367,15 @@ a:hover { color: var(--ink); text-decoration: underline; }
 
 .bridge-title { margin: 0; font: 700 26px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
 
+/* In setup the title row ends with the amber setup chip, then the theme switch at its far end; the setup steps take the tab row's place,
+   over the same 1px rule. */
+.bridge-head-setup-chip {
+  display: inline-flex; flex: none; align-items: center; gap: 6px; margin-right: auto; padding: 3px 8px; border-radius: var(--r-2);
+  font: 400 var(--fs-small)/1.2 var(--font-ui); color: var(--question-ink); background: var(--question-fill); box-shadow: inset 0 0 0 1px var(--question-edge);
+}
+.bridge-head-setup-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--question-accent); }
+.bridge-head-setup-row { display: flex; align-items: center; min-height: 40px; padding-bottom: var(--sp-2); border-bottom: 1px solid var(--line); overflow-x: auto; }
+
 /* The Overseer's own controls, compact quiet buttons, pushed to the title row's end. */
 .bridge-head-controls { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; padding-top: 16px; }
 .bridge-head-controls .bridge-button { padding: 2px 8px; font-size: var(--fs-micro); }
@@ -445,11 +458,12 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px
 .bridge-activity[data-freshness="live"] .bridge-activity-dot { background: var(--status-live); }
 .bridge-activity[data-freshness="snapshot"] .bridge-activity-dot { background: var(--ink-muted); }
 
-/* Only a live board pulses; reduced motion keeps the colours and drops the pulse and the glow. */
+/* Only a live board pulses, and the setup chip's dot; reduced motion keeps the colours and drops the pulse and the glow. */
 @keyframes bridge-pulse { 50% { opacity: 0.45; transform: scale(0.8); } }
 @media (prefers-reduced-motion: no-preference) {
   .bridge-status-line[data-freshness="live"] .bridge-status-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
   .bridge-activity[data-freshness="live"] .bridge-activity-dot { box-shadow: 0 0 12px var(--status-live); animation: bridge-pulse var(--pulse-activity) ease-in-out infinite; }
+  .bridge-head-setup-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
 }
 
 /* -------------------------------------------------------- attention (bridge/shell/) -- */
@@ -3352,3 +3366,8 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-question-panel-ask { overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
   .bridge-question-panel-reading-body { overflow: visible; }
 }
+
+/* --------------------------------------------------------------- pipeline -- */
+/* The Pipeline view: the screen's title over the screen. */
+.bridge-pipeline { display: flex; flex-direction: column; gap: var(--sp-4); }
+.bridge-pipeline-title { margin: 0; font: 600 var(--fs-page)/1.2 var(--font-ui); color: var(--ink); }

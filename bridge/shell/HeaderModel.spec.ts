@@ -5,7 +5,10 @@
  * apart from the other notices, and an incident default is neither (the incident line holds it); any notice also reads as one sentence;
  * the statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
  * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building and
- * reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree.
+ * reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree. The status details are the usage
+ * windows the facts carry and never a placeholder or the confinement; while the board has no readable pipeline the header is in setup,
+ * with the record's step statuses (done and recheck steps linking to their route) and no usage, and a board that says nothing of a
+ * pipeline is never in setup.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,7 +20,8 @@ import {
   FIXTURE_ASSISTANT_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import { HeaderModelUtil } from './HeaderModel.ts';
+import { pipelineBoardStateOf } from '../testing/PipelineFixture.ts';
+import { HeaderModelUtil }      from './HeaderModel.ts';
 
 const { headerModelOf } = HeaderModelUtil;
 
@@ -65,13 +69,51 @@ describe('the Overseer state and its controls', () => {
   });
 });
 
-describe('the confinement in force', () => {
-  test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('%s reads as the board states it, after the usage', (confinement) => {
-    expect(headerModelOf(boardStateFixture({ confinement }), FIXTURE_NOW, 'live').statusDetails).toEqual(['usage under its limit', `confinement ${confinement}`]);
+describe('the status details', () => {
+  test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('the confinement %s is never a detail', (confinement) => {
+    expect(headerModelOf(boardStateFixture({ confinement }), FIXTURE_NOW, 'live').statusDetails.join(' ')).not.toContain('confinement');
   });
 
-  test('a board that states none shows none', () => {
-    expect(headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live').statusDetails).toEqual(['usage under its limit']);
+  test('each usage window the facts carry reads by its word and percent, in their order', () => {
+    expect(headerModelOf(pipelineBoardStateOf('header-both-usage-windows'), FIXTURE_NOW, 'live').statusDetails).toEqual(['5-hour window 14%', 'week 18%']);
+  });
+
+  test('no observed window shows no usage at all, and no placeholder', () => {
+    expect(headerModelOf(pipelineBoardStateOf('header-no-usage-windows'), FIXTURE_NOW, 'live').statusDetails).toEqual([]);
+    expect(headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live').statusDetails).toEqual([]);
+  });
+
+  test('a window with no word of its own reads as its stored value', () => {
+    const usage = { resetsAt: null, window: null, windows: [{ window: 'seven_day_opus', utilization: 7.6, resetsAt: null }] };
+    expect(headerModelOf(boardStateFixture({ usage }), FIXTURE_NOW, 'live').statusDetails).toEqual(['seven_day_opus 8%']);
+  });
+});
+
+describe('the header in setup', () => {
+  test('a board with no pipeline is in setup with Billing current and the rest upcoming, and shows no usage', () => {
+    const model = headerModelOf({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage }, FIXTURE_NOW, 'live');
+    expect(model.setupSteps?.map(({ label, status }) => [label, status])).toEqual([
+      ['Billing', 'current'], ['Research', 'upcoming'], ['Constitution', 'upcoming'], ['Pipeline design', 'upcoming'], ['Apply', 'upcoming'],
+    ]);
+    expect(model.statusDetails).toEqual([]);
+  });
+
+  test('the stepper shows the record\'s statuses, and only a done or recheck step links to its route', () => {
+    const model = headerModelOf(pipelineBoardStateOf('A0b-recheck'), FIXTURE_NOW, 'live');
+    expect(model.setupSteps?.map(({ key, status, href }) => [key, status, href ?? null])).toEqual([
+      ['billing', 'done', '#pipeline/setup/billing'],
+      ['research', 'current', null],
+      ['constitution', 'recheck', '#pipeline/setup/constitution'],
+      ['design', 'recheck', '#pipeline/setup/design'],
+      ['apply', 'upcoming', null],
+    ]);
+  });
+
+  test('an unreadable pipeline is setup too, a readable one is not, and a board that says nothing of a pipeline never is', () => {
+    expect(headerModelOf(pipelineBoardStateOf('A0-unreadable'), FIXTURE_NOW, 'live').setupSteps).not.toBeNull();
+    expect(headerModelOf(pipelineBoardStateOf('A5'), FIXTURE_NOW, 'live').setupSteps).toBeNull();
+    expect(headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live').setupSteps).toBeNull();
+    expect(headerModelOf(null, FIXTURE_NOW, 'connecting').setupSteps).toBeNull();
   });
 });
 
@@ -223,8 +265,7 @@ describe('concurrency, usage and the statistics', () => {
     ]);
   });
 
-  test('usage reads under its limit until a limit is hit, then when it resets', () => {
-    expect(headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live').statusDetails[0]).toBe('usage under its limit');
+  test('a usage limit hit reads with its window and when it resets', () => {
     expect(headerModelOf(boardStateFixture({ usage: { resetsAt: '2026-10-29T15:30:00+01:00', window: 'five-hour' } }), FIXTURE_NOW, 'live').statusDetails[0])
       .toBe('five-hour usage limit hit, resets 15:30');
   });

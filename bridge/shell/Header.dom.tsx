@@ -8,7 +8,10 @@
  * counts before the chips, and one flag for tickets in progress with no job, and ticks from the injected clock only while it is live; the
  * summary line counts the states and today's figures; the stale notice shows only while the stream is down; the Waiting on User pill
  * names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a pointer outside or a
- * followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero.
+ * followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero. In setup
+ * (no readable pipeline) the header holds only the status line, the title, the setup chip, the theme switch and the setup stepper, whose
+ * done steps show a check and link to their route and whose current step is `aria-current="step"`; with a pipeline set the Pipeline tab
+ * is last and the status details hold only the usage windows the facts carry, and never the confinement.
  */
 import {
   act,
@@ -35,6 +38,7 @@ import {
   FIXTURE_BUILDER_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
+import { pipelineBoardStateOf }    from '../testing/PipelineFixture.ts';
 import {
   nothingWaitingBoard,
   WAITING_FIXTURE_NOW,
@@ -44,7 +48,7 @@ import {
 import type { NotificationAllowance, QuestionNotifier } from '../views/questions/QuestionAlerts.ts';
 import type { BridgeClock }                             from './BridgeClock.ts';
 import { ControlSurroundingsContext }                   from './ControlAvailability.ts';
-import { BRIDGE_TABS }                                  from './HashRouter.ts';
+import { HashRouter, type BridgeTab }                   from './HashRouter.ts';
 import { Header, STALE_NOTICE_TEXT }                    from './Header.tsx';
 import { HeaderModelUtil, type HeaderFigureLane }       from './HeaderModel.ts';
 import type { ThemeChoice }                             from './ThemeBootstrap.ts';
@@ -91,6 +95,8 @@ interface HeaderSurroundings {
   readonly notifier?:       QuestionNotifier;
   /** The board the pill and the tab counts read; without it the header shows no pill and no count. */
   readonly waitingBoard?:   WaitingOnUserFixtureBoard;
+  /** Every tab but Pipeline unless given: the board says nothing of a pipeline. */
+  readonly shownTabs?:      readonly BridgeTab[];
 }
 
 function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
@@ -113,7 +119,7 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
         project="Example Agency"
         model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, surroundings.connection ?? 'live')}
         selectedTab="kanban"
-        shownTabs={BRIDGE_TABS}
+        shownTabs={surroundings.shownTabs ?? HashRouter.shownTabsOf(null, null, null)}
         themeChoice={surroundings.themeChoice ?? 'auto'}
         onThemeChoice={surroundings.onThemeChoice ?? (() => undefined)}
         activityIsLive={surroundings.activityIsLive ?? true}
@@ -181,9 +187,15 @@ describe('the Overseer controls', () => {
     expect(['Pause', 'Restart', 'Stop Overseer'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null]);
   });
 
-  test('shows the usage and the board\'s confinement word unchanged, as one line with one separator', () => {
-    renderedHeader(boardStateFixture({ confinement: 'unconfined-by-design' }));
-    expect([...document.querySelectorAll('.bridge-status-detail')].map((detail) => detail.textContent)).toEqual(['usage under its limit · confinement unconfined-by-design']);
+  test('shows the usage windows the facts carry as one line with one separator, and never the confinement', () => {
+    renderedHeader({ ...pipelineBoardStateOf('header-both-usage-windows'), confinement: 'unconfined-by-design' });
+    expect([...document.querySelectorAll('.bridge-status-detail')].map((detail) => detail.textContent)).toEqual(['5-hour window 14% · week 18%']);
+    expect(document.querySelector('.bridge-header')?.textContent).not.toContain('confinement');
+  });
+
+  test('no observed usage window shows no usage segment and no placeholder', () => {
+    renderedHeader(pipelineBoardStateOf('header-no-usage-windows'));
+    expect(document.querySelector('.bridge-status-detail')).toBeNull();
   });
 
   test('the header offers no concurrency field: the limit is set on the Agents tab', () => {
@@ -525,5 +537,67 @@ describe('the tab counts', () => {
     renderedWaitingHeader(nothingWaitingBoard());
     expect(document.querySelectorAll('.bridge-tab .bridge-count-badge')).toHaveLength(0);
     expect(tab(/^Questions/u).hasAttribute('aria-label')).toBe(false);
+  });
+});
+
+describe('the header in setup', () => {
+  function renderedSetupHeader(state: BoardStateDocument): void {
+    render(
+      <Header
+        project="Example Agency"
+        model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, 'live')}
+        selectedTab="pipeline"
+        shownTabs={HashRouter.shownTabsOf(true, true, false)}
+        themeChoice="auto"
+        onThemeChoice={() => undefined}
+        activityIsLive
+        clock={STILL_CLOCK}
+        waitingOnUser={WaitingOnUserModel.waitingOnUserOf(waitingOnUserBoard())}
+        tabCounts={{}}
+        questionNotifier={NO_NOTIFIER}
+        timestampSlices={null}
+      />,
+    );
+  }
+
+  test('with no readable pipeline the tabs, statistics, pill, activity strip and Overseer controls are absent', () => {
+    renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
+    expect(screen.queryByRole('navigation', { name: 'Views' })).toBeNull();
+    expect(document.querySelector('.bridge-tabs')).toBeNull();
+    expect(screen.queryByLabelText('Statistics')).toBeNull();
+    expect(document.querySelector('.bridge-attention')).toBeNull();
+    expect(document.querySelector('.bridge-activity')).toBeNull();
+    expect(document.querySelector('.bridge-summary-line')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Overseer controls' })).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeDefined();
+    expect(document.querySelector('.bridge-head-setup-chip')?.textContent).toBe('setup');
+  });
+
+  test('the stepper shows the record\'s statuses, the current step is aria-current, and done and recheck steps link to their route', () => {
+    renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
+    const stepper = screen.getByRole('list', { name: 'Setup steps' });
+    const steps = [...stepper.querySelectorAll('.bridge-stepper-step')];
+    expect(steps.map((step) => step.getAttribute('data-status'))).toEqual(['done', 'current', 'recheck', 'recheck', 'upcoming']);
+    expect(steps[0]?.querySelector('.bridge-stepper-check')).not.toBeNull();
+    expect(steps[1]?.getAttribute('aria-current')).toBe('step');
+    expect(within(stepper).getByRole('link', { name: 'Billing' }).getAttribute('href')).toBe('#pipeline/setup/billing');
+    expect(within(stepper).getByRole('link', { name: 'Constitution' }).getAttribute('href')).toBe('#pipeline/setup/constitution');
+    expect(within(stepper).queryByRole('link', { name: 'Research' })).toBeNull();
+    expect(within(stepper).queryByRole('link', { name: 'Apply' })).toBeNull();
+  });
+
+  test('a board without a record starts on Billing, and shows no usage', () => {
+    renderedSetupHeader({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage });
+    expect(screen.getByRole('list', { name: 'Setup steps' }).querySelector('[aria-current="step"]')?.textContent).toContain('Billing');
+    expect(document.querySelector('.bridge-status-detail')).toBeNull();
+  });
+});
+
+describe('the header with a pipeline set', () => {
+  test('the Pipeline tab is last', () => {
+    renderedHeader(pipelineBoardStateOf('A5'), { shownTabs: HashRouter.shownTabsOf(true, true, true) });
+    const tabs = [...within(screen.getByRole('navigation', { name: 'Views' })).getAllByRole('link')].map((tab) => tab.textContent);
+    expect(tabs.at(-1)).toBe('Pipeline');
+    expect(screen.queryByRole('list', { name: 'Setup steps' })).toBeNull();
   });
 });

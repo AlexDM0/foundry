@@ -10,7 +10,7 @@
 
 The [Bridge](../glossary.md#bridge) is the browser client of one [board](../glossary.md#board). A React page served by
 the board's [Overseer](../glossary.md#overseer), it is a projection, never a store: it holds one document, replaced
-whole, and every record stays on disk. The page is one app with nine tabs, each showing one view. Closing the page
+whole, and every record stays on disk. The page is one app with ten tabs, each showing one view. Closing the page
 loses no record: it loses only typed text and view state.
 
 ![Files on disk and the Overseer's memory are read together by readBoardState, then flow down through the EventBroker, the event stream, boardStateAfter and a pure view model to the DOM. Every Pass that does not throw publishes, whether a file change, a command-line nudge or an applied command woke it. Every sweep publishes and wakes a Pass, forced when something is due. The browser's only write is POST /api/commands, which returns as a wake.](../figures/bridge/live-data-path.png)
@@ -258,10 +258,14 @@ against the older state. An Agents transcript restarts from its history on retur
 ## Hash routes
 
 A route here is a hash fragment, so a link survives an Overseer restart and needs no server route. `BRIDGE_TABS` lists
-nine tabs: the board tabs Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant and Intake.
-`HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls back to the stored tab, then the
-first. A bare URL always opens the Kanban, whatever tab was stored. Waves shows only on a board where a ticket depends
-on another and Epics only on one with epics; a route to either elsewhere opens the Kanban.
+ten tabs: the board tabs Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant, Intake and
+Pipeline. `HashRouter.routeOf` reads `#<tab>` or `#<tab>/<item>`. A fragment naming no tab falls back to the stored tab,
+then the first. A bare URL always opens the Kanban, whatever tab was stored. Waves shows only on a board where a ticket
+depends on another and Epics only on one with epics. Pipeline shows only once the board's pipeline facts say
+`readable`; a board whose facts say anything else shows Pipeline alone, and its header is in setup (`HeaderModel`'s
+`setupSteps`). A route to a tab not shown opens the first tab shown. `PipelineViewModel.screenOf` picks the Pipeline
+tab's screen from the facts and the route: `#pipeline/setup/<step>`, `#pipeline/edit` and
+`#pipeline/edit/constitution`.
 
 ![At load HashRouter resolves a bare URL to kanban, because no preference store exists to read. BridgeApp then asks /api/identity, the answer creates the board's store, and the effect that writes the tab removes the stored key, since kanban is the default.](../figures/bridge/bare-url-load.png)
 

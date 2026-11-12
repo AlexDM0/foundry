@@ -3,21 +3,25 @@
  * Pause, Resume and Restart the Overseer offers, the new-code notice, the header statistics, the activity strip's facts, the open notices
  * and the warnings (owner answer Q34): a failed Baton pass with its step and error, and an Assistant that cannot come up. The incident
  * defaults are the incident line's (`IncidentNoticeModel.ts`), one line however many. Warnings are derived from the notices and the
- * Overseer's facts, never stored.
+ * Overseer's facts, never stored. While the board has no readable pipeline the header is in setup: it holds the setup steps with the
+ * record's statuses, and no usage.
  */
-import { TokenCountUtil } from '../../src/lib/token-count/TokenCountUtil.ts';
-import { PRODUCT_NAMES }  from '../../src/shared/constants/ProductNames.ts';
+import { TokenCountUtil }                        from '../../src/lib/token-count/TokenCountUtil.ts';
+import type { PipelineSetup, PipelineSetupStep } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
 import type {
   BoardStateDocument,
   NoticeDocument,
   OverseerFactsDocument,
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
-import type { ConnectionState }                                     from '../api/EventStreamClient.ts';
-import { IncidentTrailUtil }                                        from '../utils/IncidentTrailUtil.ts';
-import { TimeUtil }                                                 from '../utils/TimeUtil.ts';
-import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts } from './ActivityStripModel.ts';
-import type { BridgeTab }                                           from './HashRouter.ts';
+import type { ConnectionState }                                       from '../api/EventStreamClient.ts';
+import type { StepperStatus, StepperStep }                            from '../design-system/Stepper.tsx';
+import { IncidentTrailUtil }                                          from '../utils/IncidentTrailUtil.ts';
+import { TimeUtil }                                                   from '../utils/TimeUtil.ts';
+import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../views/pipeline/PipelineViewModel.ts';
+import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }   from './ActivityStripModel.ts';
+import type { BridgeTab }                                             from './HashRouter.ts';
 
 export type PauseControl = 'pause' | 'resume' | null;
 
@@ -56,8 +60,10 @@ export interface SummaryLine {
 export interface HeaderModel {
   readonly statusToken:    StatusToken;
   readonly statusLabel:    string;
-  /** The status line's mono details after the label: usage, then the board's confinement word. */
+  /** The status line's mono details after the label: each usage window the facts carry, then a usage limit hit; none in setup. */
   readonly statusDetails:  readonly string[];
+  /** The setup steps with the record's statuses while the board has no readable pipeline; `null` once it has one, or says nothing of one. */
+  readonly setupSteps:     readonly StepperStep[] | null;
   readonly pauseControl:   PauseControl;
   /** Only with new code on disk, and never during a Baton pass: Restart is the checked pass by hand, never automatic. */
   readonly restartOffered: boolean;
@@ -151,11 +157,50 @@ function warningsOf(notices: readonly NoticeDocument[], overseer: OverseerFactsD
   ];
 }
 
-function usageTextOf(usage: unknown): string {
+/** A window's word where it differs from the stored value. */
+const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: '5-hour window', seven_day: 'week' };
+
+/** Each usage window the facts carry, "5-hour window 14%" or "week 18%", then a limit hit with its reset; nothing to say is no text. */
+function usageTextsOf(usage: unknown): string[] {
   const facts = usage as Partial<UsageDocument> | null;
-  if (typeof facts?.resetsAt !== 'string') return 'usage under its limit';
+  const windowTexts = (facts?.windows ?? []).map((usageWindow) => {
+    const word = Object.hasOwn(USAGE_WINDOW_WORDS, usageWindow.window) ? USAGE_WINDOW_WORDS[usageWindow.window] ?? usageWindow.window : usageWindow.window;
+    return `${word} ${Math.round(usageWindow.utilization)}%`;
+  });
+  if (typeof facts?.resetsAt !== 'string') return windowTexts;
   const window = typeof facts.window === 'string' ? `${facts.window} ` : '';
-  return `${window}usage limit hit, resets ${facts.resetsAt.slice(CLOCK_SLICE.start, CLOCK_SLICE.end)}`;
+  return [...windowTexts, `${window}usage limit hit, resets ${facts.resetsAt.slice(CLOCK_SLICE.start, CLOCK_SLICE.end)}`];
+}
+
+/** The record's current step is current; a done or recheck step links back to its route; with no record, Billing is current. */
+function setupStepsOf(record: PipelineSetup | null): StepperStep[] {
+  return PIPELINE_SETUP_STEPS.map((step) => {
+    const status = setupStepStatusOf(record, step);
+    const reopens = status === 'done' || status === 'recheck';
+    return {
+      key: step, label: SETUP_STEP_LABELS[step], status, ...(reopens ? { href: PipelineViewModel.setupStepFragmentOf(step) } : {})
+    };
+  });
+}
+
+function setupStepStatusOf(record: PipelineSetup | null, step: PipelineSetupStep): StepperStatus {
+  if (record === null) return step === PIPELINE_SETUP_STEPS[0] ? 'current' : 'upcoming';
+  if (step === record.currentStep) return 'current';
+  switch (record.stepStates[step]) {
+    case 'done':
+      return 'done';
+    case 'needs-recheck':
+      return 'recheck';
+    default:
+      return 'upcoming';
+  }
+}
+
+/** In setup while the board says its pipeline is anything but readable; an Overseer that serves no pipeline facts never is. */
+function setupStepsOfBoard(state: BoardStateDocument | null): StepperStep[] | null {
+  const pipeline = state?.pipeline;
+  if (pipeline === undefined || pipeline.readingVerdict === 'readable') return null;
+  return setupStepsOf(state?.pipelineSetup?.record ?? null);
 }
 
 interface BoardFigures {
@@ -240,12 +285,14 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
   const newCodeOnDisk = notices.some((notice) => notice.kind === NEW_CODE);
   const answers = overseer !== null && overseer.state !== 'down' && !handingOver;
   const statusToken = statusTokenOf(overseer, connection);
+  const setupSteps = setupStepsOfBoard(state);
   const activity = state === null ? NO_ACTIVITY : ActivityStripModel.activityStripFactsOf(state.launchSlots, state.jobs, state.page?.tickets ?? []);
   const figures = state === null ? null : boardFiguresOf(state, activity, TimeUtil.calendarDateOf(now.getTime()));
   return {
     statusToken,
     statusLabel:    STATUS_LABEL[statusToken],
-    statusDetails:  state === null ? [] : [usageTextOf(state.usage), ...(state.confinement === undefined ? [] : [`confinement ${state.confinement}`])],
+    statusDetails:  state === null || setupSteps !== null ? [] : usageTextsOf(state.usage),
+    setupSteps,
     pauseControl:   answers ? (overseer.paused ? 'resume' : 'pause') : null,
     restartOffered: answers && newCodeOnDisk,
     stopOffered:    answers,

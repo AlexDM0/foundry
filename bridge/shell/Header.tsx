@@ -2,7 +2,9 @@
  * The header's three rows: the title row (the status line over the project title, a divider, the figures inline on one line closed by the
  * Waiting on User pill, and the Overseer's compact controls at its end), the one-line activity strip, and the tab bar, its tabs counting
  * what waits on User, with the theme switch and whatever the shell puts at its right end. Embedded, `board.css` keeps the summary line and
- * the tab bar, and shows the stale notice while the event stream is down.
+ * the tab bar, and shows the stale notice while the event stream is down. In setup, while the board has no readable pipeline, the header
+ * is the title row (the status line over the title, the setup chip, the theme switch) and the setup steps: no figures, no Waiting on
+ * User pill, no Overseer controls, no activity strip, no summary line and no tabs.
  */
 import {
   Fragment,
@@ -15,6 +17,7 @@ import {
 import { Button }                     from '../design-system/Button.tsx';
 import { ConfirmStrip }               from '../design-system/ConfirmStrip.tsx';
 import type { CountBadgeProps }       from '../design-system/CountBadge.tsx';
+import { Stepper }                    from '../design-system/Stepper.tsx';
 import { Tabs, type TabItem }         from '../design-system/Tabs.tsx';
 import { RovingFocusUtil }            from '../design-system/utils/RovingFocusUtil.ts';
 import type { TimestampSlices }       from '../utils/TimeUtil.ts';
@@ -72,6 +75,7 @@ export const TAB_LABELS: Readonly<Record<BridgeTab, string>> = {
   questions: 'Questions',
   assistant: 'Assistant',
   intake:    'Intake',
+  pipeline:  'Pipeline',
 };
 
 const THEME_CHOICES: readonly ThemeChoice[] = ['auto', 'light', 'dark'];
@@ -211,20 +215,79 @@ function OverseerControls({ model }: { readonly model: HeaderModel }) {
   );
 }
 
-export function Header({
-  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts,
-  questionNotifier, timestampSlices
-}: HeaderProps) {
+/** The amber chip after the title while the board is in setup, its dot pulsing. */
+function SetupChip() {
+  return (
+    <span className="bridge-head-setup-chip">
+      <span className="bridge-head-setup-dot" aria-hidden="true" />
+      setup
+    </span>
+  );
+}
+
+function StaleNotice() {
+  return (
+    <div className="bridge-activity bridge-stale-notice" role="status" aria-live="polite" data-freshness="snapshot">
+      <div className="bridge-activity-row">
+        <span className="bridge-activity-dot" aria-hidden="true" />
+        <span className="bridge-activity-title">{STALE_NOTICE_TEXT}</span>
+      </div>
+    </div>
+  );
+}
+
+function StatusLine({ model }: { readonly model: HeaderModel }) {
+  return (
+    <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
+      <span className="bridge-status-dot" aria-hidden="true" />
+      <span className="bridge-status-label">{model.statusLabel}</span>
+      {model.statusDetails.length === 0 ? null : <span className="bridge-status-detail">{model.statusDetails.join(' · ')}</span>}
+      {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
+    </div>
+  );
+}
+
+interface SetupHeaderProps {
+  readonly project:       string;
+  readonly model:         HeaderModel;
+  readonly setupSteps:    NonNullable<HeaderModel['setupSteps']>;
+  readonly themeChoice:   ThemeChoice;
+  readonly onThemeChoice: (choice: ThemeChoice) => void;
+}
+
+function SetupHeader({
+  project, model, setupSteps, themeChoice, onThemeChoice
+}: SetupHeaderProps) {
   return (
     <header className="bridge-header">
       <div className="bridge-head-title-row">
         <div className="bridge-head-identity">
-          <div className="bridge-status-line" data-freshness={model.statusToken === 'live' ? 'live' : undefined} data-status={model.statusToken}>
-            <span className="bridge-status-dot" aria-hidden="true" />
-            <span className="bridge-status-label">{model.statusLabel}</span>
-            {model.statusDetails.length === 0 ? null : <span className="bridge-status-detail">{model.statusDetails.join(' · ')}</span>}
-            {model.newCodeNotice === null ? null : <span className="bridge-status-notice" role="status">{model.newCodeNotice}</span>}
-          </div>
+          <StatusLine model={model} />
+          <h1 className="bridge-title">{project}</h1>
+        </div>
+        <SetupChip />
+        <ThemeSwitch themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
+      </div>
+      {model.statusToken === 'down' ? <StaleNotice /> : null}
+      <div className="bridge-head-setup-row">
+        <Stepper label="Setup steps" orientation="horizontal" steps={setupSteps} />
+      </div>
+    </header>
+  );
+}
+
+export function Header({
+  project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, clock, tabBarEnd, onShowLane, waitingOnUser, tabCounts,
+  questionNotifier, timestampSlices
+}: HeaderProps) {
+  if (model.setupSteps !== null) {
+    return <SetupHeader project={project} model={model} setupSteps={model.setupSteps} themeChoice={themeChoice} onThemeChoice={onThemeChoice} />;
+  }
+  return (
+    <header className="bridge-header">
+      <div className="bridge-head-title-row">
+        <div className="bridge-head-identity">
+          <StatusLine model={model} />
           <h1 className="bridge-title">{project}</h1>
         </div>
         <span className="bridge-head-divider" aria-hidden="true" />
@@ -251,16 +314,7 @@ export function Header({
         <OverseerControls model={model} />
       </div>
       <ActivityStrip facts={model.activity} isLive={activityIsLive} clock={clock} />
-      {model.statusToken === 'down'
-        ? (
-          <div className="bridge-activity bridge-stale-notice" role="status" aria-live="polite" data-freshness="snapshot">
-            <div className="bridge-activity-row">
-              <span className="bridge-activity-dot" aria-hidden="true" />
-              <span className="bridge-activity-title">{STALE_NOTICE_TEXT}</span>
-            </div>
-          </div>
-        )
-        : null}
+      {model.statusToken === 'down' ? <StaleNotice /> : null}
       {model.summaryLine === null ? null : <SummaryLineView summaryLine={model.summaryLine} />}
       <div className="bridge-tab-bar">
         <Tabs

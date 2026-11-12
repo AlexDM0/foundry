@@ -37,6 +37,7 @@ import { KanbanModel }                                                          
 import { KanbanView, type KanbanLaneHighlightRequest }                                   from '../views/kanban/KanbanView.tsx';
 import { MergeQueueModel }                                                               from '../views/merge-queue/MergeQueueModel.ts';
 import { MergeQueueView }                                                                from '../views/merge-queue/MergeQueueView.tsx';
+import { PipelineView }                                                                  from '../views/pipeline/PipelineView.tsx';
 import { ProgressModel }                                                                 from '../views/progress/ProgressModel.ts';
 import { ProgressView }                                                                  from '../views/progress/ProgressView.tsx';
 import { QuestionPanel }                                                                 from '../views/question-panel/QuestionPanel.tsx';
@@ -189,6 +190,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const shownTabs = useMemo(() => HashRouter.shownTabsOf(
     boardState === null ? null : wavesCanvas !== null,
     boardState?.page === undefined ? null : boardState.page.payload.boardFacts.epics.length > 0,
+    boardState?.pipeline === undefined ? null : boardState.pipeline.readingVerdict === 'readable',
   ), [boardState, wavesCanvas]);
   const route = HashRouter.shownRouteOf(addressedRoute, shownTabs);
   const { tab: routeTab, item: routeItem } = route;
@@ -283,7 +285,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
   const headerModel = HeaderModelUtil.headerModelOf(boardState, services.now(), connection);
   const mergeQueueIsOpen = route.tab === 'kanban' && route.item === MERGE_QUEUE_ITEM;
-  const boardViewIsShown = route.tab === 'agents' || route.tab === 'questions' || route.tab === 'assistant' || route.tab === 'intake' || mergeQueueIsOpen
+  const boardViewIsShown = route.tab === 'agents' || route.tab === 'questions' || route.tab === 'assistant' || route.tab === 'intake' || route.tab === 'pipeline'
+    || mergeQueueIsOpen
     || (route.tab === 'kanban' && kanbanBoardState !== null)
     || (route.tab === 'tickets' && ticketsBoardState !== null)
     || (route.tab === 'waves' && wavesCanvas !== null)
@@ -430,6 +433,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             {conversationBoard !== null && route.tab === 'intake'
               ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
               : null}
+            {boardState !== null && route.tab === 'pipeline' ? <PipelineView facts={boardState} route={route} /> : null}
             <BridgeClockContext.Provider value={bridgeClock}>
               <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
                 <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>

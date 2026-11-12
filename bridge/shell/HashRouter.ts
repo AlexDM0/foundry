@@ -1,12 +1,13 @@
 /**
  * The Bridge's routes are hash fragments, `#<tab>` or `#<tab>/<item>` (`#agents/J12`, `#tickets/ticket-row/042`), so a link survives an
  * Overseer restart and needs no server route. A fragment naming no tab falls back to the stored tab, then the first; a tab the board does
- * not show (Waves without a dependency, Epics without an epic) falls back to the first.
+ * not show (Waves without a dependency, Epics without an epic, every tab but Pipeline on a board with no readable pipeline) falls back to
+ * the first tab it shows.
  */
 import { useEffect, useMemo, useState } from 'react';
 
-/** The board tabs in their order, then the others. */
-export const BRIDGE_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake'] as const;
+/** The board tabs in their order, then the others, Pipeline last. */
+export const BRIDGE_TABS = ['kanban', 'waves', 'progress', 'epics', 'tickets', 'agents', 'questions', 'assistant', 'intake', 'pipeline'] as const;
 
 export type BridgeTab = typeof BRIDGE_TABS[number];
 
@@ -35,14 +36,21 @@ function fragmentOf(route: BridgeRoute): string {
   return route.item === null ? `#${route.tab}` : `#${route.tab}/${route.item.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-/** The route itself while its tab is shown, else the first tab alone. */
+/** The route itself while its tab is shown, else the first shown tab alone. */
 function shownRouteOf(route: BridgeRoute, shownTabs: readonly BridgeTab[]): BridgeRoute {
-  return shownTabs.includes(route.tab) ? route : { tab: DEFAULT_TAB, item: null };
+  const [firstShownTab = DEFAULT_TAB] = shownTabs;
+  return shownTabs.includes(route.tab) ? route : { tab: firstShownTab, item: null };
 }
 
-/** Every tab but Waves on a board where no ticket depends on another, and Epics on one without epics; unknown before the first board. */
-function shownTabsOf(boardHasWaves: boolean | null, boardHasEpics: boolean | null): BridgeTab[] {
-  return BRIDGE_TABS.filter((tab) => !(tab === 'waves' && boardHasWaves === false) && !(tab === 'epics' && boardHasEpics === false));
+/**
+ * Every tab but Waves on a board where no ticket depends on another, and Epics on one without epics; `null` is unknown, before the first
+ * board. A board with no readable pipeline shows only Pipeline, and Pipeline shows only once the board says it has a readable one: an
+ * Overseer that serves no pipeline facts leaves `boardHasPipeline` unknown.
+ */
+function shownTabsOf(boardHasWaves: boolean | null, boardHasEpics: boolean | null, boardHasPipeline: boolean | null): BridgeTab[] {
+  if (boardHasPipeline === false) return ['pipeline'];
+  return BRIDGE_TABS.filter((tab) => !(tab === 'waves' && boardHasWaves === false) && !(tab === 'epics' && boardHasEpics === false)
+    && !(tab === 'pipeline' && boardHasPipeline === null));
 }
 
 /** The route the address bar names, followed through every `hashchange`, and read again once the stored tab can be read. */

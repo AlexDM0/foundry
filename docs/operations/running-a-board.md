@@ -27,11 +27,14 @@ demo board Example Storefront, and the detail panel shows demo ticket #012.
 
 ## The tabs
 
-The Bridge has up to nine tabs: Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant and
-Intake. Waves shows only when a ticket depends on another, and Epics only on a board
-with epics. Each has its own URL, so you can link to it, and the link survives an Overseer restart. A fragment that
-names no tab opens the tab you last chose, or else Kanban. Until the first board update arrives the panel says it is
-waiting for the Overseer.
+The Bridge has up to ten tabs: Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant, Intake
+and Pipeline. Waves shows only when a ticket depends on another, and Epics only on a board
+with epics. Pipeline shows once the Overseer reports a readable `pipeline.json`. A board with no readable
+`pipeline.json` shows Pipeline alone, whatever tab you last chose, and the header is in setup: the board name, an amber
+`setup` chip, the theme switch and the five setup steps (Billing, Research, Constitution, Pipeline design, Apply). A
+finished step, or one that needs a recheck, links back to its page. Each tab has its own URL, so you can link to it, and
+the link survives an Overseer restart. A fragment that names no tab opens the tab you last chose, or else the first tab
+shown. Until the first board update arrives the panel says it is waiting for the Overseer.
 
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
 A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of
@@ -358,7 +361,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 2 | Warnings and notices | a banner each, above the header; see [Banners, warnings and notices](#banners-warnings-and-notices) |
 | 3 | Incident line | the incident defaults applied and the incidents open; see [Banners, warnings and notices](#banners-warnings-and-notices) |
 | 4 | State | above the board name: `Live`, `Paused`, `Held` for an install change, `Handing over`, `Connecting` or `Down` |
-| 5 | Usage | `usage under its limit`, or the window and reset time after a limit was hit, then the board's confinement word |
+| 5 | Usage | each usage window observed, such as `5-hour window 14%` or `week 18%`, then the window and reset time after a limit was hit; nothing before the first observation |
 | 6 | `new code: run ...` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
 | 7 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
 | 8 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |

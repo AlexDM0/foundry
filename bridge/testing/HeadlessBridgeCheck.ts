@@ -31,8 +31,11 @@ import { HashRouter }                                     from '../shell/HashRou
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
 
-/** The scratch board has no ticket that depends on another and no epic, so it shows every tab but Waves and Epics. */
-export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false);
+/**
+ * The scratch board has no ticket that depends on another and no epic, and its Overseer serves no pipeline facts yet, so it shows every
+ * tab but Waves, Epics and Pipeline.
+ */
+export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false, null);
 
 export interface HeadlessBridgeReading {
   /** Each console error, exception, failed request or error-level log entry, worded with its source. */
