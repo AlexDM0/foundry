@@ -51,7 +51,13 @@ const NAMED_REAL_HELPER_EXPORTS = [
  * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts Watchers through
  * `REAL_PROCESS_STARTS`, makes a real call. Shipping code makes them too, so they count only in an integration spec.
  */
-const GATE_PROCESS_STARTS = new Set(['GateRun.runGate', 'GateRun.runPipeline', 'ProposalTwiceRun.runProposalTwice']);
+const GATE_PROCESS_STARTS = new Set([
+  'GateRun.runGate',
+  'GateRun.runPipeline',
+  'GateLineRun.runLine',
+  'GateLineRun.runOnce',
+  'ProposalTwiceRun.runProposalTwice',
+]);
 /** The real platform folder watch, which shipping code starts too, so it counts only in an integration spec, as the gate starts do. */
 const FOLDER_WATCH_STARTS = new Set(['QuietWatch.watchQuietly']);
 const MINIMUM_SPEC_FILE_COUNT = 100;
@@ -710,6 +716,8 @@ describe('what the guard leaves alone', () => {
   test.each([
     ['a gate process', 'await GateRun.runGate(request);\n'],
     ['a gate pipeline', 'await GateRun.runPipeline(request);\n'],
+    ['a gate line', 'await GateLineRun.runLine(request, line, directory, confinement);\n'],
+    ['one run of gate lines', 'await GateLineRun.runOnce(request);\n'],
     ['a proposal\'s two gate runs', 'await ProposalTwiceRun.runProposalTwice(request);\n'],
     ['the real Watcher starts', 'const starts = REAL_PROCESS_STARTS;\n'],
     ['a folder watch', 'const handle = QuietWatch.watchQuietly(request);\n'],

@@ -2,18 +2,12 @@
  * A pipeline agent's proposed prepare steps and gates, run twice on the main-line snapshot before User sees them, each gate on its own so one
  * red gate never hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
  */
-import { GitProcess }                      from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                    from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }     from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellLine }                  from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
-import {
-  GateRun,
-  type GateConfinement,
-  type GateLineConfiner,
-  type GateProcessRun
-} from './GateRun.ts';
+import type { SupervisedSpawnOptions }                        from '../../lib/process-identity/ProcessSupervision.ts';
+import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
+import type { GateOutcome }                                   from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GateLineRun, type GateLinesRun, type SingleGateRun } from './GateLineRun.ts';
+import type { GateLineConfiner }                              from './GateRun.ts';
 
 export type ProposedGateVerdict = 'green' | 'red' | 'cannot-run' | 'disagreeing';
 
@@ -66,57 +60,10 @@ function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
   return outcomes[0] === 'passed' ? 'green' : 'red';
 }
 
-/** A gate that changed the snapshot fails; the change is undone so the next gate judges the snapshot as committed. */
-function restoreSnapshot(directory: string): void {
-  GitProcess.run(directory, ['checkout', '-q', '--', '.'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
-}
-
-interface SingleGateRun {
-  outcome:      GateOutcome;
-  milliseconds: number;
-  output:       string;
-}
-
-interface SingleProposalRun {
-  failedStep:    string | null;
-  prepareOutput: string;
-  gates:         SingleGateRun[];
-}
-
-async function runLine(request: ProposalRunRequest, storedLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | ProposalRunRefusal> {
-  const statusFile = GateRun.lineStatusFileOf();
-  const line = GateRun.runnableLineOf(request, storedLine, { directory, statusFile }, confinement);
-  if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
-  return GateRun.runGate({
-    argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory, environment: request.environment, spawnOptions: request.spawnOptions
-  });
-}
-
-/** A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. */
-async function runOnce(request: ProposalRunRequest): Promise<SingleProposalRun | ProposalRunRefusal> {
-  for (const step of request.prepare) {
-    const run = await runLine(request, step.run, request.directory, GateRun.prepareConfinementOf(request.gates));
-    if ('verdict' in run) return run;
-    if (request.shellLine.exitMeaningOf(run) === 'passed') continue;
-    return { failedStep: step.name, prepareOutput: run.output, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: run.output })) };
-  }
-  const gates: SingleGateRun[] = [];
-  for (const gate of request.gates) {
-    const startedAt = request.millisecondsNow();
-    const run = await runLine(request, gate.run, GateRun.gateDirectoryOf(request.directory, gate), GateRun.gateConfinementOf(gate));
-    if ('verdict' in run) return run;
-    const milliseconds = request.millisecondsNow() - startedAt;
-    const trackedChanges = GateRun.trackedChangesOf(request.directory);
-    if (trackedChanges !== '') restoreSnapshot(request.directory);
-    gates.push({ outcome: GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(request.shellLine, run, trackedChanges) });
-  }
-  return { failedStep: null, prepareOutput: '', gates };
-}
-
 async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRunRecord | ProposalRunRefusal> {
-  const runs: SingleProposalRun[] = [];
+  const runs: GateLinesRun[] = [];
   for (let i = 0; i < PROPOSAL_RUN_COUNT; i += 1) {
-    const run = await runOnce(request);
+    const run = await GateLineRun.runOnce({ ...request, grantsWrites: true });
     if ('verdict' in run) return run;
     runs.push(run);
   }

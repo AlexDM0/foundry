@@ -1,11 +1,13 @@
 /**
  * The pipeline agent's kinds of the setup record: a finding, a question, the constitution, draft edits and a ready step. The Bouncer stamps
  * the setup the agent serves; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
- * the field before the Board is touched. None of them messages the agent: it made the move.
+ * the field before the Board is touched. None of them messages the agent: it made the move. The agent's first proposal also records what
+ * the snapshot's tree cannot hold on every OS.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
 import type { PipelineSetupChanged }                                      from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { ControlCommandKind, ControlCommandOf }                      from '../../shared/@types/ControlCommand.ts';
+import { TreePortability }                                                from '../lifecycle/TreePortability.ts';
 import type { TrackerChange }                                             from '../tracker/TrackerPipeline.ts';
 import { refuseMalformedSetupCommand, requireStorableDraft, textFieldOf } from './PipelineSetupControls.ts';
 
@@ -39,13 +41,31 @@ function draftConstitution(command: ControlCommandOf<'pipeline-constitution-draf
   return change.board.setConstitution(setupId, setting, change.at);
 }
 
+/**
+ * What the snapshot's tree cannot hold on every OS, read once from git's index at the agent's first proposal: each finding a note of the
+ * record, its kind the label and its paths the sources. It runs no script.
+ */
+function withTreeFindings(changed: PipelineSetupChanged, change: TrackerChange): PipelineSetupChanged {
+  const { setupId, snapshotCommit } = changed.setup;
+  if (snapshotCommit === null) return changed;
+  let latest = changed;
+  for (const finding of TreePortability.treeFindingsAt(change.workspace.rootDirectory, snapshotCommit)) {
+    const recorded = change.board.recordFinding(setupId, {
+      topic: 'note', label: finding.kind, value: null, sourcePaths: [...finding.paths], script: null
+    }, change.at);
+    latest = { setup: recorded.setup, logged: [...latest.logged, ...recorded.logged] };
+  }
+  return latest;
+}
+
 /** The agent's edits never race a form, so they carry no revision; the draft they leave must still pass the validator. */
 function proposeDraftEdits(command: ControlCommandOf<'pipeline-draft-propose'>, change: TrackerChange): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const edits   = readPayload(command.kind, SetupPayloadSchemas.proposalReadingOf(payloadOf(command)));
+  const isFirstProposal = !(change.board.pipelineSetup()?.edits.some((edit) => edit.by === 'agent') ?? false);
   const changed = change.board.editDraft(setupId, { by: 'agent', revision: null, edits }, change.at);
   requireStorableDraft(changed);
-  return changed;
+  return isFirstProposal ? withTreeFindings(changed, change) : changed;
 }
 
 function suggestStepReady(command: ControlCommandOf<'pipeline-step-ready'>, change: TrackerChange): PipelineSetupChanged {

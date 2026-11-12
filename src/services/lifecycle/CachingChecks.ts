@@ -1,18 +1,22 @@
 /**
- * The caching checks a pipeline agent's proposal carries, as suggestions only: nothing is installed and no tracked file is edited. Read from the
- * repository's `turbo.json` and the twice-run's measured times: a slow pipeline with no caching tool, a cache kept per worktree, task inputs
- * blind to what an import graph cannot see, and a gate run past the cache.
+ * The caching checks of a pipeline being set up, as suggestions only: nothing is installed and no tracked file is edited. Read from the
+ * repository's `turbo.json` and the times the gate profiles User started recorded: a slow pipeline with no caching tool, a cache kept per
+ * worktree, task inputs blind to what an import graph cannot see, and a gate run past the cache.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join }                      from 'node:path';
-
-import type { ProposalRunRecord } from './ProposalTwiceRun.ts';
 
 export type CachingSuggestion =
   | { kind: 'no-caching-tool'; slowGates: { name: string; milliseconds: number }[] }
   | { kind: 'per-worktree-cache'; cacheFolder: string }
   | { kind: 'task-inputs-unseen'; task: string; folders: string[] }
   | { kind: 'gate-not-through-turbo'; gate: string };
+
+/** One recorded gate profile: the gate and how long it ran. A gate profiled in several phases has a time for each. */
+export interface RecordedGateTime {
+  name:         string;
+  milliseconds: number;
+}
 
 /** A gate this slow on its slower run is worth a cache. */
 export const SLOW_GATE_MILLISECONDS = 30_000;
@@ -90,13 +94,18 @@ function taskSuggestionsOf(configuration: TurboConfiguration, folders: readonly 
   });
 }
 
-function cachingSuggestionsOf(repositoryDirectory: string, gates: readonly { name: string; run: string }[], record: ProposalRunRecord): CachingSuggestion[] {
+/** Each gate once, with its slowest recorded time, in the order the gates were first recorded. */
+function slowestTimeOfEachGate(recordedTimes: readonly RecordedGateTime[]): RecordedGateTime[] {
+  const slowest = new Map<string, number>();
+  for (const { name, milliseconds } of recordedTimes) slowest.set(name, Math.max(milliseconds, slowest.get(name) ?? 0));
+  return [...slowest].map(([name, milliseconds]) => ({ name, milliseconds }));
+}
+
+function cachingSuggestionsOf(repositoryDirectory: string, gates: readonly { name: string; run: string }[], recordedTimes: readonly RecordedGateTime[]): CachingSuggestion[] {
   const configuration = turboConfigurationOf(repositoryDirectory);
   if (configuration === null) {
     if (OTHER_CACHING_TOOL_FILES.some((file) => existsSync(join(repositoryDirectory, file)))) return [];
-    const slowGates = record.gates
-      .map((gate) => ({ name: gate.name, milliseconds: Math.max(0, ...gate.durationsMilliseconds) }))
-      .filter((gate) => gate.milliseconds >= SLOW_GATE_MILLISECONDS);
+    const slowGates = slowestTimeOfEachGate(recordedTimes).filter((gate) => gate.milliseconds >= SLOW_GATE_MILLISECONDS);
     return slowGates.length === 0 ? [] : [{ kind: 'no-caching-tool', slowGates }];
   }
   const cacheFolder = typeof configuration.cacheDir === 'string' ? configuration.cacheDir : TURBO_DEFAULT_CACHE_FOLDER;

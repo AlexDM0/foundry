@@ -61,6 +61,7 @@ import { AssistantBoot, type AssistantFacts }                               from
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
 import { Baton }                                                            from './Baton.ts';
 import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
+import { GateProfiling }                                                    from './GateProfiling.ts';
 import { GateRunSlots }                                                     from './GateRunSlots.ts';
 import { GpgDirectories }                                                   from './GpgDirectories.ts';
 import { GroupWorktrees }                                                   from './GroupWorktrees.ts';
@@ -306,6 +307,9 @@ const GATE_SLOTS_FOLDER = 'gate-slots';
 
 const MERGE_GATE_PROFILES_FOLDER = 'merge-gate-profiles';
 
+/** The sandbox profiles of the gate profiles' lines, in the overseer folder: these confine a profile's run, never record one. */
+const GATE_PROFILE_SANDBOXES_FOLDER = 'gate-profile-sandboxes';
+
 /** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
 const WORKER_LAUNCH_STEP = 'worker';
 
@@ -367,6 +371,8 @@ function fingerprintOf(
   const digest = createHash('sha256');
   digest.update(`agent-config ${ticketIdsTouchingAgentConfig.join(',')}\n`);
   digest.update(fileTextOrEmpty(workspace.progressFilePath)).update('\0').update(fileTextOrEmpty(workspace.logFilePath)).update('\0');
+  // A Stop of a running profile changes only this file.
+  digest.update(fileTextOrEmpty(workspace.gateProfilesFilePath)).update('\0');
   digest.update(`usage ${JSON.stringify(usageMarker)}\n`);
   for (const request of pending) digest.update(`request ${request.jobId} ${request.requestId}\n`);
   for (const buildJob of buildJobs) {
@@ -926,8 +932,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const endedJobIdsExamined = new Set<string>();
   const triedPipelineAgentSnapshots = new Set<string>();
 
-  /** A merge gate step under the profile a gate Watcher gets, its own network and `writes`, in the slot's worktree; one profile file per worktree. */
-  function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
+  /** A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`. */
+  function overseerGateLineOf(worktreePath: string, profilePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot:   request.workspace.rootDirectory,
       dataFolder:       request.workspace.trackerDirectory,
@@ -944,12 +950,16 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
-    const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, MERGE_GATE_PROFILES_FOLDER);
-    const profilePath   = join(profileFolder, `${basename(worktreePath)}.sb`);
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
     return confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
+  }
+
+  /** A merge gate step in the slot's worktree; one profile file per worktree. */
+  function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
+    const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, MERGE_GATE_PROFILES_FOLDER);
+    return overseerGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), commandArguments, confinement);
   }
 
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
@@ -966,6 +976,25 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return result;
     },
   })).result;
+
+  const gateProfiling = GateProfiling.createGateProfiling({
+    workspace:       request.workspace,
+    worktreesRoot,
+    mainLine:        request.mainLine,
+    platformPorts,
+    gateSlots,
+    gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
+    confinedLineIn:  (worktreePath, profileRunId) => (commandArguments, confinement) => {
+      const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), commandArguments, confinement);
+    },
+    hold:            holdTracker,
+    // A clock exception: a profile's duration is only recorded and shown.
+    millisecondsNow: () => request.now().getTime(),
+    wake:            () => wake(true),
+    log:             request.log,
+    runGateLines:    (request.processStarts ?? REAL_PROCESS_STARTS).runGateLines,
+  });
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
@@ -1160,6 +1189,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     UsageLimits.recordWindowObservations(request.monitorFolder, written.result.usageWindowObservations);
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
+    gateSlots.startRound();
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
@@ -1216,6 +1246,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       answerMessageOf:           request.answerMessageOf,
     });
     const heldTargets = written.board.pipeline() === null ? [] : await airlocks.sweep();
+    gateProfiling.followRuns(written.board);
     await WatcherFleet.reapEndedWatchers(platformPorts, trackerDirectory);
     jobsAtTheLastPass = written.board.jobs();
     assistantsMidTurnAtTheLastPass = AssistantSession.midTurnJobIdsOf(request.workspace.trackerDirectory, written.board, observation.assistantReadings);
@@ -1274,6 +1305,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   async function regroup(): Promise<RegroupingReport> {
     const report = await Regrouping.regroup(platformPorts, request.workspace);
+    await gateProfiling.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
     for (const lost of report.lost) request.log(`Watcher instance ${lost.instance} of job ${lost.jobId} is gone (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
     wake(true);
@@ -1286,6 +1318,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     if (resetTimer !== null) clearTimeout(resetTimer);
     resetTimer = null;
     await (running ?? Promise.resolve());
+    await gateProfiling.stopAll();
   }
 
   /** Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one. */

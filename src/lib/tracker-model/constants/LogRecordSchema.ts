@@ -4,7 +4,17 @@
  * new kind is one entry here plus its wording and its emitter.
  */
 
-export type LogRecordSubject = 'board' | 'ticket' | 'epic' | 'draft' | 'pipeline-setup' | 'review-bar' | 'job' | 'decision' | 'incident';
+export type LogRecordSubject =
+  | 'board'
+  | 'ticket'
+  | 'epic'
+  | 'draft'
+  | 'pipeline-setup'
+  | 'gate-profile'
+  | 'review-bar'
+  | 'job'
+  | 'decision'
+  | 'incident';
 
 export type LogFieldShape =
   | 'text'
@@ -58,7 +68,8 @@ export type LogFieldShape =
   | 'setup-step-state'
   | 'setup-steps'
   | 'setup-item-ids'
-  | 'draft-fields';
+  | 'draft-fields'
+  | 'gate-profile-ending';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -74,6 +85,7 @@ export const LOG_RECORD_SUBJECT_IDS = {
   'epic':           { epicKey: 'text' },
   'draft':          { draftId: 'text' },
   'pipeline-setup': { setupId: 'text' },
+  'gate-profile':   { profileRunId: 'text' },
   'review-bar':     { taskId: 'task-id', ticketId: 'text' },
   'job':            { jobId: 'text' },
   'decision':       { decisionId: 'text' },
@@ -172,11 +184,22 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-draft-undone':    { subject: 'pipeline-setup', fields: { editId: 'text', field: 'text', revision: 'count' } },
   'pipeline-draft-discarded': { subject: 'pipeline-setup', fields: { revision: 'count' } },
   'pipeline-setup-discarded': { subject: 'pipeline-setup', fields: NO_FIELDS },
+  // User's press queued one gate in one phase; `setupId` is the record whose draft the gate came from, `null` for the stored pipeline.
+  'gate-profile-requested':   { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase', setupId: 'nullable-text' } },
+  // The run ended by itself; `elapsedMilliseconds` is recorded and shown only.
+  'gate-profiled':            {
+    subject: 'gate-profile',
+    fields:  {
+      gateName: 'text', phase: 'gate-phase', state: 'gate-profile-ending', elapsedMilliseconds: 'count'
+    },
+  },
+  // User's Stop, or an Overseer start that found the run left running: no result.
+  'gate-profile-stopped': { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase' } },
   // A review bar's `name` is carried because the sentence prints the row's stored name, which an edit may have made anything.
-  'review-bar-started':       { subject: 'review-bar', fields: { name: 'text' } },
-  'review-bar-closed':        { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-started':   { subject: 'review-bar', fields: { name: 'text' } },
+  'review-bar-closed':    { subject: 'review-bar', fields: { name: 'text' } },
   // One reviewer pass: the rework is code lines only, the fix and rebase parts apart, and the builder's change is measured at the review's start.
-  'review-recorded':          {
+  'review-recorded':      {
     subject: 'review-bar',
     fields:  {
       round:                   'review-bar-round',

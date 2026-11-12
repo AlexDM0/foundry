@@ -37,12 +37,19 @@ export interface GateRunSlotsOptions {
 
 export interface GateRunSlots {
   /** Whether `holder` holds a slot after the call: one it held already, or a free one it took. */
-  tryAcquire:           (holder: string) => boolean;
+  tryAcquire:               (holder: string) => boolean;
+  /**
+   * `tryAcquire` for a gate profile, which comes after every real gate: refused while a gate this process waits on, or one refused since
+   * the round began, still has no slot. A refused profile counts as no waiting gate.
+   */
+  tryAcquireAfterRealGates: (holder: string) => boolean;
+  /** A drive pass's round of real gate starts begins: a gate refused in an earlier round and not tried again waits no longer. */
+  startRound:               () => void;
   /** The spawned gate Watcher answers for the slot from here on; `null` for a spawn already gone. */
-  recordSpawnedProcess: (holder: string, spawnedProcess: ProcessIdentity | null) => void;
-  release:              (holder: string) => void;
+  recordSpawnedProcess:     (holder: string, spawnedProcess: ProcessIdentity | null) => void;
+  release:                  (holder: string) => void;
   /** Waits until `holder` holds a slot, and answers its release. */
-  acquire:              (holder: string) => Promise<() => void>;
+  acquire:                  (holder: string) => Promise<() => void>;
 }
 
 const SLOT_FILE_PREFIX = 'slot-';
@@ -112,6 +119,8 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   const fileReplace = options.fileReplace ?? fileReplaceOfThisProcess();
   const heldCreateMeansTaken = options.heldCreateMeansTaken ?? heldSlotCreateMeansTakenInThisProcess();
   let acquirerIdentity: ProcessIdentity | null | undefined;
+  const realGatesRefusedThisRound = new Set<string>();
+  const realGatesWaitingInThisProcess = new Set<string>();
 
   function acquirer(): ProcessIdentity | null {
     acquirerIdentity ??= options.ports.processSupervision.identityOf(process.pid);
@@ -143,6 +152,22 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   }
 
   function tryAcquire(holder: string): boolean {
+    const acquired = takeSlot(holder);
+    if (acquired) realGatesRefusedThisRound.delete(holder);
+    else realGatesRefusedThisRound.add(holder);
+    return acquired;
+  }
+
+  function tryAcquireAfterRealGates(holder: string): boolean {
+    if (realGatesRefusedThisRound.size > 0 || realGatesWaitingInThisProcess.size > 0) return false;
+    return takeSlot(holder);
+  }
+
+  function startRound(): void {
+    realGatesRefusedThisRound.clear();
+  }
+
+  function takeSlot(holder: string): boolean {
     mkdirSync(options.folder, { recursive: true });
     if (slotPaths.some((slotPath) => holderIn(slotPath) === holder)) return true;
     const ownText = slotTextOf({ holder, process: acquirer() });
@@ -169,12 +194,17 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
   }
 
   async function acquire(holder: string): Promise<() => void> {
-    while (!tryAcquire(holder)) await Bun.sleep(options.retryMilliseconds);
+    realGatesWaitingInThisProcess.add(holder);
+    try {
+      while (!tryAcquire(holder)) await Bun.sleep(options.retryMilliseconds);
+    } finally {
+      realGatesWaitingInThisProcess.delete(holder);
+    }
     return () => release(holder);
   }
 
   return {
-    tryAcquire, recordSpawnedProcess, release, acquire
+    tryAcquire, tryAcquireAfterRealGates, startRound, recordSpawnedProcess, release, acquire
   };
 }
 

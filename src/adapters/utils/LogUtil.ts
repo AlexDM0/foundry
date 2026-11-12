@@ -191,6 +191,14 @@ function sentenceOf(record: LogRecordContent): string {
       return `Pipeline setup ${record.setupId} discarded the draft's changes, draft revision ${record.fields.revision}`;
     case 'pipeline-setup-discarded':
       return `Pipeline setup ${record.setupId} discarded`;
+    case 'gate-profile-requested':
+      return `Gate profile ${record.profileRunId} queued: ${record.fields.gateName} in the ${record.fields.phase} phase`
+        + `${record.fields.setupId === null ? '' : `, from pipeline setup ${record.fields.setupId}`}`;
+    case 'gate-profiled':
+      return `Gate profile ${record.profileRunId} of ${record.fields.gateName} in the ${record.fields.phase} phase ended ${record.fields.state} `
+        + `after ${record.fields.elapsedMilliseconds} ms`;
+    case 'gate-profile-stopped':
+      return `Gate profile ${record.profileRunId} of ${record.fields.gateName} in the ${record.fields.phase} phase stopped, with no result`;
     case 'review-bar-started':
       return `Review row #${record.taskId} started: ${record.fields.name}`;
     case 'review-bar-closed':

@@ -703,6 +703,14 @@ never carries it.
                               --revision is refused at exit 1. An answer, constitution, edit, undo,
                               discard or continue also messages the pipeline agent, and opens it
                               again when a stop closed it.
+  pipeline profile <gate> build|review|merge [<S>] [--json]
+  pipeline profile-stop <P> [--json]
+                              Profile one gate in one phase, once, from setup <S>'s draft or with
+                              no <S> the stored pipeline: the Overseer runs the prepare steps and
+                              the gate in a fresh worktree of main, with no writes folder granted,
+                              and records the time in <data>/gate-profiles.json. It only informs:
+                              no green, no gate-ran. gate-profile-running while that gate and
+                              phase have a run not ended. profile-stop ends the run, no result.
 
   await [--json] [--after <n>]
                               Wait until the log holds a decision-opened or incident-escalated

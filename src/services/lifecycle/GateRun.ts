@@ -29,6 +29,10 @@ export interface GateRequest {
   environment:        Readonly<Record<string, string>>;
   /** The port's answer for a `gate`. */
   spawnOptions:       SupervisedSpawnOptions;
+  /** Told the process id once the line started, so the caller can stop its tree through the port. */
+  onSpawned?:         (processId: number) => void;
+  /** Told each piece of output as it arrives, standard output and standard error alike. */
+  onOutput?:          (text: string) => void;
 }
 
 export interface GateProcessRun {
@@ -122,8 +126,25 @@ function runnableLineOf(
   return confined.verdict === 'refused' ? confined : { verdict: 'runs', argv: confined.argv, verbatimArguments: spawnRequest.verbatimArguments };
 }
 
+/** The whole text of a stream; with a listener, read piece by piece, so the listener hears each piece as it arrives. */
+async function streamTextOf(stream: ReadableStream<Uint8Array>, onOutput: ((text: string) => void) | undefined): Promise<string> {
+  if (onOutput === undefined) return new Response(stream).text();
+  const decoder = new TextDecoder();
+  const reader = stream.getReader();
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    const piece = done ? decoder.decode() : decoder.decode(value, { stream: true });
+    if (piece !== '') {
+      text += piece;
+      onOutput(piece);
+    }
+    if (done) return text;
+  }
+}
+
 async function runGate({
-  argv, verbatimArguments, statusFile, directory, environment, spawnOptions
+  argv, verbatimArguments, statusFile, directory, environment, spawnOptions, onSpawned, onOutput
 }: GateRequest): Promise<GateProcessRun> {
   try {
     const gateProcess = Bun.spawn({
@@ -136,9 +157,10 @@ async function runGate({
       windowsVerbatimArguments: verbatimArguments === true,
       ...spawnOptions,
     });
+    onSpawned?.(gateProcess.pid);
     const [output, errorOutput, exitCode] = await Promise.all([
-      new Response(gateProcess.stdout).text(),
-      new Response(gateProcess.stderr).text(),
+      streamTextOf(gateProcess.stdout, onOutput),
+      streamTextOf(gateProcess.stderr, onOutput),
       gateProcess.exited,
     ]);
     const signalCode = gateProcess.signalCode ?? null;

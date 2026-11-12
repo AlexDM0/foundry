@@ -5,6 +5,7 @@ export const TRACKER_FILES = {
   PROGRESS_FILE_NAME:       'progress.json',
   PIPELINE_FILE_NAME:       'pipeline.json',
   PIPELINE_SETUP_FILE_NAME: 'pipeline-setup.json',
+  GATE_PROFILES_FILE_NAME:  'gate-profiles.json',
   LOG_FILE_NAME:            'log.jsonl',
   HTML_FILE_NAME:           'progress.html',
   TRACKER_DIRECTORY_NAME:   PRODUCT_NAMES.DATA_FOLDER,

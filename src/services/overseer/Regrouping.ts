@@ -24,6 +24,7 @@ import { HATCH_FOLDER, WorktreesFolder }        from '../../shared/WorktreesFold
 import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }   from '../../shared/constants/OverseerLimits.ts';
 import { requireProgressFile }                  from '../tracker/TrackerReader.ts';
 import type { Workspace }                       from '../tracker/Workspace.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER }        from './GateProfiling.ts';
 import { GroupWorktrees }                       from './GroupWorktrees.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
@@ -48,8 +49,11 @@ export interface RegroupingReport {
   leftoverWorktrees: string[];
 }
 
-/** The Overseer's own folders under the worktrees root: the sessions' working folders and the jobs' Hatch folders, one per job. */
-const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER]);
+/**
+ * The Overseer's own folders under the worktrees root: the sessions' working folders, the jobs' Hatch folders, one per job, the pipeline
+ * agent's snapshots and the gate profiles' worktrees, which the profiling start sweep removes.
+ */
+const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set(['sessions', HATCH_FOLDER, PIPELINE_AGENT_SNAPSHOT_FOLDER, GATE_PROFILE_WORKTREES_FOLDER]);
 
 const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';

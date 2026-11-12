@@ -121,6 +121,8 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-draft-edit':        ['pipeline', 'edit', 'S1', '--revision', '3', '--set', 'gate:test={"name": "test", "run": "bun test"}'],
   'pipeline-draft-undo':        ['pipeline', 'undo', 'S1', 'E1'],
   'pipeline-draft-discard':     ['pipeline', 'discard', 'S1'],
+  'gate-profile-start':         ['pipeline', 'profile', 'test', 'merge', 'S1'],
+  'gate-profile-stop':          ['pipeline', 'profile-stop', 'P1'],
   'pipeline-finding-record':    ['pipeline', 'finding', '--', '{"topic": "scripts", "label": "Type check", "value": "bun run typecheck", "sourcePaths": ["package.json"]}'],
   'pipeline-question-ask':      [
     'pipeline', 'ask', '--', '{"step": "research", "question": "Is the type check a gate?", "options": ["Yes", "No"], "recommended": ["a"]}'

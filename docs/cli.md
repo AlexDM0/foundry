@@ -36,6 +36,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/progress.json` | [The board's state](#dataprogressjson) |
 | `<data>/pipeline.json` | [The gate pipeline](#datapipelinejson) |
 | `<data>/pipeline-setup.json` | [The pipeline setup record](#datapipeline-setupjson) |
+| `<data>/gate-profiles.json`, `<data>/gate-profile-runs/` | [The gate profile runs](#datagate-profilesjson) |
 | `<data>/log.jsonl` | [The log and its kinds](#datalogjsonl) |
 | `<data>/pictures/` | [The pictures](#datapictures) |
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
@@ -107,7 +108,8 @@ The [tracker](glossary.md#tracker) lives in `<data>/` at the repository root, fo
 
 Every mutating command takes the tracker's lock. It reads, changes and writes in one hold, in this order:
 `progress.json`, `pipeline.json` when it changed, the tickets, the epics, the filing drafts, `pipeline-setup.json` when
-a setup move changed or removed it, then `log.jsonl` when it logged something. A ticket file is therefore never ahead
+a setup move changed or removed it, `gate-profiles.json` when a profile move changed it, then `log.jsonl` when it logged
+something. A ticket file is therefore never ahead
 of the progress file, and a log line never describes a change that was not stored. A file whose bytes on disk already
 are its new contents is left in place, judged inside the hold from the bytes alone, so a hold that changes nothing
 writes no tracker file and no journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the
@@ -935,6 +937,8 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`. |
 | `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
 | `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`, and stop its live agent in the same hold. The setup id is not used again. |
+| `pipeline profile <gate> build\|review\|merge [<S>] [--json]` | Queue a [gate profile](#gate-profiles) (`gate-profile-start`), logged `gate-profile-requested`: that one gate in that one phase, once, as setup `<S>`'s draft defines it, or with no `<S>` as the stored pipeline does. `--json` prints `{ run, logged }`. A gate the source does not define is refused `unknown-gate`, a setup that is not the open one `no-setup-open`, and a second press while that gate and phase have a run `queued` or `running` `gate-profile-running`. |
+| `pipeline profile-stop <P> [--json]` | Stop a gate profile (`gate-profile-stop`): a queued run is `stopped` at once, logged `gate-profile-stopped`; a running one is marked, and the Overseer ends its process tree and records it `stopped`, with no duration. An ended run is left as it is. An unknown id is refused `unknown-profile-run`. |
 | `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
 An answer, a constitution edit, a draft edit, an Undo, a discard and a Continue also message the record's pipeline
@@ -943,6 +947,30 @@ User's move; an agent a stop closed is opened again with the message, logged `jo
 or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
 `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming
 the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
+
+#### Gate profiles
+
+A gate profile is informational: it says how long one gate takes in one phase, and how it ended. Only User's press
+starts one: `pipeline profile`, the stopwatch chip of a gate row, Profile again in the Gate dialog or "Benchmark in the
+merge phase" on a new gate's change card. A proposal, an Apply, a draft edit and an Overseer start queue none, there is
+no "profile all", and the pipeline agent may not relay `gate-profile-start`.
+
+The Overseer takes the queued runs in order. A run takes one of the machine's gate run slots, and only when no gate run
+of a job or an Airlock of this Overseer waits for one: a running profile is not cut short, but when it ends, a waiting
+real gate takes the slot first. The run gets a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, which
+needs no setup record, and runs the phase's prepare steps and then the gate in it, once, under the confinement of the
+Overseer's own gate runs. A profile may write only inside its worktree and the temporary folder: the gate's `writes`
+folders are not granted, so a gate that needs one ends `red` or `cannot-run`. The process runs outside the hold; the
+Overseer takes the hold only to record `running` and the end (`passed`, `red`, `cannot-run`), with the duration, which
+is only recorded and shown. Its output is appended, as it arrives, to `<data>/gate-profile-runs/<P>.ndjson`, one
+`{"text": …}` line per piece. A profile never records a green or a `gate-ran` record, and Apply never waits on one.
+When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and each new
+suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
+records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
+
+A run that is `running` when its Overseer stops is never run again: the next Overseer start records it `stopped`,
+logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is the
+Overseer's own, so the regrouping never names it as a leftover.
 
 #### The pipeline agent's verbs
 
@@ -961,7 +989,7 @@ input with `--file <path>|-`; it is read through a closed schema, so a missing, 
 | `pipeline finding` (`pipeline-finding-record`) | `{topic, label, value?, sourcePaths?, script?: {name, run, meaning, gateCandidate, needs?}}` | Record a finding `F<n>`, logged `pipeline-finding-recorded`. A source path stays inside the repository. |
 | `pipeline ask` (`pipeline-question-ask`) | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` | Ask User a setup question `Q<n>`, logged `pipeline-question-asked`: two to four options (`setup-question-option-count`), lettered `a` on in order, and exactly one recommended letter unless `multiple` (`setup-question-without-recommendation`, `several-letters-on-single-select-setup-question`). An option offering "Other" is refused: the Bridge offers free text itself. |
 | `pipeline draft-constitution` (`pipeline-constitution-draft`) | `{markdown, sources: [{lineText, occurrence, kind, path}]}` | Store the whole constitution byte for byte, logged `pipeline-constitution-set` by the agent. Refused: an empty text (`constitution-empty`), one over 20,000 characters (`constitution-too-long`), a source whose line the text does not hold `occurrence` times (`constitution-source-unanchored`), two sources on one line (`constitution-source-repeated`), and a source path outside the repository. Under a job the markdown travels beside the command, as a ticket body does. |
-| `pipeline propose` (`pipeline-draft-propose`) | `{edits: [{field, value, summary}]}` | Edit the draft in one move, logged `pipeline-draft-edited` by the agent, each edit with its own summary sentence. A field outside the record's closed list is refused, and so is a draft `pipeline.json`'s validator would refuse (`pipeline-draft-invalid`). |
+| `pipeline propose` (`pipeline-draft-propose`) | `{edits: [{field, value, summary}]}` | Edit the draft in one move, logged `pipeline-draft-edited` by the agent, each edit with its own summary sentence. A field outside the record's closed list is refused, and so is a draft `pipeline.json`'s validator would refuse (`pipeline-draft-invalid`). The agent's first proposal also records each [tree finding](#gate-profiles) of the snapshot as a `note` finding. |
 | `pipeline ready <step>` (`pipeline-step-ready`) | none: `research`, `constitution` or `design` | Suggest that User may continue the current step, kept in `readyToContinue` and logged `pipeline-step-ready-suggested` once; it moves no step. Another step is refused `setup-step-not-current`. |
 
 ### Review statistics
@@ -1989,16 +2017,51 @@ the lock, atomically; a start over removes it. This is format version 1.
   refuses `pipeline-setup-unreadable` with the reason and nothing writes over the file, and every other command runs as
   before.
 
+### `<data>/gate-profiles.json`
+
+The [gate profiles](#gate-profiles) User started, beside `progress.json`, absent until the first `gate-profile-start`.
+Every write is made in the hold: `queued` by the command, `running` and the end by the Overseer. Only the newest run of
+each gate and phase is kept: a new press drops an ended one. This is format version 1.
+
+```jsonc
+{
+  "formatVersion": 1,                    // only this version is read
+  "nextRunNumber": 3,                    // the next run is P3; ids are never reused
+  "runs": [
+    {
+      "profileRunId": "P2",
+      "setupId": "S1",                   // the setup whose draft the gate came from; null: the stored pipeline
+      "phase": "merge",                  // build | review | merge
+      "gate": { "name": "tests", "run": "bun test" },  // in and network when set; never writes
+      "gateHash": "…",                   // the content hash of run, in and network
+      "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile" }],
+      "state": "passed",                 // queued | running | passed | red | cannot-run | timed-out | stopped
+      "stopRequested": false,            // User's Stop of a running run, until the Overseer records it stopped
+      "elapsedMilliseconds": 41200       // recorded and shown only; null until the run ended by itself
+    }
+  ]
+}
+```
+
+- `<data>/gate-profile-runs/<P>.ndjson` holds a run's output, appended in place outside the hold, one JSON line per
+  piece, as a Watcher's event log is; a reader ignores an unterminated last line.
+- `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Overseer start.
+- No state is written as `timed-out` yet; the read accepts it.
+- Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
+  leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
+  wrong shape or an unknown key in a run is malformed: the board reads no run, every profile move refuses
+  `gate-profiles-unreadable` with the reason and nothing writes over the file, and every other command runs as before.
+
 ### `<data>/log.jsonl`
 
 One record per line, each a JSON object ending in a newline: `at`, `kind`, then `taskId`, `ticketId`, `epicKey`,
-`draftId`, `setupId`, `jobId`, `decisionId` or `incidentId` where the kind names them, then `fields`. `status` and the
-Bridge word each record as a sentence; a note's sentence is its text.
+`draftId`, `setupId`, `profileRunId`, `jobId`, `decisionId` or `incidentId` where the kind names them, then `fields`.
+`status` and the Bridge word each record as a sentence; a note's sentence is its text.
 
 The kinds fall into families: [board](#board-records), [ticket](#ticket-records), [epic](#epic-records), [filing
-draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [review](#review-records), [pipeline and
-gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-records), [merge](#merge-records),
-[decision](#decision-records) and [incident](#incident-records).
+draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate profile](#gate-profile-records),
+[review](#review-records), [pipeline and gate](#pipeline-and-gate-records), [Overseer](#overseer-records),
+[job](#job-records), [merge](#merge-records), [decision](#decision-records) and [incident](#incident-records).
 
 #### Board records
 
@@ -2069,6 +2132,14 @@ gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-rec
 | `pipeline-draft-undone` | `setupId` | `editId`, `field`, `revision` |
 | `pipeline-draft-discarded` | `setupId` | `revision` |
 | `pipeline-setup-discarded` | `setupId` | none |
+
+#### Gate profile records
+
+| kind | ids | fields |
+|---|---|---|
+| `gate-profile-requested` | `profileRunId` | `gateName`, `phase`, `setupId` (`null` for a gate of the stored pipeline) |
+| `gate-profiled` | `profileRunId` | `gateName`, `phase`, `state` (`passed`, `red`, `cannot-run` or `timed-out`), `elapsedMilliseconds` |
+| `gate-profile-stopped` | `profileRunId` | `gateName`, `phase`: User's Stop, or an Overseer start that found the run left running; no result |
 
 #### Review records
 

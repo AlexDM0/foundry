@@ -215,6 +215,13 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'approval-without-pipeline':
       return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
         + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;
+    case 'gate-profiles-unreadable':
+      return `The gate profile runs cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove gate-profiles.json in the data folder.`;
+    case 'gate-profile-running':
+      return `The gate ${detail.gateName} has profile ${detail.profileRunId} in the ${detail.phase} phase not ended yet: wait for it, or stop it. `
+        + NOTHING_WAS_WRITTEN;
+    case 'unknown-profile-run':
+      return `There is no gate profile ${detail.profileRunId}. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-in-progress':
       return `Pipeline setup ${detail.setupId} is open, and only one setup is open at a time. ${NOTHING_WAS_WRITTEN} Resume it, or start it over.`;
     case 'no-setup-open':

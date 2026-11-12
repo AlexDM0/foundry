@@ -5,7 +5,8 @@
  * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`,
  * an Overseer restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
  * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent launches never asking
- * User. A first instance that resumes another job's session and exits before it starts is a failed resume.
+ * User. A first instance that resumes another job's session and exits before it starts is a failed resume. A gate profile left running by
+ * a stopped Overseer reads `stopped` after the next start, is never run again, and its worktree goes.
  *
  * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -37,6 +38,7 @@ import { watcherFilesOf }                                   from '../../lib/watc
 import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
 import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
+import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
 import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
 import { LIMITS }                                           from '../../shared/constants/Limits.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
@@ -53,7 +55,7 @@ import {
 } from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                  from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                      from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                              from '../../testing/RecordedGitFlow.ts';
 import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../testing/RecordedWatcherStages.ts';
 import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
@@ -68,6 +70,7 @@ import { requireProgressFile }                                  from '../tracker
 import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
 import { AirlockFactsFile }                                     from './AirlockFactsFile.ts';
 import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }         from './GateProfiling.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
 import { IntakeSessions }                                       from './IntakeSessions.ts';
 import { JobResumption }                                        from './JobResumption.ts';
@@ -166,6 +169,85 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
     expect(loggedKindsAfterReplay.at(-1)).toBe('note');
     expect(loggedKindsAfterReplay.length, 'the cut-short hold\'s records are in the log before the next holder\'s note').toBeGreaterThan(2);
     expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when its Overseer stopped', () => {
+  const lineRequests: unknown[] = [];
+
+  /** The next Overseer's profiling: its holds go through the lock, and every line it would run is only counted. */
+  function nextOverseersProfiling(): ReturnType<typeof GateProfiling.createGateProfiling> {
+    return GateProfiling.createGateProfiling({
+      workspace,
+      worktreesRoot:   WorktreesFolder.worktreesRootOf(workspace.rootDirectory),
+      mainLine:        RECORDED_FLOW_MAIN_LINE,
+      platformPorts:   nativePlatformPorts(),
+      gateSlots:       { tryAcquireAfterRealGates: () => true, release: () => undefined },
+      gateEnvironment: () => ({}),
+      confinedLineIn:  () => (argv) => ({ verdict: 'runs', argv }),
+      hold:            async (mutate) => (await writeTracker({
+        workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+      })).result,
+      millisecondsNow: () => 0,
+      wake:            () => undefined,
+      log:             () => undefined,
+      runGateLines:    (request) => {
+        lineRequests.push(request);
+        return Promise.resolve({ failedStep: null, prepareOutput: '', gates: [] });
+      },
+    });
+  }
+
+  /** P1 marked running by an Overseer that then stopped, with its worktree left behind. */
+  async function leaveARunRunning(): Promise<string> {
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => {
+        change.board.queueGateProfile({
+          setupId: null, phase: 'build', gate: { name: 'tests', run: 'bun test' }, prepare: []
+        }, change.at);
+        change.board.markGateProfileRunning('P1');
+      },
+    });
+    const worktree = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), GATE_PROFILE_WORKTREES_FOLDER, 'P1');
+    mkdirSync(worktree, { recursive: true });
+    return worktree;
+  }
+
+  test('reads stopped after the next start, with no result, and is never run again', async () => {
+    lineRequests.length = 0;
+    const worktree = await leaveARunRunning();
+    const profiling = nextOverseersProfiling();
+    const removal = [{ gitArguments: ['worktree', 'remove', '--force', worktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LINKED, removesFolder: worktree }];
+
+    await recordedGit.playStage(removal, () => profiling.settleAtStart());
+    const { board } = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: () => undefined
+    });
+    profiling.followRuns(board);
+    await profiling.idle();
+
+    expect(board.gateProfileRuns()).toMatchObject([{ profileRunId: 'P1', state: 'stopped', elapsedMilliseconds: null }]);
+    expect(loggedKinds().filter((kind) => kind === 'gate-profile-stopped')).toHaveLength(1);
+    expect(lineRequests).toEqual([]);
+  });
+
+  test('its worktree, and every other one under the profile worktrees, is removed at the start', async () => {
+    const worktree = await leaveARunRunning();
+    const leftover = join(worktree, '..', 'P0');
+    mkdirSync(leftover, { recursive: true });
+    const removals = [leftover, worktree].map((path) => ({
+      gitArguments:  ['worktree', 'remove', '--force', path],
+      answeredAs:    GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LINKED,
+      removesFolder: path,
+    }));
+
+    await recordedGit.playStage(removals, () => nextOverseersProfiling().settleAtStart());
+
+    expect(existsSync(worktree)).toBe(false);
+    expect(existsSync(leftover)).toBe(false);
   });
 });
 

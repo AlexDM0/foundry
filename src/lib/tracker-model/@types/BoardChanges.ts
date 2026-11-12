@@ -3,6 +3,7 @@ import type { Concurrency }                  from './Concurrency.ts';
 import type { Decision, DecisionAnswer }     from './Decision.ts';
 import type { Draft }                        from './Draft.ts';
 import type { Epic }                         from './Epic.ts';
+import type { GateProfileRun }               from './GateProfile.ts';
 import type { Incident }                     from './Incident.ts';
 import type { Job }                          from './Job.ts';
 import type { LogRecord, LogRecordFieldsOf } from './LogRecord.ts';
@@ -223,6 +224,11 @@ export interface PipelineChanged extends Logged {
 /** The record as the move left it; after a start over, the record that was removed. */
 export interface PipelineSetupChanged extends Logged {
   setup: Readonly<PipelineSetup>;
+}
+
+/** The gate profile run as the move left it. */
+export interface GateProfileChanged extends Logged {
+  run: Readonly<GateProfileRun>;
 }
 
 export interface TrackerCleared extends Logged {

@@ -1,7 +1,8 @@
 /**
  * The four caching checks on scratch repositories, suggestions only: a repository using Turbo with its cache per worktree (`.turbo/cache`),
  * a task whose inputs miss its templates and fixtures, and a gate run past `turbo run` gets all three of its suggestions; one with no caching
- * tool gets the measured slow gates; an absolute cache folder, default inputs and gates through Turbo get none. Nothing is written.
+ * tool gets the slow gates from the recorded profile times, each gate once with its slowest time; an absolute cache folder, default inputs
+ * and gates through Turbo get none. Nothing is written.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -13,20 +14,18 @@ import {
   expect,
   test
 } from 'bun:test';
-import { createScratchDirectory, removeScratchDirectory }                from '../../testing/ScratchWorkspace.ts';
-import { CachingChecks, SLOW_GATE_MILLISECONDS, type CachingSuggestion } from './CachingChecks.ts';
-import type { ProposalRunRecord }                                        from './ProposalTwiceRun.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import {
+  CachingChecks,
+  SLOW_GATE_MILLISECONDS,
+  type CachingSuggestion,
+  type RecordedGateTime
+} from './CachingChecks.ts';
 
 let repositoryDirectory = '';
 
-function recordWith(millisecondsByGate: Readonly<Record<string, number>>): ProposalRunRecord {
-  return {
-    snapshotCommit: 'a'.repeat(40),
-    prepare:        { failedSteps: [null, null], output: '' },
-    gates:          Object.entries(millisecondsByGate).map(([name, milliseconds]) => ({
-      name, outcomes: ['passed', 'passed'], durationsMilliseconds: [milliseconds, milliseconds / 2], verdict: 'green', output: ''
-    })),
-  };
+function recordWith(millisecondsByGate: Readonly<Record<string, number>>): RecordedGateTime[] {
+  return Object.entries(millisecondsByGate).map(([name, milliseconds]) => ({ name, milliseconds }));
 }
 
 function writeTurbo(configuration: unknown): void {
@@ -74,6 +73,14 @@ describe('the caching checks suggest and never install', () => {
     const expected: CachingSuggestion[] = [{ kind: 'no-caching-tool', slowGates: [{ name: 'tests', milliseconds: SLOW_GATE_MILLISECONDS }] }];
 
     expect(CachingChecks.cachingSuggestionsOf(repositoryDirectory, [], record)).toEqual(expected);
+  });
+
+  test('a gate profiled in two phases is named once, with its slower recorded time', () => {
+    const recordedTimes = [{ name: 'tests', milliseconds: SLOW_GATE_MILLISECONDS + 1 }, { name: 'tests', milliseconds: SLOW_GATE_MILLISECONDS + 5 }];
+
+    expect(CachingChecks.cachingSuggestionsOf(repositoryDirectory, [], recordedTimes)).toEqual([
+      { kind: 'no-caching-tool', slowGates: [{ name: 'tests', milliseconds: SLOW_GATE_MILLISECONDS + 5 }] },
+    ]);
   });
 
   test('with no caching tool and fast gates, nothing is suggested', () => {

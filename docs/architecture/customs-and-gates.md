@@ -265,7 +265,8 @@ Three callers share the judge and differ in how they run and whether they take a
 | --- | --- | --- | --- | --- |
 | `JobLaunch.gateProgressOf` | A build or review HEAD | One Watcher for the joined prepare steps, then one per gate, across many Passes | Taken by `tryAcquire`; the step waits for a later Pass | The first stops the rest |
 | `GateRun.runPipeline` | The merged tree in an Airlock | In the Overseer's process, awaited | `acquire`, waiting in a retry loop | The first stops the rest |
-| `ProposalTwiceRun.runOnce` | A [main line](../glossary.md#main-line) snapshot | In the Overseer's process, awaited | None | All run, so one never hides the next |
+| `GateLineRun.runOnce`, for the twice-run | A [main line](../glossary.md#main-line) snapshot | In the Overseer's process, awaited | None | All run, so one never hides the next |
+| `GateLineRun.runOnce`, for a gate profile | A fresh worktree of main, `<worktrees>/gate-profiles/<P>` | In the Overseer's process, not awaited by the Pass | `tryAcquireAfterRealGates`, after every waiting real gate | One gate per run |
 
 > **As built.** The merged-tree gate runs inside the Pass. See
 > [gap-merge-gate-blocks-pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass).

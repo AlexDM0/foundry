@@ -2,7 +2,8 @@
  * A gate slot on Windows, over a fake kernel table. What matters: a gate Watcher that was spawned and never claimed answers for its slot through
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. On Linux an in-process holder
  * whose Overseer is a zombie is not live, over recorded `/proc` stat text. And over injected file moves: a held-file failure on a slot create
- * is a taken slot on win32 and a fault elsewhere, and a held move aside leaves a stale slot in place.
+ * is a taken slot on win32 and a fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real
+ * gate: it takes no slot while a real gate refused this round, or one waiting in this process, still has none.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join }                          from 'node:path';
@@ -149,5 +150,62 @@ describe('a slot file that the platform refuses to create or move', () => {
 
     expect(slots.tryAcquire('example-holder')).toBe(true);
     expect(readFileSync(slotPath, 'utf8').split('\n')[0]).toBe('example-holder');
+  });
+});
+
+describe('a gate profile after the real gates', () => {
+  function inProcessSlots(limit: number): ReturnType<typeof GateRunSlots.createGateRunSlots> {
+    const ports = nativePlatformPorts();
+    const scratch = createScratchDirectory('profile-gate-slots');
+    scratchDirectories.push(scratch);
+    return GateRunSlots.createGateRunSlots({
+      ports, folder: join(scratch, 'slots'), limit, holderIsLive: () => true, retryMilliseconds: 1,
+    });
+  }
+
+  test('takes no slot freed while a real gate refused this round still waits, and takes one once that gate took its own', () => {
+    const slots = inProcessSlots(1);
+    expect(slots.tryAcquire('real-gate-one')).toBe(true);
+    expect(slots.tryAcquire('real-gate-two')).toBe(false);
+    slots.release('real-gate-one');
+
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(false);
+    expect(slots.tryAcquire('real-gate-two')).toBe(true);
+    slots.release('real-gate-two');
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(true);
+  });
+
+  test('a real gate refused in an earlier round and not tried again waits no longer', () => {
+    const slots = inProcessSlots(1);
+    slots.tryAcquire('real-gate-one');
+    slots.tryAcquire('real-gate-of-an-ended-job');
+    slots.release('real-gate-one');
+
+    slots.startRound();
+
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(true);
+  });
+
+  test('a refused profile counts as no waiting gate, so the next profile still gets a free slot', () => {
+    const slots = inProcessSlots(2);
+    expect(slots.tryAcquireAfterRealGates('first-profile')).toBe(true);
+    expect(slots.tryAcquireAfterRealGates('second-profile')).toBe(true);
+    expect(slots.tryAcquireAfterRealGates('third-profile')).toBe(false);
+    slots.release('first-profile');
+
+    expect(slots.tryAcquireAfterRealGates('third-profile')).toBe(true);
+  });
+
+  test('takes no slot while a real gate of this process waits for one, and one once it got its own', async () => {
+    const slots = inProcessSlots(1);
+    slots.tryAcquire('real-gate-one');
+    const waiting = slots.acquire('merge-gate');
+    slots.startRound();
+    slots.release('real-gate-one');
+
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(false);
+    const releaseMergeGate = await waiting;
+    releaseMergeGate();
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(true);
   });
 });

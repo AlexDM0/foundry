@@ -475,6 +475,7 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
         if (failing.length > 0) throw new Error(`a failing merge gate is a real-system case: ${failing.join(', ')}`);
         return Promise.resolve({ outcome: 'passed', gatesRun: request.gates.map((gate) => gate.name) });
       },
+      runGateLines: () => Promise.reject(new Error('a gate profile is a real-system case')),
     },
     scriptLine:   (line, end) => { lineEnds.set(line, end); },
     scriptShell:  (command, action) => { shellActions.set(command, action); },

@@ -3,22 +3,31 @@
  * payload or a missing setup is `malformed-setup-command` naming the field, with the Board untouched; a question takes two to four
  * options and exactly one recommendation unless it takes several, and never "Other"; a proposed edit outside the closed field union, or
  * one that leaves a draft the `pipeline.json` validator refuses, is refused; the constitution is stored byte for byte, and an empty,
- * overlong, unanchored or doubly sourced one, or one with a malformed source path, is refused; and a ready step is a suggestion only.
+ * overlong, unanchored or doubly sourced one, or one with a malformed source path, is refused; a ready step is a suggestion only; and only
+ * the first proposal reads the snapshot's tree from git's index, each finding a note.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineSetup }                    from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { BoardRefusal }                          from '../../lib/tracker-model/BoardRefusal.ts';
-import { CONSTITUTION_LIMIT_CHARACTERS }         from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
-import { boardFixture, type BoardFixture }       from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }                    from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                     from '../tracker/Workspace.ts';
-import { ControlService }                        from './ControlService.ts';
+import type { PipelineSetup }                                    from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { BoardRefusal }                                          from '../../lib/tracker-model/BoardRefusal.ts';
+import { CONSTITUTION_LIMIT_CHARACTERS }                         from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import type { ControlCommand, ControlCommandOf }                 from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                      from '../../shared/OperationRefusal.ts';
+import { boardFixture, type BoardFixture }                       from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                                from '../../testing/EchoedControlContext.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
+import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                                     from '../tracker/Workspace.ts';
+import { ControlService }                                        from './ControlService.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
+
+const SNAPSHOT_COMMIT = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
+
+const UNPORTABLE_TREE: RecordedGitStep = { gitArguments: ['ls-tree', '-r', '-z', '--full-tree', SNAPSHOT_COMMIT], answeredAs: GIT_CALL_SHAPES.TREE_OF_AN_UNPORTABLE_COMMIT };
+
+const recordedGit = useRecordedGit();
 
 const CONSTITUTION_TEXT = '# Example Agency\r\n\r\n- Keep it small.\r\n- Keep it small.\r\n';
 
@@ -173,6 +182,30 @@ describe('a proposal', () => {
         editId: 'E2', by: 'agent', field: 'phase-order:build', summary: 'Run them while building.', undone: false
       },
     ]);
+  });
+
+  testWhenGitIsRecorded('the first records what the snapshot\'s tree cannot hold on every OS, read from git\'s index; a later one reads nothing', async () => {
+    const fixture = boardAt('design');
+    const pinned  = { ...structuredClone(fixture.board.pipelineSetup()), snapshotCommit: SNAPSHOT_COMMIT } as PipelineSetup;
+    const pinnedFixture = boardFixture({ pipelineSetup: { verdict: 'readable', setup: pinned } });
+    const proposal = (gateName: string, buildGates: readonly string[]): ControlCommand => ({
+      kind:    'pipeline-draft-propose',
+      jobId:   'J4',
+      setupId: 'S1',
+      edits:   [
+        { field: `gate:${gateName}`, value: { name: gateName, run: 'bun test' }, summary: 'Run the unit tests.' },
+        { field: 'phase-order:build', value: buildGates, summary: 'Run them while building.' },
+      ],
+    });
+
+    await recordedGit.playStage([UNPORTABLE_TREE], () => Promise.resolve(apply(pinnedFixture, proposal('test', ['test']))));
+    await recordedGit.playStage([], () => Promise.resolve(apply(pinnedFixture, proposal('unit', ['test', 'unit']))));
+
+    const findings = pinnedFixture.board.pipelineSetup()?.findings ?? [];
+    expect(findings.map((finding) => [finding.topic, finding.label])).toEqual(expect.arrayContaining([
+      ['note', 'reserved-name'], ['note', 'symbolic-link'], ['note', 'case-collision'],
+    ]));
+    expect(findings.every((finding) => finding.topic === 'note' && finding.sourcePaths.length > 0 && finding.value === null)).toBe(true);
   });
 
   test('a proposal leaving a draft the validator refuses, a gate in no phase, is refused pipeline-draft-invalid', () => {

@@ -102,6 +102,9 @@ export type BoardRefusalDetail =
   | { reason: 'prepare-order-not-a-reorder'; names: readonly string[]; prepareNames: readonly string[] }
   | { reason: 'unknown-setup-edit'; setupId: string; editId: string }
   | { reason: 'setup-edit-already-undone'; setupId: string; editId: string }
+  | { reason: 'gate-profiles-unreadable'; problem: string }
+  | { reason: 'gate-profile-running'; gateName: string; phase: GatePhase; profileRunId: string }
+  | { reason: 'unknown-profile-run'; profileRunId: string }
   | { reason: 'unknown-draft'; draftId: string }
   | { reason: 'draft-claimed-by-another-owner'; draftId: string; owner: string }
   | { reason: 'draft-closed-into-unknown-tickets'; draftId: string; missingTicketReferences: readonly string[] }

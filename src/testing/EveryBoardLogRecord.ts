@@ -45,6 +45,17 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.startOverSetup(setupId, at);
 }
 
+/** One gate profile that ends by itself, and one User stops while it waits, each logging its own kind once. */
+function logEveryGateProfileRecordKind(board: Board, at: string): void {
+  const request = {
+    setupId: null, phase: 'build', gate: { name: 'tests', run: 'bun test' }, prepare: []
+  } as const;
+  const { run } = board.queueGateProfile(request, at);
+  board.markGateProfileRunning(run.profileRunId);
+  board.endGateProfile(run.profileRunId, 'passed', 4200, at);
+  board.stopGateProfile(board.queueGateProfile(request, at).run.profileRunId, at);
+}
+
 export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   const { board, records } = boardFixture({
     tickets: [
@@ -221,6 +232,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'build-bundles', error: 'Example bundle error' }, at);
   board.recordHatchApplied('J1', { requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done' }, at);
   logEverySetupRecordKind(board, at);
+  logEveryGateProfileRecordKind(board, at);
   board.clearTracker({ ticketsSurvive: true }, at);
   return records;
 }

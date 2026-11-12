@@ -168,6 +168,9 @@ export type ControlCommand =
   | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[] }
   | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
   | { kind: 'pipeline-draft-discard'; setupId: string }
+  /** User's press: one gate in one phase, from the open setup's draft, or with `setupId` `null` from the stored pipeline. */
+  | { kind: 'gate-profile-start'; setupId: string | null; gateName: string; phase: GatePhase }
+  | { kind: 'gate-profile-stop'; profileRunId: string }
   /**
    * The pipeline agent's moves on the setup record it serves. Relayed without `jobId` or `setupId`: the role policy stamps its own job and
    * that job's setup, from the Hatch folder and the record.

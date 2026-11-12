@@ -4,6 +4,7 @@
  */
 import type { Draft }                     from '../lib/tracker-model/@types/Draft.ts';
 import type { Epic, EpicFrontmatter }     from '../lib/tracker-model/@types/Epic.ts';
+import type { GateProfilesReading }       from '../lib/tracker-model/@types/GateProfile.ts';
 import type { LogRecord }                 from '../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                  from '../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetupReading }      from '../lib/tracker-model/@types/PipelineSetup.ts';
@@ -82,6 +83,7 @@ export function boardFixture(contents: {
   concurrencyLimit?: number;
   pipeline?:         Pipeline;
   pipelineSetup?:    PipelineSetupReading;
+  gateProfiles?:     GateProfilesReading;
 } = {}): BoardFixture {
   const tasks      = contents.tasks ?? [];
   const tickets    = contents.tickets ?? [];
@@ -104,6 +106,7 @@ export function boardFixture(contents: {
     logger: createLogger((record) => records.push(record)),
     ...(contents.pipeline === undefined ? {} : { pipeline: contents.pipeline }),
     ...(contents.pipelineSetup === undefined ? {} : { pipelineSetup: contents.pipelineSetup }),
+    ...(contents.gateProfiles === undefined ? {} : { gateProfiles: contents.gateProfiles }),
   });
   return {
     board,

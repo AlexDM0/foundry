@@ -4,6 +4,7 @@
  */
 import type { PipelineBilling }          from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { ControlService }                from '../../src/services/control/ControlService.ts';
+import type { GateProfileCommandKind }   from '../../src/services/control/GateProfileControls.ts';
 import type { PipelineAgentControlKind } from '../../src/services/control/PipelineAgentControls.ts';
 import type { PipelineSetupCommandKind } from '../../src/services/control/PipelineSetupControls.ts';
 import type { ControlCommandOf }         from '../../src/shared/@types/ControlCommand.ts';
@@ -74,4 +75,23 @@ export async function applySetupCommand(
     (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
   );
   OutputUtil.printEntity(commandArguments, context, { setup: changed.setup, logged: changed.logged }, OutputUtil.loggedSentencesOf(changed.logged));
+}
+
+/** As `applySetupCommand`, for a gate profile: prints the run as left, and the run's state when the move logged nothing. */
+export async function applyProfileCommand(
+  commandArguments: ArgumentParser,
+  context: CommandContext,
+  command: ControlCommandOf<GateProfileCommandKind>,
+): Promise<void> {
+  await hatchWhenUnderJob(context, command);
+  const changed = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+  );
+  const { run, logged } = changed;
+  const humanLine = logged.length > 0
+    ? OutputUtil.loggedSentencesOf(logged)
+    : `Gate profile ${run.profileRunId} is ${run.state}${run.stopRequested ? ', and its stop is asked for' : ''}.`;
+  OutputUtil.printEntity(commandArguments, context, { run, logged }, humanLine);
 }

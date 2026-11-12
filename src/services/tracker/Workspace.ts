@@ -18,6 +18,7 @@ export interface Workspace {
   progressFilePath:      string;
   pipelineFilePath:      string;
   pipelineSetupFilePath: string;
+  gateProfilesFilePath:  string;
   logFilePath:           string;
   htmlFilePath:          string;
   ticketsDirectory:      string;
@@ -36,6 +37,7 @@ export function workspacePathsFor(rootDirectory: string): Workspace {
     progressFilePath:      join(trackerDirectory, TRACKER_FILES.PROGRESS_FILE_NAME),
     pipelineFilePath:      join(trackerDirectory, TRACKER_FILES.PIPELINE_FILE_NAME),
     pipelineSetupFilePath: join(trackerDirectory, TRACKER_FILES.PIPELINE_SETUP_FILE_NAME),
+    gateProfilesFilePath:  join(trackerDirectory, TRACKER_FILES.GATE_PROFILES_FILE_NAME),
     logFilePath:           join(trackerDirectory, TRACKER_FILES.LOG_FILE_NAME),
     htmlFilePath:          join(trackerDirectory, TRACKER_FILES.HTML_FILE_NAME),
     ticketsDirectory:      join(trackerDirectory, TRACKER_FILES.TICKETS_DIRECTORY_NAME),

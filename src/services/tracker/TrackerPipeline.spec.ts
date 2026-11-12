@@ -346,3 +346,42 @@ describe('the setup record a hold reads and writes', () => {
     expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
   });
 });
+
+describe('the gate profile runs a hold reads and writes', () => {
+  const PROFILE_REQUEST = {
+    setupId: null, phase: 'build', gate: { name: 'tests', run: 'bun test' }, prepare: []
+  } as const;
+
+  test('a profile move writes gate-profiles.json before log.jsonl, and a later hold reads the run back', async () => {
+    writeReadableTracker(workspace);
+    const writtenPaths: string[] = [];
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
+    });
+
+    expect(writtenPaths).toEqual([workspace.gateProfilesFilePath, workspace.logFilePath]);
+    expect(JSON.parse(readFileSync(workspace.gateProfilesFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, nextRunNumber: 2, runs: [{ profileRunId: 'P1' }] });
+    const written = await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.gateProfileRuns().map((run) => run.state)
+    });
+    expect(written.result).toEqual(['queued']);
+  });
+
+  test('a malformed file is a verdict: other writes go on, a profile move is refused, and the file stays byte for byte', async () => {
+    writeReadableTracker(workspace);
+    writeFileSync(workspace.gateProfilesFilePath, '{ "formatVersion": 1 }\n');
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: addExampleRow
+    });
+    const refusal = await thrownFailureOf(() => writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at)
+    }));
+
+    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
+    const boardRefusal = { reason: 'gate-profiles-unreadable', problem: 'nextRunNumber is missing' } as const;
+    expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
+    expect(readFileSync(workspace.gateProfilesFilePath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
+  });
+});

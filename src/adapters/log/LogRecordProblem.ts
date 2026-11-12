@@ -8,6 +8,7 @@ import {
   INCIDENT_KINDS,
   INCIDENT_MOVES
 }                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { GATE_PROFILE_RUN_ENDINGS } from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import {
   FIRST_WATCHER_INSTANCE,
   GATE_OUTCOMES,
@@ -172,6 +173,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'setup-steps':            setupStepsProblem,
   'setup-item-ids':         (value, path) => listOfTextProblem(value, path, 'setup item ids'),
   'draft-fields':           (value, path) => listOfTextProblem(value, path, 'draft fields'),
+  'gate-profile-ending':    (value, path) => vocabularyProblem(value, path, GATE_PROFILE_RUN_ENDINGS),
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

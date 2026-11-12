@@ -2,9 +2,11 @@
 import type { StoredLog }                                  from '../../adapters/log/@types/StoredLog.ts';
 import { LogFileIngestion }                                from '../../adapters/log/LogFileIngestion.ts';
 import { LogRecordMappingUtil }                            from '../../adapters/log/utils/LogRecordMappingUtil.ts';
+import { GateProfilesFile }                                from '../../adapters/pipeline/GateProfilesFile.ts';
 import { PipelineFile, type PipelineReading }              from '../../adapters/pipeline/PipelineFile.ts';
 import { PipelineSetupFile }                               from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { ProgressFileIngestion, type ProgressFileReading } from '../../adapters/progress/ProgressFileIngestion.ts';
+import type { GateProfilesReading }                        from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { PipelineSetupReading }                       from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { TrackerProgress }                            from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { UnreadableTracker }                          from '../../shared/@types/UnreadableTracker.ts';
@@ -20,6 +22,8 @@ export interface TrackerContents {
   pipelineReading:      PipelineReading;
   /** A malformed record leaves the rest readable: every setup move refuses rather than write over it. */
   pipelineSetupReading: PipelineSetupReading;
+  /** A malformed file leaves the rest readable: every profile move refuses rather than write over it. */
+  gateProfilesReading:  GateProfilesReading;
   storedLog:            StoredLog;
   listing:              TicketListing;
   epicListing:          EpicListing;
@@ -63,6 +67,7 @@ export function readTracker(workspace: Workspace): TrackerReading {
       progress:             progressReading.progress,
       pipelineReading:      PipelineFile.read(workspace.pipelineFilePath),
       pipelineSetupReading: PipelineSetupFile.read(workspace.pipelineSetupFilePath),
+      gateProfilesReading:  GateProfilesFile.read(workspace.gateProfilesFilePath),
       storedLog:            { records: storedLog.records },
       listing:              listTickets(workspace),
       epicListing:          listEpics(workspace),

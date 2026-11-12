@@ -5,6 +5,7 @@
 import type { LogFieldShape, LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS } from '../constants/LogRecordSchema.ts';
 import type { DecisionAnswer, DecisionKind }                             from './Decision.ts';
 import type { GatePhase }                                                from './GatePhase.ts';
+import type { GateProfileRunEnding }                                     from './GateProfile.ts';
 import type { IncidentDefaultCause, IncidentKind, IncidentMove }         from './Incident.ts';
 import type {
   GateOutcome,
@@ -79,6 +80,7 @@ interface ValueOfFieldShape {
   'setup-steps':            readonly PipelineSetupStep[];
   'setup-item-ids':         readonly string[];
   'draft-fields':           readonly string[];
+  'gate-profile-ending':    GateProfileRunEnding;
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;

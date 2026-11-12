@@ -129,8 +129,12 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-draft-edit':   {
     kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }]
   },
-  'pipeline-draft-undo':     { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
-  'pipeline-draft-discard':  { kind: 'pipeline-draft-discard', setupId: 'S1' },
+  'pipeline-draft-undo':    { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
+  'pipeline-draft-discard': { kind: 'pipeline-draft-discard', setupId: 'S1' },
+  'gate-profile-start':     {
+    kind: 'gate-profile-start', setupId: 'S1', gateName: 'test', phase: 'merge'
+  },
+  'gate-profile-stop':       { kind: 'gate-profile-stop', profileRunId: 'P1' },
   'pipeline-finding-record': {
     kind:        'pipeline-finding-record',
     jobId:       'J4',

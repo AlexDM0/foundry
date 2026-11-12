@@ -38,6 +38,7 @@ macOS; on Linux they have never run. The Linux-only adapters have never run anyw
 | `Autostart` | #553 | systemctl and reg.exe on real hosts, a Watcher surviving a unit restart. |
 | `LocalEndpoint` | #554 | a socket path of 104 to 107 bytes binding under the 108-byte Linux limit. |
 | Platforms section | #554 | a Watcher ending at logout under `KillUserProcesses=yes`, and a container run without `--init`. |
+| `ProcessSupervision` (tree stop), `GateConfinement` | none | a gate profile's line under bwrap, its output read piece by piece, and Stop ending its tree on a real /proc. |
 
 ## Windows
 
@@ -67,6 +68,7 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `Autostart` | #553 | systemctl and reg.exe on real hosts, a Watcher surviving a unit restart. |
 | Platforms section | #554 | a Watcher started inside a job object that kills on close, and `clear` from a Git Bash mintty. |
 | `Opener` | #554 | `rundll32.exe url.dll,FileProtocolHandler` opening a real browser. |
+| `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
 
 ## Repository tooling
 

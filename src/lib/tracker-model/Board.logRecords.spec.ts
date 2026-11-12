@@ -15,13 +15,13 @@ const LOGGED_AT = '2026-09-26T10:15:00+02:00';
 const RECORD_KIND_COUNT = Object.keys(LOG_RECORD_SCHEMA).length - RETIRED_LOG_RECORD_KINDS.length;
 
 /**
- * Four kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
- * since a closed draft cannot then be abandoned, `ticket-held`, since a wind-down holds its job's ticket, and `pipeline-approval-set`, since
- * merge approval is switched on for the accept. Four are logged three
- * times: `decision-opened` and `incident-opened`, since a closed one cannot be closed again another way and an escalation opens a decision
- * of its own, and `job-launched` and `job-ended`, since a merge claim launches its own job and a closed product owner is reopened.
+ * Five kinds are logged twice: `draft-claimed`, plainly and as a forced takeover, since the two store different fields, `draft-opened`,
+ * since a closed draft cannot then be abandoned, `ticket-held`, since a wind-down holds its job's ticket, `pipeline-approval-set`, since
+ * merge approval is switched on for the accept, and `gate-profile-requested`, since a profile that ended cannot then be stopped. Four are
+ * logged three times: `decision-opened` and `incident-opened`, since a closed one cannot be closed again another way and an escalation opens
+ * a decision of its own, and `job-launched` and `job-ended`, since a merge claim launches its own job and a closed product owner is reopened.
  */
-const RECORD_COUNT = RECORD_KIND_COUNT + 4 + 8;
+const RECORD_COUNT = RECORD_KIND_COUNT + 5 + 8;
 
 const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"note","fields":{"text":"Example note from the orchestrator"}}',
@@ -144,6 +144,10 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-undone","setupId":"S1","fields":{"editId":"E1","field":"review","revision":2}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-discarded","setupId":"S1","fields":{"revision":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-discarded","setupId":"S1","fields":{}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profile-requested","profileRunId":"P1","fields":{"gateName":"tests","phase":"build","setupId":null}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profiled","profileRunId":"P1","fields":{"gateName":"tests","phase":"build","state":"passed","elapsedMilliseconds":4200}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profile-requested","profileRunId":"P2","fields":{"gateName":"tests","phase":"build","setupId":null}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-profile-stopped","profileRunId":"P2","fields":{"gateName":"tests","phase":"build"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"tracker-cleared","fields":{}}',
 ];
 

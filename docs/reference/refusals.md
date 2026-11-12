@@ -278,7 +278,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 ### Pipeline setup
 
 <details open>
-<summary>27 sentences</summary>
+<summary>30 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -309,6 +309,9 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `has no edit <id>` | `unknown-setup-edit` | Undo named an edit the record does not hold. | Read the record's edits again. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `is already undone` | `setup-edit-already-undone` | Undo named an edit that is already undone. | Nothing to do. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 | `command's <field> is missing or is not of its shape` | `malformed-setup-command` | A setup command sent to the API, or relayed, lacks a field or holds one of the wrong shape, such as `edits[0].value`. The `pipeline` verbs refuse most of these as usage first; the pipeline agent's verbs read their payload through the same closed schema before they relay, so a field outside it, or an option offering "Other", is refused here. | Send the field as `docs/cli.md` gives it. | [Pipeline setup](../cli.md#pipeline-setup) |
+| `The gate profile runs cannot be read` | `gate-profiles-unreadable` | `gate-profiles.json` is malformed; nothing writes over it. | Repair or remove the file. | [gate-profiles.json](../cli.md#datagate-profilesjson) |
+| `has profile <id> in the <phase> phase not ended yet` | `gate-profile-running` | A second profile press on a gate and phase whose run is `queued` or `running`. | Wait for the run, or stop it. | [Gate profiles](../cli.md#gate-profiles) |
+| `There is no gate profile <id>` | `unknown-profile-run` | A Stop named a run `gate-profiles.json` does not hold. | Read the runs again. | [gate-profiles.json](../cli.md#datagate-profilesjson) |
 | `draft a pipeline that cannot be stored` | `pipeline-draft-invalid` | A draft edit, the pipeline agent's proposal or an Undo would leave a draft that `pipeline.json`'s validator refuses, such as a gate that runs in no phase. The tail is the validator's reason. | Send the edits that belong together in one move, as a gate with its phase order. | [Pipeline setup](../cli.md#pipeline-setup) |
 
 </details>

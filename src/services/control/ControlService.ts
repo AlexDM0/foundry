@@ -8,6 +8,7 @@ import type { TrackerChange }                                        from '../tr
 import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
 import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
 import { FILING_CONTROLS }                                           from './FilingControls.ts';
+import { GATE_PROFILE_CONTROLS }                                     from './GateProfileControls.ts';
 import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
 import { JOB_CONTROLS }                                              from './JobControls.ts';
 import { OVERSEER_CONTROLS }                                         from './OverseerControls.ts';
@@ -28,6 +29,7 @@ const CONTROL_APPLIERS = {
   ...SETTING_CONTROLS,
   ...AIRLOCK_CONTROLS,
   ...PIPELINE_SETUP_CONTROLS,
+  ...GATE_PROFILE_CONTROLS,
   ...PIPELINE_AGENT_CONTROLS,
 } as const satisfies {
   [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange, context: ControlContext) => unknown

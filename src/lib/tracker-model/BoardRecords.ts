@@ -5,6 +5,7 @@
 import type { Decision }             from './@types/Decision.ts';
 import type { Draft }                from './@types/Draft.ts';
 import type { Epic }                 from './@types/Epic.ts';
+import type { GateProfilesReading }  from './@types/GateProfile.ts';
 import type { Incident }             from './@types/Incident.ts';
 import type { LogRecord }            from './@types/LogRecord.ts';
 import type { Pipeline }             from './@types/Pipeline.ts';
@@ -57,6 +58,9 @@ export class BoardRecords {
   /** Set once a setup move changed the record or removed it, so the hold writes or removes `pipeline-setup.json`. */
   pipelineSetupChanged = false;
 
+  /** Set once a profile move changed a run, so the hold writes `gate-profiles.json`. */
+  gateProfilesChanged = false;
+
   constructor(
     readonly progress: TrackerProgress,
     readonly ticketRecords: Ticket[],
@@ -68,6 +72,8 @@ export class BoardRecords {
     public pipeline: Pipeline | null,
     /** A malformed record stays as read: every setup move refuses rather than write over it. */
     public pipelineSetupReading: PipelineSetupReading,
+    /** A malformed file stays as read: every profile move refuses rather than write over it. */
+    public gateProfilesReading: GateProfilesReading,
   ) {}
 
   markChanged(ticket: Ticket): void {

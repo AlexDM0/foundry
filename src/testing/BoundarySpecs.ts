@@ -77,8 +77,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
       BUILD_JOB_SPEC,
+      'src/services/lifecycle/GateLineRun.integration.spec.ts',
       'src/services/lifecycle/GateRun.integration.spec.ts',
       'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
+      'src/services/overseer/GateProfiling.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
       'src/testing/RecordedGateLines.gateRun.integration.spec.ts',
     ],

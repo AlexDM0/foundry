@@ -11,6 +11,7 @@ import type {
   DraftClaimChanged,
   EpicChanged,
   EpicEdited,
+  GateProfileChanged,
   DecisionAnswered,
   DecisionClosed,
   DecisionOpened,
@@ -61,6 +62,13 @@ import type {
   EpicRollup
 }                                                           from './@types/Epic.ts';
 import type { GatePhase, GateRunStamp } from './@types/GatePhase.ts';
+import type {
+  GateProfileRequest,
+  GateProfileRun,
+  GateProfileRunEnding,
+  GateProfilesReading,
+  GateProfiles as StoredGateProfiles
+}                                                           from './@types/GateProfile.ts';
 import type {
   Incident,
   IncidentDefaultCause,
@@ -142,6 +150,7 @@ import { DraftContents }                               from './DraftContents.ts'
 import { Drafts }                                      from './Drafts.ts';
 import { Epics }                                       from './Epics.ts';
 import { Findings }                                    from './Findings.ts';
+import { GateProfiles }                                from './GateProfiles.ts';
 import { GroupReleases }                               from './GroupReleases.ts';
 import { IncidentMoves }                               from './IncidentMoves.ts';
 import type { IncidentEscalation }                     from './Incidents.ts';
@@ -186,6 +195,8 @@ export interface BoardInput {
   pipeline?:         Pipeline | null;
   /** `pipeline-setup.json` as read; absent reads as no open record. */
   pipelineSetup?:    PipelineSetupReading;
+  /** `gate-profiles.json` as read; absent reads as no run. */
+  gateProfiles?:     GateProfilesReading;
 }
 
 export class Board {
@@ -227,6 +238,8 @@ export class Board {
 
   private readonly pipelineSetups: PipelineSetups;
 
+  private readonly gateProfiles: GateProfiles;
+
   private readonly jobRules: Jobs;
 
   private readonly mergeQueueMarks: MergeQueueMarks;
@@ -249,7 +262,7 @@ export class Board {
 
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
-      input.pipelineSetup ?? { verdict: 'absent' });
+      input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' });
     this.reviewBars         = new ReviewBars(this.records);
     this.groupReleases      = new GroupReleases(this.records);
     this.dispatchQueries    = new DispatchQueries(this.records, this.groupReleases);
@@ -268,6 +281,7 @@ export class Board {
     this.draftRules         = new Drafts(this.records);
     this.draftContents      = new DraftContents(this.records, this.draftRules);
     this.pipelineSetups     = new PipelineSetups(this.records);
+    this.gateProfiles       = new GateProfiles(this.records);
     this.jobRules           = new Jobs(this.records);
     this.mergeQueueMarks    = new MergeQueueMarks(this.records);
     this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
@@ -895,6 +909,38 @@ export class Board {
 
   startOverSetup(setupId: string, at: string): PipelineSetupChanged {
     return this.pipelineSetups.startOverSetup(setupId, at);
+  }
+
+  /** Refuses `gate-profile-running` while the gate and phase have a run queued or running. */
+  queueGateProfile(request: GateProfileRequest, at: string): GateProfileChanged {
+    return this.gateProfiles.queueGateProfile(request, at);
+  }
+
+  markGateProfileRunning(profileRunId: string): GateProfileChanged & { changed?: false } {
+    return this.gateProfiles.markGateProfileRunning(profileRunId);
+  }
+
+  endGateProfile(profileRunId: string, ending: GateProfileRunEnding, elapsedMilliseconds: number, at: string): GateProfileChanged & { changed?: false } {
+    return this.gateProfiles.endGateProfile(profileRunId, ending, elapsedMilliseconds, at);
+  }
+
+  /** Refuses `unknown-profile-run`. */
+  stopGateProfile(profileRunId: string, at: string): GateProfileChanged & { changed?: false } {
+    return this.gateProfiles.stopGateProfile(profileRunId, at);
+  }
+
+  stopGateProfilesLeftRunning(at: string): GateProfileChanged[] {
+    return this.gateProfiles.stopRunsLeftRunning(at);
+  }
+
+  gateProfileRuns(): readonly Readonly<GateProfileRun>[] {
+    return this.gateProfiles.runs();
+  }
+
+  /** What the hold writes for the profile runs: the runs, or `unchanged`. */
+  gateProfilesWrite(): { write: 'profiles'; profiles: StoredGateProfiles } | { write: 'unchanged' } {
+    const reading = this.records.gateProfilesReading;
+    return this.records.gateProfilesChanged && reading.verdict === 'readable' ? { write: 'profiles', profiles: reading.profiles } : { write: 'unchanged' };
   }
 
   /** Abandoning a ticket hands its unstarted findings to User's review in the same hold. */
