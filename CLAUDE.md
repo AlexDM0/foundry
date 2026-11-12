@@ -36,7 +36,7 @@ resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
 src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, the page contract
-src/services/      ForgeWatch, FleetStore, SettingsStore, and Environment, the one reader of the environment
+src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, of the wall clock
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards
 src/shared/        the internal model's types, app-wide constants, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
@@ -53,7 +53,7 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `Frame
 | The browser's debugging port | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
 | The Notification API | `page/notifications/NotificationBoundary.ts` |
-| The clock | an injected `now` and injected timers |
+| The clock | an injected `now` and injected timers; the wall clock is read only in `src/services/Clock.ts` |
 
 Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers (`src/testing/RecordedRuns.ts` for
 process-run, `src/testing/RecordedAnswers.ts` for overseer-fetch, one answer set per situation of the forge), and the clock's timers with

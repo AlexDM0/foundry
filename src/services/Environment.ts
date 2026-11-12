@@ -23,6 +23,23 @@ export function forgeProgramToRecordFrom(): string | null {
   return forgeProgram === undefined || forgeProgram === '' ? null : forgeProgram;
 }
 
+const HIGHEST_PORT = 65_535;
+
+/** The port a setting names: the default when it is unset or empty, `null` for text that is no port. */
+export function portOfSetting(portText: string | undefined): number | null {
+  if (portText === undefined || portText === '') return PRODUCT_NAMES.defaultPort;
+  const port = /^\d+$/.test(portText) ? Number(portText) : Number.NaN;
+  return Number.isSafeInteger(port) && port <= HIGHEST_PORT ? port : null;
+}
+
+/**
+ * `GAIA_PORT`: the port `gaia serve` binds on 127.0.0.1 in place of the default, so a spec can ask for any free port with `0`. `null` for a
+ * value that is no port, which the caller refuses rather than guess at.
+ */
+export function gaiaPort(): number | null {
+  return portOfSetting(process.env[`${PRODUCT_NAMES.environmentPrefix}PORT`]);
+}
+
 /** The environment as it is now, for a child process: Bun hands a child without `env` the environment this process started with. */
 export function environmentCopy(): Record<string, string> {
   return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined));

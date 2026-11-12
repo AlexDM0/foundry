@@ -6,10 +6,10 @@ import { join } from 'node:path';
 
 import type { AtomicWriteVerdict }                   from '../../lib/atomic-file/AtomicFile.ts';
 import { CONTRACT_VERSIONS }                         from '../../shared/constants/ContractVersions.ts';
+import { FORGE_PLACES }                              from '../../shared/constants/ForgePlaces.ts';
 import { GaiaFileWriteUtil, type FileRemoveVerdict } from './utils/GaiaFileWriteUtil.ts';
 
-/** The record's place is part of the forge's contract (F5), so neither name follows Gaia's own product names. */
-const FORGE_MONITOR_FOLDER_NAME = '.forge-monitor';
+/** The record's place is part of the forge's contract (F5), so no name follows Gaia's own product names. */
 const GAIA_FOLDER_IN_FORGE_MONITOR = 'gaia';
 const SERVER_RECORD_FILE_NAME = 'server.json';
 
@@ -34,7 +34,7 @@ export interface ServerRecordWriter {
 }
 
 export function serverRecordPathIn(homeDirectory: string): string {
-  return join(homeDirectory, FORGE_MONITOR_FOLDER_NAME, GAIA_FOLDER_IN_FORGE_MONITOR, SERVER_RECORD_FILE_NAME);
+  return join(homeDirectory, FORGE_PLACES.monitorFolderName, GAIA_FOLDER_IN_FORGE_MONITOR, SERVER_RECORD_FILE_NAME);
 }
 
 function storedFormOf(record: ServerRecord): StoredServerRecordVersion1 {

@@ -424,6 +424,29 @@ describe('the registry', () => {
     const readings = await untilReadings(onlyReadingIs('full', 'live'));
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
     expect(readings.map((reading) => reading.trackerId)).toEqual([STOREFRONT_TRACKER_ID]);
+    expect(watch.watchedForgeCount()).toBe(1);
+  });
+
+  test('counts a forge it watches while the forge is still being identified for the first time', async () => {
+    writeRegistry([{}]);
+    const recordedFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
+    let identityWasAsked: () => void = () => undefined;
+    const identityAsked = new Promise<void>((resolve) => {
+      identityWasAsked = resolve;
+    });
+    const unansweredFetch: OverseerFetch = {
+      request: () => {
+        identityWasAsked();
+        return new Promise<OverseerAnswer>(() => undefined);
+      },
+      openStream: recordedFetch.openStream,
+    };
+    const { watch } = watchOver(unansweredFetch);
+    watch.start();
+
+    await identityAsked;
+    expect(watch.readings()).toEqual([]);
+    expect(watch.watchedForgeCount()).toBe(1);
   });
 
   test('stops watching a forge that leaves the registry, closing its stream', async () => {
@@ -447,6 +470,7 @@ describe('the registry', () => {
 
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
     expect(watch.readings()).toEqual([]);
+    expect(watch.watchedForgeCount()).toBe(0);
     expect(overseerFetch.callShapes()).toEqual([]);
   });
 });

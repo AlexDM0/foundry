@@ -60,8 +60,9 @@ export default [
   { files: TYPESCRIPT_FILES, rules: confinedReachRules(null) },
   ...CONFINED_REACH_SITES.map((site) => ({ files: [site], rules: confinedReachRules(site) })),
   {
+    // The wall clock is read in one module, as the environment is, and handed to every other as an injected `now`.
     files:   ['src/**/*.ts'],
-    ignores: SPECS_AND_TESTING_FOLDERS,
+    ignores: [...SPECS_AND_TESTING_FOLDERS, 'src/services/Clock.ts'],
     rules:   {
       'no-restricted-syntax': [
         'error',

@@ -15,7 +15,7 @@ import {
 
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 import type { RegisteredForge }                      from './@types/RegisteredForge.ts';
-import { RegistryFile }                              from './RegistryFile.ts';
+import { RegistryFile, registryFilePathIn }          from './RegistryFile.ts';
 
 const FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'projects-v1.json');
 
@@ -178,5 +178,11 @@ describe('a file that is no registry', () => {
 describe('a registry with no projects key', () => {
   test('reads as a registry of no forges', async () => {
     expect(await registryWith('{"version": 1}').read()).toEqual({ verdict: 'readable', forges: [], leftOutEntries: [] });
+  });
+});
+
+describe('the registry\'s place', () => {
+  test('is projects.json in the forges\' monitor folder of the home folder', () => {
+    expect(registryFilePathIn('/Users/alex-example')).toBe('/Users/alex-example/.forge-monitor/projects.json');
   });
 });

@@ -2,8 +2,11 @@
  * The ingestion of the forges' machine-wide registry `<monitor>/projects.json`: read, check the version, map the entries to
  * `RegisteredForge`s. A file at a version Gaia does not know maps nothing; a malformed entry is left out and named, the rest still map.
  */
+import { join } from 'node:path';
+
 import { AtomicFile }                                 from '../../lib/atomic-file/AtomicFile.ts';
 import { CONTRACT_VERSIONS }                          from '../../shared/constants/ContractVersions.ts';
+import { FORGE_PLACES }                               from '../../shared/constants/ForgePlaces.ts';
 import type { LeftOutRegistryEntry, RegisteredForge } from './@types/RegisteredForge.ts';
 import { RegistryMapUtil }                            from './utils/RegistryMapUtil.ts';
 
@@ -20,6 +23,11 @@ export type RegistryReading =
   /** `failure` is the system's error code of a read that failed, `null` for a file that was read and is not a registry. */
   | { readonly verdict: 'unreadable'; readonly reason: RegistryUnreadableReason; readonly failure: string | null }
   | { readonly verdict: 'newer-version'; readonly version: number };
+
+/** The registry every forge of the account writes itself into: `<home>/.forge-monitor/projects.json`. */
+export function registryFilePathIn(homeDirectory: string): string {
+  return join(homeDirectory, FORGE_PLACES.monitorFolderName, FORGE_PLACES.registryFileName);
+}
 
 const VERSION_KEY = 'version';
 const ENTRIES_KEY = 'projects';

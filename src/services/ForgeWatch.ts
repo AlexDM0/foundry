@@ -48,13 +48,15 @@ export interface ForgeWatchOptions {
 
 export interface ForgeWatch {
   /** Reads the registry at once, then on its interval. */
-  readonly start:     () => void;
+  readonly start:             () => void;
   /** Every forge Gaia has a reading of, in registry order; a forge still being identified for the first time is left out. */
-  readonly readings:  () => readonly ForgeReading[];
+  readonly readings:          () => readonly ForgeReading[];
+  /** Every forge the registry names and the settings do not hide, a forge still being identified for the first time included. */
+  readonly watchedForgeCount: () => number;
   /** A registry read and an identity round at once, for every forge not following a live stream; done when the registry is read. */
-  readonly lookAgain: () => Promise<void>;
+  readonly lookAgain:         () => Promise<void>;
   /** Cancels every timer and closes every stream; an answer that arrives later changes nothing. */
-  readonly stop:      () => void;
+  readonly stop:              () => void;
 }
 
 const REGISTRY_CHECK_INTERVAL_MILLISECONDS = 2_000;
@@ -341,6 +343,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
   return {
     start,
     readings,
+    watchedForgeCount: () => trackerIdsInRegistryOrder.length,
     lookAgain,
     stop,
   };
