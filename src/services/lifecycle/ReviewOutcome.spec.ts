@@ -1,7 +1,7 @@
 /**
  * The commit a review pass that changed nothing writes, against a mocked git. What matters is that the commit and the read of its HEAD
  * run with the worktree's parent as their ceiling: a worktree that lost its `.git` then refuses, and the commit never lands on the main
- * checkout's branch above it.
+ * checkout's branch above it; and that a pass whose gate run read a pipeline changed since queues nothing, since its green is not current.
  */
 import {
   afterEach,
@@ -115,4 +115,31 @@ test('a pass that changed nothing commits, and reads the commit back, with the w
   expect(commit).toMatchObject({ gitArguments: expect.arrayContaining(['--allow-empty']), ceilingDirectory: GitWorktrees.ceilingOf(WORKTREE_PATH) });
   expect(recordedCommitReads).toContainEqual({ gitArguments: ['HEAD'], ceilingDirectory: GitWorktrees.ceilingOf(WORKTREE_PATH) });
   expect(outcome.headCommit).toBe(NO_CHANGES_COMMIT);
+});
+
+test('a pass whose gate run read a pipeline changed since ends reviewed and waits unqueued, since its green is not current', () => {
+  const board = newBoard();
+  const launched = board.launchJob({
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+  }, AT);
+  board.startReviewBar('001', { round: 1, owner: launched.job.id }, AT);
+  for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(launched.job.id, state, AT);
+  board.recordPipelineJudgedBy('001', EXAMPLE_TREE, { phase: 'review', phaseHash: 'example-hash-the-run-read' }, AT);
+  const outcome = ReviewOutcome.settleReviewPass({
+    board,
+    at:     AT,
+    job:    launched.job,
+    report: {
+      role: 'reviewer', headCommit: REVIEW_START_COMMIT, claims: [], findings: [], reviewText: 'Example review by Alex Example.'
+    },
+    worktreePath:      WORKTREE_PATH,
+    reviewStartCommit: REVIEW_START_COMMIT,
+    headTree:          EXAMPLE_TREE,
+    jobFolder:         '/example-agency/.agent-progress/jobs/example',
+    limits:            LIFECYCLE_LIMITS,
+    decisionWordingOf: () => WORDING,
+  });
+  expect(outcome.move).toBe('merge-queued');
+  expect(outcome.logged).toContainEqual(expect.objectContaining({ kind: 'job-ended', jobId: launched.job.id, fields: expect.objectContaining({ outcome: 'reviewed' }) }));
+  expect(board.ticketIsMergeQueued('001')).toBe(false);
 });

@@ -785,9 +785,10 @@ review under `target-gate-run.json`. The run reads only its manifest and never r
 is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no gate that did
 not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase and hash.
 The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not current
-and the ticket is gated again; without a review phase such a build waits unqueued for that gate run. A manifest that
-cannot be read is never replaced: the run ends `gate-cannot-run`. An Airlock's merged tree and a stale green are gated
-from one read of the pipeline, and record that read's phase and hash in the same way.
+and the ticket is gated again: such a passing review waits unqueued for its next review, and without a review phase such
+a build waits unqueued for that gate run. A manifest that cannot be read is never replaced: the run ends
+`gate-cannot-run`. An Airlock's merged tree and a stale green are gated from one read of the pipeline, and record that
+read's phase and hash in the same way.
 
 A line is stored for the machine that runs it, in that machine's grammar, which `gate add` in `help` names. On macOS
 and Linux, `/bin/sh` joins standard error onto standard output and runs the line in the user's `SHELL`. On Windows,

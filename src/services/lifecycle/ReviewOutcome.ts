@@ -230,7 +230,10 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
     }
     case 'merge-queued':
       logged.push(...board.endJob(job.id, { outcome: 'reviewed', commit: headCommit }, at).logged);
-      logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', request.headTree, at).logged);
+      // A gate run that read a pipeline changed since leaves a green that is not current: the ticket waits unqueued for its next review.
+      if (board.greenIsCurrent(ticketId, request.headTree, board.greenPhaseOf(ticketId))) {
+        logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', request.headTree, at).logged);
+      }
       break;
   }
   return {
