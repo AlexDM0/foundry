@@ -42,8 +42,8 @@ its own. Esc, Close or a second click on the open item closes it. The filter lin
 
 ![The Kanban tab of Example Storefront under the header and its activity strip: lanes Ready, with the draft tickets first, Building, In review, Merge queue and Done, with Abandoned folded; cards carry their epic, waiting-on and asks chips.](../images/bridge-kanban.png)
 
-*A card holds no controls but its links: its epic chips and its waiting-on ids. Press the card to open its ticket form,
-where Ready, Hold, Unhold and Priority are. A card never grows on hover or keyboard focus.*
+*A card holds no controls but its links, its epic chips and waiting-on ids, and its asks pill. Press the card to open
+its ticket form, where Ready, Hold, Unhold and Priority are. A card never grows on hover or keyboard focus.*
 
 Kanban shows every ticket in one of six lanes: Ready, Building, In review, [Merge queue](../glossary.md#merge-queue),
 Done and Abandoned. What waits on User leads its lane: the tickets ready for review, then the drafts, each under its own

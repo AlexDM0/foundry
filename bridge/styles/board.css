@@ -130,7 +130,7 @@
  *                           Abandoned lane, whose head is its .bridge-lane-toggle
  *   .bridge-kanban-card[data-state][data-row?][data-live?][data-selected?]  a ticket or filing draft, opening its detail;
  *                           [data-changed] once its state moved since the previous board; [data-needed-first] while the hovered card
- *                           depends on it; it holds no control but its links: its moves are in the ticket panel
+ *                           depends on it; it holds no control but its links and asks pill: its moves are in the ticket panel
  * Tickets (bridge/views/tickets/)
  *   .bridge-tickets         the Tickets card: .bridge-tickets-head (title, count, .bridge-tickets-grouping), then
  *                           .bridge-tickets-toolbar (.bridge-search, a .bridge-toolbar-group[data-own-line?] per chip group) and

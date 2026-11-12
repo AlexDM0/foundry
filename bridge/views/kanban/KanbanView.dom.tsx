@@ -3,7 +3,7 @@
  * card anatomy (id, size mark, priority, type, tokens, epics, waiting-on, hold, no row, the drafts' marks, the footer stamp) as text, a
  * planted payload included; a card opens the ticket form, a filing draft the draft form, in place, and a control inside a card or a click
  * ending a text selection opens nothing; a waiting-on id brings the card it names into focus; a working card's stamp ticks while the
- * stream is live and holds still while it is down; a card offers no move of its own (no button, no checkbox, no Ready selected: the
+ * stream is live and holds still while it is down; a card offers no move of its own (no move button, no checkbox, no Ready selected: the
  * ticket panel holds the moves), and hovering or focusing it adds no element; the filter menu's pressed epics narrow the lanes; a card
  * whose state moved on the next board is marked changed for a moment; a header figure's lane is outlined for a moment; a card's asks pill
  * opens the question panel at its decision; and while a detail or the question panel is open the board carries its panel room. Also: the
@@ -292,22 +292,24 @@ describe('the card\'s controls', () => {
       exampleTicket('011', { status: 'ready-for-review' }),
     ],
     waitingOn: { '004': ['003'] },
+    decisions: [{ id: 'E7', kind: 'agent-question', ticketIds: ['001'] }],
   });
 
-  test('no card renders a button, a checkbox or an action-row element, and no lane head offers Ready selected', () => {
+  test('no card renders a move button, a checkbox or an action-row element, and no lane head offers Ready selected', () => {
     renderKanban('enabled', [], BOARD_OF_EVERY_READY_STATUS);
     const cards = screen.getAllByRole('article');
     expect(cards.length).toBeGreaterThan(0);
-    expect(cards.flatMap((card) => [...card.querySelectorAll(`button, input, ${REMOVED_ACTION_ROW_SELECTOR}`)])).toEqual([]);
+    expect(cards.flatMap((card) => [...card.querySelectorAll('button')]).map((button) => button.textContent)).toEqual(['asks E7']);
+    expect(cards.flatMap((card) => [...card.querySelectorAll(`input, ${REMOVED_ACTION_ROW_SELECTOR}`)])).toEqual([]);
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByText('Ready selected')).toBeNull();
   });
 
-  test('a card\'s only controls are its links: its epic chips and its waiting-on ids', () => {
+  test('a card\'s only controls are its links (its epic chips and its waiting-on ids) and its asks pill', () => {
     renderKanban('enabled', [], BOARD_OF_EVERY_READY_STATUS);
     const controls = screen.getAllByRole('article').flatMap((card) => [...card.querySelectorAll(ACTIONABLE_SELECTOR)]);
     expect(controls.map((control) => control.className)).toContain('bridge-waiting-on-link');
-    expect(controls.every((control) => control.tagName === 'A')).toBe(true);
+    expect(controls.filter((control) => control.tagName !== 'A').map((control) => control.textContent)).toEqual(['asks E7']);
   });
 
   test('hovering or focusing a card adds or shows no element in it', async () => {
