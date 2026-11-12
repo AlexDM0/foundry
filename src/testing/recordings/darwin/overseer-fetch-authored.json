@@ -19,7 +19,23 @@
       }
     },
     {
+      "callShape": "board-unreadable: GET /api/monitor with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 500,
+        "bodyText": "Something went wrong!"
+      }
+    },
+    {
       "callShape": "board-unreadable: GET /api/summary",
+      "answer": {
+        "verdict": "answered",
+        "status": 500,
+        "bodyText": "Something went wrong!"
+      }
+    },
+    {
+      "callShape": "board-unreadable: STREAM /api/monitor/events with bearer",
       "answer": {
         "verdict": "answered",
         "status": 500,
@@ -45,6 +61,18 @@
       }
     },
     {
+      "callShape": "not-answering: GET /api/identity",
+      "answer": {
+        "verdict": "timed-out"
+      }
+    },
+    {
+      "callShape": "not-answering: STREAM /api/monitor/events with bearer",
+      "answer": {
+        "verdict": "timed-out"
+      }
+    },
+    {
       "callShape": "nothing-to-change: POST /api/commands with bearer",
       "answer": {
         "verdict": "answered",
@@ -54,6 +82,46 @@
     },
     {
       "callShape": "port-held-by-another-program: GET /api/identity",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/monitor with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/summary",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/commands with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/session-codes with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: STREAM /api/monitor/events with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,

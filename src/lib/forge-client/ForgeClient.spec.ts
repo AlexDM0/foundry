@@ -84,6 +84,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   },
   {
     call:      'identityOf',
+    situation: 'not-answering',
+    callShape: 'GET /api/identity',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    expected:  { verdict: 'unreachable' },
+  },
+  {
+    call:      'identityOf',
     situation: 'starting',
     callShape: 'GET /api/identity',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
@@ -118,6 +125,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     expected:  { verdict: 'refused', refusal: null, text: null },
   },
   {
+    call:      'summaryOf',
+    situation: 'port-held-by-another-program',
+    callShape: 'GET /api/summary',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
+    expected:  { verdict: 'malformed' },
+  },
+  {
     call:      'monitorOf',
     situation: 'serving-every-contract',
     callShape: 'GET /api/monitor with bearer',
@@ -137,6 +151,20 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     callShape: 'GET /api/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
     expected:  { verdict: 'unauthorized' },
+  },
+  {
+    call:      'monitorOf',
+    situation: 'board-unreadable',
+    callShape: 'GET /api/monitor with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    expected:  { verdict: 'refused', refusal: null, text: null },
+  },
+  {
+    call:      'monitorOf',
+    situation: 'port-held-by-another-program',
+    callShape: 'GET /api/monitor with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    expected:  { verdict: 'malformed' },
   },
   {
     call:      'send',
@@ -174,6 +202,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     expected:  { verdict: 'unreachable' },
   },
   {
+    call:      'send',
+    situation: 'port-held-by-another-program',
+    callShape: 'POST /api/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    expected:  { verdict: 'malformed' },
+  },
+  {
     call:      'sessionCodeOf',
     situation: 'serving-every-contract',
     callShape: 'POST /api/session-codes with bearer',
@@ -193,6 +228,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     callShape: 'POST /api/session-codes with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
     expected:  { verdict: 'unreachable' },
+  },
+  {
+    call:      'sessionCodeOf',
+    situation: 'port-held-by-another-program',
+    callShape: 'POST /api/session-codes with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
+    expected:  { verdict: 'malformed' },
   },
   {
     call:      'followMonitor',
@@ -235,6 +277,27 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     callShape: 'STREAM /api/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'unreachable' },
+  },
+  {
+    call:      'followMonitor',
+    situation: 'not-answering',
+    callShape: 'STREAM /api/monitor/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    expected:  { verdict: 'unreachable' },
+  },
+  {
+    call:      'followMonitor',
+    situation: 'board-unreadable',
+    callShape: 'STREAM /api/monitor/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    expected:  { verdict: 'refused', refusal: null, text: null },
+  },
+  {
+    call:      'followMonitor',
+    situation: 'port-held-by-another-program',
+    callShape: 'STREAM /api/monitor/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    expected:  { verdict: 'malformed' },
   },
 ];
 

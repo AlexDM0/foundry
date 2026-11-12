@@ -32,6 +32,7 @@ export const OVERSEER_SITUATIONS = [
   'serving',
   'serving-every-contract',
   'stopped',
+  'not-answering',
   'token-rejected',
   'starting',
   'board-unreadable',
