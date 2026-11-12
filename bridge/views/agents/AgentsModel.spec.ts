@@ -22,7 +22,7 @@ import { AgentsModel, CALL_BUDGET_WARNING_FRACTION }               from './Agent
 
 const BUILD_JOB = exampleAgentJob({ id: 'J12' });
 
-/** The job kinds that carry no role; `constitution-commit` is the kind the constitution commit job will take. */
+/** The job kinds that carry no role. */
 const ROLELESS_JOB_KINDS = ['merge', 'refresh', 'constitution-commit'] as const;
 
 const LAUNCH_SLOTS: LaunchSlotsDocument = { limit: 5, slotJobIds: ['J2', 'J3'], inProgressTicketIdsWithoutJob: ['010'] };
