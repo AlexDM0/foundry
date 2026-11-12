@@ -1,6 +1,7 @@
 /**
- * The dialog. What matters: it is a modal dialog named by its title, holding its content and then its actions; Escape closes it and goes
- * no further, another key does nothing; the backdrop has no click handler, so a stray click loses no half-filled form.
+ * The dialog. What matters: it is a modal dialog named by its title, holding its content and then its actions; it takes the focus when it
+ * opens, so Escape reaches it, but leaves a field inside that took the focus first; Escape closes it and goes no further, another key does
+ * nothing; the backdrop has no click handler, so a stray click loses no half-filled form.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -22,6 +23,20 @@ describe('the dialog', () => {
     const dialog = ReactElementTree.onlyWithClass(unfolded, 'gaia-dialog');
     expect([dialog.props['role'], dialog.props['aria-modal'], dialog.props['aria-label'], dialog.props['tabIndex']]).toEqual(['dialog', 'true', 'Add a repository', -1]);
     expect(ReactElementTree.textOf(unfolded)).toBe('Add a repositoryRepository folderCancel');
+  });
+
+  test('it takes the focus when it opens, unless the focus is already inside it', () => {
+    const takeFocus = ReactElementTree.onlyWithClass(dialogOf([]), 'gaia-dialog').props['ref'] as (dialog: unknown) => void;
+    const focuses: string[] = [];
+    const exampleDialog = (focusIsInside: boolean) => ({
+      ownerDocument: { activeElement: 'the focused element' },
+      contains:      () => focusIsInside,
+      focus:         () => focuses.push(focusIsInside ? 'focused while inside' : 'focused'),
+    });
+    takeFocus(exampleDialog(false));
+    takeFocus(exampleDialog(true));
+    takeFocus(null);
+    expect(focuses).toEqual(['focused']);
   });
 
   test('Escape closes it and stops there, and another key does nothing', () => {
