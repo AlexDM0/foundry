@@ -7,7 +7,8 @@
  * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
  * behind a routed detail and closes on Esc only after it, `#questions/<id>` points it at that question, an embedded page's Esc leaves the
  * board on any route no panel takes it on, Gaia's frame hears `ready`, each route, `leave` and `session-lost` in the versioned channel's
- * shape and is followed on `navigate`, a message of another channel version is answered by nothing, and a view that throws leaves the
+ * shape and is followed on `navigate`, a message of another channel version is answered by nothing, a board control in Gaia's frame
+ * shows the Overseer's refusal verbatim and posts `session-lost` when its session token answers 401, and a view that throws leaves the
  * error banner, not a blank page.
  */
 import {
@@ -725,6 +726,39 @@ describe('the Gaia embed channel', () => {
     });
     act(() => bridge.stream().onConnection('no-session'));
     expect(posted).toEqual([envelope({ kind: 'leave' }), envelope({ kind: 'session-lost' })]);
+  });
+
+  const BOARD_WITH_TICKET_002 = (): unknown => ({ ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
+
+  async function recordDeliveredByHand(): Promise<void> {
+    for (const name of ['Delivered by hand…', 'Record delivered']) {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name }));
+        await Promise.resolve();
+      });
+    }
+  }
+
+  test('a by-hand delivery the Overseer refuses shows its sentence verbatim in the frame, and posts nothing to Gaia', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    posted.length = 0;
+    const refusal = 'Ticket #002 has job J4 live (running), so it cannot be recorded delivered by hand. Nothing was written.';
+    bridge.answerWith({ verdict: 'refused', refusal });
+    await recordDeliveredByHand();
+    expect(screen.getByText(refusal).getAttribute('role')).toBe('status');
+    expect(posted).toEqual([]);
+  });
+
+  test('a by-hand delivery whose session token answers 401 posts session-lost to Gaia', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    posted.length = 0;
+    bridge.answerWith({ verdict: 'no-session' });
+    await recordDeliveredByHand();
+    expect(posted).toEqual([envelope({ kind: 'session-lost' })]);
   });
 });
 
