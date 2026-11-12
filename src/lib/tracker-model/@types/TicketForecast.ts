@@ -9,6 +9,7 @@
  */
 export type TicketForecastStep =
   | { kind: 'build'; attempt: number; jobId: string | null }
+  /** `gateNames`: the build phase's gates in run order, which judge a build. */
   | { kind: 'customs-and-gates'; gateNames: string[]; jobId: string | null }
   | { kind: 'review'; round: number; jobId: string | null }
   | { kind: 'merge-approval'; target: string | null }

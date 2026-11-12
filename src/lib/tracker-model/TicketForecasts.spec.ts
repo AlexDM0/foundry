@@ -1,10 +1,10 @@
 /**
  * The ticket forecast the Overseer serves. What matters: only a pending, in-progress or in-review ticket has one, and none while no pipeline
  * is set, since nothing launches then; the steps start at the step under way, named by its live job and marked current, or at the next one
- * with nothing current; a review phase that is not set adds no review step, and merge approval adds a step only until User accepted; a
- * group's ticket integrates into its group's branch while its release ticket lands; the attempt and round are the Playbook's own, so a
- * builder a review sent back keeps its attempt; targets are `null` without a target rule; and a dependent lists the other dependencies it
- * still waits on, while an unready ticket is no dependent.
+ * with nothing current; Customs and its gates name the build phase's gates; a review phase that is not set adds no review step, and merge
+ * approval adds a step only until User accepted; a group's ticket integrates into its group's branch while its release ticket lands; the
+ * attempt and round are the Playbook's own, so a builder a review sent back keeps its attempt; targets are `null` without a target rule; and
+ * a dependent lists the other dependencies it still waits on, while an unready ticket is no dependent.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -74,6 +74,16 @@ describe('the steps of a ticket nothing runs on', () => {
       currentStepIndex: null,
       dependents:       [],
     });
+  });
+
+  test('Customs and its gates name the build phase\'s gates in that phase\'s run order, never a gate only another phase runs', () => {
+    const pipeline: Pipeline = {
+      ...PIPELINE_WITH_REVIEW,
+      gates:  [...PIPELINE_WITH_REVIEW.gates, { name: 'audit', run: 'bun run audit' }],
+      phases: { build: ['test', 'typecheck'], review: ['typecheck', 'test', 'audit'], merge: ['audit'] },
+    };
+    const board = boardOf([ticketFixture({ id: '001', status: 'pending' })], pipeline);
+    expect(forecastOf(board, '001')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['test', 'typecheck'], jobId: null });
   });
 
   test('an in-progress ticket whose build failed launches the next attempt', () => {

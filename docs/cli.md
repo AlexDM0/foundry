@@ -759,10 +759,21 @@ Both `status --json` documents carry `drafts` after `epics`:
 
 ### Concurrency and gates
 
-The Overseer gates a tree by running the prepare steps, then each stored [gate](glossary.md#gate) in list order, the
-first red gate stopping the rest. A gate passes only when it exits 0 and leaves every tracked file as it was. Exit 126
-or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup failure, never a red gate. The Overseer
-never runs a gate's `fix`. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
+The Overseer gates a tree by running the prepare steps, then each [gate](glossary.md#gate) of one phase in that
+phase's run order, the first red gate stopping the rest. Each place a tree is gated runs one phase:
+
+| where | phase |
+| --- | --- |
+| a build job's worktree | `build` |
+| the merge of the target into a branch before its review ([A review job](#a-review-job)); a red gate or a conflict there goes back to the builder | `build` |
+| a review job's worktree | `review` |
+| an Airlock's merged tree | `merge` |
+| a stale green, gated again with no slot held | the row's `greenPhase` (with none: `review` with a review phase, `build` without one) |
+
+A phase with no gates passes at once and runs no prepare step. A gate passes only when it exits 0 and leaves every
+tracked file as it was. Exit 126 or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup failure,
+never a red gate. The Overseer never runs a gate's `fix`. Customs and a worker's sandbox read every gate, whatever
+phases run it. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
 and their confinement.
 
 A line is stored for the machine that runs it, in that machine's grammar, which `gate add` in `help` names. On macOS
@@ -1275,9 +1286,10 @@ After each Pass the Overseer sweeps one [Airlock](glossary.md#airlock) per targe
 with an open ticket. A queued ticket merges in a `merge` job, whose record carries
 `airlock: {target, targetTip, branchTip, phase}`.
 
-The merged tree is gated, unless it is the branch's own tree and that tree last passed, then landed by a
-compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of kind `integrated` and
-moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
+The merged tree is gated with the merge phase's gates, unless it is the branch's own tree, that tree last passed and the
+row's green is current in the merge phase, then landed by a compare-and-swap fast-forward, logging `merge-landed`. A
+group ticket lands on `group-<name>` of kind `integrated` and moves to `reviewed`; the group's release ticket lands its
+whole bundle on the main line.
 
 `merges` shows the queue. [Airlocks and groups](architecture/airlocks-and-groups.md) holds the order, the phases,
 refresh and release.
@@ -1332,7 +1344,7 @@ every hook off. That merge is the Overseer's own git, so it runs outside the gat
 
 | the merge | what the Overseer does |
 | --- | --- |
-| is clean | it gates the merged tree, each step in a `target-` Watcher folder; the reviewer starts only when every gate is green |
+| is clean | it gates the merged tree with the build phase's gates, each step in a `target-` Watcher folder; the reviewer starts only when every gate is green, at once when the build phase has none |
 | is clean, but a gate is red | the job ends `does-not-hold` (cause `target-gate-red`) and the ticket goes `in-progress`; the builder's session resumes with the red handoff, its Baton pass in the review's job folder |
 | conflicts | the merge is aborted and the worktree reset to the branch tip; the job ends `does-not-hold` (cause `target-conflict`) and the ticket goes `in-progress`; the builder's session resumes with the target tip and the conflicted files |
 | cannot run or settle | incident `setup-failed` (step `target-merge`); the job ends `stopped` |
@@ -1354,13 +1366,14 @@ Review done is `mergeQueued`. The Overseer sets it only when the last job's repo
 hashes](#the-pipeline-hashes)); with no review phase the same rule applies to the builder's report. A reviewer that left
 the tree as it was skips its gate run only while that green is current for the review phase's gates; under changed gates
 its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its branch HEAD's tree and its
-`pipelineHash` the current hash of its `greenPhase`, and lands a merged tree ungated only when it is that green tree.
-Before each allocation the Airlocks take a stale green (the tree or the pipeline changed) out of the queue, clearing
-`mergeQueued`, and gate the ticket's worktree with no slot held: green records the tree and queues the ticket again; red
-leaves it unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder of the last
-session that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`), and the next
-session of that kind takes it over; a gate that cannot run opens its incident on the ticket. With no review phase, a
-ticket in review that is not queued is queued there once its green is current.
+`pipelineHash` the current hash of its `greenPhase`, and lands a merged tree ungated only when it is that green tree and
+that green is current in the merge phase. Before each allocation the Airlocks take a stale green (the tree or the
+pipeline changed) out of the queue, clearing `mergeQueued`, and gate the ticket's worktree with no slot held, in the
+phase of its green: green records the tree and queues the ticket again; red leaves it unqueued with no `greenTree`,
+writes the red handoff in the `stale-green` folder of the job folder of the last session that passed (its reviewer, or
+with no review phase its builder, whose ticket goes `in-progress`), and the next session of that kind takes it over; a
+gate that cannot run opens its incident on the ticket. With no review phase, a ticket in review that is not queued is
+queued there once its green is current.
 
 ### The Assistant
 

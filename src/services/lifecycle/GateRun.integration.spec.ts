@@ -2,9 +2,9 @@
  * The gate pipeline run on a checkout. What matters: the prepare steps run first and a failed one is a setup failure, never a red gate;
  * the gates run in list order and the first red one stops the rest, reported by name with its output; a gate that exits 0 but changes a
  * tracked file is red with the diff as its output; each step gets its own confinement (a prepare step the network, a gate only its own
- * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing; a gate takes a
- * machine slot while it runs; nothing is cached, so the same tree gated twice runs twice; and the gate process runs the argv it is handed,
- * in a process group of its own, without the job variables.
+ * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing, and a phase
+ * with no gates runs no prepare step either; a gate takes a machine slot while it runs; nothing is cached, so the same tree gated twice
+ * runs twice; and the gate process runs the argv it is handed, in a process group of its own, without the job variables.
  */
 import {
   existsSync,
@@ -220,7 +220,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     const statusBlindShellLine = { ...shellLine, exitMeaningOf: () => 'cannot-run' as const };
 
     const prepareVerdict = await runPipelineInThisEnvironment({
-      shellLine: statusBlindShellLine, prepare: [{ name: 'install', run: 'true' }], gates: [], directory: scratchDirectory, confinedLineOf: runsAsGiven
+      shellLine: statusBlindShellLine, prepare: [{ name: 'install', run: 'true' }], gates: [gateOf('a', 'true')], directory: scratchDirectory, confinedLineOf: runsAsGiven
     });
     const gateVerdict = await playedPipeline(treeUnchangedAfter(1), {
       shellLine: statusBlindShellLine, prepare: [], gates: [gateOf('a', 'true')], directory: scratchDirectory, confinedLineOf: runsAsGiven
@@ -248,6 +248,19 @@ describeWhenGitIsRecorded('the pipeline', () => {
       expect(verdict).toEqual({ outcome: 'passed', gatesRun: [] });
       expect(confinedArgvs).toEqual([]);
     }
+  });
+
+  test('a phase with no gates passes at once and runs none of the prepare steps', async () => {
+    const verdict = await runPipelineInThisEnvironment({
+      shellLine,
+      prepare:        [{ name: 'install', run: journalLine('install') }],
+      gates:          [],
+      directory:      gatedRepository(),
+      confinedLineOf: runsAsGiven,
+    });
+
+    expect(verdict).toEqual({ outcome: 'passed', gatesRun: [] });
+    expect(journal()).toEqual([]);
   });
 
   test('a gate with an in folder runs its own line there, no cd and no joined line, and a red first gate stops the second', async () => {

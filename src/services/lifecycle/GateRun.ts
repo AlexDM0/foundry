@@ -1,7 +1,8 @@
 /**
- * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate in list
- * order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs under the port's spawn options
- * with the job variables removed from its environment. agent-progress keeps no gate result: caching is the repository's own tooling's.
+ * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate of the
+ * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs under the
+ * port's spawn options with the job variables removed from its environment. agent-progress keeps no gate result: caching is the
+ * repository's own tooling's.
  */
 import { randomUUID }           from 'node:crypto';
 import { readFileSync, rmSync } from 'node:fs';
@@ -54,6 +55,7 @@ export interface GateConfinement {
 export interface PipelineRunRequest {
   shellLine:        ShellLine;
   prepare:          readonly PipelineStep[];
+  /** The gates of the phase being run, in its run order; with none, no prepare step runs either. */
   gates:            readonly PipelineGate[];
   /** The checkout of the tree the pipeline judges; a gate's `in` is relative to it. */
   directory:        string;
@@ -179,13 +181,17 @@ function gateConfinementOf(gate: Readonly<PipelineGate>): GateConfinement {
   return { network: networkDomains.length > 0, networkDomains, writes: gate.writes ?? [] };
 }
 
-/** A prepare step installs, so it reaches the network and writes every folder a gate may. */
+/** A prepare step installs, so it reaches the network and writes every folder a gate it prepares for may. */
 function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
   return { network: true, networkDomains: [], writes: [...new Set(gates.flatMap((gate) => gate.writes ?? []))] };
 }
 
-/** A prepare step that does not pass is a setup failure, never a red gate; the Overseer never runs a gate's `fix`. */
+/**
+ * A prepare step that does not pass is a setup failure, never a red gate; the Overseer never runs a gate's `fix`. A phase with no gates
+ * passes at once: its prepare steps would prepare for nothing.
+ */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
+  if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [] };
   const prepareConfinement = prepareConfinementOf(request.gates);
   const { shellLine, environment, spawnOptions } = request;
   for (const step of request.prepare) {

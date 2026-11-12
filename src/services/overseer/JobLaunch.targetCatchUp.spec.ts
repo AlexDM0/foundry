@@ -1,9 +1,10 @@
 /**
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
- * reviewer starts only once the gates are green on the merged tree; a red gate and a conflict both send the work back to the builder,
- * counted in its handoff cycle, and a conflict aborts the merge and resets the worktree to the branch tip. The folders are real; git answers
- * from recorded answer sets, one for each state of the worktree, the launcher is fake, and the spec ends the Watchers itself.
+ * reviewer starts only once the build phase's gates are green on the merged tree, at once when that phase has none; a red gate and a
+ * conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge and resets the worktree to
+ * the branch tip. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the launcher is fake,
+ * and the spec ends the Watchers itself.
  */
 import {
   mkdirSync,
@@ -76,7 +77,7 @@ interface CatchUpScene {
 }
 
 /** The builder of #001 built on `ticket-001`, ended `built`, and its review job stands installed in `preparing`, its reviewer not started. */
-function catchUpScene(): CatchUpScene {
+function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
   const repository = realpathSync(createScratchDirectory('catch-up'));
   const monitorFolder = createScratchDirectory('m');
   folders.push(repository, monitorFolder);
@@ -88,7 +89,7 @@ function catchUpScene(): CatchUpScene {
   const { progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review', task: 1 })] });
   const logRecords: LogRecord[] = [];
   const board = new Board({
-    progress, tickets, epics: [], logger: createLogger((record) => logRecords.push(record)), pipeline: PIPELINE
+    progress, tickets, epics: [], logger: createLogger((record) => logRecords.push(record)), pipeline
   });
   const build = board.launchJob({
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: TARGET
@@ -195,8 +196,8 @@ function handoffCycleResumes(scene: CatchUpScene): number {
 }
 
 /** The branch behind the target, its merge launched and ended clean, and the passes that follow up to the gate. */
-async function cleanlyMergedScene(): Promise<CatchUpScene> {
-  const scene = catchUpScene();
+async function cleanlyMergedScene(pipeline: Pipeline = PIPELINE): Promise<CatchUpScene> {
+  const scene = catchUpScene(pipeline);
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
   endMergeWatcher(scene, CLEAN_EXIT_CODE);
@@ -275,4 +276,29 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   expect(handoffCycleResumes(scene)).toBe(1);
   const handover = JobLaunch.targetCatchUpHandoverOf(scene.context.workspace.trackerDirectory, scene.board.logRecordsSoFar(), '001');
   expect(handover).toEqual({ kind: 'conflict', targetTip: TARGET_TIP, conflictedFiles: ['shared.txt'] });
+});
+
+/** The review phase's gate comes first in the gate list, so a catch-up that ran it would name it. */
+const BUILD_AND_REVIEW_GATES_APART: Pipeline = {
+  ...PIPELINE,
+  gates:  [{ name: 'lint', run: 'bun run lint' }, { name: 'tests', run: 'bun test' }],
+  phases: { build: ['tests'], review: ['lint'], merge: ['lint'] },
+};
+
+testWhenGitIsRecorded('the merged tree is gated with the build phase\'s gates, whose red one goes back to the builder', async () => {
+  const scene = await cleanlyMergedScene(BUILD_AND_REVIEW_GATES_APART);
+
+  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  await scene.pass();
+
+  expect(scene.reviewJob()).toBeUndefined();
+  expect(RedHandoff.redHandoffFactsOf(scene.jobFolder())).toMatchObject({ kind: 'gate', name: 'tests', command: 'bun test' });
+});
+
+testWhenGitIsRecorded('with no build gates the reviewer starts once the merge is clean, with no gate run', async () => {
+  const noBuildGates: Pipeline = { ...BUILD_AND_REVIEW_GATES_APART, phases: { ...BUILD_AND_REVIEW_GATES_APART.phases, build: [] } };
+  const scene = await cleanlyMergedScene(noBuildGates);
+
+  expect(scene.reviewJob()?.state).toBe('running');
+  expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'target-merge')]);
 });

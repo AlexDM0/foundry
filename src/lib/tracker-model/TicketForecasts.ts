@@ -13,6 +13,7 @@ import type { Jobs }                                                from './Jobs
 import type { MergeQueueMarks }                                     from './MergeQueueMarks.ts';
 import type { NextLaunchNumbers }                                   from './Playbook.ts';
 import { Playbook }                                                 from './Playbook.ts';
+import { PipelineUtil }                                             from './utils/PipelineUtil.ts';
 import { TicketDependencyUtil }                                     from './utils/TicketDependencyUtil.ts';
 
 /** The statuses whose work still lies ahead under the Overseer: every other ticket is unready, landed or closed. */
@@ -64,7 +65,7 @@ export class TicketForecasts {
 
   private stepsOf(ticket: Readonly<TicketFrontmatter>, reading: ForecastReading): ForecastSteps {
     const launchNumbers = reading.launchNumbers.get(ticket.id) ?? { buildAttempt: 1, reviewRound: FIRST_REVIEW_ROUND };
-    const gateNames     = reading.pipeline.gates.map((gate) => gate.name);
+    const gateNames     = PipelineUtil.gatesOfPhase(reading.pipeline, 'build').map((gate) => gate.name);
     const reviewIsSet   = reading.pipeline.review !== undefined;
     const target        = reading.targetOf === null ? null : reading.targetOf(ticket);
     const approvalSteps: TicketForecastStep[] = reading.pipeline.approvals?.merge === true && !this.mergeQueueMarks.ticketIsMergeAccepted(ticket.id)

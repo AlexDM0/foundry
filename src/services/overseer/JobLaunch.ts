@@ -32,6 +32,7 @@ import type { Board }                                                           
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
+import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
 import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
@@ -328,10 +329,13 @@ function treeOfCommit(worktree: string, commit: string): string | null {
 }
 
 /**
- * Each prepare step, then each gate in list order, each in a Watcher folder of its own. A session resumed after a red handoff gates again in
- * fresh folders, suffixed with its Watcher instance, since a Watcher folder runs once.
+ * Each prepare step, then each gate of the phase in its run order, each in a Watcher folder of its own; a phase with no gates has no step,
+ * so it passes at once. A session resumed after a red handoff gates again in fresh folders, suffixed with its Watcher instance, since a
+ * Watcher folder runs once.
  */
-function gateStepsOf(pipeline: Readonly<Pipeline>, watcherInstance: number = FIRST_WATCHER_INSTANCE, folderPrefix = ''): GateStep[] {
+function gateStepsOf(pipeline: Readonly<Pipeline>, phase: GatePhase, watcherInstance: number = FIRST_WATCHER_INSTANCE, folderPrefix = ''): GateStep[] {
+  const gates = PipelineUtil.gatesOfPhase(pipeline, phase);
+  if (gates.length === 0) return [];
   const suffix = watcherInstance === FIRST_WATCHER_INSTANCE ? '' : `-${watcherInstance}`;
   const prepare = pipeline.prepare.map((step, stepIndex): GateStep => ({
     kind:        'prepare',
@@ -339,9 +343,9 @@ function gateStepsOf(pipeline: Readonly<Pipeline>, watcherInstance: number = FIR
     line:        step.run,
     folder:      `${folderPrefix}${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
     in:          null,
-    confinement: GateRun.prepareConfinementOf(pipeline.gates),
+    confinement: GateRun.prepareConfinementOf(gates),
   }));
-  return [...prepare, ...pipeline.gates.map((gate, index): GateStep => ({
+  return [...prepare, ...gates.map((gate, index): GateStep => ({
     kind:        'gate',
     name:        gate.name,
     line:        gate.run,
@@ -351,8 +355,9 @@ function gateStepsOf(pipeline: Readonly<Pipeline>, watcherInstance: number = FIR
   }))];
 }
 
+/** The merge before review gates the merged tree in the build phase, since what it finds goes back to the builder. */
 function targetGateStepsOf(pipeline: Readonly<Pipeline>): GateStep[] {
-  return gateStepsOf(pipeline, FIRST_WATCHER_INSTANCE, TARGET_GATE_FOLDER_PREFIX);
+  return gateStepsOf(pipeline, 'build', FIRST_WATCHER_INSTANCE, TARGET_GATE_FOLDER_PREFIX);
 }
 
 /** A per-instance marker, so a session resumed after a red handoff gets its own wind-down, closed input and stop. */
@@ -430,7 +435,7 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
   if (reviewLeftTheTreeAsItWas(context, job, treeId)) return {
     verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false
   };
-  return gateRunProgressOf(context, job, treeId, gateStepsOf(pipeline, job.watcherInstance));
+  return gateRunProgressOf(context, job, treeId, gateStepsOf(pipeline, gatePhaseOfJob(job), job.watcherInstance));
 }
 
 function gateRunProgressOf(context: JobLaunchContext, job: Readonly<Job>, treeId: string, steps: readonly GateStep[]): Exclude<GateProgress, { verdict: 'pending' }> {
@@ -1342,7 +1347,7 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
 function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
   const progress = gateProgressOf(context, job, pipeline);
   if (progress.verdict !== 'running') return;
-  const step = gateStepsOf(pipeline, job.watcherInstance)[progress.stepIndex];
+  const step = gateStepsOf(pipeline, gatePhaseOfJob(job), job.watcherInstance)[progress.stepIndex];
   if (step !== undefined) spawnGateStep(context, trackerId, job, step);
 }
 

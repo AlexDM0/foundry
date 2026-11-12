@@ -219,8 +219,9 @@ export interface WorkerToolchain {
 export const NO_TOOLCHAIN: WorkerToolchain = Object.freeze({ networkDomains: [], writes: [], executables: [] });
 
 /**
- * Every prepare step and every gate but an `overseerOnly` one, which only the Overseer runs; the ticket's own `network` line is added to the
- * gates' domains. The lines are split in the grammar they run in, so a worker is granted what they invoke and no more.
+ * Every prepare step and every gate of the catalogue, whatever phases run it, but an `overseerOnly` one, which only the Overseer runs; the
+ * ticket's own `network` line is added to the gates' domains. The lines are split in the grammar they run in, so a worker is granted what
+ * they invoke and no more.
  */
 function workerToolchainOf(pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[], shellLine: Pick<ShellLine, 'executablesOf'>): WorkerToolchain {
   const gates = (pipeline?.gates ?? []).filter((gate) => gate.overseerOnly !== true);

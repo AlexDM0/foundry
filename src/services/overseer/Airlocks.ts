@@ -63,7 +63,8 @@ export interface AirlocksContext {
   /** With the per-job ref denies holding, a target moved by someone else requeues silently; an unconfined job may have moved it itself. */
   refDeniesHold:         boolean;
   hold:                  AirlockHoldRunner;
-  gateMergedTree:        (worktreePath: string, treeId: string) => Promise<MergedTreeGate>;
+  /** Gates the tree with the gates of `phase` read afresh: `merge` for an Airlock's merged tree, the row's own phase for a stale green. */
+  gateMergedTree:        (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
   mergeAgentReadingOf:   (job: Readonly<Job>) => MergeAgentReading;
   /** The job's own Watcher, an agent's or a process Watcher's, is alive. */
   watcherIsLive:         (job: Readonly<Job>) => boolean;
@@ -101,8 +102,8 @@ function treeOfCommit(worktree: string, commit: string): string | null {
 }
 
 /**
- * The merged tree is the branch's own tree, the newest gate run on it passed, and the ticket's row holds it as its green under the current
- * pipeline hash: the merge changed nothing the gates judged, and the gates are the ones that passed it. A refresh has no row, so its merged
+ * The merged tree is the branch's own tree, the newest gate run on it passed, and the ticket's row holds it as a green current in the merge
+ * phase: the merge changed nothing the gates judged, and the gates that passed it are the merge phase's. A refresh has no row, so its merged
  * tree is always gated.
  */
 function mergedTreeWasLastPassed(board: Board, worktree: string, job: Readonly<Job>, treeId: string): boolean {
@@ -110,7 +111,7 @@ function mergedTreeWasLastPassed(board: Board, worktree: string, job: Readonly<J
   const [ticketId] = job.ticketIds;
   if (branchTip === undefined || ticketId === undefined || treeOfCommit(worktree, branchTip) !== treeId) return false;
   const newestRunOnTheTree = board.logRecordsSoFar().findLast((record) => record.kind === 'gate-ran' && record.fields.tree === treeId);
-  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, board.greenPhaseOf(ticketId));
+  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, 'merge');
 }
 
 /** The ticket's most recent agent, whom a conflict or a red merged tree goes back to. */
@@ -337,13 +338,14 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /** In the hold after a gate run outside the Airlock: green queues the ticket again, red returns it to its agent, else an incident holds it. */
-  function settleRegate(hold: AirlockHold, ticketId: string, target: string, treeId: string, gate: MergedTreeGate): void {
+  function settleRegate(hold: AirlockHold, ticketId: string, target: string, treeId: string, regate: { phase: GatePhase; gate: MergedTreeGate }): void {
+    const { phase, gate } = regate;
     const ticket = hold.board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
     const stillWaits = ticket?.frontmatter.status === 'in-review' && ticket.frontmatter.hold === undefined
       && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
     if (!stillWaits) return;
     if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome: gate.outcome, cached: false }, hold.at);
-    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, regatePhaseOf(hold.board, ticketId), hold.at);
+    hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, phase, hold.at);
     if (gate.outcome === 'passed') {
       hold.board.queueTicketForMerge(ticketId, target, treeId, hold.at);
       return;
@@ -376,14 +378,15 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     for (const { ticketId } of awaiting) {
       const settled = await context.hold((hold) => {
         const branchTree = branchTreeOf(ticketId);
+        const phase      = regatePhaseOf(hold.board, ticketId);
         if (!hold.board.greenIsCurrent(ticketId, branchTree, hold.board.greenPhaseOf(ticketId))) {
           const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
           if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-          return { greenIsCurrent: false, changed: wasQueued };
+          return { greenIsCurrent: false, changed: wasQueued, phase };
         }
-        if (hold.board.ticketIsMergeQueued(ticketId)) return { greenIsCurrent: true, changed: false };
+        if (hold.board.ticketIsMergeQueued(ticketId)) return { greenIsCurrent: true, changed: false, phase };
         hold.board.queueTicketForMerge(ticketId, target, branchTree, hold.at);
-        return { greenIsCurrent: true, changed: true };
+        return { greenIsCurrent: true, changed: true, phase };
       });
       moved = moved || settled.changed;
       if (settled.greenIsCurrent) continue;
@@ -393,8 +396,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const treeId   = MergeRun.treeOf(worktree);
       if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
       moved = true;
-      const gate = await context.gateMergedTree(worktree, treeId);
-      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
+      const gate = await context.gateMergedTree(worktree, treeId, settled.phase);
+      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, { phase: settled.phase, gate }));
     }
     return moved;
   }
@@ -546,7 +549,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return true;
     });
     if (landsUngated) return true;
-    const { outcome, step, output } = await context.gateMergedTree(worktree, treeId);
+    const { outcome, step, output } = await context.gateMergedTree(worktree, treeId, 'merge');
     if (outcome === 'failed' && !isRefresh(job) && await mergeApprovalIsOn()) return returnRedMergeToTheReviewer(job, treeId, { step: step ?? '', output, worktree });
     const resumesSpent = await context.hold((hold) => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);

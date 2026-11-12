@@ -33,6 +33,7 @@ import type { DecisionDraft, DecisionWording }       from '../../lib/tracker-mod
 import type { Board }                                from '../../lib/tracker-model/Board.ts';
 import { Playbook }                                  from '../../lib/tracker-model/Playbook.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }          from '../../lib/tracker-model/constants/JobStates.ts';
+import { PipelineUtil }                              from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { EventLogEntry }                        from '../../lib/watcher/EventLog.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
 import { WorktreesFolder }                           from '../../shared/WorktreesFolder.ts';
@@ -964,7 +965,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
     hold:           holdTracker,
-    gateMergedTree: async (worktreePath, treeId) => {
+    gateMergedTree: async (worktreePath, treeId, phase) => {
       // Read afresh at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
@@ -972,7 +973,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
         shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
-        gates:           pipeline?.gates ?? [],
+        gates:           pipeline === null ? [] : PipelineUtil.gatesOfPhase(pipeline, phase),
         directory:       worktreePath,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),

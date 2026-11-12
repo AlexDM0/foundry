@@ -114,7 +114,10 @@ export interface CustomsSubject {
   bodyHashAtLaunch:  string;
   /** V10's merge, for an Airlock agent. */
   merge?:            MergeUnderVerification;
-  /** V11 reads each gate's `definedBy`, V15 the gates an agent runs; absent or empty, both pass. */
+  /**
+   * The gate catalogue, every gate whatever phases run it: V11 reads each one's `definedBy`, V15 the ones an agent runs; absent or empty,
+   * both pass.
+   */
   gates?:            readonly Readonly<PipelineGate>[];
   /** V11 also: the tracked instruction files the pipeline's arrays name, which a branch changes only where its ticket names them. */
   instructionFiles?: readonly string[];

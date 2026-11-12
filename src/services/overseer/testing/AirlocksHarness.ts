@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
+import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
@@ -47,6 +48,8 @@ export interface AirlocksHarness {
   /** The slot phase each hold left on the main line's merge job, in hold order. */
   phases:           string[];
   gatedTrees:       string[];
+  /** The phase each gated tree was gated in, in the order of `gatedTrees`. */
+  gatedPhases:      GatePhase[];
   stopped:          string[];
   /** Every removal git declined after a refresh or a release, as the Overseer was told. */
   declinedCleanups: DeclinedCleanup[];
@@ -119,6 +122,7 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
 
   const phases: string[] = [];
   const gatedTrees: string[] = [];
+  const gatedPhases: GatePhase[] = [];
   const stopped: string[] = [];
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
@@ -142,8 +146,9 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
       if (phase !== undefined && phases.at(-1) !== phase) phases.push(phase);
       return Promise.resolve(result);
     },
-    gateMergedTree: (_worktreePath, treeId) => {
+    gateMergedTree: (_worktreePath, treeId, phase) => {
       gatedTrees.push(treeId);
+      gatedPhases.push(phase);
       settings.beforeGate();
       return Promise.resolve({ outcome: settings.gateOutcome, step: settings.gateOutcome === 'passed' ? null : 'tests', output: 'Example gate output\nexpected 2, received 3' });
     },
@@ -172,6 +177,7 @@ export function createRecordedAirlocksHarness(tickets: readonly HarnessTicket[],
     slots,
     phases,
     gatedTrees,
+    gatedPhases,
     stopped,
     declinedCleanups,
     keptAirlockFacts,

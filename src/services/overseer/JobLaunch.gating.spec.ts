@@ -1,8 +1,10 @@
 /**
  * Which gate step a gating job waits on, read outside the lock. What matters: a review that left the tree it was given (the tree the build's
  * gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any build,
- * waits on the pipeline's first step. Each prepare step runs as a process of its own, never as one joined line: the install and the gate run
- * wait on each step's own Watcher in turn. git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
+ * waits on the pipeline's first step. A build job runs only the build phase's gates and a review job only the review phase's, and a phase
+ * with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line: the
+ * install and the gate run wait on each step's own Watcher in turn. git answers the tree reads from the recordings of
+ * `src/testing/RecordedGit.ts`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -70,8 +72,8 @@ function gatingScene(): GatingScene {
   return { context, jobOf };
 }
 
-function gateOf(scene: GatingScene, kind: 'build' | 'review', stage: RecordedGitStage): Promise<unknown> {
-  return recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [scene.jobOf(kind)], PIPELINE)[0]?.gate));
+function gateOf(scene: GatingScene, kind: 'build' | 'review', stage: RecordedGitStage, pipeline: Pipeline = PIPELINE): Promise<unknown> {
+  return recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [scene.jobOf(kind)], pipeline)[0]?.gate));
 }
 
 testWhenGitIsRecorded('a review that left the tree it was given runs no gate and is judged passed', async () => {
@@ -143,4 +145,42 @@ testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own be
 
   endStepWatcher(scene, 'gate-prepare2', 0);
   expect(await gateWith()).toMatchObject({ verdict: 'running', stepIndex: 2 });
+});
+
+/** Each phase runs a gate of its own, none of them first in the gate list, so the gate a job's first gate folder runs names its phase. */
+const ONE_GATE_PER_PHASE: Pipeline = {
+  version: 2,
+  prepare: [{ name: 'install', run: 'bun install' }],
+  gates:   [{ name: 'audit', run: 'bun run audit' }, { name: 'tests', run: 'bun test' }, { name: 'lint', run: 'bun run lint' }],
+  phases:  { build: ['lint'], review: ['tests'], merge: ['audit'] },
+};
+const TRACKED_TREE_UNCHANGED: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
+
+testWhenGitIsRecorded('a build job runs only the build phase\'s gates, after the prepare steps', async () => {
+  const scene = gatingScene();
+  endStepWatcher(scene, 'gate-prepare', 0);
+  endStepWatcher(scene, 'gate-1', 1);
+
+  expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
+    verdict: 'judged', outcome: 'failed', step: 'lint', ran: true
+  });
+});
+
+testWhenGitIsRecorded('a review job runs only the review phase\'s gates, after the prepare steps', async () => {
+  const scene = gatingScene();
+  const headOnAChangedTree = treeOf('HEAD', GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE);
+  endStepWatcher(scene, 'gate-prepare', 0);
+  endStepWatcher(scene, 'gate-1', 1);
+
+  expect(await gateOf(scene, 'review', [headOnAChangedTree, START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
+    verdict: 'judged', outcome: 'failed', step: 'tests', ran: true
+  });
+});
+
+testWhenGitIsRecorded('a phase with no gates passes at once and runs no prepare step, though the pipeline has one', async () => {
+  const noBuildGates: Pipeline = { ...ONE_GATE_PER_PHASE, phases: { ...ONE_GATE_PER_PHASE.phases, build: [] } };
+
+  expect(await gateOf(gatingScene(), 'build', [HEAD_ON_THE_START_TREE], noBuildGates)).toMatchObject({
+    verdict: 'judged', outcome: 'passed', step: null, ran: true
+  });
 });
