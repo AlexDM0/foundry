@@ -82,6 +82,7 @@ interface RegistryEntry {
   progressHtml:  string;
   progressJson:  string;
   gitOrigin:     string | null;
+  program:       string;
   registeredAt:  string;
   lastChangedAt: string;
   lastCommand:   string;
@@ -175,11 +176,12 @@ testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carr
     progressHtml:  paths.htmlFilePath,
     progressJson:  paths.progressFilePath,
     gitOrigin:     EXAMPLE_ORIGIN,
+    program:       '/example/bin/forge',
     registeredAt:  LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastChangedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastCommand:   'init',
   });
-  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'registeredAt', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
 });
 
 testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
@@ -368,7 +370,9 @@ testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive
   const entries = registry().projects;
   expect(Object.keys(entries)).toEqual(['other', trackerId]);
   expect(entries['other']).toEqual({ project: 'Other Example', pinned: true } as unknown as RegistryEntry);
-  expect(Object.keys(entries[trackerId] ?? {})).toEqual(['pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entries[trackerId] ?? {})).toEqual([
+    'pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
+  ]);
   expect(entries[trackerId]).toMatchObject({ project: 'Example Agency', registeredAt: '2026-01-02T03:04:05+01:00' });
 });
 
