@@ -6,9 +6,9 @@
  * Overseer's facts, never stored. While the board has no readable pipeline the header is in setup: it holds the setup steps with the
  * record's statuses, and no usage.
  */
-import { TokenCountUtil }                        from '../../src/lib/token-count/TokenCountUtil.ts';
-import type { PipelineSetup, PipelineSetupStep } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
+import { TokenCountUtil }     from '../../src/lib/token-count/TokenCountUtil.ts';
+import type { PipelineSetup } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { PRODUCT_NAMES }      from '../../src/shared/constants/ProductNames.ts';
 import type {
   BoardStateDocument,
   NoticeDocument,
@@ -16,7 +16,7 @@ import type {
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
 import type { ConnectionState }                                       from '../api/EventStreamClient.ts';
-import type { StepperStatus, StepperStep }                            from '../design-system/Stepper.tsx';
+import type { StepperStep }                                           from '../design-system/Stepper.tsx';
 import { IncidentTrailUtil }                                          from '../utils/IncidentTrailUtil.ts';
 import { TimeUtil }                                                   from '../utils/TimeUtil.ts';
 import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../views/pipeline/PipelineViewModel.ts';
@@ -175,25 +175,12 @@ function usageTextsOf(usage: unknown): string[] {
 /** The record's current step is current; a done or recheck step links back to its route; with no record, Billing is current. */
 function setupStepsOf(record: PipelineSetup | null): StepperStep[] {
   return PIPELINE_SETUP_STEPS.map((step) => {
-    const status = setupStepStatusOf(record, step);
+    const status = PipelineViewModel.setupStepStatusOf(record, step);
     const reopens = status === 'done' || status === 'recheck';
     return {
       key: step, label: SETUP_STEP_LABELS[step], status, ...(reopens ? { href: PipelineViewModel.setupStepFragmentOf(step) } : {})
     };
   });
-}
-
-function setupStepStatusOf(record: PipelineSetup | null, step: PipelineSetupStep): StepperStatus {
-  if (record === null) return step === PIPELINE_SETUP_STEPS[0] ? 'current' : 'upcoming';
-  if (step === record.currentStep) return 'current';
-  switch (record.stepStates[step]) {
-    case 'done':
-      return 'done';
-    case 'needs-recheck':
-      return 'recheck';
-    default:
-      return 'upcoming';
-  }
 }
 
 /** In setup while the board says its pipeline is anything but readable; an Overseer that serves no pipeline facts never is. */

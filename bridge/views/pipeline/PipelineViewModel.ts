@@ -4,9 +4,10 @@
  * step, or the resume summary on the bare `#pipeline`; a record in `update` or `advise` mode is the flow being edited; a readable pipeline
  * is the live flow; anything else is the setup landing, which names an unreadable file's reason.
  */
-import type { AppliedPipelineFacts, PipelineSetupFacts } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineSetup, PipelineSetupStep }         from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { HashRouter, type BridgeRoute }                  from '../../shell/HashRouter.ts';
+import type { AppliedPipelineFacts, PipelineChoices, PipelineSetupFacts } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetup, PipelineSetupStep }                          from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { StepperStatus }                                             from '../../design-system/Stepper.tsx';
+import { HashRouter, type BridgeRoute }                                   from '../../shell/HashRouter.ts';
 
 /** The setup steps in their order. */
 export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
@@ -25,8 +26,11 @@ const CONSTITUTION_EDIT_ITEM = 'edit/constitution';
 
 /** The facts the view reads; an Overseer that serves no pipeline facts leaves both out. */
 export interface PipelineViewFacts {
-  readonly pipeline?:      AppliedPipelineFacts;
-  readonly pipelineSetup?: PipelineSetupFacts | null;
+  readonly pipeline?:        AppliedPipelineFacts;
+  readonly pipelineSetup?:   PipelineSetupFacts | null;
+  readonly pipelineChoices?: PipelineChoices;
+  /** The setup landing counts the pending tickets in it. */
+  readonly page?:            { readonly tickets: readonly { readonly status: string }[] };
 }
 
 export type UnreadablePipeline =
@@ -69,9 +73,27 @@ function screenOf(facts: PipelineViewFacts, route: BridgeRoute): PipelineScreen 
   return { screen: 'setup-landing', unreadable: unreadablePipelineOf(facts.pipeline) };
 }
 
+/** The record's current step is current, a done step done and a `needs-recheck` step recheck; with no record, Billing is current. */
+function setupStepStatusOf(record: PipelineSetup | null, step: PipelineSetupStep): StepperStatus {
+  if (record === null) return step === PIPELINE_SETUP_STEPS[0] ? 'current' : 'upcoming';
+  if (step === record.currentStep) return 'current';
+  switch (record.stepStates[step]) {
+    case 'done':
+      return 'done';
+    case 'needs-recheck':
+      return 'recheck';
+    default:
+      return 'upcoming';
+  }
+}
+
+function setupStepRouteOf(step: PipelineSetupStep): BridgeRoute {
+  return { tab: 'pipeline', item: `${SETUP_ITEM_PREFIX}${step}` };
+}
+
 /** Where a setup step reopens, `#pipeline/setup/<step>`. */
 function setupStepFragmentOf(step: PipelineSetupStep): string {
-  return HashRouter.fragmentOf({ tab: 'pipeline', item: `${SETUP_ITEM_PREFIX}${step}` });
+  return HashRouter.fragmentOf(setupStepRouteOf(step));
 }
 
 function screenTitleOf(screen: PipelineScreen): string {
@@ -96,5 +118,5 @@ function unreadableTextOf(unreadable: UnreadablePipeline): string {
 }
 
 export const PipelineViewModel = Object.freeze({
-  screenOf, setupStepFragmentOf, screenTitleOf, unreadableTextOf,
+  screenOf, setupStepStatusOf, setupStepRouteOf, setupStepFragmentOf, screenTitleOf, unreadableTextOf,
 });

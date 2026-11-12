@@ -1,0 +1,102 @@
+/**
+ * The billing step against fake controls. What matters: "Set up the pipeline" sends the start with the chosen billing and cap and then
+ * opens the research step; the start of an unreadable file says that it replaces it; a refusal shows verbatim; the page counts the
+ * waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; reopened while a record is open, the
+ * start is replaced by the way back to the current step and a billing change is saved to the record.
+ */
+import { cleanup, fireEvent, screen } from '@testing-library/react';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+
+import { clickSettled, fakeControls } from '../../../testing/FakeControls.ts';
+import { pipelineBoardStateOf }       from '../../../testing/PipelineFixture.ts';
+import { PipelineView }               from '../PipelineView.tsx';
+
+afterEach(() => {
+  cleanup();
+  window.location.hash = '';
+});
+
+const LANDING_ROUTE = { tab: 'pipeline', item: null } as const;
+
+describe('the setup landing', () => {
+  test('"Set up the pipeline" sends the start with the chosen billing and cap, then opens the research', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    fireEvent.click(screen.getByLabelText('API key'));
+    fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '12.5' } });
+    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    expect(controls.sent).toEqual([{ kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 12.5 }, replacesUnreadablePipeline: false }]);
+    expect(window.location.hash).toBe('#pipeline/setup/research');
+  });
+
+  test('the subscription is chosen first, and typing a cap chooses the API key', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    expect((screen.getByLabelText('Subscription') as HTMLInputElement).checked).toBe(true);
+    fireEvent.focus(screen.getByLabelText('Cap per launch in US dollars'));
+    expect((screen.getByLabelText('API key') as HTMLInputElement).checked).toBe(true);
+    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    expect(controls.sent).toEqual([{ kind: 'pipeline-setup-start', billing: { mode: 'api' }, replacesUnreadablePipeline: false }]);
+  });
+
+  test('the start of an unreadable pipeline.json replaces it', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0-unreadable')} route={LANDING_ROUTE} />);
+    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    expect(controls.sent).toEqual([{ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: true }]);
+  });
+
+  test('a refused start shows the Overseer\'s words and stays on the landing', async () => {
+    const controls = fakeControls();
+    controls.answerNextWith({ verdict: 'refused', refusal: 'The cap per launch must be a positive number.' });
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '-1' } });
+    await clickSettled(screen.getByRole('button', { name: 'Set up the pipeline' }));
+    expect(screen.getByText('The cap per launch must be a positive number.')).toBeDefined();
+    expect(window.location.hash).toBe('');
+  });
+
+  test('says how many tickets wait, from the facts', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    expect(screen.getByText('4 tickets wait for a pipeline')).toBeDefined();
+  });
+
+  test('the pipeline agent\'s meter shows opus and high over five bars', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    const meter = screen.getByRole('img', { name: 'Pipeline agent: opus, high effort' });
+    expect(meter.querySelectorAll('.bridge-effort-meter-bar')).toHaveLength(5);
+    expect(meter.querySelectorAll('.bridge-effort-meter-bar[data-filled]')).toHaveLength(3);
+  });
+
+  test('says that a gate\'s profile runs only when User asks for it', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} />);
+    expect(screen.getByText('User can profile each gate in each phase; its time shows on the flow. It only informs.')).toBeDefined();
+    expect(screen.queryByText(/benchmark/u)).toBeNull();
+  });
+});
+
+describe('the billing step reopened with a record', () => {
+  const REOPENED_ROUTE = { tab: 'pipeline', item: 'setup/billing' } as const;
+
+  test('offers the way back to the current step in place of a second start', () => {
+    fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0b-running')} route={REOPENED_ROUTE} />);
+    expect(screen.queryByRole('button', { name: 'Set up the pipeline' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to pipeline design' }).getAttribute('href')).toBe('#pipeline/setup/design');
+  });
+
+  test('a billing change is saved to the record, and the record\'s own billing sends nothing', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0b-running')} route={REOPENED_ROUTE} />);
+    const save = screen.getByRole('button', { name: 'Save billing' }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText('API key'));
+    fireEvent.change(screen.getByLabelText('Cap per launch in US dollars'), { target: { value: '8' } });
+    await clickSettled(save);
+    expect(controls.sent).toEqual([{ kind: 'pipeline-setup-billing', setupId: 'S1', billing: { mode: 'api', maxBudgetUsd: 8 } }]);
+  });
+});

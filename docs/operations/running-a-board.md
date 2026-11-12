@@ -36,6 +36,16 @@ finished step, or one that needs a recheck, links back to its page. Each tab has
 the link survives an Overseer restart. A fragment that names no tab opens the tab you last chose, or else the first tab
 shown. Until the first board update arrives the panel says it is waiting for the Overseer.
 
+With no setup open, Pipeline opens on the setup landing: it counts the pending tickets that wait for a pipeline, asks who
+pays for the agents (the subscription, or the API key with an optional cap per launch) and shows the pipeline agent's
+model and effort. **Set up the pipeline** sends `pipeline-setup-start` with that billing and opens the research step; an
+unreadable `pipeline.json` is named in a banner, and the start then says that Apply replaces it. With a setup open, the
+bare `#pipeline` shows the resume summary instead: each step with its status and summary (Open on a finished step),
+the open questions and the pipeline agent's job on the current step, a note when main moved since the research,
+**Resume <step>** (`pipeline-setup-resume`) and **Start over**, which asks first (`pipeline-setup-start-over`). The
+billing step reopened from the stepper saves a change with `pipeline-setup-billing` and offers **Back to <step>** in
+place of a second start.
+
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
 A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of
 its own. Esc, Close or a second click on the open item closes it. The filter line at the right of the tab row, `Hiding closed >

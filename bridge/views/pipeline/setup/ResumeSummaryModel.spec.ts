@@ -1,0 +1,104 @@
+/**
+ * The resume summary's model. What matters: each step carries the record's status and the summary the facts' counts give it, and a done
+ * or recheck step reopens at its route; the current step carries the open questions and the pipeline agent's job; a pending Apply names
+ * its commit, hold or refusal; Resume and Start over name the record; the main-moved note shows only while main moved.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import type { PipelineSetupFacts }                        from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
+import { ResumeSummaryModel }                             from './ResumeSummaryModel.ts';
+
+function setupOf(name: PipelineFixtureName): PipelineSetupFacts {
+  const setup = pipelineBoardStateOf(name).pipelineSetup;
+  if (setup === undefined || setup === null) throw new Error(`the fixture ${name} has no setup`);
+  return setup;
+}
+
+function stepOf(setup: PipelineSetupFacts, step: string) {
+  const found = ResumeSummaryModel.resumeStepsOf(setup).find((candidate) => candidate.step === step);
+  if (found === undefined) throw new Error(`no step ${step}`);
+  return found;
+}
+
+describe('each step\'s row', () => {
+  test('shows the status and summary from the facts, and Open on a done step', () => {
+    expect(ResumeSummaryModel.resumeStepsOf(setupOf('A0b-running')).map((step) => [step.step, step.status, step.summary, step.openHref])).toEqual([
+      ['billing', 'done', 'Subscription', '#pipeline/setup/billing'],
+      ['research', 'done', '1 stack item, 2 scripts, 1 question answered', '#pipeline/setup/research'],
+      ['constitution', 'done', 'Drafted · 4 sections, 6 rules', '#pipeline/setup/constitution'],
+      ['design', 'current', 'Proposal saved: 1 prepare step, 3 build gates, 3 review gates, 3 merge gates. 2 changes by User kept.', null],
+      ['apply', 'upcoming', 'not yet', null],
+    ]);
+  });
+
+  test('a step that needs a recheck says so and reopens', () => {
+    const constitution = stepOf(setupOf('A0b-recheck'), 'constitution');
+    expect(constitution).toMatchObject({ status: 'recheck', recheck: true, openHref: '#pipeline/setup/constitution' });
+    expect(stepOf(setupOf('A0b-recheck'), 'research')).toMatchObject({ status: 'current', recheck: false, openHref: null });
+  });
+
+  test('a step not reached has no summary', () => {
+    const setup = setupOf('A1');
+    expect(stepOf(setup, 'constitution').summary).toBeNull();
+    expect(stepOf(setup, 'design').summary).toBeNull();
+  });
+
+  test('the API billing names its cap', () => {
+    const setup = setupOf('A0b-running');
+    const withCap = { ...setup, record: { ...setup.record, billing: { mode: 'api', maxBudgetUsd: 5 } } } as const;
+    expect(stepOf(withCap, 'billing').summary).toBe('API key · cap $5 per launch');
+  });
+});
+
+describe('the current step\'s chips', () => {
+  test('name the open questions and the running pipeline agent', () => {
+    const setup = setupOf('A0b-running');
+    const withQuestion = { ...setup, openQuestionCount: 1 };
+    expect(stepOf(withQuestion, 'design').chips).toEqual([
+      { text: '1 question open', tone: 'question' },
+      { text: 'Pipeline agent J4 running', tone: 'neutral' },
+    ]);
+  });
+
+  test('a stopped pipeline agent resumes with its conversation', () => {
+    expect(stepOf(setupOf('A0b-stopped'), 'design').chips).toEqual([{ text: 'Pipeline agent J4 stopped · resumes with its conversation', tone: 'neutral' }]);
+    expect(ResumeSummaryModel.leadTextOf(setupOf('A0b-stopped'))).toBe('Every step was saved as it happened. Setup stopped during the pipeline design.');
+  });
+});
+
+describe('a pending Apply', () => {
+  test('names the constitution commit', () => {
+    expect(stepOf(setupOf('A0b-apply-pending'), 'apply').summary).toBe('Committing CONSTITUTION.md to main');
+  });
+
+  test('names a hold with its reason and blocking files, and a refusal with its reason', () => {
+    const setup = setupOf('A0b-apply-pending');
+    const pending = setup.applyState;
+    if (pending === null) throw new Error('the fixture has no pending Apply');
+    const held: PipelineSetupFacts = {
+      ...setup,
+      applyState: {
+        ...pending, state: 'held', reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md']
+      },
+    };
+    expect(stepOf(held, 'apply').summary).toBe('Held: the main checkout holds changes to CONSTITUTION.md (CONSTITUTION.md)');
+    const refused: PipelineSetupFacts = { ...setup, applyState: { ...pending, state: 'refused', reason: 'constitution-commit-unsigned' } };
+    expect(stepOf(refused, 'apply').summary).toBe('Refused: git could not sign the commit');
+  });
+});
+
+describe('the commands and the note', () => {
+  test('Resume and Start over name the record', () => {
+    const setup = setupOf('A0b-running');
+    expect(ResumeSummaryModel.resumeLabelOf(setup)).toBe('Resume pipeline design');
+    expect(ResumeSummaryModel.resumeCommandOf(setup)).toEqual({ kind: 'pipeline-setup-resume', setupId: 'S1' });
+    expect(ResumeSummaryModel.startOverCommandOf(setup)).toEqual({ kind: 'pipeline-setup-start-over', setupId: 'S1' });
+  });
+
+  test('the main-moved note shows only while main moved', () => {
+    expect(ResumeSummaryModel.mainMovedTextOf(setupOf('A0b-running'))).toBeNull();
+    expect(ResumeSummaryModel.mainMovedTextOf(setupOf('A0b-main-moved')))
+      .toBe('Main moved 3 commits since the research. The pipeline agent rechecks the scripts when it resumes.');
+  });
+});

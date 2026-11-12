@@ -1,0 +1,176 @@
+/**
+ * The resume summary's model, pure: each setup step with its status and the summary the facts give it, the current step's chips (open
+ * questions, the pipeline agent's job), the commands of Resume and Start over, and the note that main moved since the research. Every
+ * word comes from the facts' counts and values; the record's statuses decide, a time never does.
+ */
+import type { JobState }                                              from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineBilling }                                       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { ApplyStateFacts, PipelineSetupFacts }                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ApplyRequestReason, PipelineSetupStep }                 from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ControlCommandBody }                                    from '../../../api/CommandClient.ts';
+import type { StepperStatus }                                         from '../../../design-system/Stepper.tsx';
+import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../PipelineViewModel.ts';
+
+export type ResumeChipTone = 'question' | 'neutral';
+
+export interface ResumeChip {
+  readonly text: string;
+  readonly tone: ResumeChipTone;
+}
+
+export interface ResumeStep {
+  readonly step:     PipelineSetupStep;
+  readonly label:    string;
+  readonly status:   StepperStatus;
+  /** A step that `needs-recheck`: its detail leads with the word "recheck". */
+  readonly recheck:  boolean;
+  readonly summary:  string | null;
+  /** Only on the current step. */
+  readonly chips:    readonly ResumeChip[];
+  /** Where Open reopens a done or recheck step. */
+  readonly openHref: string | null;
+}
+
+const JOB_STATE_WORDS: Readonly<Record<JobState, string>> = {
+  'launching':          'starting',
+  'preparing':          'starting',
+  'running':            'running',
+  'waiting-for-answer': 'waiting for an answer',
+  'interrupted':        'interrupted',
+  'awaiting-answer':    'waiting for an answer',
+  'in-customs':         'in customs',
+  'gating':             'gating',
+  'merging':            'merging',
+  'landing':            'landing',
+  'stopping':           'stopping',
+};
+
+const APPLY_REASON_WORDS: Readonly<Record<ApplyRequestReason, string>> = {
+  'not-on-target-branch':                 'the main checkout is not on the main branch',
+  'dirty-checkout':                       'the main checkout holds changes to CONSTITUTION.md',
+  'target-file-held':                     'a file of the main checkout is held',
+  'git-failed':                           'git failed',
+  'constitution-commit-unsigned':         'git could not sign the commit',
+  'constitution-commit-unexpected-paths': 'the commit changed more than CONSTITUTION.md',
+  'constitution-moved':                   'CONSTITUTION.md changed on main since the draft',
+};
+
+function countText(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function billingTextOf(billing: PipelineBilling): string {
+  if (billing.mode === 'subscription') return 'Subscription';
+  return billing.maxBudgetUsd === undefined ? 'API key' : `API key · cap $${billing.maxBudgetUsd} per launch`;
+}
+
+function applyTextOf(applyState: ApplyStateFacts): string {
+  if (applyState.state === 'committing') {
+    return applyState.ticketIdHoldingMain === null
+      ? 'Committing CONSTITUTION.md to main'
+      : `Waiting for the merge train: ${applyState.ticketIdHoldingMain} is landing`;
+  }
+  const reason = applyState.reason === null ? '' : `: ${APPLY_REASON_WORDS[applyState.reason]}`;
+  const blockingFiles = applyState.blockingFiles.length === 0 ? '' : ` (${applyState.blockingFiles.join(', ')})`;
+  return `${applyState.state === 'held' ? 'Held' : 'Refused'}${reason}${blockingFiles}`;
+}
+
+/** The step's summary once it was reached; a step not started has none, except Apply's "not yet". */
+function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string | null {
+  const { record, summary } = facts;
+  const reached = record.stepStates[step] !== 'not-started' || record.currentStep === step;
+  switch (step) {
+    case 'billing':
+      return billingTextOf(record.billing);
+    case 'research':
+      return reached
+        ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `
+          + `${countText(summary.answeredQuestionCount, 'question', 'questions')} answered`
+        : null;
+    case 'constitution':
+      if (!reached) return null;
+      return facts.constitutionOutline === null
+        ? 'Not drafted yet'
+        : `Drafted · ${countText(facts.constitutionOutline.sectionCount, 'section', 'sections')}, ${countText(facts.constitutionOutline.ruleCount, 'rule', 'rules')}`;
+    case 'design': {
+      if (!reached) return null;
+      if (record.draft === null) return 'No proposal yet';
+      const { build, review, merge } = summary.gateCountByPhase;
+      const proposal = `Proposal saved: ${countText(summary.prepareStepCount, 'prepare step', 'prepare steps')}, `
+        + `${countText(build, 'build gate', 'build gates')}, ${countText(review, 'review gate', 'review gates')}, ${countText(merge, 'merge gate', 'merge gates')}.`;
+      return summary.userEditsKeptCount === 0
+        ? proposal
+        : `${proposal} ${countText(summary.userEditsKeptCount, 'change', 'changes')} by User kept.`;
+    }
+    case 'apply':
+      return facts.applyState === null ? 'not yet' : applyTextOf(facts.applyState);
+  }
+}
+
+function agentChipTextOf(facts: PipelineSetupFacts): string {
+  const agent = facts.record.agentJobId === null ? 'Pipeline agent' : `Pipeline agent ${facts.record.agentJobId}`;
+  return facts.agentJobState === null
+    ? `${agent} stopped · resumes with its conversation`
+    : `${agent} ${JOB_STATE_WORDS[facts.agentJobState]}`;
+}
+
+function currentChipsOf(facts: PipelineSetupFacts): ResumeChip[] {
+  const questionChips: ResumeChip[] = facts.openQuestionCount === 0
+    ? []
+    : [{ text: `${countText(facts.openQuestionCount, 'question', 'questions')} open`, tone: 'question' }];
+  return [...questionChips, { text: agentChipTextOf(facts), tone: 'neutral' }];
+}
+
+function resumeStepsOf(facts: PipelineSetupFacts): ResumeStep[] {
+  return PIPELINE_SETUP_STEPS.map((step) => {
+    const status = PipelineViewModel.setupStepStatusOf(facts.record, step);
+    const reopens = status === 'done' || status === 'recheck';
+    return {
+      step,
+      label:    SETUP_STEP_LABELS[step],
+      status,
+      recheck:  status === 'recheck',
+      summary:  summaryOf(facts, step),
+      chips:    status === 'current' ? currentChipsOf(facts) : [],
+      openHref: reopens ? PipelineViewModel.setupStepFragmentOf(step) : null,
+    };
+  });
+}
+
+function stepWordsOf(step: PipelineSetupStep): string {
+  return SETUP_STEP_LABELS[step].toLowerCase();
+}
+
+function leadTextOf(facts: PipelineSetupFacts): string {
+  const where = facts.agentJobState === null
+    ? `Setup stopped during the ${stepWordsOf(facts.record.currentStep)}.`
+    : `The pipeline agent works on the ${stepWordsOf(facts.record.currentStep)}.`;
+  return `Every step was saved as it happened. ${where}`;
+}
+
+function resumeLabelOf(facts: PipelineSetupFacts): string {
+  return `Resume ${stepWordsOf(facts.record.currentStep)}`;
+}
+
+function resumeCommandOf(facts: PipelineSetupFacts): ControlCommandBody {
+  return { kind: 'pipeline-setup-resume', setupId: facts.record.setupId };
+}
+
+function startOverCommandOf(facts: PipelineSetupFacts): ControlCommandBody {
+  return { kind: 'pipeline-setup-start-over', setupId: facts.record.setupId };
+}
+
+/** Shown only while main moved since the snapshot, which the facts count before Resume moves it. */
+function mainMovedTextOf(facts: PipelineSetupFacts): string | null {
+  if (facts.mainMovedByCommits <= 0) return null;
+  return `Main moved ${countText(facts.mainMovedByCommits, 'commit', 'commits')} since the research. The pipeline agent rechecks the scripts when it resumes.`;
+}
+
+export const ResumeSummaryModel = Object.freeze({
+  resumeStepsOf,
+  leadTextOf,
+  resumeLabelOf,
+  resumeCommandOf,
+  startOverCommandOf,
+  mainMovedTextOf,
+});

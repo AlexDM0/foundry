@@ -24,6 +24,15 @@
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-pipeline[data-screen] the Pipeline view (bridge/views/pipeline/): its .bridge-pipeline-title over the screen that the
  *                           facts and the route pick
+ *   .bridge-pipeline-setup[data-reopened?] the billing step (A0Setup): a .bridge-pipeline-setup-hero (the amber
+ *                           .bridge-pipeline-setup-chip with its pulsing -chip-dot, the -heading, the -lead and the waiting-tickets
+ *                           -fact), then numbered .bridge-pipeline-setup-section blocks (-section-heading, -section-number): the
+ *                           .bridge-pipeline-billing-cards grid of card options, the API card's .bridge-pipeline-billing-cap with its
+ *                           -cap-field and -cap-input, and the .bridge-pipeline-setup-agent-card (-agent-text with the -agent-title
+ *                           and its meter, the -agent-steps list and the -agent-note; the -agent-action column)
+ *   .bridge-pipeline-resume the resume summary (A0bResume): the hero with its .bridge-pipeline-resume-badge, the vertical stepper
+ *                           whose details are a .bridge-pipeline-resume-recheck word, a -summary and the current step's
+ *                           .bridge-pipeline-resume-chips of -chip[data-tone]; the -actions row; the -main-moved note
  *   .bridge-incident-notice the incident line above the header, an error .bridge-banner, anchoring the .bridge-incident-drawer that
  *                           hangs over the header: a .bridge-pane of .bridge-incident-group lists (micro-caps title, .bridge-incident-rows),
  *                           each .bridge-incident-row[data-open?][data-unseen?] a .bridge-incident-row-toggle (.bridge-incident-id,
@@ -3371,3 +3380,81 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 /* The Pipeline view: the screen's title over the screen. */
 .bridge-pipeline { display: flex; flex-direction: column; gap: var(--sp-4); }
 .bridge-pipeline-title { margin: 0; font: 600 var(--fs-page)/1.2 var(--font-ui); color: var(--ink); }
+
+/* The billing step (A0Setup): a 1120 px column of the hero, the billing cards and the pipeline agent's card. A chosen card keeps its
+   1 px border and draws the second pixel and the ring as box-shadows, so choosing moves nothing. */
+.bridge-pipeline-setup, .bridge-pipeline-resume { display: flex; flex-direction: column; gap: var(--sp-5); width: 100%; margin: 0 auto; }
+.bridge-pipeline-setup { max-width: 1120px; }
+.bridge-pipeline-resume { max-width: 720px; }
+.bridge-pipeline-setup-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.bridge-pipeline-setup-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--r-2);
+  font: 600 var(--fs-micro)/1.2 var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--question-ink); background: var(--question-fill); box-shadow: inset 0 0 0 1px var(--question-edge);
+}
+.bridge-pipeline-setup-chip-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--question-accent); }
+.bridge-pipeline-setup-heading { margin: 0; font: 600 26px/1.2 var(--font-ui); letter-spacing: -0.01em; color: var(--ink-1); }
+.bridge-pipeline-resume .bridge-pipeline-setup-heading { font-size: 24px; }
+.bridge-pipeline-setup-lead { max-width: 720px; margin: 0; font-size: 14px; line-height: 21px; color: var(--ink-2); }
+.bridge-pipeline-setup-fact {
+  padding: 4px 10px; border-radius: var(--r-2); font-size: var(--fs-small); color: var(--ink-2);
+  background: var(--surface-panel); box-shadow: inset 0 0 0 1px var(--line-hairline);
+}
+.bridge-pipeline-setup-section { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+.bridge-pipeline-setup-section-heading { display: flex; gap: var(--sp-2); margin: 0; font: 600 var(--fs-title)/1.3 var(--font-ui); color: var(--ink-1); }
+.bridge-pipeline-setup-section-number { font-weight: 500; color: var(--ink-3); }
+.bridge-pipeline-billing-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); width: 100%; }
+.bridge-pipeline-billing-cards .bridge-choice[data-variant="card"] {
+  align-items: flex-start; gap: var(--sp-3); padding: var(--sp-4); border-color: var(--line-hairline); border-radius: var(--r-3);
+  background: var(--surface-panel);
+}
+.bridge-pipeline-billing-cards .bridge-choice[data-variant="card"]:hover { background: var(--surface-panel); box-shadow: 0 0 0 1px var(--accent-outline); }
+.bridge-pipeline-billing-cards .bridge-choice[data-chosen] { border-color: var(--link); box-shadow: inset 0 0 0 1px var(--link), 0 0 0 3px var(--accent-ring); }
+.bridge-pipeline-billing-cards .bridge-choice-input { margin-top: 2px; }
+.bridge-pipeline-billing-cards .bridge-choice-letter { display: none; }
+.bridge-pipeline-billing-cards .bridge-choice-text { gap: 4px; font-size: 14px; font-weight: 600; }
+.bridge-pipeline-billing-cards .bridge-choice-description { font-size: var(--fs-body); font-weight: 400; line-height: 19px; color: var(--ink-2); }
+.bridge-pipeline-billing-cap { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-body); color: var(--ink-3); }
+.bridge-pipeline-billing-cap-field {
+  display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-2);
+  color: var(--ink-4); box-shadow: inset 0 0 0 1px var(--line-hairline);
+}
+.bridge-pipeline-billing-cap-input { width: 64px; padding: 0; font: inherit; color: var(--ink-1); background: transparent; border: 0; }
+.bridge-pipeline-billing-cap-input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-pipeline-setup-agent-card {
+  display: flex; gap: var(--sp-5); width: 100%; box-sizing: border-box; padding: var(--sp-5); border-radius: var(--r-3);
+  background: var(--surface-panel); box-shadow: inset 0 0 0 1px var(--line-control);
+}
+.bridge-pipeline-setup-agent-card:hover { box-shadow: inset 0 0 0 1px var(--line-control), 0 0 0 1px var(--accent-outline); }
+.bridge-pipeline-setup-agent-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.bridge-pipeline-setup-agent-title { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 17px; }
+.bridge-pipeline-setup-agent-steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 0 18px; line-height: 19px; color: var(--ink-2); }
+.bridge-pipeline-setup-agent-note { margin: 0; font-size: var(--fs-small); color: var(--ink-3); }
+.bridge-pipeline-setup-agent-action { display: flex; flex: none; flex-direction: column; justify-content: flex-end; gap: var(--sp-2); width: 240px; }
+.bridge-pipeline-setup-agent-action .bridge-control { display: flex; flex-direction: column; gap: var(--sp-2); }
+.bridge-pipeline-setup-agent-action .bridge-button { justify-content: center; height: 44px; font-size: 14px; font-weight: 600; }
+@media (max-width: 900px) {
+  .bridge-pipeline-billing-cards { grid-template-columns: minmax(0, 1fr); }
+  .bridge-pipeline-setup-agent-card { flex-direction: column; }
+  .bridge-pipeline-setup-agent-action { width: auto; }
+}
+
+/* The resume summary (A0bResume): the step details under each label, the current step's chips, and the actions under the steps. */
+.bridge-pipeline-resume-badge {
+  padding: 3px 8px; border-radius: var(--r-2); font: 600 var(--fs-micro)/1.2 var(--font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ticket-chip-ink); background: var(--ticket-chip-tint);
+}
+.bridge-pipeline-resume-recheck { margin-right: 6px; font-weight: 600; color: var(--change-changed-ink); }
+.bridge-pipeline-resume-summary { color: inherit; }
+.bridge-pipeline-resume-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: 6px; }
+.bridge-pipeline-resume-chip { padding: 2px 8px; border-radius: 5px; font-size: var(--fs-small); color: var(--ink-2); background: var(--surface-raised); }
+.bridge-pipeline-resume-chip[data-tone="question"] { color: var(--question-ink); background: var(--question-fill); }
+.bridge-pipeline-resume-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-resume-actions > .bridge-control:first-child { margin-right: auto; }
+.bridge-pipeline-resume-main-moved { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
+@media (prefers-reduced-motion: no-preference) {
+  .bridge-pipeline-setup-chip-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
+  .bridge-pipeline-setup-hero, .bridge-pipeline-setup-section, .bridge-pipeline-resume > .bridge-stepper {
+    animation: bridge-rise var(--motion-rise) var(--ease-out) both;
+  }
+}
