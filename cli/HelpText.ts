@@ -499,8 +499,9 @@ never carries it.
   gate remove <name> [--json] Remove the gate <name>; an unknown one is refused at exit 1.
                               Every write takes the lock, is accepted with tickets in flight, and
                               refuses a malformed or older pipeline.json at exit 1 rather than
-                              overwrite it. Each row records the hash of the pipeline at its next
-                              gate run. --json prints {pipeline, contentHash, phaseHashes}.
+                              overwrite it. Each row records its gate phase and that phase's hash
+                              at its next gate run. --json prints {pipeline, contentHash,
+                              phaseHashes}.
   gate approval tickets|merge on|off [--json]
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's

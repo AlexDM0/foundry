@@ -1691,8 +1691,8 @@ Each of these reads as exit 2:
 - a `nextDraftId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or `nextIncidentId`
   below 1;
 - a present optional row key of the wrong shape: `reviewRound` below 2, `reviewBarRound` below 1, a row `pipelineHash`
-or `greenTree` that is not text, a `greenPhase` other than `build`, `review` or `merge`, a `history` that is not a list
-of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
+  or `greenTree` that is not text, a `greenPhase` other than `build`, `review` or `merge`, a `history` that is not a
+  list of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
 - a job, decision or incident whose field is missing, outside its vocabulary or of the wrong shape;
 - an `overseerFirstStartedAt` that is not text;
 - a row or history phase in a status the file format does not know, the retired `running` or `finished` included, with

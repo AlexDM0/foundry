@@ -3,8 +3,7 @@
  * phase, the instruction list a role reads, and the folders its gates write. The steps stay structured: each runs as its own process,
  * and a display line is the shell grammar's to render.
  */
-import type { GatePhase } from '../@types/GatePhase.ts';
-import { GATE_PHASES }    from '../@types/GatePhase.ts';
+import { GATE_PHASES, type GatePhase } from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
   InstructionEntry,
