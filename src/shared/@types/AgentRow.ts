@@ -1,0 +1,28 @@
+/**
+ * One job of a forge that runs an agent. A forge read through its summary reports only the job id, kind, role, tickets, state and tokens;
+ * every other fact is then `null`, never zero.
+ */
+export interface AgentRow {
+  jobId:               string;
+  kind:                string;
+  role:                string | null;
+  state:               string;
+  ticketIds:           string[];
+  tokens:              number;
+  ticketTitle:         string | null;
+  attempt:             number | null;
+  startedAt:           string | null;
+  calls:               number | null;
+  callBudget:          number | null;
+  toolCalls:           number | null;
+  lastToolCall:        string | null;
+  runningSubagents:    number | null;
+  silentSweeps:        number | null;
+  /** The forge's own quiet-job verdict, never Gaia's. */
+  quiet:               boolean | null;
+  turn:                number | null;
+  messagesWaiting:     number | null;
+  lastLine:            string | null;
+  waitingOnDecisionId: string | null;
+  route:               string | null;
+}

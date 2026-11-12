@@ -1,0 +1,135 @@
+/**
+ * The example data of artboard B3: three kinds of forge Gaia cannot read in full. Invoice Service stopped answering at 13:14 and keeps its
+ * last reading; Research Wiki predates the monitor contract and is read through its summary; Analytics Sandbox publishes a newer monitor
+ * contract and is read not at all.
+ */
+import type { FleetDocument, FleetDocumentAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from './fleet-five-forges.ts';
+
+const READINGS = FLEET_FIVE_FORGES_READINGS;
+
+const TRACKER_IDS = { ...FLEET_FIVE_FORGES_TRACKER_IDS, analyticsSandbox: 'analytics-sandbox-4d18' } as const;
+
+const INVOICE_SERVICE: FleetDocumentForge = {
+  ...READINGS.invoiceService,
+  fidelity:       'unreachable',
+  condition:      'unreachable',
+  lastReportedAt: '2026-11-12T13:14:05.000Z',
+};
+
+/** A job read through `summaryVersion: 1`: what the summary does not hold is `null`, never zero. */
+const WIKI_COUNTS_ONLY_J2: FleetDocumentAgentRow = {
+  jobId:               'J2',
+  kind:                'build',
+  role:                'builder',
+  state:               'running',
+  ticketIds:           ['007'],
+  tokens:              103_490,
+  ticketTitle:         null,
+  attempt:             null,
+  startedAt:           null,
+  calls:               null,
+  callBudget:          null,
+  toolCalls:           null,
+  lastToolCall:        null,
+  runningSubagents:    null,
+  silentSweeps:        null,
+  quiet:               null,
+  turn:                null,
+  messagesWaiting:     null,
+  lastLine:            null,
+  waitingOnDecisionId: null,
+  route:               null,
+};
+
+const RESEARCH_WIKI: FleetDocumentForge = {
+  trackerId: TRACKER_IDS.researchWiki,
+  project:   'Research Wiki',
+  root:      '/Users/alexexample/development/research-wiki',
+  fidelity:  'counts-only',
+  condition: 'live',
+  url:       'http://127.0.0.1:4962',
+  processId: 48_390,
+  contracts: {
+    summary: 1,
+    monitor: null,
+    control: null,
+    embed:   null,
+  },
+  codeVersion:       '3f9a2c1',
+  lastReportedAt:    '2026-11-12T13:19:15.000Z',
+  overseerStartedAt: null,
+  lastCommand:       'open',
+  lastChangedAt:     '2026-11-12T11:02:00.000Z',
+  concurrency:       null,
+  readyTicketCount:  2,
+  openIncidents:     0,
+  attention:         [],
+  attentionCount:    1,
+  agents:            [WIKI_COUNTS_ONLY_J2],
+  notices:           [],
+  warnings:          [],
+  activity:          [],
+  today:             null,
+  usage:             { resetsAt: null, window: null },
+};
+
+const ANALYTICS_SANDBOX: FleetDocumentForge = {
+  trackerId: TRACKER_IDS.analyticsSandbox,
+  project:   'Analytics Sandbox',
+  root:      '/Users/alexexample/development/analytics-sandbox',
+  fidelity:  'newer-contract',
+  condition: 'unreadable',
+  url:       'http://127.0.0.1:4983',
+  processId: 49_012,
+  contracts: {
+    summary: 1,
+    monitor: 2,
+    control: 2,
+    embed:   1,
+  },
+  codeVersion:       '9c04e5b',
+  lastReportedAt:    null,
+  overseerStartedAt: null,
+  lastCommand:       'open',
+  lastChangedAt:     '2026-11-12T10:05:00.000Z',
+  concurrency:       null,
+  readyTicketCount:  null,
+  openIncidents:     null,
+  attention:         [],
+  attentionCount:    null,
+  agents:            [],
+  notices:           [],
+  warnings:          [],
+  activity:          [],
+  today:             null,
+  usage:             null,
+};
+
+const READ_IN_FULL_OR_AS_LAST_REPORTED = new Set<string>([TRACKER_IDS.exampleStorefront, TRACKER_IDS.invoiceService, TRACKER_IDS.exampleMobileApp]);
+
+export const FLEET_DEGRADED: FleetDocument = {
+  ...FLEET_FIVE_FORGES,
+  forges:     [READINGS.exampleStorefront, INVOICE_SERVICE, RESEARCH_WIKI, READINGS.exampleMobileApp, ANALYTICS_SANDBOX],
+  attention:  FLEET_FIVE_FORGES.attention.filter((item) => READ_IN_FULL_OR_AS_LAST_REPORTED.has(item.trackerId)),
+  needsALook: [
+    { trackerId: TRACKER_IDS.invoiceService, kind: 'unreachable' },
+    { trackerId: TRACKER_IDS.researchWiki, kind: 'counts-only' },
+    { trackerId: TRACKER_IDS.exampleMobileApp, kind: 'launches-held' },
+    { trackerId: TRACKER_IDS.analyticsSandbox, kind: 'newer-contract' },
+  ],
+  agents:   FLEET_FIVE_FORGES.agents.map((row) => (row.trackerId === TRACKER_IDS.researchWiki ? { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki } : row)),
+  activity: FLEET_FIVE_FORGES.activity.filter((entry) => READ_IN_FULL_OR_AS_LAST_REPORTED.has(entry.trackerId)),
+  machine:  { cpuCount: 12, agentsAskedForByForgeLimits: 12, ticketsWaitingForMachineSlot: 0 },
+  figures:  {
+    waitingOnUser:  4,
+    agentsInFlight: 10,
+    machineLimit:   12,
+    readyTickets:   8,
+    deliveredToday: 5,
+    tokensToday:    1_076_000,
+    openIncidents:  0,
+    incompleteFor:  [TRACKER_IDS.invoiceService, TRACKER_IDS.researchWiki, TRACKER_IDS.analyticsSandbox],
+  },
+};
