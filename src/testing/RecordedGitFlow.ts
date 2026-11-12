@@ -239,8 +239,9 @@ const PIPELINE_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, 
   leavesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
 
-/** An Apply reads main's constitution: the main line holds none. */
-const MAIN_CONSTITUTION_READ = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+/** The agent's first proposal reads the snapshot commit's tree, and an Apply reads main's constitution: the main line holds none. */
+const PIPELINE_SETUP_MAIN_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  ['ls-tree', '-r', '-z', '--full-tree', MAIN_TIP],
   { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:CONSTITUTION.md`], exitCode: NEGATIVE },
 ]);
 
@@ -382,7 +383,7 @@ const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ git
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
   'pipeline agent worktree made': [
-    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...MAIN_CONSTITUTION_READ, ...PIPELINE_AGENT_WORKTREE_REMOVE,
+    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...PIPELINE_SETUP_MAIN_READS, ...PIPELINE_AGENT_WORKTREE_REMOVE,
   ],
   'worktree made':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...RECORDED_FLOW_SESSION_COMMIT],
   'tree changed':                 [...COMMITTED_STAGE_CALLS, ...LANDING_READS, ...FAST_FORWARD],
