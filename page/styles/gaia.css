@@ -491,6 +491,17 @@ body {
 
 /* Main area and top bar */
 .gaia-shell-main { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+/* The fieldset only disables the controls under it while the stream is lost; it draws nothing and lays out as the main area did. */
+.gaia-shell-controls {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .gaia-top-bar {
   display: flex;
   flex: none;

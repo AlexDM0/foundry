@@ -1,0 +1,33 @@
+/**
+ * The connection banner. What matters (SCREENS "The shell"): while Gaia's event stream is lost the banner says so in SCREENS' own words,
+ * as an alert in the error tone; a page that cannot read the server's documents says that instead; a live or connecting stream shows none.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import type { FleetStreamState } from '../api/FleetStreamClient.ts';
+import { ReactElementTree }      from '../testing/ReactElementTree.ts';
+import { ConnectionBanner }      from './ConnectionBanner.tsx';
+
+const tree = ReactElementTree;
+
+function bannerOf(streamState: FleetStreamState) {
+  return tree.unfolded(<ConnectionBanner streamState={streamState} />);
+}
+
+describe('the connection banner', () => {
+  test('a lost stream shows SCREENS\' sentence as an alert in the error tone', () => {
+    const banner = tree.onlyWithClass(bannerOf('lost'), 'gaia-banner');
+    expect([banner.props['role'], banner.props['data-tone']]).toEqual(['alert', 'error']);
+    expect(tree.textOf([banner])).toBe('Gaia\'s server could not be reached. Trying again.');
+  });
+
+  test('a page out of date with the server says that it is, and claims no retry', () => {
+    const text = tree.textOf(bannerOf('page-out-of-date'));
+    expect(text).toBe('This page does not match Gaia\'s server, and reloading it did not help.');
+    expect(text).not.toContain('Trying again');
+  });
+
+  test('a live or connecting stream shows no banner', () => {
+    expect([bannerOf('live'), bannerOf('connecting')]).toEqual([[], []]);
+  });
+});

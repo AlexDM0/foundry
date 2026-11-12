@@ -1,6 +1,8 @@
 /**
- * The page's root. `GaiaApp` follows the fleet document, the route in the fragment and the theme choice, and keeps the window title and
- * the document's theme in step with them; `GaiaShell` lays out the rail, the top bar and the view from those values alone.
+ * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
+ * keeps the window title and the document's theme in step with them, and provides the command sender to the views; `GaiaShell` lays out
+ * the rail, the top bar, the connection banner and the view from those values alone. While the stream is lost one disabled fieldset
+ * disables every control of the top bar and the view, so a view's control needs no word of the stream; the rail holds only links.
  */
 import {
   type ReactNode,
@@ -13,6 +15,9 @@ import {
 } from 'react';
 
 import type { FleetDocument }                                from '../@types/FleetDocument.ts';
+import { type CommandSender, CommandSenderContext }          from '../api/CommandSender.ts';
+import { FleetStreamClient, type FleetStreamState }          from '../api/FleetStreamClient.ts';
+import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
 import type { FleetSource }                                  from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings } from './HashRouter.ts';
 import { Rail }                                              from './Rail.tsx';
@@ -35,6 +40,7 @@ export interface ShellViewParts {
 
 export interface GaiaShellProps {
   readonly fleetDocument: FleetDocument | null;
+  readonly streamState:   FleetStreamState;
   readonly route:         GaiaRoute;
   readonly viewTitle:     string;
   readonly view:          ShellViewParts;
@@ -52,31 +58,39 @@ export interface ShellSurroundings {
 }
 
 export interface GaiaAppProps {
-  readonly fleetSource:  FleetSource;
-  readonly surroundings: ShellSurroundings;
+  readonly fleetSource:   FleetSource;
+  readonly fleetStream:   Pick<FleetStreamClient, 'state' | 'subscribe'>;
+  readonly commandSender: CommandSender;
+  readonly surroundings:  ShellSurroundings;
 }
 
 const NO_VIEW_PARTS: ShellViewParts = { status: null, actions: null, content: null };
 
 export function GaiaShell({
-  fleetDocument, route, viewTitle, view, themeChoice, onThemeChoice
+  fleetDocument, streamState, route, viewTitle, view, themeChoice, onThemeChoice
 }: GaiaShellProps) {
   return (
     <div className="gaia-shell">
       <Rail content={RailModel.railContentOf(fleetDocument, route)} />
       <main className="gaia-shell-main">
-        <TopBar title={viewTitle} status={view.status} actions={view.actions} themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
-        <div className="gaia-shell-view">{view.content}</div>
+        <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
+          <TopBar title={viewTitle} status={view.status} actions={view.actions} themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
+          <ConnectionBanner streamState={streamState} />
+          <div className="gaia-shell-view">{view.content}</div>
+        </fieldset>
       </main>
     </div>
   );
 }
 
-export function GaiaApp({ fleetSource, surroundings }: GaiaAppProps) {
+export function GaiaApp({
+  fleetSource, fleetStream, commandSender, surroundings
+}: GaiaAppProps) {
   const {
     hash, theme, setWindowTitle, markMotionReady
   } = surroundings;
   const fleetDocument = useSyncExternalStore(fleetSource.subscribe, fleetSource.current, fleetSource.current);
+  const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
   const fragment = useSyncExternalStore(hash.followFragment, hash.currentFragment, hash.currentFragment);
   const route = useMemo(() => HashRouter.routeOf(fragment), [fragment]);
 
@@ -103,14 +117,17 @@ export function GaiaApp({ fleetSource, surroundings }: GaiaAppProps) {
   }, [markMotionReady, holdsADocument]);
 
   return (
-    <GaiaShell
-      fleetDocument={fleetDocument}
-      route={route}
-      viewTitle={viewTitle}
-      view={NO_VIEW_PARTS}
-      themeChoice={shownThemeChoice}
-      onThemeChoice={onThemeChoice}
-    />
+    <CommandSenderContext value={commandSender}>
+      <GaiaShell
+        fleetDocument={fleetDocument}
+        streamState={streamState}
+        route={route}
+        viewTitle={viewTitle}
+        view={NO_VIEW_PARTS}
+        themeChoice={shownThemeChoice}
+        onThemeChoice={onThemeChoice}
+      />
+    </CommandSenderContext>
   );
 }
 
