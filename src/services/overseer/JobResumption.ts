@@ -170,7 +170,7 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pic
   return sessionOwnerByJobId.get(job.id) ?? job.id;
 }
 
-/** The ticket's newest ended build or review job, whichever the pipeline says now: the worker that last changed the branch's code. */
+/** The ticket's newest ended build or review job, whatever the pipeline says now: the worker that last changed the branch's code. */
 export interface LastWorker {
   jobId: string;
   kind:  Extract<JobKind, 'build' | 'review'>;
@@ -203,16 +203,16 @@ interface AirlockAgentPredecessors {
 }
 
 function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): AirlockAgentPredecessors {
-  const ownLaunch = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
-  const before    = ownLaunch === -1 ? logRecords : logRecords.slice(0, ownLaunch);
+  const ownLaunchIndex         = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
+  const recordsBeforeOwnLaunch = ownLaunchIndex === -1 ? logRecords : logRecords.slice(0, ownLaunchIndex);
   const siblingJobIds = new Set<string>();
   let siblingWasReplaced = false;
-  for (const record of before) {
+  for (const record of recordsBeforeOwnLaunch) {
     if (record.kind === 'job-launched' && job.parentJobId !== null && record.fields.parentJobId === job.parentJobId) siblingJobIds.add(record.jobId);
     if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
   }
   const [ticketId] = job.ticketIds;
-  const newestWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(before, ticketId);
+  const newestWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(recordsBeforeOwnLaunch, ticketId);
   return { newestWorker, siblingWasReplaced };
 }
 
