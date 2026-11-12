@@ -39,14 +39,13 @@ steps the board designs drew have no record to read, so the trail leaves them ou
 | The delivery of a settled incident: delivered to the Assistant J1 in chat 14 | The open incident carries `deliveredInTurn`, but no log record notes the delivery, so it goes with the incident once settled. | A delivery record in the log, such as `incident-delivered` with the job and the chat |
 | The fresh agent a `job-fresh` default started: fresh builder J2 took #001 | `job-fresh` logs `job-stop-requested` under the old job; the new job is launched later and names no incident. | The launch of a replacing job naming the incident it answers |
 
-## Pipeline gaps the setup work left open
+## A pipeline gap the setup work left open
 
-The pipeline setup plan meant to close these two [known gaps](reference/known-gaps.md); its items changed neither
-code path.
+The pipeline setup plan meant to close this [known gap](reference/known-gaps.md); its items did not change this code
+path.
 
 | Gap | Change | Waits for |
 | --- | --- | --- |
-| [An unreadable pipeline passes a merged-tree gate](reference/known-gaps.md#gap-unreadable-pipeline-passes-merge-gate) | `gateMergedTree` in `src/services/overseer/DrivePass.ts` ends the gate run `gate-cannot-run` on an older or malformed `pipeline.json`, in place of running no gates. | The next change to `gateMergedTree` |
 | [The `checks-not-set` decision stays open](reference/known-gaps.md#gap-checks-not-set-stays-open) | The `gate` writes that make the board's pipeline set (`gate none`, `gate add`, `gate prepare`) withdraw an open `checks-not-set` decision, as Apply does. | The next change to the `gate` writes in `src/lib/tracker-model/TrackerChanges.ts` |
 
 ## Out of the code-owned lifecycle epic

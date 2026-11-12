@@ -90,6 +90,7 @@ import { QuestionRouting }                                            from './Qu
 import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
+import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
@@ -1084,6 +1085,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       // Read afresh once at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and
       // the stamp names the gates this run ran, whatever changes while it runs.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
+      const unreadable = unreadablePipelineGateOf(reading);
+      if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
       const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({

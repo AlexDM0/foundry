@@ -5,9 +5,9 @@
  * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the withdrawal
  * of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is idempotent
  * by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes the rest,
- * and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable. A constitution
- * commit job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a
- * refusal git's text.
+ * and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at design, with
+ * Apply not reached. A constitution commit job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold
+ * logs the blocking files and a refusal git's text.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -217,7 +217,7 @@ describe('stage 1 while main lacks the draft\'s text', () => {
     expect(reloaded.storedPipelineMovedSince(setupId, MAIN_CONSTITUTION)).toBe(true);
   });
 
-  test('cancel clears the request at the design step, editable, and with none pending refuses no-apply-pending', () => {
+  test('cancel clears the request at the design step, in progress and editable, with Apply not reached, and with none pending refuses no-apply-pending', () => {
     const { board, setupId } = firstSetupAtApply();
     board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
 
@@ -227,6 +227,7 @@ describe('stage 1 while main lacks the draft\'s text', () => {
       at: AT, kind: 'pipeline-apply-cancelled', setupId, fields: { revision: 1, state: 'committing' }
     }]);
     expect(openSetupOf(board)).toMatchObject({ applyRequest: null, currentStep: 'design' });
+    expect(openSetupOf(board).stepStates).toMatchObject({ design: 'in-progress', apply: 'not-started' });
     expect(board.pipeline()).toBeNull();
     expect(board.discardDraft(setupId, AT).setup.draftRevision).toBe(2);
     expect(refusalDetailOf(() => board.cancelApply(setupId, AT))).toEqual({ reason: 'no-apply-pending', setupId });

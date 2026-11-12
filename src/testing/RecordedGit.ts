@@ -71,6 +71,8 @@ export const GIT_CALL_SHAPES = {
   DIFF_OF_A_REFORMATTED_FILE:          'diff --no-ext-diff HEAD --, source.txt changed from unformatted to formatted',
   CHECKOUT_OF_A_REFORMATTED_FILE:      'checkout -q -- ., source.txt changed from unformatted to formatted',
   RESOLVED_MISSING_REVISION:           'rev-parse --verify --quiet --end-of-options <revision>^{commit}, no such revision',
+  UNBORN_BRANCH_COMMIT_UNRESOLVED:     'rev-parse --verify --quiet --end-of-options <branch>^{commit}, on <branch> with no commit yet',
+  CURRENT_UNBORN_BRANCH:               'symbolic-ref --quiet --short HEAD, on <branch> with no commit yet',
   QUIET_WORKTREE_ADD_ON_A_NEW_BRANCH:  'worktree add --quiet -b <branch> <worktree> <start>, the branch new',
   WORKTREE_ADD_ON_A_NEW_BRANCH:        'worktree add -b <branch> <worktree> <start>, the branch new',
   WORKTREE_REMOVE_OF_A_LEFTOVER:       'worktree remove --force <path>, the path a repository of its own and no worktree',

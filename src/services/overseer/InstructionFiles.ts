@@ -7,8 +7,9 @@ import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
-import { GitProcess }      from '../../lib/git/GitProcess.ts';
-import type { Job }        from '../../lib/tracker-model/@types/Job.ts';
+import { readCurrentBranch } from '../../lib/git/BranchIntegration.ts';
+import { GitProcess }        from '../../lib/git/GitProcess.ts';
+import type { Job }          from '../../lib/tracker-model/@types/Job.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type InstructionEntry,
@@ -131,12 +132,15 @@ function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<
 
 /**
  * Main's `CONSTITUTION.md`, its text and its blob id read from one commit of the main line, so the two always belong together. A main
- * line that does not resolve, or a git that cannot answer, is unreadable, never absent.
+ * line checked out with no commit yet holds no file, so it is absent; any other main line that does not resolve, or a git that cannot
+ * answer, is unreadable, never absent.
  */
 function mainConstitutionOf(rootDirectory: string, mainLine: string): MainConstitutionReading {
   const mainTip = GitProcess.resolvedCommitOf(rootDirectory, mainLine);
-  if (mainTip === null) return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
-  return mainConstitutionAt(rootDirectory, mainTip);
+  if (mainTip !== null) return mainConstitutionAt(rootDirectory, mainTip);
+  const currentBranch = readCurrentBranch(rootDirectory);
+  if (currentBranch.verdict === 'on-branch' && currentBranch.branch === mainLine) return { verdict: 'absent' };
+  return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
 }
 
 /** Main's `CONSTITUTION.md` at one resolved commit of the main line. */

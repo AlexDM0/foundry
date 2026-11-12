@@ -393,6 +393,18 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(answer).toEqual({ exitCode: 1, standardOutput: '', standardError: '' });
   });
 
+  test('a repository with no commit yet resolves its branch to exit 1 with no output, and HEAD names that branch, recorded with the branch as its placeholder', () => {
+    const repositoryDirectory = createScratchDirectory('recorded-git-unborn');
+    scratchDirectories.push(repositoryDirectory);
+    gitOutputIn(repositoryDirectory, ['init', '-q', '-b', 'example-main']);
+    const resolveArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', 'example-main^{commit}'];
+    expect(recordedRun(GIT_CALL_SHAPES.UNBORN_BRANCH_COMMIT_UNRESOLVED, repositoryDirectory, resolveArguments)).toEqual({ exitCode: 1, standardOutput: '', standardError: '' });
+    const head = GitProcess.run(repositoryDirectory, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
+    expect(head).toEqual({ exitCode: 0, standardOutput: 'example-main\n', standardError: '' });
+    const recordedHead = { exitCode: 0, standardOutput: `${RECORDED_PLACEHOLDERS.BRANCH}\n`, standardError: '' };
+    recordAnswer(GIT_CALL_SHAPES.CURRENT_UNBORN_BRANCH, recordedHead);
+  });
+
   test('a worktree on a new branch, added quietly and not, then read clean', () => {
     const repositoryDirectory = realpathSync(scratchRepository());
     const groupWorktree = join(`${repositoryDirectory}-worktrees`, 'group-example');

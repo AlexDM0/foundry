@@ -1,6 +1,7 @@
 /**
  * `merges` lists the merge queue read-only. What matters: a held slot is listed with its phase and tips and leaves the queue, the queued
- * tickets follow in priority then queue order, and the read leaves the progress file byte-identical.
+ * tickets follow in priority then queue order, or with merge approval on in User's press order, the accepted tickets first and the ones
+ * waiting for an accept after them, as the Airlock takes them; and the read leaves the progress file byte-identical.
  */
 import { readFileSync } from 'node:fs';
 
@@ -76,5 +77,21 @@ describeWhenGitIsRecorded('the merges command', () => {
     expect(report.queue.map((queued) => [queued.ticketId, queued.priority])).toEqual([['001', 'normal'], ['003', 'low']]);
     expect((await run(['merges'])).outputText()).toContain('main: job ');
     expect(readFileSync(progressFilePath, 'utf8')).toBe(before);
+  });
+
+  test('with merge approval on lists the accepted tickets in User\'s press order, whatever their priority, then the ones waiting for an accept', async () => {
+    await writeTracker({
+      workspace: workspacePathsFor(repositoryDirectory),
+      at:        QUEUED_AT,
+      now:       () => FROZEN_NOW,
+      mutate:    (change) => {
+        change.board.setApproval('merge', true, change.at);
+        change.board.setTicketMergeAccepted('003', true, change.at);
+      },
+    });
+
+    const report = JSON.parse((await run(['merges', '--json'])).outputText()) as { queue: { ticketId: string }[] };
+
+    expect(report.queue.map((queued) => queued.ticketId)).toEqual(['003', '001']);
   });
 });

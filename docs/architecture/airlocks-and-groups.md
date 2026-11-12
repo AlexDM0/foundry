@@ -240,7 +240,7 @@ each gate taking a [gate slot](../glossary.md#gate-slot). What a gate outcome me
 | `passed` | | Logged, any Airlock agent ended `resolved`, phase `landing`. |
 | `failed` | resumes left | `resumeOrSpendTheAgent` writes a [red handoff](../glossary.md#red-handoff) and resumes the [Airlock agent](#airlock-agents), or launches it when none waits: phase `fixing`, with `RED_HANDOFF_RESUME_CALL_BUDGET` calls. |
 | `failed` | resumes spent | Past `RED_HANDOFF_RESUMES_BEFORE_PARKING` resumes, counted per merge job, the agent ends `failed`, the merge aborts and the ticket parks `merge-gate-red`. A refresh is refused instead. |
-| `cannot-run` | | Incident `gate-cannot-run`, default `gate-retry`. |
+| `cannot-run` | | Incident `gate-cannot-run`, default `gate-retry`. An older or malformed `pipeline.json` ends the run here too, with the gate `pipeline.json`, so the tree never lands ungated. |
 | `setup-failed` | | Incident `setup-failed`, default `gate-retry`, no `gate-ran` logged. |
 
 > **As built.** This gate is awaited inside `airlocks.sweep()`, so no Pass runs meanwhile. See

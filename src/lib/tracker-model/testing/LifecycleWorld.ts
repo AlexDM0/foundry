@@ -33,7 +33,10 @@ const ENDINGS_BY_KIND: Readonly<Record<'build' | 'review' | 'assistant', readonl
 const WATCHER_RUNNING_STATES: readonly JobState[] = ['running', 'waiting-for-answer'];
 
 /** The states in which a worktree job's session or the Overseer acts on its worktree with git. */
-const GIT_OPERATING_STATES: readonly JobState[] = ['preparing', 'running', 'waiting-for-answer', 'in-customs', 'gating', 'merging', 'landing'];
+export const GIT_OPERATING_STATES: readonly JobState[] = ['preparing', 'running', 'waiting-for-answer', 'in-customs', 'gating', 'merging-main', 'merging', 'landing'];
+
+/** The other states: nothing acts on the worktree with git, so a state the lifecycle adds is classed in one list or the other. */
+export const GIT_IDLE_STATES: readonly JobState[] = ['launching', 'interrupted', 'awaiting-answer', 'stopping'];
 
 const CRASH_CAUSES: readonly string[] = ['watcher-lost', 'agent-crashed'];
 

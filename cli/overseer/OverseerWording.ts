@@ -171,11 +171,46 @@ function airlockCallBudgetOf(role: string, resumesSession: boolean): number {
   return role === 'builder' ? DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET : DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET;
 }
 
+type LaunchTicket = JobLaunchFacts['tickets'][number];
+
+/** A builder's instruction files, filled for its ticket and attempt. */
+function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts): string {
+  return filledTemplateOf(facts.instructions, {
+    ticketId:       ticket.id,
+    ticketTitle:    ticket.title,
+    ticketBody:     ticket.body.trim(),
+    jobId:          job.id,
+    attempt:        String(job.attempt),
+    target:         job.target ?? '',
+    gateList:       gateListOf(facts.gates),
+    callBudget:     String(DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET),
+    program:        PRODUCT_NAMES.PROGRAM,
+    sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
+  });
+}
+
+/** A reviewer's instruction files, filled for its ticket and round; `mergeApprovalStep` is empty where no approval step applies. */
+function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, mergeApprovalStep: string): string {
+  return filledTemplateOf(facts.instructions, {
+    ticketId:       ticket.id,
+    ticketTitle:    ticket.title,
+    ticketBody:     ticket.body.trim(),
+    jobId:          job.id,
+    round:          String(job.attempt),
+    checksLine:     facts.checksLine ?? NO_CHECKS_LINE,
+    callBudget:     String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
+    program:        PRODUCT_NAMES.PROGRAM,
+    mergeApprovalStep,
+    sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
+  });
+}
+
 /**
  * The ticket's builder or reviewer resumed into the Airlock is told the conflict, with the target tip and the conflicted files, or the
- * red gate on the merged tree; a fresh agent in place of a session that could not resume is also given the ticket, its Handoff and Review.
+ * red gate on the merged tree. A fresh agent in place of a session that could not resume first reads the instruction files of the role
+ * it stands in for, then the ticket, its Handoff and Review; a resumed session read them at its own launch.
  */
-function airlockAgentMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['tickets'][number], airlock: AirlockFacts): string {
+function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
   const role = job.role ?? job.kind;
   const task = airlock.phase === 'resolving' || airlock.redHandoff === null
     ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockConflictMessage.md'), 'utf8'), {
@@ -192,27 +227,17 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['ticke
   const reportTemplate = readFileSync(resourceFilePathOf('prompts', 'AirlockReportMessage.md'), 'utf8');
   const report = filledTemplateOf(reportTemplate, { callBudget: String(airlockCallBudgetOf(role, airlock.resumesSession)) }).trim();
   const takeoverLine = `The session of the earlier ${role} of #${ticket.id} could not be resumed, so you take over its work. Its ticket follows, with its Handoff and Review.`;
-  const takeover = airlock.resumesSession ? [] : [takeoverLine, '', ticket.body.trim(), ''];
-  return [...takeover, task, '', report].join('\n');
+  if (airlock.resumesSession) return [task, '', report].join('\n');
+  const instructions = (role === 'builder' ? builderInstructionsOf(job, ticket, facts) : reviewerInstructionsOf(job, ticket, facts, '')).trim();
+  return [...(instructions === '' ? [] : [instructions, '']), takeoverLine, '', ticket.body.trim(), '', task, '', report].join('\n');
 }
 
 /**
  * A conflict re-reviewer reads its role's instruction files, the reviewer's brief among them, filled as a first review round's, and then
  * what the Airlock, or the merge before User's code review, asks of it: the merge it re-reviews, with no question to User.
  */
-function conflictReReviewMessageOf(job: Readonly<Job>, ticket: JobLaunchFacts['tickets'][number], facts: JobLaunchFacts, airlock: AirlockFacts): string {
-  const instructions = filledTemplateOf(facts.instructions, {
-    ticketId:          ticket.id,
-    ticketTitle:       ticket.title,
-    ticketBody:        ticket.body.trim(),
-    jobId:             job.id,
-    round:             String(job.attempt),
-    checksLine:        facts.checksLine ?? NO_CHECKS_LINE,
-    callBudget:        String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
-    program:           PRODUCT_NAMES.PROGRAM,
-    mergeApprovalStep: '',
-    sandboxRefusal:    CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
-  }).trim();
+function conflictReReviewMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
+  const instructions = reviewerInstructionsOf(job, ticket, facts, '').trim();
   const conflictedFiles = airlock.conflictedFiles.map((path) => `- ${path}`).join('\n');
   const callBudget = String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET);
   const task = airlock.mergePlacement === 'airlock'
@@ -435,7 +460,6 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
   if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement);
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
-  const { sandboxRefusal } = CONFINEMENT_WORDING[facts.confinement];
   const subject = ticketsPhraseOf(job.ticketIds);
   const roleBrief = `You are the ${job.role ?? job.kind} of job ${job.id}.`;
   const [ticket] = facts.tickets;
@@ -443,43 +467,16 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
     return { firstMessage: conflictReReviewMessageOf(job, ticket, facts, facts.airlock), roleBrief };
   }
   if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock !== null) {
-    return { firstMessage: airlockAgentMessageOf(job, ticket, facts.airlock), roleBrief };
+    return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock), roleBrief };
   }
   if (job.kind === 'review' && ticket !== undefined) {
-    return {
-      firstMessage: filledTemplateOf(facts.instructions, {
-        ticketId:          ticket.id,
-        ticketTitle:       ticket.title,
-        ticketBody:        ticket.body.trim(),
-        jobId:             job.id,
-        round:             String(job.attempt),
-        checksLine:        facts.checksLine ?? NO_CHECKS_LINE,
-        callBudget:        String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET),
-        program:           PRODUCT_NAMES.PROGRAM,
-        mergeApprovalStep: facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.id) : '',
-        sandboxRefusal,
-      }),
-      roleBrief,
-    };
+    const mergeApprovalStep = facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.id) : '';
+    return { firstMessage: reviewerInstructionsOf(job, ticket, facts, mergeApprovalStep), roleBrief };
   }
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };
   const reviewFindings = facts.reviewFindings ?? null;
   if (reviewFindings !== null) return { firstMessage: reviewFindingsMessageOf(ticket.id, reviewFindings), roleBrief };
-  return {
-    firstMessage: filledTemplateOf(facts.instructions, {
-      ticketId:    ticket.id,
-      ticketTitle: ticket.title,
-      ticketBody:  ticket.body.trim(),
-      jobId:       job.id,
-      attempt:     String(job.attempt),
-      target:      job.target ?? '',
-      gateList:    gateListOf(facts.gates),
-      callBudget:  String(DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET),
-      program:     PRODUCT_NAMES.PROGRAM,
-      sandboxRefusal,
-    }),
-    roleBrief,
-  };
+  return { firstMessage: builderInstructionsOf(job, ticket, facts), roleBrief };
 }
 
 function windDownMessage(): string {

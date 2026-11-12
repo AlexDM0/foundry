@@ -69,7 +69,6 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-review-round-counts-bare-headings](#gap-review-round-counts-bare-headings) | Lifecycle | bug | A hand-started bar's round ignores code-written reviews |
 | [gap-round-verdict-mixes-runs](#gap-round-verdict-mixes-runs) | Lifecycle | bug | A further review round is judged against an earlier run |
 | [gap-outside-ref-move-fails-job](#gap-outside-ref-move-fails-job) | Lifecycle | bug | An outside ref move fails every live job at V14 |
-| [gap-unreadable-pipeline-passes-merge-gate](#gap-unreadable-pipeline-passes-merge-gate) | Lifecycle | bug | A pipeline unreadable at gate time gates nothing |
 | [gap-checks-not-set-stays-open](#gap-checks-not-set-stays-open) | Lifecycle | bug | Setting a pipeline with the `gate` verbs does not close `checks-not-set` |
 | [gap-older-pipeline-holds](#gap-older-pipeline-holds) | Lifecycle | bug | A version 1 `pipeline.json` holds the board until it is set up again |
 | [gap-overseer-decisions-have-no-options](#gap-overseer-decisions-have-no-options) | Lifecycle | misleading text | `decide <E> a` is refused on most Overseer decisions |
@@ -485,21 +484,6 @@ named in the [Glossary](../glossary.md#reading-names).
   `RESUMABLE_CUSTOMS_CHECKS`.
 - **Established:** probed for a hand commit during a review, which ended that job `failed` and launched a second review;
   read for the rest. **Severity:** bug.
-
-<a id="gap-unreadable-pipeline-passes-merge-gate"></a>
-
-### An unreadable pipeline passes a merged-tree gate
-
-- **Expected:** a merged tree lands only after the pipeline's gates pass.
-- **Does:** `gateMergedTree` reads `pipeline.json` afresh. When the file is not readable it runs an empty `prepare` and
-  `gates`, and `GateRun.runPipeline` over no gates answers `passed`. `airlocks.sweep` runs only while the Pass's Board
-  holds a pipeline, so the window is the time between that hold and the gate.
-- **Effect:** a merge can land ungated if `pipeline.json` turns malformed during that window.
-- **Instead:** change the pipeline through the `gate` verbs, which write it atomically, not by hand while a merge is in
-  phase `gating`.
-- **Evidence:** `src/services/overseer/DrivePass.ts` `gateMergedTree`, `runOnePass`; `src/services/lifecycle/GateRun.ts`
-  `runPipeline`.
-- **Established:** read. **Severity:** bug.
 
 <a id="gap-checks-not-set-stays-open"></a>
 

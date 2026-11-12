@@ -627,13 +627,18 @@ export class PipelineSetups {
     return contentHash !== setup.baseContentHash && contentHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, mainConstitution));
   }
 
-  /** Clears a committing, held or refused request; the record is back at the design step, editable, and its pipeline is not stored. */
+  /**
+   * Clears a committing, held or refused request; the record is back at the design step, in progress and editable, Apply is not reached,
+   * and its pipeline is not stored.
+   */
   cancelApply(setupId: string, at: string): PipelineSetupChanged {
     const setup   = this.requireOpenSetup(setupId);
     const request = setup.applyRequest;
     if (request === null) throw new BoardRefusal({ reason: 'no-apply-pending', setupId });
-    setup.applyRequest = null;
-    setup.currentStep  = 'design';
+    setup.applyRequest      = null;
+    setup.currentStep       = 'design';
+    setup.stepStates.design = 'in-progress';
+    setup.stepStates.apply  = 'not-started';
     this.store(setup);
     const fields = { revision: request.draftRevision, state: request.state };
     return { logged: [this.records.logger.log({ kind: 'pipeline-apply-cancelled', setupId, fields }, at)], setup };

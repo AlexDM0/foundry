@@ -1,10 +1,11 @@
 /**
  * The first message of a ticket's last worker resumed into its Airlock, and of a conflict re-reviewer. What matters: a conflict names the
  * target tip, the branch tip, the Airlock worktree and every conflicted file; a red merged tree is worded as the red handoff; each says the
- * agent cannot ask and states its call budget; a fresh agent in place of a session that could not resume is also given the ticket with its
- * Handoff and Review, and its role's full budget; a conflict re-reviewer reads its instruction files, filled as a first review round's,
- * before the re-review the Airlock asks of it, or the merge before User's code review, which never names the Airlock; and a session resumed
- * on a conflicted merge before User's code review is told the tip to merge again and where the conflicted files are named.
+ * agent cannot ask and states its call budget; a fresh agent in place of a session that could not resume first reads the instruction
+ * files of the role it stands in for, and is also given the ticket with its Handoff and Review, and its role's full budget; a conflict
+ * re-reviewer reads its instruction files, filled as a first review round's, before the re-review the Airlock asks of it, or the merge
+ * before User's code review, which never names the Airlock; and a session resumed on a conflicted merge before User's code review is told
+ * the tip to merge again and where the conflicted files are named.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -97,6 +98,23 @@ describe('a fresh agent in place of a session that could not resume', () => {
       for (const part of ['Example handoff.', 'Example review.', `You have ${callBudget} calls`]) expect(message).toContain(part);
     },
   );
+});
+
+describe('the instruction files of the role an Airlock agent stands in for', () => {
+  const instructions = 'You work on ticket #{{ticketId}} as job {{jobId}}, with {{callBudget}} calls.';
+
+  test.each([['builder', DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET], ['reviewer', DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET]] as const)(
+    'a fresh agent as %s reads them first, filled with its role\'s budget of %d calls',
+    (role, callBudget) => {
+      const message = messageOf({ ...CONFLICT, resumesSession: false }, role, instructions);
+      expect(message.startsWith(`You work on ticket #012 as job J9, with ${callBudget} calls.`)).toBe(true);
+      expect(message).not.toMatch(/\{\{\w+\}\}/);
+    },
+  );
+
+  test('a resumed session is not given them again: it read them at its own launch', () => {
+    expect(messageOf(CONFLICT, 'builder', instructions)).not.toContain('You work on ticket');
+  });
 });
 
 describe('a conflict re-reviewer in the Airlock', () => {

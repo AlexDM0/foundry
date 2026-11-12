@@ -4,8 +4,9 @@
  * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
  * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading;
  * and V11 protects every tracked path any role's resolved list names. Main's `CONSTITUTION.md` is read with its blob id from one commit of
- * the main line, absent when that commit holds none, and unreadable, never absent, when the main line does not resolve. Data-folder files
- * are read from disk; a tracked path is asked of git, which answers from the recorded answers of `src/testing/RecordedGit.ts`.
+ * the main line, absent when that commit holds none or when the main line is checked out with no commit yet, and unreadable, never
+ * absent, when any other main line does not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers
+ * from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -212,13 +213,31 @@ describeWhenGitIsRecorded('main\'s CONSTITUTION.md', () => {
     expect(reading).toEqual({ verdict: 'read', constitution: { path: 'CONSTITUTION.md', markdown: '# Example Agency\n', blob: BLOB } });
   });
 
-  test('is absent when the tip holds no such file, and unreadable when the main line does not resolve', async () => {
+  test('is absent when the tip holds no such file, and unreadable when the main line does not resolve and is not checked out', async () => {
     const readMain = async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE);
     const absent = await recordedGit.playStage([tipRead, { gitArguments: blobArguments, answeredAs: GIT_CALL_SHAPES.BLOB_OF_A_MISSING_PATH }], readMain);
-    const unresolved = await recordedGit.playStage([{ ...tipRead, answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION }], readMain);
+    const otherBranchRead = {
+      gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+      answeredAs:   GIT_CALL_SHAPES.CURRENT_BRANCH,
+      filledIn:     { [RECORDED_PLACEHOLDERS.BRANCH]: 'example-feature' },
+    };
+    const missingTipRead = { ...tipRead, answeredAs: GIT_CALL_SHAPES.RESOLVED_MISSING_REVISION };
+    const unresolved = await recordedGit.playStage([missingTipRead, otherBranchRead], readMain);
 
     expect(absent).toEqual({ verdict: 'absent' });
     expect(unresolved.verdict).toBe('unreadable');
+  });
+
+  test('is absent when the main line is checked out with no commit yet, and unreadable when another unborn branch is checked out', async () => {
+    const readMain = async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE);
+    const unbornTipRead = { gitArguments: tipRead.gitArguments, answeredAs: GIT_CALL_SHAPES.UNBORN_BRANCH_COMMIT_UNRESOLVED };
+    const headArguments = ['symbolic-ref', '--quiet', '--short', 'HEAD'];
+    const headRead = (branch: string) => ({ gitArguments: headArguments, answeredAs: GIT_CALL_SHAPES.CURRENT_UNBORN_BRANCH, filledIn: { [RECORDED_PLACEHOLDERS.BRANCH]: branch } });
+    const unborn = await recordedGit.playStage([unbornTipRead, headRead(MAIN_LINE)], readMain);
+    const otherBranch = await recordedGit.playStage([unbornTipRead, headRead('example-feature')], readMain);
+
+    expect(unborn).toEqual({ verdict: 'absent' });
+    expect(otherBranch.verdict).toBe('unreadable');
   });
 });
 
