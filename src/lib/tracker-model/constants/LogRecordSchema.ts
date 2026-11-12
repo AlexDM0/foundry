@@ -150,16 +150,18 @@ export const LOG_RECORD_SCHEMA = {
       step: 'setup-step', state: 'setup-step-state', currentStep: 'setup-step', needsRecheck: 'setup-steps'
     },
   },
+  // The pipeline agent suggests User may continue `step`; no step moves.
+  'pipeline-step-ready-suggested': { subject: 'pipeline-setup', fields: { step: 'setup-step' } },
   // The snapshot moved to `snapshotCommit`; `changedPaths` changed on main since the earlier one.
-  'pipeline-setup-resumed':     { subject: 'pipeline-setup', fields: { snapshotCommit: 'text', changedPaths: 'file-paths' } },
-  'pipeline-finding-recorded':  { subject: 'pipeline-setup', fields: { findingId: 'text', topic: 'text' } },
-  'pipeline-question-asked':    { subject: 'pipeline-setup', fields: { questionId: 'text', step: 'setup-step' } },
+  'pipeline-setup-resumed':        { subject: 'pipeline-setup', fields: { snapshotCommit: 'text', changedPaths: 'file-paths' } },
+  'pipeline-finding-recorded':     { subject: 'pipeline-setup', fields: { findingId: 'text', topic: 'text' } },
+  'pipeline-question-asked':       { subject: 'pipeline-setup', fields: { questionId: 'text', step: 'setup-step' } },
   // `answer` is the option letters joined by commas, or the free text.
-  'pipeline-question-answered': { subject: 'pipeline-setup', fields: { questionId: 'text', answer: 'text' } },
+  'pipeline-question-answered':    { subject: 'pipeline-setup', fields: { questionId: 'text', answer: 'text' } },
   // `by` is `agent` or `user`; `revision` is the constitution's new revision.
-  'pipeline-constitution-set':  { subject: 'pipeline-setup', fields: { by: 'text', revision: 'count' } },
+  'pipeline-constitution-set':     { subject: 'pipeline-setup', fields: { by: 'text', revision: 'count' } },
   // One record for the edits of one move, in order; `revision` is the draft's new revision.
-  'pipeline-draft-edited':      {
+  'pipeline-draft-edited':         {
     subject: 'pipeline-setup',
     fields:  {
       by: 'text', revision: 'count', editIds: 'setup-item-ids', fields: 'draft-fields'

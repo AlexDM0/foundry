@@ -1,7 +1,8 @@
 /**
- * The Hatch request carries a command and, beside it, the body a verb read; reading it back restores the command whole. A request or
- * command naming a job, a role or an admission is refused `hatch-identity-mismatch`, because identity is the folder's. A reply is read
- * only in its two shapes; anything else is malformed rather than guessed at.
+ * The Hatch request carries a command and, beside it, the body a verb read (a ticket's, an epic's or the pipeline agent's constitution);
+ * reading it back restores the command whole. A request or command naming a job, a role or an admission is refused
+ * `hatch-identity-mismatch`, because identity is the folder's. A reply is read only in its two shapes; anything else is malformed rather
+ * than guessed at.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -39,6 +40,19 @@ describe('requestOf and requestReadingOf', () => {
     expect(HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('a', epic)))).toEqual({ verdict: 'read', requestId: 'a', command: epic });
     expect(HatchFormatUtil.requestOf('b', limit)).toEqual({ hatchFormatVersion: 1, requestId: 'b', command: limit });
     expect(HatchFormatUtil.requestReadingOf(JSON.stringify(HatchFormatUtil.requestOf('b', limit)))).toEqual({ verdict: 'read', requestId: 'b', command: limit });
+  });
+
+  test('the pipeline agent\'s constitution travels beside its command and is restored byte for byte; a body on a bodiless kind is malformed', () => {
+    const draft: ControlCommand = { kind: 'pipeline-constitution-draft', markdown: '# Example Agency\r\n\r\n- Keep it small.\r\n', sources: [] };
+    const request = HatchFormatUtil.requestOf('c', draft);
+    expect(request).toEqual({
+      hatchFormatVersion: 1, requestId: 'c', command: { ...draft, markdown: '' }, bodyText: '# Example Agency\r\n\r\n- Keep it small.\r\n'
+    });
+    expect(HatchFormatUtil.requestReadingOf(JSON.stringify(request))).toEqual({ verdict: 'read', requestId: 'c', command: draft });
+    const bodyOnALimit = {
+      hatchFormatVersion: 1, requestId: 'd', command: { kind: 'concurrency-set', limit: 3 }, bodyText: 'Why.\n'
+    };
+    expect(HatchFormatUtil.requestReadingOf(JSON.stringify(bodyOnALimit))).toEqual({ verdict: 'refused', reason: 'malformed-hatch-request' });
   });
 
   test.each([

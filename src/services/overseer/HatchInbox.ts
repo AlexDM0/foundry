@@ -107,6 +107,7 @@ function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[
 }
 
 function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
+  const setup = board.pipelineSetup();
   return {
     id:           job.id,
     role:         job.role,
@@ -115,6 +116,7 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
       .filter((ticket) => ticket.frontmatter.filedByJob === job.id)
       .map((ticket) => ({ id: ticket.frontmatter.id, status: ticket.frontmatter.status })),
     deliveredIncidents: board.incidents().filter((incident) => incident.deliveredInTurn?.jobId === job.id),
+    setupId:            setup !== null && setup.agentJobId === job.id ? setup.setupId : null,
   };
 }
 

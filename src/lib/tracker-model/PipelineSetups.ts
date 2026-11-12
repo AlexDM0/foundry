@@ -21,6 +21,7 @@ import type {
   SetupQuestion,
   SetupQuestionAsking,
   SetupQuestionReply,
+  SetupQuestionStep,
   SourceAnnotation
 } from './@types/PipelineSetup.ts';
 import type { BoardRecords }      from './BoardRecords.ts';
@@ -137,6 +138,21 @@ export class PipelineSetups {
     setup.readyToContinue = setup.readyToContinue.filter((readyStep) => readyStep !== step);
     this.store(setup);
     return { logged: [this.stepMovedRecord(setup, step, [], at)], setup };
+  }
+
+  /**
+   * The agent's suggestion that User may continue the current step; it never moves a step. Saying it again of a step already suggested
+   * changes nothing and logs nothing.
+   */
+  suggestSetupStepReady(setupId: string, step: SetupQuestionStep, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    if (setup.currentStep !== step) throw new BoardRefusal({
+      reason: 'setup-step-not-current', setupId, step, currentStep: setup.currentStep
+    });
+    if (setup.readyToContinue.includes(step)) return { logged: [], setup };
+    setup.readyToContinue.push(step);
+    this.store(setup);
+    return { logged: [this.records.logger.log({ kind: 'pipeline-step-ready-suggested', setupId, fields: { step } }, at)], setup };
   }
 
   /** Back to a step already reached: it is in progress again, and every later done step needs a recheck, never a fresh start. */

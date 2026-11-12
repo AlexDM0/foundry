@@ -21,6 +21,8 @@ export interface RelayingJob {
   ticketIds:          readonly string[];
   filedTickets:       ReadonlyArray<{ id: string; status: TicketStatus }>;
   deliveredIncidents: ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
+  /** For a pipeline agent: the open setup record whose agent this job is; null when it serves none. */
+  setupId:            string | null;
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -67,6 +69,18 @@ const PRODUCT_OWNER_KINDS: ReadonlySet<ControlCommandKind> = new Set([
 ]);
 
 const PRODUCT_OWNER_OWN_DRAFT_KINDS: ReadonlySet<ControlCommandKind> = new Set(['ticket-edit', 'ticket-priority', 'ticket-network', 'ticket-epic', 'ticket-abandon']);
+
+/**
+ * The pipeline agent's moves on the setup record it serves, stamped with its job and that record. Every ticket verb, a gate profile and a
+ * pipeline check are refused: only User starts a run (owner answer Q15).
+ */
+const PIPELINE_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
+  'pipeline-finding-record',
+  'pipeline-question-ask',
+  'pipeline-constitution-draft',
+  'pipeline-draft-propose',
+  'pipeline-step-ready',
+]);
 
 const FIELDS_ONLY_THE_OVERSEER_DECIDES = ['jobId', 'role', 'admission'] as const;
 
@@ -117,6 +131,14 @@ function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): Bounc
   return ownDraft ? { verdict: 'admitted', command } : refused('not-own-draft');
 }
 
+function pipelineAgentVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
+  if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
+  if (!PIPELINE_AGENT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
+  if (Object.hasOwn(command, 'setupId')) return refused('hatch-identity-mismatch');
+  if (job.setupId === null) return refused('job-serves-no-setup');
+  return { verdict: 'admitted', command: { ...command, jobId: job.id, setupId: job.setupId } as ControlCommand };
+}
+
 function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   const incidentId = fieldOf(command, 'incidentId');
   const incident   = job.deliveredIncidents.find((delivered) => delivered.id === incidentId);
@@ -133,6 +155,7 @@ function verdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (WORKER_ROLES.has(job.role)) return workerVerdictOf(job, command);
   if (job.role === 'product-owner') return productOwnerVerdictOf(job, command);
   if (job.role === 'assistant') return assistantVerdictOf(job, command);
+  if (job.role === 'pipeline-agent') return pipelineAgentVerdictOf(job, command);
   return refused('command-not-allowed-for-role');
 }
 

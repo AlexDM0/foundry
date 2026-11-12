@@ -11,6 +11,7 @@ import { FILING_CONTROLS }                                           from './Fil
 import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
 import { JOB_CONTROLS }                                              from './JobControls.ts';
 import { OVERSEER_CONTROLS }                                         from './OverseerControls.ts';
+import { PIPELINE_AGENT_CONTROLS }                                   from './PipelineAgentControls.ts';
 import { PIPELINE_SETUP_CONTROLS }                                   from './PipelineSetupControls.ts';
 import { REPAIR_CONTROLS }                                           from './RepairControls.ts';
 import { SETTING_CONTROLS }                                          from './SettingControls.ts';
@@ -27,6 +28,7 @@ const CONTROL_APPLIERS = {
   ...SETTING_CONTROLS,
   ...AIRLOCK_CONTROLS,
   ...PIPELINE_SETUP_CONTROLS,
+  ...PIPELINE_AGENT_CONTROLS,
 } as const satisfies {
   [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange, context: ControlContext) => unknown
 };

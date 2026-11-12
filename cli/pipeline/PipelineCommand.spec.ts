@@ -1,8 +1,8 @@
 /**
  * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
  * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
- * endings and all; a draft edit sets several fields in one move; and a usage mistake or a Board refusal exits 1 with the record, the
- * progress file and the log as they were.
+ * endings and all; a draft edit sets several fields in one move; outside a job the pipeline agent's verbs name the record and apply its
+ * moves; and a usage mistake or a Board refusal exits 1 with the record, the progress file and the log as they were.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
@@ -145,6 +145,41 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
       ['pipeline', 'edit', 'S1', '--revision', '0', '--set', 'review={not json'],
       ['pipeline', 'undo', 'S1', 'X1'],
       ['pipeline', 'rename', 'S1'],
+    ]) {
+      const { exitCode } = await runWithExitCode(commandLine);
+      expect(exitCode, commandLine.join(' ')).toBe(1);
+    }
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('outside a job the pipeline agent\'s verbs name the record first and apply its moves; a misshapen payload writes nothing', async () => {
+    await setupAtDesign();
+    const constitution = JSON.stringify({
+      markdown: CONSTITUTION_TEXT,
+      sources:  [{
+        lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'contributing', path: 'CONTRIBUTING.md'
+      }],
+    });
+    const proposal = '{"edits": [{"field": "review", "value": {"name": "Review"}, "summary": "Review every ticket."}]}';
+
+    await run(['pipeline', 'draft-constitution', 's1', '--file', '-'], constitution);
+    await run(['pipeline', 'propose', 'S1', '--', proposal]);
+    await run(['pipeline', 'ready', 'S1', 'design']);
+
+    const setup = storedSetup();
+    expect(setup.constitution?.markdown).toBe(CONSTITUTION_TEXT);
+    expect(setup.edits).toMatchObject([{
+      editId: 'E1', by: 'agent', field: 'review', summary: 'Review every ticket.'
+    }]);
+    expect(setup.readyToContinue).toEqual(['design']);
+
+    const before = storedFiles();
+    for (const commandLine of [
+      ['pipeline', 'finding', 'S1', '--', '{"topic": "note"}'],
+      ['pipeline', 'ask', 'S1', '--', '{"step": "design", "question": "Which?", "options": ["Bun", "Other"], "recommended": ["a"]}'],
+      ['pipeline', 'propose', 'S1', '--', '{"edits": [{"field": "phases", "value": {}, "summary": "All."}]}'],
+      ['pipeline', 'ready', 'S1', 'apply'],
+      ['pipeline', 'finding', '--', '{"topic": "note", "label": "No CI"}'],
     ]) {
       const { exitCode } = await runWithExitCode(commandLine);
       expect(exitCode, commandLine.join(' ')).toBe(1);

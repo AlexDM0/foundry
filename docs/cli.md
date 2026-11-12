@@ -942,6 +942,26 @@ User's move. A record with no live agent gets no message: the record is what a l
 to `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`,
 naming the field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
+#### The pipeline agent's verbs
+
+The [pipeline agent](glossary.md#pipeline-agent) changes the record through five verbs of its own, relayed through its
+job's [Hatch](#under-a-job-the-hatch). Help does not list them: the agent's prompt and `<data>/reference.md` do. Under
+its job a verb names no record: the [Bouncer](glossary.md#bouncer) stamps the job and the open record whose agent the
+job is, refuses a request that names a `setupId` (`hatch-identity-mismatch`) and refuses the move when the job is the
+agent of no open record (`job-serves-no-setup`). Outside a job User names the record first (`pipeline finding S1 --
+<json>`), which applies the same move as the agent's. The payload is JSON after `--`, or in a file or on standard
+input with `--file <path>|-`; it is read through a closed schema, so a missing, misshapen or unknown field is refused
+`malformed-setup-command`, naming it, before anything is relayed. The pipeline agent may relay only these and
+`question options`; every ticket verb and every other kind is refused `command-not-allowed-for-role`.
+
+| command | payload | what it does |
+|---|---|---|
+| `pipeline finding` (`pipeline-finding-record`) | `{topic, label, value?, sourcePaths?, script?: {name, run, meaning, gateCandidate, needs?}}` | Record a finding `F<n>`, logged `pipeline-finding-recorded`. A source path stays inside the repository. |
+| `pipeline ask` (`pipeline-question-ask`) | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` | Ask User a setup question `Q<n>`, logged `pipeline-question-asked`: two to four options (`setup-question-option-count`), lettered `a` on in order, and exactly one recommended letter unless `multiple` (`setup-question-without-recommendation`, `several-letters-on-single-select-setup-question`). An option offering "Other" is refused: the Bridge offers free text itself. |
+| `pipeline draft-constitution` (`pipeline-constitution-draft`) | `{markdown, sources: [{lineText, occurrence, kind, path}]}` | Store the whole constitution byte for byte, logged `pipeline-constitution-set` by the agent. Refused: an empty text (`constitution-empty`), one over 20,000 characters (`constitution-too-long`), a source whose line the text does not hold `occurrence` times (`constitution-source-unanchored`), two sources on one line (`constitution-source-repeated`), and a source path outside the repository. Under a job the markdown travels beside the command, as a ticket body does. |
+| `pipeline propose` (`pipeline-draft-propose`) | `{edits: [{field, value, summary}]}` | Edit the draft in one move, logged `pipeline-draft-edited` by the agent, each edit with its own summary sentence. A field outside the record's closed list is refused, and so is a draft `pipeline.json`'s validator would refuse (`pipeline-draft-invalid`). |
+| `pipeline ready <step>` (`pipeline-step-ready`) | none: `research`, `constitution` or `design` | Suggest that User may continue the current step, kept in `readyToContinue` and logged `pipeline-step-ready-suggested` once; it moves no step. Another step is refused `setup-step-not-current`. |
+
 ### Review statistics
 
 | command | what it does |
@@ -2011,6 +2031,7 @@ gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-rec
 | `pipeline-finding-recorded` | `setupId` | `findingId`, `topic` |
 | `pipeline-question-asked` | `setupId` | `questionId`, `step` |
 | `pipeline-question-answered` | `setupId` | `questionId`, `answer`: the option letters joined by commas, or the free text |
+| `pipeline-step-ready-suggested` | `setupId` | `step`: the pipeline agent suggests User may continue it; no step moves |
 | `pipeline-constitution-set` | `setupId` | `by` (`agent` or `user`), `revision` |
 | `pipeline-draft-edited` | `setupId` | `by`, the draft's new `revision`, `editIds` and their `fields`, in order |
 | `pipeline-draft-undone` | `setupId` | `editId`, `field`, `revision` |

@@ -14,7 +14,15 @@ import type {
   PipelineGate,
   PipelineStep
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { ConstitutionSources, PipelineDraftField, PipelineSetupStep } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type {
+  ConstitutionSources,
+  PipelineDraftField,
+  PipelineSetupStep,
+  ResearchFindingRecording,
+  SetupQuestionStep,
+  SetupQuestionSubject,
+  SourceAnnotation
+} from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -29,6 +37,11 @@ export type ListEdit = 'replace' | 'add' | 'remove';
 export interface PipelineFieldEdit {
   field: PipelineDraftField;
   value: unknown;
+}
+
+/** The pipeline agent's edit of one draft field, with its own one-sentence summary that the edit list shows. */
+export interface ProposedFieldEdit extends PipelineFieldEdit {
+  summary: string;
 }
 
 export type WorktreeRepairStep = 'prune' | 'reinstall' | 'recreate' | 'unlock';
@@ -153,6 +166,29 @@ export type ControlCommand =
   | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[] }
   | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
   | { kind: 'pipeline-draft-discard'; setupId: string }
+  /**
+   * The pipeline agent's moves on the setup record it serves. Relayed without `jobId` or `setupId`: the role policy stamps its own job and
+   * that job's setup, from the Hatch folder and the record.
+   */
+  | ({ kind: 'pipeline-finding-record'; jobId?: string; setupId?: string } & ResearchFindingRecording)
+  /** `options` are the option texts in letter order, `a` first; `recommended` their letters. */
+  | {
+    kind:        'pipeline-question-ask';
+    jobId?:      string;
+    setupId?:    string;
+    step:        SetupQuestionStep;
+    subject:     SetupQuestionSubject | null;
+    question:    string;
+    context:     string;
+    options:     string[];
+    recommended: string[];
+    multiple:    boolean;
+  }
+  /** The whole document each time, never a section; `sources` name the lines a source stands behind. */
+  | { kind: 'pipeline-constitution-draft'; jobId?: string; setupId?: string; markdown: string; sources: SourceAnnotation[] }
+  | { kind: 'pipeline-draft-propose'; jobId?: string; setupId?: string; edits: ProposedFieldEdit[] }
+  /** The agent's suggestion that User may continue the step; it never moves a step. */
+  | { kind: 'pipeline-step-ready'; jobId?: string; setupId?: string; step: SetupQuestionStep }
   /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
   | { kind: 'merge-accept'; ticketReference: string }
   /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */

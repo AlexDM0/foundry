@@ -57,6 +57,8 @@ import { WORKTREE_SUBCOMMAND_NAMES }                                 from './wor
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
+const CONSTITUTION_TEXT = '# Example Agency\n\n- Keep the basket page fast.\n';
+
 const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly string[] } = {
   'ticket-add':                 ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
   'ticket-edit':                ['ticket', 'edit', '1', '--title', 'Sharper title'],
@@ -118,6 +120,13 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly strin
   'pipeline-draft-edit':        ['pipeline', 'edit', 'S1', '--revision', '3', '--set', 'gate:test={"name": "test", "run": "bun test"}'],
   'pipeline-draft-undo':        ['pipeline', 'undo', 'S1', 'E1'],
   'pipeline-draft-discard':     ['pipeline', 'discard', 'S1'],
+  'pipeline-finding-record':    ['pipeline', 'finding', '--', '{"topic": "scripts", "label": "Type check", "value": "bun run typecheck", "sourcePaths": ["package.json"]}'],
+  'pipeline-question-ask':      [
+    'pipeline', 'ask', '--', '{"step": "research", "question": "Is the type check a gate?", "options": ["Yes", "No"], "recommended": ["a"]}'
+  ],
+  'pipeline-constitution-draft': ['pipeline', 'draft-constitution', '--', JSON.stringify({ markdown: CONSTITUTION_TEXT, sources: [] })],
+  'pipeline-draft-propose':      ['pipeline', 'propose', '--', '{"edits": [{"field": "review", "value": {"name": "Review"}, "summary": "Review every ticket."}]}'],
+  'pipeline-step-ready':         ['pipeline', 'ready', 'research'],
 };
 
 const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> = {
@@ -256,6 +265,24 @@ describeWhenGitIsRecorded('relayed verbs', () => {
     });
     expect(Object.keys(request ?? {}).sort()).toEqual(['bodyText', 'command', 'hatchFormatVersion', 'requestId']);
   });
+
+  test('the pipeline agent\'s constitution carries its markdown beside the command, and names no job or setup', async () => {
+    const context = jobContext();
+    expect(await runCommandLine(ARGUMENTS_OF_KIND['pipeline-constitution-draft'], context)).toBe(0);
+    const [request] = requestsWritten();
+    expect(request?.bodyText).toBe(CONSTITUTION_TEXT);
+    expect(request?.command).toEqual({ kind: 'pipeline-constitution-draft', markdown: '', sources: [] });
+    const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(request));
+    expect(reading).toMatchObject({ verdict: 'read', command: { kind: 'pipeline-constitution-draft', markdown: CONSTITUTION_TEXT, sources: [] } });
+  });
+
+  test('a misshapen payload is refused before anything is relayed, naming the field', async () => {
+    const context = jobContext();
+    const question = '{"step": "research", "question": "Which runner?", "options": ["Bun", "Other"], "recommended": ["a"]}';
+    expect(await runCommandLine(['pipeline', 'ask', '--', question], context)).toBe(1);
+    expect(context.errorText()).toContain('options[1]');
+    expect(requestsWritten()).toEqual([]);
+  });
 });
 
 describeWhenGitIsRecorded('read-only and refused verbs', () => {
@@ -328,7 +355,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
     const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(requestsWritten()[0]));
     if (reading.verdict !== 'read') throw new Error(`the request did not read back: ${reading.reason}`);
     const verdict = Bouncer.verdictOf({
-      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: []
+      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: [], setupId: null
     }, reading.command);
     if (verdict.verdict !== 'admitted') throw new Error(`the filing was refused: ${verdict.reason}`);
 

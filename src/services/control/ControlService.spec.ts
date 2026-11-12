@@ -128,8 +128,47 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-draft-edit':   {
     kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }]
   },
-  'pipeline-draft-undo':    { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
-  'pipeline-draft-discard': { kind: 'pipeline-draft-discard', setupId: 'S1' },
+  'pipeline-draft-undo':     { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
+  'pipeline-draft-discard':  { kind: 'pipeline-draft-discard', setupId: 'S1' },
+  'pipeline-finding-record': {
+    kind:        'pipeline-finding-record',
+    jobId:       'J4',
+    setupId:     'S1',
+    topic:       'scripts',
+    label:       'Type check',
+    value:       'bun run typecheck',
+    sourcePaths: ['package.json'],
+    script:      {
+      name: 'typecheck', run: 'bun run typecheck', meaning: 'Checks the types', gateCandidate: 'gate', needs: []
+    },
+  },
+  'pipeline-question-ask': {
+    kind:        'pipeline-question-ask',
+    jobId:       'J4',
+    setupId:     'S1',
+    step:        'research',
+    subject:     { kind: 'finding', reference: 'F1' },
+    question:    'Is the type check a gate?',
+    context:     'Example Agency runs it before each merge.',
+    options:     ['Yes', 'No'],
+    recommended: ['a'],
+    multiple:    false,
+  },
+  'pipeline-constitution-draft': {
+    kind:     'pipeline-constitution-draft',
+    jobId:    'J4',
+    setupId:  'S1',
+    markdown: '# Example Agency\n\n- Keep the basket page fast.\n',
+    sources:  [{
+      lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'contributing', path: 'CONTRIBUTING.md'
+    }],
+  },
+  'pipeline-draft-propose': {
+    kind: 'pipeline-draft-propose', jobId: 'J4', setupId: 'S1', edits: [{ field: 'review', value: { name: 'Review' }, summary: 'Review every ticket.' }]
+  },
+  'pipeline-step-ready': {
+    kind: 'pipeline-step-ready', jobId: 'J4', setupId: 'S1', step: 'research'
+  },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

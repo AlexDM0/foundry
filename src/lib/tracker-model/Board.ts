@@ -100,7 +100,8 @@ import type {
   PipelineSetupStep,
   ResearchFindingRecording,
   SetupQuestionAsking,
-  SetupQuestionReply
+  SetupQuestionReply,
+  SetupQuestionStep
 } from './@types/PipelineSetup.ts';
 import type {
   DecisionDraft,
@@ -827,6 +828,10 @@ export class Board {
 
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
     return this.pipelineSetups.continueSetupStep(setupId, step, at);
+  }
+
+  suggestSetupStepReady(setupId: string, step: SetupQuestionStep, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.suggestSetupStepReady(setupId, step, at);
   }
 
   reopenSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {

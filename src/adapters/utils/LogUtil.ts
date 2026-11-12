@@ -167,6 +167,8 @@ function sentenceOf(record: LogRecordContent): string {
     case 'pipeline-setup-step-moved':
       return `Pipeline setup ${record.setupId} step ${record.fields.step} ${record.fields.state}, now at ${record.fields.currentStep}`
         + `${record.fields.needsRecheck.length === 0 ? '' : `; ${record.fields.needsRecheck.join(', ')} need a recheck`}`;
+    case 'pipeline-step-ready-suggested':
+      return `Pipeline setup ${record.setupId} agent suggests the ${record.fields.step} step is ready to continue`;
     case 'pipeline-setup-resumed':
       return `Pipeline setup ${record.setupId} resumed on ${record.fields.snapshotCommit}`
         + `${record.fields.changedPaths.length === 0 ? '' : `; changed on main: ${record.fields.changedPaths.join(', ')}`}`;

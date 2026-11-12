@@ -5,19 +5,10 @@
  * hold, in the caller's words.
  */
 import { PipelineFile }              from '../../adapters/pipeline/PipelineFile.ts';
+import { SetupPayloadSchemas }       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
 import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import { GATE_PHASES }               from '../../lib/tracker-model/@types/GatePhase.ts';
-import {
-  type AgentStepSettings,
-  PIPELINE_AGENT_ROLES,
-  type PipelineAirlock,
-  type PipelineBilling,
-  type PipelineConstitution,
-  type PipelineGate,
-  type PipelineReview,
-  type PipelineStep
-} from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineBilling }      from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
   PipelineDraftEdit,
@@ -25,7 +16,6 @@ import type {
   SetupQuestionReply
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { PIPELINE_SETUP_STEPS }                                   from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { PipelineDraftEditUtil }                                  from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, SetupMessage }                      from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
@@ -42,7 +32,7 @@ const CONSTITUTION_SOURCE_KEYS = ['contributing', 'research', 'installedDefault'
 
 const OPTION_LETTERS_PATTERN = /^[a-z]+$/u;
 
-function refuseMalformed(commandKind: ControlCommandKind, field: string): never {
+export function refuseMalformedSetupCommand(commandKind: ControlCommandKind, field: string): never {
   throw new OperationRefusal('refused', { kind: 'malformed-setup-command', commandKind, field });
 }
 
@@ -50,15 +40,15 @@ function fieldOf(command: SentCommand, field: string): unknown {
   return Object.hasOwn(command, field) ? (command as unknown as Record<string, unknown>)[field] : undefined;
 }
 
-function textFieldOf(command: SentCommand, field: string): string {
+export function textFieldOf(command: SentCommand, field: string): string {
   const value = fieldOf(command, field);
-  if (typeof value !== 'string' || value.trim() === '') refuseMalformed(command.kind, field);
+  if (typeof value !== 'string' || value.trim() === '') refuseMalformedSetupCommand(command.kind, field);
   return value;
 }
 
 function revisionFieldOf(command: SentCommand, field: string): number {
   const value = fieldOf(command, field);
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) refuseMalformed(command.kind, field);
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) refuseMalformedSetupCommand(command.kind, field);
   return value;
 }
 
@@ -69,29 +59,29 @@ function valueIsATextList(value: unknown): value is string[] {
 /** Only a mode and a budget, as `pipeline.json` stores them; a cap that is no positive number is the Board's `billing-cap-not-positive`. */
 function billingFieldOf(command: SentCommand): PipelineBilling {
   const value = fieldOf(command, 'billing');
-  if (!JsonRecordUtil.valueIsAPlainObject(value) || Object.keys(value).some((key) => !BILLING_KEYS.includes(key))) refuseMalformed(command.kind, 'billing');
+  if (!JsonRecordUtil.valueIsAPlainObject(value) || Object.keys(value).some((key) => !BILLING_KEYS.includes(key))) refuseMalformedSetupCommand(command.kind, 'billing');
   const { mode, maxBudgetUsd } = value;
   if (mode === 'subscription' && maxBudgetUsd === undefined) return { mode };
-  if (mode !== 'api') refuseMalformed(command.kind, 'billing');
+  if (mode !== 'api') refuseMalformedSetupCommand(command.kind, 'billing');
   if (maxBudgetUsd === undefined) return { mode };
-  if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd)) refuseMalformed(command.kind, 'billing');
+  if (typeof maxBudgetUsd !== 'number' || !Number.isFinite(maxBudgetUsd)) refuseMalformedSetupCommand(command.kind, 'billing');
   return { mode, maxBudgetUsd };
 }
 
 function stepFieldOf(command: SentCommand): PipelineSetupStep {
   const value = fieldOf(command, 'step');
   const step  = PIPELINE_SETUP_STEPS.find((candidate) => candidate === value);
-  if (step === undefined) refuseMalformed(command.kind, 'step');
+  if (step === undefined) refuseMalformedSetupCommand(command.kind, 'step');
   return step;
 }
 
 /** A decision's answer form: letters, `a` or `ac` per entry, or free text. */
 function replyFieldOf(command: SentCommand): SetupQuestionReply {
   const answer = fieldOf(command, 'answer');
-  if (!JsonRecordUtil.valueIsAPlainObject(answer)) refuseMalformed(command.kind, 'answer');
+  if (!JsonRecordUtil.valueIsAPlainObject(answer)) refuseMalformedSetupCommand(command.kind, 'answer');
   const { form, text, choices } = answer;
   if (form === 'text' && typeof text === 'string') return { text };
-  if (form !== 'letters' || !valueIsATextList(choices) || !choices.every((choice) => OPTION_LETTERS_PATTERN.test(choice))) refuseMalformed(command.kind, 'answer');
+  if (form !== 'letters' || !valueIsATextList(choices) || !choices.every((choice) => OPTION_LETTERS_PATTERN.test(choice))) refuseMalformedSetupCommand(command.kind, 'answer');
   return { letters: choices.flatMap((choice) => [...choice]) };
 }
 
@@ -100,50 +90,24 @@ function sourcesFieldOf(command: SentCommand): ConstitutionSources | undefined {
   if (value === undefined) return undefined;
   const isWhole = JsonRecordUtil.valueIsAPlainObject(value) && Object.keys(value).length === CONSTITUTION_SOURCE_KEYS.length
     && CONSTITUTION_SOURCE_KEYS.every((key) => typeof value[key] === 'boolean');
-  if (!isWhole) refuseMalformed(command.kind, 'draftedFrom');
+  if (!isWhole) refuseMalformedSetupCommand(command.kind, 'draftedFrom');
   return { contributing: value['contributing'] === true, research: value['research'] === true, installedDefault: value['installedDefault'] === true };
 }
 
 function markdownFieldOf(command: SentCommand): string | undefined {
   const value = fieldOf(command, 'markdown');
-  if (value !== undefined && typeof value !== 'string') refuseMalformed(command.kind, 'markdown');
+  if (value !== undefined && typeof value !== 'string') refuseMalformedSetupCommand(command.kind, 'markdown');
   return value;
-}
-
-/**
- * The typed edit a field and its value name: a whole object or `null` for a definition, names for an order, a switch or `null` for an
- * approval. A definition is taken as sent, since the whole draft is validated once every edit is written.
- */
-function draftEditOf(commandKind: ControlCommandKind, fieldEdit: unknown, index: number): PipelineDraftEdit {
-  const path = `edits[${index}]`;
-  if (!JsonRecordUtil.valueIsAPlainObject(fieldEdit)) refuseMalformed(commandKind, path);
-  const { field, value } = fieldEdit;
-  if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) refuseMalformed(commandKind, `${path}.field`);
-  const [fieldKind = '', name = ''] = field.split(/:(.*)/su);
-  const valuePath = `${path}.value`;
-  if (fieldKind === 'phase-order' || fieldKind === 'prepare-order') {
-    if (!valueIsATextList(value)) refuseMalformed(commandKind, valuePath);
-    const phase = GATE_PHASES.find((candidate) => candidate === name);
-    return phase === undefined ? { target: 'prepare-order', names: value } : { target: 'phase-order', phase, names: value };
-  }
-  if (fieldKind === 'approval') {
-    if (value !== null && typeof value !== 'boolean') refuseMalformed(commandKind, valuePath);
-    return { target: 'approval', approval: name === 'merge' ? 'merge' : 'tickets', value };
-  }
-  if (value !== null && !JsonRecordUtil.valueIsAPlainObject(value)) refuseMalformed(commandKind, valuePath);
-  const role = PIPELINE_AGENT_ROLES.find((candidate) => candidate === name);
-  if (fieldKind === 'gate') return { target: 'gate', name, value: value as PipelineGate | null };
-  if (fieldKind === 'prepare') return { target: 'prepare', name, value: value as PipelineStep | null };
-  if (fieldKind === 'role' && role !== undefined) return { target: 'role', role, value: value as AgentStepSettings | null };
-  if (fieldKind === 'review') return { target: 'review', value: value as PipelineReview | null };
-  if (fieldKind === 'airlock') return { target: 'airlock', value: value as PipelineAirlock | null };
-  return { target: 'constitution', value: value as PipelineConstitution | null };
 }
 
 function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
   const edits = fieldOf(command, 'edits');
-  if (!Array.isArray(edits) || edits.length === 0) refuseMalformed(command.kind, 'edits');
-  return edits.map((fieldEdit: unknown, index) => draftEditOf(command.kind, fieldEdit, index));
+  if (!Array.isArray(edits) || edits.length === 0) refuseMalformedSetupCommand(command.kind, 'edits');
+  return edits.map((fieldEdit: unknown, index) => {
+    const reading = SetupPayloadSchemas.draftEditReadingOf(fieldEdit, index);
+    if (reading.verdict === 'malformed') refuseMalformedSetupCommand(command.kind, reading.field);
+    return reading.value;
+  });
 }
 
 /**
@@ -161,7 +125,7 @@ function messagedToTheAgent(changed: PipelineSetupChanged, change: TrackerChange
 function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerChange): PipelineSetupChanged {
   const billing = billingFieldOf(command);
   const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
-  if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformed(command.kind, 'replacesUnreadablePipeline');
+  if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
   return change.board.openSetup({
     mode: 'setup', billing, replacesUnreadablePipeline, mainConstitution: null, storedAnnotations: []
   }, change.at);
@@ -183,7 +147,7 @@ function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: Tracke
 function moveStep(command: CommandOf<'pipeline-setup-step'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const step    = stepFieldOf(command);
-  if (fieldOf(command, 'move') !== 'continue') refuseMalformed(command.kind, 'move');
+  if (fieldOf(command, 'move') !== 'continue') refuseMalformedSetupCommand(command.kind, 'move');
   const changed = change.board.continueSetupStep(setupId, step, change.at);
   return messagedToTheAgent(changed, change, context, {
     kind: 'step-continued', setupId, step, currentStep: changed.setup.currentStep
@@ -209,7 +173,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
   const revision    = revisionFieldOf(command, 'revision');
   const markdown    = markdownFieldOf(command);
   const draftedFrom = sourcesFieldOf(command);
-  if (markdown === undefined && draftedFrom === undefined) refuseMalformed(command.kind, 'markdown');
+  if (markdown === undefined && draftedFrom === undefined) refuseMalformedSetupCommand(command.kind, 'markdown');
   const edit    = { revision, ...(markdown === undefined ? {} : { markdown }), ...(draftedFrom === undefined ? {} : { draftedFrom }) };
   const changed = change.board.editConstitution(setupId, edit, change.at);
   return messagedToTheAgent(changed, change, context, {
@@ -225,7 +189,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
  * The draft a move leaves must pass the `pipeline.json` validator, as the stored record's read requires; otherwise the hold throws and
  * nothing is written, so no move leaves a record the board cannot read.
  */
-function requireStorableDraft(changed: PipelineSetupChanged): void {
+export function requireStorableDraft(changed: PipelineSetupChanged): void {
   const reading = PipelineFile.documentReadingOf(JSON.parse(JSON.stringify(changed.setup.draft)));
   if (reading.verdict === 'readable') return;
   const reason = reading.verdict === 'malformed' ? reading.reason : reading.verdict;

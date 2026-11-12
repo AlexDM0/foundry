@@ -633,6 +633,7 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'not-own-draft':                'it changes only a draft ticket this job filed',
   'incident-move-not-allowed':    'it is legal only as a move the named delivered incident allows',
   'incident-target-mismatch':     'the named incident is about another job or ticket',
+  'job-serves-no-setup':          'this job is the agent of no open pipeline setup record',
 };
 
 /** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

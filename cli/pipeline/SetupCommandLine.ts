@@ -4,6 +4,7 @@
  */
 import type { PipelineBilling }          from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { ControlService }                from '../../src/services/control/ControlService.ts';
+import type { PipelineAgentControlKind } from '../../src/services/control/PipelineAgentControls.ts';
 import type { PipelineSetupCommandKind } from '../../src/services/control/PipelineSetupControls.ts';
 import type { ControlCommandOf }         from '../../src/shared/@types/ControlCommand.ts';
 import type { CommandContext }           from '../CommandContext.ts';
@@ -61,7 +62,11 @@ export function billingFrom(commandArguments: ArgumentParser, mode: string | und
 }
 
 /** Relays under a job; otherwise applies in a hold and prints the record as left, or under `--json` the record and the log lines. */
-export async function applySetupCommand(commandArguments: ArgumentParser, context: CommandContext, command: ControlCommandOf<PipelineSetupCommandKind>): Promise<void> {
+export async function applySetupCommand(
+  commandArguments: ArgumentParser,
+  context: CommandContext,
+  command: ControlCommandOf<PipelineSetupCommandKind | PipelineAgentControlKind>,
+): Promise<void> {
   await hatchWhenUnderJob(context, command);
   const changed = await openTrackerForWriting(
     commandArguments,

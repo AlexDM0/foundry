@@ -31,6 +31,7 @@ function logEverySetupRecordKind(board: Board, at: string): void {
     multiple:           false,
   }, at);
   board.answerSetupQuestion(setupId, 'Q1', { letters: ['a'] }, at);
+  board.suggestSetupStepReady(setupId, 'research', at);
   board.resumeSetup(setupId, 'e5f60718293a4b5c6d7e8f9012345678901234ab', ['package.json'], at);
   board.setConstitution(setupId, { markdown: '# Example constitution\n\n- Keep every change small.\n', annotations: [] }, at);
   board.editDraft(setupId, {

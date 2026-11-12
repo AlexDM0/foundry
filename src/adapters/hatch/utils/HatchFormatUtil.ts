@@ -26,24 +26,39 @@ function carriesIdentity(record: Record<string, unknown>): boolean {
   return IDENTITY_FIELDS.some((field) => Object.hasOwn(record, field));
 }
 
-function bodyTextOf(command: ControlCommand): string | null {
-  if (command.kind !== 'ticket-add' && command.kind !== 'ticket-edit' && command.kind !== 'epic-add') return null;
-  return command.bodyText;
+interface BodyField {
+  field:   string;
+  /** What the command holds in the field while its body travels beside it. */
+  emptied: string | null;
+}
+
+/** The command field each kind carries its body in: a ticket's or epic's markdown, or the whole constitution the pipeline agent drafts. */
+const BODY_FIELD_OF_KIND: Readonly<Partial<Record<ControlCommand['kind'], BodyField>>> = {
+  'ticket-add':                  { field: 'bodyText', emptied: null },
+  'ticket-edit':                 { field: 'bodyText', emptied: null },
+  'epic-add':                    { field: 'bodyText', emptied: '' },
+  'pipeline-constitution-draft': { field: 'markdown', emptied: '' },
+};
+
+function bodyFieldOf(kind: unknown): BodyField | null {
+  if (typeof kind !== 'string' || !Object.hasOwn(BODY_FIELD_OF_KIND, kind)) return null;
+  return BODY_FIELD_OF_KIND[kind as ControlCommand['kind']] ?? null;
 }
 
 function requestOf(requestId: string, command: ControlCommand): HatchRequest {
-  const bodyText = bodyTextOf(command);
-  if (bodyText === null) return { hatchFormatVersion: HATCH_FORMAT_VERSION, requestId, command };
-  const commandWithoutBody = command.kind === 'epic-add' ? { ...command, bodyText: '' } : { ...command, bodyText: null };
+  const bodyField = bodyFieldOf(command.kind);
+  const bodyText  = bodyField === null ? null : (command as unknown as Record<string, unknown>)[bodyField.field];
+  if (bodyField === null || typeof bodyText !== 'string') return { hatchFormatVersion: HATCH_FORMAT_VERSION, requestId, command };
   return {
-    hatchFormatVersion: HATCH_FORMAT_VERSION, requestId, command: commandWithoutBody, bodyText
+    hatchFormatVersion: HATCH_FORMAT_VERSION, requestId, command: { ...command, [bodyField.field]: bodyField.emptied } as ControlCommand, bodyText
   };
 }
 
 function commandWithBody(command: Record<string, unknown>, bodyText: unknown): Record<string, unknown> | null {
   if (bodyText === undefined) return command;
-  if (typeof bodyText !== 'string' || !Object.hasOwn(command, 'bodyText')) return null;
-  return { ...command, bodyText };
+  const bodyField = bodyFieldOf(command['kind']);
+  if (typeof bodyText !== 'string' || bodyField === null || !Object.hasOwn(command, bodyField.field)) return null;
+  return { ...command, [bodyField.field]: bodyText };
 }
 
 /**

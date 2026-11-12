@@ -443,6 +443,7 @@ test.each<[LogRecordContent, string]>([
   [{ kind: 'pipeline-finding-recorded', setupId: 'S1', fields: { findingId: 'F1', topic: 'scripts' } }, 'Pipeline setup S1 recorded finding F1 (scripts)'],
   [{ kind: 'pipeline-question-asked', setupId: 'S1', fields: { questionId: 'Q1', step: 'design' } }, 'Pipeline setup S1 asked Q1 at the design step'],
   [{ kind: 'pipeline-question-answered', setupId: 'S1', fields: { questionId: 'Q1', answer: 'a' } }, 'Pipeline setup S1 Q1 answered: a'],
+  [{ kind: 'pipeline-step-ready-suggested', setupId: 'S1', fields: { step: 'research' } }, 'Pipeline setup S1 agent suggests the research step is ready to continue'],
   [{ kind: 'pipeline-constitution-set', setupId: 'S1', fields: { by: 'user', revision: 2 } }, 'Pipeline setup S1 constitution revision 2 by the user'],
   [
     {

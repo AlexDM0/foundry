@@ -228,6 +228,28 @@ the Overseer's reply, printing `done <requestId>` or `nothing-to-do <requestId>`
 refusal worded as a direct run words it, or `queued <requestId>` when no reply came in time, which the Overseer still
 applies. Never repeat a `queued` command. Each role may run only what its prompt names; anything else is refused.
 
+The pipeline agent changes its setup record with five relayed commands. These commands are not in help. Under the
+job, do not name the setup record: the Overseer adds it. Write the payload as JSON after `--`, or give it in a file or
+on standard input with `--file <path>` or `--file -`.
+
+| Command | Payload |
+| --- | --- |
+| `{{program}} pipeline finding` | `{topic, label, value?, sourcePaths?, script?: {name, run, meaning, gateCandidate, needs?}}` |
+| `{{program}} pipeline ask` | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` |
+| `{{program}} pipeline draft-constitution` | `{markdown, sources: [{lineText, occurrence, kind, path}]}` |
+| `{{program}} pipeline propose` | `{edits: [{field, value, summary}]}` |
+| `{{program}} pipeline ready <step>` | no payload; the step is `research`, `constitution` or `design` |
+
+- A question has two to four options. Recommend exactly one option, or one or more when `multiple` is true. Do not
+  give an "Other" option: the Bridge lets User write a free answer.
+- Send the whole constitution each time. A source names one full line of the text, without its line ending, and
+  `occurrence` counts equal lines from 1. One line takes one source. A source path is relative to the repository.
+- A proposal edit names one field of the draft (`gate:<name>`, `phase-order:<phase>`, `prepare:<name>`,
+  `prepare-order`, `role:<role>`, `review`, `airlock`, `approval:<approval>` or `constitution`) and one summary
+  sentence. The draft that the edits make must be a valid `pipeline.json`, so send a gate and its phase order together.
+- `pipeline ready` only tells User that the step can continue. It does not move a step.
+- The pipeline agent may also run `{{program}} question options`. It cannot run a ticket command.
+
 ## Where a review bar is drawn
 
 A review job's bar stores the ticket it reviews in its `reviewOf` field. On the Progress tab a review pass is drawn

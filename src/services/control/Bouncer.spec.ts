@@ -1,7 +1,8 @@
 /**
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
  * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, the own-job stamp on the `question-options` of every
- * role that asks User, the Assistant's incident moves, and the planted
+ * role that asks User, the pipeline agent's setup moves stamped with its job and its setup (every other kind refused), the Assistant's
+ * incident moves, and the planted
  * forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
@@ -13,11 +14,12 @@ import { INCIDENT_KINDS }                        from '../../lib/tracker-model/c
 import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { WORKER_FILINGS_PER_JOB }                from '../../shared/constants/OverseerLimits.ts';
 import { Bouncer, type RelayingJob }             from './Bouncer.ts';
+import { CONTROL_COMMAND_KINDS }                 from './ControlService.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }        from './constants/AllowedMovesByIncidentKind.ts';
 
 function jobOf(role: JobRole | null, overrides: Partial<RelayingJob> = {}): RelayingJob {
   return {
-    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], ...overrides
+    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], setupId: null, ...overrides
   };
 }
 
@@ -149,7 +151,7 @@ describe('product-owner', () => {
 describe('option notes', () => {
   const command: ControlCommandOf<'question-options'> = { kind: 'question-options', question: 'Which basket?', options: [{ label: 'Wicker' }] };
 
-  test.each(['builder', 'reviewer', 'product-owner'] as const)('a %s\'s question-options is admitted, stamped with its own job', (role) => {
+  test.each(['builder', 'reviewer', 'product-owner', 'pipeline-agent'] as const)('a %s\'s question-options is admitted, stamped with its own job', (role) => {
     expect(Bouncer.verdictOf(jobOf(role), command)).toEqual({ verdict: 'admitted', command: { ...command, jobId: 'J12' } });
   });
 
@@ -157,8 +159,60 @@ describe('option notes', () => {
     expect(Bouncer.verdictOf(jobOf('builder'), { ...command, jobId: 'J1' })).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 
-  test.each(['assistant', 'pipeline-agent'] as const)('a %s, which never asks User, is refused its question-options', (role) => {
-    expect(Bouncer.verdictOf(jobOf(role), command).verdict).toBe('refused');
+  test('an assistant, which never asks User, is refused its question-options', () => {
+    expect(Bouncer.verdictOf(jobOf('assistant'), command).verdict).toBe('refused');
+  });
+});
+
+describe('pipeline agent', () => {
+  const PIPELINE_AGENT_COMMANDS: readonly ControlCommand[] = [
+    {
+      kind: 'pipeline-finding-record', topic: 'scripts', label: 'Type check', value: 'bun run typecheck', sourcePaths: ['package.json'], script: null
+    },
+    {
+      kind:        'pipeline-question-ask',
+      step:        'research',
+      subject:     null,
+      question:    'Is the type check a gate?',
+      context:     '',
+      options:     ['Yes', 'No'],
+      recommended: ['a'],
+      multiple:    false,
+    },
+    { kind: 'pipeline-constitution-draft', markdown: '# Example Agency\n\n- Keep it small.\n', sources: [] },
+    { kind: 'pipeline-draft-propose', edits: [{ field: 'review', value: { name: 'Review' }, summary: 'Review every ticket.' }] },
+    { kind: 'pipeline-step-ready', step: 'research' },
+  ];
+  const ADMITTED_KINDS = new Set<string>([...PIPELINE_AGENT_COMMANDS.map((command) => command.kind), 'question-options']);
+  const agent = jobOf('pipeline-agent', { ticketIds: [], setupId: 'S2' });
+
+  test.each(PIPELINE_AGENT_COMMANDS.map((command) => [command.kind, command] as const))('%s is admitted, stamped with its job and its setup', (_kind, command) => {
+    expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'admitted', command: { ...command, jobId: 'J12', setupId: 'S2' } as ControlCommand });
+  });
+
+  test('every other kind, each ticket verb among them, is refused command-not-allowed-for-role', () => {
+    const otherKinds = CONTROL_COMMAND_KINDS.filter((kind) => !ADMITTED_KINDS.has(kind));
+    expect(otherKinds).toContain('ticket-add');
+    expect(otherKinds).toContain('pipeline-draft-edit');
+    for (const kind of otherKinds) {
+      const command = { kind } as unknown as ControlCommand;
+      expect(Bouncer.verdictOf(agent, command), kind).toEqual({ verdict: 'refused', reason: 'command-not-allowed-for-role' });
+    }
+  });
+
+  test('a request naming a setup of its own choosing is refused hatch-identity-mismatch', () => {
+    const command: ControlCommand = { kind: 'pipeline-step-ready', setupId: 'S1', step: 'research' };
+    expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test('an agent whose job serves no open setup record is refused job-serves-no-setup', () => {
+    expect(Bouncer.verdictOf(jobOf('pipeline-agent'), { kind: 'pipeline-step-ready', step: 'research' })).toEqual({ verdict: 'refused', reason: 'job-serves-no-setup' });
+  });
+
+  test.each(['builder', 'reviewer', 'product-owner', 'assistant'] as const)('a %s is refused every pipeline agent move', (role) => {
+    for (const command of PIPELINE_AGENT_COMMANDS) {
+      expect(Bouncer.verdictOf(jobOf(role, { setupId: 'S2' }), command).verdict, command.kind).toBe('refused');
+    }
   });
 });
 

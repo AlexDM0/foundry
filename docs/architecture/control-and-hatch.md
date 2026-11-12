@@ -29,9 +29,9 @@ it. The folder holds against Bash only; [Identity is a folder](#identity-is-a-fo
 
 ## One contract
 
-`ControlCommand` is one union of 60 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
+`ControlCommand` is one union of 65 kinds, counted from `CONTROL_COMMAND_KINDS`. Each value is plain
 JSON, so it survives a Hatch file or an HTTP body unchanged. A ticket is named as it was written (`3`, `003`, `#3`) and
-resolved inside the hold by `ticketIdOfReference`. Ten applier files implement the kinds, and a `satisfies` check on
+resolved inside the hold by `ticketIdOfReference`. Eleven applier files implement the kinds, and a `satisfies` check on
 `CONTROL_APPLIERS` fails the type-check if a kind has no applier.
 
 A few verbs only User runs by hand, such as `log` and `ticket status`, have no command
@@ -49,8 +49,9 @@ A few verbs only User runs by hand, such as `log` and `ticket status`, have no c
 | `SettingControls.ts` (7) | `concurrency-set`, `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gate-order`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | None |
 | `AirlockControls.ts` (2) | `merge-accept`, `merge-update` | None |
 | `PipelineSetupControls.ts` (10) | `pipeline-setup-start`, `pipeline-setup-billing`, `pipeline-setup-step`, `pipeline-setup-start-over`, `pipeline-setup-answer`, `pipeline-constitution-edit`, `pipeline-update-start`, `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-draft-discard` | None |
+| `PipelineAgentControls.ts` (5) | `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready` | All, [pipeline agent](../glossary.md#pipeline-agent) only |
 
-So 25 of the 60 kinds can get through the Hatch at all, for some role. The other 35 are User's alone: their verbs
+So 30 of the 65 kinds can get through the Hatch at all, for some role. The other 35 are User's alone: their verbs
 still relay, and the Overseer refuses them in its hold.
 
 `ControlService.apply` returns one of two outcomes. It is `done`, unless the applier's result says `changed: false`, and
@@ -164,7 +165,8 @@ folder](#identity-is-a-folder) draws who writes what.
 
 A reply is `{hatchFormatVersion, requestId, outcome, ticketIds}` for `done` and `nothing-to-do`, or
 `{hatchFormatVersion, requestId, outcome: "refused", status, detail}`. A body travels beside its command for
-`ticket-add`, `ticket-edit` and `epic-add`, and `requestReadingOf` puts it back.
+`ticket-add`, `ticket-edit`, `epic-add` and the constitution of `pipeline-constitution-draft`, and `requestReadingOf`
+puts it back.
 
 ## The session side
 
@@ -325,7 +327,8 @@ first group it joins.
 | `builder`, `reviewer`, in the Airlock too | `ticket-add`, shaped as a low finding: priority `low`, and no `model`, `effort`, `group`, `dependsOn`, `epics` or `network`. At most `WORKER_FILINGS_PER_JOB` (10). And `question-options`. | `filedByJob`, and the job's tickets as `finderTicketIds`; `question-options` gets its `jobId` from the folder |
 | `product-owner` | `ticket-add`; `intake-close`; `intake-title`; `question-options`; `ticket-depends`; `epic-add`; every `draft-*` kind. On a [draft ticket](../glossary.md#draft-ticket) it filed: `ticket-edit`, `ticket-priority`, `ticket-network`, `ticket-epic`, `ticket-abandon`. Never `ticket-ready`. | `filedByJob`; `intake-close`, `intake-title` and `question-options` get their `jobId` from the folder |
 | `assistant` | Only a command naming an `incidentId` delivered to this job, if that incident's kind allows the move | Nothing |
-| `pipeline-agent`, no role (a job that runs no agent) | Nothing | Nothing |
+| `pipeline-agent` | `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready`, each only while the job is the agent of the open setup record; and `question-options`. Never a ticket verb, a gate profile or a pipeline check. | `jobId` from the folder, and `setupId`, the open setup record whose `agentJobId` is this job; a request naming a `setupId` is refused `hatch-identity-mismatch` |
+| no role (a job that runs no agent) | Nothing | Nothing |
 
 Each refusal carries one reason:
 
@@ -336,6 +339,8 @@ Each refusal carries one reason:
 | A worker is past its limit | `worker-filing-limit` |
 | A product owner's move names a ticket that is not its own draft | `not-own-draft` |
 | An Assistant's move is outside a delivered incident, or its kind does not allow the move | `incident-move-not-allowed` |
+| A pipeline agent's move names its own `setupId` | `hatch-identity-mismatch` |
+| A pipeline agent's job is the agent of no open setup record | `job-serves-no-setup` |
 | Anything else | `command-not-allowed-for-role` |
 
 ![A matrix of five callers against the nine applier families, with the number of kinds each may run. User at a terminal reaches all 47. Worker roles reach one Ticket kind. The product owner reaches 7 Ticket kinds, all 10 Filing kinds and 1 Job kind. The Assistant reaches all 4 Incident kinds and 1 Repair kind; its table also allows 2 Job kinds and 1 Repair kind, which the second rung refuses at the Hatch. Every other role reaches nothing.](../figures/control-and-hatch/reach-by-role.png)
