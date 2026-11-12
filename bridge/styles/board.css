@@ -116,6 +116,9 @@
  *   .bridge-number-stepper  a group of its lower button, the read-only .bridge-number-stepper-value and its raise button
  *   .bridge-busy[data-shape]  a progress bar with no value: a spinner or a running bar; .bridge-skeleton a busy status of
  *                           .bridge-skeleton-line lines
+ *   .bridge-reorder-list    a list of .bridge-reorder-row[data-dragging?][data-shifted?] rows (dragging: pointer | keyboard;
+ *                           shifted: up | down), each led by its .bridge-reorder-grip button; a .bridge-reorder-drop-line marks where
+ *                           a dragged row lands, and the .bridge-reorder-announcer speaks each move
  *   @keyframes bridge-rise, -pop, -glow, -bar, -sheen, -modal, -fade, -menu, -ring, -flowdash, -edge, -grow, -spin,
  *                           -indeterminate, -line, -blink, -caret, -mark, -draw, -toast, -shrink, -shimmer: the parts' shared motion
  * Shared marks (bridge/chips/), every state colour from the [data-state] rows of tokens.css
@@ -1226,6 +1229,46 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
     background: repeating-linear-gradient(-45deg, var(--link) 0 4px, var(--surface-raised) 4px 8px);
   }
   .bridge-skeleton-line { animation: none; background: var(--surface-raised); }
+}
+
+/* Rows reordered by the grip at their start. A row a pointer drags follows it (--reorder-offset) above the others; the rows it passes
+   slide by its span (--reorder-slot-span) toward its old place, and the drop line marks where it lands. A keyboard grab rings its row,
+   which moves in the page. Hover never moves a row: only a drag does. */
+.bridge-reorder-list { position: relative; }
+.bridge-reorder-list > ol { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+.bridge-reorder-row {
+  position: relative;
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--sp-2); align-items: center;
+  min-height: 28px; padding: 0 10px;
+  border-radius: var(--r-2);
+  background: var(--surface-page);
+  border: 1px solid var(--line-hairline);
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
+}
+.bridge-reorder-row[data-dragging] { z-index: 1; border-color: var(--accent-outline); box-shadow: 0 0 0 2px var(--accent-ring), var(--shadow-menu); }
+.bridge-reorder-row[data-dragging="pointer"] { transform: translateY(var(--reorder-offset, 0px)); transition: box-shadow var(--motion-fast) var(--ease-out); }
+.bridge-reorder-row[data-shifted="up"] { transform: translateY(calc(-1 * var(--reorder-slot-span, 0px))); }
+.bridge-reorder-row[data-shifted="down"] { transform: translateY(var(--reorder-slot-span, 0px)); }
+.bridge-reorder-grip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 20px; padding: 0;
+  border: 0; border-radius: var(--r-1);
+  background: transparent; color: var(--ink-4);
+  cursor: grab; touch-action: none; user-select: none;
+}
+.bridge-reorder-grip:hover { color: var(--ink-2); }
+.bridge-reorder-grip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.bridge-reorder-row[data-dragging] .bridge-reorder-grip { color: var(--link); cursor: grabbing; }
+.bridge-reorder-grip > svg { width: 8px; height: 12px; fill: currentColor; }
+.bridge-reorder-drop-line {
+  position: absolute; left: 0; right: 0; z-index: 2;
+  height: 2px; margin-top: -1px;
+  border-radius: 1px; background: var(--link);
+  pointer-events: none;
+}
+.bridge-reorder-announcer { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-reorder-row { transition: none; }
 }
 
 /* The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets
