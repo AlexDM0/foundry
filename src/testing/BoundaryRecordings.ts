@@ -9,14 +9,15 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { release } from 'node:os';
+import { join }    from 'node:path';
 
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { scratchRoot } from './ScratchRoot.ts';
 
-/** The outside system whose version stamps a recording. */
-export type RecordedSystem = 'bun' | 'forge';
+/** The outside system whose version stamps a recording; `macos` stands for the programs the system ships, such as `osascript`. */
+export type RecordedSystem = 'bun' | 'forge' | 'macos';
 
 export interface RecordedBoundary {
   readonly recordingName:  string;
@@ -53,6 +54,12 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
     recordingSpec:  null,
     system:         'forge',
+  },
+  {
+    recordingName:  'path-chooser',
+    boundaryModule: 'src/adapters/path-chooser/PathChooser.ts',
+    recordingSpec:  'src/adapters/path-chooser/PathChooser.recording.spec.ts',
+    system:         'macos',
   },
   {
     recordingName:  'overseer-fetch',
@@ -103,7 +110,7 @@ export type BoundaryRecordingReading =
 
 const RECORDINGS_FOLDER = join('src', 'testing', 'recordings');
 export const RECORDING_FILE_SUFFIX = '.json';
-const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun', 'forge']);
+const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun', 'forge', 'macos']);
 
 export function repositoryRoot(): string {
   return join(import.meta.dir, '..', '..');
@@ -131,13 +138,15 @@ export function recordingPathOf(recordingName: string, operatingSystem: string):
 }
 
 /**
- * The installed version of a system, read without starting a process: the running program is the installed Bun. `null` for the forge,
- * whose version only a run of the forge program answers; its recording spec reports the version it recorded from.
+ * The installed version of a system, read without starting a process: the running program is the installed Bun, and macOS is the Darwin
+ * release the kernel reports. `null` for the forge, whose version only a run of the forge program answers; its recording spec reports the
+ * version it recorded from.
  */
 export function installedVersionOf(system: RecordedSystem): string | null {
   switch (system) {
     case 'bun': return Bun.version;
     case 'forge': return null;
+    case 'macos': return process.platform === 'darwin' ? release() : null;
   }
 }
 

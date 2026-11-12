@@ -63,8 +63,10 @@ that does not exist yet is authored by hand and stamped `source: 'authored'` unt
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp, lists a boundary with no recording for the OS as not finished, and lists an
-authored recording as a warning; an authored recording is listed with no recording spec until its system serves the contract. The forge's
-version is read only by running it: `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that
+authored recording as a warning; an authored recording is listed with no recording spec until its system serves the contract. The one
+exception is a dialog only a person can answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and
+cancel a file, and until someone has, its recording stays authored beside its spec. macOS's programs are stamped with the Darwin release.
+The forge's version is read only by running it: `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that
 forge under a scratch home in a scratch repository (an Overseer it starts launches the forge's fake agent) and stamps the recording with
 its install version, and verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.

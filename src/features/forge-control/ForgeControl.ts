@@ -1,29 +1,41 @@
 /**
- * Carries out one command on one forge (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what an Overseer does
- * while it answers and its control contract is known; the forge program carries the rest. One command per forge is on its way at a time.
+ * Carries out one command (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what an Overseer does while it answers
+ * and its control contract is known; the forge program carries the rest; Gaia's settings carry what is Gaia's own. One command per forge,
+ * per repository being added, for the machine limit and for the chooser is on its way at a time.
  */
-import { OverseerTokenFile }                               from '../../adapters/forge-api/OverseerTokenFile.ts';
-import type { ForgeProgramVerdict }                        from '../../adapters/forge-program/@types/ForgeProgramAnswer.ts';
-import type { ForgeProgram, ForgeProgramTarget }           from '../../adapters/forge-program/ForgeProgram.ts';
-import type { RegisteredForge, RegisteredOverseer }        from '../../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }                            from '../../adapters/forge-registry/RegistryFile.ts';
-import type { ForgeCommandAnswer }                         from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeControlCommand }                        from '../../lib/forge-client/@types/ForgeControlCommand.ts';
-import type { ForgeClient }                                from '../../lib/forge-client/ForgeClient.ts';
-import type { CommandVerdict, GaiaRefusal }                from '../../shared/@types/CommandVerdict.ts';
-import type { ForgeFidelity, ForgeReading }                from '../../shared/@types/ForgeReading.ts';
-import type { ForgeCommand, ForgeStopAgents, GaiaCommand } from '../../shared/@types/GaiaCommand.ts';
-import { CONTRACT_VERSIONS }                               from '../../shared/constants/ContractVersions.ts';
+import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
+import type { ForgeProgramVerdict }                                  from '../../adapters/forge-program/@types/ForgeProgramAnswer.ts';
+import type { ForgeProgram, ForgeProgramTarget }                     from '../../adapters/forge-program/ForgeProgram.ts';
+import type { RegisteredForge, RegisteredOverseer }                  from '../../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { RegistryReading }                                      from '../../adapters/forge-registry/RegistryFile.ts';
+import type { PathChoiceVerdict }                                    from '../../adapters/path-chooser/@types/PathChoiceVerdict.ts';
+import type { PathChooser }                                          from '../../adapters/path-chooser/PathChooser.ts';
+import type { ForgeCommandAnswer }                                   from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeControlCommand }                                  from '../../lib/forge-client/@types/ForgeControlCommand.ts';
+import type { ForgeClient }                                          from '../../lib/forge-client/ForgeClient.ts';
+import type { SettingsStore, SettingsUpdate, SettingsUpdateVerdict } from '../../services/SettingsStore.ts';
+import type { CommandVerdict, GaiaRefusal }                          from '../../shared/@types/CommandVerdict.ts';
+import type { ForgeFidelity, ForgeReading }                          from '../../shared/@types/ForgeReading.ts';
+import type {
+  ForgeCommand,
+  ForgeStopAgents,
+  GaiaCommand,
+  SettingsChange,
+} from '../../shared/@types/GaiaCommand.ts';
+import type { GaiaSettings }     from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS }     from '../../shared/constants/ContractVersions.ts';
 
 export interface ForgeControlOptions {
   /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */
-  readonly readRegistry: () => Promise<RegistryReading>;
+  readonly readRegistry:  () => Promise<RegistryReading>;
   /** The forge watch's latest readings: whether an Overseer answers and which control contract it speaks. */
-  readonly readings:     () => readonly ForgeReading[];
-  readonly forgeClient:  ForgeClient;
-  readonly forgeProgram: ForgeProgram;
+  readonly readings:      () => readonly ForgeReading[];
+  readonly forgeClient:   ForgeClient;
+  readonly forgeProgram:  ForgeProgram;
+  readonly settingsStore: Pick<SettingsStore, 'update'>;
+  readonly pathChooser:   PathChooser;
   /** A registry read and an identity round at once. */
-  readonly lookAgain:    () => Promise<void>;
+  readonly lookAgain:     () => Promise<void>;
 }
 
 export interface ForgeControl {
@@ -32,6 +44,10 @@ export interface ForgeControl {
 
 /** The fidelities at which the forge's Overseer answered its last read. */
 const OVERSEER_ANSWERS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'newer-contract']);
+
+/** The machine limit and the chooser are one each, whatever the forge; a forge and a repository being added are named. */
+const MACHINE_LIMIT_SUBJECT = 'machine-limit';
+const PATH_CHOOSER_SUBJECT = 'path-chooser';
 
 /**
  * `api`: the Overseer answers and speaks the known control contract. `control-unknown`: it answers in another contract or names none.
@@ -49,6 +65,10 @@ function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiRe
   return reading.contracts.control === CONTRACT_VERSIONS.forgeControl ? { reach: 'api', overseer } : { reach: 'control-unknown' };
 }
 
+function programTargetOf(forge: RegisteredForge): ForgeProgramTarget {
+  return { root: forge.root, program: forge.program };
+}
+
 function verdictOfApiFailure(answer: Exclude<ForgeCommandAnswer, { verdict: 'answered' }>): CommandVerdict {
   switch (answer.verdict) {
     case 'unreachable':
@@ -64,10 +84,10 @@ function verdictOfApiFailure(answer: Exclude<ForgeCommandAnswer, { verdict: 'ans
   }
 }
 
-function verdictOfProgram<Answer>(programVerdict: ForgeProgramVerdict<Answer>, outcomeOf: (answer: Answer) => 'done' | 'nothing-to-do'): CommandVerdict {
+type ForgeProgramFailure = Exclude<ForgeProgramVerdict<unknown>, { verdict: 'done' }>;
+
+function verdictOfProgramFailure(programVerdict: ForgeProgramFailure): CommandVerdict {
   switch (programVerdict.verdict) {
-    case 'done':
-      return { verdict: outcomeOf(programVerdict.answer) };
     case 'refused':
       return {
         verdict: 'refused', refusedBy: 'forge', refusal: programVerdict.refusal, text: programVerdict.text,
@@ -83,14 +103,81 @@ function verdictOfProgram<Answer>(programVerdict: ForgeProgramVerdict<Answer>, o
   }
 }
 
-export function createForgeControl(options: ForgeControlOptions): ForgeControl {
-  const { forgeClient, forgeProgram } = options;
-  const forgesWithCommandInFlight = new Set<string>();
+function verdictOfProgram<Answer>(programVerdict: ForgeProgramVerdict<Answer>, outcomeOf: (answer: Answer) => 'done' | 'nothing-to-do'): CommandVerdict {
+  return programVerdict.verdict === 'done' ? { verdict: outcomeOf(programVerdict.answer) } : verdictOfProgramFailure(programVerdict);
+}
 
-  async function registeredForgeOf(trackerId: string): Promise<RegisteredForge | null> {
+function verdictOfSettingsUpdate(updateVerdict: SettingsUpdateVerdict): CommandVerdict {
+  switch (updateVerdict.verdict) {
+    case 'written':
+      return { verdict: 'done' };
+    case 'unchanged':
+      return { verdict: 'nothing-to-do' };
+    case 'kept-newer-version':
+      return gaiaRefusalOf('settings-newer-version');
+    case 'unwritable':
+      return gaiaRefusalOf('settings-unwritable');
+  }
+}
+
+/** Nobody chose, whether User cancelled or nobody answered: there is nothing to do with the choice. */
+function verdictOfPathChoice(choiceVerdict: PathChoiceVerdict): CommandVerdict {
+  switch (choiceVerdict.verdict) {
+    case 'chosen':
+      return { verdict: 'path-chosen', path: choiceVerdict.path };
+    case 'cancelled':
+    case 'timed-out':
+      return { verdict: 'nothing-to-do' };
+    case 'chooser-not-found':
+      return { verdict: 'not-supported' };
+    case 'failed':
+      return gaiaRefusalOf('path-chooser-failed');
+  }
+}
+
+function hiding(trackerId: string): SettingsUpdate {
+  return (settings) => (settings.hiddenTrackerIds.includes(trackerId) ? null : { ...settings, hiddenTrackerIds: [...settings.hiddenTrackerIds, trackerId] });
+}
+
+function showingAgain(trackerId: string): SettingsUpdate {
+  return (settings) => {
+    if (!settings.hiddenTrackerIds.includes(trackerId)) return null;
+    return { ...settings, hiddenTrackerIds: settings.hiddenTrackerIds.filter((hiddenTrackerId) => hiddenTrackerId !== trackerId) };
+  };
+}
+
+function settingsWith(settings: GaiaSettings, change: SettingsChange): GaiaSettings {
+  return { ...settings, [change.key]: change.value };
+}
+
+function changing(change: SettingsChange): SettingsUpdate {
+  return (settings) => (Bun.deepEquals(settings[change.key], change.value, true) ? null : settingsWith(settings, change));
+}
+
+/** What a command holds while it is on its way, so a second command to the same holds back; `null` for one that holds nothing. */
+function subjectOf(command: GaiaCommand): string | null {
+  switch (command.kind) {
+    case 'fleet-look-again':
+    case 'settings-set':
+      return null;
+    case 'forge-add':
+      return `repository ${command.root}`;
+    case 'machine-agent-limit-set':
+      return MACHINE_LIMIT_SUBJECT;
+    case 'path-choose':
+      return PATH_CHOOSER_SUBJECT;
+    default:
+      return `forge ${command.trackerId}`;
+  }
+}
+
+export function createForgeControl(options: ForgeControlOptions): ForgeControl {
+  const { forgeClient, forgeProgram, settingsStore } = options;
+  const subjectsWithCommandInFlight = new Set<string>();
+
+  async function registeredForges(): Promise<readonly RegisteredForge[]> {
     const registryReading = await options.readRegistry();
-    if (registryReading.verdict !== 'readable') return null;
-    return registryReading.forges.find((forge) => forge.trackerId === trackerId) ?? null;
+    return registryReading.verdict === 'readable' ? registryReading.forges : [];
   }
 
   function readingOf(trackerId: string): ForgeReading | null {
@@ -123,7 +210,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
    * The contract check comes before the carrier: an Overseer that answers in a control contract Gaia does not know is sent nothing and
    * left running. With no Overseer answering, or none answering the stop, the forge program stops the forge.
    */
-  async function stop(forge: RegisteredForge, reading: ForgeReading | null, target: ForgeProgramTarget, agents: ForgeStopAgents): Promise<CommandVerdict> {
+  async function stop(forge: RegisteredForge, reading: ForgeReading | null, agents: ForgeStopAgents): Promise<CommandVerdict> {
     const apiReach = apiReachOf(forge, reading);
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
     if (apiReach.reach === 'api') {
@@ -132,44 +219,90 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const apiVerdict = await sendOverApi(apiReach.overseer, controlCommands);
       if (apiVerdict.verdict !== 'unreachable') return apiVerdict;
     }
-    return verdictOfProgram(await forgeProgram.stop(target), (answer) => answer.outcome);
+    return verdictOfProgram(await forgeProgram.stop(programTargetOf(forge)), (answer) => answer.outcome);
+  }
+
+  /** `forge init`, then `forge start`, in the repository's root; the first refusal ends the add, and the forge words it. */
+  async function add(root: string, project: string): Promise<CommandVerdict> {
+    const target: ForgeProgramTarget = { root, program: null };
+    const initVerdict = await forgeProgram.init(target, project);
+    if (initVerdict.verdict !== 'done') return verdictOfProgramFailure(initVerdict);
+    const startVerdict = await forgeProgram.start(target);
+    if (startVerdict.verdict !== 'done') return verdictOfProgramFailure(startVerdict);
+    return { verdict: initVerdict.answer.outcome === 'done' || startVerdict.answer.started ? 'done' : 'nothing-to-do' };
+  }
+
+  /**
+   * The limit is the machine's, so any live forge whose control contract Gaia knows carries it; the next is asked when one gives no answer.
+   * With none live, the forge program of a registered forge whose repository is there sets it.
+   */
+  async function setMachineLimit(limit: number): Promise<CommandVerdict> {
+    const forges = await registeredForges();
+    for (const forge of forges) {
+      const apiReach = apiReachOf(forge, readingOf(forge.trackerId));
+      if (apiReach.reach !== 'api') continue;
+      const apiVerdict = await sendOverApi(apiReach.overseer, [{ kind: 'machine-agent-limit-set', limit }]);
+      if (apiVerdict.verdict !== 'unreachable') return apiVerdict;
+    }
+    const forgeWithItsRepository = forges.find((forge) => readingOf(forge.trackerId)?.fidelity !== 'repository-missing');
+    if (forgeWithItsRepository === undefined) return gaiaRefusalOf('no-forge-registered');
+    return verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
   }
 
   async function carryForForge(command: ForgeCommand): Promise<CommandVerdict> {
-    const forge = await registeredForgeOf(command.trackerId);
-    if (forge === null) return gaiaRefusalOf('forge-not-registered');
+    if (command.kind === 'forge-unhide') return verdictOfSettingsUpdate(await settingsStore.update(showingAgain(command.trackerId)));
+    const forge = (await registeredForges()).find((registeredForge) => registeredForge.trackerId === command.trackerId);
+    if (forge === undefined) return gaiaRefusalOf('forge-not-registered');
     const reading = readingOf(command.trackerId);
-    const target: ForgeProgramTarget = { root: forge.root, program: forge.program };
     switch (command.kind) {
       case 'forge-start':
-        return verdictOfProgram(await forgeProgram.start(target), (answer) => (answer.started ? 'done' : 'nothing-to-do'));
+        return verdictOfProgram(await forgeProgram.start(programTargetOf(forge)), (answer) => (answer.started ? 'done' : 'nothing-to-do'));
       case 'forge-stop':
-        return stop(forge, reading, target, command.agents);
+        return stop(forge, reading, command.agents);
       case 'forge-pause':
         return carryOverApi(forge, reading, { kind: 'overseer-pause' });
       case 'forge-resume':
         return carryOverApi(forge, reading, { kind: 'overseer-resume' });
       case 'forge-restart':
         return carryOverApi(forge, reading, { kind: 'overseer-restart', now: false });
+      case 'forge-concurrency-set':
+        return carryOverApi(forge, reading, { kind: 'concurrency-set', limit: command.limit });
       case 'forge-update':
-        return verdictOfProgram(await forgeProgram.update(target), (answer) => answer.outcome);
+        return verdictOfProgram(await forgeProgram.update(programTargetOf(forge)), (answer) => answer.outcome);
       case 'forge-open-in-browser':
-        return verdictOfProgram(forgeProgram.openInBrowser(target), () => 'done');
+        return verdictOfProgram(forgeProgram.openInBrowser(programTargetOf(forge)), () => 'done');
+      case 'forge-hide':
+        return verdictOfSettingsUpdate(await settingsStore.update(hiding(command.trackerId)));
+    }
+  }
+
+  async function carryNow(command: GaiaCommand): Promise<CommandVerdict> {
+    switch (command.kind) {
+      case 'fleet-look-again':
+        await options.lookAgain();
+        return { verdict: 'done' };
+      case 'forge-add':
+        return add(command.root, command.project);
+      case 'machine-agent-limit-set':
+        return setMachineLimit(command.limit);
+      case 'settings-set':
+        return verdictOfSettingsUpdate(await settingsStore.update(changing(command.change)));
+      case 'path-choose':
+        return verdictOfPathChoice(await options.pathChooser.choose(command.what));
+      default:
+        return carryForForge(command);
     }
   }
 
   async function carry(command: GaiaCommand): Promise<CommandVerdict> {
-    if (command.kind === 'fleet-look-again') {
-      await options.lookAgain();
-      return { verdict: 'done' };
-    }
-    const { trackerId } = command;
-    if (forgesWithCommandInFlight.has(trackerId)) return gaiaRefusalOf('command-in-flight');
-    forgesWithCommandInFlight.add(trackerId);
+    const subject = subjectOf(command);
+    if (subject === null) return carryNow(command);
+    if (subjectsWithCommandInFlight.has(subject)) return gaiaRefusalOf('command-in-flight');
+    subjectsWithCommandInFlight.add(subject);
     try {
-      return await carryForForge(command);
+      return await carryNow(command);
     } finally {
-      forgesWithCommandInFlight.delete(trackerId);
+      subjectsWithCommandInFlight.delete(subject);
     }
   }
 

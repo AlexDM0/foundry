@@ -1,11 +1,13 @@
 /**
- * forge-control over recorded and authored Overseer answers and forge program runs: one spec per kind and the carrier PLAN 8.2 gives it.
- * What matters: the command each kind sends and to whom, a refusal's code and sentence passed on unchanged from the API and the program,
- * the contract check that sends nothing to a forge whose control contract Gaia does not know, a stop that falls back to the program when
- * no Overseer answers, and the in-flight rule, which holds one forge and leaves another free.
+ * forge-control over recorded and authored Overseer answers, forge program runs and chooser runs, and the real settings store under a
+ * scratch home: one spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code
+ * and sentence passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract
+ * Gaia does not know, a stop and a machine limit that fall back to the program when no Overseer answers, an add that runs `init`, then
+ * `start`, and stops at the first refusal, settings changed one key at a time, a cancelled chooser that answers nothing-to-do, and the
+ * in-flight rule, which holds one forge, one repository, the machine limit and the chooser, and leaves the others free.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { dirname, join }            from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -18,9 +20,15 @@ import { createForgeProgram }                                                   
 import { EXAMPLE_FORGE_PROGRAM_PATH, RECORDING_NAME_OF_FORGE_PROGRAM_STAGE, recordedForgeProgramRunOf } from '../../adapters/forge-program/testing/RecordedForgeProgram.ts';
 import type { RegisteredForge }                                                                         from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { RegistryReading }                                                                         from '../../adapters/forge-registry/RegistryFile.ts';
+import { SettingsFile, settingsFilePathIn }                                                             from '../../adapters/gaia-files/SettingsFile.ts';
+import { createSettingsWriter }                                                                         from '../../adapters/gaia-files/SettingsWriter.ts';
+import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../adapters/gaia-files/constants/GaiaSettingsDefaults.ts';
+import { createPathChooser }                                                                            from '../../adapters/path-chooser/PathChooser.ts';
+import { RECORDED_CHOSEN_FOLDER, recordedPathChooserRun }                                               from '../../adapters/path-chooser/testing/RecordedPathChooser.ts';
 import { forgeClientOf }                                                                                from '../../lib/forge-client/ForgeClient.ts';
 import type { OverseerAnswer, OverseerFetch }                                                           from '../../lib/forge-client/OverseerFetch.ts';
-import type { ProcessRun }                                                                              from '../../lib/process-run/ProcessRun.ts';
+import type { ProcessRun, ProgramRunRequest }                                                           from '../../lib/process-run/ProcessRun.ts';
+import { createSettingsStore, type SettingsStore }                                                      from '../../services/SettingsStore.ts';
 import { WatchReadingUtil }                                                                             from '../../services/utils/WatchReadingUtil.ts';
 import type { CommandVerdict }                                                                          from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeReading }                                                                            from '../../shared/@types/ForgeReading.ts';
@@ -31,8 +39,14 @@ import {
   type OverseerSituation,
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
-import { recordedProcessRun, recordedRunsOf, runCallShapeOf } from '../../testing/RecordedRuns.ts';
-import { createScratchDirectory, removeScratchPath }          from '../../testing/ScratchRoot.ts';
+import {
+  recordedProcessRun,
+  recordedRunsOf,
+  runCallShapeOf,
+  type RecordedProcessRun,
+  type RecordedRun,
+} from '../../testing/RecordedRuns.ts';
+import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 
 import { createForgeControl, type ForgeControl } from './ForgeControl.ts';
 
@@ -43,7 +57,7 @@ const WIKI_URL = 'http://127.0.0.1:4952/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 const COMMANDS_CALL_SHAPE = 'POST /api/commands with bearer';
 
-type ForgeState = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant';
+type ForgeState = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
 interface ReadFacts {
   readonly condition: ForgeReading['condition'];
@@ -52,7 +66,7 @@ interface ReadFacts {
 }
 
 /** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
-const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant'>, ReadFacts>> = {
+const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
   'full':           { condition: 'live', monitor: 1, control: 1 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
   'newer-contract': { condition: 'unreadable', monitor: 2, control: 2 },
@@ -80,6 +94,7 @@ afterEach(() => {
 
 interface ForgeOptions {
   readonly trackerId?: string;
+  readonly root?:      string;
   readonly state?:     ForgeState;
   readonly program?:   string | null;
   readonly tokenPath?: string;
@@ -95,11 +110,11 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
   const trackerId  = forgeOptions.trackerId ?? STOREFRONT_TRACKER_ID;
   const isWiki     = trackerId === WIKI_TRACKER_ID;
   const state      = forgeOptions.state ?? 'full';
-  const hasOverseer = state !== 'dormant';
+  const hasOverseer = state !== 'dormant' && state !== 'repository-missing';
   const entry: RegisteredForge = {
     trackerId,
     project:  isWiki ? 'Research Wiki' : 'Example Storefront',
-    root:     isWiki ? wikiRoot : storefrontRoot,
+    root:     forgeOptions.root ?? (isWiki ? wikiRoot : storefrontRoot),
     program:  forgeOptions.program === undefined ? EXAMPLE_FORGE_PROGRAM_PATH : forgeOptions.program,
     overseer: hasOverseer ? {
       url:       isWiki ? WIKI_URL : STOREFRONT_URL,
@@ -110,6 +125,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
   };
   const dormantReading = WatchReadingUtil.dormantReadingOf(entry, null);
   if (state === 'dormant') return { entry, reading: dormantReading };
+  if (state === 'repository-missing') return { entry, reading: { ...dormantReading, fidelity: 'repository-missing', condition: 'missing' } };
   const { condition, monitor, control } = READ_FACTS_BY_STATE[state];
   const reading: ForgeReading = {
     ...dormantReading,
@@ -124,23 +140,76 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
 }
 
 interface ControlOptions {
-  readonly forges?:        readonly ExampleForge[];
-  readonly registry?:      RegistryReading;
-  readonly overseerFetch?: OverseerFetch;
-  readonly processRun?:    ProcessRun;
-  readonly lookAgain?:     () => Promise<void>;
+  readonly forges?:         readonly ExampleForge[];
+  readonly registry?:       RegistryReading;
+  readonly overseerFetch?:  OverseerFetch;
+  readonly processRun?:     ProcessRun;
+  readonly pathChooserRun?: ProcessRun;
+  readonly settingsStore?:  SettingsStore;
+  readonly lookAgain?:      () => Promise<void>;
+}
+
+/** The settings store over the real settings file in the spec's scratch folder, which stands in for the home folder. */
+function settingsStoreInScratch(): SettingsStore {
+  return createSettingsStore({ settingsFile: new SettingsFile(scratchFolder), settingsWriter: createSettingsWriter(scratchFolder) });
+}
+
+async function settingsStoreNamingTheProgram(): Promise<SettingsStore> {
+  const settingsStore = settingsStoreInScratch();
+  await settingsStore.change({ ...GAIA_SETTINGS_DEFAULTS, forgeProgramPath: EXAMPLE_FORGE_PROGRAM_PATH });
+  return settingsStore;
 }
 
 function controlOver(controlOptions: ControlOptions): ForgeControl {
   const forges = controlOptions.forges ?? [exampleForgeOf()];
   const registry: RegistryReading = controlOptions.registry ?? { verdict: 'readable', forges: forges.map((forge) => forge.entry), leftOutEntries: [] };
+  const settingsStore = controlOptions.settingsStore ?? settingsStoreInScratch();
   return createForgeControl({
     readRegistry: async () => registry,
     readings:     () => forges.map((forge) => forge.reading),
     forgeClient:  forgeClientOf({ overseerFetch: controlOptions.overseerFetch ?? recordedOverseerFetch([]) }),
-    forgeProgram: createForgeProgram({ processRun: controlOptions.processRun ?? recordedProcessRun([]), settingsProgramPath: () => null }),
-    lookAgain:    controlOptions.lookAgain ?? (async () => undefined),
+    forgeProgram: createForgeProgram({
+      processRun:          controlOptions.processRun ?? recordedProcessRun([]),
+      settingsProgramPath: () => settingsStore.settings().forgeProgramPath,
+    }),
+    settingsStore,
+    pathChooser: createPathChooser({ processRun: controlOptions.pathChooserRun ?? recordedProcessRun([]), workingDirectory: () => scratchFolder }),
+    lookAgain:   controlOptions.lookAgain ?? (async () => undefined),
   });
+}
+
+const INIT_ARGUMENTS = ['init', '--project', 'Example Project', '--json'];
+const START_ARGUMENTS = ['start', '--json'];
+
+type AddStage = 'every-verb-done' | 'every-verb-refused';
+
+/** One answer set per stage of an add: the stage that initializes the repository and the one that starts its forge. */
+function forgeProgramRunOfAddStages(initStage: AddStage, startStage: AddStage): RecordedProcessRun {
+  const runOf = (stage: AddStage, programArguments: readonly string[]): readonly RecordedRun[] => {
+    const callShape = runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, programArguments);
+    return recordedRunsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE[stage]).filter((run) => run.callShape === callShape);
+  };
+  return recordedProcessRun([...runOf(initStage, INIT_ARGUMENTS), ...runOf(startStage, START_ARGUMENTS)]);
+}
+
+/** Answers from the recording, but holds the first run until the spec lets it through; every later run passes at once. */
+function holdingFirstRun(recorded: RecordedProcessRun): { readonly processRun: ProcessRun; readonly letThrough: () => void } {
+  let letThrough: () => void = () => undefined;
+  const heldUntilLetThrough = new Promise<void>((resolve) => {
+    letThrough = resolve;
+  });
+  let firstRunIsHeld = true;
+  const processRun: ProcessRun = {
+    run: async (request: ProgramRunRequest) => {
+      if (firstRunIsHeld) {
+        firstRunIsHeld = false;
+        await heldUntilLetThrough;
+      }
+      return recorded.run(request);
+    },
+    startDetached: (request) => recorded.startDetached(request),
+  };
+  return { processRun, letThrough };
 }
 
 function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch {
@@ -393,5 +462,250 @@ describe('one command per forge on its way', () => {
     const control = controlOver({ overseerFetch: overseerAnswering('command-refused') });
     expect((await control.carry(PAUSE)).verdict).toBe('refused');
     expect(await control.carry(PAUSE)).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
+  });
+});
+
+describe('forge-concurrency-set, carried by the API', () => {
+  const SET_CONCURRENCY: GaiaCommand = { kind: 'forge-concurrency-set', trackerId: STOREFRONT_TRACKER_ID, limit: 3 };
+
+  test('sends `concurrency-set` with the limit to the forge\'s Overseer', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    expect(await controlOver({ overseerFetch }).carry(SET_CONCURRENCY)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'concurrency-set', limit: 3 }]);
+  });
+
+  test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {
+    const verdict = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(SET_CONCURRENCY);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
+  });
+
+  test('sends nothing to a forge whose control contract Gaia does not know', async () => {
+    expect(await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })] }).carry(SET_CONCURRENCY)).toEqual({ verdict: 'not-supported' });
+  });
+
+  test('answers unreachable and runs nothing for a dormant forge', async () => {
+    expect(await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] }).carry(SET_CONCURRENCY)).toEqual({ verdict: 'unreachable' });
+  });
+});
+
+describe('machine-agent-limit-set, carried by a live forge\'s API, else by the forge program', () => {
+  const SET_MACHINE_LIMIT: GaiaCommand = { kind: 'machine-agent-limit-set', limit: 4 };
+
+  test('sends `machine-agent-limit-set` to the live forge and runs no program', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const forges = [exampleForgeOf({ state: 'dormant' }), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
+    expect(await controlOver({ forges, overseerFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
+    expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
+  });
+
+  test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {
+    const verdict = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(SET_MACHINE_LIMIT);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
+  });
+
+  test('runs `forge machine limit <n> --json` when no forge is live', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })], processRun }).carry(SET_MACHINE_LIMIT);
+    expect(verdict).toEqual({ verdict: 'done' });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
+  });
+
+  test('runs the program when the live forge gives no answer', async () => {
+    const overseerFetch = overseerAnswering('stopped');
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    expect(await controlOver({ overseerFetch, processRun }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(overseerFetch.callsAnswered()).toHaveLength(1);
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
+  });
+
+  test('sends nothing to a live forge whose control contract Gaia does not know, and sets the limit through the program', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })], processRun }).carry(SET_MACHINE_LIMIT);
+    expect(verdict).toEqual({ verdict: 'done' });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
+  });
+
+  test('passes the program\'s refusal of a limit above the CPU count on unchanged', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-refused');
+    const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })], processRun }).carry({ kind: 'machine-agent-limit-set', limit: 64 });
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(['machine', 'limit', '64', '--json']) });
+  });
+
+  test('runs the program of a forge whose repository is there, past one whose repository is gone', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const forges = [
+      exampleForgeOf({ state: 'repository-missing', root: join(scratchFolder, 'gone') }),
+      exampleForgeOf({ trackerId: WIKI_TRACKER_ID, state: 'dormant' }),
+    ];
+    expect(await controlOver({ forges, processRun }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(processRun.callShapesAnswered()).toHaveLength(1);
+  });
+
+  test('refuses with no-forge-registered when no registered forge can carry it', async () => {
+    expect(await controlOver({ forges: [] }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'no-forge-registered' });
+  });
+});
+
+describe('forge-add, carried by the forge program: init, then start', () => {
+  function addingStorefront(): GaiaCommand {
+    return { kind: 'forge-add', root: storefrontRoot, project: 'Example Project' };
+  }
+
+  test('runs `forge init` with the project name, then `forge start`, both in the repository root, and answers done', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const workingDirectories: string[] = [];
+    const processRun: ProcessRun = {
+      run: async (request) => {
+        workingDirectories.push(request.workingDirectory);
+        return recorded.run(request);
+      },
+      startDetached: (request) => recorded.startDetached(request),
+    };
+    const verdict = await controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() }).carry(addingStorefront());
+    expect(verdict).toEqual({ verdict: 'done' });
+    expect(recorded.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, INIT_ARGUMENTS), runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, START_ARGUMENTS)]);
+    expect(workingDirectories).toEqual([storefrontRoot, storefrontRoot]);
+  });
+
+  test('stops at a refused init, runs no start, and passes the refusal on unchanged', async () => {
+    const processRun = forgeProgramRunOfAddStages('every-verb-refused', 'every-verb-done');
+    const verdict = await controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() }).carry(addingStorefront());
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(INIT_ARGUMENTS) });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, INIT_ARGUMENTS)]);
+  });
+
+  test('passes a refused start on unchanged after the repository was initialized', async () => {
+    const processRun = forgeProgramRunOfAddStages('every-verb-done', 'every-verb-refused');
+    const verdict = await controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() }).carry(addingStorefront());
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(START_ARGUMENTS) });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, INIT_ARGUMENTS), runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, START_ARGUMENTS)]);
+  });
+
+  test('refuses with program-not-found and runs nothing when the settings name no forge program', async () => {
+    const verdict = await controlOver({ forges: [] }).carry(addingStorefront());
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'program-not-found' });
+  });
+});
+
+describe('forge-hide and forge-unhide, carried by Gaia\'s settings', () => {
+  const HIDE: GaiaCommand = { kind: 'forge-hide', trackerId: STOREFRONT_TRACKER_ID };
+  const UNHIDE: GaiaCommand = { kind: 'forge-unhide', trackerId: STOREFRONT_TRACKER_ID };
+
+  test('hides a registered forge, keeps it hidden in the settings file, and answers nothing-to-do when it is hidden already', async () => {
+    const settingsStore = settingsStoreInScratch();
+    const control = controlOver({ settingsStore });
+    expect(await control.carry(HIDE)).toEqual({ verdict: 'done' });
+    expect(settingsStore.settings().hiddenTrackerIds).toEqual([STOREFRONT_TRACKER_ID]);
+    expect((await new SettingsFile(scratchFolder).read()).settings.hiddenTrackerIds).toEqual([STOREFRONT_TRACKER_ID]);
+    expect(await control.carry(HIDE)).toEqual({ verdict: 'nothing-to-do' });
+  });
+
+  test('refuses to hide a tracker id the registry does not hold', async () => {
+    const verdict = await controlOver({}).carry({ kind: 'forge-hide', trackerId: 'example-unknown-0000' });
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'forge-not-registered' });
+  });
+
+  test('shows a hidden forge again, also one the registry no longer holds, and answers nothing-to-do for one not hidden', async () => {
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.change({ ...GAIA_SETTINGS_DEFAULTS, hiddenTrackerIds: [STOREFRONT_TRACKER_ID, WIKI_TRACKER_ID] });
+    const control = controlOver({ forges: [], settingsStore });
+    expect(await control.carry(UNHIDE)).toEqual({ verdict: 'done' });
+    expect(settingsStore.settings().hiddenTrackerIds).toEqual([WIKI_TRACKER_ID]);
+    expect(await control.carry(UNHIDE)).toEqual({ verdict: 'nothing-to-do' });
+  });
+
+  test('refuses with settings-newer-version and keeps a settings file newer than this Gaia', async () => {
+    const settingsPath = settingsFilePathIn(scratchFolder);
+    mkdirSync(dirname(settingsPath), { recursive: true });
+    writeFileSync(settingsPath, JSON.stringify({ version: 2 }));
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.load();
+    expect(await controlOver({ settingsStore }).carry(HIDE)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-newer-version' });
+    expect(settingsStore.settings().hiddenTrackerIds).toEqual([]);
+  });
+});
+
+describe('settings-set, carried by Gaia\'s settings', () => {
+  test('writes the one key it names and leaves every other key as it was', async () => {
+    const settingsStore = settingsStoreInScratch();
+    const verdict = await controlOver({ settingsStore }).carry({ kind: 'settings-set', change: { key: 'theme', value: 'dark' } });
+    expect(verdict).toEqual({ verdict: 'done' });
+    expect((await new SettingsFile(scratchFolder).read()).settings).toEqual({ ...GAIA_SETTINGS_DEFAULTS, theme: 'dark' });
+  });
+
+  test('answers nothing-to-do and writes nothing when the key already holds the value', async () => {
+    const settingsStore = settingsStoreInScratch();
+    const verdict = await controlOver({ settingsStore }).carry({
+      kind:   'settings-set',
+      change: { key: 'notifications', value: { ...GAIA_SETTINGS_DEFAULTS.notifications, kinds: { ...GAIA_SETTINGS_DEFAULTS.notifications.kinds } } },
+    });
+    expect(verdict).toEqual({ verdict: 'nothing-to-do' });
+    expect((await new SettingsFile(scratchFolder).read()).verdict).toBe('absent');
+  });
+
+  test('refuses with settings-unwritable when the settings cannot be written', async () => {
+    writeFileSync(join(scratchFolder, '.gaia'), 'a file where the folder belongs');
+    const verdict = await controlOver({}).carry({ kind: 'settings-set', change: { key: 'startForgesAtLogin', value: true } });
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-unwritable' });
+  });
+
+  test('a forge program set in the settings starts the next forge whose registry entry names none', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const control = controlOver({ forges: [exampleForgeOf({ state: 'dormant', program: null })], processRun });
+    expect(await control.carry({ kind: 'settings-set', change: { key: 'forgeProgramPath', value: EXAMPLE_FORGE_PROGRAM_PATH } })).toEqual({ verdict: 'done' });
+    expect(await control.carry(START)).toEqual({ verdict: 'done' });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['start', '--json'])]);
+  });
+});
+
+describe('path-choose, carried by the system\'s chooser', () => {
+  test('answers the chosen folder', async () => {
+    const verdict = await controlOver({ pathChooserRun: recordedPathChooserRun() }).carry({ kind: 'path-choose', what: 'folder' });
+    expect(verdict).toEqual({ verdict: 'path-chosen', path: RECORDED_CHOSEN_FOLDER });
+  });
+
+  test('answers nothing-to-do when the chooser was cancelled', async () => {
+    expect(await controlOver({ pathChooserRun: recordedPathChooserRun() }).carry({ kind: 'path-choose', what: 'file' })).toEqual({ verdict: 'nothing-to-do' });
+  });
+});
+
+describe('one command per repository being added, per machine limit and per chooser on its way', () => {
+  test('refuses a second add of the same repository while the first runs, and carries an add of another', async () => {
+    const { processRun, letThrough } = holdingFirstRun(recordedForgeProgramRunOf('every-verb-done'));
+    const control = controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() });
+    const addStorefront: GaiaCommand = { kind: 'forge-add', root: storefrontRoot, project: 'Example Project' };
+
+    const firstAdd = control.carry(addStorefront);
+    expect(await control.carry(addStorefront)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
+    expect(await control.carry({ kind: 'forge-add', root: wikiRoot, project: 'Example Project' })).toEqual({ verdict: 'done' });
+
+    letThrough();
+    expect(await firstAdd).toEqual({ verdict: 'done' });
+  });
+
+  test('refuses a second machine limit while the first runs, and frees it after', async () => {
+    const { processRun, letThrough } = holdingFirstRun(recordedForgeProgramRunOf('every-verb-done'));
+    const control = controlOver({ forges: [exampleForgeOf({ state: 'dormant' })], processRun });
+    const setMachineLimit: GaiaCommand = { kind: 'machine-agent-limit-set', limit: 4 };
+
+    const firstLimit = control.carry(setMachineLimit);
+    expect(await control.carry(setMachineLimit)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
+
+    letThrough();
+    expect(await firstLimit).toEqual({ verdict: 'done' });
+    expect(await control.carry(setMachineLimit)).toEqual({ verdict: 'done' });
+  });
+
+  test('refuses a second chooser while one is open, and leaves a forge command free', async () => {
+    const { processRun, letThrough } = holdingFirstRun(recordedPathChooserRun());
+    const control = controlOver({ pathChooserRun: processRun, overseerFetch: overseerAnswering('serving-every-contract') });
+
+    const firstChoice = control.carry({ kind: 'path-choose', what: 'folder' });
+    expect(await control.carry({ kind: 'path-choose', what: 'file' })).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
+    expect(await control.carry(PAUSE)).toEqual({ verdict: 'done' });
+
+    letThrough();
+    expect(await firstChoice).toEqual({ verdict: 'path-chosen', path: RECORDED_CHOSEN_FOLDER });
   });
 });

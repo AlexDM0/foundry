@@ -1,10 +1,12 @@
 /**
  * The page's command body read in. What matters: every kind this Gaia carries out maps to its internal command with exactly its keys, a
- * body at another `commandVersion` maps nothing, a key read only as the body's own, and a kind this Gaia does not carry out named so.
+ * body at another `commandVersion` maps nothing, a key read only as the body's own, and a kind this Gaia does not carry out named so. A
+ * limit is a whole number of at least one, a path the server runs a program in is absolute, and a settings value has the type of its key.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommandDocument } from '../../../page/@types/CommandDocument.ts';
+import type { CommandDocument, SettingsChange } from '../../../page/@types/CommandDocument.ts';
+import { GAIA_SETTINGS_DEFAULTS }               from '../gaia-files/constants/GaiaSettingsDefaults.ts';
 
 import { GaiaCommandIngestion } from './GaiaCommandIngestion.ts';
 
@@ -15,7 +17,16 @@ function readingOf(body: unknown): ReturnType<GaiaCommandIngestion['read']> {
 }
 
 describe('a body this Gaia carries out', () => {
-  const SINGLE_FORGE_KINDS = ['forge-start', 'forge-pause', 'forge-resume', 'forge-restart', 'forge-update', 'forge-open-in-browser'] as const;
+  const SINGLE_FORGE_KINDS = [
+    'forge-start',
+    'forge-pause',
+    'forge-resume',
+    'forge-restart',
+    'forge-update',
+    'forge-open-in-browser',
+    'forge-hide',
+    'forge-unhide',
+  ] as const;
 
   for (const kind of SINGLE_FORGE_KINDS) {
     test(`maps ${kind} to its command with its tracker id`, () => {
@@ -34,6 +45,48 @@ describe('a body this Gaia carries out', () => {
   test('maps fleet-look-again, which names no forge', () => {
     const document: CommandDocument = { commandVersion: 1, kind: 'fleet-look-again' };
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
+  });
+
+  test('maps forge-concurrency-set with its limit', () => {
+    const document: CommandDocument = {
+      commandVersion: 1, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3,
+    };
+    expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3 } });
+  });
+
+  test('maps machine-agent-limit-set, which names no forge', () => {
+    const document: CommandDocument = { commandVersion: 1, kind: 'machine-agent-limit-set', limit: 6 };
+    expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'machine-agent-limit-set', limit: 6 } });
+  });
+
+  test('maps forge-add with the repository root and the project name', () => {
+    const root = '/Users/example/Development/example-storefront';
+    const document: CommandDocument = {
+      commandVersion: 1, kind: 'forge-add', root, project: 'Example Storefront',
+    };
+    expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'forge-add', root, project: 'Example Storefront' } });
+  });
+
+  test('maps path-choose for a folder and for a file', () => {
+    for (const what of ['folder', 'file'] as const) {
+      const document: CommandDocument = { commandVersion: 1, kind: 'path-choose', what };
+      expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'path-choose', what } });
+    }
+  });
+
+  test('maps settings-set of every settings key to the change of that one key', () => {
+    const changes: SettingsChange[] = [
+      { key: 'theme', value: 'dark' },
+      { key: 'hiddenTrackerIds', value: [TRACKER_ID] },
+      { key: 'forgeProgramPath', value: '/Users/example/.bun/bin/forge' },
+      { key: 'forgeProgramPath', value: null },
+      { key: 'notifications', value: { enabled: false, kinds: { ...GAIA_SETTINGS_DEFAULTS.notifications.kinds } } },
+      { key: 'startForgesAtLogin', value: true },
+    ];
+    for (const change of changes) {
+      const document: CommandDocument = { commandVersion: 1, kind: 'settings-set', ...change };
+      expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'settings-set', change } });
+    }
   });
 
   test('leaves a key the kind does not name out of the command', () => {
@@ -81,5 +134,51 @@ describe('a body that maps nothing', () => {
   test('names every invalid key of a stop', () => {
     expect(readingOf({ commandVersion: 1, kind: 'forge-stop', agents: 'all' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'agents'] });
     expect(readingOf({ commandVersion: 1, kind: 'forge-stop', trackerId: TRACKER_ID })).toEqual({ verdict: 'malformed', invalidKeys: ['agents'] });
+  });
+});
+
+describe('the keys of the limits, adding, settings and the chooser', () => {
+  test('names a limit that is no whole number of at least one as malformed', () => {
+    for (const limit of [0, -1, 2.5, '3', null]) {
+      expect(readingOf({ commandVersion: 1, kind: 'machine-agent-limit-set', limit })).toEqual({ verdict: 'malformed', invalidKeys: ['limit'] });
+    }
+  });
+
+  test('names every invalid key of a concurrency change', () => {
+    expect(readingOf({ commandVersion: 1, kind: 'forge-concurrency-set' })).toEqual({ verdict: 'malformed', invalidKeys: ['trackerId', 'limit'] });
+    expect(readingOf({
+      commandVersion: 1, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 0,
+    })).toEqual({ verdict: 'malformed', invalidKeys: ['limit'] });
+  });
+
+  test('names a root that is not absolute and an empty project name as malformed', () => {
+    expect(readingOf({
+      commandVersion: 1, kind: 'forge-add', root: 'example-storefront', project: '',
+    })).toEqual({ verdict: 'malformed', invalidKeys: ['root', 'project'] });
+  });
+
+  test('names a settings key the settings do not have as malformed, and reads it only as the body\'s own', () => {
+    expect(readingOf({
+      commandVersion: 1, kind: 'settings-set', key: 'version', value: 2,
+    })).toEqual({ verdict: 'malformed', invalidKeys: ['key'] });
+    expect(new GaiaCommandIngestion('{"commandVersion": 1, "kind": "settings-set", "__proto__": {"key": "theme"}, "value": "dark"}').read())
+      .toEqual({ verdict: 'malformed', invalidKeys: ['key'] });
+  });
+
+  test('names a settings value of another type than its key holds as malformed', () => {
+    const invalidChanges = [
+      { key: 'theme', value: 'sepia' },
+      { key: 'hiddenTrackerIds', value: [TRACKER_ID, 7] },
+      { key: 'forgeProgramPath', value: 'bin/forge' },
+      { key: 'notifications', value: { enabled: true, kinds: { questions: true } } },
+      { key: 'startForgesAtLogin', value: 'yes' },
+    ];
+    for (const change of invalidChanges) {
+      expect(readingOf({ commandVersion: 1, kind: 'settings-set', ...change })).toEqual({ verdict: 'malformed', invalidKeys: ['value'] });
+    }
+  });
+
+  test('names a chooser target that is neither a folder nor a file as malformed', () => {
+    expect(readingOf({ commandVersion: 1, kind: 'path-choose', what: 'application' })).toEqual({ verdict: 'malformed', invalidKeys: ['what'] });
   });
 });
