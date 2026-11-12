@@ -1,0 +1,47 @@
+/**
+ * The 64 px bar over every view: the view's title, its one mono status line, the view's own buttons, and at the far end the theme switch.
+ */
+import type { ReactNode } from 'react';
+
+import { ConditionDot, type DotCondition } from '../design-system/ConditionDot.tsx';
+import { SegmentedControl }                from '../design-system/SegmentedControl.tsx';
+import type { ThemeChoice }                from './ThemeBootstrap.ts';
+
+export interface TopBarStatus {
+  /** The dot that leads the line, or `null` for a line without one. */
+  readonly condition: DotCondition | null;
+  readonly text:      string;
+}
+
+export interface TopBarProps {
+  readonly title:         string;
+  readonly status:        TopBarStatus | null;
+  /** The view's own buttons, placed before the theme switch. */
+  readonly actions:       ReactNode;
+  readonly themeChoice:   ThemeChoice;
+  readonly onThemeChoice: (choice: ThemeChoice) => void;
+}
+
+const THEME_OPTIONS = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+] as const;
+
+export function TopBar({
+  title, status, actions, themeChoice, onThemeChoice
+}: TopBarProps) {
+  return (
+    <header className="gaia-top-bar">
+      <h1 className="gaia-top-bar-title">{title}</h1>
+      {status === null ? null : (
+        <span className="gaia-top-bar-status">
+          {status.condition === null ? null : <ConditionDot condition={status.condition} />}
+          {status.text}
+        </span>
+      )}
+      <span className="gaia-top-bar-actions">{actions}</span>
+      <SegmentedControl<ThemeChoice> label="Theme" options={THEME_OPTIONS} selected={themeChoice} onSelect={onThemeChoice} />
+    </header>
+  );
+}

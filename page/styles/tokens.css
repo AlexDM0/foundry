@@ -17,7 +17,11 @@
   --line-height-body: 1.5;
   --weight-figure: 500;
   --weight-strong: 600;
+  --weight-page-title: 650;
+  --weight-brand: 700;
   --micro-caps-tracking: 0.07em;
+  --page-title-tracking: -0.01em;
+  --brand-tracking: -0.02em;
 
   --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -39,6 +43,12 @@
   --table-row-height:    40px;
   --table-tall-row-height: 64px;
   --dialog-width:        640px;
+  --rail-width:          232px;
+  --rail-section-gap:    20px;
+  --rail-inset:          10px;
+  --rail-row-height:     30px;
+  --rail-brand-height:   32px;
+  --top-bar-height:      64px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 

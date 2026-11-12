@@ -397,3 +397,127 @@
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }
+
+/* ── Shell ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+/* The body stays hidden until the shell has set the theme, so no wrong theme flashes before the first paint. */
+:root:not([data-theme]) body { visibility: hidden; }
+
+html,
+body,
+#gaia-root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--fs-body) / var(--line-height-body) var(--font-ui);
+}
+
+.gaia-shell {
+  display: flex;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Rail */
+.gaia-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--rail-section-gap);
+  box-sizing: border-box;
+  width: var(--rail-width);
+  padding: var(--rail-section-gap) var(--sp-3) var(--sp-4);
+  overflow-y: auto;
+  border-right: var(--hairline) solid var(--line);
+}
+.gaia-rail-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--rail-inset);
+  height: var(--rail-brand-height);
+  padding: 0 var(--rail-inset);
+}
+.gaia-rail-brand-name { font-size: var(--fs-page); font-weight: var(--weight-brand); letter-spacing: var(--brand-tracking); }
+.gaia-rail-group { display: flex; flex-direction: column; gap: var(--sp-half); }
+.gaia-rail-group-head { padding: 0 var(--rail-inset) calc(var(--sp-1) + var(--sp-half)); }
+.gaia-rail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--rail-inset);
+  height: var(--rail-row-height);
+  padding: 0 var(--rail-inset);
+  border-radius: var(--r-2);
+  color: var(--ink-muted);
+  font-size: var(--fs-body);
+  text-decoration: none;
+  transition: var(--feedback-transition);
+}
+.gaia-rail-row:hover { background: var(--surface-2); color: var(--ink); }
+.gaia-rail-row[aria-current="page"] { background: var(--surface-selected); color: var(--ink); font-weight: var(--weight-strong); }
+.gaia-rail-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-rail-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+.gaia-rail-count[data-tone="attention"] { color: var(--attn-ink); }
+.gaia-rail-spacer { flex: 1; }
+.gaia-rail-machine {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--rail-inset) 0;
+  border-top: var(--hairline) solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.gaia-rail-machine-agents { display: flex; align-items: baseline; gap: calc(var(--sp-1) + var(--sp-half)); }
+.gaia-rail-machine-figure {
+  font-family: var(--font-mono);
+  font-size: var(--fs-figure);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-figure);
+}
+.gaia-rail-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-rail-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-rail-machine[data-at-the-limit] .gaia-rail-machine-line { color: var(--warn-ink); }
+
+/* Main area and top bar */
+.gaia-shell-main { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gaia-top-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-4);
+  box-sizing: border-box;
+  height: var(--top-bar-height);
+  padding: 0 var(--sp-6);
+  border-bottom: var(--hairline) solid var(--line);
+}
+.gaia-top-bar-title { margin: 0; font-size: var(--fs-page); font-weight: var(--weight-page-title); letter-spacing: var(--page-title-tracking); }
+.gaia-top-bar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+.gaia-top-bar-actions { display: inline-flex; flex: 1; justify-content: flex-end; gap: var(--sp-2); }
+.gaia-shell-view { flex: 1; min-height: 0; overflow: auto; }
+
+/* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
+.gaia-rail-row:focus-visible,
+.gaia-rail-machine:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: var(--focus-ring-width);
+}
