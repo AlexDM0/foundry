@@ -297,6 +297,14 @@ and `pipeline-apply` with `resumesBoard: false`). Both read the setup's `applySt
 the dialog's Cancel. A dialog stays open on a refusal and shows it verbatim. Once the facts show the pipeline applied,
 the record is gone, the view draws the live flow, and a `#pipeline/setup/<step>` route goes back to `#pipeline`.
 
+An applied pipeline being edited (an `update` or `advise` record) draws the flow screen with `EditingAside`
+(`bridge/views/pipeline/editing/`) beside the workspace: the Changes tab first, the change list given the applied
+pipeline, the draft, the flow and the profile runs (`PipelineEditingModel.changeListEditingOf`), so a gate card shows its
+run line before and after and a new gate's card sends `gate-profile-start` for its last phase; the in-flight note; the
+agent panel; and Ask the pipeline agent to check (`pipeline-check`). The footer counts `changeList` with the version it
+makes, and Discard sends `pipeline-draft-discard` and routes to `#pipeline`. The smallest pipeline keeps its note and
+its footer of removed steps.
+
 A node, a gate or a + opens its dialog through `PipelineDialogs` (`bridge/views/pipeline/dialogs/`): the agent step,
 review step, merge step and gate dialogs, each a design-system `Dialog`. A dialog's form is local until Save, which
 sends the edits through the same sender as the flow (on a live board, `pipeline-update-start` first); the dialog closes

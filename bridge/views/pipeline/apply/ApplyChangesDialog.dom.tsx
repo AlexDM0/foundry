@@ -54,7 +54,7 @@ function button(container: HTMLElement, name: string): HTMLButtonElement {
 
 async function openApplyChanges() {
   const controls = renderEditing();
-  await clickSettled(button(screen.getByRole('region', { name: 'Pipeline changes' }), 'Apply changes'));
+  await clickSettled(button(screen.getByRole('region', { name: 'Pipeline changes' }), 'Apply 4 changes'));
   return controls;
 }
 

@@ -3,7 +3,6 @@
  * revision, one row per change worded by what it names, where it is and its kind (a gate by the phases that run it, the constitution as
  * committed to main on Apply), the in-flight note, and the `pipeline-apply` command, which never resumes the board.
  */
-import { GATE_PHASES, type GatePhase } from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type {
   AppliedPipelineFacts,
   PipelineChange,
@@ -49,27 +48,13 @@ function versionLineOf(appliedRevision: number | null): string {
   return `${becomes} Everything else stays as it is.`;
 }
 
-/** "build, review and merge" */
-function phaseListOf(phases: readonly GatePhase[]): string {
-  if (phases.length <= 1) return phases.join('');
-  return `${phases.slice(0, -1).join(', ')} and ${phases.at(-1) ?? ''}`;
-}
-
-/** A gate by the phases whose rows hold it: "build, review and merge gate"; plain "gate" when no row holds it. */
-function gateLocationOf(name: string, flow: PipelineFlowFacts | null): string {
-  const phases = flow === null
-    ? []
-    : GATE_PHASES.filter((phase) => flow.gateRows[phase].some((row) => row.rowKind === 'gate' && row.name === name));
-  return phases.length === 0 ? 'gate' : `${phaseListOf(phases)} gate`;
-}
-
 function changeRowsOf(changeList: readonly PipelineChange[], flow: PipelineFlowFacts | null): ApplyChangeRowView[] {
   return changeList.map((change) => {
     const words = ChangeListModel.fieldWordsOf(change.field);
     if (change.field === 'constitution') return {
       field: change.field, change: change.changeKind, title: words.title, location: CONSTITUTION_LOCATION
     };
-    const place = change.field.startsWith(GATE_PREFIX) ? gateLocationOf(words.title, flow) : words.place;
+    const place = change.field.startsWith(GATE_PREFIX) ? ChangeListModel.gateLocationOf(words.title, flow) : words.place;
     return {
       field: change.field, change: change.changeKind, title: words.title, location: `${place} · ${change.changeKind}`,
     };

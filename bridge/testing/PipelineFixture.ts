@@ -62,6 +62,8 @@ export type PipelineFixtureName =
   | 'A4-refused-unsigned'
   | 'A5'
   | 'A6'
+  | 'A6-drawn-changes'
+  | 'A6-re-review-removed'
   | 'A6b'
   | 'A7'
   | 'A7-insert-menu-open'
@@ -693,6 +695,98 @@ function editingState(changeList: readonly PipelineChange[]): BoardStateDocument
   });
 }
 
+/** A6 as drawn: typecheck's run line changed, lint removed, a new merge gate a11y, and Human code review switched on. */
+const DRAWN_DRAFT: Pipeline = {
+  ...PROPOSED_PIPELINE,
+  gates: [
+    { name: 'typecheck', run: 'bun run typecheck --incremental' },
+    { name: 'unit-tests', run: 'bun test' },
+    { name: 'browser-tests', run: 'bun run test:browser', network: ['registry.example.com'] },
+    { name: 'a11y', run: 'bun run a11y' },
+  ],
+  phases: {
+    build:  ['typecheck', 'unit-tests'],
+    review: ['typecheck', 'unit-tests'],
+    merge:  ['typecheck', 'unit-tests', 'browser-tests', 'a11y'],
+  },
+  approvals: { tickets: true, merge: true },
+};
+
+/** The draft with the removed lint gate still in its phases, since a removed gate stays drawn until Apply. */
+const DRAWN_FLOW_PIPELINE: Pipeline = {
+  ...DRAWN_DRAFT,
+  gates:  [...DRAWN_DRAFT.gates, { name: 'lint', run: 'bun run lint', fix: 'bun run lint:fix' }],
+  phases: { ...DRAWN_DRAFT.phases, build: ['typecheck', 'lint', 'unit-tests'], review: ['typecheck', 'lint', 'unit-tests'] },
+};
+
+const DRAWN_GATE_MARKS: Readonly<Record<string, PipelineNodeMark>> = { typecheck: 'changed', lint: 'removed', a11y: 'new' };
+
+const DRAWN_EDITS: readonly SetupEdit[] = [
+  {
+    editId: 'E10', by: 'user', field: 'gate:typecheck', summary: 'Example: typecheck runs incrementally.', undone: false,
+  },
+  {
+    editId: 'E11', by: 'user', field: 'gate:lint', summary: 'Example: lint no longer gates a ticket.', undone: false,
+  },
+  {
+    editId: 'E12', by: 'user', field: 'gate:a11y', summary: 'Example: a11y runs in the merge phase.', undone: false,
+  },
+  {
+    editId: 'E13', by: 'user', field: 'approval:merge', summary: 'Example: User reviews the code before it merges.', undone: false,
+  },
+];
+
+const DRAWN_CHANGES: readonly PipelineChange[] = [
+  { field: 'gate:typecheck', changeKind: 'changed', editId: 'E10' },
+  { field: 'gate:lint', changeKind: 'removed', editId: 'E11' },
+  { field: 'gate:a11y', changeKind: 'new', editId: 'E12' },
+  { field: 'approval:merge', changeKind: 'changed', editId: 'E13' },
+];
+
+function markOfGate(gateName: string): PipelineNodeMark {
+  return Object.hasOwn(DRAWN_GATE_MARKS, gateName) ? DRAWN_GATE_MARKS[gateName] ?? 'unchanged' : 'unchanged';
+}
+
+/** The flow with each gate chip and gate row marked by its change, and the Human code review switch marked changed. */
+function withDrawnMarks(flow: PipelineFlowFacts): PipelineFlowFacts {
+  const rowsOf = (rows: readonly PipelineGateRow[]): PipelineGateRow[] => rows.map((row) => (row.rowKind === 'gate' ? { ...row, mark: markOfGate(row.name) } : row));
+  return {
+    ...flow,
+    nodes: flow.nodes.map((node) => ({
+      ...node,
+      gateChips: node.gateChips.map((chip) => ({ ...chip, mark: markOfGate(chip.gateName) })),
+      ...(node.nodeKind === 'human-code-review' ? { mark: 'changed' as const } : {}),
+    })),
+    gateRows: { build: rowsOf(flow.gateRows.build), review: rowsOf(flow.gateRows.review), merge: rowsOf(flow.gateRows.merge) },
+  };
+}
+
+function drawnChangesState(): BoardStateDocument {
+  return setupState(updateRecord({ draft: DRAWN_DRAFT, edits: [...DRAWN_EDITS] }), { agentJobState: null }, {
+    pipeline:     APPLIED_PIPELINE,
+    pipelineFlow: withDrawnMarks(flowOf({
+      pipeline: DRAWN_FLOW_PIPELINE, stage: 'editing', mark: 'unchanged', humanCodeReview: true, applied: true,
+    }, { changeList: [...DRAWN_CHANGES], ticketIdsInFlight: ['14', '17', '12', '9', '7'] })),
+  });
+}
+
+/** The merge train's re-review removed: its node is not drawn, its + comes back, and the Changes tab lists it. */
+function reReviewRemovedState(): BoardStateDocument {
+  const draft: Pipeline = { ...PROPOSED_PIPELINE, airlock: {} };
+  const edits: SetupEdit[] = [{
+    editId: 'E14', by: 'user', field: 'airlock', summary: 'Example: the merge train runs no re-review.', undone: false,
+  }];
+  return setupState(updateRecord({ draft, edits }), { agentJobState: null }, {
+    pipeline:     APPLIED_PIPELINE,
+    pipelineFlow: flowOf({
+      pipeline: draft, stage: 'editing', mark: 'unchanged', humanCodeReview: false, applied: true,
+    }, {
+      changeList:  [{ field: 'airlock', changeKind: 'removed', editId: 'E14' }],
+      insertSlots: [{ slotId: 'airlock', after: 'merge-in-airlock', offeredSteps: ['merge-gates', 'airlock-re-review'] }],
+    }),
+  });
+}
+
 function minimalState(): BoardStateDocument {
   return setupState(updateRecord({ draft: MINIMAL_PIPELINE }), { agentJobState: null }, {
     pipeline:     APPLIED_PIPELINE,
@@ -816,6 +910,8 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
     ],
   }),
   'A6':                                  () => editingState(EDITING_CHANGES),
+  'A6-drawn-changes':                    () => drawnChangesState(),
+  'A6-re-review-removed':                () => reReviewRemovedState(),
   'A6b':                                 () => editingState([...EDITING_CHANGES, { field: 'constitution', changeKind: 'changed', editId: 'E8' }]),
   'A7':                                  () => minimalState(),
   'A7-insert-menu-open':                 () => minimalState(),

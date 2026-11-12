@@ -4,9 +4,10 @@
  * `#pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow beside the pipeline agent, the
  * bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other screen shows its title. The
  * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the flow workspace (the flow, the smallest
- * pipeline's note beside it, the gates area under them and the dialog a node, a gate row or a + opens) and, while editing, the footer
- * with the removed steps, Discard and Apply changes, which opens the apply dialog. Once a setup is applied, the live flow takes back the
- * bare `#pipeline` route.
+ * pipeline's note beside it, the gates area under them and the dialog a node, a gate row or a + opens). While an applied pipeline is
+ * edited, the editing aside stands beside it (the smallest pipeline keeps its note instead), and the footer counts the changes, or names
+ * the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply dialog. Once a
+ * setup is applied, the live flow takes back the bare `#pipeline` route.
  */
 import { useEffect, useState } from 'react';
 
@@ -23,6 +24,9 @@ import { HashRouter, type BridgeRoute } from '../../shell/HashRouter.ts';
 import { FlowWorkspace, useFlowSelection }                                from './FlowWorkspace.tsx';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
 import { ApplyChangesDialog }                                             from './apply/ApplyChangesDialog.tsx';
+import { ApplyChangesDialogModel }                                        from './apply/ApplyChangesDialogModel.ts';
+import { EditingAside }                                                   from './editing/EditingAside.tsx';
+import { PipelineEditingModel }                                           from './editing/PipelineEditingModel.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
 import { MinimalPipelineNote }                                            from './live/MinimalPipelineNote.tsx';
 import { MinimalPipelineNoteModel }                                       from './live/MinimalPipelineNoteModel.ts';
@@ -42,47 +46,99 @@ export interface PipelineViewProps {
 }
 
 interface FlowScreenProps {
-  readonly facts:      PipelineViewFacts;
-  readonly boardStore: PreferenceStore | null;
+  readonly facts:            PipelineViewFacts;
+  readonly boardStore:       PreferenceStore | null;
+  readonly followTranscript: TranscriptFollower;
+  readonly clock:            BridgeClock;
 }
 
-function FlowScreen({ facts, boardStore }: FlowScreenProps) {
+interface EditingFooterProps {
+  readonly facts:        PipelineViewFacts;
+  readonly setupId:      string;
+  /** The smallest pipeline names its removed steps and offers Apply changes, as A7 draws it. */
+  readonly minimal:      boolean;
+  readonly applyIsAsked: boolean;
+  readonly onApplyAsked: () => void;
+}
+
+function EditingFooter({
+  facts, setupId, minimal, applyIsAsked, onApplyAsked
+}: EditingFooterProps) {
+  const changeList = facts.pipelineFlow?.changeList ?? [];
+  const appliedRevision = ApplyChangesDialogModel.appliedRevisionOf(facts.pipeline);
+  const removedStepsText = PipelineFlowModel.removedStepsTextOf(changeList);
+  const notes = minimal
+    ? (removedStepsText === null ? null : <span className="bridge-pipeline-footer-note">{removedStepsText}</span>)
+    : (
+      <>
+        <span className="bridge-pipeline-editing-summary">{PipelineEditingModel.footerSummaryOf(changeList.length, appliedRevision)}</span>
+        <span className="bridge-pipeline-footer-note">{PipelineEditingModel.boardNoteOf(appliedRevision)}</span>
+      </>
+    );
+  return (
+    <ActionBar
+      label="Pipeline changes"
+      start={(
+        <>
+          <Tag text="Editing" tone="warn" pops />
+          {notes}
+        </>
+      )}
+      end={(
+        <>
+          <CommandButton
+            label="Discard"
+            command={PipelineEditingModel.discardCommandOf(setupId)}
+            onApplied={() => HashRouter.navigateTo(PipelineViewModel.liveRoute)}
+          />
+          <Button
+            label={minimal ? 'Apply changes' : ApplyChangesDialogModel.applyLabelOf(changeList.length)}
+            emphasis="primary"
+            expanded={applyIsAsked}
+            onPress={onApplyAsked}
+          />
+        </>
+      )}
+    />
+  );
+}
+
+function FlowScreen({
+  facts, boardStore, followTranscript, clock
+}: FlowScreenProps) {
   const selection = useFlowSelection();
   const setup = facts.pipelineSetup ?? null;
   const [applyChangesIsAsked, setApplyChangesIsAsked] = useState((setup?.applyState ?? null) !== null);
   const flow = facts.pipelineFlow ?? null;
   if (flow === null) return null;
-  const record = setup?.record ?? null;
-  const editing = flow.toolbarStage === 'editing' && record !== null;
-  const removedStepsText = PipelineFlowModel.removedStepsTextOf(flow.changeList);
+  const minimal = MinimalPipelineNoteModel.noteIsShownFor(flow);
+  const workspace = (
+    <FlowWorkspace
+      facts={facts}
+      boardStore={boardStore}
+      selection={selection}
+      flowAside={minimal ? <MinimalPipelineNote flow={flow} /> : null}
+    />
+  );
+  if (flow.toolbarStage !== 'editing' || setup === null) return workspace;
   return (
     <>
-      <FlowWorkspace
+      {minimal
+        ? workspace
+        : (
+          <div className="bridge-pipeline-editing-body">
+            <div className="bridge-pipeline-editing-main">{workspace}</div>
+            <EditingAside facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />
+          </div>
+        )}
+      <EditingFooter
         facts={facts}
-        boardStore={boardStore}
-        selection={selection}
-        flowAside={MinimalPipelineNoteModel.noteIsShownFor(flow) ? <MinimalPipelineNote flow={flow} /> : null}
+        setupId={setup.record.setupId}
+        minimal={minimal}
+        applyIsAsked={applyChangesIsAsked}
+        onApplyAsked={() => setApplyChangesIsAsked(true)}
       />
-      {editing
-        ? (
-          <ActionBar
-            label="Pipeline changes"
-            start={(
-              <>
-                <Tag text="Editing" tone="neutral" />
-                {removedStepsText === null ? null : <span className="bridge-pipeline-footer-note">{removedStepsText}</span>}
-              </>
-            )}
-            end={(
-              <>
-                <CommandButton label="Discard" command={{ kind: 'pipeline-draft-discard', setupId: record.setupId }} />
-                <Button label="Apply changes" emphasis="primary" expanded={applyChangesIsAsked} onPress={() => setApplyChangesIsAsked(true)} />
-              </>
-            )}
-          />
-        )
-        : null}
-      {editing && applyChangesIsAsked && setup !== null
+      {applyChangesIsAsked
         ? <ApplyChangesDialog setup={setup} flow={flow} pipeline={facts.pipeline} onClose={() => setApplyChangesIsAsked(false)} />
         : null}
     </>
@@ -124,7 +180,7 @@ function ScreenContent({
   return (
     <>
       {title}
-      <FlowScreen facts={facts} boardStore={boardStore} />
+      <FlowScreen facts={facts} boardStore={boardStore} followTranscript={followTranscript} clock={clock} />
     </>
   );
 }

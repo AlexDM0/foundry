@@ -89,8 +89,17 @@ its fixes, and a merge step's the re-review after a conflict merge. A gate's dia
 folder, phases and network, and its Profile box runs the gate once when you press it. Nothing changes until you press
 Save, and on a live board the first Save opens an edit. The two switches, Human ticket review and Human code review,
 change the pipeline at once; on a live board the first change opens an edit. A + sits where a step is missing and offers
-what fits there. While you edit, the footer lists the steps you removed, with Discard and Apply changes. The zoom and
-Fit sit in the flow's toolbar, and the zoom is kept per board.
+what fits there. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.
+
+While you edit an applied pipeline, the toolbar says how many changes are not applied, and changed, new and removed gates
+carry their colour on the flow and in the gates area; a removed gate stays drawn, struck through, until Apply, while a
+removed agent step leaves its + behind. The aside beside the flow opens on **Changes**: one card per change, with Undo,
+a gate's command before and after, and for a new gate **Benchmark in the <phase> phase**, the only way it is profiled
+before Apply. Under the cards, the tickets in flight take the new version at their next gate run. The **Pipeline agent**
+tab holds its chat, and **Ask the pipeline agent to check** (`pipeline-check`) asks it to run the touched gates. The
+footer counts the changes and the version they make; the board keeps running on its version until you press **Apply N
+changes**, and **Discard** drops the edit and returns to the live flow. The smallest pipeline keeps its "About this
+pipeline" note beside the flow instead, and its footer names the steps you removed.
 
 Under the flow, the gates area has a tab for each phase: Build, Review and Merge, each with its gate count. Drag a row by
 its grip, or focus the grip and use Space and the arrow keys, to change the order the gates run in; prepare steps stay

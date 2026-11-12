@@ -68,6 +68,9 @@
  *                           the -latest-change block, its -latest-change-text and -latest-change-links; or the
  *                           .bridge-pipeline-change-list of -change-list-item cards, or the -change-list-empty line); the footer's
  *                           -summary, the -hint[data-tone] with its -hint-dot, and the -apply holder of Apply pipeline
+ *   .bridge-pipeline-editing-body editing an applied pipeline (A6Editing): the -main holding the flow workspace and the -aside (tabs over
+ *                           an -aside-panel: the .bridge-pipeline-change-list cards and the in-flight callout, or the agent panel;
+ *                           the -aside-foot); the footer's -summary
  *   .bridge-pipeline-apply[data-kind?] the apply dialogs (A4Confirm; A6bApplyChanges with data-kind="changes"): the -note, the
  *                           -resume checkbox label (-resume-text, -resume-detail), the -changes-rows list of -changes-row change rows,
  *                           the in-flight callout (.bridge-pipeline-in-flight-text, -tickets of -ticket chips), and the
@@ -3868,6 +3871,23 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-pipeline-design-hint-dot { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
   .bridge-pipeline-design-hint[data-tone="answered"],
   .bridge-pipeline-design-latest-change { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
+}
+
+/* Editing an applied pipeline (A6Editing): the flow workspace beside the 400 px aside, whose tabs hold the change cards over the
+ * in-flight note, or the pipeline agent's chat, and whose foot holds Ask the pipeline agent to check; the footer's change count. */
+.bridge-pipeline-editing-body { display: flex; align-items: stretch; gap: var(--sp-4); min-height: 0; }
+.bridge-pipeline-editing-main { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.bridge-pipeline-editing-aside {
+  display: flex; flex: 0 0 400px; flex-direction: column; min-width: 0;
+  background: var(--surface-panel); border: 1px solid var(--line-hairline); border-radius: var(--r-3);
+}
+.bridge-pipeline-editing-aside > .bridge-tabs { padding: 0 6px; border-bottom: 1px solid var(--line-hairline); }
+.bridge-pipeline-editing-aside-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-3); min-height: 0; padding: var(--sp-4); }
+.bridge-pipeline-editing-aside-foot { display: flex; flex-direction: column; padding: var(--sp-4); border-top: 1px solid var(--line-hairline); }
+.bridge-pipeline-editing-summary { color: var(--ink-1); }
+@media (max-width: 900px) {
+  .bridge-pipeline-editing-body { flex-direction: column; }
+  .bridge-pipeline-editing-aside { flex-basis: auto; }
 }
 
 /* The apply dialogs (A4Confirm, A6bApplyChanges): the constitution note, the "Resume the board" checkbox on an info surface, the change
