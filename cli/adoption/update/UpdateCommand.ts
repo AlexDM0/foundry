@@ -30,8 +30,16 @@ const USAGE = `${PRODUCT_NAMES.PROGRAM} update [--no-hooks] [--json]`;
 
 const KNOWN_OPTION_NAMES = ['no-hooks', 'json'];
 
-/** How `update`'s last step went: a failed Baton pass is the refusal `baton-pass-failed` instead. */
-type BatonPassOutcome = 'done' | 'not-needed' | 'not-taken';
+/**
+ * How `update`'s last step went. A Baton pass the live Overseer did not take is `failed` at the step `restart-not-taken`, at exit 0, with the
+ * old Overseer still driving; one that failed after it was taken is the refusal `baton-pass-failed` instead.
+ */
+interface BatonPassOutcome {
+  batonPass:     'done' | 'not-needed' | 'failed';
+  batonPassStep: 'restart-not-taken' | null;
+}
+
+const BATON_PASS_NOT_NEEDED: BatonPassOutcome = { batonPass: 'not-needed', batonPassStep: null };
 
 export const updateCommand: CommandHandler = async (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
@@ -60,11 +68,9 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   for (const line of refreshReportLinesOf(report, workspace.htmlFilePath)) output(line);
   writeProgressPageStub(context.platformPorts, workspace);
   recordInstallVersion(workspace.rootDirectory);
-  const batonPass = await handTheLiveOverseerToTheCodeOnDisk(context, workspace.trackerDirectory, output);
+  const batonPassOutcome = await handTheLiveOverseerToTheCodeOnDisk(context, workspace.trackerDirectory, output);
   if (answersInJson) {
-    context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({
-      outcome: 'done', installVersion: INSTALL_VERSION, batonPass, batonPassStep: null
-    })));
+    context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({ outcome: 'done', installVersion: INSTALL_VERSION, ...batonPassOutcome })));
   }
 };
 
@@ -75,17 +81,17 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
 async function handTheLiveOverseerToTheCodeOnDisk(context: CommandContext, trackerDirectory: string, output: (line: string) => void): Promise<BatonPassOutcome> {
   const files  = overseerFilesIn(trackerDirectory);
   const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
-  if (newest.verdict !== 'live') return 'not-needed';
-  if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return 'not-needed';
+  if (newest.verdict !== 'live') return BATON_PASS_NOT_NEEDED;
+  if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return BATON_PASS_NOT_NEEDED;
   output(`Handing the Overseer at ${newest.record.url} over to the code on disk…`);
   const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, false);
   if (batonPass.verdict === 'baton-passed') {
     output(`Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}.`);
-    return 'done';
+    return { batonPass: 'done', batonPassStep: null };
   }
   if (batonPass.verdict === 'not-taken') {
     output(`The Overseer at ${batonPass.record.url} did not take the Baton pass; run \`${PRODUCT_NAMES.PROGRAM} oversee restart\`.`);
-    return 'not-taken';
+    return { batonPass: 'failed', batonPassStep: 'restart-not-taken' };
   }
-  return 'not-needed';
+  return BATON_PASS_NOT_NEEDED;
 }
