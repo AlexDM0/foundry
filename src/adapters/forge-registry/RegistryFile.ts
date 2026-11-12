@@ -32,26 +32,26 @@ function parsedValueOf(contents: string): { readonly parsed: unknown } | null {
   }
 }
 
-function unreadable(reason: RegistryUnreadableReason): RegistryReading {
+function unreadableReadingFor(reason: RegistryUnreadableReason): RegistryReading {
   return { verdict: 'unreadable', reason, failure: null };
 }
 
 function readingOf(contents: string): RegistryReading {
   const parsing = parsedValueOf(contents);
-  if (parsing === null) return unreadable('not-json');
+  if (parsing === null) return unreadableReadingFor('not-json');
   const document = RegistryMapUtil.jsonObjectOf(parsing.parsed);
-  if (document === null) return unreadable('not-a-json-object');
+  if (document === null) return unreadableReadingFor('not-a-json-object');
 
   const version = RegistryMapUtil.ownValueOf(document, VERSION_KEY);
-  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return unreadable('version-unknown');
+  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return unreadableReadingFor('version-unknown');
   if (version > CONTRACT_VERSIONS.forgeRegistry) return { verdict: 'newer-version', version };
-  if (version !== CONTRACT_VERSIONS.forgeRegistry) return unreadable('version-unknown');
+  if (version !== CONTRACT_VERSIONS.forgeRegistry) return unreadableReadingFor('version-unknown');
 
   // The forge writes `projects` from its first registration on; a registry without it holds no forge yet.
   const entriesValue = RegistryMapUtil.ownValueOf(document, ENTRIES_KEY);
   if (entriesValue === undefined) return { verdict: 'readable', forges: [], leftOutEntries: [] };
   const entries = RegistryMapUtil.jsonObjectOf(entriesValue);
-  if (entries === null) return unreadable('projects-not-an-object');
+  if (entries === null) return unreadableReadingFor('projects-not-an-object');
   return { verdict: 'readable', ...RegistryMapUtil.registeredForgesOf(entries) };
 }
 

@@ -33,7 +33,7 @@ function ownValueOf(record: JsonObject, field: string): unknown {
   return Object.hasOwn(record, field) ? record[field] : undefined;
 }
 
-function isHttpAddress(text: string): boolean {
+function textIsHttpAddress(text: string): boolean {
   return URL.canParse(text) && new URL(text).protocol === HTTP_PROTOCOL;
 }
 
@@ -42,7 +42,7 @@ function textProblemOf(value: unknown, rule: TextRule): RegistryEntryProblemReas
   if (typeof value !== 'string') return 'not-a-string';
   if (value === '') return 'empty';
   if (rule === 'absolute-path' && !isAbsolute(value)) return 'not-an-absolute-path';
-  if (rule === 'http-address' && !isHttpAddress(value)) return 'not-an-http-address';
+  if (rule === 'http-address' && !textIsHttpAddress(value)) return 'not-an-http-address';
   return null;
 }
 
