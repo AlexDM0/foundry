@@ -28,6 +28,7 @@ import { useDetailRouting }                                            from '../
 import { useFinishedWorkWindow }                                       from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                                                  from '../../shell/HashRouter.ts';
 import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
+import { BoardLifetimeControls }                                       from './BoardLifetimeControls.tsx';
 import { useChartPanelRoom }                                           from './ChartPanelRoom.ts';
 import { CustomRangePopover }                                          from './CustomRangePopover.tsx';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
@@ -457,6 +458,7 @@ export function ProgressView({
         </div>
         {chart.rows.length === 0 ? <p className="bridge-progress-empty">No tasks in this range.</p> : null}
       </section>
+      <BoardLifetimeControls override={override} />
     </div>
   );
 }

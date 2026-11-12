@@ -20,42 +20,41 @@ import {
 } from 'bun:test';
 
 
-import type { HatchRequest }                                         from '../src/adapters/hatch/@types/HatchFormat.ts';
-import { HatchFormatUtil }                                           from '../src/adapters/hatch/utils/HatchFormatUtil.ts';
-import { OperationRefusalWordingUtil }                               from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Job }                                                  from '../src/lib/tracker-model/@types/Job.ts';
-import { Bouncer }                                                   from '../src/services/control/Bouncer.ts';
-import { ControlService }                                            from '../src/services/control/ControlService.ts';
-import { writeTracker }                                              from '../src/services/tracker/TrackerPipeline.ts';
-import { requireWorkspace }                                          from '../src/services/tracker/Workspace.ts';
-import type { ControlCommandKind }                                   from '../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                          from '../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                             from '../src/shared/constants/ProductNames.ts';
-import { useRecordedGit }                                            from '../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }            from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                                 from '../src/testing/ToolGuard.ts';
-import { firstValueOf }                                              from '../src/testing/WaitUntil.ts';
-import type { CommandContext }                                       from './CommandContext.ts';
-import { COMMAND_NAMES }                                             from './CommandTable.ts';
-import { runCommandLine }                                            from './Main.ts';
-import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
-import { QUESTION_SUBCOMMAND_NAMES }                                 from './decisions/QuestionCommand.ts';
-import { DRAFT_SUBCOMMAND_NAMES }                                    from './drafts/DraftCommand.ts';
-import { EPIC_SUBCOMMAND_NAMES }                                     from './epics/EpicCommand.ts';
-import { GATE_SUBCOMMAND_NAMES }                                     from './gates/GateCommand.ts';
-import { INCIDENT_SUBCOMMAND_NAMES }                                 from './incidents/IncidentCommand.ts';
-import { INTAKE_SUBCOMMAND_NAMES }                                   from './intake/IntakeCommand.ts';
-import { JOB_SUBCOMMAND_NAMES }                                      from './jobs/JobCommand.ts';
-import { MERGE_SUBCOMMAND_NAMES }                                    from './merges/MergeCommand.ts';
-import { OVERSEE_SUBCOMMAND_NAMES }                                  from './overseer/OverseerCommand.ts';
-import { createCapturedCommandContext, type CapturedCommandContext } from './testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }                    from './testing/InitializedScratchRepository.ts';
-import { TICKET_SUBCOMMAND_NAMES }                                   from './tickets/TicketCommand.ts';
-import { WORKTREE_SUBCOMMAND_NAMES }                                 from './worktrees/WorktreeCommand.ts';
+import type { HatchRequest }                                                                         from '../src/adapters/hatch/@types/HatchFormat.ts';
+import { HatchFormatUtil }                                                                           from '../src/adapters/hatch/utils/HatchFormatUtil.ts';
+import { OperationRefusalWordingUtil }                                                               from '../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Job }                                                                                  from '../src/lib/tracker-model/@types/Job.ts';
+import { Bouncer }                                                                                   from '../src/services/control/Bouncer.ts';
+import { ControlService }                                                                            from '../src/services/control/ControlService.ts';
+import { writeTracker }                                                                              from '../src/services/tracker/TrackerPipeline.ts';
+import { requireWorkspace }                                                                          from '../src/services/tracker/Workspace.ts';
+import { OperationRefusal }                                                                          from '../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                                                             from '../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                                                                            from '../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                                            from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                                                 from '../src/testing/ToolGuard.ts';
+import { firstValueOf }                                                                              from '../src/testing/WaitUntil.ts';
+import type { CommandContext }                                                                       from './CommandContext.ts';
+import { COMMAND_NAMES }                                                                             from './CommandTable.ts';
+import { runCommandLine }                                                                            from './Main.ts';
+import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND, type RelayedControlCommandKind } from './constants/JobVerbs.ts';
+import { QUESTION_SUBCOMMAND_NAMES }                                                                 from './decisions/QuestionCommand.ts';
+import { DRAFT_SUBCOMMAND_NAMES }                                                                    from './drafts/DraftCommand.ts';
+import { EPIC_SUBCOMMAND_NAMES }                                                                     from './epics/EpicCommand.ts';
+import { GATE_SUBCOMMAND_NAMES }                                                                     from './gates/GateCommand.ts';
+import { INCIDENT_SUBCOMMAND_NAMES }                                                                 from './incidents/IncidentCommand.ts';
+import { INTAKE_SUBCOMMAND_NAMES }                                                                   from './intake/IntakeCommand.ts';
+import { JOB_SUBCOMMAND_NAMES }                                                                      from './jobs/JobCommand.ts';
+import { MERGE_SUBCOMMAND_NAMES }                                                                    from './merges/MergeCommand.ts';
+import { OVERSEE_SUBCOMMAND_NAMES }                                                                  from './overseer/OverseerCommand.ts';
+import { createCapturedCommandContext, type CapturedCommandContext }                                 from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                                                    from './testing/InitializedScratchRepository.ts';
+import { TICKET_SUBCOMMAND_NAMES }                                                                   from './tickets/TicketCommand.ts';
+import { WORKTREE_SUBCOMMAND_NAMES }                                                                 from './worktrees/WorktreeCommand.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
-const ARGUMENTS_OF_KIND: { readonly [Kind in ControlCommandKind]: readonly string[] } = {
+const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonly string[] } = {
   'ticket-add':                ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
   'ticket-edit':               ['ticket', 'edit', '1', '--title', 'Sharper title'],
   'ticket-depends':            ['ticket', 'depends', '1', '--add', '2'],
@@ -216,7 +215,7 @@ function everyVerb(): string[] {
 }
 
 describeWhenGitIsRecorded('relayed verbs', () => {
-  test.each(Object.keys(ARGUMENTS_OF_KIND) as ControlCommandKind[])('%s writes one request of its kind and prints queued with no reply', async (kind) => {
+  test.each(Object.keys(ARGUMENTS_OF_KIND) as RelayedControlCommandKind[])('%s writes one request of its kind and prints queued with no reply', async (kind) => {
     const progressBefore = progressFileText();
     const context        = jobContext();
     const commandLine    = ARGUMENTS_OF_KIND[kind];

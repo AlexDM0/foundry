@@ -1,7 +1,8 @@
 /**
- * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…) or domains (Set
- * network…) only opens its field row under itself, one row at a time; the row's button posts the `ControlCommand` and Cancel closes it with
- * nothing sent. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
+ * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…), domains
+ * (Set network…) or a confirmation (Delivered by hand…) only opens its field row under itself, one row at a time; the row's button
+ * posts the `ControlCommand` and Cancel closes it with nothing sent. Keyed by ticket by its caller, so typed text never carries over to
+ * the next ticket opened.
  */
 import { Fragment, useState } from 'react';
 
@@ -55,6 +56,28 @@ function ReasonRow({ ticketId, move, onClose }: FieldRowProps) {
   );
 }
 
+/** The confirmation of a by-hand delivery, with the branch and the commit User landed, both optional. */
+function ByHandRow({ ticketId, move, onClose }: FieldRowProps) {
+  const [branch, setBranch] = useState('');
+  const [commit, setCommit] = useState('');
+  const command: ControlCommandBody | null = move.sendable
+    ? {
+      kind:            'ticket-deliver-by-hand',
+      ticketReference: ticketId,
+      ...(branch.trim() === '' ? {} : { branch: branch.trim() }),
+      ...(commit.trim() === '' ? {} : { commit: commit.trim() }),
+    }
+    : null;
+  return (
+    <div className="bridge-detail-reason" role="group" aria-label="Delivered by hand">
+      <input className="bridge-detail-input" aria-label="Branch" placeholder="Branch (optional)" value={branch} onChange={(event) => setBranch(event.target.value)} />
+      <input className="bridge-detail-input" aria-label="Commit" placeholder="Commit (optional)" value={commit} onChange={(event) => setCommit(event.target.value)} />
+      <CommandButton label="Record delivered" command={command} primary onApplied={onClose} />
+      <Button label="Cancel" onPress={onClose} />
+    </div>
+  );
+}
+
 function DomainsRow({ ticketId, move, onClose }: FieldRowProps) {
   const [domainsText, setDomainsText] = useState(() => (move.domains ?? []).join(', '));
   return (
@@ -92,6 +115,7 @@ export function TicketMoves({ ticketId, moves }: { readonly ticketId: string; re
           </div>
           {openMove === move.move && move.opens === 'reason' ? <ReasonRow ticketId={ticketId} move={move} onClose={close} /> : null}
           {openMove === move.move && move.opens === 'domains' ? <DomainsRow ticketId={ticketId} move={move} onClose={close} /> : null}
+          {openMove === move.move && move.opens === 'by-hand' ? <ByHandRow ticketId={ticketId} move={move} onClose={close} /> : null}
         </Fragment>
       ))}
     </>

@@ -1,14 +1,15 @@
 /**
- * A relative bound is stored as written and resolved at layout time, so `--from -2h` keeps meaning "the
- * last two hours"; `bridge/utils/GeometryUtil.ts` resolves each end, which is what makes a mixed pair legal.
+ * `range` builds a `chart-range-set` command from its options and applies it in a hold of its own, as the Bridge's control does; the
+ * bounds are read and judged by the control, the usage and the tick here.
  */
-import { LocalTimeUtil }         from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import type { ViewRange }        from '../../../src/lib/tracker-model/@types/TrackerProgress.ts';
-import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler }   from '../../CommandHandler.ts';
-import { openTrackerForWriting } from '../../OpenTrackerForWriting.ts';
-import { OutputUtil }            from '../../utils/OutputUtil.ts';
+import { LocalTimeUtil }                            from '../../../src/lib/local-time/LocalTimeUtil.ts';
+import { ControlService }                           from '../../../src/services/control/ControlService.ts';
+import type { ChartRangeRequest, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                         from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                            from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandHandler }                      from '../../CommandHandler.ts';
+import { openTrackerForWriting }                    from '../../OpenTrackerForWriting.ts';
+import { OutputUtil }                               from '../../utils/OutputUtil.ts';
 
 const USAGE = [
   '--from <iso|-2h|start> --to <iso|now|+30m> [--tick 15m|1h|1d]',
@@ -17,74 +18,13 @@ const USAGE = [
 
 const KNOWN_OPTION_NAMES = ['from', 'to', 'tick', 'auto', 'json'];
 
-const START_OF_WORK_BOUND_WORD = 'start';
-
-const RELATIVE_BOUND_WORDS = [START_OF_WORK_BOUND_WORD, 'now'];
-
-const RELATIVE_OFFSET_PATTERN = /^[+-]\d+[mhd]$/i;
-
-function boundIsRelative(text: string): boolean {
-  return RELATIVE_BOUND_WORDS.includes(text.trim().toLowerCase()) || RELATIVE_OFFSET_PATTERN.test(text.trim());
-}
-
-/** An offset is stored as written, but only one that resolves now, so the page is never handed a bound it cannot lay out. */
-function storedBound(text: string, now: Date): string | null {
-  if (boundIsStartOfWork(text)) return text.trim();
-  if (boundIsRelative(text)) return LocalTimeUtil.resolveWhen(text, now) === null ? null : text.trim();
-  const parsed = LocalTimeUtil.parseIso(text);
-  return parsed === null ? null : LocalTimeUtil.formatLocalIso(parsed);
-}
-
-function boundIsStartOfWork(text: string): boolean {
-  return text.trim().toLowerCase() === START_OF_WORK_BOUND_WORD;
-}
-
-/**
- * A backwards axis draws nothing with no error anywhere. Two timestamps are judged, and so are two bounds relative to now, whose order
- * no clock can change; a mixed pair would be judged by the clock, and `start` is the earliest visible row, known only when the page is drawn.
- */
-function refuseABackwardsRange(writtenFrom: string, writtenTo: string, now: Date): void {
-  if (boundIsStartOfWork(writtenFrom) || boundIsStartOfWork(writtenTo)) return;
-  if (boundIsRelative(writtenFrom) !== boundIsRelative(writtenTo)) return;
-  const from = LocalTimeUtil.resolveWhen(writtenFrom, now);
-  const to   = LocalTimeUtil.resolveWhen(writtenTo, now);
-  if (from === null || to === null || from.getTime() < to.getTime()) return;
-
-  throw new OperationRefusal(
-    'refused',
-    `--from "${writtenFrom}" is not before --to "${writtenTo}", so the axis would have no width. Swap them, or widen the window.`,
-  );
-}
-
-function viewRangeFrom(writtenFrom: string, writtenTo: string, writtenTick: string | undefined, now: Date): ViewRange {
-  const from = storedBound(writtenFrom, now);
-  const to   = storedBound(writtenTo, now);
-  for (const [optionName, written, stored] of [['from', writtenFrom, from], ['to', writtenTo, to]] as const) {
-    if (stored === null) {
-      throw new OperationRefusal(
-        'refused',
-        `--${optionName} "${written}" could not be read as a time, so it is not a range bound. `
-        + 'Write an ISO 8601 timestamp, `start`, `now`, or a signed offset from now such as `-2h` or `+30m`.',
-      );
-    }
+function tickMinutesOf(writtenTick: string | undefined): number | null {
+  if (writtenTick === undefined) return null;
+  const tickMinutes = LocalTimeUtil.parseDurationMinutes(writtenTick);
+  if (tickMinutes === null) {
+    throw new OperationRefusal('refused', `--tick "${writtenTick}" is not a duration. Write it as \`15m\`, \`1h\`, \`1d\`, or a whole number of minutes.`);
   }
-  refuseABackwardsRange(writtenFrom, writtenTo, now);
-
-  let tickMinutes: number | null = null;
-  if (writtenTick !== undefined) {
-    tickMinutes = LocalTimeUtil.parseDurationMinutes(writtenTick);
-    if (tickMinutes === null) {
-      throw new OperationRefusal('refused', `--tick "${writtenTick}" is not a duration. Write it as \`15m\`, \`1h\`, \`1d\`, or a whole number of minutes.`);
-    }
-  }
-
-  const bothAreTimestamps = !boundIsRelative(writtenFrom) && !boundIsRelative(writtenTo);
-  return {
-    kind: bothAreTimestamps ? 'absolute' : 'relative',
-    from: from ?? writtenFrom,
-    to:   to ?? writtenTo,
-    tickMinutes,
-  };
+  return tickMinutes;
 }
 
 export const rangeCommand: CommandHandler = async (commandArguments, context) => {
@@ -103,11 +43,13 @@ export const rangeCommand: CommandHandler = async (commandArguments, context) =>
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} range needs either --auto or both --from and --to.\n  Usage: ${USAGE}`);
   }
 
-  const view: ViewRange = resetsToAutomatic || writtenFrom === undefined || writtenTo === undefined
-    ? { kind: 'auto' }
-    : viewRangeFrom(writtenFrom, writtenTo, writtenTick, context.now());
-
-  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => change.board.setChartRange(view, change.at));
+  const range: ChartRangeRequest = resetsToAutomatic || writtenFrom === undefined || writtenTo === undefined
+    ? { kind: 'automatic' }
+    : {
+      kind: 'window', from: writtenFrom, to: writtenTo, tickMinutes: tickMinutesOf(writtenTick)
+    };
+  const command: ControlCommandOf<'chart-range-set'> = { kind: 'chart-range-set', range };
+  const { view, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change).result);
 
   OutputUtil.printEntity(commandArguments, context, view, OutputUtil.loggedSentencesOf(logged));
 };

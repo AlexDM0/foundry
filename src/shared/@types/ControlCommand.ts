@@ -20,6 +20,14 @@ export type ListEdit = 'replace' | 'add' | 'remove';
 
 export type WorktreeRepairStep = 'prune' | 'reinstall' | 'recreate' | 'unlock';
 
+/** A chart axis as `range` writes it: each bound a timestamp, `start`, `now` or a signed offset from now, read against the hold's time. */
+export type ChartRangeRequest =
+  | { kind: 'automatic' }
+  | { kind: 'window'; from: string; to: string; tickMinutes: number | null };
+
+/** `tasks-and-log` keeps the tickets, as `clear` does; `everything` also deletes the tickets, the epics and the pictures, as `clear --all`. */
+export type TrackerClearScope = 'tasks-and-log' | 'everything';
+
 /**
  * What the Overseer stamps on a ticket its Hatch filed: the filing job, from the Hatch folder's job record, and, on a worker's finding,
  * the tickets of that job (the finders), which the finding waits for.
@@ -127,7 +135,16 @@ export type ControlCommand =
   /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
   | { kind: 'merge-accept'; ticketReference: string }
   /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */
-  | { kind: 'merge-update'; ticketReference: string };
+  | { kind: 'merge-update'; ticketReference: string }
+  /** The board's default chart axis, as `range` stores it. Only User's own surfaces send it: it is never relayed from a job. */
+  | { kind: 'chart-range-set'; range: ChartRangeRequest }
+  /** `clear`, refused while a job is live. Only User's own surfaces send it: it is never relayed from a job. */
+  | { kind: 'tracker-clear'; scope: TrackerClearScope }
+  /**
+   * Records a ticket User finished and landed outside the Overseer, refused while a job of the ticket is live. The verb is refused while an
+   * Overseer is live; the live Overseer applies this command in its own hold. Never relayed from a job.
+   */
+  | { kind: 'ticket-deliver-by-hand'; ticketReference: string; branch?: string; commit?: string };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

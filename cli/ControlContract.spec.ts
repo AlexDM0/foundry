@@ -5,30 +5,33 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONTROL_COMMAND_KINDS }                                                                  from '../src/services/control/ControlService.ts';
-import type { ControlCommandKind }                                                                from '../src/shared/@types/ControlCommand.ts';
-import { COMMAND_NAMES }                                                                          from './CommandTable.ts';
-import { OTHER_VERBS_OF_CONTROL_KIND, READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
-import { QUESTION_SUBCOMMAND_NAMES }                                                              from './decisions/QuestionCommand.ts';
-import { DRAFT_SUBCOMMAND_NAMES }                                                                 from './drafts/DraftCommand.ts';
-import { EPIC_SUBCOMMAND_NAMES }                                                                  from './epics/EpicCommand.ts';
-import { GATE_SUBCOMMAND_NAMES }                                                                  from './gates/GateCommand.ts';
-import { INCIDENT_SUBCOMMAND_NAMES }                                                              from './incidents/IncidentCommand.ts';
-import { INTAKE_SUBCOMMAND_NAMES }                                                                from './intake/IntakeCommand.ts';
-import { JOB_SUBCOMMAND_NAMES }                                                                   from './jobs/JobCommand.ts';
-import { MERGE_SUBCOMMAND_NAMES }                                                                 from './merges/MergeCommand.ts';
-import { OVERSEE_SUBCOMMAND_NAMES }                                                               from './overseer/OverseerCommand.ts';
-import { TICKET_SUBCOMMAND_NAMES }                                                                from './tickets/TicketCommand.ts';
-import { WORKTREE_SUBCOMMAND_NAMES }                                                              from './worktrees/WorktreeCommand.ts';
+import { CONTROL_COMMAND_KINDS }   from '../src/services/control/ControlService.ts';
+import type { ControlCommandKind } from '../src/shared/@types/ControlCommand.ts';
+import { COMMAND_NAMES }           from './CommandTable.ts';
+import {
+  OTHER_VERBS_OF_CONTROL_KIND,
+  READ_ONLY_VERBS_UNDER_A_JOB,
+  RELAYED_VERB_OF_CONTROL_KIND,
+  UNRELAYED_VERB_OF_CONTROL_KIND
+} from './constants/JobVerbs.ts';
+import { QUESTION_SUBCOMMAND_NAMES } from './decisions/QuestionCommand.ts';
+import { DRAFT_SUBCOMMAND_NAMES }    from './drafts/DraftCommand.ts';
+import { EPIC_SUBCOMMAND_NAMES }     from './epics/EpicCommand.ts';
+import { GATE_SUBCOMMAND_NAMES }     from './gates/GateCommand.ts';
+import { INCIDENT_SUBCOMMAND_NAMES } from './incidents/IncidentCommand.ts';
+import { INTAKE_SUBCOMMAND_NAMES }   from './intake/IntakeCommand.ts';
+import { JOB_SUBCOMMAND_NAMES }      from './jobs/JobCommand.ts';
+import { MERGE_SUBCOMMAND_NAMES }    from './merges/MergeCommand.ts';
+import { OVERSEE_SUBCOMMAND_NAMES }  from './overseer/OverseerCommand.ts';
+import { TICKET_SUBCOMMAND_NAMES }   from './tickets/TicketCommand.ts';
+import { WORKTREE_SUBCOMMAND_NAMES } from './worktrees/WorktreeCommand.ts';
 
-const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = RELAYED_VERB_OF_CONTROL_KIND;
+const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = { ...RELAYED_VERB_OF_CONTROL_KIND, ...UNRELAYED_VERB_OF_CONTROL_KIND };
 
 /** Mutating verbs User runs by hand: never relayed, never offered in the UI (design section 9.1). */
 const NOT_RELAYABLE_MUTATING_VERBS = [
   'task',
   'log',
-  'range',
-  'clear',
   'ticket agent',
   'ticket size',
   'ticket status',
@@ -39,7 +42,6 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
   'ticket reopen',
   'epic edit',
   'epic remove',
-  'ticket deliver --by-hand',
   'init',
   'update',
   'oversee',
@@ -123,11 +125,13 @@ const CONTRACT: ControlContract = {
 };
 
 describe('the control contract', () => {
-  // Owner answer Q41: the Overseer makes every lifecycle move, and User records only a ticket landed outside it.
-  test('the not-relayable list names `ticket deliver --by-hand` as the only lifecycle verb', () => {
+  // Owner answer Q41: the Overseer makes every lifecycle move, and User records only a ticket landed outside it, which no job relays.
+  test('`ticket deliver --by-hand` is the only lifecycle verb, the verb of an unrelayed kind, and no lifecycle verb is on the not-relayable list', () => {
     const LIFECYCLE_VERB_PATTERN = /^(?:release|rework|review record|dispatcher|ticket (?:claim|start|finish|approve|deliver))\b/;
     expect(LIFECYCLE_VERB_PATTERN.test('ticket finish'), 'the pattern finds a lifecycle verb').toBe(true);
-    expect(NOT_RELAYABLE_MUTATING_VERBS.filter((verb) => LIFECYCLE_VERB_PATTERN.test(verb))).toEqual(['ticket deliver --by-hand']);
+    expect(Object.values(VERB_OF_KIND).filter((verb) => LIFECYCLE_VERB_PATTERN.test(verb))).toEqual(['ticket deliver --by-hand']);
+    expect(Object.values(UNRELAYED_VERB_OF_CONTROL_KIND)).toContain('ticket deliver --by-hand');
+    expect(NOT_RELAYABLE_MUTATING_VERBS.filter((verb) => LIFECYCLE_VERB_PATTERN.test(verb))).toEqual([]);
   });
 
   test('the scan saw the table: ticket, epic and draft verbs and the top-level commands are all there', () => {

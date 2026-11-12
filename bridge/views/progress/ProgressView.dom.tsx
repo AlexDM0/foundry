@@ -6,9 +6,11 @@
  * near the right edge sits left of its line; a row opens its row's detail in place while its number links to its ticket and an epic
  * head's name to its epic; a row finished before the finished-work window is not drawn, and a held range marks rows that changed under
  * it until a range is chosen again, even when they change back; after a board update a moved or new row is marked changed once, until its
- * highlight has played; a planted title shows as text.
+ * highlight has played; a planted title shows as text; Save as the board's range posts the range shown, Fit as the automatic span; and
+ * Clear… asks first, posts the scope chosen, and Cancel sends nothing.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -21,11 +23,13 @@ import {
   test
 } from 'bun:test';
 
-import { PRODUCT_NAMES }             from '../../../src/shared/constants/ProductNames.ts';
-import type { ProgressBoardState }   from '../../@types/ProgressBoardState.ts';
-import { boardPreferenceStoreOf }    from '../../preferences/PreferenceStore.ts';
-import { FinishedWorkWindowContext } from '../../shell/FinishedWorkWindow.ts';
-import { routedOnTab }               from '../../testing/DetailRoutingFixture.ts';
+import { PRODUCT_NAMES }              from '../../../src/shared/constants/ProductNames.ts';
+import type { ProgressBoardState }    from '../../@types/ProgressBoardState.ts';
+import { boardPreferenceStoreOf }     from '../../preferences/PreferenceStore.ts';
+import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
+import { FinishedWorkWindowContext }  from '../../shell/FinishedWorkWindow.ts';
+import { routedOnTab }                from '../../testing/DetailRoutingFixture.ts';
+import { fakeControlSurroundingsOf }  from '../../testing/FakeControlSurroundings.ts';
 import {
   exampleProgressBoard,
   exampleProgressEpic,
@@ -361,4 +365,58 @@ test('marks nothing on the first board, then each moved or new row until its hig
   expect(movedRow.hasAttribute('data-changed')).toBe(true);
   fireEvent.animationEnd(movedRow);
   expect(movedRow.hasAttribute('data-changed')).toBe(false);
+});
+
+describe('the board range and clear controls', () => {
+  function renderWithControls() {
+    const fake = fakeControlSurroundingsOf();
+    const storage = new Map<string, string>();
+    const boardStore = boardPreferenceStoreOf('example-tracker', () => ({
+      getItem:    (key) => storage.get(key) ?? null,
+      setItem:    (key, value) => storage.set(key, value),
+      removeItem: (key) => storage.delete(key),
+    }));
+    const routed = routedOnTab(
+      'progress',
+      <ProgressView boardState={BOARD} boardStore={boardStore} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
+    );
+    render(<ControlSurroundingsContext.Provider value={fake.surroundings}>{routed.element}</ControlSurroundingsContext.Provider>);
+    return fake;
+  }
+
+  async function clicked(element: HTMLElement): Promise<void> {
+    await act(async () => {
+      fireEvent.click(element);
+      await Promise.resolve();
+    });
+  }
+
+  test('Save as the board\'s range posts Fit as the automatic span, and a preset as its bounds', async () => {
+    const fake = renderWithControls();
+    await clicked(screen.getByRole('button', { name: 'Save as the board\'s range' }));
+    openRangeMenu();
+    fireEvent.click(screen.getByRole('button', { name: '4h' }));
+    await clicked(screen.getByRole('button', { name: 'Save as the board\'s range' }));
+    expect(fake.sent).toEqual([
+      { kind: 'chart-range-set', range: { kind: 'automatic' } },
+      {
+        kind:  'chart-range-set',
+        range: {
+          kind: 'window', from: '-4h', to: 'now', tickMinutes: null
+        }
+      },
+    ]);
+  });
+
+  test('Clear… asks first: Cancel sends nothing, and each confirm posts its scope', async () => {
+    const fake = renderWithControls();
+    await clicked(screen.getByRole('button', { name: 'Clear…' }));
+    await clicked(screen.getByRole('button', { name: 'Cancel' }));
+    expect(fake.sent).toEqual([]);
+    await clicked(screen.getByRole('button', { name: 'Clear…' }));
+    await clicked(screen.getByRole('button', { name: 'Clear rows and log' }));
+    await clicked(screen.getByRole('button', { name: 'Clear…' }));
+    await clicked(screen.getByRole('button', { name: /^Clear everything/u }));
+    expect(fake.sent).toEqual([{ kind: 'tracker-clear', scope: 'tasks-and-log' }, { kind: 'tracker-clear', scope: 'everything' }]);
+  });
 });

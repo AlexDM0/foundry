@@ -107,6 +107,16 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
   'merge-accept':              { kind: 'merge-accept', ticketReference: '1' },
   'merge-update':              { kind: 'merge-update', ticketReference: '1' },
+  'chart-range-set':           {
+    kind:  'chart-range-set',
+    range: {
+      kind: 'window', from: '-2h', to: 'now', tickMinutes: 15
+    }
+  },
+  'tracker-clear':          { kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-deliver-by-hand': {
+    kind: 'ticket-deliver-by-hand', ticketReference: '1', branch: 'ticket-001', commit: 'abc1234'
+  },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

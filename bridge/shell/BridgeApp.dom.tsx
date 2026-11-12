@@ -642,6 +642,14 @@ describe('the Gaia embed channel', () => {
     });
   }
 
+  /** The identity arrives after the first board; it is awaited too, so no state update lands outside `act`. */
+  async function renderedInGaia(bridge: FakeBridge, board: unknown = BOARD): Promise<void> {
+    await renderedLive(bridge, board);
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
   const twoQuestionBoard = (): unknown => ({
     ...BOARD,
     ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
@@ -652,14 +660,14 @@ describe('the Gaia embed channel', () => {
   test('ready goes out once when the shell has painted, then the shown route, both to Gaia\'s origin only', async () => {
     window.location.hash = '#agents';
     const { bridge, posted } = gaiaBridge();
-    await renderedLive(bridge);
+    await renderedInGaia(bridge);
     expect(posted).toEqual([envelope({ kind: 'ready' }), envelope({ kind: 'route', fragment: '#agents' })]);
   });
 
   test('navigate to #questions/E8 points the question panel at E8 and is answered with route', async () => {
     window.location.hash = '#kanban';
     const { bridge, posted, parent } = gaiaBridge();
-    await renderedLive(bridge, twoQuestionBoard());
+    await renderedInGaia(bridge, twoQuestionBoard());
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions/E8'
@@ -671,7 +679,7 @@ describe('the Gaia embed channel', () => {
   test('navigate to the route already shown is answered with route at once', async () => {
     window.location.hash = '#agents';
     const { bridge, posted, parent } = gaiaBridge();
-    await renderedLive(bridge);
+    await renderedInGaia(bridge);
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents'
@@ -682,7 +690,7 @@ describe('the Gaia embed channel', () => {
   test('a message of another channel version, another channel or agent-dashboard\'s shape is ignored and answered by nothing', async () => {
     window.location.hash = '#agents';
     const { bridge, posted, parent } = gaiaBridge();
-    await renderedLive(bridge);
+    await renderedInGaia(bridge);
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 2, kind: 'navigate', fragment: '#questions'
@@ -698,7 +706,7 @@ describe('the Gaia embed channel', () => {
   test('Esc that no panel takes posts leave, and a lost session posts session-lost', async () => {
     window.location.hash = '#agents';
     const { bridge, posted } = gaiaBridge();
-    await renderedLive(bridge);
+    await renderedInGaia(bridge);
     posted.length = 0;
     act(() => {
       fireEvent.keyDown(document, { key: 'Escape' });
