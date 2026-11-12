@@ -207,6 +207,26 @@ describe('the steps', () => {
     expect(refusalDetailOf(() => board.reopenSetupStep(setupId, 'design', AT))).toEqual({ reason: 'setup-step-not-reached', setupId, step: 'design' });
   });
 
+  test('a step after the current one cannot be reopened, so a later recheck still waits for its Continue', () => {
+    const { board, setupId } = boardAtDesign();
+    board.reopenSetupStep(setupId, 'research', AT);
+
+    expect(refusalDetailOf(() => board.reopenSetupStep(setupId, 'constitution', AT))).toEqual({ reason: 'setup-step-not-reached', setupId, step: 'constitution' });
+    const { setup, logged } = board.editConstitution(setupId, { revision: 0, markdown: CONSTITUTION_TEXT }, AT);
+    expect([setup.currentStep, setup.stepStates.constitution]).toEqual(['research', 'needs-recheck']);
+    expect(logged.map((record) => record.kind)).toEqual(['pipeline-constitution-set']);
+  });
+
+  test('reopening a step that needs a recheck keeps the recheck', () => {
+    const { board, setupId } = boardAtDesign();
+    board.reopenSetupStep(setupId, 'research', AT);
+    board.continueSetupStep(setupId, 'research', AT);
+
+    const { setup } = board.reopenSetupStep(setupId, 'constitution', AT);
+
+    expect([setup.currentStep, setup.stepStates.constitution]).toEqual(['constitution', 'needs-recheck']);
+  });
+
   test('Continue on a step that needs a recheck sets it done, the one way out of a recheck', () => {
     const { board, setupId } = boardAtDesign();
     board.reopenSetupStep(setupId, 'research', AT);
@@ -291,6 +311,9 @@ describe('questions', () => {
     expect(openSetupOf(board).questions[0]?.answer).toEqual({ text: 'Only on the merge phase', answeredAt: AT });
     expect(logged.map((record) => record.fields)).toEqual([{ questionId: 'Q1', answer: 'Only on the merge phase' }]);
     expect(refusalDetailOf(() => board.answerSetupQuestion(setupId, 'Q9', { text: 'x' }, AT))).toEqual({ reason: 'unknown-setup-question', setupId, questionId: 'Q9' });
+    for (const reply of [{ letters: [] }, { text: ' ' }]) {
+      expect(refusalDetailOf(() => board.answerSetupQuestion(setupId, 'Q1', reply, AT))).toEqual({ reason: 'empty-setup-answer', setupId, questionId: 'Q1' });
+    }
   });
 });
 
@@ -311,9 +334,6 @@ describe('the constitution', () => {
   test.each<[string, string, number]>([
     ['a line the text does not hold', '- Not in the text.', 1],
     ['more occurrences than the text holds', '- Name things in full.', 2],
-    for (const reply of [{ letters: [] }, { text: ' ' }]) {
-      expect(refusalDetailOf(() => board.answerSetupQuestion(setupId, 'Q1', reply, AT))).toEqual({ reason: 'empty-setup-answer', setupId, questionId: 'Q1' });
-    }
     ['a line ending inside the line', '- Name things in full.\n', 1],
     ['occurrence 0', '- Name things in full.', 0],
   ])('a source naming %s refuses constitution-source-unanchored', (_case, lineText, occurrence) => {

@@ -388,18 +388,19 @@ export class PipelineSetups {
     };
   }
 
-  /** Only User's edit of a step a first setup already passed reopens it; the agent's moves never move a step. */
+  /** Only User's edit of a step before the current one of a first setup reopens it; the agent's moves never move a step. */
   private userEditReopenRecords(setup: PipelineSetup, step: PipelineSetupStep, at: string): LogRecord[] {
-    if (setup.mode !== 'setup' || setup.currentStep === step) return [];
-    const state = setup.stepStates[step];
-    if (state !== 'done' && state !== 'needs-recheck') return [];
+    if (setup.mode !== 'setup' || stepIndexOf(step) >= stepIndexOf(setup.currentStep)) return [];
     return this.reopenedStepRecords(setup, step, at);
   }
 
+  /** Only a step at or before the current one reopens, so a later step that needs a recheck still waits for its Continue. */
   private reopenedStepRecords(setup: PipelineSetup, step: PipelineSetupStep, at: string): LogRecord[] {
-    if (setup.stepStates[step] === 'not-started') throw new BoardRefusal({ reason: 'setup-step-not-reached', setupId: setup.setupId, step });
-    setup.stepStates[step] = 'in-progress';
-    setup.currentStep      = step;
+    if (setup.stepStates[step] === 'not-started' || stepIndexOf(step) > stepIndexOf(setup.currentStep)) {
+      throw new BoardRefusal({ reason: 'setup-step-not-reached', setupId: setup.setupId, step });
+    }
+    if (setup.stepStates[step] !== 'needs-recheck') setup.stepStates[step] = 'in-progress';
+    setup.currentStep = step;
     const needsRecheck = PIPELINE_SETUP_STEPS.slice(stepIndexOf(step) + 1).filter((laterStep) => setup.stepStates[laterStep] === 'done');
     for (const laterStep of needsRecheck) setup.stepStates[laterStep] = 'needs-recheck';
     this.store(setup);

@@ -1880,10 +1880,12 @@ verb writes it yet. This is format version 1.
 - An edit's `field` is one of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `role:<role>`,
   `review`, `airlock`, `approval:<approval>` and `constitution`. Undo writes the base pipeline's value of that field
   back: the stored pipeline's, or the minimal one's for a first setup.
-- Only one record is open at a time: a second opening is refused (`setup-in-progress`). Reopening a step sets every
-  later `done` step to `needs-recheck`, never `not-started`; Continue on that step sets it `done`, the only way out of
-  a recheck. In a first setup, User's answer or edit at an earlier step reopens that step; the agent's moves never move
-  a step. While `applyRequest` is `committing` or `held`, every setup move is refused (`pipeline-apply-pending`).
+- Only one record is open at a time: a second opening is refused (`setup-in-progress`). Only a step at or before the
+  current one reopens (`setup-step-not-reached`). Reopening a step sets every later `done` step to `needs-recheck`,
+  never `not-started`; Continue on that step sets it `done`, the only way out of a recheck. In a first setup, User's
+  answer or edit at a step before the current one reopens that step; the agent's moves never move a step. An answer
+  with no letter and no text is refused (`empty-setup-answer`). While `applyRequest` is `committing` or `held`, every
+  setup move is refused (`pipeline-apply-pending`).
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key below the top level is malformed: the board reads no open record, every setup move
@@ -1898,9 +1900,8 @@ Bridge word each record as a sentence; a note's sentence is its text.
 
 The kinds fall into families: [board](#board-records), [ticket](#ticket-records), [epic](#epic-records), [filing
 draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [review](#review-records), [pipeline and
-gate](#pipeline-and-gate-records),
-[Overseer](#overseer-records), [job](#job-records), [merge](#merge-records), [decision](#decision-records) and
-[incident](#incident-records).
+gate](#pipeline-and-gate-records), [Overseer](#overseer-records), [job](#job-records), [merge](#merge-records),
+[decision](#decision-records) and [incident](#incident-records).
 
 #### Board records
 
