@@ -532,3 +532,99 @@ body {
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }
+
+/* ── Activity (A3) ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-activity {
+  display: flex;
+  gap: var(--sp-6);
+  box-sizing: border-box;
+  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+}
+.gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.gaia-activity-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
+.gaia-activity-at { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-activity-forge {
+  display: block;
+  overflow: hidden;
+  font-weight: var(--weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gaia-activity-kind { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-activity-dot-space { flex: none; width: var(--role-dot-size); }
+.gaia-activity-text {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a.gaia-activity-text:hover { text-decoration: underline; }
+.gaia-activity-empty,
+.gaia-activity-side-empty { margin: 0; color: var(--ink-muted); }
+.gaia-activity-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* The forges past the first three: one more segment and a menu that floats under it, one of the two places a shadow is drawn */
+.gaia-activity-more-forges { position: relative; display: inline-flex; }
+.gaia-activity-menu-mark { font-size: var(--fs-micro); }
+.gaia-activity-forge-menu {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-half);
+  min-width: 100%;
+  padding: var(--sp-1);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+}
+.gaia-activity-forge-menu-item {
+  height: var(--segment-height);
+  padding: 0 var(--sp-2);
+  border: 0;
+  border-radius: var(--r-1);
+  background: none;
+  color: var(--ink-muted);
+  font: var(--weight-strong) var(--fs-small) var(--font-ui);
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--feedback-transition);
+}
+.gaia-activity-forge-menu-item:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.gaia-activity-forge-menu-item[aria-pressed="true"] { color: var(--ink); }
+.gaia-activity-forge-menu-item:disabled { cursor: default; }
+
+.gaia-activity-side { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--view-side-width); }
+.gaia-activity-side-section { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-activity-today-list { display: flex; flex-direction: column; gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.gaia-activity-today-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  row-gap: var(--sp-1);
+  column-gap: var(--sp-2);
+}
+.gaia-activity-today-row .gaia-meter { grid-column: 1 / -1; }
+.gaia-activity-today-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-activity-today-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; }
+.gaia-activity-usage {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sp-1) + var(--sp-half));
+  padding-top: var(--sp-4);
+  border-top: var(--hairline) solid var(--line);
+}
+.gaia-activity-usage-line { margin: 0; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink-muted); }
+
+.gaia-activity-text:focus-visible,
+.gaia-activity-forge-menu-item:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: var(--focus-ring-width);
+}

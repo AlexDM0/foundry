@@ -1,6 +1,6 @@
 /**
  * The segmented control. What matters: the group is named; exactly the selected segment is pressed; a click hands that segment's value
- * on; a count follows its label; disabled turns every segment off.
+ * on; a count follows its label; disabled turns every segment off; a trailing control sits on the same ground after the segments.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -45,5 +45,20 @@ describe('the segmented control', () => {
     const segments = ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withClass('gaia-segment'));
     expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withClass('gaia-segment-count')).map((count) => ReactElementTree.textOf([count]))).toEqual(['10', '7']);
     expect(segments.map((segment) => segment.props['disabled'])).toEqual([true, true]);
+  });
+
+  test('a trailing control follows the segments on the same ground, and a choice it holds presses no segment', () => {
+    const unfolded = ReactElementTree.unfolded(
+      <SegmentedControl
+        label="Forge"
+        options={[{ value: 'all', label: 'All forges' }, { value: 'example-storefront-7c41', label: 'Example Storefront' }]}
+        selected="design-system-91c2"
+        onSelect={() => undefined}
+        trailing={<button type="button">2 more</button>}
+      />,
+    );
+    const group = ReactElementTree.onlyWithClass(unfolded, 'gaia-segmented');
+    expect(group.children.map((child) => (typeof child === 'string' ? child : ReactElementTree.textOf([child])))).toEqual(['All forges', 'Example Storefront', '2 more']);
+    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withClass('gaia-segment')).map((segment) => segment.props['aria-pressed'])).toEqual([false, false]);
   });
 });

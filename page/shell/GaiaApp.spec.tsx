@@ -131,6 +131,23 @@ describe('the route and the theme', () => {
     expect(inPlace).toContain('<h1 class="gaia-top-bar-title">Invoice Service</h1>');
   });
 
+  test('#activity shows the Activity view under its status line once a document holds, its filters inside the controls\' fieldset', () => {
+    const source = createFleetSource();
+    const app = appAt(source, '#activity');
+    const statusLine = '<span class="gaia-top-bar-status">the newest 50 entries of each forge, as each forge words them</span>';
+    const beforeTheDocument = renderToStaticMarkup(app);
+    expect(beforeTheDocument).toContain(statusLine);
+    expect(beforeTheDocument).not.toContain('class="gaia-activity"');
+    source.publish(FLEET_FIVE_FORGES);
+    const markup = renderToStaticMarkup(app);
+    expect(markup).toContain('<h1 class="gaia-top-bar-title">Activity</h1>');
+    expect(markup).toContain(statusLine);
+    const fieldsetAt = markup.indexOf('<fieldset class="gaia-shell-controls">');
+    expect(fieldsetAt).toBeGreaterThan(-1);
+    expect(markup.indexOf('aria-label="Kind"')).toBeGreaterThan(fieldsetAt);
+    expect(markup.indexOf('aria-label="Kind"')).toBeLessThan(markup.indexOf('</fieldset>'));
+  });
+
   test('the switch shows the stored choice before the first document, and the settings\' choice from it on', () => {
     const source = createFleetSource();
     const app = appAt(source, '#attention', LIVE_STREAM, 'light');

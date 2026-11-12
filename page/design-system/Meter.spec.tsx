@@ -1,6 +1,7 @@
 /**
  * The meter. What matters: it is absent, not empty, when its whole is unknown; it fills the share of its whole and never past it; it is
- * full from the whole on, which turns it to the warn tone; it is an image named by its label; each tone has a rule of its own.
+ * full from the whole on, which turns it to the warn tone, unless its whole is only the largest value compared; it is an image named by its
+ * label; each tone has a rule of its own.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,6 +37,13 @@ describe('the meter', () => {
     expect(atTheWhole.props['data-full']).toBe('');
     expect([fillWidthOf(10, 10), fillWidthOf(14, 10), fillWidthOf(0, 0)]).toEqual(['100%', '100%', '100%']);
     expect(GaiaStylesheet.text()).toContain('.gaia-meter[data-full] .gaia-meter-fill');
+  });
+
+  test('a whole that is only the largest value compared fills the bar without the warn tone', () => {
+    const meter = <Meter label="3 landed today" used={3} whole={3} tone="landed" wholeIsALimit={false} />;
+    const largest = ReactElementTree.onlyWithClass(ReactElementTree.unfolded(meter), 'gaia-meter');
+    expect(largest.props['data-full']).toBeUndefined();
+    expect((ReactElementTree.onlyWithClass([largest], 'gaia-meter-fill').props['style'] as { readonly width?: string }).width).toBe('100%');
   });
 
   test('the tone and the thickness are data attributes, and each tone and the thick meter have a rule', () => {

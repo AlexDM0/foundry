@@ -1,16 +1,18 @@
 /**
  * A share of a whole as a thin bar, an image named by its label. It is absent when its whole is unknown, never drawn empty, and it is
- * full, in the warn tone, once the share reaches the whole. It never animates.
+ * full, in the warn tone, once the share reaches the whole, unless that whole is only the largest of a few values compared. It never animates.
  */
 export type MeterTone = 'neutral' | 'builder' | 'reviewer' | 'paused' | 'landed';
 
 export interface MeterProps {
-  readonly label:      string;
-  readonly used:       number;
+  readonly label:          string;
+  readonly used:           number;
   /** `null` when the whole is unknown: then there is no meter. */
-  readonly whole:      number | null;
-  readonly tone?:      MeterTone;
-  readonly thickness?: 'thin' | 'thick';
+  readonly whole:          number | null;
+  readonly tone?:          MeterTone;
+  readonly thickness?:     'thin' | 'thick';
+  /** `false` when the whole is the largest of the values compared, such as each forge's share of today's tokens: reaching it warns of nothing. */
+  readonly wholeIsALimit?: boolean;
 }
 
 function filledPercentOf(used: number, whole: number): number {
@@ -19,11 +21,12 @@ function filledPercentOf(used: number, whole: number): number {
 }
 
 export function Meter({
-  label, used, whole, tone = 'neutral', thickness = 'thin'
+  label, used, whole, tone = 'neutral', thickness = 'thin', wholeIsALimit = true
 }: MeterProps) {
   if (whole === null) return null;
+  const isFull = wholeIsALimit && used >= whole;
   return (
-    <span className="gaia-meter" role="img" aria-label={label} data-tone={tone} data-thickness={thickness} data-full={used >= whole ? '' : undefined}>
+    <span className="gaia-meter" role="img" aria-label={label} data-tone={tone} data-thickness={thickness} data-full={isFull ? '' : undefined}>
       <span className="gaia-meter-fill" style={{ width: `${filledPercentOf(used, whole)}%` }} />
     </span>
   );

@@ -49,6 +49,11 @@
   --rail-row-height:     30px;
   --rail-brand-height:   32px;
   --top-bar-height:      64px;
+  --view-top-padding:    20px;
+  --view-side-width:     320px;
+  --activity-at-width:   48px;
+  --activity-forge-width: 168px;
+  --activity-kind-width: 104px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 

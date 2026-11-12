@@ -18,6 +18,7 @@ import {
 import type { FleetDocument }                                from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext }          from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }          from '../api/FleetStreamClient.ts';
+import { ACTIVITY_STATUS_LINE, ActivityView }                from '../views/activity/ActivityView.tsx';
 import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
 import type { FleetSource }                                  from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings } from './HashRouter.ts';
@@ -66,6 +67,19 @@ export interface GaiaAppProps {
 }
 
 const NO_VIEW_PARTS: ShellViewParts = { status: null, actions: null, content: null };
+
+function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null): ShellViewParts {
+  switch (route.view) {
+    case 'activity':
+      return {
+        status:  { condition: null, text: ACTIVITY_STATUS_LINE },
+        actions: null,
+        content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
+      };
+    default:
+      return NO_VIEW_PARTS;
+  }
+}
 
 export function GaiaShell({
   fleetDocument, streamState, route, viewTitle, view, themeChoice, onThemeChoice
@@ -124,7 +138,7 @@ export function GaiaApp({
         streamState={streamState}
         route={route}
         viewTitle={viewTitle}
-        view={NO_VIEW_PARTS}
+        view={viewPartsOf(route, fleetDocument)}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
       />
