@@ -111,16 +111,16 @@ function clockTimeOf(stamp: string, clockFormat: Intl.DateTimeFormat): string {
   return Number.isNaN(instant) ? stamp : clockFormat.format(instant);
 }
 
-function significantDigitsOf(value: number): number {
+function roundedToTokenCountDigitsOf(value: number): number {
   return Number(value.toPrecision(SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT));
 }
 
 /** 146000 as `146k`, 1240000 as `1.24M`: three significant digits, as the artboard writes a token count. */
 function tokenCountTextOf(tokens: number): string {
   if (tokens < ONE_THOUSAND) return String(tokens);
-  const thousands = significantDigitsOf(tokens / ONE_THOUSAND);
+  const thousands = roundedToTokenCountDigitsOf(tokens / ONE_THOUSAND);
   if (thousands < ONE_THOUSAND) return `${thousands}k`;
-  return `${significantDigitsOf(tokens / ONE_MILLION)}M`;
+  return `${roundedToTokenCountDigitsOf(tokens / ONE_MILLION)}M`;
 }
 
 function projectsByTrackerIdOf(fleetDocument: FleetDocument): ReadonlyMap<string, string> {
