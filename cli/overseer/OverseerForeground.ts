@@ -684,7 +684,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     serving.watcher.stop();
     const stoppingServing = serving;
     const stopWaits: StopWait[] = [
-      { name: 'the drive pass', run: () => stoppingServing.drivePass.idle() },
+      { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
       ...(end.kind === 'stopped' && end.now ? [{
         name: 'the stop of the live process Watchers',
         run:  async () => {

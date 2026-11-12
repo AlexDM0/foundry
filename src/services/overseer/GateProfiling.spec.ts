@@ -2,8 +2,9 @@
  * The Overseer's gate profiles, on recorded git, a fake process port and a stand-in for the gate lines. What matters: a queued run runs
  * once, one gate in one phase, in a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, with the prepare steps and no
  * `writes` granted, holding a slot it takes only after the real gates; its output is appended as it arrives; it ends with its time, never a
- * green or a `gate-ran` record, and its worktree and slot go; a Stop ends the process tree through the port and records `stopped` with no
- * duration; a proposal, a draft edit and a start queue no run; and a run of the open setup turns the caching checks into note findings.
+ * green or a `gate-ran` record, and its worktree and slot go; a Stop, and an Overseer stop, end the process tree through the port and
+ * record `stopped` with no duration; a proposal, a draft edit and a start queue no run; and a run of the open setup turns the caching
+ * checks into note findings.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -233,6 +234,30 @@ testWhenGitIsRecorded('a Stop of a running run ends its process tree through the
     expect(stoppedLeaders.map((leader) => leader.processId)).toEqual([PROFILE_PROCESS_ID]);
     endTheLine();
     await profiling.idle();
+  });
+
+  expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'stopped', elapsedMilliseconds: null, stopRequested: false }]);
+  expect(readFileSync(workspace.logFilePath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
+});
+
+testWhenGitIsRecorded('an Overseer stop ends a running run\'s process tree through the port and records it stopped, with no duration', async () => {
+  await storeAPipeline();
+  await applied({
+    kind: 'gate-profile-start', setupId: null, gateName: 'tests', phase: 'build'
+  });
+  let endTheLine = (): void => undefined;
+  const profiling = profilingWith((request) => new Promise((resolve) => {
+    request.onSpawned?.(PROFILE_PROCESS_ID);
+    endTheLine = () => resolve({ failedStep: null, prepareOutput: '', gates: [{ outcome: 'failed', milliseconds: 10, output: '' }] });
+  }));
+
+  await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {
+    profiling.followRuns(await storedBoard());
+    await waitUntil(() => lineRequests.length > 0, 'the profile line never started');
+    const stopped = profiling.stopAll();
+    expect(stoppedLeaders.map((leader) => leader.processId)).toEqual([PROFILE_PROCESS_ID]);
+    endTheLine();
+    await stopped;
   });
 
   expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'stopped', elapsedMilliseconds: null, stopRequested: false }]);

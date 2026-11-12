@@ -968,9 +968,10 @@ When a run of the open setup ends, the caching checks run over the times its pro
 suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
 records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
 
-A run that is `running` when its Overseer stops is never run again: the next Overseer start records it `stopped`,
-logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is the
-Overseer's own, so the regrouping never names it as a leftover.
+An Overseer that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
+is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
+`stopped`, logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is
+the Overseer's own, so the regrouping never names it as a leftover.
 
 #### The pipeline agent's verbs
 

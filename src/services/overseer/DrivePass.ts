@@ -273,7 +273,7 @@ export interface DrivePass {
   /** Resolves once no pass is running or queued. */
   idle:           () => Promise<void>;
   state:          () => OverseerStateDocument;
-  /** No pass starts after it; resolves once the one running, a landing in it included, has finished. */
+  /** No pass starts after it; resolves once the one running, a landing in it included, has finished, and each gate profile run has ended. */
   stop:           () => Promise<void>;
 }
 
