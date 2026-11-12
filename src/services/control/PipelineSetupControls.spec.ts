@@ -474,6 +474,17 @@ describe('Apply', () => {
     return ControlService.apply(command, changeOf(fixture, unreadablePipeline), context).result;
   }
 
+  test('a first setup opens on main\'s CONSTITUTION.md with its blob id, so an Apply of a new text waits for its commit', () => {
+    const fixture = boardFixture();
+    applyIn(fixture, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false }, MAIN_HOLDS_THE_TEXT);
+    expect(fixture.board.pipelineSetup()?.constitution).toMatchObject({ markdown: MAIN_CONSTITUTION.markdown, baseBlob: MAIN_CONSTITUTION.blob });
+    fixture.board.setConstitution('S1', { markdown: `${MAIN_CONSTITUTION.markdown}- Name things in full.\n`, annotations: [] }, CHANGED_AT);
+
+    expect(applyIn(fixture, {
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    }, MAIN_HOLDS_THE_TEXT)).toMatchObject({ outcome: 'committing' });
+  });
+
   test('an update opens on main\'s CONSTITUTION.md with its blob id and the stored sources of that very blob', () => {
     const annotation = {
       lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null

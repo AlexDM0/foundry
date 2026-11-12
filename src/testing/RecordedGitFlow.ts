@@ -239,11 +239,13 @@ const PIPELINE_AGENT_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, 
   leavesFolder: PIPELINE_AGENT_WORKTREE_FOLDER,
 }]);
 
-/** The agent's first proposal reads the snapshot commit's tree, and an Apply reads main's constitution: the main line holds none. */
-const PIPELINE_SETUP_MAIN_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
-  ['ls-tree', '-r', '-z', '--full-tree', MAIN_TIP],
+/** A setup's start and its Apply read main's constitution: the main line holds none. */
+const MAIN_CONSTITUTION_READ = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:CONSTITUTION.md`], exitCode: NEGATIVE },
 ]);
+
+/** The agent's first proposal reads the snapshot commit's tree. */
+const PIPELINE_SETUP_MAIN_READS = [...callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['ls-tree', '-r', '-z', '--full-tree', MAIN_TIP]]), ...MAIN_CONSTITUTION_READ];
 
 const PIPELINE_AGENT_WORKTREE_REMOVE = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   gitArguments:  ['worktree', 'remove', '--force', PIPELINE_AGENT_WORKTREE_FOLDER],
@@ -381,7 +383,9 @@ const RESOLUTION_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
 const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], nextStage: 'resolved branch landed' }]);
 
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
-  'tracker ready':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD],
+  'tracker ready': [
+    ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...MAIN_CONSTITUTION_READ, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD,
+  ],
   'pipeline agent worktree made': [
     ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...PIPELINE_AGENT_WORKTREE_READS, ...PIPELINE_SETUP_MAIN_READS, ...PIPELINE_AGENT_WORKTREE_REMOVE,
   ],

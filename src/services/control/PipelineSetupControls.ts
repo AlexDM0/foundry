@@ -143,21 +143,33 @@ function startedAgentOf(changed: PipelineSetupChanged, change: TrackerChange): P
   return { setup: attached.setup, logged: [...changed.logged, ...launched.logged] };
 }
 
-function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerChange): PipelineSetupChanged {
-  const billing = billingFieldOf(command);
-  const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
-  if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
-  const opened = change.board.openSetup({
-    mode: 'setup', billing, replacesUnreadablePipeline, mainConstitution: null, storedAnnotations: []
-  }, change.at);
-  return startedAgentOf(opened, change);
-}
-
 /** Main's `CONSTITUTION.md`, `null` when main holds none; a read git cannot answer refuses, since a guess would hide a change on main. */
 function mainConstitutionOf(change: TrackerChange, context: ControlContext): MainConstitution | null {
   const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
   if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
   return reading.verdict === 'read' ? reading.constitution : null;
+}
+
+/**
+ * Main's constitution that a record opens on, with the stored sources of that very text; main is read only where the Board can open a
+ * record, so a refused start asks git nothing.
+ */
+function openingConstitutionOf(change: TrackerChange, context: ControlContext): Pick<PipelineSetupOpening, 'mainConstitution' | 'storedAnnotations'> {
+  const mainConstitution = change.board.pipelineSetup() === null ? mainConstitutionOf(change, context) : null;
+  const storedSources    = change.board.storedConstitutionSources();
+  const storedAnnotations = mainConstitution !== null && storedSources?.blob === mainConstitution.blob ? storedSources.annotations : [];
+  return { mainConstitution, storedAnnotations };
+}
+
+/** A first setup opens on main's `CONSTITUTION.md` too, so its Apply finds main as the record saw it and never writes over a file unseen. */
+function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  const billing = billingFieldOf(command);
+  const replacesUnreadablePipeline = fieldOf(command, 'replacesUnreadablePipeline');
+  if (typeof replacesUnreadablePipeline !== 'boolean') refuseMalformedSetupCommand(command.kind, 'replacesUnreadablePipeline');
+  const opened = change.board.openSetup({
+    mode: 'setup', billing, replacesUnreadablePipeline, ...openingConstitutionOf(change, context)
+  }, change.at);
+  return startedAgentOf(opened, change);
 }
 
 /**
@@ -167,11 +179,9 @@ function mainConstitutionOf(change: TrackerChange, context: ControlContext): Mai
 function updateOpeningOf(mode: 'update' | 'advise', change: TrackerChange, context: ControlContext): PipelineSetupOpening {
   requireReadablePipeline(change);
   const billing = change.board.pipeline()?.billing ?? { mode: 'subscription' };
-  const mainConstitution = change.board.pipeline() === null ? null : mainConstitutionOf(change, context);
-  const storedSources    = change.board.storedConstitutionSources();
-  const storedAnnotations = mainConstitution !== null && storedSources?.blob === mainConstitution.blob ? storedSources.annotations : [];
+  const constitutionOpening = change.board.pipeline() === null ? { mainConstitution: null, storedAnnotations: [] } : openingConstitutionOf(change, context);
   return {
-    mode, billing, replacesUnreadablePipeline: false, mainConstitution, storedAnnotations
+    mode, billing, replacesUnreadablePipeline: false, ...constitutionOpening
   };
 }
 

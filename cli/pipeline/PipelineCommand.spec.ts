@@ -21,6 +21,7 @@ import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGu
 import { runCommandLine }                         from '../Main.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
+import { MAIN_WITHOUT_A_CONSTITUTION }            from '../testing/RecordedGitStages.ts';
 
 const FROZEN_NOW = new Date('2026-11-12T09:00:00Z');
 
@@ -53,12 +54,17 @@ async function run(commandLineArguments: readonly string[], standardInputText?: 
   return context;
 }
 
+/** `pipeline setup` reads main's `CONSTITUTION.md`, which the scratch repository's main line does not hold. */
+async function runSetup(commandLineArguments: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
+  return recordedGit.playStage(MAIN_WITHOUT_A_CONSTITUTION, async () => run(commandLineArguments));
+}
+
 function storedSetup(): PipelineSetup {
   return JSON.parse(readFileSync(setupFilePath(), 'utf8')) as PipelineSetup;
 }
 
 async function setupAtDesign(): Promise<void> {
-  await run(['pipeline', 'setup']);
+  await runSetup(['pipeline', 'setup']);
   for (const step of ['billing', 'research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
 }
 
@@ -74,7 +80,7 @@ afterEach(() => {
 
 describeWhenGitIsRecorded('the pipeline verbs', () => {
   test('pipeline setup opens S1 billed as named, launches its pipeline agent, prints the record under --json, and logs both', async () => {
-    const context = await run(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
+    const context = await runSetup(['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '15', '--json']);
 
     const printed = JSON.parse(context.outputText()) as { setup: PipelineSetup; logged: { kind: string }[] };
     expect(printed.setup).toMatchObject({
@@ -85,7 +91,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
   });
 
   test('pipeline billing and pipeline continue move the stored record', async () => {
-    await run(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup']);
 
     await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
     await run(['pipeline', 'continue', 'S1', 'billing']);
@@ -190,7 +196,7 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
   });
 
   test('pipeline start-over removes the record, and pipeline update then refuses with no pipeline stored', async () => {
-    await run(['pipeline', 'setup']);
+    await runSetup(['pipeline', 'setup']);
 
     await run(['pipeline', 'start-over', 'S1']);
     expect(existsSync(setupFilePath())).toBe(false);

@@ -101,6 +101,21 @@ export function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitS
   ];
 }
 
+/** The read of main's `CONSTITUTION.md` that a pipeline setup opens on, on a main line with one commit that holds none. */
+export const MAIN_WITHOUT_A_CONSTITUTION: RecordedGitStage = [
+  {
+    gitArguments: ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+    answeredAs:   GIT_CALL_SHAPES.CURRENT_BRANCH,
+    filledIn:     { [RECORDED_PLACEHOLDERS.BRANCH]: IDLE_BRANCH },
+  },
+  {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${IDLE_BRANCH}^{commit}`],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.BRANCH]: IDLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: IDLE_COMMIT },
+  },
+  { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${IDLE_COMMIT}:CONSTITUTION.md`], answeredAs: GIT_CALL_SHAPES.BLOB_OF_A_MISSING_PATH },
+];
+
 export const INIT_IN_A_NEW_REPOSITORY: RecordedGitStage = initInANewRepositoryOf(PRODUCT_NAMES);
 export const BINARY_INIT_IN_A_NEW_REPOSITORY: RecordedGitStage = binaryInitInANewRepositoryOf(PRODUCT_NAMES);
 export const REFRESH_OF_AN_IGNORING_REPOSITORY: RecordedGitStage = refreshOfAnIgnoringRepositoryOf(PRODUCT_NAMES);
