@@ -675,10 +675,8 @@ button, [role="button"], .bridge-tab, a.bridge-stat, a.bridge-activity-job, .bri
 :is(.bridge-epic-chip, .bridge-epic-link-chip, .bridge-epic-wave-pill, .bridge-epic-ticket, .bridge-epic-title, .bridge-ticket-epic-title) {
   transition: var(--feedback-transition);
 }
-button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active, a.bridge-activity-job:active { transform: scale(0.98); }
-@media (prefers-reduced-motion: reduce) {
-  button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active, a.bridge-activity-job:active { transform: none; }
-}
+/* A press darkens the control and moves nothing, so reduced motion keeps it. */
+button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 
 .bridge-control {
   display: inline-flex;
@@ -1248,9 +1246,9 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
   .bridge-kanban-state:empty { display: none; }
 }
 
-/* A card lifts 2px on hover and settles to 1px while pressed; its lane clips nothing it needs, so no geometry changes. */
-.bridge-kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow-card-lift); }
-.bridge-kanban-card:active { transform: translateY(-1px); box-shadow: 0 2px 6px var(--shadow-card-lift); }
+/* A hovered card casts a shadow and a pressed one darkens; neither moves. */
+.bridge-kanban-card:hover { box-shadow: 0 4px 12px var(--shadow-card-lift); }
+.bridge-kanban-card:active { filter: brightness(0.92); box-shadow: 0 2px 6px var(--shadow-card-lift); }
 .bridge-kanban-card[data-selected] { border-color: var(--link); }
 
 /* What changed since the previous board washes in its state's tint once, after the first frames; reduced motion holds a still outline as
@@ -1299,7 +1297,6 @@ button.bridge-tag:hover { color: var(--ink); border-color: var(--line-strong); t
   .bridge-kanban-needed-first { transition: none; }
   .bridge-kanban-arrow-line { animation: none; stroke-dashoffset: 0; }
   .bridge-kanban-arrow-head { animation: none; opacity: 1; }
-  .bridge-kanban-card:hover, .bridge-kanban-card:active { transform: none; }
 }
 
 .bridge-sandboxed-html { display: block; width: 100%; min-height: 0; border: 0; background: transparent; }

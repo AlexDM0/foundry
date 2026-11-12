@@ -334,6 +334,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - `bridge/styles/tokens.css` holds every colour, state token and theme value; `bridge/styles/board.css` holds every
   class. Both are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every class a component emits is
   styled and every styled class is emitted; a `className` is a literal the scan can read.
+- `bridge/HoverMovesNothing.spec.ts` holds that no `:hover` or `:active` rule moves or resizes anything.
 - React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
   entities. `eslint.config.js` bans
   `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/`; agent-written HTML reaches the DOM
