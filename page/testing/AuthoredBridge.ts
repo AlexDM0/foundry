@@ -1,7 +1,8 @@
 /**
  * Test-only: one forge's Bridge in Gaia's frame, stood in for. Its messages and the frame session answers are authored by hand from
- * FORGE_REQUIREMENTS F5 and PLAN 8.3, since no forge serves the embed channel yet (PLAN 10.3). The page's message listeners and the frame's
- * window are the spec's: a spec posts the Bridge's messages to the page and reads what Gaia posted to the frame, and to which origin.
+ * FORGE_REQUIREMENTS F5 and PLAN 8.3; recording the messages from a Bridge Gaia frames waits in `docs/backlog.md`. The page's message
+ * listeners and the frame's window are the spec's: a spec posts the Bridge's messages to the page and reads what Gaia posted to the frame,
+ * and to which origin.
  */
 import type { FrameSessionAnswerDocument }                  from '../@types/FrameSessionDocument.ts';
 import type { EmbedChannelSurroundings, EmbedMessageEvent } from '../views/forge-frame/EmbedChannel.ts';
