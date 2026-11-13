@@ -1,8 +1,8 @@
 /**
  * A job's live facts as the Overseer's API shows them, read from its Watcher event logs through the adapter's mapper: API turns against
  * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt from
- * the session's transcripts; whether a turn is under way, User's messages not yet sent, and a session's last line. The stamps are only
- * recorded and shown: no Overseer decision reads them.
+ * the session's transcripts; whether a turn is under way, User's messages not yet sent, a session's last line, and the newest usage window
+ * the session reported. The stamps are only recorded and shown: no Overseer decision reads them.
  */
 
 import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
@@ -53,6 +53,16 @@ export interface SessionLastLine {
   at:   string | null;
 }
 
+/** A usage window as the session reported it, whether or not the vendor refused requests in it. */
+export interface UsageWindowReport {
+  /** As the vendor names it, such as `five_hour`. */
+  window:     string;
+  /** `null` when the vendor named no usable reset. */
+  resetsAt:   string | null;
+  /** The Watcher log entry's stamp; `null` for an entry written before stamps. */
+  reportedAt: string | null;
+}
+
 export interface WatcherFacts {
   /** The protocol the newest instance's Watcher record names; `null` before it wrote one. */
   watcherProtocol: number | null;
@@ -82,6 +92,8 @@ export interface JobLiveFacts {
   messagesWaiting:        number;
   /** For an Assistant, product-owner or pipeline agent job only; `null` for every other job, and before the session said anything. */
   lastLine:               SessionLastLine | null;
+  /** The newest usage window the session reported, of any Watcher instance; `null` before it reported one. */
+  usageWindow:            UsageWindowReport | null;
 }
 
 /** What every job's live facts are read through: its Watcher logs, the adapter that reads their lines, and the board's log and incidents. */
@@ -102,7 +114,7 @@ export interface JobSession {
   sessionId:          string;
 }
 
-type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messagesWaiting' | 'lastLine' | keyof WatcherFacts>;
+type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messagesWaiting' | 'lastLine' | 'usageWindow' | keyof WatcherFacts>;
 
 const BUDGETED_JOB_KINDS: readonly string[] = ['build', 'review'];
 
@@ -193,6 +205,17 @@ function eventLogTallyOf(stampedEvents: readonly StampedEvents[]): EventLogTally
     toolCallsWithSubagents: subagents.reduce((sum, subagent) => sum + subagent.toolCalls, ownTally.toolCalls),
   };
   return { counts, calledToolUseIds, answeredToolUseIds };
+}
+
+/** Pure over the mapped events in log order: the last usage window reported is the newest. */
+function newestUsageWindowOf(stampedEvents: readonly StampedEvents[]): UsageWindowReport | null {
+  let newest: UsageWindowReport | null = null;
+  for (const { at, events } of stampedEvents) {
+    for (const event of events) {
+      if (event.kind === 'usage-window') newest = { window: event.window, resetsAt: event.resetsAt, reportedAt: at };
+    }
+  }
+  return newest;
 }
 
 function liveCountsOf(stampedEvents: readonly StampedEvents[]): JobLiveCounts {
@@ -287,6 +310,7 @@ function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: Jo
     turn:            turnOf(source, job, entriesByInstance.at(-1) ?? []),
     messagesWaiting: JobControlDelivery.unsentMessageCountOf(source.board, source.trackerDirectory, job),
     lastLine:        lastLineOf(source, job),
+    usageWindow:     newestUsageWindowOf(stampedEvents),
   };
 }
 

@@ -77,6 +77,7 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
       turn:                   null,
       messagesWaiting:        0,
       lastLine:               null,
+      usageWindow:            null,
       silentSweeps:           0,
     },
   };

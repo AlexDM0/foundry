@@ -491,6 +491,7 @@ subagent. A malformed log adds nothing and does not fail the state.
 | `turn` | `mid-turn` while the newest Watcher instance took more chat lines than its session printed results, else `between-turns`: whether a message sent now waits behind a turn. An answer line starts no turn. The Assistant's is its idle rule (`AssistantSession.assistantIsIdle`), the one its deliveries wait on, so a chat decided on the board makes it `mid-turn` before its line is written. `null` for a merge or refresh job and before the first Watcher logged a line. | Event logs, the Assistant's chats |
 | `messagesWaiting` | The job's `job-messaged` records its session has not taken yet: those without the `message-<n>` marker `JobControlDelivery` writes once the Watcher took the line; for the Assistant, those whose chat is not written or not taken (`AssistantSession.unsentMessageCountOf`) | The log, delivery markers |
 | `lastLine` | For an Assistant, product-owner or pipeline agent job: `{role, text, at}` of the newest entry with text that the session itself wrote (`assistant`, no subagent's) or that User sent as a chat (`user`), read as [the transcript stream](#the-transcript-stream) reads it. The Overseer's lines never count. `null` for every other job, and before the session said anything. | Event logs, the log |
+| `usageWindow` | `{window, resetsAt, reportedAt}` of the newest `usage-window` event the session printed, of any Watcher instance, whether or not the vendor refused requests in it. `window` is the vendor's name, such as `five_hour`; `resetsAt` is `null` when the vendor named no usable reset; `reportedAt` is the log entry's stamp, `null` for an entry written before stamps. `null` before the session reported one. | Event logs |
 | `silentSweeps` | Quiet sweeps counted by the running Pass, 0 while none runs | Pass memory |
 
 ![Three regions: the job's own turns, subagents in the event log grouped by parentToolUseId, and subagents rebuilt from transcripts. calls and toolCalls cover only the first. subagents covers the second and third. toolCallsWithSubagents and tokens cover all three.](../figures/overseer-api/live-counter-scopes.png)
@@ -506,8 +507,8 @@ Subagents are grouped by `parentToolUseId`. An event log can lose one after a cr
 [The Claude probe](../development/overseer-claude-probe.md). A subagent whose `.meta.json` names a parent call the log
 already tallied is skipped unread.
 
-The stamps, `startedAt`, `lastLine.at`, a job's `launchedAt` and the transcript entry stamp `at`, are only recorded and
-shown: no Overseer decision reads them.
+The stamps, `startedAt`, `lastLine.at`, `usageWindow.reportedAt`, a job's `launchedAt` and the transcript entry stamp
+`at`, are only recorded and shown: no Overseer decision reads them.
 
 > **As built.** A subagent with no `.meta.json` cannot be matched, so if the log also holds it, it counts twice in
 > `tokens`, `subagents` and `toolCallsWithSubagents`.
@@ -604,7 +605,7 @@ names a command line: the new-code notice asks to restart the Overseer, the inst
 request, from the same reading as `BoardState`.
 
 Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
-those of version 1. Version 3 gives each warning its kind. `src/services/overseer/testing/fixtures/monitor-v1.json`,
+those of version 1. Version 3 gives each warning its kind and adds the current usage window to `usage`. `src/services/overseer/testing/fixtures/monitor-v1.json`,
 `monitor-v2.json` and `monitor-v3.json` hold each version, frozen.
 
 <details>
@@ -624,7 +625,7 @@ those of version 1. Version 3 gives each warning its kind. `src/services/oversee
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
 | `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the Bridge shows for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
-| `usage` | `{resetsAt, window}` |
+| `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit; both `null` when no job on the board reported one. The reset is passed on as reported, also once it is past. |
 | `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |
 
 </details>

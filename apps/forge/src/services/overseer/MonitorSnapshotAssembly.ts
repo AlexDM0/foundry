@@ -1,7 +1,7 @@
 /**
  * The `MonitorSnapshot` of `GET /api/monitor` and of each `monitor` event, from the same reading as the Overseer's `BoardState`: the
- * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, and the newest
- * log entries a person cares about, worded as the Bridge words a log entry.
+ * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, the newest usage
+ * window a session reported, and the newest log entries a person cares about, worded as the Bridge words a log entry.
  */
 import { LogUtil }                       from '../../adapters/utils/LogUtil.ts';
 import { LocalTimeUtil }                 from '../../lib/local-time/LocalTimeUtil.ts';
@@ -16,7 +16,8 @@ import type {
   MonitorActivityEntry,
   MonitorJob,
   MonitorOverseerState,
-  MonitorSnapshot
+  MonitorSnapshot,
+  MonitorUsage
 } from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import { attentionEntriesOf }                                              from '../../shared/monitor/AttentionEntries.ts';
 import { todayFiguresOf }                                                  from '../../shared/monitor/TodayFigures.ts';
@@ -24,6 +25,7 @@ import { BridgeFragmentUtil }                                              from 
 import { NoticeWordingUtil, type BatonPassWarningFacts, type NoticeFacts } from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                                               from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState, JobWithLiveFacts }                               from './BoardState.ts';
+import type { UsageWindowReport }                                          from './JobLiveFactsReader.ts';
 
 /** What the Overseer knows of itself and no board file holds; read at each snapshot, so a Baton taken over or new code on disk shows. */
 export interface MonitorOverseerFacts {
@@ -247,6 +249,22 @@ function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
   return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
 }
 
+/** A report with no stamp, from a log written before stamps, is older than any stamped one. */
+function reportedLater(candidate: UsageWindowReport, newest: UsageWindowReport): boolean {
+  if (candidate.reportedAt === null) return false;
+  return newest.reportedAt === null || Date.parse(candidate.reportedAt) > Date.parse(newest.reportedAt);
+}
+
+/** The newest report across the board's jobs, its reset passed on as reported: only shown, never compared with now. */
+function currentUsageWindowOf(jobs: readonly JobWithLiveFacts[]): Pick<MonitorUsage, 'currentWindow' | 'currentWindowResetsAt'> {
+  const newest = jobs.reduce<UsageWindowReport | null>((latest, job) => {
+    const report = job.live.usageWindow;
+    if (report === null) return latest;
+    return latest === null || reportedLater(report, latest) ? report : latest;
+  }, null);
+  return { currentWindow: newest?.window ?? null, currentWindowResetsAt: newest?.resetsAt ?? null };
+}
+
 function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
   const { state, board, overseer } = source;
   const notices = noticeFactsIn(state.notices);
@@ -284,7 +302,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
     warnings:            NoticeWordingUtil.warningsOf(notices, batonPassWarningIn(state.overseer.batonPassWarning)),
     today:               todayFiguresOf(state, todayCalendarDate),
-    usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window },
+    usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),
   };
 }

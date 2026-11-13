@@ -6,7 +6,7 @@
  * from the session's transcripts, in every project folder that holds the session, under a scratch config folder, never the real
  * `~/.claude`. The turn reads the newest instance's chats against its results (the Assistant's, its idle rule), the waiting messages read
  * the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never the Overseer's, read
- * without decoding a picture.
+ * without decoding a picture. The usage window is the newest the session reported, so the monitor shows the window it is in.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -275,6 +275,26 @@ describe('JobLiveFactsReader', () => {
       { parentToolUseId: 'call-3', state: 'ended', description: null },
       { parentToolUseId: 'call-4', state: 'ended', description: null },
     ]);
+  });
+});
+
+function usageWindow(window: string, resetsAt: string, requestsRefused = false): AgentSessionEvent {
+  return {
+    kind: 'usage-window', window, utilization: 0.5, resetsAt, status: requestsRefused ? 'rejected' : 'allowed', requestsRefused
+  };
+}
+
+describe('the usage window', () => {
+  test('is the newest window the session reported, of any instance, refused or not, stamped with its log entry', () => {
+    const resumed = { ...EXAMPLE_JOB, watcherInstance: 2 };
+    expect(liveFactsOfLoggedLines([
+      [usageWindow('five_hour', '2026-10-29T15:00:00.000Z'), RESULT],
+      [usageWindow('seven_day', '2026-11-02T09:00:00.000Z', true), assistantTurn('message-1', null)],
+    ], resumed).usageWindow).toEqual({ window: 'seven_day', resetsAt: '2026-11-02T09:00:00.000Z', reportedAt: '2026-10-29T12:00:03Z' });
+  });
+
+  test('is null before the session reported one', () => {
+    expect(liveFactsOfLoggedEvents([assistantTurn('message-1', null), RESULT]).usageWindow).toBeNull();
   });
 });
 

@@ -3,13 +3,15 @@
  * job with none, `monitorSnapshotOf` answers `monitorVersion: 3` exactly as `testing/fixtures/monitor-v3.json` holds it, so a change to the
  * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
  * `monitor-v2.json` stay as versions 1 and 2 froze them. Beside it: `activity` keeps only the kinds a person cares about, newest last, each
- * at its log position, and holds at most the newest fifty.
+ * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs, an
+ * unstamped report the oldest, and its reset is passed on as reported, also once it is past: a clock decides nothing.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import type { LogRecord }                                                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { MonitorSnapshot }                                                           from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import type { BoardState, JobLiveFactsWithSilence, JobWithLiveFacts }                     from './BoardState.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';
 import { liveJobFixture }                                                                 from './testing/LiveJobFixture.ts';
@@ -33,6 +35,7 @@ const IDLE_LIVE_FACTS: JobLiveFactsWithSilence = {
   turn:                   null,
   messagesWaiting:        0,
   lastLine:               null,
+  usageWindow:            null,
   silentSweeps:           0,
 };
 
@@ -49,13 +52,18 @@ const JOBS: JobWithLiveFacts[] = [
     lastToolCall: { toolName: 'Edit', startedAt: '2026-11-12T11:58:00+01:00', running: false } as JobLiveFactsWithSilence['lastToolCall'],
     subagents:    [{ state: 'running' }, { state: 'ended' }] as unknown as JobLiveFactsWithSilence['subagents'],
     turn:         'mid-turn',
+    usageWindow:  { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T10:58:00.000Z' },
   }, '2026-11-12T11:00:00+01:00'),
   jobWith({
     id: 'J2', kind: 'review', role: 'reviewer', ticketIds: ['006'], attempt: 2
   }, { silentSweeps: 4, turn: 'between-turns' }, '2026-11-12T11:30:00+01:00'),
   jobWith({
     id: 'J3', kind: 'assistant', role: 'assistant', target: null
-  }, { lastLine: { role: 'assistant', text: 'Example Assistant line', at: null }, messagesWaiting: 1 }, null),
+  }, {
+    lastLine:        { role: 'assistant', text: 'Example Assistant line', at: null },
+    messagesWaiting: 1,
+    usageWindow:     { window: 'five_hour', resetsAt: '2026-11-12T10:00:00.000Z', reportedAt: '2026-11-12T09:30:00.000Z' },
+  }, null),
   jobWith({
     id: 'J4', kind: 'product-owner', role: 'product-owner', target: null
   }, { lastLine: { role: 'user', text: 'Example request', at: null } }, '2026-11-12T10:00:00+01:00'),
@@ -212,6 +220,39 @@ describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
     expect(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE).attention.map((entry) => entry.kind).toSorted()).toEqual([
       'draft-ticket', 'escalated-question', 'filing-draft', 'merge-accept', 'question', 'review',
     ]);
+  });
+});
+
+function usageOfJobsReporting(reports: readonly (JobLiveFactsWithSilence['usageWindow'])[]): MonitorSnapshot['usage'] {
+  const jobs = reports.map((usageWindow, index) => jobWith({ id: `J${index + 1}` }, { usageWindow }, null));
+  return MonitorSnapshotAssembly.monitorSnapshotOf({ ...SOURCE, state: { ...STATE, jobs } }).usage;
+}
+
+describe('the current usage window', () => {
+  test('is the newest report across the board\'s jobs, beside the limit the usage marker holds', () => {
+    expect(usageOfJobsReporting([
+      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' },
+      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:30:00.000Z' },
+      null,
+    ])).toEqual({
+      resetsAt: null, window: null, currentWindow: 'seven_day', currentWindowResetsAt: '2026-11-15T09:00:00.000Z'
+    });
+  });
+
+  test('an unstamped report, from a log written before stamps, loses to a stamped one', () => {
+    expect(usageOfJobsReporting([
+      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: null },
+      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' },
+    ])).toMatchObject({ currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T15:00:00.000Z' });
+  });
+
+  test('a reset before now is passed on as reported, since a clock decides nothing', () => {
+    expect(usageOfJobsReporting([{ window: 'five_hour', resetsAt: '2026-11-12T06:00:00.000Z', reportedAt: '2026-11-12T05:00:00.000Z' }]))
+      .toMatchObject({ currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T06:00:00.000Z' });
+  });
+
+  test('is null while no job on the board reported one', () => {
+    expect(usageOfJobsReporting([null, null])).toMatchObject({ currentWindow: null, currentWindowResetsAt: null });
   });
 });
 

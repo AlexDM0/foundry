@@ -95,8 +95,12 @@ export interface MonitorWarning {
 }
 
 export interface MonitorUsage {
-  readonly resetsAt: string | null;
-  readonly window:   string | null;
+  /** The usage limit hit, from the machine's usage marker; both `null` when no limit was hit. */
+  readonly resetsAt:              string | null;
+  readonly window:                string | null;
+  /** The newest usage window a session on this board reported, under the limit or not; both `null` when no session reported one. */
+  readonly currentWindow:         string | null;
+  readonly currentWindowResetsAt: string | null;
 }
 
 export interface MonitorSnapshot {

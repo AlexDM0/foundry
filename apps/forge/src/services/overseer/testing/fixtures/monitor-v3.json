@@ -310,7 +310,9 @@
   },
   "usage": {
     "resetsAt": null,
-    "window": null
+    "window": null,
+    "currentWindow": "five_hour",
+    "currentWindowResetsAt": "2026-11-12T15:00:00.000Z"
   },
   "activity": [
     {
