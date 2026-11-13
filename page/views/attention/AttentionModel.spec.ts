@@ -3,7 +3,8 @@
  * rows of A1 in the fleet's order, each with its forge, kind, id, subject, meta line, age and the forge's route in place, the first row's
  * button the only primary; an age is printed from the page's clock and no order depends on it; nothing waiting says so and keeps the
  * figures; the forges that need a look carry PLAN 7.2's actions, the machine's limit never among them. B3: the head and the figure say
- * "more possible", an unreachable forge's rows are read as last reported and cannot act, its banner and callout name what Gaia last saw,
+ * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and
+ * callout name what Gaia last saw,
  * every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers again is
  * read normally. B4: no forge gives its own screen, and the forge program is missing only when neither the settings nor Gaia know one.
  */
@@ -212,6 +213,12 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(content.waitingHead).toBe('Waiting on you · 4 known, more possible');
     expect(content.figures.map((figure) => figure.value)).toEqual(['4+', '10 / 12', '8', '5', '1.08M', '0']);
     expect(content.status.text).toBe('3 forges running, 1 holds its launches · 1 unreachable · 1 not readable by this Gaia');
+  });
+
+  test('the figures fold into one line while a forge is not fully read, and stand in their row once every forge is', () => {
+    expect(fleetContentOf(FLEET_DEGRADED).figuresForm).toBe('line');
+    expect(fleetContentOf({ ...FLEET_DEGRADED, figures: { ...FLEET_DEGRADED.figures, incompleteFor: [] } }).figuresForm).toBe('row');
+    expect(fleetContentOf(FLEET_FIVE_FORGES).figuresForm).toBe('row');
   });
 
   test('an unreachable forge\'s rows are read as last reported and cannot act; the first row that can act is primary', () => {

@@ -1,7 +1,8 @@
 /**
- * The Attention view laid out from its content (SCREENS A1 and B3): the unreachable forges' banners, the figures, what waits on User, the
- * forges that need a look, and beside them what Gaia reads of each forge, the running forges and what just happened. It takes no hooks: the
- * command states and the handlers come in as props, so a spec unfolds it whole.
+ * The Attention view laid out from its content (SCREENS A1 and B3): the unreachable forges' banners, the figures (a row, or one line atop
+ * the main column while a forge is not fully read), what waits on User, the forges that need a look, and beside them what Gaia reads of
+ * each forge, the running forges and what just happened. It takes no hooks: the command states and the handlers come in as props, so a
+ * spec unfolds it whole.
  */
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
@@ -160,6 +161,16 @@ function LookBlock({ look, ...handlers }: { readonly look: LookCallout } & Comma
   );
 }
 
+function Figures({ content }: { readonly content: AttentionContent }) {
+  return (
+    <div className="gaia-attention-figures" data-form={content.figuresForm}>
+      {content.figures.map((figure) => (
+        <Figure key={figure.label} value={figure.value} label={figure.label} form={content.figuresForm === 'line' ? 'inline' : 'stacked'} />
+      ))}
+    </div>
+  );
+}
+
 function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
   return (
     <section className="gaia-attention-section" aria-labelledby={READINGS_HEAD_ID}>
@@ -169,8 +180,10 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
           <li key={reading.trackerId} className="gaia-attention-reading" data-totals-cannot-vouch={reading.totalsCannotVouchForIt ? '' : undefined}>
             <span className="gaia-attention-reading-forge">{reading.project}</span>
             <span className="gaia-attention-reading-contract">{reading.contractText}</span>
-            <span className="gaia-attention-reading-text">{reading.readingText}</span>
-            {reading.totalsCannotVouchForIt ? <span className="gaia-attention-reading-totals">The totals cannot vouch for it.</span> : null}
+            <span className="gaia-attention-reading-text">
+              {reading.readingText}
+              {reading.totalsCannotVouchForIt ? <>{' '}<span className="gaia-attention-reading-totals">The totals cannot vouch for it.</span></> : null}
+            </span>
           </li>
         ))}
       </ul>
@@ -231,11 +244,10 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
     <div className="gaia-attention">
       {content.banners.map((banner) => <UnreachableBannerLine key={banner.trackerId} banner={banner} {...handlers} />)}
       <LookAgainRefusal {...handlers} />
-      <div className="gaia-attention-figures">
-        {content.figures.map((figure) => <Figure key={figure.label} value={figure.value} label={figure.label} />)}
-      </div>
+      {content.figuresForm === 'row' ? <Figures content={content} /> : null}
       <div className="gaia-attention-body">
         <div className="gaia-attention-main">
+          {content.figuresForm === 'line' ? <Figures content={content} /> : null}
           <section className="gaia-attention-section" aria-labelledby={WAITING_HEAD_ID}>
             <MicroCapsLabel element="h2" id={WAITING_HEAD_ID} text={content.waitingHead} />
             {content.rows.length === 0

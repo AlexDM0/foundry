@@ -120,10 +120,14 @@ export interface UnreachableBanner {
   readonly lastReportedClock: string | null;
 }
 
+/** A row of stacked figures under the bar; one line atop the main column while a forge is not fully read, so B3 fits the window. */
+export type AttentionFiguresForm = 'row' | 'line';
+
 export interface AttentionContent {
   readonly status:      TopBarStatus;
   readonly banners:     readonly UnreachableBanner[];
   readonly figures:     readonly AttentionFigure[];
+  readonly figuresForm: AttentionFiguresForm;
   readonly waitingHead: string;
   readonly rows:        readonly AttentionRow[];
   /** What the list's place says when it holds no row. */
@@ -505,6 +509,7 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
       lastReportedClock: clockTextOf(forge.lastReportedAt, clock),
     })),
     figures:     figuresOf(fleetDocument),
+    figuresForm: morePossible ? 'line' : 'row',
     waitingHead: `Waiting on you${HEAD_SEPARATOR}${morePossible ? `${waitingOnUser} known, more possible` : waitingOnUser}`,
     rows:        rowsOf(fleetDocument, forgesById, clock),
     nothingText: morePossible ? 'Nothing that Gaia can read waits on you.' : 'Nothing waits on you.',

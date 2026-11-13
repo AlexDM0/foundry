@@ -3,7 +3,8 @@
  * content's order, the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to
  * `#questions/E2`; "Update forge" sends `forge-update` through the command sender and is disabled while it is on its way; a refusal shows
  * under its callout with the forge's code and sentence until dismissed; nothing waiting says so; B3's banner, its stale rows that can be
- * read and not acted on, and the side panel that names the forges the totals cannot vouch for; an empty place says so. The content comes
+ * read and not acted on, its figures folded into one line atop the main column so the side panel and Running fit the window, and the side
+ * panel that names the forges the totals cannot vouch for; an empty place says so. The content comes
  * from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
@@ -107,6 +108,14 @@ describe('the list of what waits on User', () => {
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-nothing')])).toBe('Nothing waits on you.');
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-figure'))).toHaveLength(6);
   });
+
+  test('with every forge read in full, the figures stand stacked in their own row above the body', () => {
+    const unfolded = unfoldedLayout(FLEET_FIVE_FORGES);
+    const figuresRow = tree.onlyWithClass(unfolded, 'gaia-attention-figures');
+    expect(figuresRow.props['data-form']).toBe('row');
+    expect(tree.hostElementsIn([tree.onlyWithClass(unfolded, 'gaia-attention-body')], tree.withClass('gaia-attention-figures'))).toEqual([]);
+    expect(tree.hostElementsIn([figuresRow], tree.withClass('gaia-figure')).map((figure) => figure.props['data-form'])).toEqual(Array(6).fill('stacked'));
+  });
 });
 
 describe('a callout\'s command', () => {
@@ -175,13 +184,36 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(rows.map(rowButtonOf).map((button) => button.props['data-emphasis'])).toEqual(['plain', 'primary', 'plain', 'plain']);
   });
 
-  test('the side panel names each forge and marks the ones figures.incompleteFor names', () => {
+  test('the side panel names each forge and marks the ones figures.incompleteFor names at the end of what Gaia reads of it', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
     const readings = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-reading'));
-    expect(readings.filter((reading) => reading.props['data-totals-cannot-vouch'] !== undefined)
-      .map((reading) => tree.textOf([tree.onlyWithClass([reading], 'gaia-attention-reading-forge')])))
+    const marked = readings.filter((reading) => reading.props['data-totals-cannot-vouch'] !== undefined);
+    expect(marked.map((reading) => tree.textOf([tree.onlyWithClass([reading], 'gaia-attention-reading-forge')])))
       .toEqual(['Invoice Service', 'Research Wiki', 'Analytics Sandbox']);
+    expect(marked.map((reading) => tree.textOf([tree.onlyWithClass([reading], 'gaia-attention-reading-text')])))
+      .toEqual([
+        'Nothing since 13:14. Its rows are shown as last reported and their actions are off. The totals cannot vouch for it.',
+        'Counts and jobs only. No questions, reviews or notices by name. The totals cannot vouch for it.',
+        'Nothing. Its contract is newer than this Gaia. The totals cannot vouch for it.',
+      ]);
+    expect(tree.hostElementsIn(readings, tree.withClass('gaia-attention-reading-totals'))).toHaveLength(3);
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-attention-readings'))).toEqual([]);
+  });
+
+  test('the figures fold into one inline line atop the main column, so the side panel starts under the banner', () => {
+    const unfolded = unfoldedLayout(FLEET_DEGRADED);
+    const main = tree.onlyWithClass(unfolded, 'gaia-attention-main');
+    const figuresRow = tree.onlyWithClass([main], 'gaia-attention-figures');
+    expect(figuresRow.props['data-form']).toBe('line');
+    const figures = tree.hostElementsIn([figuresRow], tree.withClass('gaia-figure'));
+    expect(figures.map((figure) => [figure.props['data-form'], tree.textOf([figure])])).toEqual([
+      ['inline', '4+waiting on you'],
+      ['inline', '10 / 12agents, machine limit'],
+      ['inline', '8tickets ready'],
+      ['inline', '5done today'],
+      ['inline', '1.08Mtokens today'],
+      ['inline', '0open incidents'],
+    ]);
   });
 
   test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {

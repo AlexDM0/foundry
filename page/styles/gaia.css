@@ -26,6 +26,8 @@
   color: var(--ink);
 }
 .gaia-figure-label { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-figure[data-form="inline"] { flex-direction: row; align-items: baseline; gap: calc(var(--sp-1) + var(--sp-half)); }
+.gaia-figure[data-form="inline"] .gaia-figure-value { font-size: var(--fs-body); }
 
 /* Buttons */
 .gaia-button {
@@ -904,6 +906,8 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   padding: var(--sp-4) var(--sp-6);
   border-bottom: var(--hairline) solid var(--line);
 }
+/* While a forge is not fully read, the figures fold into one line atop the main column, so the side panel and Running fit the window. */
+.gaia-attention-figures[data-form="line"] { gap: var(--sp-1) var(--sp-4); padding: 0; border-bottom: 0; }
 .gaia-attention-body { display: flex; flex: 1; gap: var(--sp-6); padding: var(--sp-5) var(--sp-6); }
 .gaia-attention-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-5); min-width: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
@@ -955,9 +959,8 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 .gaia-attention-reading:last-child { border-bottom: 0; }
 .gaia-attention-reading-forge { font-weight: var(--weight-strong); }
 .gaia-attention-reading-contract { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-attention-reading-text,
-.gaia-attention-reading-totals { grid-column: 1 / -1; font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-attention-reading[data-totals-cannot-vouch] .gaia-attention-reading-totals { color: var(--ink); }
+.gaia-attention-reading-text { grid-column: 1 / -1; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-attention-reading-totals { color: var(--ink); }
 
 /* Running forges: each card a link to the forge in place */
 .gaia-attention-running-card {

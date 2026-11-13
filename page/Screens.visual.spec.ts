@@ -142,10 +142,12 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-forges-condition-detail')).toContain('forge start · waiting for its API');
   });
 
-  test('B3: the unreachable banner under the bar, and the head that counts what is known', () => {
+  test('B3: the unreachable banner under the bar, the head that counts what is known, and the figures folded into one line atop the main column', () => {
     const markup = screenMarkupOf(screenOf('B3'), 'dark');
     expect(markup).toContain('<span class="gaia-banner-text">Overseer unreachable: Invoice Service.');
     expect(textsOfClass(markup, 'gaia-micro-caps')).toContain('Waiting on you · 4 known, more possible');
+    expect(markup).toContain('<div class="gaia-attention-main"><div class="gaia-attention-figures" data-form="line">');
+    expect(markup).not.toContain('data-form="stacked"');
   });
 
   test('B4: no forge registered, with Add a repository in the head\'s place', () => {
