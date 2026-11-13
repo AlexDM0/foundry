@@ -1,7 +1,8 @@
 /**
  * Carries out one command (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what an Overseer does while it answers
- * and its control contract is known; the forge program carries the rest; Gaia's settings carry what is Gaia's own. One command per forge,
- * per repository being added, for the machine limit and for the chooser is on its way at a time.
+ * and its control contract is known; the forge program carries the rest; Gaia's settings carry what is Gaia's own, and each forge's program
+ * its login item when "Start at login" changes. One command per forge, per repository being added, for the machine limit, for the chooser
+ * and for the login items is on its way at a time.
  */
 import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
 import type { ForgeProgramVerdict }                                  from '../../adapters/forge-program/@types/ForgeProgramAnswer.ts';
@@ -32,7 +33,7 @@ export interface ForgeControlOptions {
   readonly readings:      () => readonly ForgeReading[];
   readonly forgeClient:   ForgeClient;
   readonly forgeProgram:  ForgeProgram;
-  readonly settingsStore: Pick<SettingsStore, 'update'>;
+  readonly settingsStore: Pick<SettingsStore, 'settings' | 'fileState' | 'update'>;
   readonly pathChooser:   PathChooser;
   /** A registry read and an identity round at once. */
   readonly lookAgain:     () => Promise<void>;
@@ -45,9 +46,16 @@ export interface ForgeControl {
 /** The fidelities at which the forge's Overseer answered its last read. */
 const OVERSEER_ANSWERS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'newer-contract']);
 
-/** The machine limit and the chooser are one each, whatever the forge; a forge and a repository being added are named. */
+/** The machine limit, the chooser and the login items are one each, whatever the forge; a forge and a repository being added are named. */
 const MACHINE_LIMIT_SUBJECT = 'machine-limit';
 const PATH_CHOOSER_SUBJECT = 'path-chooser';
+const LOGIN_ITEMS_SUBJECT = 'login-items';
+
+/** The forges that get a login item when "Start at login" is switched on: their Overseer answered, in a contract Gaia reads. */
+const RUNNING_FOR_LOGIN_ITEMS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only']);
+
+/** The forges whose login item goes when it is switched off: every one Gaia read whose repository is there and whose contract it reads. */
+const LOGIN_ITEM_REMOVED_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'unreachable', 'dormant']);
 
 /**
  * `api`: the Overseer answers and speaks the known control contract. `control-unknown`: it answers in another contract or names none.
@@ -158,8 +166,9 @@ function changing(change: SettingsChange): SettingsUpdate {
 function subjectOf(command: GaiaCommand): string | null {
   switch (command.kind) {
     case 'fleet-look-again':
-    case 'settings-set':
       return null;
+    case 'settings-set':
+      return command.change.key === 'startForgesAtLogin' ? LOGIN_ITEMS_SUBJECT : null;
     case 'forge-add':
       return `repository ${command.root}`;
     case 'machine-agent-limit-set':
@@ -249,6 +258,25 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     return verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
   }
 
+  /**
+   * PLAN A6: switched on, each running forge's own program writes its login item; switched off, each forge's program removes it. The
+   * setting is kept only once every forge's verb is done, so the first refusal leaves it as it was and the forge words why.
+   */
+  async function setStartForgesAtLogin(startForgesAtLogin: boolean): Promise<CommandVerdict> {
+    if (settingsStore.settings().startForgesAtLogin === startForgesAtLogin) return { verdict: 'nothing-to-do' };
+    if (settingsStore.fileState() === 'newer-version') return gaiaRefusalOf('settings-newer-version');
+    const forgeFidelities = startForgesAtLogin ? RUNNING_FOR_LOGIN_ITEMS_AT : LOGIN_ITEM_REMOVED_AT;
+    const forges = (await registeredForges()).filter((forge) => {
+      const reading = readingOf(forge.trackerId);
+      return reading !== null && forgeFidelities.has(reading.fidelity);
+    });
+    for (const forge of forges) {
+      const loginItemVerdict = await forgeProgram.loginItem(programTargetOf(forge), startForgesAtLogin ? 'add' : 'remove');
+      if (loginItemVerdict.verdict !== 'done') return verdictOfProgramFailure(loginItemVerdict);
+    }
+    return verdictOfSettingsUpdate(await settingsStore.update(changing({ key: 'startForgesAtLogin', value: startForgesAtLogin })));
+  }
+
   async function carryForForge(command: ForgeCommand): Promise<CommandVerdict> {
     if (command.kind === 'forge-unhide') return verdictOfSettingsUpdate(await settingsStore.update(showingAgain(command.trackerId)));
     const forge = (await registeredForges()).find((registeredForge) => registeredForge.trackerId === command.trackerId);
@@ -286,6 +314,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       case 'machine-agent-limit-set':
         return setMachineLimit(command.limit);
       case 'settings-set':
+        if (command.change.key === 'startForgesAtLogin') return setStartForgesAtLogin(command.change.value);
         return verdictOfSettingsUpdate(await settingsStore.update(changing(command.change)));
       case 'path-choose':
         return verdictOfPathChoice(await options.pathChooser.choose(command.what));

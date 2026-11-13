@@ -3,8 +3,9 @@
  * scratch home: one spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code
  * and sentence passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract
  * Gaia does not know, a stop and a machine limit that fall back to the program when no Overseer answers, an add that runs `init`, then
- * `start`, and stops at the first refusal, settings changed one key at a time, a cancelled chooser that answers nothing-to-do, and the
- * in-flight rule, which holds one forge, one repository, the machine limit and the chooser, and leaves the others free.
+ * `start`, and stops at the first refusal, settings changed one key at a time, "Start at login" written as each forge's login item before
+ * the setting is kept, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one repository, the
+ * machine limit, the chooser and the login items, and leaves the others free.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -648,7 +649,7 @@ describe('settings-set, carried by Gaia\'s settings', () => {
 
   test('refuses with settings-unwritable when the settings cannot be written', async () => {
     writeFileSync(join(scratchFolder, '.gaia'), 'a file where the folder belongs');
-    const verdict = await controlOver({}).carry({ kind: 'settings-set', change: { key: 'startForgesAtLogin', value: true } });
+    const verdict = await controlOver({ forges: [] }).carry({ kind: 'settings-set', change: { key: 'startForgesAtLogin', value: true } });
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-unwritable' });
   });
 
@@ -658,6 +659,111 @@ describe('settings-set, carried by Gaia\'s settings', () => {
     expect(await control.carry({ kind: 'settings-set', change: { key: 'forgeProgramPath', value: EXAMPLE_FORGE_PROGRAM_PATH } })).toEqual({ verdict: 'done' });
     expect(await control.carry(START)).toEqual({ verdict: 'done' });
     expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['start', '--json'])]);
+  });
+});
+
+/** A process run that answers from the recording and notes the repository each run was asked to run in. */
+function processRunNotingRepositories(recorded: ProcessRun): { readonly processRun: ProcessRun; readonly repositoriesRunIn: string[] } {
+  const repositoriesRunIn: string[] = [];
+  const processRun: ProcessRun = {
+    run: (request) => {
+      repositoriesRunIn.push(request.workingDirectory);
+      return recorded.run(request);
+    },
+    startOwned:    (request) => recorded.startOwned(request),
+    startDetached: (request) => recorded.startDetached(request),
+  };
+  return { processRun, repositoriesRunIn };
+}
+
+const START_AT_LOGIN_ON: GaiaCommand = { kind: 'settings-set', change: { key: 'startForgesAtLogin', value: true } };
+const START_AT_LOGIN_OFF: GaiaCommand = { kind: 'settings-set', change: { key: 'startForgesAtLogin', value: false } };
+
+describe('settings-set of startForgesAtLogin, carried by each forge\'s program and then Gaia\'s settings', () => {
+  test('switched on, writes the login item of each running forge in its own repository and none for a dormant forge, then keeps the setting', async () => {
+    const { processRun, repositoriesRunIn } = processRunNotingRepositories(recordedForgeProgramRunOf('every-verb-done'));
+    const settingsStore = settingsStoreInScratch();
+    const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID, state: 'dormant' })];
+    expect(await controlOver({ forges, processRun, settingsStore }).carry(START_AT_LOGIN_ON)).toEqual({ verdict: 'done' });
+    expect(repositoriesRunIn).toEqual([storefrontRoot]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(true);
+    expect((await new SettingsFile(scratchFolder).read()).settings.startForgesAtLogin).toBe(true);
+  });
+
+  test('switched on, writes the login items of a running forge read in full and one read through its summary, and sends a newer forge nothing', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const { processRun, repositoriesRunIn } = processRunNotingRepositories(recorded);
+    const newerRoot = join(scratchFolder, 'newer-forge');
+    mkdirSync(newerRoot);
+    const forges = [
+      exampleForgeOf({ state: 'counts-only' }),
+      exampleForgeOf({ trackerId: WIKI_TRACKER_ID }),
+      exampleForgeOf({ trackerId: 'example-newer-forge-9d12', root: newerRoot, state: 'newer-contract' }),
+    ];
+    expect(await controlOver({ forges, processRun }).carry(START_AT_LOGIN_ON)).toEqual({ verdict: 'done' });
+    expect(repositoriesRunIn).toEqual([storefrontRoot, wikiRoot]);
+    expect(recorded.callShapesAnswered()).toEqual([
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+    ]);
+  });
+
+  test('switched off, removes the login item of every forge Gaia read whose repository is there, dormant ones too, then keeps the setting', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const { processRun, repositoriesRunIn } = processRunNotingRepositories(recorded);
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.change({ ...GAIA_SETTINGS_DEFAULTS, startForgesAtLogin: true });
+    const missingRoot = join(scratchFolder, 'example-gone');
+    const forges = [
+      exampleForgeOf({ state: 'dormant' }),
+      exampleForgeOf({ trackerId: WIKI_TRACKER_ID }),
+      exampleForgeOf({ trackerId: 'example-gone-5e03', root: missingRoot, state: 'repository-missing' }),
+    ];
+    expect(await controlOver({ forges, processRun, settingsStore }).carry(START_AT_LOGIN_OFF)).toEqual({ verdict: 'done' });
+    expect(repositoriesRunIn).toEqual([storefrontRoot, wikiRoot]);
+    expect(new Set(recorded.callShapesAnswered())).toEqual(new Set([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json'])]));
+    expect(settingsStore.settings().startForgesAtLogin).toBe(false);
+  });
+
+  test('passes the forge\'s refusal on unchanged, stops at it, and leaves the setting off', async () => {
+    const { processRun, repositoriesRunIn } = processRunNotingRepositories(recordedForgeProgramRunOf('every-verb-refused'));
+    const settingsStore = settingsStoreInScratch();
+    const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
+    const verdict = await controlOver({ forges, processRun, settingsStore }).carry(START_AT_LOGIN_ON);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(['login-item', 'add', '--json']) });
+    expect(repositoriesRunIn).toEqual([storefrontRoot]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(false);
+    expect((await new SettingsFile(scratchFolder).read()).verdict).toBe('absent');
+  });
+
+  test('answers nothing-to-do and runs no forge when the setting already holds the value', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    expect(await controlOver({ processRun: recorded }).carry(START_AT_LOGIN_OFF)).toEqual({ verdict: 'nothing-to-do' });
+    expect(recorded.callShapesAnswered()).toEqual([]);
+  });
+
+  test('refuses with settings-newer-version and runs no forge when the settings file is newer than this Gaia', async () => {
+    const settingsPath = settingsFilePathIn(scratchFolder);
+    mkdirSync(dirname(settingsPath), { recursive: true });
+    writeFileSync(settingsPath, JSON.stringify({ version: 2 }));
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.load();
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const verdict = await controlOver({ processRun: recorded, settingsStore }).carry(START_AT_LOGIN_ON);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-newer-version' });
+    expect(recorded.callShapesAnswered()).toEqual([]);
+  });
+
+  test('refuses a second change of it while the first runs, and carries another settings change meanwhile', async () => {
+    const { processRun, letThrough } = holdingFirstRun(recordedForgeProgramRunOf('every-verb-done'));
+    const control = controlOver({ processRun });
+
+    const firstChange = control.carry(START_AT_LOGIN_ON);
+    expect(await control.carry(START_AT_LOGIN_OFF)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
+    expect(await control.carry({ kind: 'settings-set', change: { key: 'theme', value: 'light' } })).toEqual({ verdict: 'done' });
+
+    letThrough();
+    expect(await firstChange).toEqual({ verdict: 'done' });
   });
 });
 
