@@ -15,6 +15,10 @@ What is agreed and not started, with the reason it waits.
 - **The starting monitor's refusals are recorded.** Before its first generation the Overseer answers `GET /api/monitor` with 503
   `starting` and its monitor stream with 404 `not-ready`; the forge watch reads both as starting (`WatchReadingUtil.failureMeansStarting`).
   Ten starts of a scratch Overseer gave no answer in that window, so `overseer-fetch-every-contract` holds only the identity's 503.
+- **A failed Baton pass's warning is told apart.** PLAN 7.2 row 3 shows `baton-pass-failed` for "a warning of that kind in the
+  snapshot", but monitor contract 1 sends each header warning as the forge's sentence alone (FORGE_REQUIREMENTS F2 types it `string[]`),
+  so the ingestion reads every warning as `forge-warning` and the look never applies to a real forge. It waits for the owner: a warning
+  kind added to the forge's monitor contract, or another rule for row 3. Gaia never decides on the forge's wording.
 - **Record the forge before F1 again.** `overseer-fetch` and `forge-program` hold a forge that names no contracts and answers no F8 JSON
   (install version 27, code 3a6e9e6043da); Gaia reads such a forge through its summary. Their recording specs assert that older shape, so
   they record again only from a checkout of that forge.

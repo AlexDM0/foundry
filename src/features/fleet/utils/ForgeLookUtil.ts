@@ -2,7 +2,7 @@
 import type { ForgeLook, ForgeLookKind } from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading }             from '../../../shared/@types/ForgeReading.ts';
 
-/** The kind the monitor ingestion gives the header warning of a failed Baton pass. */
+/** PLAN 7.2's kind of a failed Baton pass's warning; monitor contract 1 gives a warning no kind, so none carries it yet (docs/backlog.md). */
 export const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 
 /** The Overseer's notice that the code on disk is newer than the code it runs. */
