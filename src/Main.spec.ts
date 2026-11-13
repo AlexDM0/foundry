@@ -1,15 +1,21 @@
 /**
- * The entry point's contract: the version answer other programs parse, the usage text, and a refusal for an unknown verb. One case runs
- * the program itself, since other programs read the version answer from its standard output and exit code.
+ * The entry point's contract: the version answer other programs parse, the usage text, a refusal for an unknown verb, and the error and
+ * exit code of a launch that does not close normally. One case runs the program itself, since other programs read the version answer from
+ * its standard output and exit code.
  */
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
-import { launchErrorOf, runGaia, type ProgramOutput } from './Main.ts';
-import { environmentCopy }                            from './services/Environment.ts';
-import { createScratchDirectory, removeScratchPath }  from './testing/ScratchRoot.ts';
+import {
+  exitCodeOf,
+  launchErrorOf,
+  runGaia,
+  type ProgramOutput,
+} from './Main.ts';
+import { environmentCopy }                           from './services/Environment.ts';
+import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
 
 interface CapturedOutput extends ProgramOutput {
   readonly standardOutput: () => string;
@@ -73,6 +79,7 @@ describe('a launch that does not close normally', () => {
     const noBrowser = launchErrorOf({ verdict: 'refused', refusal: 'no-browser' }, 4790);
     const portHeld  = launchErrorOf({ verdict: 'refused', refusal: 'port-held-by-another-program' }, 4790);
     expect([noBrowser.kind, noBrowser.reason, portHeld.kind, portHeld.reason]).toEqual(['refused', 'no-browser', 'refused', 'port-held-by-another-program']);
+    expect([exitCodeOf(noBrowser), exitCodeOf(portHeld)]).toEqual([1, 1]);
     expect(noBrowser.message).toBe('Gaia opens in a Google Chrome or Microsoft Edge window, and neither is in an Applications folder.');
     expect(portHeld.message).toBe('Another application answers on port 4790, where Gaia serves. Gaia did not start.');
   });
@@ -80,6 +87,7 @@ describe('a launch that does not close normally', () => {
   test('is unrepaired, which exits 2, for a failure', () => {
     const serverEnded = launchErrorOf({ verdict: 'unrepaired', failure: 'server-ended' }, 4790);
     expect([serverEnded.kind, serverEnded.reason]).toEqual(['unrepaired', 'server-ended']);
+    expect(exitCodeOf(serverEnded)).toBe(2);
   });
 });
 

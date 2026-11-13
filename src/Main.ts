@@ -248,6 +248,11 @@ function verbRunFor(verb: string): VerbRun | null {
   return Object.hasOwn(VERB_RUNS, verb) ? VERB_RUNS[verb] ?? null : null;
 }
 
+/** A refusal User can act on exits 1; a failure Gaia will not repair exits 2. */
+export function exitCodeOf(error: GaiaError): ExitCode {
+  return error.kind === 'refused' ? EXIT_CODE_FOR_REFUSAL : EXIT_CODE_FOR_UNREPAIRED;
+}
+
 export async function runGaia(commandArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const [verb = 'help', ...remainingArguments] = commandArguments;
   const verbRun = verbRunFor(verb);
@@ -260,7 +265,7 @@ export async function runGaia(commandArguments: readonly string[], output: Progr
   } catch (error) {
     if (!(error instanceof GaiaError)) throw error;
     output.writeStandardError(`${error.message}\n`);
-    return error.kind === 'refused' ? EXIT_CODE_FOR_REFUSAL : EXIT_CODE_FOR_UNREPAIRED;
+    return exitCodeOf(error);
   }
 }
 
