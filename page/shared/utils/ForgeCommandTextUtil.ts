@@ -1,6 +1,6 @@
 /**
- * How the page words a command to one forge wherever it offers one: the refused command's own name in its refusal, and B2's Stop question
- * with its two choices and what keeps waiting while the forge is stopped.
+ * How the page words a command to one forge wherever it offers one: the refused command's own name in its refusal, B2's Stop question
+ * with its two choices and what keeps waiting while the forge is stopped, and the restart an update left pending.
  */
 import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocumentForge }                             from '../../@types/FleetDocument.ts';
@@ -31,6 +31,14 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-stop':            'Stop',
   'forge-concurrency-set': 'the agent limit',
 };
+
+/** An update was done and the forge's Overseer did not take the new code: Restart sends `forge-restart`. */
+const RESTART_PENDING = {
+  word:         'Updated; restart pending.',
+  sentence:     'Its Overseer runs the old code until it restarts.',
+  restartLabel: 'Restart',
+  dismissLabel: 'Dismiss the pending restart',
+} as const;
 
 function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
   return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
@@ -76,6 +84,7 @@ function stopQuestionOf(forge: FleetDocumentForge): StopQuestion {
 }
 
 export const ForgeCommandTextUtil = {
+  RESTART_PENDING,
   commandLabelOf,
   stopQuestionOf,
 } as const;

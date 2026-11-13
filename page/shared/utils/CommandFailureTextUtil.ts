@@ -1,4 +1,7 @@
-/** The code and the sentence a refusal shows for a command that did not succeed: the forge's own when it refused, Gaia's otherwise. */
+/**
+ * The code and the sentence a refusal shows for a command that did not succeed: the forge's as Gaia's server answered them when it refused,
+ * and Gaia's own for the outcome when the answer carries no sentence or nothing answered.
+ */
 import type { CommandOutcome } from '../../@types/CommandDocument.ts';
 import type { CommandFailure } from '../../api/CommandSender.ts';
 
@@ -8,11 +11,12 @@ export interface RefusalText {
 }
 
 const OUTCOME_SENTENCES: Readonly<Record<CommandOutcome, string>> = {
-  'done':          'The command was carried out.',
-  'nothing-to-do': 'There was nothing to do.',
-  'refused':       'The command was refused.',
-  'unreachable':   'The forge\'s Overseer did not answer.',
-  'not-supported': 'This forge does not take this command from Gaia.',
+  'done':            'The command was carried out.',
+  'nothing-to-do':   'There was nothing to do.',
+  'restart-pending': 'The forge was updated, and its Overseer runs the old code until it restarts.',
+  'refused':         'The command was refused.',
+  'unreachable':     'The forge\'s Overseer did not answer.',
+  'not-supported':   'This forge does not take this command from Gaia.',
 };
 
 function refusalTextOf(failure: CommandFailure): RefusalText {

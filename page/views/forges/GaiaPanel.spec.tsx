@@ -28,7 +28,7 @@ const tree = ReactElementTree;
 const IDLE_STATES: CommandStates = senderOver([]).states();
 
 const SETTINGS_UNWRITABLE: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          null,
@@ -99,11 +99,12 @@ describe('the panel in the Forges view (A4)', () => {
         commandStates={commandStates}
         handlers={{
           ...handlers,
-          onCommand:        () => undefined,
-          onOpenStopDialog: () => undefined,
-          onStopChoice:     () => undefined,
-          onCancelStop:     () => undefined,
-          onConfirmStop:    () => undefined,
+          onCommand:               () => undefined,
+          onOpenStopDialog:        () => undefined,
+          onStopChoice:            () => undefined,
+          onCancelStop:            () => undefined,
+          onConfirmStop:           () => undefined,
+          onDismissRestartPending: () => undefined,
         }}
       />,
     );

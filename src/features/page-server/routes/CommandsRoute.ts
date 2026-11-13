@@ -14,12 +14,13 @@ export const COMMANDS_PATH = '/api/commands';
 export type CommandCarrier = (command: GaiaCommand) => Promise<CommandVerdict>;
 
 const HTTP_STATUS_OF_VERDICT: Readonly<Record<CommandVerdict['verdict'], number>> = {
-  'done':          200,
-  'path-chosen':   200,
-  'nothing-to-do': 200,
-  'refused':       409,
-  'unreachable':   502,
-  'not-supported': 501,
+  'done':            200,
+  'path-chosen':     200,
+  'nothing-to-do':   200,
+  'restart-pending': 200,
+  'refused':         409,
+  'unreachable':     502,
+  'not-supported':   501,
 };
 
 const HTTP_BAD_REQUEST = 400;

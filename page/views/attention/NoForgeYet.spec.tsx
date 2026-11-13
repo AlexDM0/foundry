@@ -18,14 +18,14 @@ const tree = ReactElementTree;
 const FILLED_FORM = AddRepositoryForm.formAfterFolder(AddRepositoryForm.EMPTY_FORM, '~/development/example-storefront');
 
 const INIT_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'not-a-git-repository',
   text:          'The folder is not a git repository.',
 };
 
 const LOOK_AGAIN_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'registry-unreadable',
   text:          'The registry could not be read.',

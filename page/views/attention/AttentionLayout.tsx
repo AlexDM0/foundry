@@ -1,8 +1,8 @@
 /**
  * The Attention view laid out from its content (SCREENS A1 and B3): the unreachable forges' banners, the figures (a row, or one line atop
- * the main column while a forge is not fully read), what waits on User, the forges that need a look, and beside them what Gaia reads of
- * each forge, the running forges and what just happened. It takes no hooks: the command states and the handlers come in as props, so a
- * spec unfolds it whole.
+ * the main column while a forge is not fully read), what waits on User, the forges that need a look with a refusal or a pending restart
+ * under them, and beside them what Gaia reads of each forge, the running forges and what just happened. It takes no hooks: the command
+ * states and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
@@ -13,10 +13,12 @@ import { ConditionDot }                                           from '../../de
 import { Figure }                                                 from '../../design-system/Figure.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
 import { MicroCapsLabel }                                         from '../../design-system/MicroCapsLabel.tsx';
+import { PendingStep }                                            from '../../design-system/PendingStep.tsx';
 import { Pill }                                                   from '../../design-system/Pill.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
   type AttentionRow,
@@ -29,16 +31,18 @@ import {
 } from './AttentionModel.ts';
 
 export interface AttentionLayoutProps {
-  readonly content:          AttentionContent;
-  readonly commandStates:    CommandStates;
-  readonly onCommand:        (command: CommandBody) => void;
-  readonly onDismissFailure: (subject: CommandSubject) => void;
+  readonly content:                 AttentionContent;
+  readonly commandStates:           CommandStates;
+  readonly onCommand:               (command: CommandBody) => void;
+  readonly onDismissFailure:        (subject: CommandSubject) => void;
+  readonly onDismissRestartPending: (subject: CommandSubject) => void;
 }
 
 interface CommandHandlers {
-  readonly commandStates:    CommandStates;
-  readonly onCommand:        (command: CommandBody) => void;
-  readonly onDismissFailure: (subject: CommandSubject) => void;
+  readonly commandStates:           CommandStates;
+  readonly onCommand:               (command: CommandBody) => void;
+  readonly onDismissFailure:        (subject: CommandSubject) => void;
+  readonly onDismissRestartPending: (subject: CommandSubject) => void;
 }
 
 const WAITING_HEAD_ID = 'gaia-attention-waiting-head';
@@ -144,6 +148,23 @@ function LookRefusal({
   );
 }
 
+/** The restart an update left pending shows under the callout whose Update forge sent it, until the next success or dismissed. */
+function LookPendingRestart({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
+  const subject = { trackerId: look.trackerId };
+  const { restartAfterUpdate } = look;
+  if (restartAfterUpdate === null || !CommandSender.stateOf(handlers.commandStates, subject).restartPending) return null;
+  const { word, sentence, dismissLabel } = ForgeCommandTextUtil.RESTART_PENDING;
+  return (
+    <PendingStep
+      word={word}
+      sentence={sentence}
+      action={<LookActionButton action={restartAfterUpdate} {...handlers} />}
+      dismissLabel={dismissLabel}
+      onDismiss={() => handlers.onDismissRestartPending(subject)}
+    />
+  );
+}
+
 function LookBlock({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
   return (
     <div className="gaia-attention-look">
@@ -157,6 +178,7 @@ function LookBlock({ look, ...handlers }: { readonly look: LookCallout } & Comma
         actions={<>{look.actions.map((action) => <LookActionButton key={action.label} action={action} {...handlers} />)}</>}
       />
       <LookRefusal look={look} {...handlers} />
+      <LookPendingRestart look={look} {...handlers} />
     </div>
   );
 }

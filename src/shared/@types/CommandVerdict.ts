@@ -1,6 +1,7 @@
 /**
- * How Gaia ended one command. A forge's refusal carries its code and its sentence unchanged; Gaia's own refusals carry a code only, which
- * the page words. Only the page server maps a verdict to a status, and only the page contract's mapper to an answer.
+ * How Gaia ended one command. A forge's refusal carries its code and its sentence unchanged, and the page contract's mapper rewords a
+ * sentence that names a command; Gaia's own refusals carry a code only, which the page words. Only the page server maps a verdict to a
+ * status, and only the page contract's mapper to an answer.
  */
 
 /**
@@ -24,7 +25,8 @@ export type GaiaRefusal =
   | 'path-chooser-failed';
 
 /**
- * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `unreachable`: the forge gave no answer in time.
+ * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `restart-pending`: a `forge-update` was done, but the
+ * live Overseer did not take the Baton pass and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
  * `not-supported`: the forge speaks a control contract Gaia does not know, its program answered in a way Gaia does not understand, or this
  * machine has no chooser.
  */
@@ -32,6 +34,7 @@ export type CommandVerdict =
   | { readonly verdict: 'done' }
   | { readonly verdict: 'path-chosen'; readonly path: string }
   | { readonly verdict: 'nothing-to-do' }
+  | { readonly verdict: 'restart-pending' }
   | { readonly verdict: 'refused'; readonly refusedBy: 'forge'; readonly refusal: string | null; readonly text: string | null }
   | { readonly verdict: 'refused'; readonly refusedBy: 'gaia'; readonly refusal: GaiaRefusal }
   | { readonly verdict: 'unreachable' }

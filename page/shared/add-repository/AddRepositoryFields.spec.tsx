@@ -15,26 +15,26 @@ import { AddRepositoryForm }                              from './AddRepositoryF
 const tree = ReactElementTree;
 
 const ANSWERED_PATH = (path: string): CommandAnswerDocument => ({
-  answerVersion: 1, outcome: 'done', refusal: null, text: path
+  answerVersion: 2, outcome: 'done', refusal: null, text: path
 });
 
 const CANCELLED: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'nothing-to-do', refusal: null, text: null
+  answerVersion: 2, outcome: 'nothing-to-do', refusal: null, text: null
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'done', refusal: null, text: null
+  answerVersion: 2, outcome: 'done', refusal: null, text: null
 };
 
 const START_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
 };
 
 const SETTINGS_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          'Gaia could not write its settings.',

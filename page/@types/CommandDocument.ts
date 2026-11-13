@@ -34,9 +34,13 @@ export type FleetCommandKind = FleetCommandBody['kind'];
 
 export type CommandDocument = CommandBody & { commandVersion: typeof CONTRACT_VERSIONS.gaiaCommand };
 
-export type CommandOutcome = 'done' | 'nothing-to-do' | 'refused' | 'unreachable' | 'not-supported';
+/** `restart-pending`: a `forge-update` was done, and the forge's Overseer runs the old code until it restarts. */
+export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'refused' | 'unreachable' | 'not-supported';
 
-/** `refusal` is the forge's own code and `text` its sentence, both passed through unchanged; `text` is the chosen path of a `path-choose`. */
+/**
+ * `refusal` is the forge's own code, passed through unchanged, and `text` its sentence, in Gaia's words where the forge's names a command
+ * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`.
+ */
 export interface CommandAnswerDocument {
   answerVersion: typeof CONTRACT_VERSIONS.gaiaCommandAnswer;
   outcome:       CommandOutcome;

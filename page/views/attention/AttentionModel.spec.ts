@@ -137,6 +137,19 @@ describe('the forges that need a look', () => {
     ]);
   });
 
+  test('a callout with Update forge holds the Restart it offers once the update left a restart pending, and one without holds none', () => {
+    const content = fleetContentOf(FLEET_FIVE_FORGES);
+    expect(lookOf(content, TRACKER_IDS.exampleMobileApp).restartAfterUpdate).toEqual({
+      kind:           'command',
+      label:          'Restart',
+      emphasis:       'primary',
+      icon:           null,
+      command:        { kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp },
+      forgeAcceptsIt: true,
+    });
+    expect(lookOf(content, TRACKER_IDS.designSystem).restartAfterUpdate).toBeNull();
+  });
+
   test('a dormant forge with ready tickets offers Start forge', () => {
     const dormant = lookOf(fleetContentOf(FLEET_FIVE_FORGES), TRACKER_IDS.designSystem);
     expect([dormant.tone, dormant.condition, dormant.word, dormant.sentence, dormant.machineLine]).toEqual([
@@ -257,6 +270,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.researchWiki }, true],
       ['Update forge', 'plain', { kind: 'forge-update', trackerId: TRACKER_IDS.researchWiki }, true],
     ]);
+    expect(countsOnly.restartAfterUpdate).toMatchObject({ label: 'Restart', forgeAcceptsIt: false });
     const newer = lookOf(content, ANALYTICS_SANDBOX_TRACKER_ID);
     expect([newer.tone, newer.condition, newer.word, newer.sentence, newer.machineLine]).toEqual([
       'warn',

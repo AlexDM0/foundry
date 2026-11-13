@@ -1,7 +1,8 @@
 /**
- * Sends one command to `POST /api/commands` and gives the view Gaia's answer, the forge's refusal code and sentence unchanged. Per forge,
- * and per command that names no forge, it keeps the kind on its way and the last send that did not succeed, until dismissed or until the
- * next success. It sends nothing while the controls may not act, and nothing for a subject that already has a command on its way.
+ * Sends one command to `POST /api/commands` and gives the view Gaia's answer, the forge's refusal code and sentence as Gaia answered them.
+ * Per forge, and per command that names no forge, it keeps the kind on its way, the last send that did not succeed, and an update that
+ * left a restart pending, each until dismissed or until the next success. It sends nothing while the controls may not act, and nothing for
+ * a subject that already has a command on its way.
  */
 import { createContext, useContext, useSyncExternalStore } from 'react';
 
@@ -31,8 +32,10 @@ export interface CommandFailure {
 }
 
 export interface CommandState {
-  readonly onItsWay: CommandKind | null;
-  readonly failure:  CommandFailure | null;
+  readonly onItsWay:       CommandKind | null;
+  readonly failure:        CommandFailure | null;
+  /** An update was done, and the forge runs the old code until it restarts. */
+  readonly restartPending: boolean;
 }
 
 /** A forge's entry by its `trackerId`; an absent entry is idle with no failure. */
@@ -53,19 +56,20 @@ export interface CommandSenderSurroundings {
 }
 
 export interface CommandSender {
-  readonly send:           (command: CommandBody) => Promise<CommandResult>;
-  readonly dismissFailure: (subject: CommandSubject) => void;
-  readonly states:         () => CommandStates;
-  readonly subscribe:      (listener: () => void) => () => void;
+  readonly send:                  (command: CommandBody) => Promise<CommandResult>;
+  readonly dismissFailure:        (subject: CommandSubject) => void;
+  readonly dismissRestartPending: (subject: CommandSubject) => void;
+  readonly states:                () => CommandStates;
+  readonly subscribe:             (listener: () => void) => () => void;
 }
 
 const COMMANDS_PATH = '/api/commands';
 
-const SUCCESSFUL_OUTCOMES: ReadonlySet<CommandOutcome> = new Set(['done', 'nothing-to-do']);
+const SUCCESSFUL_OUTCOMES: ReadonlySet<CommandOutcome> = new Set(['done', 'nothing-to-do', 'restart-pending']);
 
-const COMMAND_OUTCOMES: ReadonlySet<unknown> = new Set<CommandOutcome>(['done', 'nothing-to-do', 'refused', 'unreachable', 'not-supported']);
+const COMMAND_OUTCOMES: ReadonlySet<unknown> = new Set<CommandOutcome>(['done', 'nothing-to-do', 'restart-pending', 'refused', 'unreachable', 'not-supported']);
 
-const IDLE: CommandState = { onItsWay: null, failure: null };
+const IDLE: CommandState = { onItsWay: null, failure: null, restartPending: false };
 
 const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
 
@@ -78,7 +82,7 @@ function stateOf(states: CommandStates, subject: CommandSubject): CommandState {
 }
 
 function statesWith(states: CommandStates, subject: CommandSubject, state: CommandState): CommandStates {
-  const isIdle = state.onItsWay === null && state.failure === null;
+  const isIdle = state.onItsWay === null && state.failure === null && !state.restartPending;
   if ('trackerId' in subject) {
     const forges = new Map(states.forges);
     if (isIdle) forges.delete(subject.trackerId);
@@ -122,6 +126,12 @@ function resultSucceeded(result: CommandResult): boolean {
   return result.verdict === 'answered' && SUCCESSFUL_OUTCOMES.has(result.answer.outcome);
 }
 
+/** A restart is pending from the answer that says so until the next success; a send that did not succeed leaves it as it was. */
+function restartPendingAfter(result: CommandResult, restartWasPending: boolean): boolean {
+  if (result.verdict === 'answered' && result.answer.outcome === 'restart-pending') return true;
+  return resultSucceeded(result) ? false : restartWasPending;
+}
+
 function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): CommandSender {
   const listeners = new Set<() => void>();
   let states = NO_COMMAND_STATES;
@@ -152,9 +162,14 @@ function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): Com
     const subject = subjectOf(command);
     const before = stateOf(states, subject);
     if (before.onItsWay !== null) return { verdict: 'not-sent', reason: 'already-on-its-way' };
-    changeState(subject, { onItsWay: command.kind, failure: before.failure });
+    changeState(subject, { ...before, onItsWay: command.kind });
     const result = await post(command);
-    changeState(subject, { onItsWay: null, failure: resultSucceeded(result) ? null : { kind: command.kind, result } });
+    const after = stateOf(states, subject);
+    changeState(subject, {
+      onItsWay:       null,
+      failure:        resultSucceeded(result) ? null : { kind: command.kind, result },
+      restartPending: restartPendingAfter(result, after.restartPending),
+    });
     return result;
   };
 
@@ -162,7 +177,11 @@ function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): Com
     send,
     dismissFailure: (subject) => {
       const state = stateOf(states, subject);
-      if (state.failure !== null) changeState(subject, { onItsWay: state.onItsWay, failure: null });
+      if (state.failure !== null) changeState(subject, { ...state, failure: null });
+    },
+    dismissRestartPending: (subject) => {
+      const state = stateOf(states, subject);
+      if (state.restartPending) changeState(subject, { ...state, restartPending: false });
     },
     states:    () => states,
     subscribe: (listener) => {
@@ -180,16 +199,19 @@ function senderOutsideGaiaApp(): never {
 export const CommandSenderContext = createContext<CommandSender | null>(null);
 
 export interface CommandSenderInView {
-  readonly send:           CommandSender['send'];
-  readonly dismissFailure: CommandSender['dismissFailure'];
+  readonly send:                  CommandSender['send'];
+  readonly dismissFailure:        CommandSender['dismissFailure'];
+  readonly dismissRestartPending: CommandSender['dismissRestartPending'];
   /** The states as of this render; a change renders the view again. */
-  readonly states:         CommandStates;
+  readonly states:                CommandStates;
 }
 
 export function useCommandSender(): CommandSenderInView {
   const sender = useContext(CommandSenderContext) ?? senderOutsideGaiaApp();
   const states = useSyncExternalStore(sender.subscribe, sender.states, sender.states);
-  return { send: sender.send, dismissFailure: sender.dismissFailure, states };
+  return {
+    send: sender.send, dismissFailure: sender.dismissFailure, dismissRestartPending: sender.dismissRestartPending, states,
+  };
 }
 
 export const CommandSender = {

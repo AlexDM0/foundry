@@ -1,8 +1,8 @@
 /**
  * What the Forges view shows of a fleet document (SCREENS A4 and B2): the status line, one row per forge with the buttons of its condition,
  * the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
- * machine's agent limit. The command states decide which controls wait for a command on its way and which refusal shows where; the page's
- * clock only prints clock times. A value the document does not hold is absent, never zero.
+ * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
+ * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero.
  */
 import type {
   CommandBody,
@@ -49,7 +49,7 @@ export interface ForgesSurroundings {
 /** The buttons a row may show, by its condition. */
 export type RowButtonKind = 'pause' | 'resume' | 'stop' | 'start' | 'open' | 'open-in-new-tab' | 'look-again' | 'hide';
 
-export type ForgeButtonKind = RowButtonKind | 'update' | 'show-again';
+export type ForgeButtonKind = RowButtonKind | 'update' | 'restart' | 'show-again';
 
 /** A row's button: a command Gaia sends, the Stop that opens its dialog, or a place the page goes. */
 export type ForgeButton =
@@ -90,6 +90,14 @@ export interface ShownRefusal {
   readonly retryCommand: CommandBody | null;
 }
 
+/** An update was done and the forge runs the old code until it restarts, beside the control that sent the update. */
+export interface PendingRestart {
+  readonly word:          string;
+  readonly sentence:      string;
+  readonly restartButton: ForgeButton;
+  readonly dismissLabel:  string;
+}
+
 export interface StopChoice extends StopQuestionChoice {
   readonly chosen: boolean;
 }
@@ -105,30 +113,32 @@ export interface StopDialog {
 }
 
 export interface ForgeRow {
-  readonly trackerId:     string;
-  readonly project:       string;
-  readonly rootText:      string;
+  readonly trackerId:      string;
+  readonly project:        string;
+  readonly rootText:       string;
   /** The root in full, for a window too narrow to print `rootText` whole. */
-  readonly rootPath:      string;
-  readonly condition:     DotCondition;
-  readonly conditionWord: string;
-  readonly conditionTone: ConditionTone | null;
-  readonly detailText:    string | null;
-  readonly agents:        ForgeAgentsCell | null;
-  readonly waitingText:   string | null;
-  readonly codeText:      string | null;
-  readonly buttons:       readonly ForgeButton[];
-  readonly isInView:      boolean;
-  readonly stopDialog:    StopDialog | null;
-  readonly refusal:       ShownRefusal | null;
+  readonly rootPath:       string;
+  readonly condition:      DotCondition;
+  readonly conditionWord:  string;
+  readonly conditionTone:  ConditionTone | null;
+  readonly detailText:     string | null;
+  readonly agents:         ForgeAgentsCell | null;
+  readonly waitingText:    string | null;
+  readonly codeText:       string | null;
+  readonly buttons:        readonly ForgeButton[];
+  readonly isInView:       boolean;
+  readonly stopDialog:     StopDialog | null;
+  readonly refusal:        ShownRefusal | null;
+  readonly pendingRestart: PendingRestart | null;
 }
 
 export interface HeldBanner {
-  readonly trackerId:    string;
-  readonly project:      string;
-  readonly sentence:     string;
-  readonly updateButton: ForgeButton;
-  readonly refusal:      ShownRefusal | null;
+  readonly trackerId:      string;
+  readonly project:        string;
+  readonly sentence:       string;
+  readonly updateButton:   ForgeButton;
+  readonly refusal:        ShownRefusal | null;
+  readonly pendingRestart: PendingRestart | null;
 }
 
 /** A forge outside the table: its repository is gone, or User hid it in Gaia. */
@@ -440,25 +450,42 @@ function refusalShowsOnTheRow(forge: FleetDocumentForge): (kind: CommandKind) =>
   return (kind) => !(forge.condition === 'held' && kind === 'forge-update');
 }
 
+/** The restart an update left pending, until the next command to the forge succeeds or it is dismissed; Restart needs the forge's API. */
+function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): PendingRestart | null {
+  const { trackerId } = forge;
+  if (!CommandSender.stateOf(rowSurroundings.surroundings.commandStates, { trackerId }).restartPending) return null;
+  const {
+    word, sentence, restartLabel, dismissLabel
+  } = ForgeCommandTextUtil.RESTART_PENDING;
+  const restartIsOff = forgeIsBusy(forge, rowSurroundings) || !apiCarriesCommandsTo(forge);
+  return {
+    word,
+    sentence,
+    restartButton: commandButton('restart', restartLabel, { kind: 'forge-restart', trackerId }, restartIsOff, 'primary'),
+    dismissLabel,
+  };
+}
+
 function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeRow {
   const { fleetDocument, surroundings } = rowSurroundings;
   const shownCondition = shownConditionOf(forge, surroundings.commandStates);
   return {
-    trackerId:     forge.trackerId,
-    project:       forge.project,
-    rootText:      homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
-    rootPath:      forge.root,
-    condition:     ForgeTextUtil.dotConditionOf(shownCondition),
-    conditionWord: ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
-    conditionTone: conditionToneOf(shownCondition),
-    detailText:    detailTextOf(forge, shownCondition, rowSurroundings),
-    agents:        agentsCellOf(forge, rowSurroundings),
-    waitingText:   waitingTextOf(forge),
-    codeText:      forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
-    buttons:       buttonsOf(forge, rowSurroundings),
-    isInView:      surroundings.forgeInView === forge.trackerId,
-    stopDialog:    stopDialogOf(forge, surroundings),
-    refusal:       refusalOf(forge.trackerId, surroundings, refusalShowsOnTheRow(forge)),
+    trackerId:      forge.trackerId,
+    project:        forge.project,
+    rootText:       homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
+    rootPath:       forge.root,
+    condition:      ForgeTextUtil.dotConditionOf(shownCondition),
+    conditionWord:  ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
+    conditionTone:  conditionToneOf(shownCondition),
+    detailText:     detailTextOf(forge, shownCondition, rowSurroundings),
+    agents:         agentsCellOf(forge, rowSurroundings),
+    waitingText:    waitingTextOf(forge),
+    codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
+    buttons:        buttonsOf(forge, rowSurroundings),
+    isInView:       surroundings.forgeInView === forge.trackerId,
+    stopDialog:     stopDialogOf(forge, surroundings),
+    refusal:        refusalOf(forge.trackerId, surroundings, refusalShowsOnTheRow(forge)),
+    pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
   };
 }
 
@@ -473,10 +500,11 @@ function heldBannerOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   const { trackerId } = forge;
   return {
     trackerId,
-    project:      forge.project,
-    sentence:     [noticeSentenceOf(forge), keepRunning].filter((part) => part !== null).join(' '),
-    updateButton: commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings), 'primary'),
-    refusal:      refusalOf(trackerId, rowSurroundings.surroundings, (kind) => kind === 'forge-update'),
+    project:        forge.project,
+    sentence:       [noticeSentenceOf(forge), keepRunning].filter((part) => part !== null).join(' '),
+    updateButton:   commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings), 'primary'),
+    refusal:        refusalOf(trackerId, rowSurroundings.surroundings, (kind) => kind === 'forge-update'),
+    pendingRestart: pendingRestartOf(forge, rowSurroundings),
   };
 }
 

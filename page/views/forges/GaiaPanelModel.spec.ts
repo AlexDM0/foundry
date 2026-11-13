@@ -20,7 +20,7 @@ const IDLE_STATES: CommandStates = senderOver([]).states();
 const LOGIN_ITEM_REFUSAL_SENTENCE = 'The login item for /Users/alexexample/development/example-storefront could not be written; nothing was changed.';
 
 const LOGIN_ITEM_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'login-item-unwritable',
   text:          LOGIN_ITEM_REFUSAL_SENTENCE,

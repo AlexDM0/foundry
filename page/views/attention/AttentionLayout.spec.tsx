@@ -2,9 +2,10 @@
  * The Attention view's layout. What matters (SCREENS A1 acceptance 1, 3 and 4; B3 acceptance 1 and 2): the list draws its rows in the
  * content's order, the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to
  * `#questions/E2`; "Update forge" sends `forge-update` through the command sender and is disabled while it is on its way; a refusal shows
- * under its callout with the forge's code and sentence until dismissed; nothing waiting says so; B3's banner, its stale rows that can be
- * read and not acted on, its figures folded into one line atop the main column so the side panel and Running fit the window, and the side
- * panel that names the forges the totals cannot vouch for; an empty place says so. The content comes
+ * under its callout with the forge's code and sentence until dismissed; an update that left a restart pending offers Restart under the
+ * callout that sent it until dismissed; nothing waiting says so; B3's banner, its stale rows that can be read and not acted on, its figures
+ * folded into one line atop the main column so the side panel and Running fit the window, and the side panel that names the forges the
+ * totals cannot vouch for; an empty place says so. The content comes
  * from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
@@ -24,11 +25,11 @@ const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'done', refusal: null, text: null
+  answerVersion: 2, outcome: 'done', refusal: null, text: null
 };
 
 const UPDATE_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'update-in-progress',
   text:          'An update already runs in this repository.',
@@ -50,6 +51,7 @@ function unfoldedLayout(fleetDocument: FleetDocument, sender: CommandSender = se
         sends.push(sender.send(command));
       }}
       onDismissFailure={(subject: CommandSubject) => sender.dismissFailure(subject)}
+      onDismissRestartPending={(subject: CommandSubject) => sender.dismissRestartPending(subject)}
     />,
   );
 }
@@ -150,6 +152,25 @@ describe('a callout\'s command', () => {
     expect(sent).toHaveLength(2);
     sender.dismissFailure({ trackerId: TRACKER_IDS.exampleMobileApp });
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-refusal'))).toEqual([]);
+  });
+
+  test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
+    const restartPending: CommandAnswerDocument = {
+      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+    };
+    const sent: SentRequest[] = [];
+    const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    const pending = unfoldedLayout(FLEET_FIVE_FORGES, sender);
+    const pendingStep = tree.onlyWithClass([calloutNamed(pending, 'Example Mobile App')], 'gaia-pending-step');
+    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'gaia-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withClass('gaia-pending-step'))).toEqual([]);
+    tree.dispatch(buttonNamed([pendingStep], 'Restart'), 'onClick');
+    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 1 });
+    const restarting = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'gaia-pending-step');
+    expect(buttonNamed([restarting], 'Restart').props['disabled']).toBe(true);
+    sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-pending-step'))).toEqual([]);
   });
 
   test('a callout that leaves the document leaves the view', () => {

@@ -53,7 +53,8 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
    (`adapters/forge-program/`, through `lib/process-run/`) for what no API can do, such as start, update and add; Gaia's own settings for
    hiding a forge or a setting. One command per forge is on its way at a time.
 4. It answers a verdict. A forge's refusal passes through unchanged; only `page-server` maps the verdict to an HTTP status and the command
-   answer.
+   answer. On the way out, `adapters/page-api/ForgeSentenceUtil.ts` puts a forge sentence that names a command into Gaia's words, in the
+   command answer, the frame session answer and the fleet document's notices and warnings alike, so no screen tells User to run one (D10).
 5. The change itself reaches the page as the next fleet snapshot, not through the answer.
 
 ## One forge in place

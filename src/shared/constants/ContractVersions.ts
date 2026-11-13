@@ -12,7 +12,7 @@ export const CONTRACT_VERSIONS = {
   gaiaServerRecord:   1,
   gaiaFleetDocument:  1,
   gaiaCommand:        1,
-  gaiaCommandAnswer:  1,
+  gaiaCommandAnswer:  2,
   gaiaFrameSession:   1,
   gaiaHealth:         1,
   gaiaProgramAnswer:  1,

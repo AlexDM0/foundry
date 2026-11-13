@@ -1,6 +1,7 @@
 /**
  * The frame session verdict mapped out to the page contract. What matters: every answer carries `frameSessionVersion`, only `done`
- * carries a frame address, a forge's refusal passes its code and sentence through unchanged, and Gaia's own refusal carries its code only.
+ * carries a frame address, a forge's refusal passes its code through unchanged and its sentence too, unless it names a command (D10), and
+ * Gaia's own refusal carries its code only.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -15,12 +16,21 @@ describe('a frame session verdict mapped out', () => {
     });
   });
 
-  test('passes a forge\'s refusal code and sentence through unchanged', () => {
+  test('passes a forge\'s refusal code and a sentence that names no command through unchanged', () => {
     const verdict = {
       verdict: 'refused', refusedBy: 'forge', refusal: 'example-refusal', text: 'The Example Storefront forge refused this.',
     } as const;
     expect(FrameSessionAnswerMapUtil.answerDocumentOf(verdict)).toEqual({
       frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'example-refusal', text: 'The Example Storefront forge refused this.',
+    });
+  });
+
+  test('words a forge\'s refusal whose sentence names a command in Gaia\'s words, by its code', () => {
+    const verdict = {
+      verdict: 'refused', refusedBy: 'forge', refusal: 'unauthorized', text: 'The Overseer may have restarted: open the board again with `forge open`.',
+    } as const;
+    expect(FrameSessionAnswerMapUtil.answerDocumentOf(verdict)).toEqual({
+      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'unauthorized', text: 'The Overseer did not accept Gaia\'s token. It may have restarted.',
     });
   });
 

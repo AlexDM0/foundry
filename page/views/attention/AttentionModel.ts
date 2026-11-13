@@ -21,6 +21,7 @@ import type { DotCondition }               from '../../design-system/ConditionDo
 import type { PillTone }                   from '../../design-system/Pill.tsx';
 import type { DotRole }                    from '../../design-system/RoleDot.tsx';
 import { AddRepositoryForm }               from '../../shared/add-repository/AddRepositoryForm.ts';
+import { ForgeCommandTextUtil }            from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }               from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                   from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                   from '../../shared/utils/StampTextUtil.ts';
@@ -69,15 +70,17 @@ export type LookAction =
   | { readonly kind: 'link'; readonly label: string; readonly emphasis: ButtonEmphasis; readonly href: string };
 
 export interface LookCallout {
-  readonly trackerId:   string;
-  readonly lookKind:    FleetDocumentLookKind;
-  readonly tone:        CalloutTone;
-  readonly condition:   DotCondition;
-  readonly project:     string;
-  readonly word:        string;
-  readonly sentence:    string;
-  readonly machineLine: string | null;
-  readonly actions:     readonly LookAction[];
+  readonly trackerId:          string;
+  readonly lookKind:           FleetDocumentLookKind;
+  readonly tone:               CalloutTone;
+  readonly condition:          DotCondition;
+  readonly project:            string;
+  readonly word:               string;
+  readonly sentence:           string;
+  readonly machineLine:        string | null;
+  readonly actions:            readonly LookAction[];
+  /** The Restart a callout with Update forge offers once an update left the forge's restart pending; `null` without Update forge. */
+  readonly restartAfterUpdate: LookAction | null;
 }
 
 export interface RunningJob {
@@ -407,17 +410,26 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
 }
 
 /** The machine at its limit shows once, on the machine panel, never as a forge's callout. */
+/** Restart reaches the forge only through its Overseer, in the control contract Gaia knows. */
+function restartAfterUpdateOf(forge: FleetDocumentForge, actions: readonly LookAction[]): LookAction | null {
+  const offersAnUpdate = actions.some((action) => action.kind === 'command' && action.command.kind === 'forge-update');
+  if (!offersAnUpdate) return null;
+  const { restartLabel } = ForgeCommandTextUtil.RESTART_PENDING;
+  return commandAction(restartLabel, 'primary', { kind: 'forge-restart', trackerId: forge.trackerId }, ForgeContractUtil.controlContractIsKnown(forge));
+}
+
 function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): LookCallout[] {
   return fleetDocument.needsALook.flatMap((look) => {
     const forge = forgesById.get(look.trackerId);
     const parts = forge === undefined ? null : calloutPartsOf(look, forge, fleetDocument, clock);
     if (forge === undefined || parts === null) return [];
     return [{
-      trackerId: forge.trackerId,
-      lookKind:  look.kind,
-      condition: ForgeTextUtil.dotConditionOf(forge.condition),
-      project:   forge.project,
+      trackerId:          forge.trackerId,
+      lookKind:           look.kind,
+      condition:          ForgeTextUtil.dotConditionOf(forge.condition),
+      project:            forge.project,
       ...parts,
+      restartAfterUpdate: restartAfterUpdateOf(forge, parts.actions),
     }];
   });
 }

@@ -5,7 +5,8 @@
  * count, and without F6 the machine panel says no limit is enforced and its stepper is off; the machine at its limit says which forges'
  * tickets wait. B2: Stop asks with two choices and keeps the agents by default, with none when no agent runs; while a command to a forge is
  * on its way that row's controls are off and no other's; a refusal stays on its forge until dismissed or the next success, and offers to
- * send the same command again; a start Gaia sent shows as starting until the forge answers. Command states come from the real sender over
+ * send the same command again; a start Gaia sent shows as starting until the forge answers; an update that left a restart pending offers
+ * Restart where the update was sent, on a held forge's banner or under its row. Command states come from the real sender over
  * Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
@@ -40,29 +41,33 @@ const READINGS = FLEET_FIVE_FORGES_READINGS;
 const ARTBOARD_CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'done', refusal: null, text: null
+  answerVersion: 2, outcome: 'done', refusal: null, text: null
 };
 
 /** SCREENS B2: the refusal under Example Mobile App's row. */
 const STOP_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const START_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
 };
 
 const LIMIT_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'concurrency-above-ceiling',
   text:          'The agent limit is at most 10.',
+};
+
+const RESTART_PENDING: CommandAnswerDocument = {
+  answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
 };
 
 const IDLE_STATES: CommandStates = senderOver([]).states();
@@ -456,13 +461,48 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
 
   test('a held forge\'s refused update shows on its banner, not under its row', async () => {
     const refusedUpdate: CommandAnswerDocument = {
-      answerVersion: 1, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
+      answerVersion: 2, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(refusedUpdate))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const content = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
     expect(rowOf(content, TRACKER_IDS.exampleMobileApp).refusal).toBeNull();
     expect(content.heldBanners[0]?.refusal).toMatchObject({ commandLabel: 'Update forge', code: 'update-in-progress' });
+  });
+
+  test('a held forge\'s update that left a restart pending offers Restart on its banner, and nothing under its row', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(RESTART_PENDING))]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    const content = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
+    expect(rowOf(content, TRACKER_IDS.exampleMobileApp).pendingRestart).toBeNull();
+    expect(content.heldBanners[0]?.pendingRestart).toEqual({
+      word:          'Updated; restart pending.',
+      sentence:      'Its Overseer runs the old code until it restarts.',
+      restartButton: {
+        kind:     'command',
+        button:   'restart',
+        label:    'Restart',
+        emphasis: 'primary',
+        iconOnly: false,
+        command:  { kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp },
+        disabled: false,
+      },
+      dismissLabel: 'Dismiss the pending restart',
+    });
+    expect(content.heldBanners[0]?.refusal).toBeNull();
+    expect(rowOf(content, TRACKER_IDS.exampleStorefront).pendingRestart).toBeNull();
+  });
+
+  test('a forge no longer held shows its pending restart under its row; Restart is off without its API and while a command is on its way', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(RESTART_PENDING)), () => new Promise<Response>(() => undefined)]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleStorefront });
+    const live = contentOf(fleetWithOneForgeIn('live'), { commandStates: sender.states() });
+    expect(rowOf(live, TRACKER_IDS.exampleStorefront).pendingRestart?.restartButton).toMatchObject({ label: 'Restart', disabled: false });
+    const withoutItsApi = contentOf(fleetWithOneForgeIn('live', { contracts: { ...READINGS.exampleStorefront.contracts, control: null } }), { commandStates: sender.states() });
+    expect(rowOf(withoutItsApi, TRACKER_IDS.exampleStorefront).pendingRestart?.restartButton).toMatchObject({ disabled: true });
+    void sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleStorefront });
+    const restarting = contentOf(fleetWithOneForgeIn('live'), { commandStates: sender.states() });
+    expect(rowOf(restarting, TRACKER_IDS.exampleStorefront).pendingRestart?.restartButton).toMatchObject({ disabled: true });
   });
 
   test('a start Gaia sent shows as starting with one disabled button, then as live once the forge reports it, or as a refusal on the row', async () => {

@@ -297,7 +297,7 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 1, kind: 'fleet-look-again' }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      answerVersion: 1, outcome: 'done', refusal: null, text: null
+      answerVersion: 2, outcome: 'done', refusal: null, text: null
     });
     expect(carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -313,7 +313,7 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      answerVersion: 1,
+      answerVersion: 2,
       outcome:       'refused',
       refusal:       'overseer-held',
       text:          'The Overseer is held by an install change.',
@@ -343,7 +343,7 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 2, kind: 'fleet-look-again' }));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      answerVersion: 1, outcome: 'not-supported', refusal: 'other-version', text: null
+      answerVersion: 2, outcome: 'not-supported', refusal: 'other-version', text: null
     });
     expect(carriedCommands).toEqual([]);
   });

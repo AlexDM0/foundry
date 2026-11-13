@@ -31,3 +31,8 @@ What is agreed and not started, with the reason it waits.
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
   the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`).
+- **Record an update whose Baton pass was not taken.** `forge update --json` answers `batonPass: 'failed'` with `batonPassStep:
+  'restart-not-taken'` at exit 0 when the live Overseer does not take the pass, and Gaia answers it as restart pending
+  (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording
+  needs a scratch Overseer on other code than the forge on disk that then declines the pass, which `src/testing/ScratchForge.ts` cannot
+  stage from one read-only forge checkout.

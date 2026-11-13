@@ -229,7 +229,7 @@ describe('where leave goes', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 1, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+    answerVersion: 2, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
   } as const;
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {

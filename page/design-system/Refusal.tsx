@@ -1,6 +1,7 @@
 /**
- * A forge's refusal beside the control that caused it, in the error tone: the forge's code in mono and its own sentence, unedited, then
- * "Try again" when the command can be sent again, and a dismiss button. It is an alert, so it is read out when it appears.
+ * A forge's refusal beside the control that caused it, in the error tone: the forge's code in mono and the sentence Gaia's server answered
+ * for it, unedited here, then "Try again" when the command can be sent again, and a dismiss button. It is an alert, so it is read out when
+ * it appears.
  */
 import { Button } from './Button.tsx';
 

@@ -2,6 +2,7 @@
  * Test-only: each artboard of the design that Gaia's page builds, as the page paints it from that artboard's fixture, and as a whole
  * document in either theme with Gaia's own stylesheets inlined, which a browser opens at the artboard's size for the visual pass. A state
  * the artboard shows mid-use, such as B2's Stop dialog, refusal and start on their way, is set in the view's own state, not drawn apart.
+ * A state no artboard draws, which a later decision of the owner added, is painted over the artboard it changes, for the same pass.
  */
 import { readFileSync }         from 'node:fs';
 import { join }                 from 'node:path';
@@ -33,8 +34,8 @@ export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 /** The artboards in `designs/canvas.json`, by their mark. C2 waits for notifications (W5.6); C3 is the launcher's static splash page. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4' | 'C1';
 
-/** How the view of a screen is set: as the route shows it, or with B2's controls in use. */
-type ScreenViewState = 'as-routed' | 'forge-controls-in-use';
+/** How the view of a screen is set: as the route shows it, with B2's controls in use, or after an update that left a restart pending. */
+type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending';
 
 export interface ArtboardScreen {
   readonly artboard:      PageArtboard;
@@ -136,9 +137,34 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/**
+ * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Overseer did not take.
+ * Each screen is its artboard's, with the pending restart under the control that sent the update.
+ */
+export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'A1',
+    title:         'Attention, an update left a restart pending',
+    designFile:    'Main.dc.html',
+    fleetDocument: FLEET_FIVE_FORGES,
+    fragment:      '#attention',
+    viewState:     'restart-pending',
+    onlyTheme:     null,
+  },
+  {
+    artboard:      'A4',
+    title:         'Forges, an update left a restart pending',
+    designFile:    'Forges.dc.html',
+    fleetDocument: FLEET_FIVE_FORGES,
+    fragment:      '#forges',
+    viewState:     'restart-pending',
+    onlyTheme:     null,
+  },
+];
+
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
@@ -147,10 +173,15 @@ export const B2_STOP_REFUSAL: CommandAnswerDocument = {
 /** B2: Example Mobile App's Stop refused and kept until dismissed, Design System's `forge start` on its way. */
 const B2_COMMAND_STATES: CommandStates = {
   forges: new Map([
-    [TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: { kind: 'forge-stop', result: { verdict: 'answered', answer: B2_STOP_REFUSAL } } }],
-    [TRACKER_IDS.designSystem, { onItsWay: 'forge-start', failure: null }],
+    [TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: { kind: 'forge-stop', result: { verdict: 'answered', answer: B2_STOP_REFUSAL } }, restartPending: false }],
+    [TRACKER_IDS.designSystem, { onItsWay: 'forge-start', failure: null, restartPending: false }],
   ]),
   fleet: new Map(),
+};
+
+const RESTART_PENDING_COMMAND_STATES: CommandStates = {
+  forges: new Map([[TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: null, restartPending: true }]]),
+  fleet:  new Map(),
 };
 
 const B2_STOP_DIALOG: StopDialogState = { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' };
@@ -169,10 +200,11 @@ function doNothing(): void {
 /** A sender that holds the screen's command states and sends nothing: a screen is painted, never used. */
 function senderHolding(commandStates: CommandStates): CommandSender {
   return {
-    send:           () => Promise.reject(new Error('A screen of the visual pass sends no command.')),
-    dismissFailure: doNothing,
-    states:         () => commandStates,
-    subscribe:      () => doNothing,
+    send:                  () => Promise.reject(new Error('A screen of the visual pass sends no command.')),
+    dismissFailure:        doNothing,
+    dismissRestartPending: doNothing,
+    states:                () => commandStates,
+    subscribe:             () => doNothing,
   };
 }
 
@@ -190,17 +222,29 @@ function forgeControlsInUse(fleetDocument: FleetDocument) {
       gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates: B2_COMMAND_STATES, sentSettingsChange: null })}
       commandStates={B2_COMMAND_STATES}
       handlers={{
-        onCommand:          doNothing,
-        onOpenStopDialog:   doNothing,
-        onStopChoice:       doNothing,
-        onCancelStop:       doNothing,
-        onConfirmStop:      doNothing,
-        onDismissFailure:   doNothing,
-        onSettingsCheckbox: doNothing,
-        onOpenWhatNotifies: doNothing,
+        onCommand:               doNothing,
+        onOpenStopDialog:        doNothing,
+        onStopChoice:            doNothing,
+        onCancelStop:            doNothing,
+        onConfirmStop:           doNothing,
+        onDismissFailure:        doNothing,
+        onDismissRestartPending: doNothing,
+        onSettingsCheckbox:      doNothing,
+        onOpenWhatNotifies:      doNothing,
       }}
     />
   );
+}
+
+function commandStatesOf(viewState: ScreenViewState): CommandStates {
+  switch (viewState) {
+    case 'as-routed':
+      return NO_COMMAND_STATES;
+    case 'forge-controls-in-use':
+      return B2_COMMAND_STATES;
+    case 'restart-pending':
+      return RESTART_PENDING_COMMAND_STATES;
+  }
 }
 
 /** The theme the screen is shown in is the one chosen in Gaia's settings, so the switch presses that theme. */
@@ -221,7 +265,7 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
   const inUse = screen.viewState === 'forge-controls-in-use';
   const view = inUse ? { ...routedParts, content: forgeControlsInUse(fleetDocument) } : routedParts;
   return renderToStaticMarkup(
-    <CommandSenderContext value={senderHolding(inUse ? B2_COMMAND_STATES : NO_COMMAND_STATES)}>
+    <CommandSenderContext value={senderHolding(commandStatesOf(screen.viewState))}>
       <GaiaShell
         fleetDocument={fleetDocument}
         streamState="live"

@@ -3,7 +3,8 @@
  * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
  * and differ only in the theme the root names and the switch presses (B1 has no switch), so a theme is the tokens' work alone; a screen
  * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
- * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is.
+ * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is. The restart an update left
+ * pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard.
@@ -18,6 +19,7 @@ import {
   type ArtboardScreen,
   B2_STOP_REFUSAL,
   type PageArtboard,
+  RESTART_PENDING_SCREENS,
   screenDocumentOf,
   screenMarkupOf,
   themesOf,
@@ -74,8 +76,15 @@ describe('the screens of the visual pass', () => {
     }
   });
 
+  test('paints the restart an update left pending over A1 and A4, each from its own artboard source, in both themes', () => {
+    expect(RESTART_PENDING_SCREENS.map((screen) => [screen.artboard, screen.designFile, themesOf(screen)])).toEqual([
+      ['A1', 'Main.dc.html', ['dark', 'light']],
+      ['A4', 'Forges.dc.html', ['dark', 'light']],
+    ]);
+  });
+
   test('a screen holds no colour of its own: no style of its markup names one, so every colour comes from the inlined tokens', () => {
-    for (const screen of ARTBOARD_SCREENS) {
+    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS]) {
       for (const theme of themesOf(screen)) {
         const markup = screenMarkupOf(screen, theme);
         expect(markup).not.toContain('<style');
@@ -85,7 +94,9 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the switch presses', () => {
-    const screensWithTheSwitch = ARTBOARD_SCREENS.filter((candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1');
+    const screensWithTheSwitch = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS].filter(
+      (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
+    );
     for (const screen of screensWithTheSwitch) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
@@ -165,5 +176,30 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered.']);
     expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
     expect(markup).not.toContain('class="gaia-meter"');
+  });
+});
+
+describe('the restart an update left pending, over the artboard it changes', () => {
+  test('A1: Updated; restart pending with Restart under Example Mobile App\'s callout, and the rest of A1 as drawn', () => {
+    const attention = RESTART_PENDING_SCREENS[0];
+    if (attention === undefined) throw new Error('A restart pending screen is missing.');
+    const markup = screenMarkupOf(attention, 'dark');
+    expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+    expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
+    const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
+    const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held"')) ?? '';
+    expect(heldLook).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span> Its Overseer runs the old code until it restarts.');
+    expect(heldLook).toContain('>Restart</button>');
+  });
+
+  test('A4: Updated; restart pending with Restart under Example Mobile App\'s held banner, and nothing under its row', () => {
+    const forges = RESTART_PENDING_SCREENS[1];
+    if (forges === undefined) throw new Error('A restart pending screen is missing.');
+    const markup = screenMarkupOf(forges, 'dark');
+    expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Forges']);
+    expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
+    const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
+    expect(heldGroup).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span>');
+    expect(heldGroup).toContain('>Restart</button>');
   });
 });

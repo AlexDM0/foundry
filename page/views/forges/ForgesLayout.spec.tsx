@@ -1,10 +1,11 @@
 /**
- * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop opens its
- * dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button
- * that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's plus
- * at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count shows in the panel; a
- * row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge; a paused row offers Resume first; a hidden forge folds away
- * with Show again. The command states come from the real sender over Gaia's server stood in for by authored answers.
+ * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop
+ * opens its dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open
+ * in new tab" is a button that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is
+ * off past its ends, the machine's plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of
+ * a limit above the CPU count shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update
+ * forge, and once that left a restart pending, Restart and its dismissal; a paused row offers Resume first; a hidden forge folds away with
+ * Show again. The command states come from the real sender over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -31,31 +32,32 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const IDLE_STATES: CommandStates = senderOver([]).states();
 
 const STOP_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const ABOVE_THE_CPUS: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'machine-agent-limit-above-cpus',
   text:          'The machine limit is at most the 12 CPUs of this machine.',
 };
 
 interface Handled {
-  readonly commands:       CommandBody[];
-  readonly stopsOpened:    string[];
-  readonly stopChoices:    ForgeStopAgents[];
-  readonly stopsCancelled: number[];
-  readonly stopsConfirmed: ForgeCommandBody[];
-  readonly dismissed:      CommandSubject[];
+  readonly commands:          CommandBody[];
+  readonly stopsOpened:       string[];
+  readonly stopChoices:       ForgeStopAgents[];
+  readonly stopsCancelled:    number[];
+  readonly stopsConfirmed:    ForgeCommandBody[];
+  readonly dismissed:         CommandSubject[];
+  readonly restartsDismissed: CommandSubject[];
 }
 
 function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurroundings> = {}) {
   const handled: Handled = {
-    commands: [], stopsOpened: [], stopChoices: [], stopsCancelled: [], stopsConfirmed: [], dismissed: []
+    commands: [], stopsOpened: [], stopChoices: [], stopsCancelled: [], stopsConfirmed: [], dismissed: [], restartsDismissed: []
   };
   const commandStates = surroundings.commandStates ?? IDLE_STATES;
   const content = ForgesModel.forgesContentOf(fleetDocument, {
@@ -72,14 +74,15 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
       gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates, sentSettingsChange: null })}
       commandStates={commandStates}
       handlers={{
-        onCommand:          (command) => handled.commands.push(command),
-        onOpenStopDialog:   (trackerId) => handled.stopsOpened.push(trackerId),
-        onStopChoice:       (agents) => handled.stopChoices.push(agents),
-        onCancelStop:       () => handled.stopsCancelled.push(1),
-        onConfirmStop:      (command) => handled.stopsConfirmed.push(command),
-        onDismissFailure:   (subject) => handled.dismissed.push(subject),
-        onSettingsCheckbox: () => undefined,
-        onOpenWhatNotifies: () => undefined,
+        onCommand:               (command) => handled.commands.push(command),
+        onOpenStopDialog:        (trackerId) => handled.stopsOpened.push(trackerId),
+        onStopChoice:            (agents) => handled.stopChoices.push(agents),
+        onCancelStop:            () => handled.stopsCancelled.push(1),
+        onConfirmStop:           (command) => handled.stopsConfirmed.push(command),
+        onDismissFailure:        (subject) => handled.dismissed.push(subject),
+        onDismissRestartPending: (subject) => handled.restartsDismissed.push(subject),
+        onSettingsCheckbox:      () => undefined,
+        onOpenWhatNotifies:      () => undefined,
       }}
     />,
   );
@@ -150,12 +153,13 @@ describe('a row\'s controls', () => {
     expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['data-icon-only']]).toEqual(['button', undefined, '']);
     tree.dispatch(openInNewTab, 'onClick');
     expect(handled).toEqual({
-      commands:       [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
-      stopsOpened:    [],
-      stopChoices:    [],
-      stopsCancelled: [],
-      stopsConfirmed: [],
-      dismissed:      [],
+      commands:          [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
+      stopsOpened:       [],
+      stopChoices:       [],
+      stopsCancelled:    [],
+      stopsConfirmed:    [],
+      dismissed:         [],
+      restartsDismissed: [],
     });
   });
 
@@ -235,6 +239,29 @@ describe('the held forge and the forges outside the table', () => {
       { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp },
       { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
     ]);
+  });
+});
+
+describe('an update that left a restart pending', () => {
+  test('the held forge\'s banner says it is updated with a restart pending, and its Restart and dismissal reach the view', async () => {
+    const restartPending: CommandAnswerDocument = {
+      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
+    const group = tree.onlyWithClass(unfolded, 'gaia-forges-held-group');
+    const pendingStep = tree.onlyWithClass([group], 'gaia-pending-step');
+    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'gaia-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withClass('gaia-pending-step'))).toEqual([]);
+    tree.dispatch(controlNamed([pendingStep], 'Restart'), 'onClick');
+    tree.dispatch(controlNamed([pendingStep], 'Dismiss the pending restart'), 'onClick');
+    expect(handled.commands).toEqual([{ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp }]);
+    expect(handled.restartsDismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
+  });
+
+  test('without a pending restart no pending step shows anywhere', () => {
+    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-pending-step'))).toEqual([]);
   });
 });
 

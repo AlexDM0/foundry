@@ -320,6 +320,20 @@
 .gaia-refusal-text { flex: 1; min-width: 0; }
 .gaia-refusal-code { font-family: var(--font-mono); }
 
+/* PendingStep: a step still to take after a command succeeded */
+.gaia-pending-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--warn-edge);
+  border-radius: var(--r-2);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+}
+.gaia-pending-step-text { flex: 1; min-width: 0; }
+.gaia-pending-step-word { font-weight: var(--weight-strong); }
+
 /* Dialog: one of the two places a shadow is drawn, since it floats */
 .gaia-dialog-backdrop {
   position: fixed;

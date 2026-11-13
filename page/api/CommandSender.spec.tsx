@@ -1,8 +1,9 @@
 /**
  * The command sender. What matters (W4.3 acceptance; SCREENS B2 acceptance 2 and 3): one command goes as one JSON body at the known
- * `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence unchanged, and stays on that forge until
- * dismissed or until its next command succeeds; while a command to a forge is on its way that forge reads it on its way and takes no second
- * one, and another forge is not held up; nothing is sent while the controls may not act. Gaia's server is stood in for by answers authored
+ * `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence as Gaia answered them, and stays on that forge
+ * until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge the same way; while a
+ * command to a forge is on its way that forge reads it on its way and takes no second one, and another forge is not held up; nothing is
+ * sent while the controls may not act. Gaia's server is stood in for by answers authored
  * from PLAN 6.3, since its route does not exist yet; the HTTP status of a refusal is not part of that contract, so the body alone decides.
  */
 import { describe, expect, test } from 'bun:test';
@@ -22,15 +23,24 @@ const PAUSE_INVOICE_SERVICE: CommandBody = { kind: 'forge-pause', trackerId: TRA
 
 /** SCREENS B2: the refusal under Example Mobile App's row. */
 const STOP_REFUSED: CommandAnswerDocument = {
-  answerVersion: 1,
+  answerVersion: 2,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'done', refusal: null, text: null
+  answerVersion: 2, outcome: 'done', refusal: null, text: null
 };
+
+/** An update was done, and the forge's live Overseer did not take the Baton pass. */
+const RESTART_PENDING: CommandAnswerDocument = {
+  answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+};
+
+const UPDATE_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp };
+
+const RESTART_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp };
 
 const HTTP_CONFLICT = 409;
 
@@ -55,17 +65,18 @@ describe('sending one command', () => {
     const outcomes: CommandAnswerDocument[] = [
       DONE,
       {
-        answerVersion: 1, outcome: 'nothing-to-do', refusal: null, text: null
+        answerVersion: 2, outcome: 'nothing-to-do', refusal: null, text: null
       },
+      RESTART_PENDING,
       STOP_REFUSED,
       {
-        answerVersion: 1, outcome: 'unreachable', refusal: null, text: null
+        answerVersion: 2, outcome: 'unreachable', refusal: null, text: null
       },
       {
-        answerVersion: 1, outcome: 'not-supported', refusal: null, text: null
+        answerVersion: 2, outcome: 'not-supported', refusal: null, text: null
       },
       {
-        answerVersion: 1, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter'
+        answerVersion: 2, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter'
       },
     ];
     const sender = senderOver(outcomes.map((answer) => () => Promise.resolve(answerResponse(answer))));
@@ -77,7 +88,7 @@ describe('sending one command', () => {
   test('a server that does not answer is unreachable; an answer of another answerVersion, of no known outcome, or not JSON is not understood', async () => {
     const sender = senderOver([
       () => Promise.reject(new TypeError('Failed to fetch')),
-      () => Promise.resolve(answerResponse({ ...DONE, answerVersion: 2 })),
+      () => Promise.resolve(answerResponse({ ...DONE, answerVersion: 3 })),
       () => Promise.resolve(answerResponse({ ...DONE, outcome: 'applied' })),
       () => Promise.resolve(answerResponse({ ...DONE, text: 4 })),
       () => Promise.resolve(new Response('Gaia\'s server is starting', { status: 503 })),
@@ -126,7 +137,7 @@ describe('a refusal reaches the view with the forge\'s sentence', () => {
     await sender.send(STOP_EXAMPLE_MOBILE_APP);
     expect(CommandSender.stateOf(sender.states(), subject).failure).toEqual({ kind: 'forge-stop', result: { verdict: 'server-unreachable' } });
     await sender.send(STOP_EXAMPLE_MOBILE_APP);
-    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null });
+    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null, restartPending: false });
     expect(sender.states().forges.size).toBe(0);
   });
 
@@ -190,5 +201,43 @@ describe('while the controls may not act', () => {
     sender.subscribe(() => heard.push('changed'));
     expect(await sender.send(STOP_EXAMPLE_MOBILE_APP)).toEqual({ verdict: 'not-sent', reason: 'controls-may-not-act' });
     expect([heard, sender.states().forges.size]).toEqual([[], 0]);
+  });
+});
+
+describe('an update that left a restart pending', () => {
+  test('is a success that keeps the restart pending on its forge, through a send that did not succeed, until the next success', async () => {
+    const sender = senderOver([
+      () => Promise.resolve(answerResponse(RESTART_PENDING)),
+      () => Promise.resolve(answerResponse(STOP_REFUSED, HTTP_CONFLICT)),
+      () => Promise.resolve(answerResponse(DONE)),
+    ]);
+    const subject = { trackerId: TRACKER_IDS.exampleMobileApp };
+    expect(await sender.send(UPDATE_EXAMPLE_MOBILE_APP)).toEqual({ verdict: 'answered', answer: RESTART_PENDING });
+    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null, restartPending: true });
+    await sender.send(RESTART_EXAMPLE_MOBILE_APP);
+    expect(CommandSender.stateOf(sender.states(), subject)).toMatchObject({ failure: { kind: 'forge-restart' }, restartPending: true });
+    await sender.send(RESTART_EXAMPLE_MOBILE_APP);
+    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null, restartPending: false });
+    expect(sender.states().forges.size).toBe(0);
+  });
+
+  test('keeps the restart pending while the restart is on its way, and drops it when dismissed, leaving a refusal as it was', async () => {
+    let answerRestart: (response: Response) => void = () => undefined;
+    const sender = senderOver([
+      () => Promise.resolve(answerResponse(RESTART_PENDING)),
+      () => new Promise<Response>((resolve) => {
+        answerRestart = resolve;
+      }),
+    ]);
+    const subject = { trackerId: TRACKER_IDS.exampleMobileApp };
+    await sender.send(UPDATE_EXAMPLE_MOBILE_APP);
+    const restarting = sender.send(RESTART_EXAMPLE_MOBILE_APP);
+    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: 'forge-restart', failure: null, restartPending: true });
+    answerRestart(answerResponse(STOP_REFUSED, HTTP_CONFLICT));
+    await restarting;
+    sender.dismissRestartPending(subject);
+    expect(CommandSender.stateOf(sender.states(), subject)).toMatchObject({ failure: { kind: 'forge-restart' }, restartPending: false });
+    sender.dismissFailure(subject);
+    expect(sender.states().forges.size).toBe(0);
   });
 });

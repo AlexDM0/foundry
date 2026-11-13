@@ -568,7 +568,8 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
   attention:        [],
   attentionCount:   null,
   agents:           MOBILE_AGENTS,
-  notices:          [{ kind: 'install-version-changed', text: 'The install version changed. Nothing launches until this forge is updated.' }],
+  /** The forge's own sentence, which the page receives in Gaia's words (D10). */
+  notices:          [{ kind: 'install-version-changed', text: 'the install version changed, so launches are held: run `forge update`' }],
   warnings:         [],
   activity:         [
     {

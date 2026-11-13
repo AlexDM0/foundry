@@ -95,7 +95,7 @@ describe('the bar\'s commands', () => {
 
   test('the forge\'s refusal shows under the bar with its own code and sentence', async () => {
     const refused: CommandAnswerDocument = {
-      answerVersion: 1, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+      answerVersion: 2, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
     };
     const sender = senderOver([async () => answerResponse(refused)]);
     await sender.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' });

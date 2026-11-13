@@ -5,7 +5,6 @@
  * and for the login items is on its way at a time.
  */
 import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
-import type { ForgeProgramVerdict }                                  from '../../adapters/forge-program/@types/ForgeProgramAnswer.ts';
 import type { ForgeProgram, ForgeProgramTarget }                     from '../../adapters/forge-program/ForgeProgram.ts';
 import type { RegisteredForge, RegisteredOverseer }                  from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { RegistryReading }                                      from '../../adapters/forge-registry/RegistryFile.ts';
@@ -25,6 +24,8 @@ import type {
 } from '../../shared/@types/GaiaCommand.ts';
 import type { GaiaSettings } from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS } from '../../shared/constants/ContractVersions.ts';
+
+import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
 
 export interface ForgeControlOptions {
   /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */
@@ -90,29 +91,6 @@ function verdictOfApiFailure(answer: Exclude<ForgeCommandAnswer, { verdict: 'ans
     case 'malformed':
       return { verdict: 'not-supported' };
   }
-}
-
-type ForgeProgramFailure = Exclude<ForgeProgramVerdict<unknown>, { verdict: 'done' }>;
-
-function verdictOfProgramFailure(programVerdict: ForgeProgramFailure): CommandVerdict {
-  switch (programVerdict.verdict) {
-    case 'refused':
-      return {
-        verdict: 'refused', refusedBy: 'forge', refusal: programVerdict.refusal, text: programVerdict.text,
-      };
-    case 'program-not-found':
-      return gaiaRefusalOf('program-not-found');
-    case 'root-missing':
-      return gaiaRefusalOf('repository-missing');
-    case 'timed-out':
-      return { verdict: 'unreachable' };
-    case 'answer-not-understood':
-      return { verdict: 'not-supported' };
-  }
-}
-
-function verdictOfProgram<Answer>(programVerdict: ForgeProgramVerdict<Answer>, outcomeOf: (answer: Answer) => 'done' | 'nothing-to-do'): CommandVerdict {
-  return programVerdict.verdict === 'done' ? { verdict: outcomeOf(programVerdict.answer) } : verdictOfProgramFailure(programVerdict);
 }
 
 function verdictOfSettingsUpdate(updateVerdict: SettingsUpdateVerdict): CommandVerdict {
@@ -228,16 +206,16 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const apiVerdict = await sendOverApi(apiReach.overseer, controlCommands);
       if (apiVerdict.verdict !== 'unreachable') return apiVerdict;
     }
-    return verdictOfProgram(await forgeProgram.stop(programTargetOf(forge)), (answer) => answer.outcome);
+    return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.stop(programTargetOf(forge)), (answer) => answer.outcome);
   }
 
   /** `forge init`, then `forge start`, in the repository's root; the first refusal ends the add, and the forge words it. */
   async function add(root: string, project: string): Promise<CommandVerdict> {
     const target: ForgeProgramTarget = { root, program: null };
     const initVerdict = await forgeProgram.init(target, project);
-    if (initVerdict.verdict !== 'done') return verdictOfProgramFailure(initVerdict);
+    if (initVerdict.verdict !== 'done') return ProgramVerdictUtil.verdictOfProgramFailure(initVerdict);
     const startVerdict = await forgeProgram.start(target);
-    if (startVerdict.verdict !== 'done') return verdictOfProgramFailure(startVerdict);
+    if (startVerdict.verdict !== 'done') return ProgramVerdictUtil.verdictOfProgramFailure(startVerdict);
     return { verdict: initVerdict.answer.outcome === 'created' || startVerdict.answer.started ? 'done' : 'nothing-to-do' };
   }
 
@@ -255,7 +233,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     }
     const forgeWithItsRepository = forges.find((forge) => readingOf(forge.trackerId)?.fidelity !== 'repository-missing');
     if (forgeWithItsRepository === undefined) return gaiaRefusalOf('no-forge-registered');
-    return verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
+    return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
   }
 
   /** Each forge's program removes its login item; a forge that refuses is passed over, since the refusal that caused the undo is the answer. */
@@ -281,7 +259,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const loginItemVerdict = await forgeProgram.loginItem(programTargetOf(forge), startForgesAtLogin ? 'add' : 'remove');
       if (loginItemVerdict.verdict !== 'done') {
         await removeLoginItemsOf(forgesWithTheirLoginItemWritten);
-        return verdictOfProgramFailure(loginItemVerdict);
+        return ProgramVerdictUtil.verdictOfProgramFailure(loginItemVerdict);
       }
       if (startForgesAtLogin) forgesWithTheirLoginItemWritten.push(forge);
     }
@@ -295,7 +273,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     const reading = readingOf(command.trackerId);
     switch (command.kind) {
       case 'forge-start':
-        return verdictOfProgram(await forgeProgram.start(programTargetOf(forge)), (answer) => (answer.started ? 'done' : 'nothing-to-do'));
+        return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.start(programTargetOf(forge)), (answer) => (answer.started ? 'done' : 'nothing-to-do'));
       case 'forge-stop':
         return stop(forge, reading, command.agents);
       case 'forge-pause':
@@ -307,9 +285,9 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       case 'forge-concurrency-set':
         return carryOverApi(forge, reading, { kind: 'concurrency-set', limit: command.limit });
       case 'forge-update':
-        return verdictOfProgram(await forgeProgram.update(programTargetOf(forge)), (answer) => answer.outcome);
+        return ProgramVerdictUtil.verdictOfUpdate(await forgeProgram.update(programTargetOf(forge)));
       case 'forge-open-in-browser':
-        return verdictOfProgram(forgeProgram.openInBrowser(programTargetOf(forge)), () => 'done');
+        return ProgramVerdictUtil.verdictOfProgram(forgeProgram.openInBrowser(programTargetOf(forge)), () => 'done');
       case 'forge-hide':
         return verdictOfSettingsUpdate(await settingsStore.update(hiding(command.trackerId)));
     }

@@ -145,7 +145,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 1, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+    answerVersion: 2, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
   } as const;
 
   test('shows the forge\'s code and sentence, with no Try again for Stop, and dismisses', () => {

@@ -1,6 +1,6 @@
 /**
  * Maps the internal `FleetSnapshot` out to the page contract. Every key is named one by one, so a key the internal model gains reaches the
- * page only when the contract names it.
+ * page only when the contract names it. A forge's notice or warning leaves in Gaia's words when its sentence names a command (D10).
  */
 import type {
   FleetDocument,
@@ -19,6 +19,7 @@ import type { FleetSnapshot, GaiaFacts }  from '../../shared/@types/FleetSnapsho
 import type { ForgeNotice, ForgeReading } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings }              from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }              from '../../shared/constants/ContractVersions.ts';
+import { ForgeSentenceUtil }              from './ForgeSentenceUtil.ts';
 
 function attentionItemOut(item: AttentionItem): FleetDocumentAttentionItem {
   return {
@@ -76,7 +77,11 @@ function activityEntryOut(entry: ActivityEntry): FleetDocumentActivityEntry {
 }
 
 function noticeOut(notice: ForgeNotice): FleetDocumentNotice {
-  return { kind: notice.kind, text: notice.text };
+  return { kind: notice.kind, text: ForgeSentenceUtil.noticeSentenceOf(notice.kind, notice.text) };
+}
+
+function warningOut(warning: ForgeNotice): FleetDocumentNotice {
+  return { kind: warning.kind, text: ForgeSentenceUtil.warningSentenceOf(warning.text) };
 }
 
 function forgeOut(reading: ForgeReading): FleetDocumentForge {
@@ -115,7 +120,7 @@ function forgeOut(reading: ForgeReading): FleetDocumentForge {
     attentionCount:   reading.attentionCount,
     agents:           reading.agents.map(agentRowOut),
     notices:          reading.notices.map(noticeOut),
-    warnings:         reading.warnings.map(noticeOut),
+    warnings:         reading.warnings.map(warningOut),
     activity:         reading.activity.map(activityEntryOut),
     today:            today === null ? null : { deliveredTickets: today.deliveredTickets, tokens: today.tokens },
     usage:            usage === null ? null : { resetsAt: usage.resetsAt, window: usage.window },

@@ -1,7 +1,11 @@
-/** Maps the internal `FrameSessionVerdict` out to the page contract's frame session answer, every key named one by one. */
+/**
+ * Maps the internal `FrameSessionVerdict` out to the page contract's frame session answer, every key named one by one. A forge's refusal
+ * sentence leaves in Gaia's words when it names a command (D10).
+ */
 import type { FrameSessionAnswerDocument } from '../../../page/@types/FrameSessionDocument.ts';
 import type { FrameSessionVerdict }        from '../../shared/@types/FrameSessionVerdict.ts';
 import { CONTRACT_VERSIONS }               from '../../shared/constants/ContractVersions.ts';
+import { ForgeSentenceUtil }               from './ForgeSentenceUtil.ts';
 
 type AnswerContent = Omit<FrameSessionAnswerDocument, 'frameSessionVersion'>;
 
@@ -13,7 +17,10 @@ function answerContentOf(verdict: FrameSessionVerdict): AnswerContent {
       };
     case 'refused':
       return {
-        outcome: 'refused', frameUrl: null, refusal: verdict.refusal, text: verdict.refusedBy === 'forge' ? verdict.text : null,
+        outcome:  'refused',
+        frameUrl: null,
+        refusal:  verdict.refusal,
+        text:     verdict.refusedBy === 'forge' ? ForgeSentenceUtil.refusalSentenceOf(verdict.refusal, verdict.text) : null,
       };
     case 'unreachable':
     case 'not-supported':

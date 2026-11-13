@@ -13,7 +13,9 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. The known numbers are
    `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper.
-4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself.
+4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself. A forge sentence that names a command
+   leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its refusal code or notice kind, and otherwise for
+   a neutral sentence.
 5. **Gaia starts a dormant forge with `forge start --json`, never `oversee --detach`.**
 6. **Tokens stay in the server.** No forge token reaches the page, an answer or a log line.
 7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.

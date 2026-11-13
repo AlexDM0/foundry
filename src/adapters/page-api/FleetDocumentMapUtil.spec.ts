@@ -1,7 +1,7 @@
 /**
  * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
- * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, and a value a forge did not
- * report stays `null` rather than becoming zero.
+ * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
+ * report stays `null` rather than becoming zero, and a notice or warning whose sentence names a command reaches it in Gaia's words (D10).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -51,6 +51,20 @@ describe('the fleet document mapper', () => {
     expect(countsOnly?.agents[0]?.calls).toBeNull();
     expect(countsOnly?.agents[0]?.callBudget).toBeNull();
     expect(countsOnly?.agents[0]?.quiet).toBeNull();
+  });
+
+  test('words a notice or a warning whose sentence names a command in Gaia\'s words, and passes the others through', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
+    const watcherNotice = { kind: 'watcher-endpoint-does-not-fit', text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint' };
+    const forge = {
+      ...storefront,
+      notices:  [{ kind: 'new-code', text: 'new code: run `forge update`' }, watcherNotice],
+      warnings: [{ kind: 'forge-warning', text: 'The Baton pass failed: run `forge oversee restart`.' }],
+    };
+    const [document] = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [forge] }).forges;
+    expect(document?.notices).toEqual([{ kind: 'new-code', text: 'New code is on disk. The Overseer runs the code it started with until it restarts.' }, watcherNotice]);
+    expect(document?.warnings).toEqual([{ kind: 'forge-warning', text: 'This forge reports a warning that Gaia does not word yet.' }]);
   });
 
   test('shares no array or object with the snapshot it was built from', () => {

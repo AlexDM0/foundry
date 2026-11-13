@@ -45,7 +45,9 @@ const ADD_A_REPOSITORY_FRAGMENT = HashRouter.fragmentOf({ view: 'forges', adding
 export function ForgesView({
   fleetDocument, route, clock, goTo
 }: ForgesViewProps) {
-  const { send, dismissFailure, states } = useCommandSender();
+  const {
+    send, dismissFailure, dismissRestartPending, states
+  } = useCommandSender();
   const [stopDialog, setStopDialog] = useState<StopDialogState | null>(null);
   const [lastSent, setLastSent] = useState<ReadonlyMap<string, ForgeCommandBody>>(() => new Map());
   const [sentSettingsChange, setSentSettingsChange] = useState<SentSettingsChange | null>(null);
@@ -87,9 +89,10 @@ export function ForgesView({
           onConfirmStop:    (command) => {
             void sendRecorded(command).then(() => setStopDialog((current) => (current?.trackerId === command.trackerId ? null : current)));
           },
-          onDismissFailure:   dismissFailure,
-          onSettingsCheckbox: sendSettingsCheckbox,
-          onOpenWhatNotifies: () => setWhatNotifiesIsOpen(true),
+          onDismissFailure:        dismissFailure,
+          onDismissRestartPending: dismissRestartPending,
+          onSettingsCheckbox:      sendSettingsCheckbox,
+          onOpenWhatNotifies:      () => setWhatNotifiesIsOpen(true),
         }}
       />
       {whatNotifiesIsOpen

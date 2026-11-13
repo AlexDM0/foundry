@@ -1,6 +1,6 @@
 /**
- * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with the Stop dialog and a refusal under their row,
- * a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside them this machine's panel and
+ * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with the Stop dialog, a refusal and a pending restart
+ * under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside them this machine's panel and
  * Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
@@ -13,6 +13,7 @@ import { DataTable, type DataTableColumn, type DataTableRow }  from '../../desig
 import { FactList }                                            from '../../design-system/FactList.tsx';
 import { Meter }                                               from '../../design-system/Meter.tsx';
 import { MicroCapsLabel }                                      from '../../design-system/MicroCapsLabel.tsx';
+import { PendingStep }                                         from '../../design-system/PendingStep.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { Stepper }                                             from '../../design-system/Stepper.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
@@ -24,6 +25,7 @@ import type {
   ForgesContent,
   HeldBanner,
   MachinePanel,
+  PendingRestart,
   ShownRefusal,
   StopDialog,
 } from './ForgesModel.ts';
@@ -31,12 +33,13 @@ import { GaiaPanel, type GaiaPanelHandlers } from './GaiaPanel.tsx';
 import type { GaiaPanelContent }             from './GaiaPanelModel.ts';
 
 export interface ForgesHandlers extends GaiaPanelHandlers {
-  readonly onCommand:        (command: CommandBody) => void;
-  readonly onOpenStopDialog: (trackerId: string) => void;
-  readonly onStopChoice:     (agents: ForgeStopAgents) => void;
-  readonly onCancelStop:     () => void;
-  readonly onConfirmStop:    (command: ForgeCommandBody) => void;
-  readonly onDismissFailure: (subject: CommandSubject) => void;
+  readonly onCommand:               (command: CommandBody) => void;
+  readonly onOpenStopDialog:        (trackerId: string) => void;
+  readonly onStopChoice:            (agents: ForgeStopAgents) => void;
+  readonly onCancelStop:            () => void;
+  readonly onConfirmStop:           (command: ForgeCommandBody) => void;
+  readonly onDismissFailure:        (subject: CommandSubject) => void;
+  readonly onDismissRestartPending: (subject: CommandSubject) => void;
 }
 
 export interface ForgesLayoutProps {
@@ -112,6 +115,25 @@ function ShownRefusalLine({ refusal, trackerId, handlers }: { readonly refusal: 
   );
 }
 
+interface PendingRestartLineProps {
+  readonly pendingRestart: PendingRestart | null;
+  readonly trackerId:      string;
+  readonly handlers:       ForgesHandlers;
+}
+
+function PendingRestartLine({ pendingRestart, trackerId, handlers }: PendingRestartLineProps) {
+  if (pendingRestart === null) return null;
+  return (
+    <PendingStep
+      word={pendingRestart.word}
+      sentence={pendingRestart.sentence}
+      action={<ForgeButtonView button={pendingRestart.restartButton} trackerId={trackerId} handlers={handlers} />}
+      dismissLabel={pendingRestart.dismissLabel}
+      onDismiss={() => handlers.onDismissRestartPending({ trackerId })}
+    />
+  );
+}
+
 function ForgeName({ trackerId, project, condition }: Pick<ForgeRow, 'trackerId' | 'project' | 'condition'>) {
   return (
     <span className="gaia-forges-forge-name-line" id={forgeAnchorIdOf(trackerId)}>
@@ -169,11 +191,12 @@ function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: Sto
 }
 
 function rowBelowOf(row: ForgeRow, handlers: ForgesHandlers) {
-  if (row.stopDialog === null && row.refusal === null) return null;
+  if (row.stopDialog === null && row.refusal === null && row.pendingRestart === null) return null;
   return (
     <div className="gaia-forges-row-below">
       {row.stopDialog === null ? null : <StopDialogPanel dialog={row.stopDialog} trackerId={row.trackerId} handlers={handlers} />}
       <ShownRefusalLine refusal={row.refusal} trackerId={row.trackerId} handlers={handlers} />
+      <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} />
     </div>
   );
 }
@@ -220,6 +243,7 @@ function HeldBannerCard({ banner, handlers }: { readonly banner: HeldBanner; rea
         <ForgeButtonView button={banner.updateButton} trackerId={banner.trackerId} handlers={handlers} />
       </section>
       <ShownRefusalLine refusal={banner.refusal} trackerId={banner.trackerId} handlers={handlers} />
+      <PendingRestartLine pendingRestart={banner.pendingRestart} trackerId={banner.trackerId} handlers={handlers} />
     </div>
   );
 }

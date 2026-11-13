@@ -37,7 +37,7 @@ describe('a command Gaia can read', () => {
     const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand);
     expect(answer.status).toBe(200);
     expect(await answer.json()).toEqual({
-      answerVersion: 1, outcome: 'done', refusal: null, text: null
+      answerVersion: 2, outcome: 'done', refusal: null, text: null
     });
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -71,13 +71,13 @@ describe('a command Gaia cannot read', () => {
     }));
     expect(answers).toEqual([
       [400, {
-        answerVersion: 1, outcome: 'not-supported', refusal: 'not-json', text: null
+        answerVersion: 2, outcome: 'not-supported', refusal: 'not-json', text: null
       }],
       [400, {
-        answerVersion: 1, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 2, outcome: 'not-supported', refusal: 'other-version', text: null
       }],
       [400, {
-        answerVersion: 1, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 2, outcome: 'not-supported', refusal: 'malformed', text: null
       }],
     ]);
     expect(carrier.carriedCommands).toEqual([]);

@@ -26,10 +26,20 @@ export interface AttentionViewParts {
 }
 
 export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
-  const { send, dismissFailure, states } = useCommandSender();
+  const {
+    send, dismissFailure, dismissRestartPending, states
+  } = useCommandSender();
   const screen = AttentionModel.screenOf(fleetDocument, clock);
   if (screen.kind === 'no-forge') return <NoForgeYet content={screen.content} />;
-  return <AttentionLayout content={screen.content} commandStates={states} onCommand={(command) => void send(command)} onDismissFailure={dismissFailure} />;
+  return (
+    <AttentionLayout
+      content={screen.content}
+      commandStates={states}
+      onCommand={(command) => void send(command)}
+      onDismissFailure={dismissFailure}
+      onDismissRestartPending={dismissRestartPending}
+    />
+  );
 }
 
 /** B4's top bar carries Look again, since a forge set up elsewhere appears by itself; A1's top bar has no button of its own. */
