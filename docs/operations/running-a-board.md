@@ -3,8 +3,7 @@
 > **Question:** What am I looking at, and what do I do here day to day?
 > **Time:** 25 minutes.
 > **Read first:** [Getting started](getting-started.md), [Glossary](../glossary.md).
-> **Next:** [Runbook](runbook.md), [Questions and incidents](../architecture/questions-and-incidents.md),
-> [The Bridge](../architecture/bridge.md).
+> **Next:** [Runbook](runbook.md).
 
 ## In one screen
 
@@ -82,8 +81,7 @@ Ready starts with the Board's ready list: unblocked tickets by priority, then re
 Tickets waiting on a dependency follow. Merge queue lists its tickets by priority, then id, and the merge queue view
 gives the order they land in. Done and Abandoned run newest first.
 
-> **As built.** The ready list can omit a group ticket the Overseer launches. See
-> [gap-group-tickets-missing-from-ready-ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
+> **As built.** The ready list can omit a group ticket the Overseer launches.
 
 **The merge queue view.** The details link in the Merge queue lane's head opens `#kanban/merge-queue`. It answers what lands next
 on each [target](../glossary.md#target), and why a [landing](../glossary.md#landing) waits. It has no controls: a
@@ -250,17 +248,14 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
 - **Notices.** Open [notices](../glossary.md#notice), each with its kind, the id it is about and the sentence the header
   words it in. They take no answer. The Bridge shows them too: warnings and notices as banners above the header,
-  `new-code` in its state line. `instructions-missing` shows in both places as its bare kind; see the
-  [notice table](../architecture/questions-and-incidents.md).
+  `new-code` in its state line. `instructions-missing` shows in both places as its bare kind.
 
 ![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, each followed, when the asking agent noted them, by what it touches, its trade-off and its effect on the Acceptance. Then a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
 
 *One press settles it: the first answer wins, whoever sends it.*
 
 > **As built.** Some answers only close the card. Answering a `parked` decision leaves the ticket held, so Unhold it as
-> well. See [gap-answering-parked-does-not-unhold](../reference/known-gaps.md#gap-answering-parked-does-not-unhold). A
-> `waiver` answer changes nothing. See
-> [gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect).
+> well. A `waiver` answer changes nothing.
 
 Notify me of new questions asks for browser notifications from your click, never on load. The open-question count leads
 the browser tab's title on every tab of the Bridge.
@@ -306,8 +301,6 @@ The rail lists the open incidents, and the handled ones with the moves made unde
 with its default move and appears in the warning state; read the move it took in its log line. While no session is up
 the thread says a fresh one is booting; the Assistant has no off switch.
 
-What an Assistant may do is in [Assistant and intake](../architecture/assistant-and-intake.md).
-
 ### Intake
 
 ![The Intake tab: the list of product-owner sessions on the left, the selected one marked, and on the right that session's chat with User's request, User's message with a sketch picture, the product owner's turns and a docked decision, its composer, and beside it the draft tickets it filed, the pictures in the chat and Close intake.](../images/bridge-intake.png)
@@ -335,8 +328,6 @@ per message and 3,932,160 bytes each, since the vendor's 5 MB limit counts the b
 once, and Send waits until every upload has finished. A picture alone is a message. Only the Intake tab takes pictures:
 the Assistant's composer and the `intake` and `job message` commands do not. With an agent that cannot take pictures, no
 Attach pictures shows.
-
-[Product-owner intake](../architecture/assistant-and-intake.md#product-owner-intake) has the rules.
 
 ## The header
 
@@ -402,9 +393,8 @@ A greyed control has one of four causes.
 A command that cannot reach the Overseer shows nothing, and the button comes back. Check the banner.
 
 > **As built.** The job controls Stop and Wind down, on the Agents tab and in the ticket form's More menu, stay enabled
-> while launches are held for an install change, and a click only raises the banner again. See
-> [gap-job-stop-while-install-held](../reference/known-gaps.md#gap-job-stop-while-install-held). Controls can flicker on
-> between reconnects. See [gap-stream-down-flicker](../reference/known-gaps.md#gap-stream-down-flicker).
+> while launches are held for an install change, and a click only raises the banner again. Controls can flicker on
+> between reconnects.
 
 ### A refusal is an answer
 
@@ -480,8 +470,7 @@ Keep an eye on the count in the browser tab, or allow notifications. An agent wa
 ### Watch notices
 
 Check the warning and notice banners above the header. Some notices stop landings or launches until you act, such as
-`dirty-main-checkout`. The [notice table](../architecture/questions-and-incidents.md) gives each one's action, and the
-[Runbook](runbook.md) has the recipes.
+`dirty-main-checkout`. The [Runbook](runbook.md) has the recipes.
 
 ### Adjust concurrency
 
@@ -501,15 +490,13 @@ agent. Use the Reason box in the detail panel when others read it. Change priori
 `forge ticket priority` once a card has left Ready. Lowering to low is refused once a ticket has left Ready;
 raising works at any status. Priority orders the candidates; it never bars a ticket from starting.
 
-> **As built.** Help text says otherwise for low tickets. See
-> [gap-help-text-stale](../reference/known-gaps.md#gap-help-text-stale).
+> **As built.** Help text says otherwise for low tickets.
 
 ### Pause safely
 
 Pause stops new build and review launches, new merge queuing and new Airlock slots. Running agents and a merge in
-progress carry on, and so do the Assistant, intakes and resumes of interrupted jobs;
-[State machines](../data-model/state-machines.md) has the detail. The pause is stored, so it survives a stop and a
-start. A fresh board starts paused, which is why no ticket starts until the first Resume.
+progress carry on, and so do the Assistant, intakes and resumes of interrupted jobs. The pause is stored, so it survives
+a stop and a start. A fresh board starts paused, which is why no ticket starts until the first Resume.
 
 To clear the deck, run `forge job stop --all --wind-down`. It pauses, then winds down every build, review
 and product-owner job. Each stopped job's ticket is held `wound down by User (J<n>)` and stays held after Resume; Unhold
@@ -535,8 +522,7 @@ Use `--now` when a running install or gate process must end too, such as one tha
 
 *The fork at the bottom is the choice you make the evening before.*
 
-Start the Overseer again with `forge oversee --detach`. It settles jobs that ended while it was down; see
-[Failure and recovery](../architecture/failure-and-recovery.md).
+Start the Overseer again with `forge oversee --detach`. It settles jobs that ended while it was down.
 
 ## Groups and release tickets
 
@@ -559,9 +545,7 @@ candidate once the rest of its bundle has landed on the group. The detail panel 
 search covers it. A release carries the group's whole tip, which is how a ticket outside the bundle reaches the main
 line.
 
-A `cleanup-declined` notice means git kept the group's worktree or branch after the release; the [notice
-table](../architecture/questions-and-incidents.md) gives the action. Mechanics are in [Airlocks and
-groups](../architecture/airlocks-and-groups.md).
+A `cleanup-declined` notice means git kept the group's worktree or branch after the release.
 
 ## The same from a terminal
 

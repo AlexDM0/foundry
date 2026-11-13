@@ -3,8 +3,7 @@
 > **Question:** What exactly does this command accept, and what exactly is in this file?
 > **Time:** A minute per lookup; search it rather than read it through.
 > **Read first:** [Overview](concepts/overview.md), [Reading names](glossary.md#reading-names).
-> **Next:** [Running a board](operations/running-a-board.md), [Refusals](reference/refusals.md),
-> [Known gaps](reference/known-gaps.md).
+> **Next:** [Running a board](operations/running-a-board.md), [Refusals](reference/refusals.md).
 
 This page is the one reference for commands, flags, exit codes, environment variables, the ticket format, log kinds and
 stored formats, for the `forge` build. Every section gives the contract and links the page that explains it.
@@ -43,8 +42,6 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/epics/<key>.md` | [The epic file](#dataepicscheckout-redesignmd) |
 | `<data>/filing-cabinet/D<n>.json` | [The filing draft](#datafiling-cabinetd1json) |
 
-[The on-disk atlas](data-model/on-disk-atlas.md) names every other path.
-
 - [About this page](#about-this-page)
 - [Conventions](#conventions): [locking](#locking), [help and options](#help-and-options), [the Next
   line](#the-next-line)
@@ -59,17 +56,14 @@ Look a command up by its first word, or a stored file by its name.
 - [The Handoff and the token column](#the-handoff-and-the-token-column)
 - [The dashboard](#the-dashboard)
 - [Files on disk](#files-on-disk), by the table above
-- [Ticket moves and their rows](#ticket-moves-and-their-rows), whose legality is drawn in [State
-  machines](data-model/state-machines.md)
+- [Ticket moves and their rows](#ticket-moves-and-their-rows)
 
 ## About this page
 
-Bound values live in [Bounds](reference/deciders-and-bounds.md#bounds).
-`forge help` prints a shorter command reference from `cli/HelpText.ts`. `cli/HelpText.flags.spec.ts` holds
-both texts against the parsers, and where their prose differs this page is right.
+`forge help` prints a shorter command reference from `cli/HelpText.ts`. `cli/HelpText.flags.spec.ts` holds both texts
+against the parsers, and where their prose differs this page is right.
 
-> **As built.** The help prose lags this page in places: [help text
-> stale](reference/known-gaps.md#gap-help-text-stale).
+> **As built.** The help prose lags this page in places.
 
 `resources/templates/Reference.md`, installed as `<data>/reference.md`, copies three sections of this page word for
 word: the ticket file, the ticket moves and the exit codes. `cli/ReferenceCopies.spec.ts` holds the copies, so a change
@@ -92,7 +86,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
 | `--json` | Accepted by every command but `init`, `update`, `open`, `hook` and `help`, and prints one JSON document on standard output in place of the human output. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
-| product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; [Product names](development/porting.md#product-names) explains why two programs exist. |
+| product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
 
 ### One tracker per repository
 
@@ -108,7 +102,6 @@ logged something. A ticket file is therefore never ahead of the progress file, a
 that was not stored. A file whose bytes on disk already are its new contents is left in place, judged inside the hold
 from the bytes alone, so a hold that changes nothing writes no tracker file and no journal. Nothing renders: the
 [Overseer](glossary.md#overseer) serves the Bridge from the store.
-[Storage](data-model/storage.md) holds the mechanics.
 
 | takes the lock | takes no lock |
 |---|---|
@@ -181,8 +174,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
 
-> **As built.** The hook guard also needs the program on `PATH`: [a guard hook that cannot
-> start](reference/known-gaps.md#gap-guard-hook-start-failure).
+> **As built.** The hook guard also needs the program on `PATH`.
 
 ## Adopting a repository
 
@@ -192,9 +184,7 @@ forge init
 ```
 
 `init` creates the tracker and installs everything a session needs to use it, the seven items below. `init` never writes
-`CLAUDE.md`: a repository's `CLAUDE.md` holds its own conventions only. [CLI and
-install](architecture/cli-and-install.md) explains the install and its two version numbers; [the on-disk
-atlas](data-model/on-disk-atlas.md) names every path.
+`CLAUDE.md`: a repository's `CLAUDE.md` holds its own conventions only.
 
 Git 2.38 or newer is required: merge forecasts and merge verification use `git merge-tree --write-tree`, which came in
 2.38. `init` and `oversee` read `git version` first and refuse with exit 1 below it, or when no git answers, before
@@ -271,8 +261,7 @@ all; a project adds its own tracked files through the pipeline instead. Item 3's
 instructions, and says `updated` when any of these files changed. Install version 19 removes the `assistant-brief.md`
 earlier versions wrote, and install version 26 removes `briefs/defaults/merger.md`.
 
-> **As built.** The marker leaves a window while a fresh `init` runs: [the init marker
-> window](reference/known-gaps.md#gap-init-marker-window).
+> **As built.** The marker leaves a window while a fresh `init` runs.
 
 #### 4. The hook
 
@@ -365,9 +354,8 @@ These commands do not take the refusal above:
 ## The two skills
 
 `init` and `update` copy two Claude Code skills from this checkout's `skills/` into the tracked repository's git-ignored
-`.claude/skills/` (item 5 of [Adopting a repository](#adopting-a-repository)). Neither lists commands:
-`forge help` is the reference, and both name it and `<data>/reference.md`. [Roles and
-launch](architecture/roles-and-launch.md) says what each holds and which session loads it.
+`.claude/skills/` (item 5 of [Adopting a repository](#adopting-a-repository)). Neither lists commands: `forge help` is
+the reference, and both name it and `<data>/reference.md`.
 
 | installed skill | source folder | loads |
 |---|---|---|
@@ -474,8 +462,7 @@ priority resolved to their defaults.
 #### Ready tickets
 
 A ticket is ready when it is pending and every ticket it depends on is reviewed or delivered; priority never keeps a
-ticket from being ready, it only orders them. When one stays put, the [why-not-moving
-lab](interactive/why-not-moving.html) walks the reasons.
+ticket from being ready, it only orders them.
 
 - `readyTicketIds` orders them high priority first, then normal, then low.
 - Within a priority they go by readiness: the log position of the ticket's latest `ticket-readied` or `ticket-reopened`
@@ -494,8 +481,7 @@ abandoned, every ticket of that group is left out of `readyTicketIds`, `readyTic
 no release ticket, so its remaining open tickets list as any other. A group with no release ticket lists as ungrouped
 tickets do.
 
-> **As built.** [Group tickets missing from the ready
-> ids](reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
+> **As built.** Group tickets missing from the ready ids.
 
 ### Tasks
 
@@ -528,15 +514,12 @@ Each `task` verb is named for the status it moves to: `start` to in-progress, `p
 
 ### Tickets
 
-A [ticket](glossary.md#ticket) is a markdown file under `<data>/tickets/` driving one Gantt [row](glossary.md#row). Its
-statuses and legal moves are drawn in [State machines](data-model/state-machines.md), and the [ticket journey
-lab](interactive/ticket-journey.html) walks one through them.
+A [ticket](glossary.md#ticket) is a markdown file under `<data>/tickets/` driving one Gantt [row](glossary.md#row).
 
 Types are `ticket`, `bug` and `research`, and `ticket add` requires one; a stored `change` or `feature` reads as
 `ticket`. Priorities are `low`, `normal` (the default) and `high`; models `haiku`, `sonnet`, `opus` and `fable`; efforts
 `low`, `medium`, `high`, `xhigh` and `max`. A model or effort left unnamed reads as `opus` and `medium`. A ticket's
-model and effort are stored and shown, and no launch reads them: [Roles and launch](architecture/roles-and-launch.md)
-says what picks each session's model.
+model and effort are stored and shown, and no launch reads them.
 
 | command | what it does |
 |---|---|
@@ -761,8 +744,7 @@ Both `status --json` documents carry `drafts` after `epics`:
 The Overseer gates a tree by running the prepare steps, then each stored [gate](glossary.md#gate) in list order, the
 first red gate stopping the rest. A gate passes only when it exits 0 and leaves every tracked file as it was. Exit 126
 or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup failure, never a red gate. The Overseer
-never runs a gate's `fix`. [Customs and gates](architecture/customs-and-gates.md) holds how gates run, their gate slots
-and their confinement.
+never runs a gate's `fix`.
 
 A line is stored for the machine that runs it, in that machine's grammar, which `gate add` in `help` names. On macOS
 and Linux, `/bin/sh` joins standard error onto standard output and runs the line in the user's `SHELL`. On Windows,
@@ -784,7 +766,7 @@ before the first listing is out of reach, as it is on POSIX.
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, pipelineHash, prepare, gates }`, with `review`, `constitution` and `agents` when stored; with no pipeline `pipelineIsSet` is `false`, `pipelineHash` `null` and both lists empty. A malformed file is refused at exit 1 with its reason. |
-| `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added ([why to add gates first](architecture/customs-and-gates.md)). |
+| `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added (why to add gates first). |
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--json] -- <command>` | Add the gate `<name>`, run after the others, or replace a gate of the same name where it stands, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate none [--json]` | Store an empty gate list on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>`, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
@@ -858,9 +840,8 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 | A session cannot read the credential files above | yes | yes | only through the Read tool |
 | The prompts say a sandbox refuses a move | yes | yes | no: they give the same rules without that claim |
 
-> **As built.** Gate network and sessions' writes are weaker than stated: [gate network
-> unfiltered](reference/known-gaps.md#gap-gate-network-unfiltered), [gate writes unchecked for
-> sessions](reference/known-gaps.md#gap-gate-writes-unchecked-for-sessions).
+> **As built.** Gate network and sessions' writes are weaker than stated: the gate network is unfiltered, and gate
+> writes are unchecked for sessions.
 
 #### Launch slots
 
@@ -874,7 +855,7 @@ launch slot: a `task add --start` row or a review bar with no live job counts no
 
 | command | what it does |
 |---|---|
-| `review-stats [--json]` | What the recorded reviews catch, miss and cost, in one table over every recorded ticket and one per split. [Measurement](architecture/measurement.md) says how to read it. It takes no lock and writes nothing, as `status` does. |
+| `review-stats [--json]` | What the recorded reviews catch, miss and cost, in one table over every recorded ticket and one per split. It takes no lock and writes nothing, as `status` does. |
 
 A *recorded ticket* is one with at least one `review-recorded` line in `log.jsonl`. Each `round` of a ticket is one
 recorded review round, its latest line the one that counts, so a ticket with two recorded review rounds counts two
@@ -964,16 +945,14 @@ of each figure below.
 | `bash edits` | The edits it made through a shell command (a heredoc, an inline interpreter or an in-place editor) instead of the editing tools. |
 | `checks` | The Bash commands holding a test, type-check or lint fragment. |
 
-`--since` splits the agents on an instant and summarises both sides; [Measurement](architecture/measurement.md) says
-what that can and cannot compare. `--transcripts` reads a folder other than the one this repository's path resolves to.
+`--since` splits the agents on an instant and summarises both sides. `--transcripts` reads a folder other than the one
+this repository's path resolves to.
 
-> **As built.** No job session appears here: [usage misses job
-> sessions](reference/known-gaps.md#gap-usage-misses-job-sessions).
+> **As built.** No job session appears here.
 
 ### The Overseer
 
-[Baton](architecture/baton.md) holds the start, the stop and the Baton file; [the Overseer
-API](reference/overseer-api.md) holds the routes, guards and event stream.
+[The Overseer API](reference/overseer-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
 than the API's own, and every preflight. Behind those guards, `POST /api/commands`, `POST /api/pictures` and
@@ -985,10 +964,10 @@ local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POS
 
 | command | what it does |
 |---|---|
-| `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port ([Watchers](architecture/watchers.md)); `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
+| `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port; `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
 | `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. |
-| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. [Baton](architecture/baton.md) holds the paths. |
-| `oversee restart [--now] [--json]` | The checked [Baton pass](architecture/baton.md) to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
+| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
+| `oversee restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
 | `open [--no-browser]` | Open the live Overseer's URL in the default browser (`open` on macOS, `%SystemRoot%\System32\rundll32.exe url.dll,FileProtocolHandler` by absolute path on Windows, `xdg-open` on Linux and elsewhere, each detached) and print it, when the newest Baton in `<data>/overseer/` names a live process. With none live, it first starts the Overseer detached, as `oversee --detach` does, with the same checks and refusals, and says so on standard error; the Overseer keeps running after `open` ends. A started Overseer gone again before `open` reads its Baton is refused `overseer-down` at exit 1. The URL carries a one-time session code in its fragment, `#session=<code>`, asked for with the token; the Bridge exchanges it once for the session cookie every data route needs ([Browser sessions](reference/overseer-api.md#browser-sessions)). The opener gets only the path of an owner-only redirect file beside the token, and `open` stays until the code's life ends, or a stop signal comes, to remove it; it prints the plain URL, since the code is the launched browser's. `--no-browser` launches nothing, writes no redirect file and prints the URL with its code, which works once within the code's life (30 seconds), then exits. Each step (the Overseer found or started, the browser launched, the wait and its end) is reported on standard error; standard output holds only the URL. An Overseer that gives no code within 10 seconds is reported on standard error and the plain URL opened. It takes no lock and writes nothing in the board itself; an Overseer it starts writes what `oversee` writes. |
@@ -1014,9 +993,7 @@ anything. The Overseer never restarts itself.
 - An Overseer whose API does not take the command is stopped and started again detached on its port. With none live, one
   is started, on the port of an Overseer found dead, whose stop is recorded in its place.
 
-> **As built.** `--now` counts only on that fallback: [restart drops
-> `--now`](reference/known-gaps.md#gap-restart-now-dropped). The successor proves the Watcher bundle, not the Bridge: [a
-> Baton pass builds no Bridge](reference/known-gaps.md#gap-baton-pass-builds-no-bridge).
+> **As built.** `--now` counts only on that fallback. The successor proves the Watcher bundle, not the Bridge.
 
 #### `oversee status`
 
@@ -1025,8 +1002,7 @@ The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-b
 `{state, paused, url, baton, codeVersionOnDisk, codeVersionInMemory, notices, batonPassWarning}`.
 
 An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
-notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Both say to run
-`forge update`, and [Baton](architecture/baton.md) holds the rest.
+notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Both say to run `forge update`.
 
 ### Merges and worktrees
 
@@ -1060,7 +1036,7 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with the Overseer up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: the Overseer stamps its own. [What the notes hold and where they go](#question-options) is below. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
-| `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session ([as built](reference/known-gaps.md#gap-incident-answer-not-delivered)). A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
+| `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session. A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
 | `incident note <I> -- <text> [--json]` | Record a finding under the incident, logged `incident-noted`; the incident stays open. |
 | `incident escalate <I> [--json]` | Close the incident and put exactly the agent's questions to User as an `agent-question` decision on the same tickets, job and request, logged `incident-escalated`; one carrying no questions is refused `decision-without-questions`. Every move naming an incident, here or through `--incident`, is refused (`incident-move-not-allowed`, `incident-target-mismatch`) unless the incident is open, its kind's row of `ALLOWED_MOVES_BY_INCIDENT_KIND` allows the move, and a `job fresh`, `job message` or `ticket park` names the incident's own job or a ticket it lists, and marks it handled in the same hold. |
 
@@ -1108,7 +1084,7 @@ forge question options -- '{"question": "Which export format?", "options": [{"la
 |---|---|
 | `jobs [--json]` | The live jobs, one line each (id, kind and role, state, tickets, attempt, Watcher instance, a stop asked), then the Overseer (`live` with its URL, or `down`), paused or not, agents against the limit, the open decisions and incidents, and a warning line per incident that took its default since the Overseer last started. Read-only, no lock. `--json` prints `{jobs, overseer, paused, agentsInFlight, limit, openDecisions, openIncidents, defaultedIncidents}`, each defaulted one `{incidentId, move, cause, at}`. |
 | `job show <J> [--json]` | The job's record from `progress.json`, or for a finished job what its `job-launched` and `job-ended` records hold, and its job folder; an unknown job is refused. Read-only, no lock. `--json` prints `{job, jobFolder}`. |
-| `job attach <J> [--json]` | Every Watcher instance's event log in instance order through the adapter's mapper, then the newest followed while the job is on the board; it never connects to a Watcher ([why](architecture/watchers.md#protocol-1)). Read-only, no lock. `--json` prints `{jobId, lines}` of the replay and follows nothing. |
+| `job attach <J> [--json]` | Every Watcher instance's event log in instance order through the adapter's mapper, then the newest followed while the job is on the board; it never connects to a Watcher. Read-only, no lock. `--json` prints `{jobId, lines}` of the replay and follows nothing. |
 | `job message <J> [--incident <I>] -- <text> [--json]` | Record a chat turn in a hold, logged `job-messaged`, with the Overseer up or down; the Overseer writes it to the live session in log order, once; to the Assistant only at its next idle point (see [The Assistant](#the-assistant)). [Reopening and refusals](#job-message) are below. |
 | `job fresh <J> [--incident <I>] [--json]` | End the job `replaced`, holding nothing, so the next attempt starts on its worktree with the earlier-session note. `--incident` names the incident it handles; a job with no ticket is refused `job-has-no-ticket`. |
 | `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer stops its Watcher, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
@@ -1139,14 +1115,9 @@ folder with the text as its first line.
 - A stopped product owner is finished: its open decisions are withdrawn (`decision-withdrawn`), its draft tickets stay
   draft tickets, and it resumes only when User sends it a `job message`.
 
-[State machines](data-model/state-machines.md) draws the job states and the stop modes, and the [state
-explorer](interactive/state-explorer.html) walks them.
-
-> **As built.** A `job stop` does not stop a merge: [job stop misses a
-> merge](reference/known-gaps.md#gap-job-stop-misses-merge). It sends no frame to a merge agent or onboarder: [a stop of
-> a merge agent sends no frame](reference/known-gaps.md#gap-stop-of-merge-agent-sends-no-frame).
-> On POSIX, a stop reaches the groups below a job only through a live parent, so a tree whose leader died with its
-> Watcher stays unreachable: [gap-bash-group-survives-kill](reference/known-gaps.md#gap-bash-group-survives-kill).
+> **As built.** A `job stop` does not stop a merge. It sends no frame to a merge agent or onboarder. On POSIX, a stop
+> reaches the groups below a job only through a live parent, so a tree whose leader died with its Watcher stays
+> unreachable.
 
 #### `advise`
 
@@ -1159,11 +1130,9 @@ steps and gates through the `gate prepare`, `gate add` and `gate none` moves in 
 nothing. The review, constitution and agent arrays are shown, never written. The decision also names, read from git's
 index of the snapshot and so the same on every OS, what the tree cannot represent everywhere: a path part that is a
 reserved device name (`aux.c`), one Windows cannot store, paths differing only in case (`README.md`, `readme.md`) and
-symbolic links (mode 120000), one finding each; a refused pass adds them to its facts. Nothing is repaired. [Customs and
-gates](architecture/customs-and-gates.md) holds the report, the two runs and the hand-edit route.
+symbolic links (mode 120000), one finding each; a refused pass adds them to its facts. Nothing is repaired.
 
-> **As built.** An `advise` run cannot file its optimisations: [onboarder advise
-> filing](reference/known-gaps.md#gap-onboarder-advise-filing).
+> **As built.** An `advise` run cannot file its optimisations.
 
 #### `intake close`
 
@@ -1200,7 +1169,7 @@ session of the intake, a fresh one after a replacement included.
 #### `clear`
 
 - Each surviving ticket is given a fresh row seeded from its own frontmatter, with a fresh id, except a rowless ticket
-  that stays off the chart ([Ticket and row](data-model/entities.md#ticket-and-row)).
+  that stays off the chart.
 - Row ids are not reused, and every epic file is kept untouched.
 - Plain `clear` keeps `<data>/pictures/`; the next Overseer start removes every picture no log record and no live job
   names, as it does on any start. `--all` removes the folder after the hold.
@@ -1208,13 +1177,12 @@ session of the intake, a fresh one after a replacement included.
 - `--json` prints `removedTaskCount`, `removedLogCount`, `deletedTicketCount`, `deletedEpicCount` and
   `reseededTicketCount`.
 
-> **As built.** [`clear --all` reuses ticket ids](reference/known-gaps.md#gap-clear-all-reuses-ticket-ids).
+> **As built.** `clear --all` reuses ticket ids.
 
 ## Job contracts
 
 These five sections are contracts, not command groups. Each says what a job does, what shows, and which moves User or
-the [Assistant](glossary.md#assistant) has. [State machines](data-model/state-machines.md) draws the job states, and the
-[failure lab](interactive/failure-lab.html) tries the failure rows.
+the [Assistant](glossary.md#assistant) has.
 
 ### A build job
 
@@ -1224,9 +1192,7 @@ and `gating`, one state to a [Pass](glossary.md#pass). The Overseer adds `<workt
 must pass. A builder ends by reporting; it never edits its ticket file.
 
 [Customs](glossary.md#customs) verifies the report, the gates run, and when they pass the Overseer replaces the ticket's
-`## Handoff` with the report's handoff and Acceptance evidence and moves the ticket `in-review`. [Build and
-review](architecture/build-and-review.md) holds the flow, [Customs and gates](architecture/customs-and-gates.md) the
-checks and how each refusal routes, and [Confinement](architecture/confinement.md) what a session may reach.
+`## Handoff` with the report's handoff and Acceptance evidence and moves the ticket `in-review`.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
@@ -1258,8 +1224,7 @@ The merged tree is gated, unless it is the branch's own tree and that tree last 
 compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of kind `integrated` and
 moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
 
-`merges` shows the queue. [Airlocks and groups](architecture/airlocks-and-groups.md) holds the order, the phases,
-refresh and release.
+`merges` shows the queue.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
@@ -1301,7 +1266,7 @@ a gated build queues to merge at once and lands on its gates alone.
 A review job starts a [review bar](glossary.md#review-bar), reuses the ticket's worktree, and moves through the same
 states as a build job. Once verified and gated, the Overseer counts the rework, commits
 `Review round <n> of #<id>: no changes` when the reviewer committed nothing, appends `## Review <n>` and takes the
-[round verdict](glossary.md#round-verdict). [Build and review](architecture/build-and-review.md) holds the rules.
+[round verdict](glossary.md#round-verdict).
 
 Before the reviewer starts, the review job brings the branch up to its target. Once the install line passed, the
 Overseer reads the target's tip and checks that the branch holds it. A branch that holds it starts its reviewer with no
@@ -1325,7 +1290,7 @@ is merged in by the Airlock.
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
 | reworked over `REWORK_ROUND_THRESHOLD_LINES` (750) and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
-| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling ([as built](reference/known-gaps.md#gap-waiver-answer-has-no-effect)) |
+| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target |
 
 Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
@@ -1347,15 +1312,13 @@ resumed, with no off switch. It receives open [incidents](glossary.md#incident) 
 through its Hatch. An incident it leaves takes its default when its chat turn closes.
 
 User reads and talks to it with `incidents`, `job message <J>`, `incident note`, and the Assistant tab. `job message` is
-written at its next idle point. [The Assistant](architecture/assistant-and-intake.md#the-assistant) holds its turns,
-bounds and replacement, and [Questions and incidents](architecture/questions-and-incidents.md) the incident table.
+written at its next idle point.
 
 ### Under a job: the Hatch
 
 A session the Overseer launched cannot write the data folder; its Hatch folder is its one way to change the board. It
 counts as under a job with both `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY` set ([Environment
-variables](#environment-variables)). [Control and Hatch](architecture/control-and-hatch.md) holds the contract, the
-[Bouncer](glossary.md#bouncer)'s rules and how a request is applied.
+variables](#environment-variables)).
 
 - **Direct:** `help`, `status`, `usage`, `review-stats`, `ticket show|list`, `epic show|list`, `draft show|list`,
   `hook bash-domains`, `hook session-start`, `version`, `oversee status`, `decisions`, `incidents`, `merges`, `jobs`,
@@ -1371,7 +1334,7 @@ variables](#environment-variables)). [Control and Hatch](architecture/control-an
 - **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
 
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
-> terminal: [a refused relayed command](reference/known-gaps.md#gap-refused-relayed-command-partial).
+> terminal.
 
 **Findings.** A builder's, reviewer's or merge-gate fixer's finding is that relayed low ticket. The Overseer puts the
 tickets of the filing job (the finders) in its `dependsOn` and, when a finder has a group, the finding in that group;
@@ -1437,12 +1400,12 @@ Check the code rather than the wording.
 
 A ticket's body ends with a [Handoff](glossary.md#handoff) section. Under the Overseer it is code's: written from the
 builder's verified report once its gate passes. The review round and whoever picks the work up next read it instead of
-re-deriving it from the diff. [Build and review](architecture/build-and-review.md) holds that step.
+re-deriving it from the diff.
 
 Every row carries a token count, shown beside the bar. The Overseer credits a job's tokens to its tickets' rows when it
 ends, logging one `agent-stopped` record; `GET /api/state` carries a running job's figure. `--tokens` on a task or
 ticket move replaces the figure. A row without a figure (`null`) is not a row that cost nothing; it is a row nobody
-measured. [Token crediting](architecture/roles-and-launch.md) holds the arithmetic.
+measured.
 
 ## The dashboard
 
@@ -1452,8 +1415,7 @@ controls, pills and routines are in [Running a board](operations/running-a-board
 
 ## Files on disk
 
-This section holds the stored formats. [The on-disk atlas](data-model/on-disk-atlas.md) names every path, its writer and
-its lifetime, and [Storage](data-model/storage.md) says how a write commits.
+This section holds the stored formats.
 
 A mutating command writes in the [order under Conventions](#conventions), under one lock hold. Before the first file it
 writes `hold-journal.json` with the contents of every file it changes, and removes the journal after the last. Every
@@ -1585,9 +1547,6 @@ The board's state. The example shows the shape; the tables below give each key's
 | `overseerFirstStartedAt` | yes | The Overseer's first start on this board, kept by `clear`. |
 | `tasks` | no | The rows. |
 
-Job states are drawn in [State machines](data-model/state-machines.md), and the [state
-explorer](interactive/state-explorer.html) walks them.
-
 <details>
 <summary>A job's keys</summary>
 
@@ -1710,8 +1669,7 @@ lives in [`pipeline.json`](#datapipelinejson).
 ### `<data>/pipeline.json`
 
 The board's gate pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs write it
-through the lock. [The pipeline](architecture/customs-and-gates.md) says what it means, what `review`, `constitution`
-and `agents` change, and how to edit those three by hand.
+through the lock.
 
 ```json
 {
@@ -1995,7 +1953,7 @@ Every command that takes the lock first finishes a journal it finds, rewriting o
 removes it. A journal that cannot be read, another `version`, or an entry breaking these rules stops every write at exit
 2 until it is repaired or removed; `status`, which takes no lock, reports it on standard error and replays nothing. A
 journal that cannot be removed fails that command at exit 2 with `hold-journal-unremovable`, and the next command
-replays it. [The hold journal](data-model/storage.md#the-hold-journal) holds the mechanics.
+replays it.
 
 ### `<data>/version.json`
 

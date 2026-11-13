@@ -18,7 +18,7 @@ ticket. A live page, the [Bridge](docs/glossary.md#bridge), shows the whole [boa
 the moves of User, the person running the board.
 
 forge grew out of `agent-progress` and is now a project of its own. It installs side by side with the released
-`agent-progress`, sharing none of its files. [Porting](docs/development/porting.md) says what carried over.
+`agent-progress`, sharing none of its files.
 
 The promise, in three lines:
 
@@ -119,14 +119,14 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 | One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.forge-worktrees/` | ignored |
 
 > **As built.** A landed ticket's worktree stays in that folder. See
-> [the known gap](docs/reference/known-gaps.md#gap-landed-worktrees-stay).
+> the known gap.
 
 `init` adds nothing to `CLAUDE.md`, and it [refuses](docs/reference/refusals.md) a repository the released program
 already tracks.
 
 Outside the repository, the setup script links the program with `bun link` and points the forge checkout's git hooks at
 `.githooks/`, and each tracker registers in `~/.forge-monitor/`.
-[The on-disk atlas](docs/data-model/on-disk-atlas.md) maps every path.
+The on-disk atlas maps every path.
 
 ## Quickstart
 
@@ -202,8 +202,9 @@ The program is TypeScript on Bun, with three runtime dependencies: `marked`, `re
 ## Where next
 
 1. **[The documentation index](docs/README.md)** first. It has the symptom shortcuts for when something is wrong now.
-2. **The hour path** in that index, from [the overview](docs/concepts/overview.md) to the failure lab, explains the
-   system with no code.
+2. **[The overview](docs/concepts/overview.md)** explains the system with no code, and
+   **[getting started](docs/operations/getting-started.md)** runs a first board. The
+   **[glossary](docs/glossary.md)** defines each term.
 3. **[The CLI reference](docs/cli.md)** holds every command, flag, exit code and stored format.
 4. **[Contributing](docs/development/contributing.md)** gets a change past the checks.
 

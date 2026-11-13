@@ -3,15 +3,12 @@
 > **Question:** What does the Overseer serve, to whom, and how does a client stay in step?
 > **Time:** 15 minutes, or look one route up.
 > **Read first:** [Overview](../concepts/overview.md), [Glossary](../glossary.md).
-> **Next:** [The Bridge](../architecture/bridge.md), [Control](../architecture/control-and-hatch.md),
-> [Watchers](../architecture/watchers.md).
 
 ## In one screen
 
 Each [board](../glossary.md#board) has one [Overseer](../glossary.md#overseer), and it serves one HTTP API on
 `127.0.0.1`. Its clients are the [Bridge](../glossary.md#bridge), the CLI and agent-dashboard, a separate program that
-lists boards and frames the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id, see
-[Watchers](../architecture/watchers.md).
+lists boards and frames the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id.
 
 ![The User works in the Bridge, which posts commands to the Overseer server and receives server-sent events. Most CLI verbs write the board files themselves and then nudge the server; a few post a command or read the state. agent-dashboard reads with GET. The server answers by reading board files, job event logs and agent transcripts, and takes no lock to read.](../figures/overseer-api/api-at-a-glance.png)
 
@@ -26,7 +23,7 @@ an older generation's state. The [generation](../glossary.md#generation) in an e
 [code version](../glossary.md#code-version) decides, separately, whether the page reloads.
 
 Request guards stop a browser page of another origin. They are not what holds an agent
-[session](../glossary.md#session): that is [confinement](../architecture/confinement.md).
+[session](../glossary.md#session): that is confinement.
 
 ## Routes
 
@@ -122,7 +119,7 @@ hand.
 *Notice that a stale token costs the Bridge one 401 and nothing else.*
 
 > **Careful.** A process of the same user can read the token file, and so can ask for a code. A session cannot, because
-> its profile denies the file and limits its network: see [Confinement](../architecture/confinement.md). The figures
+> its profile denies the file and limits its network. The figures
 > above still show the older `Sec-Fetch-Site` guard on `/api/session-token` and token-free read routes.
 
 ## Serving the page
@@ -150,12 +147,12 @@ Changed Bridge code reaches the browser only through an Overseer on that code, s
 server.
 
 > **As built.** A [Baton pass](../glossary.md#baton-pass) does not build the page, so a broken Bridge passes it and
-> fails only on the next `GET /`, see [gap-baton-pass-builds-no-bridge](known-gaps.md#gap-baton-pass-builds-no-bridge).
+> fails only on the next `GET /`.
 
 ## Commands
 
 `POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 47 kinds at commit
-029f32c9. What each does is in [Control](../architecture/control-and-hatch.md).
+029f32c9.
 
 ![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/overseer-api/command-route.png)
 
@@ -167,22 +164,20 @@ server.
 | 400 | `{refusal: 'malformed-body'}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized'}` | No token, a wrong one, or no token written yet. |
 | 409 | `{refusal: <sentence>}` | The write was refused. The sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{refusal: <sentence>}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs, see [Baton](../architecture/baton.md). |
+| 423 | `{refusal: <sentence>}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
 text. It is never a failure: a refusal has its own status.
 
 `overseer-stop` and `overseer-restart` are the two runtime commands, `{kind, now}`. `now` is the `--now` flag of
-`oversee stop` and `oversee restart`; its effect is in [Baton](../architecture/baton.md). They write nothing to the
+`oversee stop` and `oversee restart`. They write nothing to the
 board and go to the running Overseer, so they are taken during the install hold, and they answer 200
 `{outcome: 'done', result: {kind}}` before the work happens. A 200 here means received. `oversee stop` and
 `oversee restart` then wait on the Baton files for the result.
 
-> **As built.** The `now` of a restart goes nowhere, and a stop arriving during a Baton pass is answered and dropped,
-> see [gap-restart-now-dropped](known-gaps.md#gap-restart-now-dropped) and
-> [gap-stop-dropped-during-baton-pass](known-gaps.md#gap-stop-dropped-during-baton-pass). The install hold refuses a job
-> stop too, see [gap-job-stop-while-install-held](known-gaps.md#gap-job-stop-while-install-held).
+> **As built.** The `now` of a restart goes nowhere, and a stop arriving during a Baton pass is answered and dropped.
+> The install hold refuses a job stop too.
 
 `CommandClient` in `bridge/api/` is the reference client. Its `SessionTokenSource` posts once, on a 401 clears its
 token, fetches another and posts once more, because an Overseer start rotates the token. `PictureUploadClient` posts a
@@ -239,8 +234,7 @@ The stream also carries `: ping` every `SSE_HEARTBEAT_SECONDS` (5), and Bun's id
 streaming routes. On stop the server closes every open stream, then stops gracefully, so the answer to an
 `overseer-stop` still arrives.
 
-> **As built.** Each `board` carries every [ticket](../glossary.md#ticket) body and the whole question history, see
-> [gap-scaling-whole-log-and-bodies](known-gaps.md#gap-scaling-whole-log-and-bodies).
+> **As built.** Each `board` carries every [ticket](../glossary.md#ticket) body and the whole question history.
 
 ## Reconnecting
 
@@ -274,8 +268,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 > page keeps its code without another try. Only a 503 `starting` is asked again, up to ten times half a second apart,
 > so a page opened while the Overseer starts still reads its identity.
 
-> **As built.** The connection state flickers on the client's reopen path, see
-> [gap-stream-down-flicker](known-gaps.md#gap-stream-down-flicker).
+> **As built.** The connection state flickers on the client's reopen path.
 
 ## BoardState
 
@@ -302,7 +295,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `decisions`, `incidents` | The Board | The open ones. Replaces the status document's. An option of an `agent-question` decision carries `touches`, `tradeOff` and `acceptanceEffect` only where the asking agent noted them with `question options`. |
 | `notices` | The Pass's own state | The current [notices](../glossary.md#notice), held in memory |
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
-| `overseer` | `OverseerForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `batonPassWarning`, and `paused` from the Board. States are in [State machines](../data-model/state-machines.md). |
+| `overseer` | `OverseerForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `batonPassWarning`, and `paused` from the Board. |
 | `usage` | The [usage marker](../glossary.md#usage-marker) | `{resetsAt, window}`, both `null` when no limit was hit |
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant) or [product owner](../glossary.md#product-owner) job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
@@ -330,8 +323,6 @@ a view shows escaped, so a quoted Wanted or Brief never reaches the page as mark
 <details>
 <summary><code>mergeQueue</code> field by field</summary>
 
-The order and what it means are in [Airlocks and groups](../architecture/airlocks-and-groups.md).
-
 | Field | Holds |
 | --- | --- |
 | `queuedTicketIds` | In-review tickets queued for a merge, in board order |
@@ -349,7 +340,7 @@ Forecasts are git work done during a read. `createMergeForecastCache` keeps a ta
 candidate's tip stay put, and never keeps a failed prediction.
 
 > **As built.** No `target-moved` decision opens, and one that did would name no ticket, so `targetMovedDecisionIds`
-> matches nothing, see [gap-dead-code-and-unused-states](known-gaps.md#gap-dead-code-and-unused-states).
+> matches nothing.
 
 </details>
 
@@ -397,7 +388,7 @@ subagent. A malformed log adds nothing and does not fail the state.
 | `subagents[]` | `{parentToolUseId, toolCalls, lastToolCall, tokens, state, description}`, one per parent call. `state` is `running` while the event log holds the parent call with no result, else `ended`, so a rebuilt subagent whose parent call the log lost reads `ended`. `description` is the parent call's `description` input, or for a rebuilt subagent the one its `.meta.json` names; `null` without one. | Event logs, transcripts |
 | `toolCallsWithSubagents` | `toolCalls` plus every subagent's | Both |
 | `watcherProtocol` | The protocol the newest instance's Watcher record names; `null` before it wrote one | Watcher record |
-| `watchOnly` | True for a Watcher below the [supported window](../architecture/watchers.md), watched through its files alone | Watcher record |
+| `watchOnly` | True for a Watcher below the supported window, watched through its files alone | Watcher record |
 | `turn` | `mid-turn` while the newest Watcher instance took more chat lines than its session printed results, else `between-turns`: whether a message sent now waits behind a turn. An answer line starts no turn. The Assistant's is its idle rule (`AssistantSession.assistantIsIdle`), the one its deliveries wait on, so a chat decided on the board makes it `mid-turn` before its line is written. `null` for a merge or refresh job and before the first Watcher logged a line. | Event logs, the Assistant's chats |
 | `messagesWaiting` | The job's `job-messaged` records its session has not taken yet: those without the `message-<n>` marker `JobControlDelivery` writes once the Watcher took the line; for the Assistant, those whose chat is not written or not taken (`AssistantSession.unsentMessageCountOf`) | The log, delivery markers |
 | `lastLine` | For an Assistant or product-owner job: `{role, text, at}` of the newest entry with text that the session itself wrote (`assistant`, no subagent's) or that User sent as a chat (`user`), read as [the transcript stream](#the-transcript-stream) reads it. The Overseer's lines never count. `null` for every other job, and before the session said anything. | Event logs, the log |
@@ -420,11 +411,9 @@ The stamps, `startedAt`, `lastLine.at`, a job's `launchedAt` and the transcript 
 shown: no Overseer decision reads them.
 
 > **As built.** A subagent with no `.meta.json` cannot be matched, so if the log also holds it, it counts twice in
-> `tokens`, `subagents` and `toolCallsWithSubagents`, see
-> [gap-unmatched-subagent-counted-twice](known-gaps.md#gap-unmatched-subagent-counted-twice).
+> `tokens`, `subagents` and `toolCallsWithSubagents`.
 
-> **As built.** A worker profile's `subagents` field is a separate thing, always empty, see
-> [gap-subagents-always-empty](known-gaps.md#gap-subagents-always-empty).
+> **As built.** A worker profile's `subagents` field is a separate thing, always empty.
 
 ## The transcript stream
 
@@ -492,7 +481,7 @@ follows the selected session alone and reads every other session's last line fro
 ## The agent-dashboard contract
 
 agent-dashboard is a separate program outside this repository that lists boards and frames the Bridge. Four things bind
-it to this API. [Porting](../development/porting.md#the-agent-dashboard-contract) says what a port keeps of each.
+it to this API.
 
 ![The dashboard's server finds a board's url in the registry the Overseer writes, then reads GET /api/summary. The dashboard's page gets 403 from the API, but may frame the Bridge, because the Overseer's frame-ancestors names the origins in the dashboard's server.json. Across the frame, theme messages go in and Esc comes out.](../figures/overseer-api/dashboard-contract.png)
 

@@ -406,9 +406,8 @@ src/testing/         test-only helpers several parts use
 skills/              the two skills, one folder each, named after the skill: agent-po/, PO intake, which a
                      session asked to file a ticket and an Overseer's product-owner job load, and
                      agent-progress-orchestrate/, the interactive wrapper around a running Overseer
-docs/                the documentation set, indexed by docs/README.md: the CLI reference, glossary, concepts, data
-                     model, architecture, operations, reference, development, interactive pages, figures, README
-                     images, and the backlog
+docs/                the documentation set, indexed by docs/README.md: the CLI reference, glossary, concepts,
+                     operations, reference, development, figures, README images, and the backlog
 .readme-graphics/    the scripts and demo board that retake the README images; its build/ is git-ignored
 .platform-probes/    small Bun scripts that each answer one unknown about an OS or the Claude host on a real machine;
                      its results/ is git-ignored, and no result gates a ticket

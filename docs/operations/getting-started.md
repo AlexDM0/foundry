@@ -88,8 +88,7 @@ when they start, so it must be on your `PATH`.
 | Empty `command -v` | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
 After a `git pull`, run `./setup.sh` in your forge clone, then `forge update` in each tracked
-repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
-[CLI and install](../architecture/cli-and-install.md).
+repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there.
 
 ## Adopt a repository
 
@@ -121,8 +120,6 @@ holds the block, and the header shows a notice saying so.
 `init` is refused in a repository the released program tracks. If `.agent-progress/` exists at the root, it exits 1 and
 says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
 cannot adopt that repository: run `forge` in one without that folder.
-
-Every path above and its lifetime is in the [on-disk atlas](../data-model/on-disk-atlas.md).
 
 ## Start the Overseer
 
@@ -176,8 +173,7 @@ The [Next line](../glossary.md#next-line) under `status` says so too: it ends `O
 
 A board builds nothing until it has a pipeline, which names the commands that judge a commit. Any stored pipeline, even
 an empty one, lets work start. The Overseer flags the gap with `checks-not-set` in the Questions tab, a generic line
-with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands. What
-a gate means is in [Customs and gates](../architecture/customs-and-gates.md).
+with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands.
 
 ![The checks-not-set decision is open, and three routes store a pipeline: accept the onboarder's proposal, gate add with gate prepare, or gate none. All reach one state, and the decision stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass reopen it, and a fresh onboarder follows unless the board is paused or held.](../figures/getting-started/settling-gates.png)
 
@@ -200,7 +196,7 @@ next Pass reopens the decision.
 
 **Set them yourself.** A gate is any shell line: its exit code is the verdict, so the program needs no knowledge of your
 stack. A gate runs confined: no network unless `--network` names a domain, and writes only to its worktree, its git
-admin folder and temp, plus `--writes` folders. See [Confinement](../architecture/confinement.md). A prepare step sets a
+admin folder and temp, plus `--writes` folders. A prepare step sets a
 fresh worktree up before the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run
 before fixing by hand; the Overseer never runs it. For Example Storefront, with its own scripts:
 
@@ -228,8 +224,7 @@ counts that as set.
 
 > **Careful.** No route sets a [reviewer](../glossary.md#reviewer): tickets go from gates straight to the merge. No
 > `gate` verb writes the pipeline's `review` key and accepting a proposal does not either. To add review, write the
-> `review` key into `<data>/pipeline.json`; its format is in the [CLI reference](../cli.md) and its effect in
-> [Customs and gates](../architecture/customs-and-gates.md).
+> `review` key into `<data>/pipeline.json`; its format is in the [CLI reference](../cli.md).
 
 ## File the first work
 
@@ -279,8 +274,7 @@ forge ticket ready <id>
 ```
 
 Expect `Ticket #<id> ready to build`, then a `Next` line naming it as ready. With no `--body-file`, the default ticket
-body lacks `## Brief`, so `ticket ready` refuses it `brief-missing`. See
-[gap-ticket-body-template](../reference/known-gaps.md#gap-ticket-body-template). The body format is in the
+body lacks `## Brief`, so `ticket ready` refuses it `brief-missing`. The body format is in the
 [CLI reference](../cli.md).
 
 ## Watch it run
@@ -334,8 +328,7 @@ out and back in.
 A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores
 your clone's path and your current `PATH`, so write it again if either changes.
 
-The item starts the Overseer once. It does not restart one that dies. See
-[gap-login-item-no-keepalive](../reference/known-gaps.md#gap-login-item-no-keepalive).
+The item starts the Overseer once. It does not restart one that dies.
 
 ## Did it work?
 
