@@ -505,6 +505,13 @@ test.each<[BoardRefusalDetail, string]>([
   ],
   [
     {
+      reason: 'constitution-source-not-ticked', lineText: '- Keep it small.', occurrence: 1, kind: 'installed-default'
+    },
+    'A source names the line "- Keep it small." (occurrence 1) as installed-default, and the SOURCES ticks of the setup do not select '
+      + 'installed-default. Nothing was written. Name only the sources the ticks select.',
+  ],
+  [
+    {
       reason: 'constitution-draft-stale', setupId: 'S1', revision: 1, currentRevision: 2
     },
     'The constitution of pipeline setup S1 is at revision 2, not 1: it changed since it was read. Nothing was written. Read it again, then edit.',

@@ -47,21 +47,21 @@ function openSetupOf(board: Board): Readonly<PipelineSetup> {
 
 function boardAtDesign(): { board: Board; setupId: string } {
   const opened = openedBoard();
-  for (const step of ['billing', 'research', 'constitution'] as const) opened.board.continueSetupStep(opened.setupId, step, AT);
+  for (const step of ['research', 'constitution'] as const) opened.board.continueSetupStep(opened.setupId, step, AT);
   return opened;
 }
 
 describe('opening a record', () => {
-  test('a first setup starts at billing with nothing else started, and its id is never reused', () => {
+  test('a first setup opens at the research with the billing it was started with done, and its id is never reused', () => {
     const { board, progress } = boardFixture();
 
     const { setup, logged } = board.openSetup(FIRST_SETUP, AT);
 
     expect(setup.setupId).toBe('S1');
     expect(setup.stepStates).toEqual({
-      billing: 'in-progress', research: 'not-started', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+      billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
     });
-    expect(setup.currentStep).toBe('billing');
+    expect(setup.currentStep).toBe('research');
     expect([setup.constitution, setup.draft, setup.baseContentHash]).toEqual([null, null, null]);
     expect(logged).toEqual([{
       at: AT, kind: 'pipeline-setup-opened', setupId: 'S1', fields: { mode: 'setup', replacesUnreadablePipeline: false }
@@ -170,19 +170,19 @@ describe('the steps', () => {
   test('Continue sets the current step done and opens the next one', () => {
     const { board, setupId } = openedBoard();
 
-    const { setup, logged } = board.continueSetupStep(setupId, 'billing', AT);
+    const { setup, logged } = board.continueSetupStep(setupId, 'research', AT);
 
-    expect([setup.stepStates.billing, setup.stepStates.research, setup.currentStep]).toEqual(['done', 'in-progress', 'research']);
+    expect([setup.stepStates.research, setup.stepStates.constitution, setup.currentStep]).toEqual(['done', 'in-progress', 'constitution']);
     expect(logged.map((record) => record.fields)).toEqual([{
-      step: 'billing', state: 'done', currentStep: 'research', needsRecheck: []
+      step: 'research', state: 'done', currentStep: 'constitution', needsRecheck: []
     }]);
   });
 
   test('Continue refuses a step that is not current, and the Apply step', () => {
     const { board, setupId } = openedBoard();
 
-    expect(refusalDetailOf(() => board.continueSetupStep(setupId, 'research', AT))).toEqual({
-      reason: 'setup-step-not-current', setupId, step: 'research', currentStep: 'billing'
+    expect(refusalDetailOf(() => board.continueSetupStep(setupId, 'constitution', AT))).toEqual({
+      reason: 'setup-step-not-current', setupId, step: 'constitution', currentStep: 'research'
     });
     expect(refusalDetailOf(() => board.continueSetupStep(setupId, 'apply', AT))).toEqual({ reason: 'setup-step-not-continued', setupId, step: 'apply' });
   });
@@ -260,7 +260,6 @@ describe('the steps', () => {
 
   test('a resume moves the snapshot and asks for a recheck of research and of each finding naming a changed path', () => {
     const { board, setupId } = openedBoard();
-    board.continueSetupStep(setupId, 'billing', AT);
     board.recordFinding(setupId, {
       topic: 'scripts', label: 'Tests', value: 'bun test', sourcePaths: ['package.json'], script: null
     }, AT);
@@ -345,6 +344,25 @@ describe('the constitution', () => {
         lineText, occurrence, kind: 'research', path: null
       }]
     }, AT))).toEqual({ reason: 'constitution-source-unanchored', lineText, occurrence });
+  });
+
+  test('a source of a kind the SOURCES ticks do not select refuses constitution-source-not-ticked, and a ticked kind is kept', () => {
+    const { board, setupId } = openedBoard();
+    const installedDefault = {
+      lineText: '- Name things in full.', occurrence: 1, kind: 'installed-default', path: null
+    } as const;
+
+    expect(refusalDetailOf(() => board.setConstitution(setupId, { markdown: CONSTITUTION_TEXT, annotations: [installedDefault] }, AT))).toEqual({
+      reason: 'constitution-source-not-ticked', lineText: installedDefault.lineText, occurrence: 1, kind: 'installed-default'
+    });
+    expect(board.pipelineSetup()?.constitution).toBeNull();
+
+    board.editConstitution(setupId, { revision: 0, draftedFrom: { contributing: false, research: false, installedDefault: true } }, AT);
+    board.setConstitution(setupId, { markdown: CONSTITUTION_TEXT, annotations: [installedDefault] }, AT);
+    expect(board.pipelineSetup()?.constitution?.annotations).toEqual([installedDefault]);
+    const research = { ...installedDefault, kind: 'research' } as const;
+    expect(refusalDetailOf(() => board.setConstitution(setupId, { markdown: CONSTITUTION_TEXT, annotations: [research] }, AT)))
+      .toMatchObject({ reason: 'constitution-source-not-ticked', kind: 'research' });
   });
 
   test('two sources on one line, an empty text and an overlong one are refused', () => {

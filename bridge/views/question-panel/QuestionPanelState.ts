@@ -1,7 +1,8 @@
 /**
  * The question panel's open state, which the shell keeps: the decision User pointed it at, whether User opened it, and the decisions open
  * when User last folded it, kept per board in the `question-panel` preference so a reload keeps the fold. Fold to the tab and × both fold
- * it and forget the pointed decision, so a decision opened after the fold shows the panel again at that new decision.
+ * it and forget the pointed decision, so a decision opened after the fold shows the panel again at that new decision. A quiet decision
+ * counts as folded: it never opens the panel by itself, and User still opens the panel at it.
  */
 import { useCallback, useMemo, useState } from 'react';
 
@@ -32,10 +33,13 @@ interface UserChoice {
 
 const NOTHING_CHOSEN: UserChoice = { pointedDecisionId: null, openedByUser: false };
 
-export function useQuestionPanelState(boardStore: PreferenceStore | null, queue: readonly OpenDecision[]): QuestionPanelState {
+export function useQuestionPanelState(boardStore: PreferenceStore | null, queue: readonly OpenDecision[], quietDecisionIds: readonly string[]): QuestionPanelState {
   const [choice, setChoice] = useState<UserChoice>(NOTHING_CHOSEN);
   const [foldedNow, setFoldedNow] = useState<readonly string[] | null>(null);
-  const foldedDecisionIds = useMemo(() => foldedNow ?? boardStore?.readTextList(QUESTION_PANEL_CHOICE_NAME) ?? [], [foldedNow, boardStore]);
+  const foldedDecisionIds = useMemo(
+    () => [...(foldedNow ?? boardStore?.readTextList(QUESTION_PANEL_CHOICE_NAME) ?? []), ...quietDecisionIds],
+    [foldedNow, boardStore, quietDecisionIds],
+  );
   // Until the board's identity names its store, a stored fold cannot be read, so the panel waits rather than flashing open.
   const isShown = boardStore !== null && QuestionPanelModel.panelIsShownOf(queue, foldedDecisionIds, choice.openedByUser);
   const shownDecision = isShown ? QuestionPanelModel.shownDecisionOf(queue, choice.pointedDecisionId, foldedDecisionIds) : null;

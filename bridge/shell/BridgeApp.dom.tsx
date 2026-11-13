@@ -3,11 +3,12 @@
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
- * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
- * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
- * behind a routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a
- * view that throws leaves the error banner, not a blank page. A board with no readable pipeline shows the Pipeline tab alone, routes there
- * even from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
+ * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that tab,
+ * the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides behind a
+ * routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a view
+ * that throws leaves the error banner, not a blank page. The board's no-pipeline question never covers the setup by itself. A board with
+ * no readable pipeline shows the Pipeline tab alone, routes there even from a stored Kanban, and its header is in setup; a board with one
+ * shows Pipeline last and routes `#pipeline` to the view.
  */
 import {
   act,
@@ -584,6 +585,30 @@ describe('the question panel', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
     expect(questionPanel()).toBeNull();
+  });
+
+  test('the no-pipeline question never covers the setup by itself, and covers a board that has a pipeline like any question', async () => {
+    const checksNotSet = {
+      ...DARK_MODE_QUESTION, id: 'E1', kind: 'checks-not-set', ticketIds: [], jobId: null, askedBy: 'overseer'
+    };
+    const checksNotSetPanel = (): HTMLElement | null => screen.queryByRole('complementary', { name: 'Question E1 from Overseer' });
+    const bridge = fakeBridge();
+    await renderedLive(bridge, {
+      ...BOARD, pipeline: pipelineBoardStateOf('A0').pipeline, pipelineSetup: null, decisions: [checksNotSet], questionHistory: []
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('region', { name: 'Set up the pipeline' })).toBeDefined();
+    expect(checksNotSetPanel()).toBeNull();
+
+    await act(async () => {
+      bridge.stream().onEvent('board', {
+        ...BOARD, pipeline: pipelineBoardStateOf('A5').pipeline, pipelineSetup: null, decisions: [checksNotSet], questionHistory: []
+      });
+      await Promise.resolve();
+    });
+    expect(checksNotSetPanel()).not.toBeNull();
   });
 
   test('Fold to the tab hides the panel, the Questions tab keeps its count, and the fold is stored for this board', async () => {

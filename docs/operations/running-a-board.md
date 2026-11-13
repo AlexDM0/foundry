@@ -44,7 +44,9 @@ bare `#pipeline` shows the resume summary instead: each step with its status and
 the open questions and the pipeline agent's job on the current step, a note when main moved since the research,
 **Resume <step>** (`pipeline-setup-resume`) and **Start over**, which asks first (`pipeline-setup-start-over`). The
 billing step reopened from the stepper saves a change with `pipeline-setup-billing` and offers **Back to <step>** in
-place of a second start.
+place of a second start, or **Continue to research** while the record still stands at billing. The decision
+`checks-not-set` never opens the question panel over the setup by itself while no pipeline can be read; it waits in
+Questions, and Apply withdraws it.
 
 The research step (`#pipeline/setup/research`) shows what the pipeline agent finds as it finds it: the stack, the
 conventions and the scripts, each with the files it came from. A script that needs a network or a service is marked

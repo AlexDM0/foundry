@@ -132,7 +132,6 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hatch-applied","jobId":"J1","fields":{"requestId":"request-5","commandKind":"ticket-add","outcome":"done"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-opened","setupId":"S1","fields":{"mode":"setup","replacesUnreadablePipeline":false}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-billing-set","setupId":"S1","fields":{"mode":"api","maxBudgetUsd":5}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-step-moved","setupId":"S1","fields":{"step":"billing","state":"done","currentStep":"research","needsRecheck":[]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-finding-recorded","setupId":"S1","fields":{"findingId":"F1","topic":"scripts"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-asked","setupId":"S1","fields":{"questionId":"Q1","step":"research"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-question-answered","setupId":"S1","fields":{"questionId":"Q1","answer":"a"}}',
@@ -140,6 +139,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-step-ready-suggested","setupId":"S1","fields":{"step":"research"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-resumed","setupId":"S1","fields":{"snapshotCommit":"e5f60718293a4b5c6d7e8f9012345678901234ab",'
     + '"changedPaths":["package.json"]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-step-moved","setupId":"S1","fields":{"step":"research","state":"done","currentStep":"constitution","needsRecheck":[]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-constitution-set","setupId":"S1","fields":{"by":"agent","revision":1}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-draft-edited","setupId":"S1","fields":{"by":"agent","revision":1,"editIds":["E1","E2"],'
     + '"fields":["review","gate:tests"]}}',

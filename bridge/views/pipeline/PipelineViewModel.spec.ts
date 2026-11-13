@@ -39,6 +39,10 @@ describe('the screen the facts and the route pick', () => {
     expect(screenOf(state, pipelineRoute('setup/design'))).toEqual({ screen: 'setup-step', step: 'design' });
   });
 
+  test('the record a start opens is at the research, so the start\'s route to the research shows that step', () => {
+    expect(screenOf(pipelineBoardStateOf('A1'), pipelineRoute('setup/research'))).toEqual({ screen: 'setup-step', step: 'research' });
+  });
+
   test('a step the record has not reached, or no step at all, falls back to the resume summary', () => {
     const state = pipelineBoardStateOf('A0b-recheck');
     expect(screenOf(state, pipelineRoute('setup/apply'))).toEqual({ screen: 'setup-resume' });

@@ -42,7 +42,7 @@ import type { ProfileLogFollower }                                              
 import { ProgressModel }                                                                 from '../views/progress/ProgressModel.ts';
 import { ProgressView }                                                                  from '../views/progress/ProgressView.tsx';
 import { QuestionPanel }                                                                 from '../views/question-panel/QuestionPanel.tsx';
-import type { QuestionPanelBoard }                                                       from '../views/question-panel/QuestionPanelModel.ts';
+import { QuestionPanelModel, type QuestionPanelBoard }                                   from '../views/question-panel/QuestionPanelModel.ts';
 import { useQuestionPanelState }                                                         from '../views/question-panel/QuestionPanelState.ts';
 import { QuestionAlerts, type QuestionNotifier }                                         from '../views/questions/QuestionAlerts.ts';
 import { QuestionsView }                                                                 from '../views/questions/QuestionsView.tsx';
@@ -149,7 +149,9 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   );
   QuestionAlerts.useOpenQuestionAlerts(conversationBoard?.decisions ?? null, services.questionNotifier);
   const questionQueue = useMemo(() => (conversationBoard === null ? [] : OpenDecisionsUtil.openDecisionsOf(conversationBoard)), [conversationBoard]);
-  const questionPanel = useQuestionPanelState(boardStore, questionQueue);
+  const pipelineReadingVerdict = boardState?.pipeline?.readingVerdict ?? null;
+  const quietDecisionIds = useMemo(() => QuestionPanelModel.decisionIdsTheSetupAnswersOf(questionQueue, pipelineReadingVerdict), [questionQueue, pipelineReadingVerdict]);
+  const questionPanel = useQuestionPanelState(boardStore, questionQueue, quietDecisionIds);
 
   useEffect(() => {
     let current = true;

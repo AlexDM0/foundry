@@ -229,7 +229,7 @@ describe('the setup facts', () => {
           needsRecheck: false,
         },
       ],
-      questions: [questionOf('Q1', null, true), questionOf('Q2', null)],
+      questions: [questionOf('Q1', null, true), questionOf('Q2', null), { ...questionOf('Q3', null, true), step: 'research' }],
       draft:     { ...FULL_PIPELINE, prepare: [{ name: 'install', run: 'bun install' }] },
       edits:     [
         {
@@ -253,7 +253,7 @@ describe('the setup facts', () => {
     }));
     expect(facts.pipelineSetup).toMatchObject({
       summary: {
-        stackItemCount: 1, scriptCount: 1, answeredQuestionCount: 1, prepareStepCount: 1, gateCountByPhase: { build: 1, review: 1, merge: 1 }, userEditsKeptCount: 1,
+        stackItemCount: 1, scriptCount: 1, answeredResearchQuestionCount: 1, prepareStepCount: 1, gateCountByPhase: { build: 1, review: 1, merge: 1 }, userEditsKeptCount: 1,
       },
       openQuestionCount:  1,
       agentJobState:      'running',

@@ -926,8 +926,18 @@ export class Board {
     return this.pipelineSetups.editConstitution(setupId, edit, at);
   }
 
+  /** The draft the edits would leave, with nothing stored; refused as `editDraft` refuses them. */
+  draftAfterEdits(setupId: string, request: DraftEditRequest): Pipeline {
+    return this.pipelineSetups.draftAfterEdits(setupId, request);
+  }
+
   editDraft(setupId: string, request: DraftEditRequest, at: string): PipelineSetupChanged {
     return this.pipelineSetups.editDraft(setupId, request, at);
+  }
+
+  /** The draft the Undo would leave, with nothing stored; refused as `undoDraftEdit` refuses it. */
+  draftAfterUndo(setupId: string, editId: string): Pipeline {
+    return this.pipelineSetups.draftAfterUndo(setupId, editId);
   }
 
   undoDraftEdit(setupId: string, editId: string, at: string): PipelineSetupChanged {
@@ -993,17 +1003,32 @@ export class Board {
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
-    return this.pipelineSetups.requestApply(setupId, requesting, at);
+    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.requestApply(setupId, requesting, at), at);
   }
 
-  /** Stage 2 of an Apply: the pipeline, the constitution's sources, the board's settings and the log, and last the record's close. */
+  /**
+   * Stage 2 of an Apply: the pipeline, the constitution's sources, the board's settings and the log, and last the record's close. The
+   * record's pipeline agent is stopped in the same hold.
+   */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
-    return this.pipelineSetups.finishApply(setupId, finishing, at);
+    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.finishApply(setupId, finishing, at), at);
   }
 
   /** At the Overseer's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
   finishHalfAppliedSetup(mainConstitution: MainConstitution | null, at: string): PipelineApplyChanged | null {
-    return this.pipelineSetups.finishHalfAppliedSetup(mainConstitution, at);
+    const finished = this.pipelineSetups.finishHalfAppliedSetup(mainConstitution, at);
+    return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, at);
+  }
+
+  /**
+   * An applied record leaves its pipeline agent nothing to serve: a live one is stopped, as a start over stops it, and the Overseer removes
+   * the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops nothing.
+   */
+  private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, at: string): PipelineApplyChanged {
+    const agentJobId = changed.outcome === 'applied' ? changed.setup?.agentJobId ?? null : null;
+    const agent      = agentJobId === null ? undefined : this.jobById(agentJobId);
+    if (agent === undefined || agent.state === 'stopping') return changed;
+    return { ...changed, logged: [...changed.logged, ...this.requestJobStop(agent.id, 'stop', at).logged] };
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {

@@ -3,8 +3,9 @@
  * payload or a missing setup is `malformed-setup-command` naming the field, with the Board untouched; a question takes two to four
  * options and exactly one recommendation unless it takes several, and never "Other"; a proposed edit outside the closed field union, or
  * one that leaves a draft the `pipeline.json` validator refuses, is refused; the constitution is stored byte for byte, and an empty,
- * overlong, unanchored or doubly sourced one, or one with a malformed source path, is refused; a ready step is a suggestion only; and only
- * the first proposal reads the snapshot's tree from git's index, each finding a note.
+ * overlong, unanchored or doubly sourced one, one with a malformed source path, or one naming a source whose SOURCES tick is off, is
+ * refused; a ready step is a suggestion only; and only the first proposal reads the snapshot's tree from git's index, each finding a note.
+ * Every refusal leaves the record and the log untouched: a relayed command shares the Overseer's hold, which a refusal does not undo.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -50,6 +51,12 @@ function apply(fixture: BoardFixture, command: ControlCommand): unknown {
   return ControlService.apply(command, changeOf(fixture), ECHOED_CONTROL_CONTEXT).result;
 }
 
+/** A relayed refusal is caught inside the Overseer's hold, which goes on to write: the Board must be as it was. */
+function expectUntouched(fixture: BoardFixture): void {
+  expect(fixture.records).toEqual([]);
+  expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });
+}
+
 function refusalDetailOf(attempt: () => unknown): unknown {
   try {
     attempt();
@@ -64,7 +71,7 @@ function refusalDetailOf(attempt: () => unknown): unknown {
 function boardAt(step: 'research' | 'design'): BoardFixture {
   const opened = boardFixture();
   apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
-  const continued = step === 'research' ? ['billing'] as const : ['billing', 'research', 'constitution'] as const;
+  const continued = step === 'research' ? [] : ['research', 'constitution'] as const;
   for (const doneStep of continued) {
     apply(opened, {
       kind: 'pipeline-setup-step', setupId: 'S1', step: doneStep, move: 'continue'
@@ -149,8 +156,10 @@ describe('a question', () => {
     ['no recommendation', question({ recommended: [] }), 'setup-question-without-recommendation'],
     ['two recommendations on a single choice', question({ recommended: ['a', 'b'] }), 'several-letters-on-single-select-setup-question'],
     ['a recommendation outside the options', question({ recommended: ['c'] }), 'unknown-setup-option-letters'],
-  ])('%s is refused %s', (_what, command, reason) => {
-    expect(refusalDetailOf(() => apply(boardAt('research'), command))).toMatchObject({ reason });
+  ])('%s is refused %s, with the Board untouched', (_what, command, reason) => {
+    const fixture = boardAt('research');
+    expect(refusalDetailOf(() => apply(fixture, command))).toMatchObject({ reason });
+    expectUntouched(fixture);
   });
 
   test('a question taking several answers may recommend several', () => {
@@ -208,12 +217,19 @@ describe('a proposal', () => {
     expect(findings.every((finding) => finding.topic === 'note' && finding.sourcePaths.length > 0 && finding.value === null)).toBe(true);
   });
 
-  test('a proposal leaving a draft the validator refuses, a gate in no phase, is refused pipeline-draft-invalid', () => {
+  test.each([
+    ['a gate in no phase', [{ field: 'gate:test', value: { name: 'test', run: 'bun test' }, summary: 'Run the unit tests.' }]],
+    ['a re-review threshold under its step', [{ field: 'review', value: { name: 'review', reReview: { thresholdLines: 30 } }, summary: 'Review again.' }]],
+  ])('a proposal leaving a draft the validator refuses, %s, is refused pipeline-draft-invalid, with the record and the log untouched', (_what, edits) => {
     const fixture = boardAt('design');
     const detail  = refusalDetailOf(() => apply(fixture, {
-      kind: 'pipeline-draft-propose', jobId: 'J4', setupId: 'S1', edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test' }, summary: 'Run the unit tests.' }]
-    }));
+      kind: 'pipeline-draft-propose', jobId: 'J4', setupId: 'S1', edits
+    } as unknown as ControlCommand));
     expect(detail).toMatchObject({ kind: 'pipeline-draft-invalid', setupId: 'S1' });
+    expectUntouched(fixture);
+    expect(fixture.board.pipelineSetup()).toMatchObject({
+      draft: null, draftRevision: 0, edits: [], nextNumbers: { edit: 1 }
+    });
   });
 });
 
@@ -234,10 +250,12 @@ describe('the constitution', () => {
     ['a line the text does not hold', constitution(CONSTITUTION_TEXT, [{ ...source, lineText: '- Keep it big.' }]), { reason: 'constitution-source-unanchored' }],
     ['a line held fewer times than named', constitution(CONSTITUTION_TEXT, [{ ...source, occurrence: 3 }]), { reason: 'constitution-source-unanchored' }],
     ['two sources on one line', constitution(CONSTITUTION_TEXT, [source, { ...source, kind: 'research' }]), { reason: 'constitution-source-repeated' }],
-  ])('%s is refused', (_what, command, detail) => {
+    ['a source the SOURCES ticks do not select', constitution(CONSTITUTION_TEXT, [{ ...source, kind: 'installed-default' }]), { reason: 'constitution-source-not-ticked' }],
+  ])('%s is refused, with the Board untouched', (_what, command, detail) => {
     const fixture = boardAt('design');
     expect(refusalDetailOf(() => apply(fixture, command))).toMatchObject(detail);
     expect(fixture.board.pipelineSetup()?.constitution).toBeNull();
+    expectUntouched(fixture);
   });
 });
 
@@ -255,11 +273,13 @@ describe('a ready step', () => {
     expect(fixture.records.map((record) => record.kind)).toEqual(['pipeline-step-ready-suggested']);
   });
 
-  test('a step that is not the current one is refused setup-step-not-current', () => {
-    expect(refusalDetailOf(() => apply(boardAt('research'), {
+  test('a step that is not the current one is refused setup-step-not-current, with the Board untouched', () => {
+    const fixture = boardAt('research');
+    expect(refusalDetailOf(() => apply(fixture, {
       kind: 'pipeline-step-ready', jobId: 'J4', setupId: 'S1', step: 'design'
     }))).toEqual({
       reason: 'setup-step-not-current', setupId: 'S1', step: 'design', currentStep: 'research'
     });
+    expectUntouched(fixture);
   });
 });

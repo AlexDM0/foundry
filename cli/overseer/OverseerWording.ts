@@ -20,6 +20,7 @@ import type {
   SetupQuestion
 } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { DecisionDraft, DecisionWording } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import { DEFAULT_CONSTITUTION_SOURCES }        from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
 import type { AssistantFacts }                 from '../../src/services/overseer/AssistantBoot.ts';
 import type { AssistantChatFacts }             from '../../src/services/overseer/AssistantSession.ts';
@@ -67,6 +68,18 @@ const API_AUTHENTICATION_FAILED_WORDING: DecisionWording = {
     + 'setting refuses API keys. Then answer: the stopped sessions resume.',
 };
 
+/** The board's "no pipeline" question, which the setup answers: its Apply withdraws it, so User need not answer it by hand. */
+const CHECKS_NOT_SET_WORDING: DecisionWording = {
+  questions: [{
+    question:    'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
+    header:      'checks-not-set',
+    multiSelect: false,
+    options:     [],
+  }],
+  context: 'Apply withdraws this question. A pipeline set by hand with '
+    + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\` leaves it open: answer it then with any text.`,
+};
+
 function budgetReachedWordingOf(draft: DecisionDraft): DecisionWording {
   return {
     questions: [{
@@ -80,6 +93,7 @@ function budgetReachedWordingOf(draft: DecisionDraft): DecisionWording {
 }
 
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
+  if (draft.kind === 'checks-not-set') return CHECKS_NOT_SET_WORDING;
   if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
   if (draft.kind === 'api-authentication-failed') return API_AUTHENTICATION_FAILED_WORDING;
   if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
@@ -395,7 +409,7 @@ function sourceTicksTextOf(draftedFrom: Readonly<ConstitutionSources>): string {
 
 function constitutionLinesOf(setup: Readonly<PipelineSetup>): string[] {
   const { constitution } = setup;
-  if (constitution === null) return ['No constitution is drafted yet.'];
+  if (constitution === null) return [`No constitution is drafted yet. The SOURCES ticks select: ${sourceTicksTextOf(DEFAULT_CONSTITUTION_SOURCES)}.`];
   const sources = constitution.annotations.map((annotation) => `- Line "${annotation.lineText}" (occurrence ${annotation.occurrence}): `
     + `${annotation.kind}${annotation.path === null ? '' : `, ${annotation.path}`}`);
   return [

@@ -83,7 +83,7 @@ function operationRefusalOf(attempt: () => unknown): OperationRefusal {
 function boardAtDesign(agentJobId: string | null = null): BoardFixture {
   const opened = boardFixture();
   apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
-  for (const step of ['billing', 'research', 'constitution'] as const) {
+  for (const step of ['research', 'constitution'] as const) {
     apply(opened, {
       kind: 'pipeline-setup-step', setupId: 'S1', step, move: 'continue'
     });

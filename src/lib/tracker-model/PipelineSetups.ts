@@ -17,6 +17,7 @@ import type {
   ConstitutionDraft,
   ConstitutionEdit,
   ConstitutionSetting,
+  ConstitutionSources,
   DraftEditRequest,
   MainConstitution,
   PipelineCheckEnding,
@@ -26,13 +27,15 @@ import type {
   PipelineSetupStep,
   PipelineSetupStepState,
   ResearchFindingRecording,
+  SetupEdit,
   SetupEditAuthor,
   SetupQuestion,
   SetupQuestionAsking,
   SetupQuestionReply,
   SetupQuestionStep,
   SnapshotRefusal,
-  SourceAnnotation
+  SourceAnnotation,
+  SourceAnnotationKind
 } from './@types/PipelineSetup.ts';
 import type { BoardRecords }                from './BoardRecords.ts';
 import { BoardRefusal }                     from './BoardRefusal.ts';
@@ -59,7 +62,21 @@ import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }          from './utils/PipelineUtil.ts';
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
-const STEPS_SET_BEFORE_AN_UPDATE: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design'];
+const UPDATE_STEP_STATES: Readonly<Record<PipelineSetupStep, PipelineSetupStepState>> = {
+  billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+};
+
+/** The SOURCES tick that selects each kind of source a constitution line may name. */
+const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof ConstitutionSources>> = {
+  'contributing':      'contributing',
+  'research':          'research',
+  'installed-default': 'installedDefault',
+};
+
+/** A first setup starts with the billing User chose, so it opens at the research, the agent's first step. */
+const FIRST_SETUP_STEP_STATES: Readonly<Record<PipelineSetupStep, PipelineSetupStepState>> = {
+  billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+};
 
 function stepIndexOf(step: PipelineSetupStep): number {
   return PIPELINE_SETUP_STEPS.indexOf(step);
@@ -102,7 +119,10 @@ export class PipelineSetups {
     private readonly decisionRules: Decisions,
   ) {}
 
-  /** Refuses `setup-in-progress` beside an open record; an update or advise record starts from the stored pipeline. */
+  /**
+   * Refuses `setup-in-progress` beside an open record. A first setup opens at the research, its billing done; an update or advise record
+   * starts from the stored pipeline at the design.
+   */
   openSetup(opening: PipelineSetupOpening, at: string): PipelineSetupChanged {
     const reading = this.records.pipelineSetupReading;
     if (reading.verdict === 'malformed') throw new BoardRefusal({ reason: 'pipeline-setup-unreadable', problem: reading.reason });
@@ -111,17 +131,14 @@ export class PipelineSetups {
     if (opening.mode !== 'setup' && stored === null) throw new BoardRefusal({ reason: 'no-pipeline-to-update', mode: opening.mode });
 
     const isUpdate = opening.mode !== 'setup';
-    const stepStates = Object.fromEntries(PIPELINE_SETUP_STEPS.map((step): [PipelineSetupStep, PipelineSetupStepState] => {
-      if (isUpdate) return [step, STEPS_SET_BEFORE_AN_UPDATE.includes(step) ? 'done' : 'not-started'];
-      return [step, step === 'billing' ? 'in-progress' : 'not-started'];
-    })) as Record<PipelineSetupStep, PipelineSetupStepState>;
+    const stepStates = isUpdate ? { ...UPDATE_STEP_STATES } : { ...FIRST_SETUP_STEP_STATES };
     const setup: PipelineSetup = {
       formatVersion:              1,
       setupId:                    `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`,
       mode:                       opening.mode,
       baseContentHash:            isUpdate && stored !== null ? PipelineUtil.contentHashOf(stored) : null,
       stepStates,
-      currentStep:                isUpdate ? 'design' : 'billing',
+      currentStep:                isUpdate ? 'design' : 'research',
       billing:                    billingCopyOf(opening.billing),
       agentJobId:                 null,
       snapshotCommit:             null,
@@ -298,14 +315,18 @@ export class PipelineSetups {
     return { logged: [...reopened, this.records.logger.log({ kind: 'pipeline-question-answered', setupId, fields }, at)], setup };
   }
 
-  /** The agent's whole document and its sources; a source must name a line the text holds, once. */
+  /** The agent's whole document and its sources; a source must name a line the text holds, once, of a kind the SOURCES ticks select. */
   setConstitution(setupId: string, setting: ConstitutionSetting, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
     if (setting.markdown.trim() === '') throw new BoardRefusal({ reason: 'constitution-empty' });
     this.refuseOverlongConstitution(setting.markdown);
+    const ticks = setup.constitution?.draftedFrom ?? DEFAULT_CONSTITUTION_SOURCES;
     const anchoredLines = new Set<string>();
     for (const annotation of setting.annotations) {
-      const { lineText, occurrence } = annotation;
+      const { lineText, occurrence, kind } = annotation;
+      if (!ticks[SOURCE_TICK_OF_KIND[kind]]) throw new BoardRefusal({
+        reason: 'constitution-source-not-ticked', lineText, occurrence, kind
+      });
       const occurs = !/[\r\n]/u.test(lineText) && Number.isInteger(occurrence) && occurrence >= 1 && occurrencesOf(setting.markdown, lineText) >= occurrence;
       if (!occurs) throw new BoardRefusal({ reason: 'constitution-source-unanchored', lineText, occurrence });
       const lineKey = JSON.stringify([lineText, occurrence]);
@@ -351,21 +372,18 @@ export class PipelineSetups {
     return { logged: [...reopened, this.constitutionSetRecord(setupId, 'user', setup.constitution, at)], setup };
   }
 
+  /**
+   * The draft the edits would leave, refused as `editDraft` refuses them; nothing is stored, so a caller can check the draft before the
+   * move writes anything.
+   */
+  draftAfterEdits(setupId: string, request: DraftEditRequest): Pipeline {
+    return this.editedDraftOf(this.requireMovableSetup(setupId), request);
+  }
+
   /** Every edit of one move lands at once, at the next revision, each kept for attribution and Undo. */
   editDraft(setupId: string, request: DraftEditRequest, at: string): PipelineSetupChanged {
-    const setup = this.requireMovableSetup(setupId);
-    if (request.revision !== null && request.revision !== setup.draftRevision) {
-      throw new BoardRefusal({
-        reason: 'pipeline-draft-stale', setupId, revision: request.revision, currentRevision: setup.draftRevision
-      });
-    }
-    if (request.edits.length === 0) throw new BoardRefusal({ reason: 'no-draft-edits', setupId });
-
-    let draft = setup.draft ?? this.basePipeline();
-    for (const { edit } of request.edits) {
-      this.refuseMismatchedEdit(draft, edit);
-      draft = PipelineDraftEditUtil.pipelineWithEdit(draft, edit);
-    }
+    const setup    = this.requireMovableSetup(setupId);
+    const draft    = this.editedDraftOf(setup, request);
     const reopened = request.by === 'user' ? this.userEditReopenRecords(setup, 'design', at) : [];
     const editIds: string[] = [];
     const fields: string[]  = [];
@@ -388,15 +406,17 @@ export class PipelineSetups {
     return { logged: [...reopened, this.records.logger.log({ kind: 'pipeline-draft-edited', setupId, fields: loggedFields }, at)], setup };
   }
 
+  /** The draft the Undo would leave, refused as `undoDraftEdit` refuses it; nothing is stored. */
+  draftAfterUndo(setupId: string, editId: string): Pipeline {
+    const setup = this.requireMovableSetup(setupId);
+    return this.undoneDraftOf(setup, this.requireUndoableEdit(setup, editId));
+  }
+
   /** Writes the base pipeline's value of the edit's field back; the edit stays listed, marked undone. */
   undoDraftEdit(setupId: string, editId: string, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
-    const edit  = setup.edits.find((candidate) => candidate.editId === editId);
-    if (edit === undefined) throw new BoardRefusal({ reason: 'unknown-setup-edit', setupId, editId });
-    if (edit.undone) throw new BoardRefusal({ reason: 'setup-edit-already-undone', setupId, editId });
-
-    const base          = this.basePipeline();
-    setup.draft         = PipelineDraftEditUtil.pipelineWithBaseValueOf(base, setup.draft ?? base, edit.field);
+    const edit  = this.requireUndoableEdit(setup, editId);
+    setup.draft         = this.undoneDraftOf(setup, edit);
     edit.undone         = true;
     setup.draftRevision += 1;
     this.store(setup);
@@ -805,6 +825,36 @@ export class PipelineSetups {
     if (markdown.length > CONSTITUTION_LIMIT_CHARACTERS) {
       throw new BoardRefusal({ reason: 'constitution-too-long', characterCount: markdown.length, limit: CONSTITUTION_LIMIT_CHARACTERS });
     }
+  }
+
+  /** The record's draft, or the base, with every edit of the request written in order; refuses a stale revision and a mismatched edit. */
+  private editedDraftOf(setup: Readonly<PipelineSetup>, request: DraftEditRequest): Pipeline {
+    const { setupId } = setup;
+    if (request.revision !== null && request.revision !== setup.draftRevision) {
+      throw new BoardRefusal({
+        reason: 'pipeline-draft-stale', setupId, revision: request.revision, currentRevision: setup.draftRevision
+      });
+    }
+    if (request.edits.length === 0) throw new BoardRefusal({ reason: 'no-draft-edits', setupId });
+    let draft = setup.draft ?? this.basePipeline();
+    for (const { edit } of request.edits) {
+      this.refuseMismatchedEdit(draft, edit);
+      draft = PipelineDraftEditUtil.pipelineWithEdit(draft, edit);
+    }
+    return draft;
+  }
+
+  private requireUndoableEdit(setup: PipelineSetup, editId: string): SetupEdit {
+    const { setupId } = setup;
+    const edit = setup.edits.find((candidate) => candidate.editId === editId);
+    if (edit === undefined) throw new BoardRefusal({ reason: 'unknown-setup-edit', setupId, editId });
+    if (edit.undone) throw new BoardRefusal({ reason: 'setup-edit-already-undone', setupId, editId });
+    return edit;
+  }
+
+  private undoneDraftOf(setup: Readonly<PipelineSetup>, edit: Readonly<SetupEdit>): Pipeline {
+    const base = this.basePipeline();
+    return PipelineDraftEditUtil.pipelineWithBaseValueOf(base, setup.draft ?? base, edit.field);
   }
 
   /** A gate or step names itself as its field does, and a prepare order names each prepare step once. */

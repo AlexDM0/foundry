@@ -388,7 +388,7 @@ main line and passes the texts in.
 
 | Field | Holds |
 | --- | --- |
-| `pipelineSetup.summary` | Counts for the resume summary: `stackItemCount`, `scriptCount`, `answeredQuestionCount`, `prepareStepCount`, `gateCountByPhase`, and `userEditsKeptCount`, User's edits that are not undone |
+| `pipelineSetup.summary` | Counts for the resume summary: `stackItemCount`, `scriptCount`, `answeredResearchQuestionCount` (research questions only), `prepareStepCount`, `gateCountByPhase`, and `userEditsKeptCount`, User's edits that are not undone |
 | `pipelineSetup.openQuestionCount` | The questions with no answer |
 | `pipelineSetup.agentJobState` | The state of the record's agent job, `null` when no such job is on the board |
 | `pipelineSetup.mainMovedByCommits` | Main's commits past the record's `snapshotCommit`, read from git and never stored |

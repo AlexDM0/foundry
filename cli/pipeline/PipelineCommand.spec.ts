@@ -65,7 +65,7 @@ function storedSetup(): PipelineSetup {
 
 async function setupAtDesign(): Promise<void> {
   await runSetup(['pipeline', 'setup']);
-  for (const step of ['billing', 'research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
+  for (const step of ['research', 'constitution']) await run(['pipeline', 'continue', 's1', step]);
 }
 
 const recordedGit = useRecordedGit();
@@ -94,9 +94,10 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
     await runSetup(['pipeline', 'setup']);
 
     await run(['pipeline', 'billing', 'S1', 'api', '--max-budget-usd', '30']);
-    await run(['pipeline', 'continue', 'S1', 'billing']);
+    await run(['pipeline', 'continue', 'S1', 'research']);
 
-    expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'research', stepStates: { billing: 'done', research: 'in-progress' } });
+    const stepStates = { billing: 'done', research: 'done', constitution: 'in-progress' };
+    expect(storedSetup()).toMatchObject({ billing: { mode: 'api', maxBudgetUsd: 30 }, currentStep: 'constitution', stepStates });
   });
 
   test('pipeline constitution stores the text of a file byte for byte, and of standard input with --file -', async () => {

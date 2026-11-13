@@ -6,7 +6,8 @@
  * Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a wrapped line joined to its paragraph as
  * Markdown reads it, and omits them when the board serves none; the earlier answers join the openings by decision id, on that ticket
  * only, newest first; the steps are the last top-level tool calls with the asking call current; the queue foot names the later
- * decisions, wrapping round; and `open since` is the sliced stamp, never the clock.
+ * decisions, wrapping round; `open since` is the sliced stamp, never the clock; and the board's "no pipeline" question never opens the
+ * panel by itself while no pipeline can be read, since the setup the Pipeline view then shows answers it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -49,6 +50,25 @@ describe('QuestionPanelModel.shownDecisionOf', () => {
 
   test('shows none on an empty queue', () => {
     expect(QuestionPanelModel.shownDecisionOf([], 'E7', [])).toBeNull();
+  });
+});
+
+describe('QuestionPanelModel.decisionIdsTheSetupAnswersOf', () => {
+  const checksNotSet: DecisionDocument = {
+    ...PARKED_DECISION, id: 'E1', kind: 'checks-not-set', ticketIds: [], jobId: null
+  };
+
+  test('the no-pipeline question is quiet while no pipeline can be read, so it never covers the setup by itself', () => {
+    const queue = queueOf(checksNotSet, DARK_MODE_QUESTION);
+    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, null)).toEqual([]);
+    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'malformed')).toEqual(['E1']);
+    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'older')).toEqual(['E1']);
+    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queue, 'absent')).toEqual(['E1']);
+    expect(QuestionPanelModel.panelIsShownOf(queueOf(checksNotSet), ['E1'], false)).toBe(false);
+  });
+
+  test('once a pipeline is readable, as after a gate verb, it opens the panel like any question', () => {
+    expect(QuestionPanelModel.decisionIdsTheSetupAnswersOf(queueOf(checksNotSet), 'readable')).toEqual([]);
   });
 });
 

@@ -20,7 +20,6 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   }, at);
   const { setupId } = setup;
   board.setSetupBilling(setupId, { mode: 'api', maxBudgetUsd: 5 }, at);
-  board.continueSetupStep(setupId, 'billing', at);
   board.recordFinding(setupId, {
     topic: 'scripts', label: 'Type check', value: 'bun run typecheck', sourcePaths: ['package.json'], script: null
   }, at);
@@ -37,6 +36,7 @@ function logEverySetupRecordKind(board: Board, at: string): void {
   board.recordSetupSnapshotTouched(setupId, { check: 'V4', reason: 'worktree-dirty' }, at);
   board.suggestSetupStepReady(setupId, 'research', at);
   board.resumeSetup(setupId, 'e5f60718293a4b5c6d7e8f9012345678901234ab', ['package.json'], at);
+  board.continueSetupStep(setupId, 'research', at);
   board.setConstitution(setupId, { markdown: '# Example constitution\n\n- Keep every change small.\n', annotations: [] }, at);
   board.editDraft(setupId, {
     by:       'agent',

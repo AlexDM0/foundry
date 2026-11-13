@@ -1,7 +1,8 @@
 /**
  * The billing step's model, pure: the billing choice a person makes on the cards and the cap field, the command it sends (the setup's
- * start on the landing, a billing change on a reopened step), the count of waiting tickets, and the pipeline agent's meter. The cap is
- * sent as typed once it is a number; the Overseer refuses one that is not positive, and the view shows that refusal verbatim.
+ * start on the landing, a billing change on a reopened step, and the Continue of a record still at billing), the count of waiting tickets,
+ * and the pipeline agent's meter. The cap is sent as typed once it is a number; the Overseer refuses one that is not positive, and the
+ * view shows that refusal verbatim.
  */
 import type { PipelineBilling }    from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChoices }    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
@@ -123,6 +124,16 @@ function backLabelOf(record: PipelineSetup): string {
   return `Back to ${SETUP_STEP_LABELS[record.currentStep].toLowerCase()}`;
 }
 
+/**
+ * A record still at the billing step, as a reopen leaves it, continues to the research from here, so the way out is never a link back to
+ * this same screen; `null` at any later step.
+ */
+function continueCommandOf(record: PipelineSetup): ControlCommandBody | null {
+  return record.currentStep === 'billing' ? {
+    kind: 'pipeline-setup-step', setupId: record.setupId, step: 'billing', move: 'continue'
+  } : null;
+}
+
 export const BillingStepModel = Object.freeze({
   billingChoiceOf,
   billingOf,
@@ -132,4 +143,5 @@ export const BillingStepModel = Object.freeze({
   waitingTicketsTextOf,
   pipelineAgentMeterOf,
   backLabelOf,
+  continueCommandOf,
 });

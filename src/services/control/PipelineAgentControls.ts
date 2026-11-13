@@ -1,7 +1,8 @@
 /**
  * The pipeline agent's kinds of the setup record: a finding, a question, the constitution, draft edits and a ready step. The Bouncer stamps
  * the setup the agent serves; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
- * the field before the Board is touched. None of them messages the agent: it made the move. The agent's first proposal also records what
+ * the field before the Board is touched; every other refusal is found before the Board changes too, since a relayed command shares the
+ * Overseer's hold, which a refusal does not undo. None of them messages the agent: it made the move. The agent's first proposal also records what
  * the snapshot's tree cannot hold on every OS.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
@@ -58,13 +59,17 @@ function withTreeFindings(changed: PipelineSetupChanged, change: TrackerChange):
   return latest;
 }
 
-/** The agent's edits never race a form, so they carry no revision; the draft they leave must still pass the validator. */
+/**
+ * The agent's edits never race a form, so they carry no revision; the draft they leave must still pass the validator, checked before the
+ * Board is touched.
+ */
 function proposeDraftEdits(command: ControlCommandOf<'pipeline-draft-propose'>, change: TrackerChange): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const edits   = readPayload(command.kind, SetupPayloadSchemas.proposalReadingOf(payloadOf(command)));
   const isFirstProposal = !(change.board.pipelineSetup()?.edits.some((edit) => edit.by === 'agent') ?? false);
-  const changed = change.board.editDraft(setupId, { by: 'agent', revision: null, edits }, change.at);
-  requireStorableDraft(changed);
+  const request = { by: 'agent' as const, revision: null, edits };
+  requireStorableDraft(setupId, change.board.draftAfterEdits(setupId, request));
+  const changed = change.board.editDraft(setupId, request, change.at);
   return isFirstProposal ? withTreeFindings(changed, change) : changed;
 }
 

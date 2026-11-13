@@ -1,7 +1,8 @@
 /**
  * A0Setup, the billing step: who pays for the agents (two cards, and the cap per launch under the API key), then the pipeline agent that
  * works the pipeline out with User. On the landing the one start sends the chosen billing and opens the research. Reopened from the
- * stepper while a record is open, a billing change is saved to the record, and the start is replaced by the way back to the current step.
+ * stepper while a record is open, a billing change is saved to the record, and the start is replaced by the way back to the current step,
+ * or by Continue while the record is still at billing.
  */
 import { useId, useState } from 'react';
 
@@ -82,6 +83,18 @@ interface StartOrBackProps {
 }
 
 function StartOrBack({ record, choice, replacesUnreadablePipeline }: StartOrBackProps) {
+  const continueCommand = record === null ? null : BillingStepModel.continueCommandOf(record);
+  if (continueCommand !== null) {
+    return (
+      <CommandButton
+        label="Continue to research"
+        command={continueCommand}
+        primary
+        attention
+        onApplied={() => HashRouter.navigateTo(PipelineViewModel.setupStepRouteOf('research'))}
+      />
+    );
+  }
   if (record !== null) {
     return <Button label={BillingStepModel.backLabelOf(record)} emphasis="primary" href={PipelineViewModel.setupStepFragmentOf(record.currentStep)} />;
   }

@@ -1,8 +1,8 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
-import type { GatePhase }                            from './@types/GatePhase.ts';
-import type { JobKind, JobMoveTarget, JobState }     from './@types/Job.ts';
-import type { PipelineSetupMode, PipelineSetupStep } from './@types/PipelineSetup.ts';
-import type { TaskStatus }                           from './@types/Task.ts';
+import type { GatePhase }                                                  from './@types/GatePhase.ts';
+import type { JobKind, JobMoveTarget, JobState }                           from './@types/Job.ts';
+import type { PipelineSetupMode, PipelineSetupStep, SourceAnnotationKind } from './@types/PipelineSetup.ts';
+import type { TaskStatus }                                                 from './@types/Task.ts';
 import type {
   IncompleteTicket,
   AgentPair,
@@ -103,6 +103,7 @@ export type BoardRefusalDetail =
   | { reason: 'constitution-too-long'; characterCount: number; limit: number }
   | { reason: 'constitution-source-unanchored'; lineText: string; occurrence: number }
   | { reason: 'constitution-source-repeated'; lineText: string; occurrence: number }
+  | { reason: 'constitution-source-not-ticked'; lineText: string; occurrence: number; kind: SourceAnnotationKind }
   | { reason: 'constitution-draft-stale'; setupId: string; revision: number; currentRevision: number }
   | { reason: 'pipeline-draft-stale'; setupId: string; revision: number; currentRevision: number }
   | { reason: 'no-draft-edits'; setupId: string }

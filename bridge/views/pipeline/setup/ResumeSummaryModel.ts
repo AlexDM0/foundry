@@ -66,7 +66,7 @@ function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string |
     case 'research':
       return reached
         ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `
-          + `${countText(summary.answeredQuestionCount, 'question', 'questions')} answered`
+          + `${countText(summary.answeredResearchQuestionCount, 'question', 'questions')} answered`
         : null;
     case 'constitution':
       if (!reached) return null;

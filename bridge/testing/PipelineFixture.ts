@@ -45,6 +45,7 @@ export type PipelineFixtureName =
   | 'A0'
   | 'A0-unreadable'
   | 'A0b-running'
+  | 'A0b-at-billing'
   | 'A0b-stopped'
   | 'A0b-main-moved'
   | 'A0b-recheck'
@@ -585,11 +586,11 @@ function setupFacts(record: PipelineSetup, changes: Partial<PipelineSetupFacts> 
   return {
     record,
     summary: {
-      stackItemCount:        record.findings.filter((finding) => finding.topic === 'stack').length,
-      scriptCount:           record.findings.filter((finding) => finding.script !== null).length,
-      answeredQuestionCount: record.questions.filter((question) => question.answer !== null).length,
-      prepareStepCount:      record.draft?.prepare.length ?? 0,
-      gateCountByPhase:      {
+      stackItemCount:                record.findings.filter((finding) => finding.topic === 'stack').length,
+      scriptCount:                   record.findings.filter((finding) => finding.script !== null).length,
+      answeredResearchQuestionCount: record.questions.filter((question) => question.step === 'research' && question.answer !== null).length,
+      prepareStepCount:              record.draft?.prepare.length ?? 0,
+      gateCountByPhase:              {
         build:  record.draft?.phases.build.length ?? 0,
         review: record.draft?.phases.review.length ?? 0,
         merge:  record.draft?.phases.merge.length ?? 0,
@@ -813,6 +814,19 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
   'A0':             () => pipelineBoardState({}),
   'A0-unreadable':  () => pipelineBoardState({ pipeline: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 2 }\n' }, }),
   'A0b-running':    () => setupState(setupRecord()),
+  'A0b-at-billing': () => setupState(setupRecord({
+    stepStates: {
+      billing: 'in-progress', research: 'not-started', constitution: 'not-started', design: 'not-started', apply: 'not-started',
+    },
+    currentStep:     'billing',
+    findings:        [],
+    constitution:    null,
+    draft:           null,
+    draftRevision:   0,
+    edits:           [],
+    readyToContinue: [],
+    questions:       [],
+  })),
   'A0b-stopped':    () => setupState(setupRecord(), { agentJobState: null }),
   'A0b-main-moved': () => setupState(setupRecord(), { mainMovedByCommits: 3 }),
   'A0b-recheck':    () => setupState(setupRecord({

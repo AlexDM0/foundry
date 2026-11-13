@@ -369,7 +369,7 @@ describe('an Apply cut short', () => {
             lineText: '- Keep the basket page fast.', occurrence: 1, kind: 'research', path: null
           }]
         }, change.at);
-        for (const step of ['billing', 'research', 'constitution', 'design'] as const) change.board.continueSetupStep(setupId, step, change.at);
+        for (const step of ['research', 'constitution', 'design'] as const) change.board.continueSetupStep(setupId, step, change.at);
       },
     });
   }

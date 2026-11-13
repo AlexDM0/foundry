@@ -41,13 +41,14 @@ export type AppliedPipelineFacts =
 
 /** What A0bResume summarises each step with, as counts. */
 export interface PipelineSetupSummary {
-  stackItemCount:        number;
-  scriptCount:           number;
-  answeredQuestionCount: number;
-  prepareStepCount:      number;
-  gateCountByPhase:      Record<GatePhase, number>;
+  stackItemCount:                number;
+  scriptCount:                   number;
+  /** Only the research step's answered questions: the research row counts what the research settled. */
+  answeredResearchQuestionCount: number;
+  prepareStepCount:              number;
+  gateCountByPhase:              Record<GatePhase, number>;
   /** The draft edits by User that are not undone. */
-  userEditsKeptCount:    number;
+  userEditsKeptCount:            number;
 }
 
 /** The `##` lines and the top-level `-` items of the constitution's markdown. */

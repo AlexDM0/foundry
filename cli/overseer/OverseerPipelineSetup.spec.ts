@@ -139,7 +139,6 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one setup end to end', () => 
     await relayAsTheAgent(agentJobId, ['pipeline', 'ask', '--', JSON.stringify({
       step: 'research', question: 'Is the test run a gate?', options: ['Yes', 'No'], recommended: ['a']
     })]);
-    await run(['pipeline', 'continue', 'S1', 'billing']);
     await run(['pipeline', 'answer', 'S1', 'Q1', 'a']);
     await run(['pipeline', 'continue', 'S1', 'research']);
     await relayAsTheAgent(agentJobId, ['pipeline', 'draft-constitution', '--', JSON.stringify({

@@ -1,8 +1,8 @@
 /**
  * The billing step's model. What matters: the start carries the chosen billing, with the cap as typed once it is a number (the Overseer,
  * not the Bridge, refuses a cap that is not positive) and the unreadable file's replacement; a reopened step sends a billing change only
- * when the choice differs from the record's; the waiting tickets are the pending ones; the pipeline agent's meter shows its pair over
- * five bars, the default pair until a draft names one.
+ * when the choice differs from the record's, and a record still at billing continues from here, never loops back to it; the waiting
+ * tickets are the pending ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -10,10 +10,10 @@ import { PIPELINE_CHOICES_FIXTURE, pipelineBoardStateOf } from '../../../testing
 import { BillingStepModel }                               from './BillingStepModel.ts';
 
 const {
-  billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf
+  billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf, continueCommandOf
 } = BillingStepModel;
 
-function setupRecordOf(name: 'A0b-running' | 'A1') {
+function setupRecordOf(name: 'A0b-running' | 'A0b-at-billing' | 'A1') {
   const record = pipelineBoardStateOf(name).pipelineSetup?.record;
   if (record === undefined) throw new Error(`the fixture ${name} has no setup record`);
   return record;
@@ -59,6 +59,14 @@ describe('a reopened billing step', () => {
   test('offers the way back to the current step', () => {
     expect(backLabelOf(setupRecordOf('A0b-running'))).toBe('Back to pipeline design');
     expect(backLabelOf(setupRecordOf('A1'))).toBe('Back to research');
+  });
+
+  test('a record still at billing continues to the research, and a record past it has no Continue here', () => {
+    expect(continueCommandOf(setupRecordOf('A0b-at-billing'))).toEqual({
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
+    });
+    expect(continueCommandOf(setupRecordOf('A1'))).toBeNull();
+    expect(continueCommandOf(setupRecordOf('A0b-running'))).toBeNull();
   });
 });
 

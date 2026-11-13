@@ -168,12 +168,12 @@ forge pipeline setup                          # or --billing api --max-budget-us
 ```
 
 Expect one line per record it wrote, naming the setup `S1`. The Agents tab then lists the agent, and the Bridge's
-Pipeline tab walks the same steps ([Running a board](running-a-board.md)). Each step waits for your Continue; the
-agent's moves never move a step.
+Pipeline tab walks the same steps ([Running a board](running-a-board.md)). Each step after billing waits for your
+Continue; the agent's moves never move a step.
 
 | Step | What happens | You move it on with |
 | --- | --- | --- |
-| Billing | You choose who pays: your subscription, or an API key with an optional cap per launch | `forge pipeline continue S1 billing` |
+| Billing | You choose who pays: your subscription, or an API key with an optional cap per launch | `forge pipeline setup` itself: the setup opens at the research, billing done; `forge pipeline billing S1 …` changes it later |
 | Research | The agent records findings (stack, scripts, conventions, continuous integration) and asks questions with two to four options, one recommended | `forge pipeline answer S1 Q1 a`, then `forge pipeline continue S1 research` |
 | Constitution | The agent drafts the repository's rules as one markdown text, `CONSTITUTION.md` to be; you may change it | `forge pipeline constitution S1 --revision <n> --file <your text>`, then `forge pipeline continue S1 constitution` |
 | Design | The agent proposes the whole pipeline: prepare steps, gates and their [phases](../glossary.md#gate-phase), the review and its conditional re-review, each role's model and effort | `forge pipeline edit`, `undo`, `check`, `profile`, then `forge pipeline continue S1 design` |

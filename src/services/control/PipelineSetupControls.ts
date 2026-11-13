@@ -301,14 +301,15 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
 }
 
 /**
- * The draft a move leaves must pass the `pipeline.json` validator, as the stored record's read requires; otherwise the hold throws and
- * nothing is written, so no move leaves a record the board cannot read.
+ * The draft a move would leave must pass the `pipeline.json` validator, as the stored record's read requires. It is checked before the
+ * move touches the Board: a relayed command shares the Overseer's hold, which a refusal does not undo, so no move leaves a record the
+ * board cannot read.
  */
-export function requireStorableDraft(changed: PipelineSetupChanged): void {
-  const reading = PipelineFile.documentReadingOf(JSON.parse(JSON.stringify(changed.setup.draft)));
+export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
+  const reading = PipelineFile.documentReadingOf(JSON.parse(JSON.stringify(draft)));
   if (reading.verdict === 'readable') return;
   const reason = reading.verdict === 'malformed' ? reading.reason : reading.verdict;
-  throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId: changed.setup.setupId, reason });
+  throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, reason });
 }
 
 /** The draft a move works on: the record's own, else the base it starts from, the stored pipeline or the minimal one. */
@@ -328,8 +329,9 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
   const revision = revisionFieldOf(command, 'draftRevision');
   const edits    = draftEditsFieldOf(command).map((edit) => ({ edit, summary: '' }));
   const before   = workingDraftOf(change.board);
-  const changed  = change.board.editDraft(setupId, { by: 'user', revision, edits }, change.at);
-  requireStorableDraft(changed);
+  const request  = { by: 'user' as const, revision, edits };
+  requireStorableDraft(setupId, change.board.draftAfterEdits(setupId, request));
+  const changed  = change.board.editDraft(setupId, request, change.at);
   const newEdits = changed.setup.edits.slice(-edits.length);
   return messagedToTheAgent(changed, change, context, {
     kind:          'draft-edited',
@@ -345,8 +347,8 @@ function undoDraftEdit(command: CommandOf<'pipeline-draft-undo'>, change: Tracke
   const setupId = textFieldOf(command, 'setupId');
   const editId  = textFieldOf(command, 'editId');
   const before  = workingDraftOf(change.board);
+  requireStorableDraft(setupId, change.board.draftAfterUndo(setupId, editId));
   const changed = change.board.undoDraftEdit(setupId, editId, change.at);
-  requireStorableDraft(changed);
   const undone  = changed.setup.edits.find((edit) => edit.editId === editId);
   if (undone === undefined) return changed;
   return messagedToTheAgent(changed, change, context, {

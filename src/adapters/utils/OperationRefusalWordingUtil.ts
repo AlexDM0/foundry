@@ -281,6 +281,9 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
         + `that line that many times. ${NOTHING_WAS_WRITTEN}`;
     case 'constitution-source-repeated':
       return `Two sources name the line ${JSON.stringify(detail.lineText)} (occurrence ${detail.occurrence}); a line takes one source. ${NOTHING_WAS_WRITTEN}`;
+    case 'constitution-source-not-ticked':
+      return `A source names the line ${JSON.stringify(detail.lineText)} (occurrence ${detail.occurrence}) as ${detail.kind}, and the SOURCES `
+        + `ticks of the setup do not select ${detail.kind}. ${NOTHING_WAS_WRITTEN} Name only the sources the ticks select.`;
     case 'constitution-draft-stale':
       return `The constitution of pipeline setup ${detail.setupId} is at revision ${detail.currentRevision}, not ${detail.revision}: `
         + `it changed since it was read. ${NOTHING_WAS_WRITTEN} Read it again, then edit.`;

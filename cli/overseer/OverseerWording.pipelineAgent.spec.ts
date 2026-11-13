@@ -190,6 +190,12 @@ test('carries the record\'s facts: findings, questions with answers, the constit
   expect(message).toContain('# Installed default');
 });
 
+test('a record with no constitution yet names the SOURCES ticks a first draft is held to', () => {
+  const message = firstMessageOf(factsWith({ setup: { ...setupAt('constitution'), constitution: null } }));
+
+  expect(message).toContain('No constitution is drafted yet. The SOURCES ticks select: CONTRIBUTING.md, the research findings.');
+});
+
 test('a fresh session in place of a replaced one gets the same first message, after its note', () => {
   const facts = factsWith({ setup: setupAt('design') });
   const replaced = firstMessageOf({ ...facts, earlierSessionReplaced: true });

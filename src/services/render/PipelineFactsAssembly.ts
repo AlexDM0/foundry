@@ -208,12 +208,12 @@ function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>)
   return {
     record:  setup,
     summary: {
-      stackItemCount:        setup.findings.filter((finding) => finding.topic === 'stack').length,
-      scriptCount:           setup.findings.filter((finding) => finding.script !== null).length,
-      answeredQuestionCount: setup.questions.filter((question) => question.answer !== null).length,
-      prepareStepCount:      draft?.prepare.length ?? 0,
-      gateCountByPhase:      { build: draft?.phases.build.length ?? 0, review: draft?.phases.review.length ?? 0, merge: draft?.phases.merge.length ?? 0 },
-      userEditsKeptCount:    setup.edits.filter((edit) => edit.by === 'user' && !edit.undone).length,
+      stackItemCount:                setup.findings.filter((finding) => finding.topic === 'stack').length,
+      scriptCount:                   setup.findings.filter((finding) => finding.script !== null).length,
+      answeredResearchQuestionCount: setup.questions.filter((question) => question.step === 'research' && question.answer !== null).length,
+      prepareStepCount:              draft?.prepare.length ?? 0,
+      gateCountByPhase:              { build: draft?.phases.build.length ?? 0, review: draft?.phases.review.length ?? 0, merge: draft?.phases.merge.length ?? 0 },
+      userEditsKeptCount:            setup.edits.filter((edit) => edit.by === 'user' && !edit.undone).length,
     },
     openQuestionCount:   setup.questions.filter((question) => question.answer === null).length,
     agentJobState:       input.board.jobs().find((job) => job.id === setup.agentJobId)?.state ?? null,

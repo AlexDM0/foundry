@@ -2,12 +2,13 @@
  * Apply's two stages on the Board. What matters: stage 1 refuses an open question, a step that needs a recheck, a touched snapshot, a
  * stale revision, a stored pipeline that moved since the record opened and a `CONSTITUTION.md` main changed since; when main lacks the
  * draft's text it stores only the request, after which every other setup move and every `gate` verb refuses; when main already holds the
- * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the withdrawal
- * of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is idempotent
- * by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes the rest,
- * and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at design, with
- * Apply not reached. A constitution commit job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold
- * logs the blocking files and a refusal git's text.
+ * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the
+ * withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is
+ * idempotent by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes
+ * the rest, and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at
+ * design, with Apply not reached. Once Apply lands, in whichever hold, the record's live pipeline agent is stopped. A constitution commit
+ * job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a refusal
+ * git's text.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -65,7 +66,7 @@ function firstSetupAtApply(): ApplyWorld {
     }]
   }, AT);
   board.editDraft(setupId, { by: 'agent', revision: null, edits: [TEST_GATE_EDIT, TYPES_PHASE_EDIT] }, AT);
-  for (const step of ['billing', 'research', 'constitution', 'design'] as const) board.continueSetupStep(setupId, step, AT);
+  for (const step of ['research', 'constitution', 'design'] as const) board.continueSetupStep(setupId, step, AT);
   return { board, setupId };
 }
 
@@ -297,6 +298,64 @@ describe('stage 2 when main already holds the draft\'s text', () => {
     expect(board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT).outcome).toBe('applied');
     expect(board.pipeline()).toEqual(PipelineUtil.minimalPipelineOf());
     expect(board.constitutionSourcesWrite()).toEqual({ write: 'unchanged' });
+  });
+});
+
+describe('the record\'s pipeline agent once Apply lands', () => {
+  function withRunningAgent(world: ApplyWorld): string {
+    const { job } = world.board.startPipelineAgent(AT);
+    world.board.attachSetupAgent(world.setupId, job.id, 'a'.repeat(40));
+    world.board.moveJob(job.id, 'running', AT);
+    return job.id;
+  }
+
+  test('a running agent is stopped in the hold of a stage 2 that runs at once, after the record\'s close', () => {
+    const world = firstSetupAtApply();
+    const agentJobId = withRunningAgent(world);
+
+    const applied = world.board.requestApply(world.setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, AT);
+
+    expect(world.board.jobById(agentJobId)?.state).toBe('stopping');
+    expect(applied.logged.map((record) => record.kind)).toEqual(['pipeline-applied', 'job-stop-requested']);
+  });
+
+  test('stage 2 in the hold of the constitution commit\'s landing stops it too, and a stage 1 that only waits stops nothing', () => {
+    const world = firstSetupAtApply();
+    const agentJobId = withRunningAgent(world);
+
+    world.board.requestApply(world.setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
+    expect(world.board.jobById(agentJobId)?.state).toBe('running');
+
+    world.board.finishApply(world.setupId, {
+      draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION, constitutionCommit: 'd'.repeat(40)
+    }, AT);
+    expect(world.board.jobById(agentJobId)?.state).toBe('stopping');
+  });
+
+  test('the Overseer\'s start that finishes a half-applied record stops it, and an agent that has no session ends closed', () => {
+    const { board: first, setupId } = firstSetupAtApply();
+    const { job } = first.startPipelineAgent(AT);
+    first.attachSetupAgent(setupId, job.id, null);
+    const setup = structuredClone(openSetupOf(first)) as PipelineSetup;
+    first.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, AT);
+    const { board } = boardFixture({ pipeline: first.pipeline() as Pipeline, pipelineSetup: { verdict: 'readable', setup } });
+    // The new board numbers its jobs afresh, so the agent the record names is this one, launching with no session yet.
+    expect(board.startPipelineAgent(AT).job.id).toBe(job.id);
+
+    board.finishHalfAppliedSetup(MAIN_CONSTITUTION, AT);
+
+    expect(board.jobById(job.id)).toBeUndefined();
+    expect(board.endedJobOutcomeOf(job.id)?.outcome).toBe('closed');
+  });
+
+  test('an agent already stopping is asked nothing again', () => {
+    const world = firstSetupAtApply();
+    const agentJobId = withRunningAgent(world);
+    world.board.requestJobStop(agentJobId, 'stop', AT);
+
+    const applied = world.board.requestApply(world.setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, AT);
+
+    expect(applied.logged.map((record) => record.kind)).toEqual(['pipeline-applied']);
   });
 });
 

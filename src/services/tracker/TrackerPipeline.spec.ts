@@ -318,7 +318,7 @@ describe('the setup record a hold reads and writes', () => {
 
     expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]);
     expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
-    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, setupId: 'S1', currentStep: 'billing' });
+    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, setupId: 'S1', currentStep: 'research' });
     const written = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipelineSetup()?.setupId
     });

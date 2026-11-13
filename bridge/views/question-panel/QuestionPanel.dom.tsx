@@ -54,6 +54,9 @@ interface HarnessProps {
   readonly isHiddenBehindDetail: boolean;
 }
 
+/** No decision here is the board's no-pipeline question, which the shell quiets while the setup shows. */
+const NO_QUIET_DECISIONS: readonly string[] = [];
+
 function PanelHarness({
   board, storage, followTranscript, isHiddenBehindDetail
 }: HarnessProps) {
@@ -63,7 +66,7 @@ function PanelHarness({
     removeItem: (key) => storage.delete(key),
   })), [storage]);
   const queue = useMemo(() => OpenDecisionsUtil.openDecisionsOf(board), [board]);
-  const state = useQuestionPanelState(boardStore, queue);
+  const state = useQuestionPanelState(boardStore, queue, NO_QUIET_DECISIONS);
   return (
     <>
       <button type="button" onClick={() => state.open('E8')}>Open E8 from the board</button>

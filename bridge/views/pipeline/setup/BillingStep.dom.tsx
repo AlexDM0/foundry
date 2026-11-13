@@ -2,7 +2,8 @@
  * The billing step against fake controls. What matters: "Set up the pipeline" sends the start with the chosen billing and cap and then
  * opens the research step; the start of an unreadable file says that it replaces it; a refusal shows verbatim; the page counts the
  * waiting tickets from the facts; the pipeline agent's meter shows opus and high over five bars; reopened while a record is open, the
- * start is replaced by the way back to the current step and a billing change is saved to the record.
+ * start is replaced by the way back to the current step, or by Continue to research while the record is still at billing, so the step
+ * never links back to itself, and a billing change is saved to the record.
  */
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import {
@@ -87,6 +88,17 @@ describe('the billing step reopened with a record', () => {
     fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0b-running')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />);
     expect(screen.queryByRole('button', { name: 'Set up the pipeline' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Back to pipeline design' }).getAttribute('href')).toBe('#pipeline/setup/design');
+  });
+
+  test('a record still at billing offers Continue to research, which continues the step and opens the research', async () => {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('A0b-at-billing')} route={REOPENED_ROUTE} {...pipelineViewServicesOf()} />);
+    expect(screen.queryByRole('link', { name: 'Back to billing' })).toBeNull();
+    await clickSettled(screen.getByRole('button', { name: 'Continue to research' }));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'billing', move: 'continue'
+    }]);
+    expect(window.location.hash).toBe('#pipeline/setup/research');
   });
 
   test('a billing change is saved to the record, and the record\'s own billing sends nothing', async () => {
