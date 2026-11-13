@@ -172,7 +172,7 @@ export interface ForgesContent {
 
 const HEAD_SEPARATOR = ' · ';
 const DETAIL_SEPARATOR = ' · ';
-const SHORT_CODE_VERSION_LENGTH = 7;
+const SHORT_CODE_VERSION_CHARACTERS = 7;
 const HOME_MARK = '~';
 
 /** What the machine panel's limit shows while no forge reports one. */
@@ -451,7 +451,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     detailText:    detailTextOf(forge, shownCondition, rowSurroundings),
     agents:        agentsCellOf(forge, rowSurroundings),
     waitingText:   waitingTextOf(forge),
-    codeText:      forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_LENGTH),
+    codeText:      forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:       buttonsOf(forge, rowSurroundings),
     isInView:      surroundings.forgeInView === forge.trackerId,
     stopDialog:    stopDialogOf(forge, surroundings),
