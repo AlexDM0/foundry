@@ -4,8 +4,8 @@
  * and sentence passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract
  * Gaia does not know, a stop and a machine limit that fall back to the program when no Overseer answers, an add that runs `init`, then
  * `start`, and stops at the first refusal, settings changed one key at a time, "Start at login" written as each forge's login item before
- * the setting is kept, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one repository, the
- * machine limit, the chooser and the login items, and leaves the others free.
+ * the setting is kept and undone when a forge refuses, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds
+ * one forge, one repository, the machine limit, the chooser and the login items, and leaves the others free.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -734,6 +734,25 @@ describe('settings-set of startForgesAtLogin, carried by each forge\'s program a
     expect(repositoriesRunIn).toEqual([storefrontRoot]);
     expect(settingsStore.settings().startForgesAtLogin).toBe(false);
     expect((await new SettingsFile(scratchFolder).read()).verdict).toBe('absent');
+  });
+
+  test('switched on and refused by a later forge, removes the login items it already wrote, so none is left while the setting is off', async () => {
+    const storefrontRecorded = recordedForgeProgramRunOf('every-verb-done');
+    const wikiRecorded = recordedForgeProgramRunOf('every-verb-refused');
+    const processRun: ProcessRun = {
+      run:           (request) => (request.workingDirectory === wikiRoot ? wikiRecorded : storefrontRecorded).run(request),
+      startOwned:    (request) => storefrontRecorded.startOwned(request),
+      startDetached: (request) => storefrontRecorded.startDetached(request),
+    };
+    const settingsStore = settingsStoreInScratch();
+    const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
+    const verdict = await controlOver({ forges, processRun, settingsStore }).carry(START_AT_LOGIN_ON);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(['login-item', 'add', '--json']) });
+    expect(storefrontRecorded.callShapesAnswered()).toEqual([
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json']),
+    ]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(false);
   });
 
   test('answers nothing-to-do and runs no forge when the setting already holds the value', async () => {

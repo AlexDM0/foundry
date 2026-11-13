@@ -258,9 +258,15 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     return verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
   }
 
+  /** Each forge's program removes its login item; a forge that refuses is passed over, since the refusal that caused the undo is the answer. */
+  async function removeLoginItemsOf(forges: readonly RegisteredForge[]): Promise<void> {
+    for (const forge of forges) await forgeProgram.loginItem(programTargetOf(forge), 'remove');
+  }
+
   /**
    * PLAN A6: switched on, each running forge's own program writes its login item; switched off, each forge's program removes it. The
-   * setting is kept only once every forge's verb is done, so the first refusal leaves it as it was and the forge words why.
+   * setting is kept only once every forge's verb is done, so the first refusal leaves it as it was and the forge words why. A refused
+   * switch-on removes the login items it already wrote: with the setting left off, the page offers no switch-off that would remove them.
    */
   async function setStartForgesAtLogin(startForgesAtLogin: boolean): Promise<CommandVerdict> {
     if (settingsStore.settings().startForgesAtLogin === startForgesAtLogin) return { verdict: 'nothing-to-do' };
@@ -270,9 +276,14 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const reading = readingOf(forge.trackerId);
       return reading !== null && forgeFidelities.has(reading.fidelity);
     });
+    const forgesWithTheirLoginItemWritten: RegisteredForge[] = [];
     for (const forge of forges) {
       const loginItemVerdict = await forgeProgram.loginItem(programTargetOf(forge), startForgesAtLogin ? 'add' : 'remove');
-      if (loginItemVerdict.verdict !== 'done') return verdictOfProgramFailure(loginItemVerdict);
+      if (loginItemVerdict.verdict !== 'done') {
+        await removeLoginItemsOf(forgesWithTheirLoginItemWritten);
+        return verdictOfProgramFailure(loginItemVerdict);
+      }
+      if (startForgesAtLogin) forgesWithTheirLoginItemWritten.push(forge);
     }
     return verdictOfSettingsUpdate(await settingsStore.update(changing({ key: 'startForgesAtLogin', value: startForgesAtLogin })));
   }
