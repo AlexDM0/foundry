@@ -8,8 +8,7 @@ import type {
   FleetDocument,
   FleetDocumentCondition,
   FleetDocumentFidelity,
-  FleetDocumentForge,
-  FleetDocumentUsage
+  FleetDocumentForge
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
@@ -132,10 +131,11 @@ function agentsTextOf(forge: FleetDocumentForge): string | null {
 
 /**
  * The bar's usage names only a limit that was hit, without its window, so the line fits beside the bar's buttons; usage under its limit is
- * no news there.
+ * no news there, nor is the last reading of a forge that stopped answering, whose line must keep room for "as last reported" and since.
  */
-function usageTextOf(usage: FleetDocumentUsage | null, clock: ForgeFrameClock): string | null {
-  if (usage === null || usage.resetsAt === null) return null;
+function usageTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string | null {
+  const { usage } = forge;
+  if (forge.fidelity === 'unreachable' || usage === null || usage.resetsAt === null) return null;
   return `usage limit hit · resets ${clockTextOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
 }
 
@@ -149,7 +149,7 @@ function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string
     forge.fidelity === 'unreachable' ? asLastReported : null,
     agentsTextOf(forge),
     waitingCount === null || waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
-    usageTextOf(forge.usage, clock),
+    usageTextOf(forge, clock),
     startedClock === null ? null : `since ${startedClock}`,
   ].filter((part) => part !== null).join(LINE_SEPARATOR);
 }

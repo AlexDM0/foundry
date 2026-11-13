@@ -77,6 +77,13 @@ describe('the bar', () => {
     expect(limitHit.status.text).toBe('4 / 5 agents · 2 wait on you · usage limit hit · resets 16:00 · since 09:12');
     expect(barOf({ ...READINGS.exampleStorefront, usage: { window: null, resetsAt: null } }).status.text).not.toContain('usage');
   });
+
+  test('of a forge that stopped answering leaves even a usage limit hit out, so its line keeps as last reported and since', () => {
+    const invoiceService = FLEET_DEGRADED.forges.find((forge) => forge.trackerId === TRACKER_IDS.invoiceService);
+    if (invoiceService === undefined) throw new Error('The degraded fleet has no Invoice Service.');
+    const limitHit = barOf({ ...invoiceService, usage: { window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
+    expect(limitHit.status.text).toBe('as last reported 13:14 · 3 / 5 agents · 2 wait on you · since 08:40');
+  });
 });
 
 describe('the bar\'s controls for each condition', () => {
