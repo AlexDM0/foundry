@@ -115,6 +115,8 @@ describe('a forge that answers F8, every verb done', () => {
   });
 
   test('stop stops the live Overseer', async () => {
+    // A `forge open` still starting when the Overseer stops finds none live and starts another, which the stop then reads as still live.
+    for (const processId of recordingRun.detachedProcesses()) process.kill(processId, 'SIGKILL');
     expect(await forgeProgram.stop(forge)).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 });
