@@ -35,7 +35,7 @@ docs/              the contracts reference and the backlog
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
-src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, the page contract
+src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards
 src/shared/        the internal model's types, app-wide constants, GaiaError
