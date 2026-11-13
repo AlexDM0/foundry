@@ -59,6 +59,10 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
     { kind: 'overseer-did-not-start', exitCode: 1, logFilePath: '/example/overseer.log' },
     'The detached Overseer exited with code 1 before it answered. Its log is /example/overseer.log, which may name the cause.',
   ],
+  [
+    { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
+    `${PROGRAM} needs git 2.38.0 or newer, for its merge of trees; the git on the PATH is 2.30.0. Upgrade git and try again.`,
+  ],
   [{ kind: 'overseer-port-in-use', firstPort: 4242, lastPort: 4242 }, 'Port 4242 on 127.0.0.1 is in use, so the Overseer did not start.'],
   [{ kind: 'overseer-port-in-use', firstPort: 4242, lastPort: 4252 }, 'Every port from 4242 to 4252 on 127.0.0.1 is in use, so the Overseer did not start.'],
   [
@@ -87,6 +91,13 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
     'Ticket #004 is a draft ticket, so it was not moved: ready it to build, which checks its Acceptance and Brief.',
   ],
   [boardRefusal({ reason: 'abandon-without-reason', ticketId: '004' }), 'Ticket #004 was not moved: abandon needs a reason. Say why the work was dropped.'],
+  [
+    boardRefusal({
+      reason: 'claim-after-a-ticket-not-in-review', ticketId: '004', afterTicketId: '003', status: 'pending'
+    }),
+    'Ticket #004 was not claimed after #003: #003 is pending, and a claim after another ticket takes a predecessor that is in-review. '
+    + 'Nothing was written.',
+  ],
   [boardRefusal({ reason: 'claim-of-a-held-ticket', ticketId: '004' }), 'Ticket #004 is held, so it is not claimed. Nothing was written; unholding it lets it be claimed.'],
   [boardRefusal({ reason: 'epic-already-exists', epicKey: 'checkout-redesign' }), 'There is already an epic checkout-redesign. Nothing was written; edit that epic to change it.'],
   [

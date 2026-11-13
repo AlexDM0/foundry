@@ -24,6 +24,8 @@ type InstallVersionMismatchDetail = Extract<OperationRefusalDetail, { kind: 'ins
 
 type OlderProgramPresentDetail = Extract<OperationRefusalDetail, { kind: 'older-program-present' }>;
 
+type GitBelowFloorDetail = Extract<OperationRefusalDetail, { kind: 'git-below-floor' }>;
+
 /**
  * Who reads the sentence: a person at the command line, or User through the API, in the Bridge or a monitor. User runs no command, so an
  * API sentence names what is wrong and, where an action exists, the Bridge control or a neutral action, never a command line or a flag.
@@ -171,7 +173,7 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Ticket #${detail.ticketId} is under review: its review row #${detail.reviewBarTaskId} is in progress. ${NOTHING_WAS_WRITTEN}`;
     case 'claim-after-a-ticket-not-in-review':
       return `Ticket #${detail.ticketId} was not claimed after #${detail.afterTicketId}: #${detail.afterTicketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
-        + `and --after names a predecessor that is in-review. ${NOTHING_WAS_WRITTEN}`;
+        + `and ${adviceFor(channel, '--after names', 'a claim after another ticket takes')} a predecessor that is in-review. ${NOTHING_WAS_WRITTEN}`;
     case 'claim-after-a-ticket-outside-the-bundle':
       return `Ticket #${detail.ticketId} was not claimed after #${detail.afterTicketId}: `
         + `the two are not in one release bundle of the same group. ${NOTHING_WAS_WRITTEN}`;
@@ -570,6 +572,15 @@ function olderProgramPresentText({
     + `repository ${olderProgram} does not track, so nothing was written. ${adviceFor(channel, `Run ${program} in`, 'Use')} a scratch repository instead.`;
 }
 
+function gitBelowFloorText({ foundVersion, floorVersion }: GitBelowFloorDetail, channel: RefusalChannel): string {
+  const tryAgain = adviceFor(channel, 'run the command again', 'try again');
+  return foundVersion === null
+    ? `${PRODUCT_NAMES.PROGRAM} needs git ${floorVersion} or newer, and no git on the PATH answered `
+      + `${adviceFor(channel, '`git version`', 'with its version')}. Install git ${floorVersion} or newer and ${tryAgain}.`
+    : `${PRODUCT_NAMES.PROGRAM} needs git ${floorVersion} or newer, for ${adviceFor(channel, '`git merge-tree --write-tree`', 'its merge of trees')}; `
+      + `the git on the PATH is ${foundVersion}. Upgrade git and ${tryAgain}.`;
+}
+
 function noTrackerFoundText(searchedFrom: string, channel: RefusalChannel): string {
   return sentencesOf(
     `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${searchedFrom} or any directory above it.`,
@@ -581,9 +592,9 @@ function trackerLockHeldText(lockDirectoryPath: string): string {
   return `Another ${PRODUCT_NAMES.PROGRAM} command is holding ${lockDirectoryPath} and did not release it. If nothing else is running, remove that path and try again.`;
 }
 
-function lockTakenOverText(lockDirectoryPath: string): string {
+function lockTakenOverText(lockDirectoryPath: string, channel: RefusalChannel): string {
   return `This ${PRODUCT_NAMES.PROGRAM} command held ${lockDirectoryPath} so long that another command took it over, so it stopped writing. `
-    + 'The next command finishes whatever this one had committed to write; run this one again to make its change.';
+    + `The next command finishes whatever this one had committed to write; ${adviceFor(channel, 'run this one again', 'try again')} to make its change.`;
 }
 
 function malformedHoldJournalText(journalFilePath: string, reason: string): string {
@@ -618,7 +629,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'tracker-lock-held':
       return trackerLockHeldText(detail.lockDirectoryPath);
     case 'lock-taken-over':
-      return lockTakenOverText(detail.lockDirectoryPath);
+      return lockTakenOverText(detail.lockDirectoryPath, channel);
     case 'malformed-hold-journal':
       return malformedHoldJournalText(detail.journalFilePath, detail.reason);
     case 'hold-journal-unremovable':
@@ -662,11 +673,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'malformed-overseer-poll-interval':
       return `${detail.variable} must be a positive whole number of milliseconds, not ${JSON.stringify(detail.value)}. Unset it or correct it.`;
     case 'git-below-floor':
-      return detail.foundVersion === null
-        ? `${PRODUCT_NAMES.PROGRAM} needs git ${detail.floorVersion} or newer, and no git on the PATH answered \`git version\`. Install git `
-          + `${detail.floorVersion} or newer and run the command again.`
-        : `${PRODUCT_NAMES.PROGRAM} needs git ${detail.floorVersion} or newer, for \`git merge-tree --write-tree\`; the git on the PATH is `
-          + `${detail.foundVersion}. Upgrade git and run the command again.`;
+      return gitBelowFloorText(detail, channel);
     case 'baton-taken':
       return `A newer Overseer took this board over from the Baton ${detail.batonFilePath}, so this Overseer stopped without acting.`;
     case 'baton-not-created-whole':
