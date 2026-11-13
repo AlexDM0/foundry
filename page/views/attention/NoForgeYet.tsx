@@ -19,7 +19,7 @@ import { Refusal }                from '../../design-system/Refusal.tsx';
 import { TextField }              from '../../design-system/TextField.tsx';
 import { CommandFailureTextUtil } from '../../shared/utils/CommandFailureTextUtil.ts';
 import { AddRepositoryForm }      from './AddRepositoryForm.ts';
-import { type NoForgeContent }    from './AttentionModel.ts';
+import type { NoForgeContent }    from './AttentionModel.ts';
 
 /** Which button asked for the last path, so a refused choice shows beside it. */
 export type PathChooser = 'folder' | 'forge-program';
