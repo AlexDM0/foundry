@@ -1,9 +1,9 @@
 /**
  * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
- * keeps the window title and the document's theme in step with them, picks the view the route names, and provides the command sender to
- * the views; `GaiaShell` lays out the rail, the top bar, the connection banner and the view from those values alone. While the stream is
- * lost one disabled fieldset disables every button and field of the top bar and the view, so a view's control needs no word of the
- * stream; a link, as every rail row is, still navigates.
+ * keeps the window title and the document's theme in step with them, remembers the view a forge in place was entered from, picks the view
+ * the route names, and provides the command sender to the views; `GaiaShell` lays out the rail, the top bar, the connection banner and the
+ * view from those values alone. While the stream is lost one disabled fieldset disables every button and field of the top bar and the
+ * view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
  */
 import {
   type ReactNode,
@@ -15,19 +15,23 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import type { FleetDocument }                                from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext }          from '../api/CommandSender.ts';
-import { FleetStreamClient, type FleetStreamState }          from '../api/FleetStreamClient.ts';
-import { ACTIVITY_STATUS_LINE, ActivityView }                from '../views/activity/ActivityView.tsx';
-import { AgentsModel }                                       from '../views/agents/AgentsModel.ts';
-import { AgentsView }                                        from '../views/agents/AgentsView.tsx';
-import { attentionViewPartsOf }                              from '../views/attention/AttentionView.tsx';
-import { ConnectionBanner }                                  from './ConnectionBanner.tsx';
-import type { FleetSource }                                  from './FleetSource.ts';
-import { type GaiaRoute, HashRouter, type HashSurroundings } from './HashRouter.ts';
-import { PageClock }                                         from './PageClock.ts';
-import { Rail }                                              from './Rail.tsx';
-import { RailModel }                                         from './RailModel.ts';
+import type { FleetDocument }                                 from '../@types/FleetDocument.ts';
+import { type CommandSender, CommandSenderContext }           from '../api/CommandSender.ts';
+import { FleetStreamClient, type FleetStreamState }           from '../api/FleetStreamClient.ts';
+import { ACTIVITY_STATUS_LINE, ActivityView }                 from '../views/activity/ActivityView.tsx';
+import { AgentsModel }                                        from '../views/agents/AgentsModel.ts';
+import { AgentsView }                                         from '../views/agents/AgentsView.tsx';
+import { attentionViewPartsOf }                               from '../views/attention/AttentionView.tsx';
+import { EmbedChannel, type EmbedChannelSurroundings }        from '../views/forge-frame/EmbedChannel.ts';
+import { ForgeFrameModel }                                    from '../views/forge-frame/ForgeFrameModel.ts';
+import { type ForgeFrameSurroundings, forgeFrameViewPartsOf } from '../views/forge-frame/ForgeFrameView.tsx';
+import { type FrameSessionResult, FrameSessionRequest }       from '../views/forge-frame/FrameSessionRequest.ts';
+import { ConnectionBanner }                                   from './ConnectionBanner.tsx';
+import type { FleetSource }                                   from './FleetSource.ts';
+import { type GaiaRoute, HashRouter, type HashSurroundings }  from './HashRouter.ts';
+import { PageClock }                                          from './PageClock.ts';
+import { Rail }                                               from './Rail.tsx';
+import { RailModel }                                          from './RailModel.ts';
 import {
   type ThemeChoice,
   type ThemeChoiceState,
@@ -63,6 +67,13 @@ export interface ShellSurroundings {
   readonly markMotionReady: () => void;
   /** The page's clock, for a running time, an age or a clock time shown and never compared; it ticks while the page shows. */
   readonly clock:           PageClock;
+  /** A forge in place: the server's frame sessions, and the messages its Bridge posts to the page. */
+  readonly forgeFrame:      ShellForgeFrameSurroundings;
+}
+
+export interface ShellForgeFrameSurroundings {
+  readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
+  readonly embed:               EmbedChannelSurroundings;
 }
 
 export interface GaiaAppProps {
@@ -79,10 +90,13 @@ export interface ViewSurroundings {
   /** The time zone a clock time is printed in; `undefined` is the browser's own. */
   readonly timeZone:           string | undefined;
   readonly goTo:               (fragment: string) => void;
+  readonly forgeFrame:         ForgeFrameSurroundings;
 }
 
 /** The parts of the view the route names; before the first fleet document a view shows at most its status line. */
-export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, { readAtMilliseconds, timeZone, goTo }: ViewSurroundings): ShellViewParts {
+export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, {
+  readAtMilliseconds, timeZone, goTo, forgeFrame
+}: ViewSurroundings): ShellViewParts {
   switch (route.view) {
     case 'attention':
       return fleetDocument === null ? NO_VIEW_PARTS : attentionViewPartsOf(fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone });
@@ -104,6 +118,8 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
         actions: null,
         content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
       };
+    case 'forge':
+      return forgeFrameViewPartsOf(route, fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone }, forgeFrame);
     default:
       return NO_VIEW_PARTS;
   }
@@ -130,12 +146,16 @@ export function GaiaApp({
   fleetSource, fleetStream, commandSender, surroundings
 }: GaiaAppProps) {
   const {
-    hash, theme, setWindowTitle, markMotionReady, clock
+    hash, theme, setWindowTitle, markMotionReady, clock, forgeFrame
   } = surroundings;
   const fleetDocument = useSyncExternalStore(fleetSource.subscribe, fleetSource.current, fleetSource.current);
   const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
   const fragment = useSyncExternalStore(hash.followFragment, hash.currentFragment, hash.currentFragment);
   const route = useMemo(() => HashRouter.routeOf(fragment), [fragment]);
+  const [leaveTarget, setLeaveTarget] = useState(() => ForgeFrameModel.initialLeaveTarget(route));
+  const leaveTargetForRoute = ForgeFrameModel.leaveTargetAfter(leaveTarget, route);
+  // Adjusting state while rendering, as React advises for a value derived from a changed input: the view sees the target of its own route.
+  if (leaveTargetForRoute !== leaveTarget) setLeaveTarget(leaveTargetForRoute);
   const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
 
   const [themeState, setThemeState] = useState<ThemeChoiceState>(() => ({
@@ -167,7 +187,18 @@ export function GaiaApp({
         streamState={streamState}
         route={route}
         viewTitle={viewTitle}
-        view={viewPartsOf(route, fleetDocument, { readAtMilliseconds, timeZone: clock.timeZone, goTo: hash.goTo })}
+        view={viewPartsOf(route, fleetDocument, {
+          readAtMilliseconds,
+          timeZone:   clock.timeZone,
+          goTo:       hash.goTo,
+          forgeFrame: {
+            ...forgeFrame,
+            replaceFragment: hash.replaceFragment,
+            goTo:            hash.goTo,
+            leaveFragment:   leaveTargetForRoute.fragment,
+            themeChoice:     shownThemeChoice,
+          },
+        })}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
       />
@@ -184,5 +215,9 @@ export function browserShellSurroundings(): ShellSurroundings {
     },
     markMotionReady: () => document.documentElement.setAttribute('data-motion', 'ready'),
     clock:           PageClock.create(PageClock.browserSurroundings()),
+    forgeFrame:      {
+      requestFrameSession: (trackerId) => FrameSessionRequest.requestFrameSession((path, requestOptions) => fetch(path, requestOptions), trackerId),
+      embed:               EmbedChannel.browserSurroundings(),
+    },
   };
 }

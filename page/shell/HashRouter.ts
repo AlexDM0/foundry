@@ -16,11 +16,13 @@ export interface SelectedAgent {
   readonly jobId:     string;
 }
 
-/** Where the page reads its fragment, hears it change and changes it, so a spec can drive all three. */
+/** Where the page reads its fragment, hears it change and changes it, so a spec can drive each. */
 export interface HashSurroundings {
   readonly currentFragment: () => string;
   readonly followFragment:  (listener: () => void) => () => void;
   readonly goTo:            (fragment: string) => void;
+  /** Writes the fragment in place of the current one, with no new history entry, and tells every follower as a change of the fragment does. */
+  readonly replaceFragment: (fragment: string) => void;
 }
 
 export const DEFAULT_ROUTE: GaiaRoute = { view: 'attention' };
@@ -108,15 +110,25 @@ function fragmentOf(route: GaiaRoute): string {
   }
 }
 
+/** Replacing the history entry fires no `hashchange`, so the followers hear of it from here. */
 function browserHashSurroundings(): HashSurroundings {
+  const followers = new Set<() => void>();
   return {
     currentFragment: () => window.location.hash,
     followFragment:  (listener) => {
+      followers.add(listener);
       window.addEventListener('hashchange', listener);
-      return () => window.removeEventListener('hashchange', listener);
+      return () => {
+        followers.delete(listener);
+        window.removeEventListener('hashchange', listener);
+      };
     },
     goTo: (fragment) => {
       window.location.hash = fragment;
+    },
+    replaceFragment: (fragment) => {
+      window.history.replaceState(window.history.state, '', fragment);
+      [...followers].forEach((listener) => listener());
     },
   };
 }

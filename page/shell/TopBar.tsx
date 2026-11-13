@@ -10,6 +10,8 @@ import type { ThemeChoice }                from './ThemeBootstrap.ts';
 export interface TopBarStatus {
   /** The dot that leads the line, or `null` for a line without one. */
   readonly condition: DotCondition | null;
+  /** The word of the condition beside its dot, in the UI face, so the dot is never the only sign. */
+  readonly word?:     string;
   readonly text:      string;
 }
 
@@ -37,6 +39,7 @@ export function TopBar({
       {status === null ? null : (
         <span className="gaia-top-bar-status">
           {status.condition === null ? null : <ConditionDot condition={status.condition} />}
+          {status.word === undefined ? null : <span className="gaia-top-bar-status-word">{status.word}</span>}
           {status.text}
         </span>
       )}

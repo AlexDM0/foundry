@@ -1,6 +1,7 @@
 /**
  * The top bar. What matters: the view's title is the page's one heading; the status line shows only when the view gives one, led by its
- * dot when it has one; the view's buttons come before the theme switch; and the switch shows the choice and hands a new one on.
+ * dot when it has one and by the condition's word when it names one, so the dot is never the only sign; the view's buttons come before
+ * the theme switch; and the switch shows the choice and hands a new one on.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -25,6 +26,21 @@ describe('the top bar', () => {
     const status = tree.onlyWithClass(unfolded, 'gaia-top-bar-status');
     expect(tree.textOf([status])).toBe('4 forges running');
     expect(tree.onlyWithClass([status], 'gaia-condition-dot').props['data-condition']).toBe('live');
+  });
+
+  test('a condition\'s word stands between the dot and the mono line, in its own face', () => {
+    const unfolded = tree.unfolded(
+      <TopBar
+        title="Example Storefront"
+        status={{ condition: 'live', word: 'Live', text: '4 / 5 agents' }}
+        actions={null}
+        themeChoice="dark"
+        onThemeChoice={() => undefined}
+      />,
+    );
+    const status = tree.onlyWithClass(unfolded, 'gaia-top-bar-status');
+    expect(tree.textOf([status])).toBe('Live4 / 5 agents');
+    expect(tree.textOf([tree.onlyWithClass([status], 'gaia-top-bar-status-word')])).toBe('Live');
   });
 
   test('the view\'s buttons come before the theme switch', () => {

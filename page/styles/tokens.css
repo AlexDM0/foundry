@@ -68,6 +68,9 @@
   --attention-id-column:          52px;
   --attention-recent-clock-column: 44px;
   --attention-no-forge-width:     640px;
+
+  --forge-frame-notice-width:        640px;
+  --forge-frame-stop-popover-width:  560px;
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;
 

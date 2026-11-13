@@ -20,7 +20,7 @@ import { Button }                                                               
 import { TextField }                                                                from '../design-system/TextField.tsx';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
-import { shellSurroundingsAt }                                                      from '../testing/ShellSurroundingsAt.ts';
+import { forgeFrameSurroundingsAt, shellSurroundingsAt }                            from '../testing/ShellSurroundingsAt.ts';
 import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
 import { createFleetSource, type FleetSource }                                      from './FleetSource.ts';
@@ -324,6 +324,7 @@ describe('the Agents view in the shell', () => {
       readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
       timeZone:           'UTC',
       goTo:               (fragment) => visited.push(fragment),
+      forgeFrame:         forgeFrameSurroundingsAt(),
     });
     const needsALook = tree.onlyHostElementIn(tree.unfolded(parts.content), (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
     tree.dispatch(needsALook, 'onClick');
