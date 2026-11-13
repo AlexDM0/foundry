@@ -82,6 +82,6 @@ and no outage pauses the board. Never run `agent-progress` against this checkout
 | `bridge-questions.png` | The Questions view beside the question panel, the one shot that shows the panel. |
 | `bridge-assistant.png` | The Assistant view: its chat thread from the first turn on, the composer and the incident rail. |
 | `bridge-intake.png` | The Intake view: the session list and the product owner's chat, with User's picture and its decision. |
-| `icon.png` | Dark rounded square with four Gantt bars and a red now-line. |
+| `icon.png` | Light rounded square with a graphite hexagon and an orange electron at its upper right corner. |
 | `lifecycle.png`, `architecture.png` | The two diagrams (SVG sources beside them). |
 | `terminal-setup.png`, `terminal-init.png` | `./setup.sh` and `agent-progress init` in a terminal window. |

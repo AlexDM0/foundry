@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img">
+  <title>forge, activated</title>
+  <style>
+    .tile-warmth, .halo, .heat, .heart, .glow, .flare { animation: 3.6s ease-in-out infinite }
+    .tile-warmth { opacity: 0.22; animation-name: tile-warmth }
+    .halo { opacity: .3; animation-name: halo }
+    .heat { opacity: .78; animation-name: heat }
+    .heart { animation-name: heart }
+    .glow { animation-name: glow }
+    .flare { animation-name: flare }
+    @keyframes tile-warmth { 0%, 100% { opacity: 0.22 } 50% { opacity: 0.5 } }
+    @keyframes halo { 0%, 100% { opacity: .3 } 50% { opacity: .7 } }
+    @keyframes heat { 0%, 100% { opacity: .78 } 50% { opacity: 1 } }
+    @keyframes heart { 0%, 100% { fill-opacity: 0.5 } 50% { fill-opacity: 1 } }
+    @keyframes glow { 0%, 100% { opacity: .3 } 50% { opacity: .65 } }
+    @keyframes flare { 0%, 100% { opacity: 0 } 50% { opacity: .5 } }
+    @media (prefers-reduced-motion: reduce) { .tile-warmth, .halo, .heat, .heart, .glow, .flare { animation: none } }
+  </style>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d6d6d6"/></linearGradient>
+    <filter id="glow" filterUnits="userSpaceOnUse" x="32.02" y="6.75" width="32" height="32"><feGaussianBlur stdDeviation="2"/></filter>
+    <linearGradient id="heat" gradientUnits="userSpaceOnUse" x1="16" y1="50" x2="48" y2="22"><stop offset="0" stop-color="#e25400"/><stop offset=".6" stop-color="#fa6a0a"/><stop offset="1" stop-color="#ff9838"/></linearGradient>
+    <radialGradient id="tile-warmth" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#ff8d42" stop-opacity=".8"/><stop offset=".55" stop-color="#fa5f01" stop-opacity=".3"/><stop offset="1" stop-color="#fa5f01" stop-opacity="0"/></radialGradient>
+    <filter id="halo" filterUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><feGaussianBlur stdDeviation="2.6"/></filter>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><circle cx="48.02" cy="22.75" r="10.35" fill="#000"/></mask>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#tile)"/>
+  <rect class="tile-warmth" x="1" y="1" width="62" height="62" rx="13" fill="url(#tile-warmth)"/>
+  <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
+    <path class="halo" d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="url(#heat)" stroke-width="5.4" filter="url(#halo)"/>
+    <g mask="url(#gap)"><path d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="#3d3d3d" stroke-width="3"/>
+      <path class="heat" d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="url(#heat)" stroke-width="3"/>
+    </g>
+    <path class="heart" d="M31.5 26.29 A1 1 0 0 1 32.5 26.29 L36.7 28.71 A1 1 0 0 1 37.2 29.58 L37.2 34.42 A1 1 0 0 1 36.7 35.29 L32.5 37.71 A1 1 0 0 1 31.5 37.71 L27.3 35.29 A1 1 0 0 1 26.8 34.42 L26.8 29.58 A1 1 0 0 1 27.3 28.71 Z" fill="#fa5f01" fill-opacity="0.5"/>
+    <circle class="glow" cx="48.02" cy="22.75" r="7" fill="#ff8d42" opacity="0.24" filter="url(#glow)"/>
+    <circle cx="48.02" cy="22.75" r="7.4" fill="none" stroke="#ee5600" stroke-width="1.5"/>
+    <circle cx="48.02" cy="22.75" r="3.6" fill="#ff8d42"/>
+    <circle class="flare" cx="48.02" cy="22.75" r="2.52" fill="#ffe3cc" opacity="0"/>
+  </g>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#000" stroke-opacity="0.14"/>
+</svg>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="112" height="112" alt="forge icon: four coloured Gantt bars and a red now-line on a dark rounded square">
+  <img src="docs/images/icon.png" width="112" height="112" alt="forge icon: a graphite hexagon with an orange electron at its upper right corner, on a light rounded square">
 </p>
 
 # forge
