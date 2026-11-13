@@ -534,6 +534,22 @@ body {
   outline-offset: var(--focus-ring-width);
 }
 
+/* ── Add a repository (B4, and A4's dialog) ─────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-add-repository-line { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-add-repository-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-add-repository-program-missing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) dashed var(--line-strong);
+  border-radius: var(--r-3);
+}
+.gaia-add-repository-program-missing-text { flex: 1; min-width: 0; }
+.gaia-add-repository-program-missing-title { font-weight: var(--weight-strong); }
+.gaia-add-repository-program-missing-why { color: var(--ink-muted); }
+
 /* ── Activity (A3) ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 .gaia-activity {
@@ -889,19 +905,6 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   border-radius: var(--r-3);
   background: var(--surface);
 }
-.gaia-attention-add-line { display: flex; align-items: center; gap: var(--sp-3); }
-.gaia-attention-add-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-attention-program-missing {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  border: var(--hairline) dashed var(--line-strong);
-  border-radius: var(--r-3);
-}
-.gaia-attention-program-missing-text { flex: 1; min-width: 0; }
-.gaia-attention-program-missing-title { font-weight: var(--weight-strong); }
-.gaia-attention-program-missing-why { color: var(--ink-muted); }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-attention-link:focus-visible,

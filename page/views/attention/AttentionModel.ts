@@ -4,8 +4,7 @@
  * full, its banner and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the
  * document does not hold is absent, never zero.
  */
-import { CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
-import type { CommandBody }  from '../../@types/CommandDocument.ts';
+import type { CommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentAttentionKind,
@@ -21,6 +20,7 @@ import type { CalloutTone }                from '../../design-system/Callout.tsx
 import type { DotCondition }               from '../../design-system/ConditionDot.tsx';
 import type { PillTone }                   from '../../design-system/Pill.tsx';
 import type { DotRole }                    from '../../design-system/RoleDot.tsx';
+import { ForgeContractUtil }               from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                   from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                   from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }                      from '../../shell/HashRouter.ts';
@@ -155,7 +155,6 @@ const NO_FORGE_STATUS: TopBarStatus = { condition: null, text: 'no forge on this
 
 const EVERY_FORGE_HIDDEN_STATUS: TopBarStatus = { condition: null, text: 'every forge is hidden in Gaia' };
 
-
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
   'question':           'Question',
@@ -167,7 +166,6 @@ const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
 
 /** The conditions under which a forge's Overseer runs. */
 const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
-
 
 const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 const NEW_CODE_NOTICE_KIND = 'new-code';
@@ -280,10 +278,6 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
   });
 }
 
-function controlContractIsKnown(forge: FleetDocumentForge): boolean {
-  return forge.contracts.control === CONTRACT_VERSIONS.forgeControl;
-}
-
 function commandAction(label: string, emphasis: ButtonEmphasis, command: CommandBody, forgeAcceptsIt = true, icon: ButtonIcon | null = null): LookAction {
   return {
     kind: 'command',
@@ -382,7 +376,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
         word:        'New code',
         sentence:    forgeTextOf(forge.notices, NEW_CODE_NOTICE_KIND) ?? 'This forge\'s code changed since its Overseer started.',
         machineLine: forge.codeVersion === null ? null : `code ${forge.codeVersion}`,
-        actions:     [commandAction('Restart onto the new code', 'primary', { kind: 'forge-restart', trackerId }, controlContractIsKnown(forge))],
+        actions:     [commandAction('Restart onto the new code', 'primary', { kind: 'forge-restart', trackerId }, ForgeContractUtil.controlContractIsKnown(forge))],
       };
     case 'counts-only':
       return {

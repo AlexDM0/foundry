@@ -7,6 +7,7 @@ import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } fr
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
 import type { SegmentOption }                                                 from '../../design-system/SegmentedControl.tsx';
 import type { TagTone }                                                       from '../../design-system/Tag.tsx';
+import { ForgeContractUtil }                                                  from '../../shared/utils/ForgeContractUtil.ts';
 import { HashRouter, type SelectedAgent }                                     from '../../shell/HashRouter.ts';
 import { RailModel, type RailMachine }                                        from '../../shell/RailModel.ts';
 import {
@@ -116,7 +117,7 @@ function projectOf(fleetDocument: FleetDocument, trackerId: string): string {
 /** The agent in its forge's own Agents view when the forge opens in place, else the forge's row on the Forges view. */
 function jobHrefOf(fleetDocument: FleetDocument, row: FleetDocumentFleetAgentRow): string {
   const forge = forgeOf(fleetDocument, row.trackerId);
-  if (forge !== null && RailModel.canOpenInPlace(forge)) {
+  if (forge !== null && ForgeContractUtil.canOpenInPlace(forge)) {
     const bridgeFragment = row.route ?? `${AGENTS_ROUTE_OF_THE_BRIDGE}${encodeURIComponent(row.jobId)}`;
     return HashRouter.fragmentOf({ view: 'forge', trackerId: row.trackerId, bridgeFragment });
   }

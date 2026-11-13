@@ -1,34 +1,21 @@
 /**
  * Attention with no forge registered. What matters (SCREENS B4, acceptance 2): the head says why nothing waits; the form adds a repository
  * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program;
- * a folder is chosen through `path-choose` and fills the form, a program chosen is kept through `settings-set`, a cancelled choice keeps
- * nothing; a refused add shows in the form, and a refused Look again from the top bar on the screen. The command sender is the real one
- * over Gaia's server stood in for by authored answers.
+ * a refused add shows in the form, and a refused Look again from the top bar on the screen. The command sender is the real one over Gaia's
+ * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommandAnswerDocument }                   from '../../@types/CommandDocument.ts';
-import type { CommandSender, CommandStates }            from '../../api/CommandSender.ts';
-import { answerResponse, senderOver, type SentRequest } from '../../testing/CommandServer.ts';
-import { type HostElement, ReactElementTree }           from '../../testing/ReactElementTree.ts';
-import { AddRepositoryForm }                            from './AddRepositoryForm.ts';
-import { NoForgeYetCommands, NoForgeYetLayout }         from './NoForgeYet.tsx';
+import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
+import type { CommandSender, CommandStates }  from '../../api/CommandSender.ts';
+import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
+import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
+import { type HostElement, ReactElementTree } from '../../testing/ReactElementTree.ts';
+import { NoForgeYetLayout }                   from './NoForgeYet.tsx';
 
 const tree = ReactElementTree;
 
 const FILLED_FORM = AddRepositoryForm.formAfterFolder(AddRepositoryForm.EMPTY_FORM, '~/development/example-storefront');
-
-const ANSWERED_PATH = (path: string): CommandAnswerDocument => ({
-  answerVersion: 1, outcome: 'done', refusal: null, text: path
-});
-
-const CANCELLED: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'nothing-to-do', refusal: null, text: null
-};
-
-const DONE: CommandAnswerDocument = {
-  answerVersion: 1, outcome: 'done', refusal: null, text: null
-};
 
 const INIT_REFUSED: CommandAnswerDocument = {
   answerVersion: 1,
@@ -61,16 +48,18 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
       form={form}
       pathChooser="folder"
       commandStates={commandStates}
-      onFolderTyped={() => undefined}
-      onProjectTyped={() => undefined}
-      onChooseFolder={() => {
-        pressed.chooseFolder += 1;
-      }}
-      onAddAndStart={() => {
-        pressed.addAndStart += 1;
-      }}
-      onChooseForgeProgram={() => {
-        pressed.chooseForgeProgram += 1;
+      handlers={{
+        onFolderTyped:  () => undefined,
+        onProjectTyped: () => undefined,
+        onChooseFolder: () => {
+          pressed.chooseFolder += 1;
+        },
+        onAddAndStart: () => {
+          pressed.addAndStart += 1;
+        },
+        onChooseForgeProgram: () => {
+          pressed.chooseForgeProgram += 1;
+        },
       }}
       onLookAgain={() => {
         pressed.lookAgain += 1;
@@ -83,10 +72,6 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
 
 function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, label: string): HostElement {
   return tree.onlyHostElementIn(nodes, (element) => element.tag === 'button' && tree.textOf([element]) === label);
-}
-
-function bodiesOf(sent: readonly SentRequest[]): unknown[] {
-  return sent.map((request) => JSON.parse(String(request.requestOptions.body)));
 }
 
 describe('no forge yet', () => {
@@ -105,7 +90,7 @@ describe('no forge yet', () => {
 
   test('with a forge program, a filled form can be added and started, and the buttons call their handlers', () => {
     const { unfolded, pressed } = layoutOf(false);
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-program-missing'))).toEqual([]);
+    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
     tree.dispatch(buttonNamed(unfolded, 'Add and start'), 'onClick');
     tree.dispatch(buttonNamed(unfolded, 'Choose a folder'), 'onClick');
     expect(pressed).toEqual({
@@ -117,9 +102,9 @@ describe('no forge yet', () => {
   test('with no forge program, "Add and start" is disabled and the dashed status line says why', () => {
     const { unfolded, pressed } = layoutOf(true);
     expect(buttonNamed(unfolded, 'Add and start').props['disabled']).toBe(true);
-    const line = tree.onlyWithClass(unfolded, 'gaia-attention-program-missing');
+    const line = tree.onlyWithClass(unfolded, 'gaia-add-repository-program-missing');
     expect(line.props['role']).toBe('status');
-    expect(tree.textOf([tree.onlyWithClass([line], 'gaia-attention-program-missing-text')])).toBe(
+    expect(tree.textOf([tree.onlyWithClass([line], 'gaia-add-repository-program-missing-text')])).toBe(
       'The forge program was not found. Gaia can show running forges without it, but cannot start one.',
     );
     tree.dispatch(buttonNamed([line], 'Choose the forge program'), 'onClick');
@@ -147,39 +132,5 @@ describe('no forge yet', () => {
     const sender: CommandSender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'path-choose', what: 'folder' });
     expect(buttonNamed(layoutOf(false, FILLED_FORM, sender.states()).unfolded, 'Choose a folder').props['disabled']).toBe(true);
-  });
-});
-
-describe('the commands behind its buttons', () => {
-  test('a chosen folder is the path Gaia answered, and a cancelled choice is none', async () => {
-    const sent: SentRequest[] = [];
-    const sender = senderOver([
-      () => Promise.resolve(answerResponse(ANSWERED_PATH('/Users/alexexample/development/example-storefront'))),
-      () => Promise.resolve(answerResponse(CANCELLED)),
-    ], sent);
-    expect(await NoForgeYetCommands.chosenFolderOf(sender.send)).toBe('/Users/alexexample/development/example-storefront');
-    expect(await NoForgeYetCommands.chosenFolderOf(sender.send)).toBeNull();
-    expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'folder', commandVersion: 1 },
-      { kind: 'path-choose', what: 'folder', commandVersion: 1 },
-    ]);
-  });
-
-  test('a chosen forge program is kept in the settings; a cancelled choice sends nothing more', async () => {
-    const sent: SentRequest[] = [];
-    const sender = senderOver([
-      () => Promise.resolve(answerResponse(ANSWERED_PATH('/Users/alexexample/.bun/bin/forge'))),
-      () => Promise.resolve(answerResponse(DONE)),
-      () => Promise.resolve(answerResponse(CANCELLED)),
-    ], sent);
-    await NoForgeYetCommands.chooseAndKeepForgeProgram(sender.send);
-    await NoForgeYetCommands.chooseAndKeepForgeProgram(sender.send);
-    expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'file', commandVersion: 1 },
-      {
-        kind: 'settings-set', key: 'forgeProgramPath', value: '/Users/alexexample/.bun/bin/forge', commandVersion: 1
-      },
-      { kind: 'path-choose', what: 'file', commandVersion: 1 },
-    ]);
   });
 });

@@ -3,7 +3,6 @@
  * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
  * callout for an Overseer that stopped answering, or the sentence for a forge that cannot be shown inside Gaia. Also where `leave` goes.
  */
-import { CONTRACT_VERSIONS }                                   from '../../../src/shared/constants/ContractVersions.ts';
 import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
@@ -14,10 +13,10 @@ import type {
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
 import { DEFAULT_ROUTE, type GaiaRoute, HashRouter }  from '../../shell/HashRouter.ts';
-import { RailModel }                                  from '../../shell/RailModel.ts';
 import type { TopBarStatus }                          from '../../shell/TopBar.tsx';
 import { SESSION_LOST_WHILE_OPENING }                 from './ForgeFrameSession.ts';
 
@@ -231,7 +230,7 @@ function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
     pauseOrResume:          pauseOrResumeOf(forge),
     stop:                   stopQuestionOf(forge),
     openInNewTab:           { kind: 'forge-open-in-browser', trackerId: forge.trackerId },
-    controlContractIsKnown: forge.contracts.control === CONTRACT_VERSIONS.forgeControl,
+    controlContractIsKnown: ForgeContractUtil.controlContractIsKnown(forge),
   };
 }
 
@@ -248,7 +247,7 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock:
   if (forge.fidelity === 'unreachable') return {
     kind: 'unreachable', trackerId, project, callout,
   };
-  if (forge.fidelity === 'full' && RailModel.canOpenInPlace(forge)) return {
+  if (forge.fidelity === 'full' && ForgeContractUtil.canOpenInPlace(forge)) return {
     kind: 'frame', trackerId, project, overseerKey: overseerKeyOf(forge), callout,
   };
   return { kind: 'cannot-show', trackerId, project };

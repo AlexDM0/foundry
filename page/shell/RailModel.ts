@@ -2,9 +2,9 @@
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, and this
  * machine's agents against its limit. Every count is the document's own figure; one the document does not hold is absent, never zero.
  */
-import { CONTRACT_VERSIONS }                         from '../../src/shared/constants/ContractVersions.ts';
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
+import { ForgeContractUtil }                         from '../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                             from '../shared/utils/ForgeTextUtil.ts';
 import { type GaiaRoute, type GaiaView, HashRouter } from './HashRouter.ts';
 
@@ -72,14 +72,9 @@ function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
 }
 
-/** In place needs the embed contract Gaia knows, and a forge read in full or as last reported; any other opens at its Forges row. */
-function canOpenInPlace(forge: FleetDocumentForge): boolean {
-  const isReadInFullOrAsLastReported = forge.fidelity === 'full' || forge.fidelity === 'unreachable';
-  return isReadInFullOrAsLastReported && forge.contracts.embed === CONTRACT_VERSIONS.forgeEmbedChannel;
-}
-
+/** A forge that cannot open in place opens at its Forges row. */
 function forgeHrefOf(forge: FleetDocumentForge): string {
-  if (canOpenInPlace(forge)) return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, bridgeFragment: null });
+  if (ForgeContractUtil.canOpenInPlace(forge)) return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, bridgeFragment: null });
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId });
 }
 
@@ -170,7 +165,6 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
 export const RailModel = {
   railContentOf,
   attentionCountOf,
-  canOpenInPlace,
   machineOf,
   VIEW_LABELS,
 } as const;
