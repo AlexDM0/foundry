@@ -12,8 +12,9 @@ import {
   test
 } from 'bun:test';
 
+import { serverTokenPathIn }                         from '../../adapters/gaia-files/ServerTokenFile.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
-import { serverTokenPathIn, writeFreshServerToken }  from './ServerToken.ts';
+import { writeFreshServerToken }                     from './ServerToken.ts';
 
 const PERMISSION_BITS = 0o777;
 

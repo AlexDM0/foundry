@@ -1,0 +1,94 @@
+/**
+ * Asks Gaia's own server on a port of 127.0.0.1, as another process of the same user does: whether Gaia serves there and how far it is
+ * with its forges, and, with Gaia's token, a one-time session code for a window. Every answer is a verdict; nothing answering is one.
+ */
+import {
+  answerIsGaiaHealth,
+  forgeCountsOf,
+  HEALTH_PATH,
+  type ForgeCounts,
+} from './HealthDocument.ts';
+
+export type HealthReading =
+  /** `forgeCounts` is `null` for a Gaia at another health version, which is still a Gaia on the port. */
+  | { readonly verdict: 'gaia-answers'; readonly forgeCounts: ForgeCounts | null }
+  | { readonly verdict: 'another-program-answers' }
+  | { readonly verdict: 'nothing-answers' };
+
+export type HealthProbeVerdict = HealthReading['verdict'];
+
+export type SessionCodeAnswer =
+  | { readonly verdict: 'issued'; readonly code: string }
+  | { readonly verdict: 'refused'; readonly status: number }
+  | { readonly verdict: 'unreachable' };
+
+export interface GaiaServerClient {
+  readonly healthReadingFor: (port: number) => Promise<HealthReading>;
+  readonly sessionCodeFor:   (port: number, token: string) => Promise<SessionCodeAnswer>;
+}
+
+export const SESSION_CODES_PATH = '/api/session-codes';
+
+/** A Gaia that is up answers its health at once; one that takes longer is treated as absent, and the port then decides. */
+export const HEALTH_PROBE_TIMEOUT_MILLISECONDS = 1_000;
+
+/** A session code is issued from memory at once; a server that takes longer is not answering. */
+export const SESSION_CODE_TIMEOUT_MILLISECONDS = 2_000;
+
+const SESSION_CODE_PATTERN = /^[0-9a-f]+$/;
+
+function addressOf(port: number, path: string): string {
+  return `http://127.0.0.1:${port}${path}`;
+}
+
+export async function healthReadingFor(port: number, timeoutMilliseconds = HEALTH_PROBE_TIMEOUT_MILLISECONDS): Promise<HealthReading> {
+  let response: Response;
+  try {
+    response = await fetch(addressOf(port, HEALTH_PATH), { redirect: 'manual', signal: AbortSignal.timeout(timeoutMilliseconds) });
+  } catch {
+    return { verdict: 'nothing-answers' };
+  }
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    return { verdict: 'another-program-answers' };
+  }
+  return answerIsGaiaHealth(parsed) ? { verdict: 'gaia-answers', forgeCounts: forgeCountsOf(parsed) } : { verdict: 'another-program-answers' };
+}
+
+export async function healthProbeVerdictFor(port: number, timeoutMilliseconds = HEALTH_PROBE_TIMEOUT_MILLISECONDS): Promise<HealthProbeVerdict> {
+  return (await healthReadingFor(port, timeoutMilliseconds)).verdict;
+}
+
+function issuedCodeIn(parsed: unknown): string | null {
+  if (typeof parsed !== 'object' || parsed === null || !Object.hasOwn(parsed, 'code')) return null;
+  const { code } = parsed as { readonly code: unknown };
+  return typeof code === 'string' && SESSION_CODE_PATTERN.test(code) ? code : null;
+}
+
+/** The token travels only as a bearer to 127.0.0.1; the code is for one window and buys one session. */
+export async function sessionCodeFor(port: number, token: string, timeoutMilliseconds = SESSION_CODE_TIMEOUT_MILLISECONDS): Promise<SessionCodeAnswer> {
+  let response: Response;
+  let parsed: unknown;
+  try {
+    response = await fetch(addressOf(port, SESSION_CODES_PATH), {
+      method:   'POST',
+      headers:  { authorization: `Bearer ${token}` },
+      redirect: 'manual',
+      signal:   AbortSignal.timeout(timeoutMilliseconds),
+    });
+    parsed = response.ok ? await response.json() : null;
+  } catch {
+    return { verdict: 'unreachable' };
+  }
+  const code = issuedCodeIn(parsed);
+  return code === null ? { verdict: 'refused', status: response.status } : { verdict: 'issued', code };
+}
+
+export function realGaiaServerClient(): GaiaServerClient {
+  return {
+    healthReadingFor: (port) => healthReadingFor(port),
+    sessionCodeFor:   (port, token) => sessionCodeFor(port, token),
+  };
+}

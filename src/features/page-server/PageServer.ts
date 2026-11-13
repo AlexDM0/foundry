@@ -5,6 +5,8 @@
  */
 import { createServerRecordWriter }                                                                from '../../adapters/gaia-files/ServerRecordWriter.ts';
 import type { FileRemoveVerdict }                                                                  from '../../adapters/gaia-files/utils/GaiaFileWriteUtil.ts';
+import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS, SESSION_CODES_PATH }            from '../../adapters/gaia-server/GaiaServerClient.ts';
+import { HEALTH_PATH, type ForgeCounts }                                                           from '../../adapters/gaia-server/HealthDocument.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor, withContentSecurityPolicy } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
 import { hostGuardVerdictFor }                                                                     from '../../lib/local-http-guards/HostGuard.ts';
 import { originGuardVerdictFor }                                                                   from '../../lib/local-http-guards/OriginGuard.ts';
@@ -14,7 +16,6 @@ import { monotonicMillisecondsOfNow }                                           
 import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
 import type { WatchTimers }                                                                        from '../../services/ForgeWatch.ts';
 import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
-import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                                from './HealthProbe.ts';
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
 import { COMMANDS_PATH, commandAnswerFor, type CommandCarrier }                                    from './routes/CommandsRoute.ts';
@@ -24,7 +25,7 @@ import {
   trackerIdOfFrameSessionPath,
   type FrameSessionSources,
 } from './routes/FrameSessionRoute.ts';
-import { HEALTH_PATH, healthAnswerOf, type ForgeCounts }                       from './routes/HealthRoute.ts';
+import { healthAnswerOf }                                                      from './routes/HealthRoute.ts';
 import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
 import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
 
@@ -130,7 +131,7 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
     },
     {
       method:      'POST',
-      matchesPath: exactly('/api/session-codes'),
+      matchesPath: exactly(SESSION_CODES_PATH),
       access:      'token',
       isStream:    false,
       answer:      () => sessionCodeAnswerOf(sessionCodes),

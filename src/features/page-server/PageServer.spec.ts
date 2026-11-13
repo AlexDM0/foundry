@@ -17,6 +17,7 @@ import {
 } from 'bun:test';
 
 import { serverRecordPathIn }                                           from '../../adapters/gaia-files/ServerRecordWriter.ts';
+import { serverTokenPathIn }                                            from '../../adapters/gaia-files/ServerTokenFile.ts';
 import { FleetDocumentMapUtil }                                         from '../../adapters/page-api/FleetDocumentMapUtil.ts';
 import { FLEET_SNAPSHOT_EMPTY }                                         from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES }                                   from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
@@ -30,7 +31,6 @@ import { manualTimers, type ManualTimers }                              from '..
 import { recordedOverseerFetch, type RecordedOverseerFetch }            from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
 import { startPageServer, type PageServer, type PageServerOptions }     from './PageServer.ts';
-import { serverTokenPathIn }                                            from './ServerToken.ts';
 import type { PageFilesSource }                                         from './routes/PageFilesRoute.ts';
 
 const PAGE_POLICY = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
