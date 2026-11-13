@@ -1,7 +1,8 @@
 /**
  * The command sender. What matters (W4.3 acceptance; SCREENS B2 acceptance 2 and 3): one command goes as one JSON body at the known
  * `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence as Gaia answered them, and stays on that forge
- * until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge the same way; while a
+ * until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge until dismissed or until a
+ * restart, stop or update of it succeeds, since a pause leaves the old code running; while a
  * command to a forge is on its way that forge reads it on its way and takes no second one, and another forge is not held up; nothing is
  * sent while the controls may not act. Gaia's server is stood in for by answers authored
  * from PLAN 6.3, since its route does not exist yet; the HTTP status of a refusal is not part of that contract, so the body alone decides.
@@ -219,6 +220,17 @@ describe('an update that left a restart pending', () => {
     await sender.send(RESTART_EXAMPLE_MOBILE_APP);
     expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null, restartPending: false });
     expect(sender.states().forges.size).toBe(0);
+  });
+
+  test('keeps the restart pending through a success that leaves the old code running', async () => {
+    const sender = senderOver([
+      () => Promise.resolve(answerResponse(RESTART_PENDING)),
+      () => Promise.resolve(answerResponse(DONE)),
+    ]);
+    const subject = { trackerId: TRACKER_IDS.exampleMobileApp };
+    await sender.send(UPDATE_EXAMPLE_MOBILE_APP);
+    await sender.send({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleMobileApp });
+    expect(CommandSender.stateOf(sender.states(), subject)).toEqual({ onItsWay: null, failure: null, restartPending: true });
   });
 
   test('keeps the restart pending while the restart is on its way, and drops it when dismissed, leaving a refusal as it was', async () => {

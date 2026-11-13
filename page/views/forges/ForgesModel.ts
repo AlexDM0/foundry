@@ -450,7 +450,7 @@ function refusalShowsOnTheRow(forge: FleetDocumentForge): (kind: CommandKind) =>
   return (kind) => !(forge.condition === 'held' && kind === 'forge-update');
 }
 
-/** The restart an update left pending, until the next command to the forge succeeds or it is dismissed; Restart needs the forge's API. */
+/** The restart an update left pending, until a restart, stop or update of the forge succeeds or it is dismissed; Restart needs its API. */
 function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): PendingRestart | null {
   const { trackerId } = forge;
   if (!CommandSender.stateOf(rowSurroundings.surroundings.commandStates, { trackerId }).restartPending) return null;

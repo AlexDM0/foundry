@@ -1,8 +1,8 @@
 /**
  * Sends one command to `POST /api/commands` and gives the view Gaia's answer, the forge's refusal code and sentence as Gaia answered them.
- * Per forge, and per command that names no forge, it keeps the kind on its way, the last send that did not succeed, and an update that
- * left a restart pending, each until dismissed or until the next success. It sends nothing while the controls may not act, and nothing for
- * a subject that already has a command on its way.
+ * Per forge, and per command that names no forge, it keeps the kind on its way and the last send that did not succeed, until dismissed or
+ * until the next success, and an update that left a restart pending, until dismissed or until a command that ends the running Overseer
+ * succeeds. It sends nothing while the controls may not act, and nothing for a subject that already has a command on its way.
  */
 import { createContext, useContext, useSyncExternalStore } from 'react';
 
@@ -69,6 +69,9 @@ const SUCCESSFUL_OUTCOMES: ReadonlySet<CommandOutcome> = new Set(['done', 'nothi
 
 const COMMAND_OUTCOMES: ReadonlySet<unknown> = new Set<CommandOutcome>(['done', 'nothing-to-do', 'restart-pending', 'refused', 'unreachable', 'not-supported']);
 
+/** A success of these ends the Overseer that runs the old code, so no restart is pending after it; a pause, say, leaves it running. */
+const COMMANDS_THAT_END_THE_RUNNING_OVERSEER: ReadonlySet<CommandKind> = new Set(['forge-restart', 'forge-stop', 'forge-update']);
+
 const IDLE: CommandState = { onItsWay: null, failure: null, restartPending: false };
 
 const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
@@ -126,10 +129,10 @@ function resultSucceeded(result: CommandResult): boolean {
   return result.verdict === 'answered' && SUCCESSFUL_OUTCOMES.has(result.answer.outcome);
 }
 
-/** A restart is pending from the answer that says so until the next success; a send that did not succeed leaves it as it was. */
-function restartPendingAfter(result: CommandResult, restartWasPending: boolean): boolean {
+/** A restart is pending from the answer that says so until a command that ends the running Overseer succeeds. */
+function restartPendingAfter(kind: CommandKind, result: CommandResult, restartWasPending: boolean): boolean {
   if (result.verdict === 'answered' && result.answer.outcome === 'restart-pending') return true;
-  return resultSucceeded(result) ? false : restartWasPending;
+  return resultSucceeded(result) && COMMANDS_THAT_END_THE_RUNNING_OVERSEER.has(kind) ? false : restartWasPending;
 }
 
 function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): CommandSender {
@@ -168,7 +171,7 @@ function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): Com
     changeState(subject, {
       onItsWay:       null,
       failure:        resultSucceeded(result) ? null : { kind: command.kind, result },
-      restartPending: restartPendingAfter(result, after.restartPending),
+      restartPending: restartPendingAfter(command.kind, result, after.restartPending),
     });
     return result;
   };

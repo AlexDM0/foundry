@@ -148,7 +148,7 @@ function LookRefusal({
   );
 }
 
-/** The restart an update left pending shows under the callout whose Update forge sent it, until the next success or dismissed. */
+/** The restart an update left pending shows under the callout whose Update forge sent it, until the sender drops it or it is dismissed. */
 function LookPendingRestart({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
   const subject = { trackerId: look.trackerId };
   const { restartAfterUpdate } = look;
