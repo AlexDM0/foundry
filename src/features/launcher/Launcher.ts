@@ -108,8 +108,7 @@ interface WindowFound {
 }
 
 interface StopLatch {
-  readonly isStopRequested: () => boolean;
-  readonly afterDelay:      (delayMilliseconds: number) => Promise<WaitOutcome>;
+  readonly afterDelay: (delayMilliseconds: number) => Promise<WaitOutcome>;
 }
 
 /** One listener on the stop request for the whole launch, however many waits it makes. */
@@ -122,8 +121,7 @@ function stopLatchOf(untilStopRequested: Promise<void>, timers: WatchTimers): St
     wakeOnStop.clear();
   });
   return {
-    isStopRequested: () => stopIsRequested,
-    afterDelay:      (delayMilliseconds) => {
+    afterDelay: (delayMilliseconds) => {
       if (stopIsRequested) return Promise.resolve('stop-requested');
       return new Promise((resolve) => {
         const wake = (): void => {
