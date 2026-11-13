@@ -22,6 +22,11 @@ What is agreed and not started, with the reason it waits.
 - **Record the forge before F1 again.** `overseer-fetch` and `forge-program` hold a forge that names no contracts and answers no F8 JSON
   (install version 27, code 3a6e9e6043da); Gaia reads such a forge through its summary. Their recording specs assert that older shape, so
   they record again only from a checkout of that forge.
+- **The usage line names its window's reset while under the limit.** A3's artboard reads "under its limit · window resets 16:00", but
+  monitor contract 1's `usage` holds `resetsAt` and `window` only from the machine's usage-limit marker, which the forge writes when a
+  window refuses requests; under the limit both are `null` (every recorded snapshot), so Gaia shows "under its limit" and invents no time.
+  It waits on the forge: the snapshot would carry the current window and its reset stamp while under the limit, from the `usage-window`
+  events its agents' sessions already report, as a key the monitor contract adds.
 - **Notifications (W5.6).** SCREENS C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
