@@ -6,33 +6,35 @@ import { join }                 from 'node:path';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
-import { createForgeProgram }                                  from './adapters/forge-program/ForgeProgram.ts';
-import { RegistryFile, registryFilePathIn }                    from './adapters/forge-registry/RegistryFile.ts';
-import { ServerTokenFile }                                     from './adapters/gaia-files/ServerTokenFile.ts';
-import { SettingsFile }                                        from './adapters/gaia-files/SettingsFile.ts';
-import { createSettingsWriter }                                from './adapters/gaia-files/SettingsWriter.ts';
-import { realGaiaServerClient }                                from './adapters/gaia-server/GaiaServerClient.ts';
-import { createPathChooser }                                   from './adapters/path-chooser/PathChooser.ts';
-import { fleetSnapshotOf }                                     from './features/fleet/FleetAssembly.ts';
-import { createForgeControl }                                  from './features/forge-control/ForgeControl.ts';
-import { foundBrowserIn }                                      from './features/launcher/BrowserFinder.ts';
-import { realBrowserWindowWatch }                              from './features/launcher/BrowserWindowWatch.ts';
-import { createLauncher, launchMessageOf, type LaunchVerdict } from './features/launcher/Launcher.ts';
-import { startPageServer, type PageServerStartVerdict }        from './features/page-server/PageServer.ts';
-import { builtPageFilesOf, pageIndexFilePath }                 from './features/page-server/routes/PageFilesRoute.ts';
-import { forgeClientOf }                                       from './lib/forge-client/ForgeClient.ts';
-import { realOverseerFetch }                                   from './lib/forge-client/OverseerFetch.ts';
-import { realProcessRun }                                      from './lib/process-run/ProcessRun.ts';
-import { stampOfNow }                                          from './services/Clock.ts';
-import { environmentCopy, gaiaPort, homeDirectory }            from './services/Environment.ts';
-import { createFleetStore }                                    from './services/FleetStore.ts';
-import { createForgeWatch, realWatchTimers }                   from './services/ForgeWatch.ts';
-import { createSettingsStore }                                 from './services/SettingsStore.ts';
-import type { FleetSnapshot }                                  from './shared/@types/FleetSnapshot.ts';
-import { GaiaError }                                           from './shared/GaiaError.ts';
-import { CONTRACT_VERSIONS }                                   from './shared/constants/ContractVersions.ts';
-import { GAIA_INSTALL_VERSION }                                from './shared/constants/InstallVersion.ts';
-import { PRODUCT_NAMES }                                       from './shared/constants/ProductNames.ts';
+import { AppBundleInfoFile, applicationsFolderIn }                       from './adapters/app-bundle/AppBundleInfoFile.ts';
+import { createForgeProgram }                                            from './adapters/forge-program/ForgeProgram.ts';
+import { RegistryFile, registryFilePathIn }                              from './adapters/forge-registry/RegistryFile.ts';
+import { ServerTokenFile }                                               from './adapters/gaia-files/ServerTokenFile.ts';
+import { SettingsFile }                                                  from './adapters/gaia-files/SettingsFile.ts';
+import { createSettingsWriter }                                          from './adapters/gaia-files/SettingsWriter.ts';
+import { realGaiaServerClient }                                          from './adapters/gaia-server/GaiaServerClient.ts';
+import { createPathChooser }                                             from './adapters/path-chooser/PathChooser.ts';
+import { appInstallMessageOf, createAppInstall, type AppInstallVerdict } from './features/app-install/AppInstall.ts';
+import { fleetSnapshotOf }                                               from './features/fleet/FleetAssembly.ts';
+import { createForgeControl }                                            from './features/forge-control/ForgeControl.ts';
+import { foundBrowserIn }                                                from './features/launcher/BrowserFinder.ts';
+import { realBrowserWindowWatch }                                        from './features/launcher/BrowserWindowWatch.ts';
+import { createLauncher, launchMessageOf, type LaunchVerdict }           from './features/launcher/Launcher.ts';
+import { startPageServer, type PageServerStartVerdict }                  from './features/page-server/PageServer.ts';
+import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
+import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
+import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
+import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
+import { stampOfNow }                                                    from './services/Clock.ts';
+import { environmentCopy, gaiaPort, homeDirectory }                      from './services/Environment.ts';
+import { createFleetStore }                                              from './services/FleetStore.ts';
+import { createForgeWatch, realWatchTimers }                             from './services/ForgeWatch.ts';
+import { createSettingsStore }                                           from './services/SettingsStore.ts';
+import type { FleetSnapshot }                                            from './shared/@types/FleetSnapshot.ts';
+import { GaiaError }                                                     from './shared/GaiaError.ts';
+import { CONTRACT_VERSIONS }                                             from './shared/constants/ContractVersions.ts';
+import { GAIA_INSTALL_VERSION }                                          from './shared/constants/InstallVersion.ts';
+import { PRODUCT_NAMES }                                                 from './shared/constants/ProductNames.ts';
 
 export interface ProgramOutput {
   readonly writeStandardOutput: (text: string) => void;
@@ -48,10 +50,11 @@ const USAGE_TEXT = [
   `Usage: ${PRODUCT_NAMES.programName} <verb> [--json]`,
   '',
   'Verbs:',
-  '  launch    open Gaia\'s window, starting its server when none runs, and stop that server when the window closes',
-  '  serve     serve Gaia\'s page and its API on 127.0.0.1 until stopped by a signal',
-  '  version   the version of Gaia and of the app bundle contract it installs',
-  '  help      this text',
+  '  launch       open Gaia\'s window, starting its server when none runs, and stop that server when the window closes',
+  '  serve        serve Gaia\'s page and its API on 127.0.0.1 until stopped by a signal',
+  '  install-app  install Gaia.app into ~/Applications, which opens Gaia\'s window from the Finder, Launchpad or Spotlight',
+  '  version      the version of Gaia and of the app bundle contract it installs',
+  '  help         this text',
 ].join('\n');
 
 type VerbRun = (remainingArguments: readonly string[], output: ProgramOutput) => Promise<ExitCode>;
@@ -205,10 +208,23 @@ export function launchErrorOf(verdict: Exclude<LaunchVerdict, { readonly verdict
   return new GaiaError(verdict.verdict, reason, launchMessageOf(verdict, port));
 }
 
+/** The flag with which Gaia.app's launch script names the bundle it runs from, so the launcher checks the bundle's install version. */
+const APP_BUNDLE_FLAG = '--app-bundle';
+
+/** The bundle a launch names, `null` for a launch with no bundle, as from a terminal. */
+export function appBundlePathAmong(remainingArguments: readonly string[]): string | null {
+  const flagIndex = remainingArguments.indexOf(APP_BUNDLE_FLAG);
+  if (flagIndex === -1) return null;
+  const appBundlePath = remainingArguments[flagIndex + 1];
+  if (appBundlePath === undefined || appBundlePath === '') throw new GaiaError('refused', 'app-bundle-unnamed', `${APP_BUNDLE_FLAG} names no app bundle.`);
+  return appBundlePath;
+}
+
 /** Wires the launcher (PLAN 9.2) to the real programs, browser and server; the launcher itself shows its dialogs. */
-async function launch(_remainingArguments: readonly string[], _output: ProgramOutput): Promise<ExitCode> {
+async function launch(remainingArguments: readonly string[], _output: ProgramOutput): Promise<ExitCode> {
   const port = gaiaPort();
   if (port === null) throw new GaiaError('refused', 'port-invalid', `${PRODUCT_NAMES.environmentPrefix}PORT names no port Gaia can listen on.`);
+  const appBundlePath = appBundlePathAmong(remainingArguments);
   const home = homeDirectory();
   const browserProfileFolder = join(home, PRODUCT_NAMES.dataFolderName, BROWSER_PROFILE_FOLDER_NAME);
   try {
@@ -219,6 +235,7 @@ async function launch(_remainingArguments: readonly string[], _output: ProgramOu
   const stopSignals = watchStopSignals();
   const verdict = await createLauncher({
     port,
+    appBundleInfo:      appBundlePath === null ? null : await new AppBundleInfoFile(appBundlePath).read(),
     serverProgram:      { program: process.execPath, programArguments: [join(import.meta.dir, 'Main.ts'), 'serve'], workingDirectory: join(import.meta.dir, '..') },
     browserProfileFolder,
     splashPagePath:     join(import.meta.dir, '..', 'resources', 'page', 'loading.html'),
@@ -237,11 +254,34 @@ async function launch(_remainingArguments: readonly string[], _output: ProgramOu
   return 0;
 }
 
+/** An install that did not finish, as the app-level error: a refusal User can act on, or a failure Gaia will not repair. */
+export function appInstallErrorOf(verdict: Exclude<AppInstallVerdict, { readonly verdict: 'installed' }>): GaiaError {
+  const reason = verdict.verdict === 'refused' ? verdict.refusal : verdict.failure;
+  return new GaiaError(verdict.verdict, reason, appInstallMessageOf(verdict));
+}
+
+/** Wires the install of Gaia.app (PLAN 9.1) to the real compiler, joiner and signer, for this repository and the Bun that runs it. */
+async function installApp(_remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
+  const repositoryPath = join(import.meta.dir, '..');
+  const verdict = await createAppInstall({
+    applicationsFolder:    applicationsFolderIn(homeDirectory()),
+    bundleResourcesFolder: join(repositoryPath, 'resources', 'app-bundle'),
+    repositoryPath,
+    bunProgram:            process.execPath,
+    gaiaVersion:           packageManifest.version,
+    processRun:            realProcessRun(environmentCopy),
+  }).install();
+  if (verdict.verdict !== 'installed') throw appInstallErrorOf(verdict);
+  output.writeStandardOutput(`${PRODUCT_NAMES.applicationName} is installed at ${verdict.appBundlePath}; it opens Gaia's window from the Finder, Launchpad or Spotlight.\n`);
+  return 0;
+}
+
 const VERB_RUNS: Readonly<Record<string, VerbRun>> = {
   launch,
   serve,
-  version: printVersion,
-  help:    printUsage,
+  'install-app': installApp,
+  version:       printVersion,
+  help:          printUsage,
 };
 
 function verbRunFor(verb: string): VerbRun | null {

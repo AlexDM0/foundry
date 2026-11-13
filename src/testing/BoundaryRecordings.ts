@@ -83,6 +83,12 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'browser',
   },
   {
+    recordingName:  'app-install-programs',
+    boundaryModule: 'src/features/app-install/AppInstall.ts',
+    recordingSpec:  'src/features/app-install/AppInstall.recording.spec.ts',
+    system:         'macos',
+  },
+  {
     recordingName:  'overseer-fetch-authored',
     boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
     recordingSpec:  null,

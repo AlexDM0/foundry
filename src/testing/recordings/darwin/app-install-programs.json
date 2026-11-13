@@ -1,0 +1,93 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "app-install-programs",
+    "operatingSystem": "darwin",
+    "system": "macos",
+    "source": "recorded",
+    "systemVersion": "25.6.0"
+  },
+  "answers": [
+    {
+      "callShape": "compiler-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": "launch.c:1:25: error: use of undeclared identifier 'undeclaredExample'\n    1 | int main(void) { return undeclaredExample; }\n      |                         ^~~~~~~~~~~~~~~~~\n1 error generated.\n"
+      }
+    },
+    {
+      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "installs: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-x86_64\",\"launch.c\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "installs: run [\"/usr/bin/codesign\",\"--force\",\"--deep\",\"--sign\",\"-\",\"Gaia.app\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": "Gaia.app: replacing existing signature\n"
+      }
+    },
+    {
+      "callShape": "installs: run [\"/usr/bin/lipo\",\"-create\",\"-output\",\"Gaia.app/Contents/MacOS/launch\",\"launch-arm64\",\"launch-x86_64\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"arm64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-arm64\",\"launch.c\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "signer-refuses: run [\"/usr/bin/clang\",\"-arch\",\"x86_64\",\"-mmacosx-version-min=12.0\",\"-Os\",\"-Wall\",\"-Werror\",\"-o\",\"launch-x86_64\",\"launch.c\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "signer-refuses: run [\"/usr/bin/codesign\",\"--force\",\"--deep\",\"--sign\",\"-\",\"Gaia.app\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": "Gaia.app: replacing existing signature\nGaia.app: Permission denied\n"
+      }
+    },
+    {
+      "callShape": "signer-refuses: run [\"/usr/bin/lipo\",\"-create\",\"-output\",\"Gaia.app/Contents/MacOS/launch\",\"launch-arm64\",\"launch-x86_64\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    }
+  ]
+}

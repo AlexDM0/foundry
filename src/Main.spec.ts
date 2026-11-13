@@ -1,7 +1,7 @@
 /**
- * The entry point's contract: the version answer other programs parse, the usage text, a refusal for an unknown verb, and the error and
- * exit code of a launch that does not close normally. One case runs the program itself, since other programs read the version answer from
- * its standard output and exit code.
+ * The entry point's contract: the version answer other programs parse, the usage text, a refusal for an unknown verb, the bundle a launch
+ * from Gaia.app names, and the error and exit code of a launch that does not close normally and of an install that does not finish. One
+ * case runs the program itself, since other programs read the version answer from its standard output and exit code.
  */
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -9,6 +9,8 @@ import { describe, expect, test } from 'bun:test';
 import packageManifest from '../package.json' with { type: 'json' };
 
 import {
+  appBundlePathAmong,
+  appInstallErrorOf,
   exitCodeOf,
   launchErrorOf,
   runGaia,
@@ -68,6 +70,7 @@ describe('gaia help', () => {
     const output = capturedOutput();
     expect(await runGaia([], output)).toBe(0);
     expect(output.standardOutput()).toContain('launch');
+    expect(output.standardOutput()).toContain('install-app');
     expect(output.standardOutput()).toContain('serve');
     expect(output.standardOutput()).toContain('version');
     expect(output.standardOutput()).toContain('help');
@@ -88,6 +91,41 @@ describe('a launch that does not close normally', () => {
     const serverEnded = launchErrorOf({ verdict: 'unrepaired', failure: 'server-ended' }, 4790);
     expect([serverEnded.kind, serverEnded.reason]).toEqual(['unrepaired', 'server-ended']);
     expect(exitCodeOf(serverEnded)).toBe(2);
+  });
+});
+
+describe('a launch from Gaia.app', () => {
+  test('takes the bundle its launch script names, and none from a terminal', () => {
+    expect(appBundlePathAmong(['--app-bundle', '/Users/example/Applications/Gaia.app'])).toBe('/Users/example/Applications/Gaia.app');
+    expect(appBundlePathAmong([])).toBeNull();
+  });
+
+  test('is refused when the flag names no bundle', () => {
+    expect(() => appBundlePathAmong(['--app-bundle'])).toThrow('--app-bundle names no app bundle.');
+  });
+
+  test('from a bundle installed for another install version is a refusal, which exits 1, naming the way to install it again', () => {
+    const refusal = launchErrorOf({ verdict: 'refused', refusal: 'app-bundle-from-another-version' }, 4790);
+    expect([refusal.kind, refusal.reason, exitCodeOf(refusal)]).toEqual(['refused', 'app-bundle-from-another-version', 1]);
+    expect(refusal.message).toBe('Gaia.app was installed for another version of Gaia. Run "gaia install-app" again to install it for this one.');
+  });
+});
+
+describe('an install that does not finish', () => {
+  test('is a refusal, which exits 1, beside another application of the same name', () => {
+    const refusal = appInstallErrorOf({ verdict: 'refused', refusal: 'another-application-in-place', appBundlePath: '/Users/example/Applications/Gaia.app' });
+    expect([refusal.kind, refusal.reason, exitCodeOf(refusal)]).toEqual(['refused', 'another-application-in-place', 1]);
+  });
+
+  test('is unrepaired, which exits 2, when a step fails, and says what failed', () => {
+    const failure = appInstallErrorOf({
+      verdict:       'unrepaired',
+      failure:       'compile-failed',
+      appBundlePath: '/Users/example/Applications/Gaia.app',
+      detail:        '/usr/bin/clang exited 1: launch.c:1:25: error: use of undeclared identifier',
+    });
+    expect([failure.kind, failure.reason, exitCodeOf(failure)]).toEqual(['unrepaired', 'compile-failed', 2]);
+    expect(failure.message).toBe('The launcher of Gaia.app did not compile, so nothing is installed. /usr/bin/clang exited 1: launch.c:1:25: error: use of undeclared identifier');
   });
 });
 

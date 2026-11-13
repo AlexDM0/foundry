@@ -26,4 +26,11 @@ bun src/Main.ts launch
 
 opens Gaia's window in Google Chrome or Microsoft Edge, starting its server when none runs, and stops that server when the window closes.
 
+```bash
+bun src/Main.ts install-app
+```
+
+installs `Gaia.app` into `~/Applications`, which opens the same window from the Finder, Launchpad or Spotlight. It runs Gaia from this
+checkout; when Gaia's install version changes, the app says so and asks for this command again.
+
 The rules for working in this repository are in `CLAUDE.md`.

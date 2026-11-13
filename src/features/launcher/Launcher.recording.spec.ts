@@ -3,8 +3,8 @@
  * real under the run's scratch home, with the real `gaia serve`, browser, window watch and dialogs, and records what each program the
  * launcher starts answers, under the example values the flow spec launches with. The situations: nothing on the port (the server and the
  * splash start, the page opens, and closing the window stops both), Gaia already up (the page opens, and the server outlives the window),
- * a server that ends before it answers, no browser and another program on the port (a dialog each, which this spec dismisses), and the
- * dialog of every other refusal and failure. The browser's version stamps the recording.
+ * a server that ends before it answers, no browser, another program on the port and a Gaia.app installed for another install version (a
+ * dialog each, which this spec dismisses), and the dialog of every other refusal and failure. The browser's version stamps the recording.
  */
 import { existsSync }    from 'node:fs';
 import { join }          from 'node:path';
@@ -17,6 +17,7 @@ import {
   test
 } from 'bun:test';
 
+import type { AppBundleInfoReading }                   from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import { serverRecordPathIn }                          from '../../adapters/gaia-files/ServerRecordWriter.ts';
 import { ServerTokenFile }                             from '../../adapters/gaia-files/ServerTokenFile.ts';
 import { healthProbeVerdictFor, realGaiaServerClient } from '../../adapters/gaia-server/GaiaServerClient.ts';
@@ -29,6 +30,7 @@ import {
 } from '../../lib/process-run/ProcessRun.ts';
 import { environmentCopy, homeDirectory }                      from '../../services/Environment.ts';
 import { realWatchTimers }                                     from '../../services/ForgeWatch.ts';
+import { GAIA_INSTALL_VERSION }                                from '../../shared/constants/InstallVersion.ts';
 import { recordAnswer, recordSystemVersion, repositoryRoot }   from '../../testing/BoundaryRecordings.ts';
 import { detachedStartCallShapeOf, ownedStartCallShapeOf }     from '../../testing/RecordedRuns.ts';
 import { createScratchDirectory, removeScratchPath }           from '../../testing/ScratchRoot.ts';
@@ -172,12 +174,13 @@ function recordingProcessRun(situation: LaunchSituation, port: number): ProcessR
   };
 }
 
-function launchOf(situation: LaunchSituation, port: number, findBrowser: () => FoundBrowser | null): Promise<LaunchVerdict> {
+function launchOf(situation: LaunchSituation, port: number, findBrowser: () => FoundBrowser | null, appBundleInfo: AppBundleInfoReading | null = null): Promise<LaunchVerdict> {
   const untilStopRequested = new Promise<void>((resolve) => {
     requestStop = resolve;
   });
   return createLauncher({
     port,
+    appBundleInfo,
     serverProgram:        { program: process.execPath, programArguments: [MAIN_PATH, 'serve'], workingDirectory: repositoryRoot() },
     browserProfileFolder: profileFolder,
     splashPagePath:       SPLASH_PAGE_PATH,
@@ -257,6 +260,7 @@ describe('a launch on a real Mac', () => {
 
   test('shows every refusal and failure in a dialog of its own', () => {
     const verdicts: readonly Exclude<LaunchVerdict, { readonly verdict: 'closed' }>[] = [
+      { verdict: 'refused', refusal: 'app-bundle-from-another-version' },
       { verdict: 'refused', refusal: 'no-browser' },
       { verdict: 'refused', refusal: 'port-held-by-another-program' },
       ...(['server-not-started', 'server-ended', 'browser-not-started', 'window-not-found', 'session-not-issued', 'page-not-opened'] as const)
@@ -267,6 +271,12 @@ describe('a launch on a real Mac', () => {
       const dialogRun = LaunchAddressUtil.dialogRunOf(launchMessageOf(verdict, EXAMPLE_PORT));
       expect(processRun.startDetached({ ...dialogRun, workingDirectory: homeDirectory() })).toMatchObject({ verdict: 'started' });
     }
+  });
+
+  test('from a Gaia.app installed for another install version shows a dialog and starts nothing', async () => {
+    const appBundleInfo: AppBundleInfoReading = { verdict: 'readable', installVersion: GAIA_INSTALL_VERSION + 1 };
+    expect(await launchOf('app-bundle-from-another-version', await freePort(), () => browser, appBundleInfo))
+      .toEqual({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
   });
 
   test('with another program on the port shows a dialog and starts nothing', async () => {

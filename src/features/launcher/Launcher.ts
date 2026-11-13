@@ -2,16 +2,19 @@
  * `gaia launch` (PLAN 9.2): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing answers and opens the
  * browser at once on the splash, which it moves on as the server and its forges answer; opens the window on Gaia's page with a fresh
  * session code; follows the window through the browser's debugging port; and when no window is left, stops the browser and the server it
- * started. Every wait is a bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog.
+ * started. Every wait is a bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog. A launch
+ * from a Gaia.app installed for another install version refuses before it starts anything (conventions section 9).
  */
-import type { GaiaServerClient, HealthReading } from '../../adapters/gaia-server/GaiaServerClient.ts';
-import type { ForgeCounts }                     from '../../adapters/gaia-server/HealthDocument.ts';
-import type { OwnedChild, ProcessRun }          from '../../lib/process-run/ProcessRun.ts';
-import type { WatchTimers }                     from '../../services/ForgeWatch.ts';
-import type { ThemeChoice }                     from '../../shared/@types/GaiaSettings.ts';
-import type { FoundBrowser }                    from './BrowserFinder.ts';
-import type { BrowserWindowWatch, PageTarget }  from './BrowserWindowWatch.ts';
-import { LaunchAddressUtil }                    from './utils/LaunchAddressUtil.ts';
+import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/app-bundle/AppBundleInfoFile.ts';
+import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';
+import type { ForgeCounts }                               from '../../adapters/gaia-server/HealthDocument.ts';
+import type { OwnedChild, ProcessRun }                    from '../../lib/process-run/ProcessRun.ts';
+import type { WatchTimers }                               from '../../services/ForgeWatch.ts';
+import type { ThemeChoice }                               from '../../shared/@types/GaiaSettings.ts';
+import { GAIA_INSTALL_VERSION }                           from '../../shared/constants/InstallVersion.ts';
+import type { FoundBrowser }                              from './BrowserFinder.ts';
+import type { BrowserWindowWatch, PageTarget }            from './BrowserWindowWatch.ts';
+import { LaunchAddressUtil }                              from './utils/LaunchAddressUtil.ts';
 
 export interface ProgramToStart {
   readonly program:          string;
@@ -44,6 +47,8 @@ export const LAUNCH_WAITS: LaunchWaits = {
 
 export interface LauncherOptions {
   readonly port:                 number;
+  /** The Info.plist of the Gaia.app that started this launch; `null` for a launch from a terminal, which no bundle started. */
+  readonly appBundleInfo:        AppBundleInfoReading | null;
   readonly serverProgram:        ProgramToStart;
   /** Gaia's own browser profile, kept between launches for the notification permission and the stored choices (PLAN 4). */
   readonly browserProfileFolder: string;
@@ -62,7 +67,7 @@ export interface LauncherOptions {
   readonly waits?:               LaunchWaits;
 }
 
-export type LaunchRefusal = 'port-held-by-another-program' | 'no-browser';
+export type LaunchRefusal = 'app-bundle-from-another-version' | 'port-held-by-another-program' | 'no-browser';
 
 export type LaunchFailure =
   | 'server-not-started'
@@ -83,12 +88,18 @@ export interface Launcher {
 
 const BROWSER_NAMES = 'Google Chrome or Microsoft Edge';
 
-/** The sentence a dialog and the terminal show for each refusal and failure; none tells User to run a command. */
+/**
+ * The sentence a dialog and the terminal show for each refusal and failure. Only the bundle's refusal names a command: `gaia install-app`
+ * is the one way the bundle is installed, so it is also the way to install it again.
+ */
 export function launchMessageOf(verdict: Exclude<LaunchVerdict, { readonly verdict: 'closed' }>, port: number): string {
   if (verdict.verdict === 'refused') {
-    return verdict.refusal === 'no-browser'
-      ? `Gaia opens in a ${BROWSER_NAMES} window, and neither is in an Applications folder.`
-      : `Another application answers on port ${port}, where Gaia serves. Gaia did not start.`;
+    switch (verdict.refusal) {
+      case 'app-bundle-from-another-version':
+        return `${appBundleFolderName()} was installed for another version of Gaia. Run "gaia install-app" again to install it for this one.`;
+      case 'no-browser': return `Gaia opens in a ${BROWSER_NAMES} window, and neither is in an Applications folder.`;
+      case 'port-held-by-another-program': return `Another application answers on port ${port}, where Gaia serves. Gaia did not start.`;
+    }
   }
   switch (verdict.failure) {
     case 'server-not-started': return 'Gaia\'s server did not start in time. Gaia closed again.';
@@ -298,7 +309,14 @@ export function createLauncher(options: LauncherOptions): Launcher {
     return { verdict: 'closed', serverWasStarted: true };
   }
 
+  /** A plist that holds no install version reads as another version's: the launch fails closed. */
+  function appBundleFitsThisGaia(): boolean {
+    const { appBundleInfo } = options;
+    return appBundleInfo === null || (appBundleInfo.verdict === 'readable' && appBundleInfo.installVersion === GAIA_INSTALL_VERSION);
+  }
+
   async function launch(): Promise<LaunchVerdict> {
+    if (!appBundleFitsThisGaia()) return showDialog({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
     const probe = await options.gaiaServer.healthReadingFor(options.port);
     if (probe.verdict === 'another-program-answers') return showDialog({ verdict: 'refused', refusal: 'port-held-by-another-program' });
     const foundBrowser = options.findBrowser();

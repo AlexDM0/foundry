@@ -9,80 +9,94 @@
   },
   "answers": [
     {
+      "callShape": "app-bundle-from-another-version: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia.app was installed for another version of Gaia. Run \\\"gaia install-app\\\" again to install it for this one.\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 10274
+      }
+    },
+    {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Another application answers on port 4790, where Gaia serves. Gaia did not start.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2327
+        "processId": 10267
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia opens in a Google Chrome or Microsoft Edge window, and neither is in an Applications folder.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2326
+        "processId": 10266
+      }
+    },
+    {
+      "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia.app was installed for another version of Gaia. Run \\\"gaia install-app\\\" again to install it for this one.\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 10265
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia's server did not start in time. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2328
+        "processId": 10268
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia's server gave the window no session. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2332
+        "processId": 10272
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia's server stopped before it answered. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2329
+        "processId": 10269
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"The browser did not start. Gaia opens in a Google Chrome or Microsoft Edge window.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2330
+        "processId": 10270
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"The browser opened no window that Gaia can follow. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2331
+        "processId": 10271
       }
     },
     {
       "callShape": "every-dialog: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"The window did not move on to Gaia's page. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2333
+        "processId": 10273
       }
     },
     {
       "callShape": "no-browser: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia opens in a Google Chrome or Microsoft Edge window, and neither is in an Applications folder.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2325
+        "processId": 10264
       }
     },
     {
       "callShape": "port-held: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Another application answers on port 4790, where Gaia serves. Gaia did not start.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2334
+        "processId": 10275
       }
     },
     {
       "callShape": "server-down: start owned [\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\",\"--app=file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark\",\"--user-data-dir=/Users/example/.gaia/browser-profile\",\"--no-first-run\",\"--no-default-browser-check\",\"--window-size=1440,1016\",\"--remote-debugging-port=0\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2277,
+        "processId": 10188,
         "ending": {
           "by": "stop",
           "exitCode": 0
@@ -93,7 +107,7 @@
       "callShape": "server-down: start owned [\"/Users/example/.bun/bin/bun\",\"/Users/example/gaia/src/Main.ts\",\"serve\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2276,
+        "processId": 10187,
         "ending": {
           "by": "stop",
           "exitCode": 0
@@ -104,14 +118,14 @@
       "callShape": "server-ends: start detached [\"/usr/bin/osascript\",\"-e\",\"on run argv\",\"-e\",\"display alert (item 1 of argv) message (item 2 of argv) as critical\",\"-e\",\"end run\",\"Gaia\",\"Gaia's server stopped before it answered. Gaia closed again.\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2324
+        "processId": 10263
       }
     },
     {
       "callShape": "server-ends: start owned [\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\",\"--app=file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark\",\"--user-data-dir=/Users/example/.gaia/browser-profile\",\"--no-first-run\",\"--no-default-browser-check\",\"--window-size=1440,1016\",\"--remote-debugging-port=0\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2314,
+        "processId": 10253,
         "ending": {
           "by": "stop",
           "exitCode": 0
@@ -122,7 +136,7 @@
       "callShape": "server-ends: start owned [\"/Users/example/.bun/bin/bun\",\"/Users/example/gaia/src/Main.ts\",\"serve\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2313,
+        "processId": 10252,
         "ending": {
           "by": "itself",
           "exitCode": 1
@@ -133,7 +147,7 @@
       "callShape": "server-up: start owned [\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\",\"--app=http://127.0.0.1:4790/#session=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"--user-data-dir=/Users/example/.gaia/browser-profile\",\"--no-first-run\",\"--no-default-browser-check\",\"--window-size=1440,1016\",\"--remote-debugging-port=0\"]",
       "answer": {
         "verdict": "started",
-        "processId": 2298,
+        "processId": 10217,
         "ending": {
           "by": "stop",
           "exitCode": 0

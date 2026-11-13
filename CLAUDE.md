@@ -35,7 +35,8 @@ docs/              the contracts reference and the backlog
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
-src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract
+src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract,
+                   the installed app bundle's Info.plist
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards
 src/shared/        the internal model's types, app-wide constants, GaiaError
@@ -49,7 +50,7 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `Frame
 
 | Outside system | Boundary util |
 | --- | --- |
-| Other programs: `forge`, `osascript`, `clang`, `codesign`, the browser | `src/lib/process-run/ProcessRun.ts` |
+| Other programs: `forge`, `osascript`, `clang`, `lipo`, `codesign`, the browser | `src/lib/process-run/ProcessRun.ts` |
 | HTTP to an Overseer | `src/lib/forge-client/OverseerFetch.ts` |
 | The browser's debugging port | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
@@ -77,6 +78,11 @@ The browser's recordings (`browser-window-watch`, `launcher-programs`) are taken
 visible windows and dismisses its own dialogs, and are stamped with that browser's version; verify lists them as not checked, since the
 browser updates itself. A recording spec that starts the browser under the scratch home passes `--use-mock-keychain`: without it the
 browser waits on the account's keychain and its windows answer no navigation.
+
+`gaia install-app` generates `~/Applications/Gaia.app` from `resources/app-bundle/`; nothing it generates lives in the repository. Its launch
+script names the bundle (`gaia launch --app-bundle <path>`), and the launcher refuses in a dialog, before it starts anything, when the
+bundle's `GaiaInstallVersion` is not `GAIA_INSTALL_VERSION`. That dialog is the one place Gaia names a command for User: `gaia install-app`
+is the only way the bundle is installed.
 
 The launcher's splash (`resources/page/loading.html`) is a file page, and Gaia's server answers no cross-origin read and refuses a file
 page's origin, so the splash cannot read the health route itself: the launcher follows it and moves the splash on through the browser's

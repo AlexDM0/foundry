@@ -14,7 +14,9 @@ import {
   ownedStartCallShapeOf,
   recordedProcessRun,
   recordedRunsOf,
+  recordedSituationRunsOf,
   runCallShapeOf,
+  situationCallShapeOf,
 } from './RecordedRuns.ts';
 
 const SHORT_BOUND_MILLISECONDS = 200;
@@ -124,5 +126,19 @@ describe('the recorded runs of a recording', () => {
   test('fail the spec for an OS with no recording, naming the command that takes it', () => {
     expect(() => recordedRunsOf('process-run', 'example-os')).toThrow('process-run has no recording for example-os');
     expect(() => recordedRunsOf('process-run', 'example-os')).toThrow('`bun run record process-run`');
+  });
+
+  test('of one situation hold that situation\'s answers only, keyed without the situation', () => {
+    const compileShape = runCallShapeOf('/usr/bin/clang', ['-arch', 'arm64', '-mmacosx-version-min=12.0', '-Os', '-Wall', '-Werror', '-o', 'launch-arm64', 'launch.c']);
+    const installRuns  = recordedSituationRunsOf('app-install-programs', 'installs');
+    const refusedRuns  = recordedSituationRunsOf('app-install-programs', 'compiler-refuses');
+    expect(installRuns.find((run) => run.callShape === compileShape)?.answer).toMatchObject({ verdict: 'finished', exitCode: 0 });
+    expect(refusedRuns.map((run) => run.callShape)).toEqual([compileShape]);
+    expect(refusedRuns[0]?.answer).toMatchObject({ verdict: 'finished', exitCode: 1 });
+    expect(situationCallShapeOf('installs', compileShape)).toBe(`installs: ${compileShape}`);
+  });
+
+  test('of a situation that was never recorded hold no answer', () => {
+    expect(recordedSituationRunsOf('app-install-programs', 'example-situation')).toEqual([]);
   });
 });

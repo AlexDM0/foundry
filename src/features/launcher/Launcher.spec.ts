@@ -3,7 +3,8 @@
  * session code per stage, and timers fired by hand. What matters: with nothing on the port the launch starts the server and the splash at
  * once, moves the splash on as the server and its forges answer, opens the page with a fresh code and stops both programs when the window
  * closes; with Gaia up it opens the page and stops nothing of Gaia's; a missing browser and another program on the port are refusals in
- * a dialog that start nothing; a server that ends, a window that never shows and a stop request each close what the launch started.
+ * a dialog that start nothing; a server that ends, a window that never shows and a stop request each close what the launch started; a
+ * Gaia.app installed for another install version refuses in a dialog before it probes anything.
  */
 import { pathToFileURL } from 'node:url';
 import {
@@ -13,9 +14,11 @@ import {
   test
 } from 'bun:test';
 
+import type { AppBundleInfoReading }                                                from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import type { GaiaServerClient, HealthReading }                                     from '../../adapters/gaia-server/GaiaServerClient.ts';
 import type { ForgeCounts }                                                         from '../../adapters/gaia-server/HealthDocument.ts';
 import { homeDirectory }                                                            from '../../services/Environment.ts';
+import { GAIA_INSTALL_VERSION }                                                     from '../../shared/constants/InstallVersion.ts';
 import { manualTimers, type ManualTimers }                                          from '../../testing/ManualTimers.ts';
 import { detachedStartCallShapeOf, ownedStartCallShapeOf, type RecordedProcessRun } from '../../testing/RecordedRuns.ts';
 import type { FoundBrowser }                                                        from './BrowserFinder.ts';
@@ -81,7 +84,13 @@ function gaiaAnswering(forgeCounts: ForgeCounts | null): HealthReading {
   return { verdict: 'gaia-answers', forgeCounts };
 }
 
-function launchIn(situation: LaunchSituation, firstHealth: HealthReading, firstWindow: BrowserWindowSituation, browser: FoundBrowser | null = EXAMPLE_BROWSER): LaunchInFlight {
+function launchIn(
+  situation: LaunchSituation,
+  firstHealth: HealthReading,
+  firstWindow: BrowserWindowSituation,
+  browser: FoundBrowser | null = EXAMPLE_BROWSER,
+  appBundleInfo: AppBundleInfoReading | null = null,
+): LaunchInFlight {
   const processRun = recordedLauncherProgramsOf(situation);
   const window     = recordedBrowserWindowWatch(firstWindow);
   const timers     = manualTimers();
@@ -104,6 +113,7 @@ function launchIn(situation: LaunchSituation, firstHealth: HealthReading, firstW
   };
   const verdict = createLauncher({
     port:                 EXAMPLE_PORT,
+    appBundleInfo,
     serverProgram:        { program: EXAMPLE_BUN_PROGRAM, programArguments: [EXAMPLE_MAIN_PATH, 'serve'], workingDirectory: homeDirectory() },
     browserProfileFolder: EXAMPLE_PROFILE_FOLDER,
     splashPagePath:       EXAMPLE_SPLASH_PAGE_PATH,
@@ -320,5 +330,34 @@ describe('a launch that is refused', () => {
     expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'port-held-by-another-program' });
     expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'refused', refusal: 'port-held-by-another-program' })]);
     expect(launch.browserLooked()).toBe(0);
+  });
+});
+
+describe('a launch from a Gaia.app', () => {
+  test('installed for another install version shows a dialog that says to install it again, and probes and starts nothing', async () => {
+    const appBundleInfo: AppBundleInfoReading = { verdict: 'readable', installVersion: GAIA_INSTALL_VERSION + 1 };
+    const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'browser-starting', EXAMPLE_BROWSER, appBundleInfo);
+    expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
+    expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'refused', refusal: 'app-bundle-from-another-version' })]);
+    expect([launch.healthAsked(), launch.browserLooked()]).toEqual([0, 0]);
+    expect(launchMessageOf({ verdict: 'refused', refusal: 'app-bundle-from-another-version' }, EXAMPLE_PORT)).toContain('gaia install-app');
+  });
+
+  test('whose Info.plist is absent or holds no install version refuses the same, since it cannot show which version it fits', async () => {
+    const unreadablePlists: readonly AppBundleInfoReading[] = [{ verdict: 'absent' }, { verdict: 'unreadable', failure: 'no GaiaInstallVersion' }];
+    for (const appBundleInfo of unreadablePlists) {
+      const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'browser-starting', EXAMPLE_BROWSER, appBundleInfo);
+      expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
+      expect(launch.healthAsked()).toBe(0);
+    }
+  });
+
+  test('installed for this install version launches as a launch from a terminal does', async () => {
+    const appBundleInfo: AppBundleInfoReading = { verdict: 'readable', installVersion: GAIA_INSTALL_VERSION };
+    const launch = launchIn('server-up', gaiaAnswering({ forgesRegistered: 5, forgesAnswered: 5 }), 'window-open', EXAMPLE_BROWSER, appBundleInfo);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    expect(launch.processRun.callShapesAnswered()).toEqual([PAGE_BROWSER_SHAPE]);
+    launch.requestStop();
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: false });
   });
 });

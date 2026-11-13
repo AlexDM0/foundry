@@ -22,6 +22,7 @@ import {
   recordCommandOf,
   recordingPathOf,
   repositoryRoot,
+  type RecordedAnswer,
 } from './BoundaryRecordings.ts';
 
 /** How a recorded owned child ended: by the caller's stop, or by itself at once, each with the exit code it ended with. */
@@ -101,8 +102,7 @@ function answerFitsCallShape(callShape: string, answer: unknown): boolean {
   return callShape.startsWith(DETACHED_START_CALL_SHAPE_PREFIX) && isDetachedStartAnswer(answer);
 }
 
-/** The recorded runs of one recording for an OS; a recording that is absent or unreadable fails the spec and names the command to take it. */
-export function recordedRunsOf(recordingName: string, operatingSystem: string = process.platform): readonly RecordedRun[] {
+function recordedAnswersOf(recordingName: string, operatingSystem: string): { readonly recordingPath: string; readonly answers: readonly RecordedAnswer[] } {
   const recordingPath = recordingPathOf(recordingName, operatingSystem);
   const recordAgain   = `Record it with \`${recordCommandOf(recordingName)}\`.`;
   let recordingText: string;
@@ -113,10 +113,42 @@ export function recordedRunsOf(recordingName: string, operatingSystem: string = 
   }
   const reading = boundaryRecordingReadingOf(recordingText);
   if (reading.verdict === 'unreadable') throw new Error(`${recordingPath} is unreadable: ${reading.reason}. ${recordAgain}`);
-  return reading.recording.answers.map(({ callShape, answer }) => {
-    if (!answerFitsCallShape(callShape, answer)) throw new Error(`${recordingPath} holds no process-run answer for ${callShape}. ${recordAgain}`);
+  return { recordingPath, answers: reading.recording.answers };
+}
+
+function recordedRunsAmong(recordingName: string, recordingPath: string, answers: readonly RecordedAnswer[]): readonly RecordedRun[] {
+  return answers.map(({ callShape, answer }) => {
+    if (!answerFitsCallShape(callShape, answer)) {
+      throw new Error(`${recordingPath} holds no process-run answer for ${callShape}. Record it with \`${recordCommandOf(recordingName)}\`.`);
+    }
     return { callShape, answer } as RecordedRun;
   });
+}
+
+/** The recorded runs of one recording for an OS; a recording that is absent or unreadable fails the spec and names the command to take it. */
+export function recordedRunsOf(recordingName: string, operatingSystem: string = process.platform): readonly RecordedRun[] {
+  const { recordingPath, answers } = recordedAnswersOf(recordingName, operatingSystem);
+  return recordedRunsAmong(recordingName, recordingPath, answers);
+}
+
+const SITUATION_SEPARATOR = ': ';
+
+/**
+ * A call shape as a recording of several situations keys it: one recording spec records each situation of a flow, such as a program
+ * that answers and one that refuses the same call, and a flow spec takes the answer set of one situation.
+ */
+export function situationCallShapeOf(situation: string, callShape: string): string {
+  return `${situation}${SITUATION_SEPARATOR}${callShape}`;
+}
+
+/** The recorded runs of one situation of a recording for an OS, each call shape without its situation. */
+export function recordedSituationRunsOf(recordingName: string, situation: string, operatingSystem: string = process.platform): readonly RecordedRun[] {
+  const { recordingPath, answers } = recordedAnswersOf(recordingName, operatingSystem);
+  const situationPrefix = situationCallShapeOf(situation, '');
+  const situationAnswers = answers
+    .filter(({ callShape }) => callShape.startsWith(situationPrefix))
+    .map(({ callShape, answer }) => ({ callShape: callShape.slice(situationPrefix.length), answer }));
+  return recordedRunsAmong(recordingName, recordingPath, situationAnswers);
 }
 
 function directoryExists(path: string): boolean {
