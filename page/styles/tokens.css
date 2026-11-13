@@ -95,9 +95,10 @@
   --link:             oklch(0.48 0.13 255);
   --status-live:      oklch(0.62 0.17 150);
 
-  --warn-tint: oklch(0.955 0.035 15);
-  --warn-edge: oklch(0.78 0.11 15);
-  --warn-ink:  oklch(0.47 0.15 15);
+  /* Amber, so a warning never reads as the error tone beside it. */
+  --warn-tint: oklch(0.965 0.05 90);
+  --warn-edge: oklch(0.78 0.13 75);
+  --warn-ink:  oklch(0.49 0.10 65);
   --err-tint:  oklch(0.962 0.035 25);
   --err-edge:  oklch(0.80 0.10 25);
   --err-ink:   oklch(0.46 0.14 25);
