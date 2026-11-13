@@ -13,8 +13,8 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
-import { AppBundleInfoFile, infoPlistPathIn, installedAppBundlePathIn } from './AppBundleInfoFile.ts';
+import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
+import { AppBundleInfoFile, applicationsFolderIn, infoPlistPathIn } from './AppBundleInfoFile.ts';
 
 let appBundlePath = '';
 
@@ -33,7 +33,7 @@ function writeInfoPlist(contents: string): void {
 
 describe('the installed app bundle', () => {
   test('lives in the Applications folder of the home, with its plist in Contents', () => {
-    expect(installedAppBundlePathIn('/Users/example')).toBe('/Users/example/Applications/Gaia.app');
+    expect(applicationsFolderIn('/Users/example')).toBe('/Users/example/Applications');
     expect(infoPlistPathIn('/Users/example/Applications/Gaia.app')).toBe('/Users/example/Applications/Gaia.app/Contents/Info.plist');
   });
 });

@@ -27,10 +27,6 @@ export function appBundleFolderName(): string {
   return `${PRODUCT_NAMES.applicationName}.app`;
 }
 
-export function installedAppBundlePathIn(homeDirectory: string): string {
-  return join(applicationsFolderIn(homeDirectory), appBundleFolderName());
-}
-
 export function infoPlistPathIn(appBundlePath: string): string {
   return join(appBundlePath, 'Contents', 'Info.plist');
 }
