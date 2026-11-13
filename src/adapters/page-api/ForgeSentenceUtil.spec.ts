@@ -16,6 +16,7 @@ describe('whether a sentence names a command', () => {
     expect(ForgeSentenceUtil.sentenceNamesACommand(NEW_CODE_NOTICE)).toBe(true);
     expect(ForgeSentenceUtil.sentenceNamesACommand('Run forge open again.')).toBe(true);
     expect(ForgeSentenceUtil.sentenceNamesACommand('Then Forge Oversee restart takes it.')).toBe(true);
+    expect(ForgeSentenceUtil.sentenceNamesACommand('See forge merges and forge incidents for what waits.')).toBe(true);
   });
 
   test('names none for the forge\'s name before a word that is no verb of it, nor for a sentence without either', () => {
@@ -29,8 +30,10 @@ describe('the sentence of a forge\'s refusal', () => {
     expect(ForgeSentenceUtil.refusalSentenceOf('launches-held-by-install-change', 'The install version changed: run `forge update`.'))
       .toBe('The install version changed. Nothing launches until this forge is updated.');
     expect(ForgeSentenceUtil.refusalSentenceOf('install-version-mismatch', 'A reworded sentence with no command.'))
-      .toBe('The files in this repository come from a newer forge than the forge program Gaia runs, so nothing was done.');
+      .toBe('The install version of the forge files in this repository does not match the forge program Gaia runs, so nothing was done.');
     expect(ForgeSentenceUtil.refusalSentenceOf('no-tracker-at-override', null)).toBe('No forge tracker was found in this repository, so nothing was done.');
+    expect(ForgeSentenceUtil.refusalSentenceOf('no-tracker-found', 'Run `forge init` in the repository you want tracked.'))
+      .toBe('No forge tracker was found in this repository, so nothing was done.');
     expect(ForgeSentenceUtil.refusalSentenceOf('unauthorized', 'open the board again with `forge open`.'))
       .toBe('The Overseer did not accept Gaia\'s token. It may have restarted.');
     expect(ForgeSentenceUtil.refusalSentenceOf('read-failed', 'Run `forge status` in the repository.')).toBe('The Overseer could not read the board\'s files.');

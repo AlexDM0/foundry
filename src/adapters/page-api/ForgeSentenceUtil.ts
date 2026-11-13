@@ -6,18 +6,19 @@
 /** Any backticked span counts as a command, since the forge backticks only what is typed. */
 const BACKTICKED_SPAN = /`[^`]+`/;
 
-/** The forge program's verbs, as a sentence names them after the program's own name. */
+/** The forge program's verbs, as its command table lists them, as a sentence names them after the program's own name. */
 const FORGE_VERB_NAMED = new RegExp(
-  '\\bforge (?:init|update|start|stop|open|oversee|status|version|login-item|machine|concurrency|setup|ticket|epic|draft|decide|question'
-  + '|incident|intake|advise|job|gate|merge|worktree|range|clear|review-stats|usage|task|log|hook|await)\\b',
+  '\\bforge (?:init|update|status|task|log|hook|usage|review-stats|ticket|epic|draft|concurrency|merges|merge|worktree|gate|decisions|decide'
+  + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|oversee|version|start|stop|machine|login-item|help)\\b',
   'i',
 );
 
 /** The forge's refusal codes whose sentence names a command, each in Gaia's words: Gaia updates, starts and opens the forge itself. */
 const REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
   'launches-held-by-install-change': 'The install version changed. Nothing launches until this forge is updated.',
-  'install-version-mismatch':        'The files in this repository come from a newer forge than the forge program Gaia runs, so nothing was done.',
+  'install-version-mismatch':        'The install version of the forge files in this repository does not match the forge program Gaia runs, so nothing was done.',
   'no-tracker-at-override':          'No forge tracker was found in this repository, so nothing was done.',
+  'no-tracker-found':                'No forge tracker was found in this repository, so nothing was done.',
   'unauthorized':                    'The Overseer did not accept Gaia\'s token. It may have restarted.',
   'read-failed':                     'The Overseer could not read the board\'s files.',
 };
