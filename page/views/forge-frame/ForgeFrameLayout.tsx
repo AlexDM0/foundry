@@ -5,20 +5,16 @@
  */
 import type { Ref } from 'react';
 
-import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
-import { Button }                                 from '../../design-system/Button.tsx';
-import { Callout }                                from '../../design-system/Callout.tsx';
-import { ChoiceOption }                           from '../../design-system/ChoiceOption.tsx';
-import { ConditionDot }                           from '../../design-system/ConditionDot.tsx';
-import { ConfirmPanel }                           from '../../design-system/ConfirmPanel.tsx';
-import { Refusal }                                from '../../design-system/Refusal.tsx';
-import type { RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
-import type {
-  BarRefusal,
-  ForgeBar,
-  ForgeFrameArea,
-  StopQuestion,
-} from './ForgeFrameModel.ts';
+import type { ForgeCommandBody, ForgeStopAgents }    from '../../@types/CommandDocument.ts';
+import { Button }                                    from '../../design-system/Button.tsx';
+import { Callout }                                   from '../../design-system/Callout.tsx';
+import { ChoiceOption }                              from '../../design-system/ChoiceOption.tsx';
+import { ConditionDot }                              from '../../design-system/ConditionDot.tsx';
+import { ConfirmPanel }                              from '../../design-system/ConfirmPanel.tsx';
+import { Refusal }                                   from '../../design-system/Refusal.tsx';
+import type { RefusalText }                          from '../../shared/utils/CommandFailureTextUtil.ts';
+import type { StopQuestion }                         from '../../shared/utils/ForgeCommandTextUtil.ts';
+import type { BarRefusal, ForgeBar, ForgeFrameArea } from './ForgeFrameModel.ts';
 
 export interface ForgeBarControlsProps {
   readonly bar:               ForgeBar;

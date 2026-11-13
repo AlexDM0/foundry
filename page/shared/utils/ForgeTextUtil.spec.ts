@@ -18,6 +18,12 @@ describe('a forge\'s condition', () => {
     ]);
   });
 
+  test('leads a line or heads a cell in sentence case', () => {
+    expect(EVERY_CONDITION.map((condition) => ForgeTextUtil.conditionWordInSentenceCaseOf(condition))).toEqual([
+      'Live', 'Paused', 'Launches held', 'Passing the baton', 'Starting', 'Dormant', 'Unreachable', 'Not readable', 'Repository missing',
+    ]);
+  });
+
   test('draws the dot of its own condition, and passing the baton draws the starting ring', () => {
     expect(EVERY_CONDITION.map((condition) => ForgeTextUtil.dotConditionOf(condition))).toEqual([
       'live', 'paused', 'held', 'starting', 'starting', 'dormant', 'unreachable', 'unreadable', 'missing',

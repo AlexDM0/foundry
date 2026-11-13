@@ -1,6 +1,6 @@
 /**
- * How the page words a forge's own state wherever it shows one: the word of its condition, the dot that stands beside the word, the usage
- * line as the Bridge words it, and the callout of an Overseer that stopped answering (artboard B3).
+ * How the page words a forge's own state wherever it shows one: the word of its condition, in a row or leading a line in sentence case, the
+ * dot that stands beside the word, the usage line as the Bridge words it, and the callout of an Overseer that stopped answering (B3).
  */
 import type { FleetDocumentCondition, FleetDocumentForge, FleetDocumentUsage } from '../../@types/FleetDocument.ts';
 import type { DotCondition }                                                   from '../../design-system/ConditionDot.tsx';
@@ -29,6 +29,12 @@ function conditionWordOf(condition: FleetDocumentCondition): string {
   return CONDITION_WORDS[condition];
 }
 
+/** The word as it leads a line or heads a cell: `Launches held`. */
+function conditionWordInSentenceCaseOf(condition: FleetDocumentCondition): string {
+  const word = CONDITION_WORDS[condition];
+  return `${word.charAt(0).toUpperCase()}${word.slice(1)}`;
+}
+
 /** A forge passing the baton draws the ring of one on its way, as a starting forge does; the word tells the two apart. */
 function dotConditionOf(condition: FleetDocumentCondition): DotCondition {
   return condition === 'passing-baton' ? 'starting' : condition;
@@ -54,6 +60,7 @@ function unreachableCalloutTextOf(forge: FleetDocumentForge, lastAnswerClock: st
 
 export const ForgeTextUtil = {
   conditionWordOf,
+  conditionWordInSentenceCaseOf,
   dotConditionOf,
   usageTextOf,
   unreachableCalloutTextOf,

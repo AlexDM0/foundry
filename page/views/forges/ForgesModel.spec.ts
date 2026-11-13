@@ -364,15 +364,19 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     const idle = fleetWithOneForgeIn('live', { agents: [], concurrency: { ...READINGS.exampleStorefront.concurrency, agentsInFlight: 0 } as FleetDocumentForge['concurrency'] });
     const dialog = rowOf(contentOf(idle, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } }), TRACKER_IDS.exampleStorefront).stopDialog;
     expect([dialog?.question, dialog?.choices, dialog?.command]).toEqual([
-      'Stop the Overseer of Example Storefront? No agent is running.',
+      'Stop the Overseer of Example Storefront?',
       [],
       { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' },
     ]);
   });
 
-  test('an Overseer that does not answer is stopped by the forge program, with nothing to choose', () => {
+  test('an Overseer that does not answer Gaia is stopped by the forge program, so its agents are not offered a choice', () => {
     const dialog = rowOf(contentOf(FLEET_DEGRADED, { stopDialog: { trackerId: TRACKER_IDS.invoiceService, agents: 'keep' } }), TRACKER_IDS.invoiceService).stopDialog;
-    expect([dialog?.question, dialog?.choices]).toEqual(['Stop the Overseer of Invoice Service? It does not answer Gaia, so the forge program stops it.', []]);
+    expect([dialog?.question, dialog?.choices, dialog?.command]).toEqual([
+      'Stop the Overseer of Invoice Service? 3 agents are running.',
+      [],
+      { kind: 'forge-stop', trackerId: TRACKER_IDS.invoiceService, agents: 'keep' },
+    ]);
   });
 
   test('while it is open its row\'s controls are off, and the other rows\' are not', () => {
@@ -432,7 +436,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     await sender.send({ kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.exampleStorefront, limit: 11 });
     const content = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
     expect(rowOf(content, TRACKER_IDS.designSystem).refusal?.retryCommand).toEqual({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
-    expect(rowOf(content, TRACKER_IDS.exampleStorefront).refusal).toMatchObject({ commandLabel: 'Set the agent limit', retryCommand: null });
+    expect(rowOf(content, TRACKER_IDS.exampleStorefront).refusal).toMatchObject({ commandLabel: 'the agent limit', retryCommand: null });
     const raised: CommandBody = { kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.exampleStorefront, limit: 11 };
     const withLastSent = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent: new Map([[TRACKER_IDS.exampleStorefront, raised as ForgeCommandBody]]) });
     expect(rowOf(withLastSent, TRACKER_IDS.exampleStorefront).refusal?.retryCommand).toEqual(raised);

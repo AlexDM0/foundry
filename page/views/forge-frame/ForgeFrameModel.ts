@@ -3,7 +3,7 @@
  * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
  * callout for an Overseer that stopped answering, or the sentence for a forge that cannot be shown inside Gaia. Also where `leave` goes.
  */
-import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
+import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentCondition,
@@ -13,6 +13,7 @@ import type {
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
@@ -30,20 +31,6 @@ export interface BarCommand {
   readonly label:    string;
   readonly emphasis: ButtonEmphasis;
   readonly command:  ForgeCommandBody;
-}
-
-export interface StopChoice {
-  readonly agents:      ForgeStopAgents;
-  readonly title:       string;
-  readonly consequence: string;
-}
-
-/** B2's Stop question; with no agent running it has no choices and stops the Overseer only. */
-export interface StopQuestion {
-  readonly label:       string;
-  readonly question:    string;
-  readonly choices:     readonly StopChoice[];
-  readonly consequence: string | null;
 }
 
 export interface ForgeBar {
@@ -96,19 +83,6 @@ export interface LeaveTarget {
 
 const LINE_SEPARATOR = ' · ';
 
-const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> = {
-  'forge-start':           'Start',
-  'forge-pause':           'Pause',
-  'forge-resume':          'Resume',
-  'forge-restart':         'Restart',
-  'forge-update':          'Update forge',
-  'forge-open-in-browser': 'Open in new tab',
-  'forge-hide':            'Hide in Gaia',
-  'forge-unhide':          'Show again',
-  'forge-stop':            'Stop',
-  'forge-concurrency-set': 'the agent limit',
-};
-
 /** The bar's commands that carry nothing but the forge, so Try again can send them as they were; Stop asks its question again instead. */
 type KindSentAgainAsItWas = 'forge-pause' | 'forge-resume' | 'forge-open-in-browser';
 
@@ -137,16 +111,8 @@ function countedPhrase(count: number, singularPhrase: string, pluralPhrase: stri
   return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
 }
 
-function inSentenceCase(word: string): string {
-  return `${word.charAt(0).toUpperCase()}${word.slice(1)}`;
-}
-
 function clockTextOf(stamp: string | null, clock: ForgeFrameClock): string | null {
   return stamp === null ? null : StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone);
-}
-
-function agentsRunningOf(forge: FleetDocumentForge): number {
-  return forge.concurrency?.agentsInFlight ?? forge.agents.length;
 }
 
 /** What waits on User from this forge; a forge read through its summary reports only the count. */
@@ -185,38 +151,8 @@ function pauseOrResumeOf(forge: FleetDocumentForge): BarCommand | null {
   return null;
 }
 
-function stopChoicesOf(agentsRunning: number): StopChoice[] {
-  if (agentsRunning === 0) return [];
-  const theAgents = agentsRunning === 1 ? 'The agent' : `The ${agentsRunning} agents`;
-  return [
-    {
-      agents:      'keep',
-      title:       'Stop the Overseer only',
-      consequence: `${theAgents} ${agentsRunning === 1 ? 'finishes what it is on under its Watcher' : 'finish what they are on under their Watchers'}. `
-        + 'Nothing new starts until this forge is started again.',
-    },
-    {
-      agents:      'stop-first',
-      title:       'Stop the agents, then the Overseer',
-      consequence: `${theAgents} ${agentsRunning === 1 ? 'winds down first and its tickets return' : 'wind down first and their tickets return'} to the board. `
-        + 'Then the Overseer stops.',
-    },
-  ];
-}
-
 function stopQuestionOf(forge: FleetDocumentForge): StopQuestion | null {
-  if (!STOPPABLE.has(forge.condition)) return null;
-  const agentsRunning = agentsRunningOf(forge);
-  const waitingCount = waitingCountOf(forge);
-  const running = agentsRunning === 0 ? '' : ` ${countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`;
-  return {
-    label:       `Stop ${forge.project}`,
-    question:    `Stop the Overseer of ${forge.project}?${running}`,
-    choices:     stopChoicesOf(agentsRunning),
-    consequence: waitingCount === null || waitingCount === 0
-      ? null
-      : `${countedPhrase(waitingCount, 'entry keeps', 'entries keep')} waiting on you while it is stopped.`,
-  };
+  return STOPPABLE.has(forge.condition) ? ForgeCommandTextUtil.stopQuestionOf(forge) : null;
 }
 
 function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
@@ -224,7 +160,7 @@ function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
     trackerId: forge.trackerId,
     status:    {
       condition: ForgeTextUtil.dotConditionOf(forge.condition),
-      word:      inSentenceCase(ForgeTextUtil.conditionWordOf(forge.condition)),
+      word:      ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition),
       text:      statusTextOf(forge, clock),
     },
     pauseOrResume:          pauseOrResumeOf(forge),
@@ -258,21 +194,18 @@ function forgeFrameContentOf(trackerId: string, fleetDocument: FleetDocument, cl
   return { bar: forge === undefined ? null : barOf(forge, clock), area: areaOf(trackerId, forge, clock) };
 }
 
-function forgeCommandKindIs(kind: CommandKind): kind is ForgeCommandBody['kind'] {
-  return Object.hasOwn(FORGE_COMMAND_LABELS, kind);
-}
-
 function kindIsSentAgainAsItWas(kind: CommandKind): kind is KindSentAgainAsItWas {
   return SENT_AGAIN_AS_THEY_WERE.has(kind);
 }
 
 function barRefusalOf(trackerId: string, failure: CommandFailure | null): BarRefusal | null {
-  if (failure === null || !forgeCommandKindIs(failure.kind)) return null;
+  const commandLabel = failure === null ? null : ForgeCommandTextUtil.commandLabelOf(failure.kind);
+  if (failure === null || commandLabel === null) return null;
   const { kind } = failure;
   return {
-    commandLabel: FORGE_COMMAND_LABELS[kind],
+    commandLabel,
     ...CommandFailureTextUtil.refusalTextOf(failure),
-    tryAgain:     kindIsSentAgainAsItWas(kind) ? { kind, trackerId } : null,
+    tryAgain: kindIsSentAgainAsItWas(kind) ? { kind, trackerId } : null,
   };
 }
 

@@ -16,6 +16,7 @@ import type { ButtonEmphasis }                                            from '
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { CommandFailureTextUtil }                                         from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                                              from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                                                  from '../../shared/utils/StampTextUtil.ts';
@@ -89,11 +90,8 @@ export interface ShownRefusal {
   readonly retryCommand: CommandBody | null;
 }
 
-export interface StopChoice {
-  readonly agents:      ForgeStopAgents;
-  readonly title:       string;
-  readonly consequence: string;
-  readonly chosen:      boolean;
+export interface StopChoice extends StopQuestionChoice {
+  readonly chosen: boolean;
 }
 
 export interface StopDialog {
@@ -199,30 +197,12 @@ const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly Row
   'missing':       ['hide'],
 };
 
-/** The label a refusal names the refused command by: its own button's. */
-const COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> = {
-  'forge-start':           'Start',
-  'forge-stop':            'Stop',
-  'forge-pause':           'Pause',
-  'forge-resume':          'Resume',
-  'forge-restart':         'Restart',
-  'forge-update':          'Update forge',
-  'forge-open-in-browser': 'Open in new tab',
-  'forge-hide':            'Hide in Gaia',
-  'forge-unhide':          'Show again',
-  'forge-concurrency-set': 'Set the agent limit',
-};
-
 const NOTICE_KIND_OF_HELD_LAUNCHES = 'install-version-changed';
 
 const HELD_SENTENCE_WITHOUT_NOTICE = 'Its install version changed. Nothing launches until this forge is updated.';
 
 function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
   return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
-function sentenceCaseOf(word: string): string {
-  return `${word.slice(0, 1).toUpperCase()}${word.slice(1)}`;
 }
 
 function clockTextOf(stamp: string | null, clock: ClockReading): string | null {
@@ -416,71 +396,35 @@ function retryCommandOf(kind: CommandKind, trackerId: string, lastSent: ForgeCom
 /** The forge's refusal, shown where `showsHere` says the refused kind belongs, until dismissed or until the next command to it succeeds. */
 function refusalOf(trackerId: string, surroundings: ForgesSurroundings, showsHere: (kind: CommandKind) => boolean): ShownRefusal | null {
   const { failure } = CommandSender.stateOf(surroundings.commandStates, { trackerId });
-  if (failure === null || !showsHere(failure.kind) || !Object.hasOwn(COMMAND_LABELS, failure.kind)) return null;
+  const commandLabel = failure === null ? null : ForgeCommandTextUtil.commandLabelOf(failure.kind);
+  if (failure === null || commandLabel === null || !showsHere(failure.kind)) return null;
   const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return {
-    commandLabel: COMMAND_LABELS[failure.kind as ForgeCommandBody['kind']],
+    commandLabel,
     code,
     sentence,
     retryCommand: retryCommandOf(failure.kind, trackerId, surroundings.lastSent.get(trackerId)),
   };
 }
 
-function stopChoicesOf(agentsRunning: number, chosen: ForgeStopAgents): StopChoice[] {
-  if (agentsRunning === 0) return [];
-  const theAgents = agentsRunning === 1 ? 'The agent' : `The ${agentsRunning} agents`;
-  return [
-    {
-      agents:      'keep',
-      title:       'Stop the Overseer only',
-      consequence: agentsRunning === 1
-        ? 'The agent finishes what it is on under its Watcher. Nothing new starts until this forge is started again.'
-        : `${theAgents} finish what they are on under their Watchers. Nothing new starts until this forge is started again.`,
-      chosen: chosen === 'keep',
-    },
-    {
-      agents:      'stop-first',
-      title:       'Stop the agents, then the Overseer',
-      consequence: agentsRunning === 1
-        ? 'The agent winds down first and its ticket returns to the board. Then the Overseer stops.'
-        : `${theAgents} wind down first and their tickets return to the board. Then the Overseer stops.`,
-      chosen: chosen === 'stop-first',
-    },
-  ];
-}
-
-/** What keeps waiting while the forge is stopped: what waits on User, else the ready tickets, else nothing worth a line. */
-function keepsWaitingTextOf(forge: FleetDocumentForge): string | null {
-  const waiting = forge.fidelity === 'counts-only' ? forge.attentionCount ?? 0 : forge.attention.length;
-  if (waiting > 0) return `${countedPhrase(waiting, 'entry keeps', 'entries keep')} waiting on you while it is stopped.`;
-  if (forge.readyTicketCount !== null && forge.readyTicketCount > 0) {
-    return `${countedPhrase(forge.readyTicketCount, 'ready ticket waits', 'ready tickets wait')} until it is started again.`;
-  }
-  return null;
-}
-
-function stopQuestionOf(forge: FleetDocumentForge, agentsRunning: number): string {
-  const question = `Stop the Overseer of ${forge.project}?`;
-  if (!apiCarriesCommandsTo(forge)) return `${question} It does not answer Gaia, so the forge program stops it.`;
-  return `${question} ${agentsRunning === 0 ? 'No agent is running.' : `${countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`}`;
-}
-
 /**
- * B2: the dialog under the row it stops. With no agent running there is nothing to choose, nor for an Overseer Gaia cannot reach, which
- * the forge program stops whatever its agents do; the agents are then kept.
+ * B2: the dialog under the row it stops. With no agent running there is nothing to choose, nor for an Overseer that does not answer Gaia,
+ * since the forge program then stops it whatever its agents were asked to do; the agents are then kept.
  */
 function stopDialogOf(forge: FleetDocumentForge, surroundings: ForgesSurroundings): StopDialog | null {
   const { stopDialog } = surroundings;
   if (stopDialog?.trackerId !== forge.trackerId) return null;
-  const agentsRunning = agentsInFlightOf(forge);
-  const choices = apiCarriesCommandsTo(forge) ? stopChoicesOf(agentsRunning, stopDialog.agents) : [];
+  const {
+    label, question, choices: offered, consequence
+  } = ForgeCommandTextUtil.stopQuestionOf(forge);
+  const choices = apiCarriesCommandsTo(forge) ? offered.map((choice) => ({ ...choice, chosen: choice.agents === stopDialog.agents })) : [];
   return {
-    label:       `Stop ${forge.project}`,
-    question:    stopQuestionOf(forge, agentsRunning),
+    label,
+    question,
     choices,
-    consequence: keepsWaitingTextOf(forge),
-    command:     { kind: 'forge-stop', trackerId: forge.trackerId, agents: choices.length === 0 ? 'keep' : stopDialog.agents },
-    isOnItsWay:  onItsWayFor(surroundings.commandStates, forge.trackerId) === 'forge-stop',
+    consequence,
+    command:    { kind: 'forge-stop', trackerId: forge.trackerId, agents: choices.length === 0 ? 'keep' : stopDialog.agents },
+    isOnItsWay: onItsWayFor(surroundings.commandStates, forge.trackerId) === 'forge-stop',
   };
 }
 
@@ -497,7 +441,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     project:       forge.project,
     rootText:      rootTextOf(forge.root, fleetDocument.gaia.homeFolder),
     condition:     ForgeTextUtil.dotConditionOf(shownCondition),
-    conditionWord: sentenceCaseOf(ForgeTextUtil.conditionWordOf(shownCondition)),
+    conditionWord: ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone: conditionToneOf(shownCondition),
     detailText:    detailTextOf(forge, shownCondition, rowSurroundings),
     agents:        agentsCellOf(forge, rowSurroundings),
