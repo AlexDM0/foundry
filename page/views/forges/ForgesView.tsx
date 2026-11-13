@@ -1,22 +1,24 @@
 /**
- * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps which row's Stop dialog is open with its choice and
- * the last command it sent each forge, builds the content from the fleet document, and lays it out, with "Add a repository" over it when
- * the route asks. `forgesViewPartsOf` hands the shell the top bar's status line and buttons with it, so a new fleet document changes all
- * three at once, with no reload.
+ * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps which row's Stop dialog is open with its choice,
+ * the last command it sent each forge, the last settings change and whether "What notifies" is open, builds the content from the fleet
+ * document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the shell the top bar's status
+ * line and buttons with it, so a new fleet document changes all three at once, with no reload.
  */
 import { type ReactNode, useEffect, useState } from 'react';
 
-import type { CommandBody, ForgeCommandBody }                   from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                   from '../../@types/FleetDocument.ts';
-import { useCommandSender }                                     from '../../api/CommandSender.ts';
-import { Button }                                               from '../../design-system/Button.tsx';
-import { LookAgainButton }                                      from '../../shared/LookAgainButton.tsx';
-import { AddRepositoryForm }                                    from '../../shared/add-repository/AddRepositoryForm.ts';
-import { HashRouter }                                           from '../../shell/HashRouter.ts';
-import type { TopBarStatus }                                    from '../../shell/TopBar.tsx';
-import { AddRepositoryDialog }                                  from './AddRepositoryDialog.tsx';
-import { forgeAnchorIdOf, ForgesLayout }                        from './ForgesLayout.tsx';
-import { type ClockReading, ForgesModel, type StopDialogState } from './ForgesModel.ts';
+import type { CommandBody, ForgeCommandBody }                             from '../../@types/CommandDocument.ts';
+import type { FleetDocument }                                             from '../../@types/FleetDocument.ts';
+import { useCommandSender }                                               from '../../api/CommandSender.ts';
+import { Button }                                                         from '../../design-system/Button.tsx';
+import { LookAgainButton }                                                from '../../shared/LookAgainButton.tsx';
+import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
+import { HashRouter }                                                     from '../../shell/HashRouter.ts';
+import type { TopBarStatus }                                              from '../../shell/TopBar.tsx';
+import { AddRepositoryDialog }                                            from './AddRepositoryDialog.tsx';
+import { forgeAnchorIdOf, ForgesLayout }                                  from './ForgesLayout.tsx';
+import { type ClockReading, ForgesModel, type StopDialogState }           from './ForgesModel.ts';
+import { GaiaPanelModel, type SentSettingsChange, type SettingsCheckbox } from './GaiaPanelModel.ts';
+import { WhatNotifiesDialog }                                             from './WhatNotifiesDialog.tsx';
 
 export interface ForgesRoute {
   readonly addingARepository: boolean;
@@ -46,6 +48,8 @@ export function ForgesView({
   const { send, dismissFailure, states } = useCommandSender();
   const [stopDialog, setStopDialog] = useState<StopDialogState | null>(null);
   const [lastSent, setLastSent] = useState<ReadonlyMap<string, ForgeCommandBody>>(() => new Map());
+  const [sentSettingsChange, setSentSettingsChange] = useState<SentSettingsChange | null>(null);
+  const [whatNotifiesIsOpen, setWhatNotifiesIsOpen] = useState(false);
   const { forgeInView } = route;
 
   useEffect(() => {
@@ -57,6 +61,13 @@ export function ForgesView({
     return send(command);
   };
 
+  /** The result is kept with the checkbox that sent it, so its refusal shows beside that checkbox and nowhere else. */
+  const sendSettingsCheckbox = (checkbox: SettingsCheckbox) => {
+    setSentSettingsChange({ checkbox, result: null });
+    void send(checkbox.command).then((result) => setSentSettingsChange((current) => (current?.checkbox === checkbox ? { checkbox, result } : current)));
+  };
+
+  const gaiaPanelSurroundings = { commandStates: states, sentSettingsChange };
   const content = ForgesModel.forgesContentOf(fleetDocument, {
     clock, commandStates: states, stopDialog, forgeInView, lastSent
   });
@@ -66,6 +77,7 @@ export function ForgesView({
     <>
       <ForgesLayout
         content={content}
+        gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, gaiaPanelSurroundings)}
         commandStates={states}
         handlers={{
           onCommand:        (command) => void sendRecorded(command),
@@ -75,9 +87,20 @@ export function ForgesView({
           onConfirmStop:    (command) => {
             void sendRecorded(command).then(() => setStopDialog((current) => (current?.trackerId === command.trackerId ? null : current)));
           },
-          onDismissFailure: dismissFailure,
+          onDismissFailure:   dismissFailure,
+          onSettingsCheckbox: sendSettingsCheckbox,
+          onOpenWhatNotifies: () => setWhatNotifiesIsOpen(true),
         }}
       />
+      {whatNotifiesIsOpen
+        ? (
+          <WhatNotifiesDialog
+            content={GaiaPanelModel.whatNotifiesOf(fleetDocument, gaiaPanelSurroundings)}
+            handlers={{ onSettingsCheckbox: sendSettingsCheckbox, onDismissFailure: dismissFailure }}
+            onClose={() => setWhatNotifiesIsOpen(false)}
+          />
+        )
+        : null}
       {route.addingARepository
         ? <AddRepositoryDialog forgeProgramIsMissing={AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument)} onClose={() => goTo(FORGES_FRAGMENT)} />
         : null}

@@ -23,6 +23,7 @@ import { FLEET_AT_LIMIT }                                                       
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
 import { ForgesLayout, forgeAnchorIdOf }                                            from './ForgesLayout.tsx';
 import { ForgesModel, type ForgesSurroundings }                                     from './ForgesModel.ts';
+import { GaiaPanelModel }                                                           from './GaiaPanelModel.ts';
 
 const tree = ReactElementTree;
 
@@ -69,14 +70,17 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
   const unfolded = tree.unfolded(
     <ForgesLayout
       content={content}
+      gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates, sentSettingsChange: null })}
       commandStates={commandStates}
       handlers={{
-        onCommand:        (command) => handled.commands.push(command),
-        onOpenStopDialog: (trackerId) => handled.stopsOpened.push(trackerId),
-        onStopChoice:     (agents) => handled.stopChoices.push(agents),
-        onCancelStop:     () => handled.stopsCancelled.push(1),
-        onConfirmStop:    (command) => handled.stopsConfirmed.push(command),
-        onDismissFailure: (subject) => handled.dismissed.push(subject),
+        onCommand:          (command) => handled.commands.push(command),
+        onOpenStopDialog:   (trackerId) => handled.stopsOpened.push(trackerId),
+        onStopChoice:       (agents) => handled.stopChoices.push(agents),
+        onCancelStop:       () => handled.stopsCancelled.push(1),
+        onConfirmStop:      (command) => handled.stopsConfirmed.push(command),
+        onDismissFailure:   (subject) => handled.dismissed.push(subject),
+        onSettingsCheckbox: () => undefined,
+        onOpenWhatNotifies: () => undefined,
       }}
     />,
   );

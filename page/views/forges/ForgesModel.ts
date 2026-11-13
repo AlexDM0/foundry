@@ -210,8 +210,8 @@ function clockTextOf(stamp: string | null, clock: ClockReading): string | null {
 }
 
 /** A path under the home folder is printed from `~`, as the artboards print it. */
-function rootTextOf(root: string, homeFolder: string): string {
-  return root === homeFolder || root.startsWith(`${homeFolder}/`) ? `${HOME_MARK}${root.slice(homeFolder.length)}` : root;
+function homeRelativePathOf(path: string, homeFolder: string): string {
+  return path === homeFolder || path.startsWith(`${homeFolder}/`) ? `${HOME_MARK}${path.slice(homeFolder.length)}` : path;
 }
 
 function hiddenTrackerIdsOf(fleetDocument: FleetDocument): ReadonlySet<string> {
@@ -444,7 +444,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
   return {
     trackerId:     forge.trackerId,
     project:       forge.project,
-    rootText:      rootTextOf(forge.root, fleetDocument.gaia.homeFolder),
+    rootText:      homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
     condition:     ForgeTextUtil.dotConditionOf(shownCondition),
     conditionWord: ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone: conditionToneOf(shownCondition),
@@ -483,7 +483,7 @@ function notFoundEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurround
     trackerId:  forge.trackerId,
     project:    forge.project,
     condition:  'missing',
-    detailText: `${rootTextOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}the repository folder is gone`,
+    detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}the repository folder is gone`,
     button:     commandButton('hide', 'Hide in Gaia', { kind: 'forge-hide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
     refusal:    refusalOf(forge.trackerId, surroundings, () => true),
@@ -496,7 +496,7 @@ function hiddenEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundin
     trackerId:  forge.trackerId,
     project:    forge.project,
     condition:  ForgeTextUtil.dotConditionOf(forge.condition),
-    detailText: `${rootTextOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}${ForgeTextUtil.conditionWordOf(forge.condition)}`,
+    detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}${ForgeTextUtil.conditionWordOf(forge.condition)}`,
     button:     commandButton('show-again', 'Show again', { kind: 'forge-unhide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
     refusal:    refusalOf(forge.trackerId, surroundings, () => true),
@@ -593,4 +593,5 @@ function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurro
 export const ForgesModel = {
   forgesContentOf,
   statusOf,
+  homeRelativePathOf,
 } as const;

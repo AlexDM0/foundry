@@ -848,8 +848,9 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   cursor: pointer;
 }
 
-/* This machine: its agent limit, at most the CPU count, and the warn tone once the limit is reached */
-.gaia-forges-machine {
+/* This machine: its agent limit, at most the CPU count, and the warn tone once the limit is reached; Gaia's panel is the same card */
+.gaia-forges-machine,
+.gaia-forges-gaia {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -864,8 +865,27 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 .gaia-forges-machine-sentence { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-forges-machine-at-the-limit { margin: 0; color: var(--warn-ink); }
 
+/* Gaia: its settings, "What notifies" at the end of the second checkbox's line, and its facts */
+.gaia-forges-gaia-settings-file { margin: 0; font-size: var(--fs-small); color: var(--warn-ink); }
+.gaia-forges-gaia-notify { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.gaia-forges-gaia-notify > .gaia-checkbox { flex: 1; min-width: 0; }
+.gaia-forges-gaia-what-notifies {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: var(--fs-small) var(--font-ui);
+  cursor: pointer;
+}
+.gaia-forges-gaia-what-notifies:hover { text-decoration: underline; }
+.gaia-forges-gaia .gaia-fact dd { overflow-wrap: anywhere; }
+.gaia-forges-what-notifies-off { margin: 0 0 var(--sp-3); font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-forges-what-notifies-kinds { display: flex; flex-direction: column; gap: var(--sp-3); }
+
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
-.gaia-forges-hidden-summary:focus-visible {
+.gaia-forges-hidden-summary:focus-visible,
+.gaia-forges-gaia-what-notifies:focus-visible {
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }

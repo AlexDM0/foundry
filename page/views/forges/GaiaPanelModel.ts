@@ -1,0 +1,181 @@
+/**
+ * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Start the running forges at login" and "Notify me while Gaia is
+ * open", each a checkbox that sends `settings-set`; the forge program, the registry, the contracts Gaia reads, Gaia's version and address;
+ * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the checkboxes are then off. A
+ * refusal shows in the place whose checkbox sent the change, and only for that send.
+ */
+import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
+import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
+import { type CommandResult, CommandSender, type CommandStates }                    from '../../api/CommandSender.ts';
+import type { Fact }                                                                from '../../design-system/FactList.tsx';
+import { CommandFailureTextUtil }                                                   from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgesModel }                                                              from './ForgesModel.ts';
+
+/** Where a settings checkbox sits: the Gaia panel, or the "What notifies" list over the view. */
+export type SettingsPlace = 'gaia-panel' | 'what-notifies';
+
+/** One settings checkbox: its label, whether it is ticked, and the change it sends when it is clicked. */
+export interface SettingsCheckbox {
+  readonly place:       SettingsPlace;
+  readonly label:       string;
+  readonly explanation: string | null;
+  readonly checked:     boolean;
+  readonly command:     CommandBody;
+  readonly disabled:    boolean;
+}
+
+/** The last change a settings checkbox of this view sent, and what came of it once it answered. */
+export interface SentSettingsChange {
+  readonly checkbox: SettingsCheckbox;
+  readonly result:   CommandResult | null;
+}
+
+/** A refused settings change, beside the checkbox that sent it; "Try again" sends that checkbox's change once more. */
+export interface SettingsRefusal {
+  readonly commandLabel:  string;
+  readonly code:          string;
+  readonly sentence:      string;
+  readonly retryCheckbox: SettingsCheckbox;
+}
+
+export interface GaiaPanelSurroundings {
+  readonly commandStates:      CommandStates;
+  readonly sentSettingsChange: SentSettingsChange | null;
+}
+
+export interface GaiaPanelContent {
+  readonly startAtLogin:     SettingsCheckbox;
+  readonly notify:           SettingsCheckbox;
+  /** Said when Gaia runs on its defaults because its settings file cannot be used. */
+  readonly settingsFileLine: string | null;
+  readonly facts:            readonly Fact[];
+  readonly refusal:          SettingsRefusal | null;
+}
+
+export interface WhatNotifiesContent {
+  readonly kinds:   readonly SettingsCheckbox[];
+  /** Said while "Notify me while Gaia is open" is off, since then no kind notifies. */
+  readonly offLine: string | null;
+  readonly refusal: SettingsRefusal | null;
+}
+
+const FACT_SEPARATOR = ' · ';
+
+const START_AT_LOGIN_LABEL = 'Start the running forges at login';
+const NOTIFY_LABEL = 'Notify me while Gaia is open';
+
+/** C2's seven kinds, in its order, each named and explained as the artboard does. */
+const NOTIFICATION_KINDS: readonly { readonly kind: FleetDocumentNotificationKind; readonly label: string; readonly explanation: string }[] = [
+  { kind: 'escalated-questions', label: 'Escalated questions', explanation: 'An incident the Assistant could not settle.' },
+  { kind: 'questions', label: 'Questions', explanation: 'An agent or the Overseer asks, and work waits on the answer.' },
+  { kind: 'reviews-and-merge-accepts', label: 'Reviews and merge accepts', explanation: 'A ticket is ready for review, or reviewed and waiting to be accepted.' },
+  {
+    kind:        'forges-held-or-unreachable',
+    label:       'A forge holds its launches or stops answering',
+    explanation: 'Install version changed, a failed Baton pass, or an unreachable Overseer.',
+  },
+  { kind: 'quiet-agents', label: 'A quiet agent', explanation: 'An agent whose log stood still for the forge\'s own number of sweeps.' },
+  { kind: 'machine-at-agent-limit', label: 'The machine is at its agent limit', explanation: 'Ready tickets wait for a machine slot.' },
+  { kind: 'draft-tickets', label: 'Draft tickets', explanation: 'A draft was filed and waits to be readied.' },
+];
+
+const SETTINGS_FILE_LINES: Readonly<Record<FleetDocument['gaia']['settingsFile'], string | null>> = {
+  'read':          null,
+  'absent':        null,
+  'newer-version': 'Gaia\'s settings were written by a newer Gaia. This Gaia runs on its defaults and leaves that file as it is.',
+  'unreadable':    'Gaia\'s settings could not be read. Gaia runs on its defaults until a change here writes them again.',
+};
+
+/** A settings file newer than this Gaia is never written, so its checkboxes cannot change anything. */
+function settingsCannotChange(fleetDocument: FleetDocument, commandStates: CommandStates): boolean {
+  const settingsChangeIsOnItsWay = CommandSender.stateOf(commandStates, { fleetCommand: 'settings-set' }).onItsWay !== null;
+  return settingsChangeIsOnItsWay || fleetDocument.gaia.settingsFile === 'newer-version';
+}
+
+function notificationsWith(settings: FleetDocumentSettings, change: Partial<FleetDocumentSettings['notifications']>): FleetDocumentSettings['notifications'] {
+  return { enabled: settings.notifications.enabled, kinds: { ...settings.notifications.kinds }, ...change };
+}
+
+/** The refusal of this view's own last settings change, in the place whose checkbox sent it, until dismissed or the next success. */
+function refusalIn(place: SettingsPlace, { commandStates, sentSettingsChange }: GaiaPanelSurroundings): SettingsRefusal | null {
+  const { failure } = CommandSender.stateOf(commandStates, { fleetCommand: 'settings-set' });
+  if (failure === null || sentSettingsChange === null || sentSettingsChange.checkbox.place !== place) return null;
+  if (sentSettingsChange.result !== failure.result) return null;
+  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
+  return {
+    commandLabel:  sentSettingsChange.checkbox.label,
+    code,
+    sentence,
+    retryCheckbox: sentSettingsChange.checkbox,
+  };
+}
+
+/** The address without its scheme, as the artboard prints it: `127.0.0.1:4790`. */
+function hostOf(address: string): string {
+  return address.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+}
+
+function factsOf(fleetDocument: FleetDocument): Fact[] {
+  const { gaia } = fleetDocument;
+  const { knownContracts } = gaia;
+  const forgeProgram: Fact = gaia.forgeProgramInUse === null
+    ? { label: 'Forge program', value: 'not found', valueFace: 'ui' }
+    : { label: 'Forge program', value: ForgesModel.homeRelativePathOf(gaia.forgeProgramInUse, gaia.homeFolder) };
+  return [
+    forgeProgram,
+    { label: 'Registry', value: ForgesModel.homeRelativePathOf(gaia.registryPath, gaia.homeFolder) },
+    { label: 'Gaia reads', value: [`monitor ${knownContracts.monitor}`, `control ${knownContracts.control}`, `embed ${knownContracts.embed}`].join(FACT_SEPARATOR) },
+    { label: 'Gaia', value: `${gaia.gaiaVersion} on ${hostOf(gaia.address)}` },
+  ];
+}
+
+function gaiaPanelOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurroundings): GaiaPanelContent {
+  const { settings } = fleetDocument;
+  const disabled = settingsCannotChange(fleetDocument, surroundings.commandStates);
+  return {
+    startAtLogin: {
+      place:       'gaia-panel',
+      label:       START_AT_LOGIN_LABEL,
+      explanation: null,
+      checked:     settings.startForgesAtLogin,
+      command:     { kind: 'settings-set', key: 'startForgesAtLogin', value: !settings.startForgesAtLogin },
+      disabled,
+    },
+    notify: {
+      place:       'gaia-panel',
+      label:       NOTIFY_LABEL,
+      explanation: null,
+      checked:     settings.notifications.enabled,
+      command:     { kind: 'settings-set', key: 'notifications', value: notificationsWith(settings, { enabled: !settings.notifications.enabled }) },
+      disabled,
+    },
+    settingsFileLine: SETTINGS_FILE_LINES[fleetDocument.gaia.settingsFile],
+    facts:            factsOf(fleetDocument),
+    refusal:          refusalIn('gaia-panel', surroundings),
+  };
+}
+
+function whatNotifiesOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurroundings): WhatNotifiesContent {
+  const { settings } = fleetDocument;
+  const disabled = settingsCannotChange(fleetDocument, surroundings.commandStates);
+  return {
+    kinds: NOTIFICATION_KINDS.map(({ kind, label, explanation }) => {
+      const checked = settings.notifications.kinds[kind];
+      return {
+        place:   'what-notifies',
+        label,
+        explanation,
+        checked,
+        command: { kind: 'settings-set', key: 'notifications', value: notificationsWith(settings, { kinds: { ...settings.notifications.kinds, [kind]: !checked } }) },
+        disabled,
+      };
+    }),
+    offLine: settings.notifications.enabled ? null : `"${NOTIFY_LABEL}" is off, so no kind notifies until it is on again.`,
+    refusal: refusalIn('what-notifies', surroundings),
+  };
+}
+
+export const GaiaPanelModel = {
+  gaiaPanelOf,
+  whatNotifiesOf,
+} as const;

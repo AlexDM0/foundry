@@ -1,7 +1,7 @@
 /**
  * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with the Stop dialog and a refusal under their row,
- * a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside them this machine's panel. It
- * takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
+ * a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside them this machine's panel and
+ * Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
@@ -27,8 +27,10 @@ import type {
   ShownRefusal,
   StopDialog,
 } from './ForgesModel.ts';
+import { GaiaPanel, type GaiaPanelHandlers } from './GaiaPanel.tsx';
+import type { GaiaPanelContent }             from './GaiaPanelModel.ts';
 
-export interface ForgesHandlers {
+export interface ForgesHandlers extends GaiaPanelHandlers {
   readonly onCommand:        (command: CommandBody) => void;
   readonly onOpenStopDialog: (trackerId: string) => void;
   readonly onStopChoice:     (agents: ForgeStopAgents) => void;
@@ -39,6 +41,7 @@ export interface ForgesHandlers {
 
 export interface ForgesLayoutProps {
   readonly content:       ForgesContent;
+  readonly gaiaPanel:     GaiaPanelContent;
   readonly commandStates: CommandStates;
   readonly handlers:      ForgesHandlers;
 }
@@ -272,7 +275,9 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
   );
 }
 
-export function ForgesLayout({ content, commandStates, handlers }: ForgesLayoutProps) {
+export function ForgesLayout({
+  content, gaiaPanel, commandStates, handlers
+}: ForgesLayoutProps) {
   return (
     <div className="gaia-forges">
       <section className="gaia-forges-main" aria-label="Forges">
@@ -304,6 +309,7 @@ export function ForgesLayout({ content, commandStates, handlers }: ForgesLayoutP
       </section>
       <aside className="gaia-forges-aside" aria-label="This machine and Gaia">
         <MachinePanelCard machine={content.machine} commandStates={commandStates} handlers={handlers} />
+        <GaiaPanel content={gaiaPanel} handlers={handlers} />
       </aside>
     </div>
   );

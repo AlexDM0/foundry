@@ -2,7 +2,8 @@
  * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A4, B4): the top bar
  * carries the registered and running counts, Look again and "Add a repository", which goes to `#forges/add`; that route opens the dialog
  * over the view; with no forge registered the table says so and the dialog's "Add and start" is off while no forge program is known; a
- * forge that registers appears without a reload; `#forges?forge=` selects that forge's row.
+ * forge that registers appears without a reload; `#forges?forge=` selects that forge's row; the Gaia panel sits under this machine's and
+ * follows the document's settings.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
  * would paint for the source's current document.
@@ -43,6 +44,26 @@ describe('the top bar', () => {
     const actions = /<span class="gaia-top-bar-actions">(.*?)<\/span>/.exec(markup)?.[1] ?? '';
     expect(actions).toMatch(/^<button[^>]*>Look again<\/button><a class="gaia-button" href="#forges\/add" data-emphasis="primary">Add a repository<\/a>$/);
     expect(markup).not.toContain('role="dialog"');
+  });
+});
+
+describe('the Gaia panel in the view', () => {
+  test('shows Gaia\'s settings and facts under this machine, from the document, with "What notifies" closed until asked', () => {
+    const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
+    expect(markup).toMatch(/<section class="gaia-forges-machine".*<\/section><section class="gaia-forges-gaia" aria-labelledby="gaia-forges-gaia-head">/);
+    expect(markup).toContain('Start the running forges at login');
+    expect(markup).toContain('0.1.0 on 127.0.0.1:4790');
+    expect(markup).not.toContain('role="dialog"');
+  });
+
+  test('a setting changed elsewhere shows in the panel without a reload', () => {
+    const source = sourceHolding(FLEET_FIVE_FORGES);
+    const app = appAt(source, '#forges');
+    const tickedStartAtLogin = /<input class="gaia-checkbox-input" type="checkbox" checked=""[^>]*\/><span class="gaia-checkbox-text"><span class="gaia-checkbox-label">Start/;
+    const startAtLoginIsTicked = () => tickedStartAtLogin.test(renderToStaticMarkup(app));
+    expect(startAtLoginIsTicked()).toBe(false);
+    source.publish({ ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, startForgesAtLogin: true } });
+    expect(startAtLoginIsTicked()).toBe(true);
   });
 });
 
