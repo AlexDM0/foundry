@@ -207,6 +207,7 @@ function holdingFirstRun(recorded: RecordedProcessRun): { readonly processRun: P
       }
       return recorded.run(request);
     },
+    startOwned:    (request) => recorded.startOwned(request),
     startDetached: (request) => recorded.startDetached(request),
   };
   return { processRun, letThrough };
@@ -560,6 +561,7 @@ describe('forge-add, carried by the forge program: init, then start', () => {
         workingDirectories.push(request.workingDirectory);
         return recorded.run(request);
       },
+      startOwned:    (request) => recorded.startOwned(request),
       startDetached: (request) => recorded.startDetached(request),
     };
     const verdict = await controlOver({ forges: [], processRun, settingsStore: await settingsStoreNamingTheProgram() }).carry(addingStorefront());

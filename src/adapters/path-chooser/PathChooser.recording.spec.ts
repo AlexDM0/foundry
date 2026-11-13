@@ -62,6 +62,9 @@ function recordingChooser(): PathChooser {
       recordAnswer(RECORDING_NAME_OF_PATH_CHOOSER, runCallShapeOf(request.program, request.programArguments), exampleAnswerOf(answer));
       return answer;
     },
+    startOwned: (request) => {
+      throw new Error(`The path-chooser recording starts nothing owned, and was asked to start ${request.program}.`);
+    },
     startDetached: (request) => {
       throw new Error(`The path-chooser recording starts nothing detached, and was asked to start ${request.program}.`);
     },

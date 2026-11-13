@@ -2,7 +2,8 @@
  * The real-system spec of process-run, run only by `bun run record process-run`: it starts real programs, checks what the boundary makes
  * of each outcome, and records the answer of every stable call shape for the recorded-runs mock. The cases that matter: a finished run
  * with its exit code and output, a program that is not there, a run that outlives its bound and is ended, the working directory, the
- * environment a child is handed, and a detached start that outlives the call.
+ * environment a child is handed, an owned start that runs until it is stopped or ends by itself, and a detached start that outlives the
+ * call.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -13,10 +14,10 @@ import {
   test
 } from 'bun:test';
 
-import { environmentCopy, homeDirectory, moveHomeDirectoryTo } from '../../services/Environment.ts';
-import { recordAnswer }                                        from '../../testing/BoundaryRecordings.ts';
-import { detachedStartCallShapeOf, runCallShapeOf }            from '../../testing/RecordedRuns.ts';
-import { createScratchDirectory, removeScratchPath }           from '../../testing/ScratchRoot.ts';
+import { environmentCopy, homeDirectory, moveHomeDirectoryTo }             from '../../services/Environment.ts';
+import { recordAnswer }                                                    from '../../testing/BoundaryRecordings.ts';
+import { detachedStartCallShapeOf, ownedStartCallShapeOf, runCallShapeOf } from '../../testing/RecordedRuns.ts';
+import { createScratchDirectory, removeScratchPath }                       from '../../testing/ScratchRoot.ts';
 
 import { realProcessRun, type ProgramRunRequest } from './ProcessRun.ts';
 
@@ -130,6 +131,40 @@ describe('a run of a program', () => {
     } finally {
       moveHomeDirectoryTo(runHome);
     }
+  });
+});
+
+describe('an owned start', () => {
+  test('runs the program until it is stopped, then answers the exit code of a terminated program', async () => {
+    const request = { program: 'sleep', programArguments: [SECONDS_A_SLEEPER_WOULD_RUN], workingDirectory: scratchDirectory('owned') };
+    const answer  = realProcessRun(environmentCopy).startOwned(request);
+    if (answer.verdict !== 'started') throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    expect(processIsRunning(answer.child.processId)).toBe(true);
+    answer.child.stop();
+    const exitCode = await answer.child.exited;
+    expect(exitCode).toBe(EXIT_CODE_OF_A_TERMINATED_PROGRAM);
+    expect(processIsRunning(answer.child.processId)).toBe(false);
+    const recordedAnswer = { verdict: 'started', processId: answer.child.processId, ending: { by: 'stop', exitCode } };
+    recordAnswer(RECORDING_NAME, ownedStartCallShapeOf('sleep', [SECONDS_A_SLEEPER_WOULD_RUN]), recordedAnswer);
+  });
+
+  test('answers the exit code of a program that ends by itself, and a later stop changes nothing', async () => {
+    const programArguments = ['-c', `exit ${EXIT_CODE_OF_A_REFUSAL}`];
+    const answer = realProcessRun(environmentCopy).startOwned({ program: 'sh', programArguments, workingDirectory: scratchDirectory('owned') });
+    if (answer.verdict !== 'started') throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    const exitCode = await answer.child.exited;
+    answer.child.stop();
+    expect(exitCode).toBe(EXIT_CODE_OF_A_REFUSAL);
+    recordAnswer(RECORDING_NAME, ownedStartCallShapeOf('sh', programArguments), { verdict: 'started', processId: answer.child.processId, ending: { by: 'itself', exitCode } });
+  });
+
+  test('answers not-found for a program that is not on the path, and for a working directory that does not exist', () => {
+    const processRun = realProcessRun(environmentCopy);
+    const answer     = processRun.startOwned({ program: MISSING_PROGRAM, programArguments: [], workingDirectory: scratchDirectory('owned') });
+    expect(answer).toEqual({ verdict: 'not-found', missing: 'program' });
+    recordAnswer(RECORDING_NAME, ownedStartCallShapeOf(MISSING_PROGRAM, []), answer);
+    expect(processRun.startOwned({ program: 'sleep', programArguments: ['1'], workingDirectory: join(scratchDirectory('owned'), 'gone') }))
+      .toEqual({ verdict: 'not-found', missing: 'working-directory' });
   });
 });
 

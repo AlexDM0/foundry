@@ -45,6 +45,35 @@
         "verdict": "not-found",
         "missing": "program"
       }
+    },
+    {
+      "callShape": "start owned [\"gaia-example-missing-program\"]",
+      "answer": {
+        "verdict": "not-found",
+        "missing": "program"
+      }
+    },
+    {
+      "callShape": "start owned [\"sh\",\"-c\",\"exit 3\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 97485,
+        "ending": {
+          "by": "itself",
+          "exitCode": 3
+        }
+      }
+    },
+    {
+      "callShape": "start owned [\"sleep\",\"30\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 97484,
+        "ending": {
+          "by": "stop",
+          "exitCode": 143
+        }
+      }
     }
   ]
 }

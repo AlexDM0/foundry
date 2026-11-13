@@ -56,6 +56,10 @@ function forgeProgramNotingWorkingDirectories(stage: ForgeProgramStage) {
       workingDirectories.push(request.workingDirectory);
       return recordedRun.run(request);
     },
+    startOwned: (request) => {
+      workingDirectories.push(request.workingDirectory);
+      return recordedRun.startOwned(request);
+    },
     startDetached: (request) => {
       workingDirectories.push(request.workingDirectory);
       return recordedRun.startDetached(request);

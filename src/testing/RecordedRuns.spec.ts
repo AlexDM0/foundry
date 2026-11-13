@@ -11,12 +11,16 @@ import { homeDirectory }          from '../services/Environment.ts';
 
 import {
   detachedStartCallShapeOf,
+  ownedStartCallShapeOf,
   recordedProcessRun,
   recordedRunsOf,
   runCallShapeOf,
 } from './RecordedRuns.ts';
 
 const SHORT_BOUND_MILLISECONDS = 200;
+/** 128 and the number of `SIGTERM`, as a shell reports it, and the exit code the recording's refusing program ends with. */
+const EXIT_CODE_OF_A_TERMINATED_PROGRAM = 143;
+const EXIT_CODE_OF_A_REFUSAL = 3;
 
 function processRunRequest(program: string, programArguments: readonly string[]): ProgramRunRequest {
   return {
@@ -71,6 +75,43 @@ describe('the recorded process run', () => {
     const callShape = runCallShapeOf('sleep', ['30']);
     expect(() => recordedProcessRun([{ callShape, answer: { verdict: 'timed-out' } }, { callShape, answer: { verdict: 'timed-out' } }]))
       .toThrow(`Two recorded answers for ${callShape}`);
+  });
+
+  test('keeps a recorded owned child running until its stop, then answers the exit code it was recorded ending with', async () => {
+    const processRun = recordedProcessRun(recordedRunsOf('process-run'));
+    const answer     = processRun.startOwned({ program: 'sleep', programArguments: ['30'], workingDirectory: homeDirectory() });
+    if (answer.verdict !== 'started') throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    const sleeperShape = ownedStartCallShapeOf('sleep', ['30']);
+    expect(processRun.ownedChildrenRunning()).toEqual([sleeperShape]);
+    answer.child.stop();
+    answer.child.stop();
+    expect(await answer.child.exited).toBe(EXIT_CODE_OF_A_TERMINATED_PROGRAM);
+    expect(processRun.ownedChildrenRunning()).toEqual([]);
+    expect(processRun.ownedChildrenStopped()).toEqual([sleeperShape]);
+  });
+
+  test('ends a recorded owned child that ended by itself at once, and counts no stop of it', async () => {
+    const processRun = recordedProcessRun(recordedRunsOf('process-run'));
+    const answer     = processRun.startOwned({ program: 'sh', programArguments: ['-c', 'exit 3'], workingDirectory: homeDirectory() });
+    if (answer.verdict !== 'started') throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    expect(await answer.child.exited).toBe(EXIT_CODE_OF_A_REFUSAL);
+    answer.child.stop();
+    expect(processRun.ownedChildrenRunning()).toEqual([]);
+    expect(processRun.ownedChildrenStopped()).toEqual([]);
+    expect(processRun.startOwned({ program: 'gaia-example-missing-program', programArguments: [], workingDirectory: homeDirectory() }))
+      .toEqual({ verdict: 'not-found', missing: 'program' });
+  });
+
+  test('fails an owned start with no recorded answer and names its call shape', () => {
+    const processRun = recordedProcessRun(recordedRunsOf('process-run'));
+    expect(() => processRun.startOwned({ program: 'bun', programArguments: ['--version'], workingDirectory: homeDirectory() }))
+      .toThrow(`No recorded answer for ${ownedStartCallShapeOf('bun', ['--version'])}`);
+  });
+
+  test('refuses an owned start answer recorded without its ending', () => {
+    const callShape = ownedStartCallShapeOf('sleep', ['30']);
+    const answerWithoutEnding = { verdict: 'started', processId: 1 } as const;
+    expect(() => recordedProcessRun([{ callShape, answer: answerWithoutEnding }])).toThrow(`The answer recorded for ${callShape} is no process-run answer`);
   });
 
   test('refuses a detached start answer recorded for a run', () => {

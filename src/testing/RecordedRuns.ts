@@ -1,6 +1,7 @@
 /**
  * The process-run mock every spec uses in place of the real boundary: it answers each call from recorded runs and fails the spec on a
- * call with no recorded answer. It keeps the real run's demand on the caller: a working directory that exists. Test-only.
+ * call with no recorded answer. It keeps the real run's demands on the caller: a working directory that exists, and an owned child that
+ * ends only by itself or by its stop, as it was recorded. Test-only.
  */
 import { readFileSync, statSync } from 'node:fs';
 import { join }                   from 'node:path';
@@ -8,6 +9,9 @@ import { join }                   from 'node:path';
 import type {
   DetachedStartAnswer,
   DetachedStartRequest,
+  NotFoundAnswer,
+  OwnedStartAnswer,
+  OwnedStartRequest,
   ProcessRun,
   ProgramRunAnswer,
   ProgramRunRequest,
@@ -20,23 +24,41 @@ import {
   repositoryRoot,
 } from './BoundaryRecordings.ts';
 
+/** How a recorded owned child ended: by the caller's stop, or by itself at once, each with the exit code it ended with. */
+export interface RecordedOwnedEnding {
+  readonly by:       'stop' | 'itself';
+  readonly exitCode: number;
+}
+
+export type RecordedOwnedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly processId: number; readonly ending: RecordedOwnedEnding };
+
 export interface RecordedRun {
   readonly callShape: string;
-  readonly answer:    ProgramRunAnswer | DetachedStartAnswer;
+  readonly answer:    ProgramRunAnswer | DetachedStartAnswer | RecordedOwnedStartAnswer;
 }
 
 export interface RecordedProcessRun extends ProcessRun {
   /** Every call shape answered so far, in order. */
-  readonly callShapesAnswered: () => readonly string[];
+  readonly callShapesAnswered:   () => readonly string[];
+  /** The call shape of every owned child started and not yet ended, in the order they were started. */
+  readonly ownedChildrenRunning: () => readonly string[];
+  /** The call shape of every owned child its caller stopped, in the order they were stopped. */
+  readonly ownedChildrenStopped: () => readonly string[];
 }
 
 const RUN_CALL_SHAPE_PREFIX = 'run ';
+const OWNED_START_CALL_SHAPE_PREFIX = 'start owned ';
 const DETACHED_START_CALL_SHAPE_PREFIX = 'start detached ';
+const OWNED_ENDINGS: ReadonlySet<unknown> = new Set(['stop', 'itself']);
 const MISSING_VALUES: ReadonlySet<unknown> = new Set(['program', 'working-directory']);
 
 /** The working directory and the bound are left out: a recorded answer holds for any of them. */
 export function runCallShapeOf(program: string, programArguments: readonly string[]): string {
   return `${RUN_CALL_SHAPE_PREFIX}${JSON.stringify([program, ...programArguments])}`;
+}
+
+export function ownedStartCallShapeOf(program: string, programArguments: readonly string[]): string {
+  return `${OWNED_START_CALL_SHAPE_PREFIX}${JSON.stringify([program, ...programArguments])}`;
 }
 
 export function detachedStartCallShapeOf(program: string, programArguments: readonly string[]): string {
@@ -65,8 +87,17 @@ function isDetachedStartAnswer(answer: unknown): answer is DetachedStartAnswer {
   return isNotFoundAnswer(answer) || (answer['verdict'] === 'started' && Number.isInteger(answer['processId']));
 }
 
+function isRecordedOwnedStartAnswer(answer: unknown): answer is RecordedOwnedStartAnswer {
+  if (!isRecord(answer)) return false;
+  if (isNotFoundAnswer(answer)) return true;
+  const { ending } = answer;
+  return answer['verdict'] === 'started' && Number.isInteger(answer['processId'])
+    && isRecord(ending) && OWNED_ENDINGS.has(ending['by']) && Number.isInteger(ending['exitCode']);
+}
+
 function answerFitsCallShape(callShape: string, answer: unknown): boolean {
   if (callShape.startsWith(RUN_CALL_SHAPE_PREFIX)) return isProgramRunAnswer(answer);
+  if (callShape.startsWith(OWNED_START_CALL_SHAPE_PREFIX)) return isRecordedOwnedStartAnswer(answer);
   return callShape.startsWith(DETACHED_START_CALL_SHAPE_PREFIX) && isDetachedStartAnswer(answer);
 }
 
@@ -100,6 +131,37 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     answerByCallShape.set(callShape, answer);
   }
   const callShapesAnswered: string[] = [];
+  const ownedChildrenRunning: string[] = [];
+  const ownedChildrenStopped: string[] = [];
+
+  function ownedStartAnswerOf(callShape: string, recorded: RecordedOwnedStartAnswer): OwnedStartAnswer {
+    if (recorded.verdict === 'not-found') return recorded;
+    const { ending } = recorded;
+    let endChild: (exitCode: number) => void = () => undefined;
+    const exited = new Promise<number>((resolve) => {
+      endChild = resolve;
+    });
+    let hasEnded = false;
+    const end = (): void => {
+      hasEnded = true;
+      ownedChildrenRunning.splice(ownedChildrenRunning.indexOf(callShape), 1);
+      endChild(ending.exitCode);
+    };
+    ownedChildrenRunning.push(callShape);
+    if (ending.by === 'itself') end();
+    return {
+      verdict: 'started',
+      child:   {
+        processId: recorded.processId,
+        exited,
+        stop:      () => {
+          if (hasEnded) return;
+          ownedChildrenStopped.push(callShape);
+          end();
+        },
+      },
+    };
+  }
 
   function recordedAnswerFor(callShape: string, workingDirectory: string): RecordedRun['answer'] {
     if (!directoryExists(workingDirectory)) {
@@ -118,9 +180,15 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     run: async (request: ProgramRunRequest) => {
       return recordedAnswerFor(runCallShapeOf(request.program, request.programArguments), request.workingDirectory) as ProgramRunAnswer;
     },
+    startOwned: (request: OwnedStartRequest) => {
+      const callShape = ownedStartCallShapeOf(request.program, request.programArguments);
+      return ownedStartAnswerOf(callShape, recordedAnswerFor(callShape, request.workingDirectory) as RecordedOwnedStartAnswer);
+    },
     startDetached: (request: DetachedStartRequest) => {
       return recordedAnswerFor(detachedStartCallShapeOf(request.program, request.programArguments), request.workingDirectory) as DetachedStartAnswer;
     },
-    callShapesAnswered: () => [...callShapesAnswered],
+    callShapesAnswered:   () => [...callShapesAnswered],
+    ownedChildrenRunning: () => [...ownedChildrenRunning],
+    ownedChildrenStopped: () => [...ownedChildrenStopped],
   };
 }

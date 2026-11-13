@@ -55,6 +55,9 @@ function recordingProcessRun(): RecordingProcessRun {
       lastAnswer = answer;
       return answer;
     },
+    startOwned: (request) => {
+      throw new Error(`The forge-program recording starts nothing owned, and was asked to start ${request.program}.`);
+    },
     startDetached: (request) => {
       throw new Error(`The forge-program recording starts nothing detached, and was asked to start ${request.program}.`);
     },

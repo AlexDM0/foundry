@@ -1,6 +1,7 @@
 /**
  * The boundary to other programs: run one with arguments in a working directory and a bounded wait, and collect its exit code and output;
- * or start one detached that outlives Gaia. Every answer is a verdict, never a throw for an ordinary outcome.
+ * start one owned, which the caller stops and whose end it awaits; or start one detached that outlives Gaia. Every answer is a verdict,
+ * never a throw for an ordinary outcome.
  */
 import { statSync }  from 'node:fs';
 import { constants } from 'node:os';
@@ -17,6 +18,8 @@ export interface DetachedStartRequest {
   readonly programArguments: readonly string[];
   readonly workingDirectory: string;
 }
+
+export type OwnedStartRequest = DetachedStartRequest;
 
 /** `program`: no runnable file by that name or path. `working-directory`: the directory to run in is gone or is no directory. */
 export type MissingForARun = 'program' | 'working-directory';
@@ -37,8 +40,20 @@ export type ProgramRunAnswer = FinishedRunAnswer | NotFoundAnswer | { readonly v
 
 export type DetachedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly processId: number };
 
+/** A child the caller owns: it runs until it ends by itself or the caller stops it, and it ends with the caller at the latest. */
+export interface OwnedChild {
+  readonly processId: number;
+  /** Settles with the exit code once the child has ended, by itself or by `stop`, as a shell reports it. */
+  readonly exited:    Promise<number>;
+  /** Asks the child to end, with `SIGTERM`; a child that has already ended is left alone. */
+  readonly stop:      () => void;
+}
+
+export type OwnedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly child: OwnedChild };
+
 export interface ProcessRun {
   readonly run:           (request: ProgramRunRequest) => Promise<ProgramRunAnswer>;
+  readonly startOwned:    (request: OwnedStartRequest) => OwnedStartAnswer;
   readonly startDetached: (request: DetachedStartRequest) => DetachedStartAnswer;
 }
 
@@ -109,6 +124,32 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
     };
   }
 
+  function startOwned(request: OwnedStartRequest): OwnedStartAnswer {
+    if (!directoryExists(request.workingDirectory)) return { verdict: 'not-found', missing: 'working-directory' };
+    let child: Bun.Subprocess<'ignore', 'ignore', 'ignore'>;
+    try {
+      child = Bun.spawn([request.program, ...request.programArguments], {
+        cwd:    request.workingDirectory,
+        env:    { ...childEnvironment() },
+        stdin:  'ignore',
+        stdout: 'ignore',
+        stderr: 'ignore',
+      });
+    } catch (startError) {
+      return programNotFoundOrThrow(startError);
+    }
+    return {
+      verdict: 'started',
+      child:   {
+        processId: child.pid,
+        exited:    child.exited.then(() => exitCodeOf(child.exitCode, child.signalCode)),
+        stop:      () => {
+          if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+        },
+      },
+    };
+  }
+
   function startDetached(request: DetachedStartRequest): DetachedStartAnswer {
     if (!directoryExists(request.workingDirectory)) return { verdict: 'not-found', missing: 'working-directory' };
     try {
@@ -127,5 +168,5 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
     }
   }
 
-  return { run, startDetached };
+  return { run, startOwned, startDetached };
 }
