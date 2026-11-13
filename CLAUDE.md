@@ -1,4 +1,4 @@
-# agent-progress
+# forge
 
 A Bun + TypeScript CLI that tracks an AI orchestrator's work per repository (Gantt rows, stateful markdown tickets,
 a log, and the live Bridge its Overseer serves), and installs into each tracked repository
@@ -54,7 +54,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on" packages and
   the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
   structurally typed parameter.
-- A `src/lib/` package knows nothing about its callers: no agent-progress names, file names, wording or exit codes.
+- A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
 
@@ -77,11 +77,11 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A malformed stored file is a verdict and a report, never a throw that takes down `status`.
 - `progress.json` keeps unknown keys, top level and on rows, in order. An optional key is written only once set, and
   a read never adds or rewrites one, so a file stays byte-identical.
-- An epic is `.agent-progress/epics/<key>.md`, known by its file name, its description kept byte for byte like a
+- An epic is `.forge/epics/<key>.md`, known by its file name, its description kept byte for byte like a
   ticket body; the folder exists only once an epic was added. Its colour `slot` is stored at `epic add`, never derived.
 - The Board logs ids and values through one `log(record)` over a typed record union (the vocabulary, no method per
   record); an adapter util words the records, the collector gathers them, the writer stores
-  `.agent-progress/log.jsonl`.
+  `.forge/log.jsonl`.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, login item, Overseer port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
   folder, marker, key and removal derives from it. The build is `forge` beside the released program, and
@@ -150,7 +150,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 
 - Generated files stay out of the repository; `init` and `update` install no generated file, only filled templates
   and the skills.
-- One manifest, `.agent-progress/version.json` holding `INSTALL_VERSION`, versions everything installed; no file
+- One manifest, `.forge/version.json` holding `INSTALL_VERSION`, versions everything installed; no file
   carries a stamp. It is written last, so a cut-short run leaves the old version; a fresh `init` writes
   `session-instructions.md` first, so a cut-short one reads as unversioned.
 - Bump `INSTALL_VERSION` by hand, in the same commit, when an installed file becomes wrong against the new CLI: a
@@ -237,9 +237,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 ### Documentation and commits
 
 - One CLAUDE.md, holding only rules, boundaries and decisions; a change that invalidates a rule updates it in the
-  same change. agent-progress's instructions are not in it: they are `.agent-progress/session-instructions.md`,
-  installed from `resources/templates/SessionInstructions.md` and printed by the SessionStart hook. The
-  `agent-progress:managed` block below is this checkout's own install of the released program, never edited by hand.
+  same change. forge's instructions are not in it: they are `.forge/session-instructions.md`,
+  installed from `resources/templates/SessionInstructions.md` and printed by the SessionStart hook.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
   flags, exit codes and file formats.
 - `docs/README.md` is the documentation map.
@@ -267,7 +266,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Every write of a file a reader may hold open goes through the atomic-file package. | The Overseer appends `overseer.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
 | A `src/lib/` package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
 | A feature never reaches another. | `cli/overseer/routes/OverseerRoutes.ts` imports `bridge/index.html`, the one entry of `FEATURE_REACHES_BY_PATH` in `src/ImportDirection.spec.ts`. | Bundled, never imported: Bun bundles the HTML import. |
-| One reference per fact. | `resources/templates/Reference.md`, installed as `.agent-progress/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
+| One reference per fact. | `resources/templates/Reference.md`, installed as `.forge/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
 | A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing SessionStart hook would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
 | A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
@@ -365,13 +364,13 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   numbered Acceptance and a `## Brief`, and readies drafts only on User's yes in User's own session (under the Overseer
   it closes intake instead); it loads no other skill. `skills/agent-progress-orchestrate/` is the interactive wrapper
   around a running Overseer (`oversee`): it reads its state, starts it on User's go, turns User's intent into verbs,
-  loads `agent-po` for intake and may wait on `await`; it never drives the lifecycle or handles an incident, which
+  loads `forge-po` for intake and may wait on `await`; it never drives the lifecycle or handles an incident, which
   are the Overseer's and its Assistant's.
 - No agent preloads a skill, and nothing installs a worker definition. An Overseer's roles read the instruction files
   `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
   fixed prompts under `resources/prompts/`.
-- No skill file lists commands: `agent-progress help` is the reference. Both skills name it and
-  `.agent-progress/reference.md`, installed from `resources/templates/Reference.md`, which holds only what help does
+- No skill file lists commands: `forge help` is the reference. Both skills name it and
+  `.forge/reference.md`, installed from `resources/templates/Reference.md`, which holds only what help does
   not print and follows `docs/cli.md`.
 - A `SKILL.md` `description` is its trigger, naming the words a user says. Skill files cite only commands, paths in
   a tracked repository, or files beside them; naming a skill the host may offer, such as `grill-me`, is no citation.
@@ -383,75 +382,3 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - `init` and `update` copy both into the tracked repository's git-ignored `.claude/skills/`, never globally, and
   remove the files a retired skill folder installed there with its `.gitignore` entry; `setup.ts` only removes the
   `~/.claude/skills/` symlinks into this checkout that earlier versions made.
-
-## Repository map
-
-```
-agent-progress.ts    the bin shim: runs the command line and exits with its number
-watcher.ts        the Watcher shim: runs one job instance's Watcher from src/lib/watcher/ and exits with its number
-setup.ts             the machine setup entry: setup.sh and setup.ps1 start it when Bun exists; its steps are in cli/setup/
-launcher.ts          the installed command: setup.ts compiles it, and it starts agent-progress.ts and passes its
-                     streams, arguments and exit code through
-cli/                 feature: the command surface, its commands grouped into sets
-bridge/              feature: the Bridge, the React live UI the Overseer serves, one DOM-only project: its entry,
-                     the shell under bridge/shell/, the API clients under bridge/api/ and the stylesheets
-resources/           files read at runtime: the markdown init, update and ticket add fill, and the prompts an
-                     Overseer's jobs run on
-src/lib/             package-grade building blocks, one folder each
-src/adapters/        the boundary: every stored format read, written and mapped, and the wording
-src/services/        the tracker and render services, and the Overseer's: overseer/ (`oversee`, its DrivePass and its
-                     API), lifecycle/ (gates, verification, merges, landings) and control/ (the control contract)
-src/shared/          app-specific code several parts use
-src/testing/         test-only helpers several parts use
-skills/              the two skills, one folder each, named after the skill: agent-po/, PO intake, which a
-                     session asked to file a ticket and an Overseer's product-owner job load, and
-                     agent-progress-orchestrate/, the interactive wrapper around a running Overseer
-docs/                the documentation set, indexed by docs/README.md: the CLI reference, glossary, concepts,
-                     operations, reference, development, figures, README images, and the backlog
-.readme-graphics/    the scripts and demo board that retake the README images; its build/ is git-ignored
-.platform-probes/    small Bun scripts that each answer one unknown about an OS or the Claude host on a real machine;
-                     its results/ is git-ignored, and no result gates a ticket
-```
-
-<!-- agent-progress:managed:start -->
-## Progress tracking with agent-progress
-
-This repository tracks its work with the `agent-progress` CLI. The tracker lives in the git-ignored
-`.agent-progress/` folder at the repository root and is shared by every worktree of it, so subagents
-in separate checkouts all write to the same chart.
-
-- Run `agent-progress status --json` at the start of a session to find out what was already in
-  flight. When the user asks to file, report or track a ticket, bug or research question, load the
-  `agent-po` skill. Only when the user asks this session to run the board — orchestrate, work through
-  the tickets, take tickets from them — load `agent-progress-orchestrate`; it loads `agent-po` itself.
-  Filing or editing a ticket does not make a session the orchestrator and is never a reason to load
-  that skill. `.agent-progress/reference.md` holds the ticket format, the moves and the exit codes.
-- Only the orchestrator runs agents for tickets, and it runs them through the dispatcher workflow,
-  `.agent-progress/agent-progress-dispatch.js`, started only on the user's go. Any other session or
-  agent files a ticket when it is asked to and stops there: it never dispatches an agent to handle
-  one, its own or anybody else's.
-- Every agent's prompt names its row, its ticket or its review on a line of its own, and the
-  `SubagentStop` hook adds every token the agent processed to that row when it stops, so where the
-  hook is installed pass no `--tokens`: it would replace the sum.
-- A ticket is picked up on a worktree of its own, never in the main checkout, by a builder or by a
-  reviewer. The ticket's `## Brief` section, when it has one, is its builder's brief. A builder fixes
-  the defects it finds beside its work when it can prove the fix, and ends by committing on its
-  branch, rebasing it onto the main line and filling in its ticket's `## Handoff`: every agent leaves
-  its branch ready to fast-forward into main. Nobody continues a finished agent with a follow-up
-  message — a fresh agent for the remainder costs less than the one holding the whole transcript.
-- A review is a clean agent following the review brief in `.agent-progress/review-brief.md`. It starts
-  from the Handoff rather than redoing the work, fixes what it finds in the branch's change and the
-  ticket's Acceptance, settles its own doubts, rebases onto the main line again, and releases the
-  branch itself with `agent-progress release`, which lets one branch into main at a time. Anything
-  outside that, however small, is filed unfixed as a low-priority ticket. A second review is only for
-  a pass that reworked over 750 lines of code (comments and documentation not counted) in its fixes
-  and rebase, and is asked for, never scheduled by the reviewer.
-- File every bug, change, feature or research question the user reports as a ticket (`agent-progress ticket add
-  "<title>" --type ticket|bug|research`) and move it with `agent-progress ticket start|finish|approve|deliver <id>`.
-- Record milestones with `agent-progress log "<what happened>"`; `--at -5m` backfills a stamp nobody
-  registered at the time.
-- Never edit `.agent-progress/progress.json` by hand, and edit a ticket only below its frontmatter —
-  `agent-progress ticket show <id>` prints the file path to edit.
-- Run `agent-progress open` once per session so the user has the dashboard; it reloads itself within
-  a minute of new data when idle as the work moves.
-<!-- agent-progress:managed:end -->
