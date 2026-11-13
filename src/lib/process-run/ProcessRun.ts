@@ -40,7 +40,7 @@ export type ProgramRunAnswer = FinishedRunAnswer | NotFoundAnswer | { readonly v
 
 export type DetachedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly processId: number };
 
-/** A child the caller owns: it runs until it ends by itself or the caller stops it, and it ends with the caller at the latest. */
+/** A child the caller owns: it runs until it ends by itself or the caller stops it. It outlives a caller that ends without stopping it. */
 export interface OwnedChild {
   readonly processId: number;
   /** Settles with the exit code once the child has ended, by itself or by `stop`, as a shell reports it. */
