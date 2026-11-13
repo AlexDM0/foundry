@@ -60,6 +60,8 @@ export function ForgesView({
   const content = ForgesModel.forgesContentOf(fleetDocument, {
     clock, commandStates: states, stopDialog, forgeInView, lastSent
   });
+  // A forge stopped from elsewhere drops its dialog, so it does not open again by itself once the forge runs again.
+  if (stopDialog !== null && content.rows.every((row) => row.stopDialog === null)) setStopDialog(null);
   return (
     <>
       <ForgesLayout

@@ -252,8 +252,13 @@ interface RowSurroundings {
   readonly forgeProgramIsMissing: boolean;
 }
 
+/** The Stop dialog stays only under a row that still offers a Stop that reaches its forge; a forge stopped meanwhile drops it. */
+function stopDialogIsOpenOn(forge: FleetDocumentForge, stopDialog: StopDialogState | null): boolean {
+  return stopDialog?.trackerId === forge.trackerId && BUTTONS_BY_CONDITION[forge.condition].includes('stop') && stopReaches(forge);
+}
+
 function forgeIsBusy(forge: FleetDocumentForge, { surroundings }: RowSurroundings): boolean {
-  return onItsWayFor(surroundings.commandStates, forge.trackerId) !== null || surroundings.stopDialog?.trackerId === forge.trackerId;
+  return onItsWayFor(surroundings.commandStates, forge.trackerId) !== null || stopDialogIsOpenOn(forge, surroundings.stopDialog);
 }
 
 function commandButton(button: ForgeButtonKind, label: string, command: CommandBody, disabled: boolean, emphasis: ButtonEmphasis = 'plain'): ForgeButton {
@@ -413,7 +418,7 @@ function refusalOf(trackerId: string, surroundings: ForgesSurroundings, showsHer
  */
 function stopDialogOf(forge: FleetDocumentForge, surroundings: ForgesSurroundings): StopDialog | null {
   const { stopDialog } = surroundings;
-  if (stopDialog?.trackerId !== forge.trackerId) return null;
+  if (stopDialog === null || !stopDialogIsOpenOn(forge, stopDialog)) return null;
   const {
     label, question, choices: offered, consequence
   } = ForgeCommandTextUtil.stopQuestionOf(forge);

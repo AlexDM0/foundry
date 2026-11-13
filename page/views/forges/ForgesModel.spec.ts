@@ -379,6 +379,12 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     ]);
   });
 
+  test('a forge stopped from elsewhere while it is open drops it, and its row\'s Start is on', () => {
+    const stoppedMeanwhile = fleetWithOneForgeIn('dormant');
+    const row = rowOf(contentOf(stoppedMeanwhile, { stopDialog: STOREFRONT_STOP }), TRACKER_IDS.exampleStorefront);
+    expect([row.stopDialog, row.buttons]).toMatchObject([null, [{ label: 'Start', disabled: false }]]);
+  });
+
   test('while it is open its row\'s controls are off, and the other rows\' are not', () => {
     const content = contentOf(FLEET_FIVE_FORGES, { stopDialog: STOREFRONT_STOP });
     expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.exampleStorefront))).toEqual([true, true, true, true]);
