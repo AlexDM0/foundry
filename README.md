@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/icon.png" width="112" height="112" alt="agent-progress icon: four coloured Gantt bars and a red now-line on a dark rounded square">
+  <img src="docs/images/icon.png" width="112" height="112" alt="forge icon: four coloured Gantt bars and a red now-line on a dark rounded square">
 </p>
 
-# agent-progress v2
+# forge
 
 > **Question:** What is this, what does it look like, what will it do to my repository, and where do I go next?
 > **Time:** 5 minutes.
@@ -12,14 +12,13 @@
 
 ## In one screen
 
-agent-progress v2 runs Claude Code [agents](docs/glossary.md#agent) through a [ticket](docs/glossary.md#ticket) board
-in one repository. Agents do the work and report it, and the program, not an agent, checks each report and moves each
+forge runs Claude Code [agents](docs/glossary.md#agent) through a [ticket](docs/glossary.md#ticket) board in one
+repository. Agents do the work and report it, and the program, not an agent, checks each report and moves each
 ticket. A live page, the [Bridge](docs/glossary.md#bridge), shows the whole [board](docs/glossary.md#board) and takes
 the moves of User, the person running the board.
 
-This is the v2 build. Its program is `forge`, and it installs side by side with the released
-`agent-progress`, sharing none of its files. This build never merges into main: it is the source for a new product.
-[Porting](docs/development/porting.md) says what carries over.
+forge grew out of `agent-progress` and is now a project of its own. It installs side by side with the released
+`agent-progress`, sharing none of its files.
 
 The promise, in three lines:
 
@@ -120,20 +119,19 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 | One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.forge-worktrees/` | ignored |
 
 > **As built.** A landed ticket's worktree stays in that folder. See
-> [the known gap](docs/reference/known-gaps.md#gap-landed-worktrees-stay).
+> the known gap.
 
 `init` adds nothing to `CLAUDE.md`, and it [refuses](docs/reference/refusals.md) a repository the released program
 already tracks.
 
-Outside the repository, the setup script links the program with `bun link` and points the agent-progress checkout's git hooks
-at `.githooks/`, and each tracker registers in `~/.forge-monitor/`.
-[The on-disk atlas](docs/data-model/on-disk-atlas.md) maps every path.
+Outside the repository, the setup script links the program with `bun link` and points the forge checkout's git hooks at
+`.githooks/`, and each tracker registers in `~/.forge-monitor/`.
+The on-disk atlas maps every path.
 
 ## Quickstart
 
-This build lives on the branch `group-code-lifecycle` of github.com/AlexDM0/agent-progress. It needs Bun, git and a
-logged-in `claude`, and has been run on macOS; [getting started](docs/operations/getting-started.md) says what differs
-elsewhere.
+forge lives at github.com/AlexDM0/forge. It needs Bun, git and a logged-in `claude`, and has been run on macOS;
+[getting started](docs/operations/getting-started.md) says what differs elsewhere.
 
 | Platform | x64 | arm64 | Also needs | Confinement in force |
 | --- | --- | --- | --- | --- |
@@ -146,14 +144,14 @@ Linux and Windows have adapters for every OS-dependent part, proved only over fa
 [the platform status](docs/development/platform-status.md) lists what has never run.
 
 ```sh
-git clone https://github.com/AlexDM0/agent-progress.git && cd agent-progress
-git switch group-code-lifecycle && ./setup.sh
+git clone https://github.com/AlexDM0/forge.git && cd forge
+./setup.sh
 ```
 
 On Windows, in PowerShell, run `setup.ps1` in place of `setup.sh`. It needs no administrator rights and no bash:
 
 ```powershell
-git switch group-code-lifecycle; powershell -ExecutionPolicy Bypass -File .\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
 Both scripts only make sure Bun is installed, offering Bun's own installer, and then hand over to `setup.ts`, which runs
@@ -204,8 +202,9 @@ The program is TypeScript on Bun, with three runtime dependencies: `marked`, `re
 ## Where next
 
 1. **[The documentation index](docs/README.md)** first. It has the symptom shortcuts for when something is wrong now.
-2. **The hour path** in that index, from [the overview](docs/concepts/overview.md) to the failure lab, explains the
-   system with no code.
+2. **[The overview](docs/concepts/overview.md)** explains the system with no code, and
+   **[getting started](docs/operations/getting-started.md)** runs a first board. The
+   **[glossary](docs/glossary.md)** defines each term.
 3. **[The CLI reference](docs/cli.md)** holds every command, flag, exit code and stored format.
 4. **[Contributing](docs/development/contributing.md)** gets a change past the checks.
 

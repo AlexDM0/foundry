@@ -3,7 +3,7 @@
 > **Question:** Something needs me: what do I check and what do I do?
 > **Time:** 2 minutes for one recipe; read the first screen once beforehand.
 > **Read first:** [Running a board](running-a-board.md).
-> **Next:** [Why not moving](../interactive/why-not-moving.html), [Refusals](../reference/refusals.md).
+> **Next:** [Refusals](../reference/refusals.md).
 
 ## In one screen
 
@@ -30,7 +30,7 @@ takes its default move.
 | --- | --- |
 | A command printed a [refusal](../glossary.md#refusal) | [Refusals](../reference/refusals.md) |
 | A command printed `cannot be read`, even `status` | [Stored file damage](#stored-file-damage) |
-| Why this one [ticket](../glossary.md#ticket) will not start, by answering a form | [Why is my ticket not moving?](../interactive/why-not-moving.html) |
+| Why this one [ticket](../glossary.md#ticket) will not start | [One ticket will not start](#one-ticket-will-not-start) |
 | A ticket or the whole board stands still | [Not moving](#not-moving) |
 | Every board on the machine stopped | [Usage limit](#usage-limit) |
 | A [session](../glossary.md#session) seems to do nothing | [An agent looks stuck](#an-agent-looks-stuck) |
@@ -52,7 +52,7 @@ Overseer acts when it starts.
 Replace the example ids `003`, `J7`, `E3`, `I2`, and fill in anything in `<...>`. A fenced block is a sequence: run all
 of it, unless the sentence above it calls it a list. Where you must choose, each choice is its own table cell or code
 span, which pastes alone. Prose shortens `forge oversee status` to `oversee status`. Names in capitals are
-constants; their values are in [Deciders and bounds](../reference/deciders-and-bounds.md). `<data>` and friends:
+constants. `<data>` and friends:
 [Reading names](../glossary.md#reading-names). Flags: [CLI reference](../cli.md).
 
 ## Not moving
@@ -112,11 +112,10 @@ forge oversee status
 | No free [launch slot](../glossary.md#launch-slot) | `jobs` lists as many build and review lines as `concurrency` prints | Wait, or raise it with `forge concurrency 3`. A job waiting for an answer or interrupted keeps its launch slot. |
 | Candidates rank ahead | a free launch slot goes to another ticket | Wait, or `forge ticket priority 003 high`. |
 
-Priority never blocks a ticket; it only orders candidates. [The Pass](../architecture/the-pass.md) gives the order.
+Priority never blocks a ticket; it only orders candidates. The Pass gives the order.
 
-> **As built.** Help words priority as a block: [gap-help-text-stale](../reference/known-gaps.md#gap-help-text-stale). A
-> [group](../glossary.md#group) ticket can be absent from the ready list:
-> [gap-group-tickets-missing-from-ready-ids](../reference/known-gaps.md#gap-group-tickets-missing-from-ready-ids).
+> **As built.** Help words priority as a block. A
+> [group](../glossary.md#group) ticket can be absent from the ready list.
 
 ## An agent looks stuck
 
@@ -146,8 +145,7 @@ forge job attach J7   # replays, then follows; Ctrl-C leaves it running
 ```
 
 **Cause:** a long tool call, a question, or a hang. After `QUIET_JOB_SWEEPS` [sweeps](../glossary.md#sweep) with no
-output, the Overseer opens a `quiet-job` incident. It only asks; it stops nothing. The rest is in [Questions and
-incidents](../architecture/questions-and-incidents.md).
+output, the Overseer opens a `quiet-job` incident. It only asks; it stops nothing.
 
 **Fix:** send a message first. With no reply, run one of the other two.
 
@@ -179,8 +177,7 @@ The costs the grid leaves out:
 | `job stop --all` | Reaches build, review and product-owner jobs. It leaves the Assistant and Airlock agents alone. Add `--wind-down` for the softer form. |
 
 > **Careful.** A `job stop` of a merge or [refresh](../glossary.md#refresh) job is not an Airlock abort; use the moves
-> in [A merge is stuck](#a-merge-is-stuck), or `ticket park`. See
-> [gap-job-stop-misses-merge](../reference/known-gaps.md#gap-job-stop-misses-merge).
+> in [A merge is stuck](#a-merge-is-stuck), or `ticket park`.
 
 ### Out of calls
 
@@ -201,7 +198,7 @@ filing.
 ## A gate keeps failing
 
 A red gate is cheap: the same session is resumed with the failure in hand. Only when its resumes
-are spent does anything reach you. The rework ladder is in [Build and review](../architecture/build-and-review.md).
+are spent does anything reach you.
 
 ### A red gate
 
@@ -258,10 +255,8 @@ cat .forge/jobs/J7/gate.log                                   # a gating prepare
 jq -r .line .forge/jobs/J7/install/events-1.ndjson | tail -n 40   # the install output
 ```
 
-**Cause:** the worktree could not be created, the install line failed, or a gating
-[prepare step](../glossary.md#prepare-step) failed. A reboot during
-an install ends the same way
-([gap-reboot-mid-install-ends-job](../reference/known-gaps.md#gap-reboot-mid-install-ends-job)).
+**Cause:** the worktree could not be created, the install line failed, or a gating [prepare
+step](../glossary.md#prepare-step) failed. A reboot during an install ends the same way.
 
 **Fix:** by what the file says. The first `setup-failed` incident on a ticket takes its default, `worktree-repair`, and
 the next attempt launches. The second parks it `parked:setup-failed`: repair, then `ticket unhold`.
@@ -282,8 +277,7 @@ the next attempt launches. The second parks it `parked:setup-failed`: repair, th
 ## A parked ticket
 
 A hold stops launches whatever its text says. Parking adds a decision, but answering that decision lifts nothing:
-`ticket unhold` does
-([gap-answering-parked-does-not-unhold](../reference/known-gaps.md#gap-answering-parked-does-not-unhold)).
+`ticket unhold` does.
 
 **You see:** a `held:` line in `ticket show`, usually with a `parked` decision.
 
@@ -299,8 +293,6 @@ A hold stops launches whatever its text says. Parking adds a decision, but answe
 | `stopped by User (J<n>)`, `wound down by User (J<n>)` | You asked | Decide whether you still want it. |
 | `awaiting answer (E<n>)` | Its job ended with a question open | Answer `E<n>`: that lifts the hold. |
 | Any other text | `ticket hold` | Yours to read. |
-
-The full list is in [State machines](../data-model/state-machines.md).
 
 **Fix:** remove the cause, then unhold.
 
@@ -334,8 +326,7 @@ Neither stops a running agent. A hold set while a job runs takes effect at the n
 ## Decisions
 
 Answer every open decision, but know which answers act. Three kinds act on your answer. Every other answer only closes
-the decision: that can lift a launch block the decision itself imposed, but the real work is the follow-up below. The
-full table is in [Decisions](../architecture/questions-and-incidents.md#decisions).
+the decision: that can lift a launch block the decision itself imposed, but the real work is the follow-up below.
 
 **You see:** a count in the `jobs` footer, or entries in `decisions`.
 
@@ -359,9 +350,9 @@ forge decisions
 | `parked` | Closes it | `ticket unhold`, as in [A parked ticket](#a-parked-ticket). |
 | `outage` | Closes it; closing is required but not enough | Follow [Outage](#outage). |
 | `checks-not-set` | Closes it | Set the pipeline first with `gate add`, `gate none` or an accepted proposal, then answer; answered with no pipeline, it opens again on the next Pass. |
-| `merge-refused` | Closes it | Read its context, fix the branch. With a review phase a review relaunches regardless ([gap-refused-merge-relaunches-review](../reference/known-gaps.md#gap-refused-merge-relaunches-review)); `ticket hold` first if you want it to wait. Without one, the ticket queues again once answered. |
+| `merge-refused` | Closes it | Read its context, fix the branch. With a review phase a review relaunches regardless; `ticket hold` first if you want it to wait. Without one, the ticket queues again once answered. |
 | `landing-refused` | Closes it | Fix `## Acceptance`, then `ticket unhold`. |
-| `waiver` | Closes it, lifting the launch block ([gap-waiver-answer-has-no-effect](../reference/known-gaps.md#gap-waiver-answer-has-no-effect)) | The review job stays `awaiting-answer` and keeps its launch slot. Run `forge job fresh J7` for another review. |
+| `waiver` | Closes it, lifting the launch block | The review job stays `awaiting-answer` and keeps its launch slot. Run `forge job fresh J7` for another review. |
 | `branch-touches-agent-config` | Closes it, lifting the launch block until another job on the ticket ends | Revert the `.claude/`, `.mcp.json` or hooks change on the ticket's branch first, or the next verification refuses it again. |
 | `quiet-job` | Closes it | Follow [An agent looks stuck](#an-agent-looks-stuck). |
 | `leftover-worktree` | Closes it | Inspect the folder its context names, remove it, then answer. A folder still there opens the decision again at the next Overseer start. |
@@ -369,9 +360,7 @@ forge decisions
 ## A merge is stuck
 
 The merge queue is one line per target, and one job at a time holds its Airlock. `merges`
-shows the holder and its phase, and the phase says who you wait for. The phase map in
-[Airlocks and groups](../architecture/airlocks-and-groups.md) shows which phases are detours and where each move
-applies.
+shows the holder and its phase, and the phase says who you wait for.
 
 ```bash
 forge merges
@@ -396,7 +385,7 @@ run `forge ticket park 003`; the Airlock aborts the merge on the next Pass.
 | A ticket requeues repeatedly, then `parked:target-moved` | The main line moved outside the Overseer (`target-moved`). It requeues silently until `TARGET_MOVED_MERGES_BEFORE_PARKING`. | Stop direct commits on the main line, then run `forge ticket unhold 003`. |
 | `merge-refused` decision | A merge agent gave up, a group refresh conflicted, or a release is behind its group. | See [Decisions](#decisions). |
 | `landing-refused:<reason>`, `landing-refused` decision | The Acceptance is unnumbered, unaccounted for, or waived only in review. | See [Decisions](#decisions). |
-| Everything looks frozen during `gating` | The merged-tree gate runs inside the Pass, so no Pass runs meanwhile ([gap-merge-gate-blocks-pass](../reference/known-gaps.md#gap-merge-gate-blocks-pass)). | Wait for the gate. Replies and answers follow it. |
+| Everything looks frozen during `gating` | The merged-tree gate runs inside the Pass, so no Pass runs meanwhile. | Wait for the gate. Replies and answers follow it. |
 | A pause and nothing merges | A paused board opens no Airlock; one already held finishes. | `forge oversee resume` |
 
 **Avoid:** working in the main checkout while tickets land. File a ticket instead, so the change lands through the
@@ -404,9 +393,7 @@ Overseer.
 
 ## Something died
 
-Nearly everything here recovers without you, because a Pass rereads files. The full matrix and its reasons are in
-[Failure and recovery](../architecture/failure-and-recovery.md). To see it happen, try the
-[Failure lab](../interactive/failure-lab.html#kill-the-overseer).
+Nearly everything here recovers without you, because a Pass rereads files.
 
 | What died | What happens by itself | What you do |
 | --- | --- | --- |
@@ -422,8 +409,7 @@ Nearly everything here recovers without you, because a Pass rereads files. The f
 The [Bridge](../glossary.md#bridge) comes back with the Overseer. `forge open` starts one when none runs, and opens
 the Bridge.
 
-A login item is optional and restarts nothing after a crash, only at login
-([gap-login-item-no-keepalive](../reference/known-gaps.md#gap-login-item-no-keepalive)). From the agent-progress
+A login item is optional and restarts nothing after a crash, only at login. From the agent-progress
 checkout, passing the tracked repository:
 
 ```bash
@@ -439,7 +425,7 @@ checkout, passing the tracked repository:
 | `overseer-port-in-use` | The derived range or your `--port` is taken. | `forge oversee --detach --port 0` |
 | `overseer-did-not-start` | The detached process exited. | Run `forge oversee` in the foreground to see why; read `overseer.log`. |
 | `overseer-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
-| `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the agent-progress checkout, run `bun install`. |
+| `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the forge checkout, run `bun install`. |
 | `baton-taken` | A newer Overseer took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |
 
@@ -451,7 +437,7 @@ checkout, passing the tracked repository:
 | Refusal | Cause | Fix |
 | --- | --- | --- |
 | `tracker-lock-held` | Another command held `<data>/.lock` past every retry. | Run the command again. If nothing else is running and it repeats, remove the path the message names. |
-| `lock-taken-over` | This command held the lock past `LOCK_STALE_MILLISECONDS` and another took it over. | Run it again; the next holder finishes what was committed ([gap-hold-past-stale-window](../reference/known-gaps.md#gap-hold-past-stale-window)). |
+| `lock-taken-over` | This command held the lock past `LOCK_STALE_MILLISECONDS` and another took it over. | Run it again; the next holder finishes what was committed. |
 | `malformed-hold-journal` | `<data>/hold-journal.json` cannot be read. | See [Stored file damage](#stored-file-damage). |
 | `hold-journal-unremovable` | The write finished, but `<data>/hold-journal.json` could not be removed. | Close what holds it and run a command; that command finishes it. |
 
@@ -491,8 +477,7 @@ limit holds them all, and open incidents default because no Assistant can come u
 
 **Fix:** wait. A timer wakes a Pass at the reset and sessions resume by id. The limit counts toward no bound.
 
-> **As built.** The marker stays after its reset and stops delivery to a running Assistant:
-> [gap-stale-usage-marker-stops-delivery](../reference/known-gaps.md#gap-stale-usage-marker-stops-delivery).
+> **As built.** The marker stays after its reset and stops delivery to a running Assistant.
 
 ### Outage
 
@@ -522,13 +507,11 @@ newest Assistant job and its newest Watcher log with the `job-launched` and `ls 
 [Logs worth a line](#logs-worth-a-line).
 
 **Fix:** fix the boot failure, usually the vendor CLI or its login. The Overseer retries the boot by itself. Until then
-make the moves yourself: `incidents` lists what each kind allows. See
-[Assistant and intake](../architecture/assistant-and-intake.md).
+make the moves yourself: `incidents` lists what each kind allows.
 
 ## Stored file damage
 
-Damage is rare, because every store write is an atomic rename. What each broken file stops is in
-[How a write commits](../data-model/storage.md). There are no backups; these are the repairs.
+Damage is rare, because every store write is an atomic rename. There are no backups; these are the repairs.
 
 **Stop first:** run `forge oversee stop` so no Pass reads a half-repaired file. A broken `progress.json`,
 `log.jsonl` or `hold-journal.json` stops a Pass at its first read. A broken pipeline, ticket or
@@ -551,8 +534,7 @@ That line finds broken JSON only. A valid line of an unknown kind is refused too
 
 ## Updating
 
-Update when `oversee status` says so, not on a schedule. Agents do not notice a successful update. How the two versions
-work is in [CLI and install](../architecture/cli-and-install.md); the hand-over is in [Baton](../architecture/baton.md).
+Update when `oversee status` says so, not on a schedule. Agents do not notice a successful update.
 
 | You see | Meaning | Urgency |
 | --- | --- | --- |
@@ -573,12 +555,9 @@ stays and no Watcher is touched. Reload the Bridge. With no live Overseer the st
 `update` reports it removed the managed block, commit
 `CLAUDE.md`: launches onto that target wait for it. A `.gitignore` change from `update` needs a commit too.
 
-> **As built.** If the Bridge fails to load after that reload, the board still runs: keep working from commands
-> ([gap-baton-pass-builds-no-bridge](../reference/known-gaps.md#gap-baton-pass-builds-no-bridge)).
-> A stop in the Bridge is refused while held: run `update`, then `job stop`
-> ([gap-job-stop-while-install-held](../reference/known-gaps.md#gap-job-stop-while-install-held)).
-> A stop sent during a [Baton pass](../glossary.md#baton-pass) is dropped
-> ([gap-stop-dropped-during-baton-pass](../reference/known-gaps.md#gap-stop-dropped-during-baton-pass)).
+> **As built.** If the Bridge fails to load after that reload, the board still runs: keep working from commands.
+> A stop in the Bridge is refused while held: run `update`, then `job stop`.
+> A stop sent during a [Baton pass](../glossary.md#baton-pass) is dropped.
 
 **A failed Baton pass:** `update` or `oversee restart` exits 1 with `baton-pass-failed`.
 What `update` installed stands, and the old Overseer keeps driving with a `warning:` line in `oversee status`. Read the
@@ -594,16 +573,13 @@ forge oversee --detach
 ```
 
 **`update` is refused `install-version-mismatch`, `from a newer forge`:** the board's installed files are
-newer than the program. Update the program in the agent-progress checkout with `git pull` and `bun install`, then run
+newer than the program. Update the program in the forge checkout with `git pull` and `bun install`, then run
 `forge update` again in the tracked repository.
 
 ## Cleaning up by hand
 
 The Overseer removes coordination files and never removes records of work: job folders, worktrees, branches and logs
-grow until you delete them. The list is under
-[Housekeeping](../data-model/on-disk-atlas.md#housekeeping-what-goes-away) in the atlas, with
-[what deleting a job folder costs](../data-model/on-disk-atlas.md#deleting-a-job-folder)
-([gap-nothing-is-ever-removed](../reference/known-gaps.md#gap-nothing-is-ever-removed)).
+grow until you delete them.
 
 **Do it with no build or review job live.** Customs compares every ref against its launch
 snapshot, so a branch you delete while a job runs can fail that job with `foreign-ref-moved`. Landed branches are
@@ -616,8 +592,7 @@ forge jobs
 
 Wait until `jobs` lists no build or review job.
 
-A landed ticket keeps its worktree and branch
-([gap-landed-worktrees-stay](../reference/known-gaps.md#gap-landed-worktrees-stay)). Remove them only once it is
+A landed ticket keeps its worktree and branch. Remove them only once it is
 `delivered`:
 
 ```bash
@@ -678,7 +653,7 @@ keep running; [Changing the code](../development/contributing.md) has the full t
 | Kill a Watcher or its agent | A lost Watcher counts as a crash toward the bounds. | `forge job stop J7` or `forge job fresh J7` |
 | Delete a live job's folder | The Overseer reads the job through it, and it alone holds the launch file. | Wait until the job has left `jobs`. |
 | Delete a Baton or Baton pass file of a live Overseer | The Baton is how everything finds the Overseer and proves there is one. | `forge oversee stop` |
-| Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart ([gap-clear-all-reuses-ticket-ids](../reference/known-gaps.md#gap-clear-all-reuses-ticket-ids)). It does not check for a live Overseer. | `forge ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
+| Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart. It does not check for a live Overseer. | `forge ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
 | Run `ticket deliver --by-hand` to force a landing | It marks the ticket delivered and logs it, but merges and lands nothing, and it is refused while an Overseer is live. | Fix the merge. It is for work landed outside the Overseer. |
 | Commit directly to the main line while tickets land | Each landing is a compare-and-swap, and a moved target requeues, then parks. | File a ticket. |
 

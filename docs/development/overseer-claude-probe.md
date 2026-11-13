@@ -2,10 +2,7 @@
 
 > **Question:** What does this system depend on from Claude Code, and what was observed to justify each choice?
 > **Time:** 10 minutes for the contract, 30 with the probe record.
-> **Read first:** [Roles and launching an agent](../architecture/roles-and-launch.md),
-> [Watchers](../architecture/watchers.md).
-> **Next:** [Confinement and trust](../architecture/confinement.md), [Porting to the new product](porting.md), [Why it
-> is built this way](decisions.md).
+> **Next:** [Guards and testing](guards-and-testing.md), [Platform status](platform-status.md).
 
 ## In one screen
 
@@ -33,9 +30,7 @@ those lines, so code above the `AgentAdapter` port reads events and never the ve
 
 ## The contract in one page
 
-This section is the home of the vendor contract. Which [role](../glossary.md#role) gets which flag value is in [Roles
-and launching an agent](../architecture/roles-and-launch.md), and what the settings confine is in
-[Confinement and trust](../architecture/confinement.md).
+This section is the home of the vendor contract.
 
 ### Version
 
@@ -64,14 +59,14 @@ records that use or discuss the flag; "none" means no probe names it.
 | `--json-schema` | The schema as inline text, only for a [job kind](../glossary.md#job-kind) with a [report](../glossary.md#report) schema | Forces a `structured_output` on `result` | P1, P6 |
 | `--permission-mode` | `auto` | Questions still arrive under it | P1 |
 | `--permission-prompt-tool` | `stdio` | Permission requests arrive on stdout | P1 |
-| `--disable-slash-commands` | Unless the role's worker profile ([`WorkerProfile`](../architecture/confinement.md)) has `skills` | Removes skills, keeps subagents | P3, P11 |
+| `--disable-slash-commands` | Unless the role's worker profile (`WorkerProfile`) has `skills` | Removes skills, keeps subagents | P3, P11 |
 | `--disallowedTools` | `WebSearch`, `WebFetch`, `AskUserQuestion` as the profile says | Removes a tool outright | none |
 
 All files sit in the job's folder. `CLAUDE_JOB_FILE_NAMES` names them: `settings.json`, `agents.json`, `mcp.json`,
 `role.md` and, only for a job kind with a report schema, `report.schema.json`.
 
 > **As built.** `report.schema.json` is written and never read, since the flag carries the schema inline. See
-> [gap-dead-code-and-unused-states](../reference/known-gaps.md#gap-dead-code-and-unused-states).
+> gap-dead-code-and-unused-states.
 
 ### Settings keys
 
@@ -100,7 +95,7 @@ one `/` at the file's own folder, so `rootAnchored` prefixes every absolute path
 The guard is `forge hook bash-domains --allow <domains>`. It reads `tool_name`, `tool_input.allowed_domains`
 and `tool_input.url` from stdin. It denies by printing a `hookSpecificOutput` document with `permissionDecision` `deny`,
 and prints nothing to let a call go on (`cli/hooks/BashDomainsHook.ts`). The install adds one more hook, `SessionStart`,
-to the tracked repository's Claude settings; [The CLI and install](../architecture/cli-and-install.md) has it.
+to the tracked repository's Claude settings.
 
 ### Lines on stdin
 
@@ -127,8 +122,8 @@ is data in the launch plan that `planOf` returns.
 - Only the [Assistant](../glossary.md#assistant) session writes the interrupt, in
   `src/services/overseer/AssistantSession.ts`, when the open turn reaches `ASSISTANT_TURN_CALL_BUDGET` top-level API
   calls (`callsSinceLastResult`). No probe or fixture records one.
-- Closing stdin ends a session once its turn ends, with exit 0 (P7). A [`close-input`
-  frame](../architecture/watchers.md) does this.
+- Closing stdin ends a session once its turn ends, with exit 0 (P7). A `close-input`
+  frame does this.
 
 ### Lines on stdout
 
@@ -148,14 +143,13 @@ every line regardless, so a line the mapper ignores stays in the event log.
 | `result`: `modelUsage` | `result.usageTotals` | Per model, subagents included |
 | `result`: `usage.iterations[-1]` | `result.contextTokens` | Input plus both cache figures of the last call |
 
-What each event does to a job is in [Build and review](../architecture/build-and-review.md); the code is
-`applyWatcherEvents` in `src/services/overseer/DrivePass.ts`.
+What each event does to a job is `applyWatcherEvents` in `src/services/overseer/DrivePass.ts`.
 
 > **As built.** Nothing reads `result.isError`, `result.usageTotals`, `started.vendorVersion` or `started.tools`. See
-> [gap-dead-code-and-unused-states](../reference/known-gaps.md#gap-dead-code-and-unused-states).
+> gap-dead-code-and-unused-states.
 
 > **As built.** The mapper never reads `api_error_status`, so a `result` that is an error moves a running job like a
-> clean one. See [gap-429-result-not-read](../reference/known-gaps.md#gap-429-result-not-read).
+> clean one. See gap-429-result-not-read.
 
 ### Permission requests
 
@@ -168,8 +162,7 @@ without the [Overseer](../glossary.md#overseer), so no session waits on a Watche
 *Notice the Watcher's fork is a backstop: a call Claude Code settles never reaches it.*
 
 The Watcher parses a line only to match the rule data the launch plan hands it, so the vendor knowledge stays in the
-adapter. The layers around these rules are in [Confinement and trust](../architecture/confinement.md). Routing and
-delivery of an answer are in [Questions and incidents](../architecture/questions-and-incidents.md).
+adapter.
 
 ### Session id and resume
 
@@ -178,8 +171,8 @@ digits of `sha256(scope + "\n" + jobId)` and sets the version digit to `8` and t
 
 The session owner is the job itself, or, for a build job sent back by its review in the same
 [attempt](../glossary.md#attempt), the builder it carries on. `sessionOwnerJobIdOf` in
-`src/services/overseer/JobResumption.ts` finds it from the board's log, and [Build and
-review](../architecture/build-and-review.md) has the flow. Such a job's first instance launches with `--resume`.
+`src/services/overseer/JobResumption.ts` finds it from the board's log, and Build and
+review has the flow. Such a job's first instance launches with `--resume`.
 
 P6 resumed a fixed version 4 id in the original working directory, with the settings file re-rendered at another path.
 No probe tried a version 8 id: the only evidence Claude Code accepts one is live sessions running with it.
@@ -200,7 +193,7 @@ working until its turn ends, then exits 0 on the closed stdin (P7).
 > `src/lib/process-identity/ProcessSupervision.ts`: `treeMembersOf` lists the groups of the leader's descendants through
 > their parent ids, and `stopTree` signals each of them with the recorded group. The walk needs a live parent, so a
 > tree whose leader died with its Watcher is not reached, and its Bash command outlives the kill. See
-> [gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill).
+> gap-bash-group-survives-kill.
 
 ### Rate limit events
 
@@ -220,8 +213,7 @@ A `rate_limit_event` carries `rate_limit_info`, and the mapper reads:
 | `utilization` | `utilization` | Falls back to `unifiedWindows.<window>.utilization`, then 0 |
 
 Overage is paid use past the plan's limit. A rejected turn's `result` has `is_error: true` and `api_error_status` 429,
-yet `subtype` `success`. The events come only with a subscription login (P10). What the Overseer does with a refusal is
-in [Failure and recovery](../architecture/failure-and-recovery.md).
+yet `subtype` `success`. The events come only with a subscription login (P10).
 
 ### Transcript layout
 
@@ -257,22 +249,20 @@ The transcript root is `$CLAUDE_CONFIG_DIR/projects/`, else `~/.claude/projects/
 - A transcript's last line may be half-written and is skipped. A missing folder reads as empty.
 
 > **As built.** The `usage` command builds the slug from the repository root, and a job session lives under its
-> worktree's slug. See [gap-usage-misses-job-sessions](../reference/known-gaps.md#gap-usage-misses-job-sessions).
+> worktree's slug. See gap-usage-misses-job-sessions.
 
 > **As built.** `cli/overseer/routes/BoardStateReader.ts` derives the session id from `job.id`, so a carried-on build
 > job's transcript fallback reads an absent folder. See
-> [gap-board-state-session-id](../reference/known-gaps.md#gap-board-state-session-id).
+> gap-board-state-session-id.
 
 > **As built.** `agentDescriptionBeside` and `workflowRunIdentifierOf` in `src/lib/claude-code/ClaudeTranscripts.ts`
 > have no production caller. See
-> [gap-dead-code-and-unused-states](../reference/known-gaps.md#gap-dead-code-and-unused-states).
+> gap-dead-code-and-unused-states.
 
 ## What a second vendor must supply
 
 **A name and six operations on `AgentAdapter`, and behaviour the callers assume.**
-`src/lib/agent-launch/AgentAdapter.ts` is the port; [Roles and launching an
-agent](../architecture/roles-and-launch.md) shows where it sits, and [Porting to the new product](porting.md) lists the
-seams outside it.
+`src/lib/agent-launch/AgentAdapter.ts` is the port.
 
 | Member | Must supply | Claude Code's answer |
 | --- | --- | --- |
@@ -320,15 +310,15 @@ as behaviour.
 | P2 | `claudeMdExcludes` per ancestor file | `instructionFileExclusionsOf` | Yes |
 | P3 | `--disable-slash-commands` | `argvOf`, unless `profile.skills` | Yes |
 | P4 | Hook and `strictAllowlist` | `preToolUseHooksOf`; the guard exists for a builder or reviewer with domains | Yes |
-| P5 | One deny rule per path | `fileRulesOf`, `denyRulesOf` | Yes, see [gap-launch-file-deny-one-level](../reference/known-gaps.md#gap-launch-file-deny-one-level) |
+| P5 | One deny rule per path | `fileRulesOf`, `denyRulesOf` | Yes, see gap-launch-file-deny-one-level |
 | P6 | The resume argv | `argvOf` | Yes |
-| P7 | Kill every group among the descendants | `treeMembersOf` lists the descendants' groups and `stopTree` signals each; a tree whose leader died with its Watcher is not reached ([gap-bash-group-survives-kill](../reference/known-gaps.md#gap-bash-group-survives-kill)) | Partly |
+| P7 | Kill every group among the descendants | `treeMembersOf` lists the descendants' groups and `stopTree` signals each; a tree whose leader died with its Watcher is not reached (gap-bash-group-survives-kill) | Partly |
 | P8 | Never expect one `result` per line | `DrivePass` keys on the `result`, not on lines; the Assistant counts one `result` per chat and keeps that true by writing a chat only when idle | Yes |
 | P9 | Memory off | `autoMemoryEnabled: false` | Yes |
-| P9 | Definitions name models; `role.md` forbids the `model` parameter | `agentsOf` names them, every profile's `subagents` is empty ([gap-subagents-always-empty](../reference/known-gaps.md#gap-subagents-always-empty)), and no text under `resources/` says it | **No** |
+| P9 | Definitions name models; `role.md` forbids the `model` parameter | `agentsOf` names them, every profile's `subagents` is empty (gap-subagents-always-empty), and no text under `resources/` says it | **No** |
 | P9 | `modelUsage` as a session total | `usageTotals` has no reader; tokens come from `assistant-turn` events | Dropped |
 | P10 | `status === 'rejected'` interrupts | `usageWindowEventsOf`, `UsageLimits.refusalOf` in `src/services/overseer/UsageLimits.ts` | Yes |
-| P10 | A 429 `result` also counts as the limit | The mapper does not read `api_error_status` ([gap-429-result-not-read](../reference/known-gaps.md#gap-429-result-not-read)) | **No** |
+| P10 | A 429 `result` also counts as the limit | The mapper does not read `api_error_status` (gap-429-result-not-read) | **No** |
 | P11 | Hatch denies per other job, `allowWrite` for its own | No [`<worktrees>`](../glossary.md#reading-names)`/hatch/**` deny and `allowWrite` hold; `deniedWritableRootsOf` names no other job's Hatch | Partly |
 | P13 | `settings.local.json` usable with `local` | Every session runs `project` alone | Not used |
 | P14 | Agent socket plus keyboxd socket | `commitSigningOf` allows the agent socket and the keyboxd socket that `gpgconf --list-dirs` names (`src/services/overseer/GpgDirectories.ts`) | Yes |
@@ -346,8 +336,7 @@ as behaviour.
 5. A job's session id is a pure function of the tracker id and the session owner's job id.
 6. `usage-window.requestsRefused` is true only for a top-level `rejected`.
 7. Every session runs under `--setting-sources project` with `--strict-mcp-config`.
-8. A launched session's environment never holds a parent Claude Code session's variables (`CLAUDE_NESTING_VARIABLES`,
-   see [Roles and launching an agent](../architecture/roles-and-launch.md)).
+8. A launched session's environment never holds a parent Claude Code session's variables (`CLAUDE_NESTING_VARIABLES`).
 9. A fixture that stops showing what it was recorded to show fails
    `src/lib/claude-code/ClaudeStreamFixtures.spec.ts`.
 
@@ -379,10 +368,9 @@ as behaviour.
 
 A "Selects" line records the intent at the time; [the ledger](#what-was-selected-against-what-runs) says what runs.
 
-Ids in those lines are planning references: `T` a ticket of the design's plan, `Q` an owner answer and `V` a [Customs
-check](../architecture/customs-and-gates.md). `T` and `Q` ids cannot be looked up individually; [Why it is built this
-way](decisions.md) gives their forms. Source comments write probe Pn as `T1-Pn`. Selection notes may also name fallbacks
-from the design file, which holds rationale only (see the same section).
+Ids in those lines are planning references: `T` a ticket of the design's plan, `Q` an owner answer and `V` a Customs
+check. `T` and `Q` ids cannot be looked up individually. Source comments write probe Pn as `T1-Pn`. Selection notes
+may also name fallbacks from the design file, which holds rationale only.
 
 **The evidence is not portable.** Logs, drivers and settings are in `.claude/.evidence/runner-claude-probe/` in the
 owner's main checkout, which git ignores. Paths below are relative to that folder. The folder also holds `drive.py`,

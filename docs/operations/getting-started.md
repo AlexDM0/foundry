@@ -17,8 +17,8 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 *Notice the heavy box: a new board is paused (`DEFAULT_OVERSEER_STATE`), builds nothing and does not ask you to resume.*
 
 ```sh
-git clone git@github.com:AlexDM0/agent-progress.git && cd agent-progress
-git switch group-code-lifecycle && ./setup.sh           # once per machine; setup.ps1 on Windows
+git clone git@github.com:AlexDM0/forge.git && cd forge
+./setup.sh                                  # once per machine; setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 forge open                                  # starts the Overseer when none runs
@@ -49,14 +49,13 @@ and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md
 
 ## Install the program
 
-The setup makes `forge` a command on this machine. This build runs beside the released `agent-progress`
-under its own names ([Reading names](../glossary.md#reading-names)), and it lives on the branch `group-code-lifecycle`.
-Switch to that branch before you run the setup. The `&&` keeps a failed switch from running it on another branch.
+The setup makes `forge` a command on this machine. forge runs beside the released `agent-progress` under its own
+names ([Reading names](../glossary.md#reading-names)).
 
 ```sh
-git clone git@github.com:AlexDM0/agent-progress.git
-cd agent-progress
-git switch group-code-lifecycle && ./setup.sh
+git clone git@github.com:AlexDM0/forge.git
+cd forge
+./setup.sh
 ```
 
 The setup is `setup.ts`, with its steps in `cli/setup/`. Two bootstraps start it: `setup.sh` on macOS and Linux, and
@@ -67,8 +66,8 @@ directly.
 | Step | What it does | Touches |
 | --- | --- | --- |
 | 1/4 Bun | Checks Bun against `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
-| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your agent-progress clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
-| 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your agent-progress clone | `~/.claude/skills/` |
+| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
+| 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your forge clone | `~/.claude/skills/` |
 | 4/4 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
 
 `./setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your repositories:
@@ -86,13 +85,10 @@ when they start, so it must be on your `PATH`.
 
 | You see | Cause | Do |
 | --- | --- | --- |
-| Empty `command -v`, and `git branch --show-current` in your agent-progress clone names another branch | On any other branch the setup links the released program | `git switch group-code-lifecycle && ./setup.sh` |
-| `invalid reference` from `git switch` | Your clone lacks the branch | `git fetch origin group-code-lifecycle:group-code-lifecycle`, then switch |
-| Empty `command -v` on the right branch | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
+| Empty `command -v` | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
-After a `git pull`, run `./setup.sh` in your agent-progress clone, then `forge update` in each tracked
-repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there. See
-[CLI and install](../architecture/cli-and-install.md).
+After a `git pull`, run `./setup.sh` in your forge clone, then `forge update` in each tracked
+repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there.
 
 ## Adopt a repository
 
@@ -124,8 +120,6 @@ holds the block, and the header shows a notice saying so.
 `init` is refused in a repository the released program tracks. If `.agent-progress/` exists at the root, it exits 1 and
 says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
 cannot adopt that repository: run `forge` in one without that folder.
-
-Every path above and its lifetime is in the [on-disk atlas](../data-model/on-disk-atlas.md).
 
 ## Start the Overseer
 
@@ -179,8 +173,7 @@ The [Next line](../glossary.md#next-line) under `status` says so too: it ends `O
 
 A board builds nothing until it has a pipeline, which names the commands that judge a commit. Any stored pipeline, even
 an empty one, lets work start. The Overseer flags the gap with `checks-not-set` in the Questions tab, a generic line
-with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands. What
-a gate means is in [Customs and gates](../architecture/customs-and-gates.md).
+with an empty text box. Typing there stores no gates; gates come from a `pipeline-proposal` or the `gate` commands.
 
 ![The checks-not-set decision is open, and three routes store a pipeline: accept the onboarder's proposal, gate add with gate prepare, or gate none. All reach one state, and the decision stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass reopen it, and a fresh onboarder follows unless the board is paused or held.](../figures/getting-started/settling-gates.png)
 
@@ -203,7 +196,7 @@ next Pass reopens the decision.
 
 **Set them yourself.** A gate is any shell line: its exit code is the verdict, so the program needs no knowledge of your
 stack. A gate runs confined: no network unless `--network` names a domain, and writes only to its worktree, its git
-admin folder and temp, plus `--writes` folders. See [Confinement](../architecture/confinement.md). A prepare step sets a
+admin folder and temp, plus `--writes` folders. A prepare step sets a
 fresh worktree up before the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run
 before fixing by hand; the Overseer never runs it. For Example Storefront, with its own scripts:
 
@@ -231,8 +224,7 @@ counts that as set.
 
 > **Careful.** No route sets a [reviewer](../glossary.md#reviewer): tickets go from gates straight to the merge. No
 > `gate` verb writes the pipeline's `review` key and accepting a proposal does not either. To add review, write the
-> `review` key into `<data>/pipeline.json`; its format is in the [CLI reference](../cli.md) and its effect in
-> [Customs and gates](../architecture/customs-and-gates.md).
+> `review` key into `<data>/pipeline.json`; its format is in the [CLI reference](../cli.md).
 
 ## File the first work
 
@@ -282,8 +274,7 @@ forge ticket ready <id>
 ```
 
 Expect `Ticket #<id> ready to build`, then a `Next` line naming it as ready. With no `--body-file`, the default ticket
-body lacks `## Brief`, so `ticket ready` refuses it `brief-missing`. See
-[gap-ticket-body-template](../reference/known-gaps.md#gap-ticket-body-template). The body format is in the
+body lacks `## Brief`, so `ticket ready` refuses it `brief-missing`. The body format is in the
 [CLI reference](../cli.md).
 
 ## Watch it run
@@ -323,7 +314,7 @@ overwritten, landings wait and the header shows the `dirty-main-checkout` [notic
 The Overseer does not come back after a reboot on its own. On macOS, an optional login item starts it at login:
 
 ```sh
-cd <your agent-progress clone>
+cd <your forge clone>
 ./setup.sh --login-overseer ~/code/example-storefront
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.overseer.plist
 ```
@@ -337,8 +328,7 @@ out and back in.
 A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores
 your clone's path and your current `PATH`, so write it again if either changes.
 
-The item starts the Overseer once. It does not restart one that dies. See
-[gap-login-item-no-keepalive](../reference/known-gaps.md#gap-login-item-no-keepalive).
+The item starts the Overseer once. It does not restart one that dies.
 
 ## Did it work?
 
