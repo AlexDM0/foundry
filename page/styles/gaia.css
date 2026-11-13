@@ -769,6 +769,107 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   outline-offset: calc(-1 * var(--focus-ring-width));
 }
 
+/* ── Forges (A4, B2) ────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+
+.gaia-forges {
+  display: flex;
+  gap: var(--sp-6);
+  box-sizing: border-box;
+  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+}
+.gaia-forges-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.gaia-forges-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--forges-aside-width); }
+.gaia-forges-empty { margin: 0; color: var(--ink-muted); }
+
+/* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */
+.gaia-forges-forge,
+.gaia-forges-condition { display: flex; flex-direction: column; min-width: 0; }
+.gaia-forges-forge-name-line { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.gaia-forges-forge-name { min-width: 0; font-weight: var(--weight-strong); overflow-wrap: anywhere; }
+.gaia-forges-condition-detail { font-family: var(--font-mono); font-size: var(--fs-micro); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-forges-forge-root,
+.gaia-forges-entry-detail {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gaia-forges-condition-word { font-weight: var(--weight-strong); }
+.gaia-forges-condition-word[data-tone="warn"] { color: var(--warn-ink); }
+.gaia-forges-condition-word[data-tone="muted"] { color: var(--ink-muted); }
+.gaia-forges-agents,
+.gaia-forges-waiting,
+.gaia-forges-code { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-forges-waiting { color: var(--attn-ink); }
+.gaia-forges-code { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* A held forge's banner, and the refusal of its Update forge under it */
+.gaia-forges-held-group,
+.gaia-forges-entry-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.gaia-forges-held {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--warn-edge);
+  border-radius: var(--r-3);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+}
+.gaia-forges-held-text { flex: 1; min-width: 0; margin: 0; }
+.gaia-forges-held-project { font-weight: var(--weight-strong); }
+
+/* The forges outside the table: their repository is gone, or User hid them in Gaia */
+.gaia-forges-group { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-forges-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+}
+.gaia-forges-entry[data-place="not-found"] { border-style: dashed; border-color: var(--line-strong); }
+.gaia-forges-entry[data-in-view] { background: var(--surface-selected); }
+.gaia-forges-entry-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gaia-forges-hidden { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-forges-hidden-summary {
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--micro-caps-tracking);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+/* This machine: its agent limit, at most the CPU count, and the warn tone once the limit is reached */
+.gaia-forges-machine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-forges-machine[data-at-the-limit] { border-color: var(--warn-edge); }
+.gaia-forges-machine-limit { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-forges-machine-limit-label { flex: 1; font-weight: var(--weight-strong); }
+.gaia-forges-machine-sentence { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-forges-machine-at-the-limit { margin: 0; color: var(--warn-ink); }
+
+/* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
+.gaia-forges-hidden-summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--link);
+  outline-offset: var(--focus-ring-width);
+}
+
 /* ── Attention ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 .gaia-attention { display: flex; flex-direction: column; min-height: 100%; }

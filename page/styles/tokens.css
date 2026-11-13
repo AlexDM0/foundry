@@ -57,6 +57,9 @@
   --agents-table-columns: 160px 44px 72px minmax(0, 1fr) 196px 72px 132px 76px 208px;
   --agents-calls-meter-width: 64px;
   --agents-panel-facts-width: 320px;
+  /* The artboard's 148 116 64 96 284 px tracks leave its Forge column no room at 1440 px; these keep the controls whole and give it the rest. */
+  --forges-table-columns: minmax(0, 1fr) 120px 100px 52px 56px 244px;
+  --forges-aside-width:   336px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 

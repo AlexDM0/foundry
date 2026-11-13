@@ -1,0 +1,259 @@
+/**
+ * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows; Stop opens its dialog under the row, and the
+ * dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button that sends
+ * `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's
+ * plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count
+ * shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge. The command states come
+ * from the real sender over Gaia's server stood in for by authored answers.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import type {
+  CommandAnswerDocument,
+  CommandBody,
+  ForgeCommandBody,
+  ForgeStopAgents
+} from '../../@types/CommandDocument.ts';
+import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
+import { answerResponse, senderOver }                                               from '../../testing/CommandServer.ts';
+import { type HostElement, ReactElementTree, type RenderedNode }                    from '../../testing/ReactElementTree.ts';
+import { FLEET_AT_LIMIT }                                                           from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
+import { ForgesLayout, forgeAnchorIdOf }                                            from './ForgesLayout.tsx';
+import { ForgesModel, type ForgesSurroundings }                                     from './ForgesModel.ts';
+
+const tree = ReactElementTree;
+
+const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
+
+const IDLE_STATES: CommandStates = senderOver([]).states();
+
+const STOP_REFUSED: CommandAnswerDocument = {
+  answerVersion: 1,
+  outcome:       'refused',
+  refusal:       'overseer-still-live',
+  text:          'The Overseer did not stop within its tries.',
+};
+
+const ABOVE_THE_CPUS: CommandAnswerDocument = {
+  answerVersion: 1,
+  outcome:       'refused',
+  refusal:       'machine-agent-limit-above-cpus',
+  text:          'The machine limit is at most the 12 CPUs of this machine.',
+};
+
+interface Handled {
+  readonly commands:       CommandBody[];
+  readonly stopsOpened:    string[];
+  readonly stopChoices:    ForgeStopAgents[];
+  readonly stopsCancelled: number[];
+  readonly stopsConfirmed: ForgeCommandBody[];
+  readonly dismissed:      CommandSubject[];
+}
+
+function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurroundings> = {}) {
+  const handled: Handled = {
+    commands: [], stopsOpened: [], stopChoices: [], stopsCancelled: [], stopsConfirmed: [], dismissed: []
+  };
+  const commandStates = surroundings.commandStates ?? IDLE_STATES;
+  const content = ForgesModel.forgesContentOf(fleetDocument, {
+    clock:       { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
+    commandStates,
+    stopDialog:  null,
+    forgeInView: null,
+    lastSent:    new Map(),
+    ...surroundings,
+  });
+  const unfolded = tree.unfolded(
+    <ForgesLayout
+      content={content}
+      commandStates={commandStates}
+      handlers={{
+        onCommand:        (command) => handled.commands.push(command),
+        onOpenStopDialog: (trackerId) => handled.stopsOpened.push(trackerId),
+        onStopChoice:     (agents) => handled.stopChoices.push(agents),
+        onCancelStop:     () => handled.stopsCancelled.push(1),
+        onConfirmStop:    (command) => handled.stopsConfirmed.push(command),
+        onDismissFailure: (subject) => handled.dismissed.push(subject),
+      }}
+    />,
+  );
+  return { unfolded, handled };
+}
+
+function rowsIn(nodes: readonly RenderedNode[]): HostElement[] {
+  return tree.hostElementsIn(nodes, (element) => element.props['role'] === 'row' && element.props['data-head'] === undefined);
+}
+
+function rowOf(nodes: readonly RenderedNode[], trackerId: string): HostElement {
+  const rows = rowsIn(nodes).filter((row) => tree.hostElementsIn([row], (element) => element.props['id'] === forgeAnchorIdOf(trackerId)).length === 1);
+  const [only] = rows;
+  if (rows.length !== 1 || only === undefined) throw new Error(`Expected one row for ${trackerId}, found ${rows.length}.`);
+  return only;
+}
+
+function controlNamed(nodes: readonly RenderedNode[], name: string): HostElement {
+  return tree.onlyHostElementIn(nodes, (element) => (element.tag === 'button' || element.tag === 'a')
+    && (element.props['aria-label'] === name || (element.props['aria-label'] === undefined && tree.textOf([element]) === name)));
+}
+
+describe('the table (A4)', () => {
+  test('heads its columns and holds one row per forge whose repository is there, each with its name and root', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    const head = tree.onlyHostElementIn(unfolded, (element) => element.props['data-head'] === '');
+    expect(tree.hostElementsIn([head], (element) => element.props['role'] === 'columnheader').map((cell) => tree.textOf([cell]))).toEqual([
+      'Forge', 'Overseer', 'Agents', 'Waiting', 'Code', 'Controls',
+    ]);
+    expect(rowsIn(unfolded).map((row) => tree.textOf([tree.onlyWithClass([row], 'gaia-forges-forge')]))).toEqual([
+      'Example Storefront~/development/example-storefront',
+      'Invoice Service~/development/invoice-service',
+      'Research Wiki~/development/research-wiki',
+      'Example Mobile App~/development/example-mobile-app',
+      'Design System~/development/design-system',
+    ]);
+  });
+
+  test('the row the route names is the selected one', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES, { forgeInView: TRACKER_IDS.researchWiki });
+    expect(rowOf(unfolded, TRACKER_IDS.researchWiki).props['aria-current']).toBe('true');
+    expect(rowOf(unfolded, TRACKER_IDS.invoiceService).props['aria-current']).toBeUndefined();
+  });
+});
+
+describe('a row\'s controls', () => {
+  test('Stop opens the dialog under its row', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
+    tree.dispatch(controlNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Stop'), 'onClick');
+    expect(handled.stopsOpened).toEqual([TRACKER_IDS.invoiceService]);
+  });
+
+  test('"Open in new tab" is a button, not a link, that sends forge-open-in-browser and nothing else', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
+    const openInNewTab = controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open Example Storefront in a new tab');
+    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['data-icon-only']]).toEqual(['button', undefined, '']);
+    tree.dispatch(openInNewTab, 'onClick');
+    expect(handled).toEqual({
+      commands:       [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
+      stopsOpened:    [],
+      stopChoices:    [],
+      stopsCancelled: [],
+      stopsConfirmed: [],
+      dismissed:      [],
+    });
+  });
+
+  test('Open is a link to the forge in place', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    expect(controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open').props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}`);
+  });
+
+  test('the stepper sends the forge\'s limit one step down or up', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
+    const row = rowOf(unfolded, TRACKER_IDS.invoiceService);
+    tree.dispatch(controlNamed([row], 'Lower Invoice Service\'s agent limit'), 'onClick');
+    tree.dispatch(controlNamed([row], 'Raise Invoice Service\'s agent limit'), 'onClick');
+    expect(handled.commands).toEqual([
+      { kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.invoiceService, limit: 4 },
+      { kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.invoiceService, limit: 6 },
+    ]);
+  });
+
+  test('a start on its way leaves one disabled "Starting" button on its row', () => {
+    const sender = senderOver([() => new Promise<Response>(() => undefined)]);
+    void sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
+    const row = rowOf(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, TRACKER_IDS.designSystem);
+    const buttons = tree.hostElementsIn([row], tree.withClass('gaia-button'));
+    expect(buttons.map((button) => [tree.textOf([button]), button.props['disabled']])).toEqual([['Starting', true]]);
+  });
+});
+
+describe('the Stop dialog (B2 acceptance 1)', () => {
+  test('hands the view the chosen agents, the cancel and the command its Stop sends', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' } });
+    const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
+    expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
+    const radios = tree.hostElementsIn([dialog], (element) => element.tag === 'input');
+    expect(radios.map((radio) => radio.props['checked'])).toEqual([true, false]);
+    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'input' && element.props['checked'] === false), 'onChange');
+    tree.dispatch(controlNamed([dialog], 'Cancel'), 'onClick');
+    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && element.props['data-emphasis'] === 'primary'), 'onClick');
+    expect(handled.stopChoices).toEqual(['stop-first']);
+    expect(handled.stopsCancelled).toEqual([1]);
+    expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' }]);
+  });
+
+  test('with "Stop the agents, then the Overseer" chosen, its Stop sends stop-first', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } });
+    const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
+    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && element.props['data-emphasis'] === 'primary'), 'onClick');
+    expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' }]);
+  });
+});
+
+describe('a refusal on a row (B2 acceptance 3)', () => {
+  test('shows the forge\'s code and sentence under its row, with Try again and its dismissal', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(STOP_REFUSED))]);
+    const stop: ForgeCommandBody = { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleMobileApp, agents: 'keep' };
+    await sender.send(stop);
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent: new Map([[TRACKER_IDS.exampleMobileApp, stop]]) });
+    const refusal = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], 'gaia-refusal');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
+    tree.dispatch(controlNamed([refusal], 'Try again'), 'onClick');
+    tree.dispatch(controlNamed([refusal], 'Dismiss this refusal'), 'onClick');
+    expect(handled.commands).toEqual([stop]);
+    expect(handled.dismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
+  });
+});
+
+describe('the held forge and the forges outside the table', () => {
+  test('the held forge\'s banner sends Update forge, and the forge not found Hide in Gaia', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
+    const banner = tree.onlyWithClass(unfolded, 'gaia-forges-held');
+    expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-forges-held-text')])).toBe(
+      'Example Mobile App holds its launches. The install version changed. Nothing launches until this forge is updated. Its 2 agents keep running.',
+    );
+    tree.dispatch(controlNamed([banner], 'Update forge'), 'onClick');
+    tree.dispatch(controlNamed(unfolded, 'Hide in Gaia'), 'onClick');
+    expect(handled.commands).toEqual([
+      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp },
+      { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
+    ]);
+  });
+});
+
+describe('this machine (A4 acceptance 2 and 3)', () => {
+  test('a limit above the CPU count cannot be chosen: plus is off at the CPU count, minus sends one less', () => {
+    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
+    const panel = tree.onlyWithClass(unfolded, 'gaia-forges-machine');
+    expect(controlNamed([panel], 'Raise the machine\'s agent limit').props['disabled']).toBe(true);
+    tree.dispatch(controlNamed([panel], 'Lower the machine\'s agent limit'), 'onClick');
+    expect(handled.commands).toEqual([{ kind: 'machine-agent-limit-set', limit: 11 }]);
+  });
+
+  test('the forge\'s refusal of a limit shows in the panel when it comes anyway', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(ABOVE_THE_CPUS))]);
+    await sender.send({ kind: 'machine-agent-limit-set', limit: 13 });
+    const panel = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, 'gaia-forges-machine');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-refusal-text')])).toBe(
+      'The forge refused Set the machine\'s agent limit: machine-agent-limit-above-cpus. The machine limit is at most the 12 CPUs of this machine.',
+    );
+  });
+
+  test('without F6 the panel says no limit is enforced and both sides of its stepper are off', () => {
+    const withoutF6 = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
+    const panel = tree.onlyWithClass(layoutOf(withoutF6).unfolded, 'gaia-forges-machine');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-sentence')])).toBe('This forge version does not enforce a machine limit.');
+    const steps = tree.hostElementsIn([panel], tree.withClass('gaia-stepper-button'));
+    expect(steps.map((step) => step.props['disabled'])).toEqual([true, true]);
+    expect(tree.hostElementsIn([panel], tree.withClass('gaia-meter'))).toEqual([]);
+  });
+
+  test('at its limit the panel is marked and names the ready tickets that wait for a slot', () => {
+    const panel = tree.onlyWithClass(layoutOf(FLEET_AT_LIMIT).unfolded, 'gaia-forges-machine');
+    expect(panel.props['data-at-the-limit']).toBe('');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-at-the-limit')])).toBe(
+      'The machine is at its limit. 3 ready tickets wait for a slot: 2 in Invoice Service, 1 in Research Wiki.',
+    );
+  });
+});

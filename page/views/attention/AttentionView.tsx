@@ -5,10 +5,9 @@
  */
 import type { ReactNode } from 'react';
 
-import type { CommandBody }                  from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                from '../../@types/FleetDocument.ts';
-import { CommandSender, useCommandSender }   from '../../api/CommandSender.ts';
-import { Button }                            from '../../design-system/Button.tsx';
+import { useCommandSender }                  from '../../api/CommandSender.ts';
+import { LookAgainButton }                   from '../../shared/LookAgainButton.tsx';
 import type { TopBarStatus }                 from '../../shell/TopBar.tsx';
 import { AttentionLayout }                   from './AttentionLayout.tsx';
 import { AttentionModel, type ClockReading } from './AttentionModel.ts';
@@ -26,8 +25,6 @@ export interface AttentionViewParts {
   readonly content: ReactNode;
 }
 
-const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
-
 export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
   const { send, dismissFailure, states } = useCommandSender();
   const screen = AttentionModel.screenOf(fleetDocument, clock);
@@ -35,13 +32,7 @@ export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
   return <AttentionLayout content={screen.content} commandStates={states} onCommand={(command) => void send(command)} onDismissFailure={dismissFailure} />;
 }
 
-/** B4's top bar asks every registered forge again, since a forge set up elsewhere appears by itself. */
-export function LookAgainButton() {
-  const { send, states } = useCommandSender();
-  const isOnItsWay = CommandSender.stateOf(states, CommandSender.subjectOf(LOOK_AGAIN)).onItsWay !== null;
-  return <Button label="Look again" disabled={isOnItsWay} onPress={() => void send(LOOK_AGAIN)} />;
-}
-
+/** B4's top bar carries Look again, since a forge set up elsewhere appears by itself; A1's top bar has no button of its own. */
 export function attentionViewPartsOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionViewParts {
   return {
     status:  AttentionModel.statusLineOf(fleetDocument),

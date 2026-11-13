@@ -26,6 +26,7 @@ import { EmbedChannel, type EmbedChannelSurroundings }        from '../views/for
 import { ForgeFrameModel }                                    from '../views/forge-frame/ForgeFrameModel.ts';
 import { type ForgeFrameSurroundings, forgeFrameViewPartsOf } from '../views/forge-frame/ForgeFrameView.tsx';
 import { type FrameSessionResult, FrameSessionRequest }       from '../views/forge-frame/FrameSessionRequest.ts';
+import { forgesViewPartsOf }                                  from '../views/forges/ForgesView.tsx';
 import { ConnectionBanner }                                   from './ConnectionBanner.tsx';
 import type { FleetSource }                                   from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings }  from './HashRouter.ts';
@@ -120,6 +121,8 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
       };
     case 'forge':
       return forgeFrameViewPartsOf(route, fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone }, forgeFrame);
+    case 'forges':
+      return fleetDocument === null ? NO_VIEW_PARTS : forgesViewPartsOf(fleetDocument, route, { nowEpochMilliseconds: readAtMilliseconds, timeZone }, goTo);
     default:
       return NO_VIEW_PARTS;
   }

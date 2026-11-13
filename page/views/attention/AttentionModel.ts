@@ -20,6 +20,7 @@ import type { CalloutTone }                from '../../design-system/Callout.tsx
 import type { DotCondition }               from '../../design-system/ConditionDot.tsx';
 import type { PillTone }                   from '../../design-system/Pill.tsx';
 import type { DotRole }                    from '../../design-system/RoleDot.tsx';
+import { AddRepositoryForm }               from '../../shared/add-repository/AddRepositoryForm.ts';
 import { ForgeContractUtil }               from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                   from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                   from '../../shared/utils/StampTextUtil.ts';
@@ -525,8 +526,7 @@ function statusLineOf(fleetDocument: FleetDocument): TopBarStatus {
 
 function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionScreen {
   if (fleetDocument.forges.length === 0) {
-    const { settings, gaia } = fleetDocument;
-    return { kind: 'no-forge', content: { status: NO_FORGE_STATUS, forgeProgramIsMissing: settings.forgeProgramPath === null && gaia.forgeProgramInUse === null } };
+    return { kind: 'no-forge', content: { status: NO_FORGE_STATUS, forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) } };
   }
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }

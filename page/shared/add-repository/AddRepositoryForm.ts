@@ -1,8 +1,9 @@
 /**
- * The form of "Add a repository" (SCREENS B4): a folder and a project name that follows the folder's name until User types one. "Add and
- * start" can be sent only with both filled, a forge program to run, and no add already on its way.
+ * The form of "Add a repository" (SCREENS A4 and B4): a folder and a project name that follows the folder's name until User types one. "Add
+ * and start" can be sent only with both filled, a forge program to run, and no add already on its way.
  */
-import type { CommandBody } from '../../@types/CommandDocument.ts';
+import type { CommandBody }   from '../../@types/CommandDocument.ts';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
 
 export interface AddRepositoryForm {
   readonly folder:          string;
@@ -33,6 +34,11 @@ function formAfterProject(form: AddRepositoryForm, project: string): AddReposito
   return { folder: form.folder, project, projectWasTyped: project !== '' };
 }
 
+/** No forge program is known when the settings name none and Gaia found none: then no forge can be started or added. */
+function forgeProgramIsMissingIn(fleetDocument: FleetDocument): boolean {
+  return fleetDocument.settings.forgeProgramPath === null && fleetDocument.gaia.forgeProgramInUse === null;
+}
+
 function addAndStartCanBeSent(form: AddRepositoryForm, { forgeProgramIsMissing, addIsOnItsWay }: AddAndStartSurroundings): boolean {
   return form.folder.trim() !== '' && form.project.trim() !== '' && !forgeProgramIsMissing && !addIsOnItsWay;
 }
@@ -46,6 +52,7 @@ export const AddRepositoryForm = {
   folderNameOf,
   formAfterFolder,
   formAfterProject,
+  forgeProgramIsMissingIn,
   addAndStartCanBeSent,
   addCommandOf,
 } as const;
