@@ -474,7 +474,8 @@ reference](../cli.md#datapipeline-setupjson); the moves are in [Customs and
 gates](../architecture/customs-and-gates.md#the-pipeline-agent).
 
 **Steps.** `billing`, `research`, `constitution`, `design` and `apply`, each `not-started`, `in-progress`, `done` or
-`needs-recheck`. The record opens at `billing` (an `update` or `advise` record at `design`, the earlier steps `done`).
+`needs-recheck`. A first setup opens at `research`, its `billing` `done` with the billing chosen at the start (an
+`update` or `advise` record at `design`, the earlier steps `done`).
 
 | Move | From | To | By |
 | --- | --- | --- | --- |

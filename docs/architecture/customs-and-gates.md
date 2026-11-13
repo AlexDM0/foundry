@@ -497,13 +497,13 @@ does one opened again after a stop.
 | `design` | Proposes the whole pipeline as draft edits, each with one summary sentence | Edits the draft, undoes an edit, presses a check or a profile |
 | `apply` | Nothing | Applies |
 
-Only User's Continue moves a step; the agent's `pipeline ready` is a suggestion. An answer or edit at an earlier step
-reopens it, and every later `done` step then needs a recheck: a Continue on it, never a redo. The record has three
-modes: `setup`, a first setup; `update`, the stored pipeline as the draft and main's `CONSTITUTION.md` as the
-constitution, with no agent until User asks for one; and `advise`, the same with an agent that reads the stored
-pipeline and its newest `gate-ran` records and proposes edits. No mode files a ticket. The record's fields are in [the
-file format](../cli.md#datapipeline-setupjson), its verbs in [Pipeline setup](../cli.md#pipeline-setup), and its step
-states in [State machines](../data-model/state-machines.md).
+A first setup opens at `research`: the start carries the billing. Only User's Continue moves a step after that; the
+agent's `pipeline ready` is a suggestion. An answer or edit at an earlier step reopens it, and every later `done` step
+then needs a recheck: a Continue on it, never a redo. The record has three modes: `setup`, a first setup; `update`, the
+stored pipeline as the draft and main's `CONSTITUTION.md` as the constitution, with no agent until User asks for one;
+and `advise`, the same with an agent that reads the stored pipeline and its newest `gate-ran` records and proposes
+edits. No mode files a ticket. The record's fields are in [the file format](../cli.md#datapipeline-setupjson), its verbs
+in [Pipeline setup](../cli.md#pipeline-setup), and its step states in [State machines](../data-model/state-machines.md).
 
 ### What the session may do
 
@@ -610,7 +610,8 @@ write order).
    commit](../cli.md#the-constitution-commit).
 3. **The finish.** In the hold that records the landing, `finishApply` writes `pipeline.json` whole: every key,
    `constitution.path` set to `CONSTITUTION.md`. It writes the agent's sources to `constitution-sources.json`, withdraws
-   `checks-not-set`, resumes the board when User asked, logs `pipeline-applied` and removes the record.
+   `checks-not-set`, resumes the board when User asked, logs `pipeline-applied` and removes the record. The same hold
+   asks the record's live pipeline agent to stop, and once no pipeline agent is left the Overseer removes the snapshot.
 
 In-flight tickets take the new phase hashes at their next gate run, and every launch after the landing reads the
 committed constitution. Nothing is written under `<data>/briefs/defaults/`, which `update` replaces.
