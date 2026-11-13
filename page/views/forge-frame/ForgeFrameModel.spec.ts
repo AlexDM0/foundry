@@ -167,7 +167,6 @@ describe('the frame area', () => {
       kind:      'unreachable',
       trackerId: TRACKER_IDS.invoiceService,
       project:   'Invoice Service',
-      condition: 'unreachable',
       callout:   {
         word:        'Unreachable',
         sentence:    'Its Overseer stopped answering. The registry still names it.',

@@ -154,7 +154,7 @@ function Unreachable({ area, onLookAgain }: { readonly area: Extract<ForgeFrameA
     <div className="gaia-forge-frame-notice">
       <Callout
         tone="error"
-        dot={<ConditionDot condition={area.condition} />}
+        dot={<ConditionDot condition="unreachable" />}
         title={area.project}
         word={callout.word}
         sentence={callout.sentence}

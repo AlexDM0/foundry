@@ -13,7 +13,6 @@ import type {
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
-import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
@@ -64,7 +63,6 @@ export type ForgeFrameArea =
     readonly trackerId:   string;
     readonly project:     string;
     readonly overseerKey: string;
-    readonly condition:   DotCondition;
     /** What the area shows when the frame session finds the Overseer gone before the fleet document says so. */
     readonly callout:     UnreachableCalloutText;
   }
@@ -72,7 +70,6 @@ export type ForgeFrameArea =
     readonly kind:      'unreachable';
     readonly trackerId: string;
     readonly project:   string;
-    readonly condition: DotCondition;
     readonly callout:   UnreachableCalloutText;
   }
   | { readonly kind: 'cannot-show'; readonly trackerId: string; readonly project: string }
@@ -247,13 +244,12 @@ function overseerKeyOf(forge: FleetDocumentForge): string {
 function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock: ForgeFrameClock): ForgeFrameArea {
   if (forge === undefined) return { kind: 'not-registered', trackerId };
   const { project } = forge;
-  const condition = ForgeTextUtil.dotConditionOf(forge.condition);
   const callout = ForgeTextUtil.unreachableCalloutTextOf(forge, clockTextOf(forge.lastReportedAt, clock));
   if (forge.fidelity === 'unreachable') return {
-    kind: 'unreachable', trackerId, project, condition, callout,
+    kind: 'unreachable', trackerId, project, callout,
   };
   if (forge.fidelity === 'full' && RailModel.canOpenInPlace(forge)) return {
-    kind: 'frame', trackerId, project, overseerKey: overseerKeyOf(forge), condition, callout,
+    kind: 'frame', trackerId, project, overseerKey: overseerKeyOf(forge), callout,
   };
   return { kind: 'cannot-show', trackerId, project };
 }

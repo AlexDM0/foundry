@@ -237,9 +237,11 @@ describe('the frame area', () => {
     expect(events).toEqual(['look again']);
   });
 
-  test('an Overseer the session finds gone shows the same callout, whose Look again asks the session again', () => {
+  test('an Overseer the session finds gone shows the same callout with the unreachable dot, whose Look again asks the session again', () => {
     const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'unreachable' } });
-    expect(tree.onlyWithClass(unfolded, 'gaia-callout').props['aria-label']).toBe('Example Storefront: Unreachable');
+    const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
+    expect(callout.props['aria-label']).toBe('Example Storefront: Unreachable');
+    expect(tree.onlyWithClass([callout], 'gaia-condition-dot').props['data-condition']).toBe('unreachable');
     tree.dispatch(buttonNamed(unfolded, 'Look again'), 'onClick');
     expect(events).toEqual(['ask again']);
   });
