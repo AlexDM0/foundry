@@ -42,6 +42,7 @@ export const OVERSEER_SITUATIONS = [
   'baton-pass',
   'snapshot-unreadable',
   'connection-broken',
+  'machine-limit-lowered',
 ] as const;
 
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];

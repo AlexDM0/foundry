@@ -266,6 +266,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   },
   {
     call:      'followMonitor',
+    situation: 'machine-limit-lowered',
+    callShape: 'STREAM /api/monitor/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
+    expected:  [expect.objectContaining({ concurrency: expect.objectContaining({ machineLimit: 10, machineAgentsInFlight: 10 }) })],
+  },
+  {
+    call:      'followMonitor',
     situation: 'token-rejected',
     callShape: 'STREAM /api/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
