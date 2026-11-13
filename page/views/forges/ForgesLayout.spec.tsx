@@ -3,8 +3,9 @@
  * dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button that sends
  * `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's
  * plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count
- * shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge. The command states come
- * from the real sender over Gaia's server stood in for by authored answers.
+ * shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge; a paused row offers
+ * Resume first; a hidden forge folds away with Show again. The command states come from the real sender over Gaia's server stood in for by
+ * authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -219,6 +220,25 @@ describe('the held forge and the forges outside the table', () => {
       { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp },
       { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
     ]);
+  });
+});
+
+describe('a paused row and the hidden forges', () => {
+  test('a paused forge says what still finishes and offers Resume as its primary button', () => {
+    const row = rowOf(layoutOf(FLEET_AT_LIMIT).unfolded, TRACKER_IDS.researchWiki);
+    expect(tree.textOf([tree.onlyWithClass([row], 'gaia-forges-condition')])).toBe('Paused1 agent finishing · starts no new job');
+    expect(controlNamed([row], 'Resume').props['data-emphasis']).toBe('primary');
+  });
+
+  test('a hidden forge sits in the folded group under its count, and Show again sends forge-unhide', () => {
+    const fleet = { ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: [TRACKER_IDS.designSystem] } };
+    const { unfolded, handled } = layoutOf(fleet);
+    const group = tree.onlyHostElementIn(unfolded, (element) => element.tag === 'details');
+    expect(group.props['open']).toBeUndefined();
+    expect(tree.textOf([tree.onlyWithClass([group], 'gaia-forges-hidden-summary')])).toBe('Hidden in Gaia · 1');
+    expect(rowsIn(unfolded).some((row) => tree.hostElementsIn([row], (element) => element.props['id'] === forgeAnchorIdOf(TRACKER_IDS.designSystem)).length > 0)).toBe(false);
+    tree.dispatch(controlNamed([group], 'Show again'), 'onClick');
+    expect(handled.commands).toEqual([{ kind: 'forge-unhide', trackerId: TRACKER_IDS.designSystem }]);
   });
 });
 
