@@ -4,12 +4,12 @@
  * `#pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow beside the pipeline agent, the
  * bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other screen shows its title. The
  * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the flow workspace (the flow, the smallest
- * pipeline's note beside it, the gates area under them and the dialog a node, a gate row or a + opens). While an applied pipeline is
- * edited, the editing aside stands beside it (the smallest pipeline keeps its note instead), and the footer counts the changes, or names
- * the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply dialog. Once a
- * setup is applied, the live flow takes back the bare `#pipeline` route; it stands beside the activity aside over the applied footer, and
- * an Apply sent from this view shows its toast once the facts carry the version it made. A gate dialog on any screen reads a profile's
- * output through the follower the view provides.
+ * pipeline's note beside it on a live board, the gates area under them and the dialog a node, a gate row or a + opens). While an
+ * applied pipeline is edited, the editing aside stands beside it (the smallest pipeline's note instead), and the footer counts the
+ * changes, or names the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply
+ * dialog; one modal dialog is open at a time. Once a setup is applied, the live flow takes back the bare `#pipeline` route; it stands
+ * beside the activity aside over the applied footer, and an Apply sent from this view shows its toast once the facts carry the version it
+ * made. A gate dialog on any screen reads a profile's output through the follower the view provides.
  */
 import { useEffect, useState } from 'react';
 
@@ -126,21 +126,15 @@ function FlowScreen({
   facts, boardStore, followTranscript, clock, onApplySent
 }: FlowScreenProps) {
   const now = useTickingNow(clock, false);
-  const selection = useFlowSelection();
   const setup = facts.pipelineSetup ?? null;
-  const [applyChangesIsAsked, setApplyChangesIsAsked] = useState((setup?.applyState ?? null) !== null);
+  const selection = useFlowSelection(setup?.applyState === null || setup === null ? null : setup.record.setupId);
+  const applyChangesIsAsked = setup !== null && selection.applyIsAskedFor(setup.record.setupId);
   const flow = facts.pipelineFlow ?? null;
   if (flow === null) return null;
   const minimal = MinimalPipelineNoteModel.noteIsShownFor(flow);
-  const workspace = (
-    <FlowWorkspace
-      facts={facts}
-      boardStore={boardStore}
-      selection={selection}
-      flowAside={minimal ? <MinimalPipelineNote flow={flow} /> : null}
-    />
-  );
+  const minimalNote = minimal ? <MinimalPipelineNote flow={flow} /> : null;
   if (flow.toolbarStage === 'live') {
+    const workspace = <FlowWorkspace facts={facts} boardStore={boardStore} selection={selection} flowAside={minimalNote} />;
     const footer = LivePipelineModel.footerOf(facts.pipeline, stampFormatOf(facts, now));
     return (
       <>
@@ -152,23 +146,20 @@ function FlowScreen({
       </>
     );
   }
+  const workspace = <FlowWorkspace facts={facts} boardStore={boardStore} selection={selection} />;
   if (flow.toolbarStage !== 'editing' || setup === null) return workspace;
   return (
     <>
-      {minimal
-        ? workspace
-        : (
-          <div className="bridge-pipeline-editing-body">
-            <div className="bridge-pipeline-editing-main">{workspace}</div>
-            <EditingAside facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />
-          </div>
-        )}
+      <div className="bridge-pipeline-editing-body">
+        <div className="bridge-pipeline-editing-main">{workspace}</div>
+        {minimalNote ?? <EditingAside facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />}
+      </div>
       <EditingFooter
         facts={facts}
         setupId={setup.record.setupId}
         minimal={minimal}
         applyIsAsked={applyChangesIsAsked}
-        onApplyAsked={() => setApplyChangesIsAsked(true)}
+        onApplyAsked={() => selection.askApply(setup.record.setupId)}
       />
       {applyChangesIsAsked
         ? (
@@ -176,7 +167,7 @@ function FlowScreen({
             setup={setup}
             flow={flow}
             pipeline={facts.pipeline}
-            onClose={() => setApplyChangesIsAsked(false)}
+            onClose={selection.closeApply}
             onApplySent={() => onApplySent(false)}
           />
         )

@@ -4,7 +4,9 @@
  * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
  * Apply changes, while a live flow has no footer. The gates area stands under the flow, and Enter on a Gates node selects that phase's
  * tab. A double-click on a node opens its dialog with the node selected, and closing it clears the selection. A gate dialog opened on any
- * screen shows a running profile's output from the follower the view was given, the one the shell builds over the stream route.
+ * screen shows a running profile's output from the follower the view was given, the one the shell builds over the stream route. One
+ * modal dialog is open at a time: a node dialog closes the Apply dialog and Apply closes the node dialog, and an Apply sent in one update
+ * never opens by itself in the next.
  */
 import {
   act,
@@ -136,26 +138,69 @@ describe('the Pipeline view', () => {
   });
 });
 
+/** The view over facts a spec can replace, as the shell's next board event does. */
+function renderHost(initial: BoardStateDocument, route: BridgeRoute) {
+  const controls = fakeControls();
+  let showBoard: (next: BoardStateDocument) => void = () => undefined;
+
+  function Host() {
+    const [shown, setShown] = useState(initial);
+    showBoard = setShown;
+    return <PipelineView facts={shown} route={route} {...pipelineViewServicesOf()} />;
+  }
+  controls.render(<Host />);
+  return { controls, show: (next: BoardStateDocument) => act(() => showBoard(next)) };
+}
+
+function appliedAt(revision: number): BoardStateDocument {
+  const board = pipelineBoardStateOf('A5');
+  const { pipeline } = board;
+  if (pipeline?.readingVerdict !== 'readable' || pipeline.application === null) throw new Error('A5 has no applied pipeline');
+  return { ...board, pipeline: { ...pipeline, application: { ...pipeline.application, appliedRevision: revision } } };
+}
+
+describe('one modal dialog at a time', () => {
+  function nextUpdate(): BoardStateDocument {
+    const board = pipelineBoardStateOf('A6b');
+    const setup = board.pipelineSetup ?? null;
+    if (setup === null) throw new Error('the fixture A6b has no setup');
+    return { ...board, pipelineSetup: { ...setup, record: { ...setup.record, setupId: 'S3' } } };
+  }
+
+  function dialogName(dialog: HTMLElement): string | null {
+    return document.getElementById(dialog.getAttribute('aria-labelledby') ?? '')?.textContent ?? null;
+  }
+
+  function builderNode(): HTMLElement {
+    const node = document.querySelector<HTMLElement>('[data-flow-node-id="builder"] .bridge-flow-node');
+    if (node === null) throw new Error('no Builder node');
+    return node;
+  }
+
+  test('an Apply sent in one update does not open again in the next update', async () => {
+    const { show } = renderHost(pipelineBoardStateOf('A6b'), { tab: 'pipeline', item: null });
+    await clickSettled(within(screen.getByRole('region', { name: 'Pipeline changes' })).getByRole('button', { name: 'Apply 4 changes' }));
+    await clickSettled(within(screen.getByRole('dialog', { name: 'Apply 4 changes?' })).getByRole('button', { name: 'Apply 4 changes' }));
+    show(appliedAt(3));
+    show(nextUpdate());
+    expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('editing');
+    expect(screen.queryAllByRole('dialog')).toEqual([]);
+    fireEvent.doubleClick(builderNode());
+    expect(screen.getAllByRole('dialog').map(dialogName)).toEqual(['Builder']);
+  });
+
+  test('a node dialog closes the Apply dialog, and Apply closes the node dialog', async () => {
+    renderHost(pipelineBoardStateOf('A6b'), { tab: 'pipeline', item: null });
+    const footer = screen.getByRole('region', { name: 'Pipeline changes' });
+    await clickSettled(within(footer).getByRole('button', { name: 'Apply 4 changes' }));
+    fireEvent.doubleClick(builderNode());
+    expect(screen.getAllByRole('dialog').map(dialogName)).toEqual(['Builder']);
+    await clickSettled(within(footer).getByRole('button', { name: 'Apply 4 changes' }));
+    expect(screen.getAllByRole('dialog').map(dialogName)).toEqual(['Apply 4 changes?']);
+  });
+});
+
 describe('the toast after an Apply', () => {
-  function renderHost(initial: BoardStateDocument, route: BridgeRoute) {
-    const controls = fakeControls();
-    let showBoard: (next: BoardStateDocument) => void = () => undefined;
-
-    function Host() {
-      const [shown, setShown] = useState(initial);
-      showBoard = setShown;
-      return <PipelineView facts={shown} route={route} {...pipelineViewServicesOf()} />;
-    }
-    controls.render(<Host />);
-    return { controls, show: (next: BoardStateDocument) => act(() => showBoard(next)) };
-  }
-
-  function appliedAt(revision: number): BoardStateDocument {
-    const board = pipelineBoardStateOf('A5');
-    const { pipeline } = board;
-    if (pipeline?.readingVerdict !== 'readable' || pipeline.application === null) throw new Error('A5 has no applied pipeline');
-    return { ...board, pipeline: { ...pipeline, application: { ...pipeline.application, appliedRevision: revision } } };
-  }
 
   async function applyFirstPipeline(resumesBoard: boolean) {
     const host = renderHost(pipelineBoardStateOf('A4'), { tab: 'pipeline', item: 'setup/design' });

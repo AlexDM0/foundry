@@ -66,6 +66,9 @@ const SECONDS_PER_MINUTE = 60;
 
 const MILLISECONDS_PER_SECOND = 1000;
 
+/** The least time a run that took any time reads as, so a quick run never reads "0.0 s". */
+const SHORTEST_SHOWN_SECONDS = 0.1;
+
 const PROFILED_STATE: DisplayState = 'delivered';
 
 const DELETE_KEYS: readonly string[] = Object.freeze(['Delete', 'Backspace']);
@@ -118,9 +121,10 @@ function emptyTextOf(gateRows: PipelineFlowFacts['gateRows'], phase: GatePhase):
   return anyPhaseHasGates ? `No ${phase} gates.` : NO_GATES_TEXT;
 }
 
-/** "41 s" under a minute, "3 m 40 s" from one. */
+/** "0.4 s" for a run that rounds to no whole second, "41 s" under a minute, "3 m 40 s" from one. */
 function profileTimeTextOf(elapsedMilliseconds: number): string {
   const totalSeconds = Math.max(0, Math.round(elapsedMilliseconds / MILLISECONDS_PER_SECOND));
+  if (totalSeconds === 0) return `${Math.max(SHORTEST_SHOWN_SECONDS, elapsedMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1)} s`;
   const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
   const seconds = totalSeconds % SECONDS_PER_MINUTE;
   return minutes === 0 ? `${seconds} s` : `${minutes} m ${seconds} s`;

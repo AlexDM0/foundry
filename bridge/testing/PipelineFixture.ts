@@ -241,9 +241,20 @@ function mergeNode(nodeId: string, mergePlacement: MergePlacement, derivedFrom: 
   });
 }
 
-function reReviewNode(nodeId: string, role: PipelineAgentRole, thresholdLines: number, mark: PipelineNodeMark): PipelineFlowNode {
+/** A re-reviewer's resolved list, as the Overseer's flow graph gives every role node: the constitution, the reviewer's brief, its own. */
+function reReviewerEntriesOf(role: 'reReviewer' | 'conflictReReviewer', applied: boolean): ResolvedInstructionEntry[] {
+  return [constitutionEntry(CONSTITUTION_READERS, applied), defaultBriefEntry('reviewer', REVIEWER_BRIEF_READERS), defaultBriefEntry(role, [role])];
+}
+
+function reReviewNode(
+  nodeId: string,
+  role: 'reReviewer' | 'conflictReReviewer',
+  thresholdLines: number,
+  mark: PipelineNodeMark,
+  applied: boolean,
+): PipelineFlowNode {
   return exampleNode({
-    nodeId, nodeKind: 're-review', role, settings: RE_REVIEWER_PAIR, conditional: true, thresholdLines, mark,
+    nodeId, nodeKind: 're-review', role, settings: RE_REVIEWER_PAIR, conditional: true, thresholdLines, mark, instructionEntries: reReviewerEntriesOf(role, applied),
   });
 }
 
@@ -340,17 +351,18 @@ function flowOf(shape: FlowShape, changes: Partial<PipelineFlowFacts> = {}): Pip
       exampleNode({
         nodeId: 'gates-review', nodeKind: 'gates', phase: 'review', gateChips: chipsOf('review'), mark,
       }),
-      ...(reviewReReview === null ? [] : [reReviewNode('re-review', 'reReviewer', reviewReReview.thresholdLines, mark)]),
+      ...(reviewReReview === null ? [] : [reReviewNode('re-review', 'reReviewer', reviewReReview.thresholdLines, mark, applied)]),
     ]),
     ...(humanCodeReview ? [
       mergeNode('merge-before-human-code-review', 'before-human-code-review', lastWorker, mark),
       ...(airlockReReview === null ? [] : [exampleNode({
-        nodeId:         're-review-before-human-code-review',
-        nodeKind:       're-review',
-        role:           'conflictReReviewer',
-        settings:       RE_REVIEWER_PAIR,
-        conditional:    true,
-        thresholdLines: airlockReReview.thresholdLines,
+        nodeId:             're-review-before-human-code-review',
+        nodeKind:           're-review',
+        role:               'conflictReReviewer',
+        settings:           RE_REVIEWER_PAIR,
+        conditional:        true,
+        thresholdLines:     airlockReReview.thresholdLines,
+        instructionEntries: reReviewerEntriesOf('conflictReReviewer', applied),
         mark,
       })]),
       exampleNode({
@@ -365,7 +377,7 @@ function flowOf(shape: FlowShape, changes: Partial<PipelineFlowFacts> = {}): Pip
     exampleNode({
       nodeId: 'merge-in-airlock', nodeKind: 'merge-main-into-tree', mergePlacement: 'airlock', derivedFrom: lastWorker, settings: WORKER_PAIR, mark,
     }),
-    ...(airlockReReview === null ? [] : [reReviewNode('re-review-in-airlock', 'conflictReReviewer', airlockReReview.thresholdLines, mark)]),
+    ...(airlockReReview === null ? [] : [reReviewNode('re-review-in-airlock', 'conflictReReviewer', airlockReReview.thresholdLines, mark, applied)]),
     ...(pipeline.phases.merge.length === 0 ? [] : [exampleNode({
       nodeId: 'gates-merge', nodeKind: 'gates', phase: 'merge', gateChips: chipsOf('merge'), mark,
     })]),

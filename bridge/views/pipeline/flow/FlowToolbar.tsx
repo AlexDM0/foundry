@@ -1,5 +1,5 @@
 /**
- * The flow's toolbar: the stage's mark and note, Update pipeline on a live board, and the zoom with Fit on every stage.
+ * The flow's toolbar: the stage's mark and note, Update pipeline in the link tint on a live board, and the zoom with Fit on every stage.
  */
 import type { PipelineFlowStage } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import { ZoomControl }            from '../../../design-system/ZoomControl.tsx';
@@ -25,7 +25,7 @@ export function FlowToolbar({
         <span className="bridge-pipeline-flow-stage-mark" data-stage={stage} aria-hidden="true" />
         {note}
       </span>
-      {stage === 'live' ? <CommandButton label="Update pipeline" command={UPDATE_START_COMMAND} /> : null}
+      {stage === 'live' ? <CommandButton label="Update pipeline" command={UPDATE_START_COMMAND} tint="link" /> : null}
       <ZoomControl
         zoomText={PipelineFlowModel.zoomTextOf(zoomPercent)}
         onZoomOut={() => onZoom(PipelineFlowModel.zoomedPercentOf(zoomPercent, 'out'))}

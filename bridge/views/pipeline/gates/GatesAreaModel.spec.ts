@@ -150,6 +150,10 @@ describe('the stopwatch chip', () => {
     expect([12_000, 59_400, 220_000].map(GatesAreaModel.profileTimeTextOf)).toEqual(['12 s', '59 s', '3 m 40 s']);
   });
 
+  test('a run shorter than half a second reads in tenths, never as no time at all', () => {
+    expect([380, 499, 500, 20, 0].map(GatesAreaModel.profileTimeTextOf)).toEqual(['0.4 s', '0.5 s', '1 s', '0.1 s', '0.1 s']);
+  });
+
   test('the start command names the record, or none on a live board, the gate and the phase', () => {
     expect(GatesAreaModel.profileStartCommandOf(null, 'e2e', 'merge')).toEqual({
       kind: 'gate-profile-start', setupId: null, gateName: 'e2e', phase: 'merge'

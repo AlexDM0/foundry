@@ -3,7 +3,7 @@
  * refusal verbatim beside itself, or that the Overseer could not be reached.
  */
 import type { ControlCommandBody } from '../api/CommandClient.ts';
-import { Button }                  from '../design-system/Button.tsx';
+import { Button, type ButtonTint } from '../design-system/Button.tsx';
 import { useControlCommand }       from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {
@@ -22,13 +22,15 @@ export interface CommandButtonProps {
   readonly attention?:                boolean;
   /** The confirm of a move that ends or holds work, in the error colours. */
   readonly danger?:                   boolean;
+  /** `link` for the one action a view offers beside its primary. */
+  readonly tint?:                     ButtonTint;
   /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
   readonly accessibleName?:           string;
 }
 
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, attention = false, danger = false,
-  accessibleName
+  tint, accessibleName
 }: CommandButtonProps) {
   const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
@@ -39,6 +41,7 @@ export function CommandButton({
         attention={attention}
         disabled={!sender.enabled}
         onPress={() => void sender.send()}
+        {...(tint === undefined ? {} : { tint })}
         {...(accessibleName === undefined ? {} : { accessibleName })}
       />
       {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}

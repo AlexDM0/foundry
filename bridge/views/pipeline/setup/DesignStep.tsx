@@ -70,9 +70,9 @@ function NewestAgentChange({ facts, setup, selection }: NewestAgentChangeProps) 
 export function DesignStep({
   facts, setup, boardStore, followTranscript, clock, onApplySent
 }: DesignStepProps) {
-  const selection = useFlowSelection();
+  const selection = useFlowSelection(setup.applyState === null ? null : setup.record.setupId);
   const [asideTab, setAsideTab] = useState<AsideTab>('agent');
-  const [applyIsAsked, setApplyIsAsked] = useState(setup.applyState !== null);
+  const applyIsAsked = selection.applyIsAskedFor(setup.record.setupId);
   const { record } = setup;
   const now = useTickingNow(clock, false);
   const agentState = DesignStepModel.agentStateOf(setup);
@@ -167,7 +167,7 @@ export function DesignStep({
                 attention={apply.enabled}
                 disabled={!apply.enabled}
                 expanded={applyIsAsked}
-                onPress={() => setApplyIsAsked(true)}
+                onPress={() => selection.askApply(setup.record.setupId)}
               />
             </span>
           </>
@@ -179,7 +179,7 @@ export function DesignStep({
             setup={setup}
             pendingTicketCount={BillingStepModel.pendingTicketCountOf(facts.page?.tickets ?? [])}
             concurrencyLimit={facts.concurrency?.limit ?? null}
-            onClose={() => setApplyIsAsked(false)}
+            onClose={selection.closeApply}
             {...(onApplySent === undefined ? {} : { onApplySent })}
           />
         )

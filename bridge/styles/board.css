@@ -1580,7 +1580,7 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
    beside them all. Selected and marked nodes add rings and change colours only, so the border keeps its 1px width. Each node rises in,
    --rise-order set by its holder; a proposed or changed node glows. */
 .bridge-flow-node {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; column-gap: var(--sp-3); row-gap: var(--sp-1);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; row-gap: var(--sp-1);
   box-sizing: border-box; width: var(--flow-node-width); min-height: 48px; padding: var(--sp-2) var(--sp-3);
   color: var(--ink-1); font-size: var(--fs-body); line-height: 1.3;
   background: var(--surface-panel); border: 1px solid var(--line-control); border-radius: 10px;
@@ -1590,7 +1590,8 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
 .bridge-flow-node[aria-haspopup] { cursor: default; }
 .bridge-flow-node[aria-haspopup]:hover { background-color: var(--surface-info); }
 .bridge-flow-node:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.bridge-flow-node-head { display: flex; grid-column: 1; align-items: center; gap: var(--sp-2); min-width: 0; }
+/* The head wraps before its title shrinks: a meter with no room left beside the whole title takes a line of its own. */
+.bridge-flow-node-head { display: flex; flex-wrap: wrap; grid-column: 1; align-items: center; gap: var(--sp-1) var(--sp-2); min-width: 0; }
 .bridge-flow-node-title { min-width: 0; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .bridge-flow-node-tag {
   flex: none; padding: 1px 6px; color: var(--ink-2); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
@@ -1599,7 +1600,7 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
 .bridge-flow-node-meter { display: inline-flex; flex: none; margin-inline-start: auto; }
 .bridge-flow-node-detail { grid-column: 1; min-width: 0; color: var(--ink-3); font-size: var(--fs-small); }
 .bridge-flow-node-chips { display: flex; grid-column: 1; flex-wrap: wrap; gap: var(--sp-1); }
-.bridge-flow-node-end { display: inline-flex; grid-row: 1 / span 3; grid-column: 2; align-items: center; align-self: center; }
+.bridge-flow-node-end { display: inline-flex; grid-row: 1 / span 3; grid-column: 2; align-items: center; align-self: center; margin-inline-start: var(--sp-3); }
 .bridge-flow-node[data-variant="outcome"] { background: var(--surface-raised); border-color: var(--line-hairline); }
 .bridge-flow-node[data-variant="target"] {
   justify-content: center; justify-items: center; min-height: 28px; padding: 0 var(--sp-3);
@@ -3546,9 +3547,49 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 /* The frame's padding reaches past the column on both sides, so its nodes stand under the spine's. */
 .bridge-pipeline-flow-train { align-self: stretch; margin: 0 calc(-1 * var(--sp-4) - 1px); }
 .bridge-pipeline-flow-train .bridge-flow-frame { align-items: center; gap: var(--sp-5); }
+/* The arrow into the train runs under its label, not through the words: the label is filled with the frame's own colour over the canvas. */
+.bridge-pipeline-flow-train .bridge-flow-frame-label {
+  padding: 0 var(--sp-2); background: linear-gradient(var(--flow-group-fill), var(--flow-group-fill)), var(--flow-canvas);
+}
 .bridge-pipeline-flow-slot { display: flex; justify-content: center; }
 .bridge-pipeline-flow-slot[data-disabled] { opacity: 0.55; }
 .bridge-pipeline-footer-note { color: var(--ink-2); font-size: var(--fs-small); }
+
+/* A flow screen is the designs' fixed frame from 1181px on: one window tall, its body between the page's edges, the 400px aside at the
+   right edge and the flow taking the rest (1040px at 1440px), each scrolling inside, the footer at the window's bottom. The page's own
+   side padding is 40px there. Narrower, the page scrolls as before. */
+@media (min-width: 1181px) {
+  body:has(.bridge-pipeline-flow-workspace) { height: 100dvh; padding-bottom: 0; }
+  body:has(.bridge-pipeline-flow-workspace) #bridge-root { height: 100%; }
+  body:has(.bridge-pipeline-flow-workspace) .bridge-shell { display: flex; flex-direction: column; width: 100%; height: 100%; }
+  body:has(.bridge-pipeline-flow-workspace) .bridge-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) { flex: 1; gap: 0; min-height: 0; margin: 0 -40px; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) > .bridge-pipeline-title { padding: 0 40px var(--sp-4); }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-design { flex: 1; gap: 0; min-height: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) :is(.bridge-pipeline-design-body, .bridge-pipeline-live-body, .bridge-pipeline-editing-body) {
+    flex: 1; gap: 0; min-height: 0; border-top: 1px solid var(--line-hairline);
+  }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) :is(.bridge-pipeline-design-main, .bridge-pipeline-live-main, .bridge-pipeline-editing-main) {
+    min-height: 0; overflow: hidden;
+  }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-design-pending { padding: var(--sp-2) var(--sp-4) 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) :is(
+    .bridge-pipeline-design-aside, .bridge-pipeline-activity, .bridge-pipeline-editing-aside, .bridge-pipeline-editing-body > .bridge-pipeline-minimal-note
+  ) {
+    min-height: 0; overflow: auto; border-width: 0 0 0 1px; border-radius: 0;
+  }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-flow-workspace { flex: 1; gap: 0; min-height: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-flow-screen { flex: 1; align-items: stretch; gap: 0; min-height: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-flow { border-width: 0; border-radius: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-flow-viewport { flex: 1; min-height: 0; }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-flow-screen > .bridge-pipeline-minimal-note {
+    overflow: auto; border-width: 0 0 0 1px; border-radius: 0;
+  }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-pipeline-gates {
+    flex: none; max-height: 40%; overflow: auto; border-width: 1px 0 0; border-radius: 0;
+  }
+  .bridge-pipeline:has(.bridge-pipeline-flow-workspace) .bridge-action-bar { flex: none; }
+}
 
 /* The gates area: the tabs in its head row, and the rows on one grid of columns, which the header row shares. A removed row stays drawn,
    struck and faded; a proposed row's edge is dashed in the question colour; a focused row rings like a node. */
@@ -3864,6 +3905,9 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-design-apply { display: inline-flex; }
 .bridge-pipeline-change-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; overflow: auto; list-style: none; }
 .bridge-pipeline-change-list-item { display: block; }
+/* A card's actions take a line of their own, at its end, before they squeeze its title, as a new gate's benchmark beside Undo would. */
+.bridge-pipeline-change-list .bridge-change-row-head { flex-wrap: wrap; }
+.bridge-pipeline-change-list .bridge-change-row-actions { margin-left: auto; }
 .bridge-pipeline-change-list-empty { margin: 0; color: var(--ink-3); }
 @media (max-width: 900px) {
   .bridge-pipeline-design-body { flex-direction: column; }

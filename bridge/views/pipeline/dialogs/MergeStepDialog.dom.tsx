@@ -2,7 +2,7 @@
  * The merge step dialog (A3dMergeModal) in a happy-dom document, opened through the dialog host. What matters: the derived meter takes the
  * focus and is described by its tooltip; the dialog has no model or effort control for the merge itself; the off note says the re-review
  * leaves the merge train; the tooltip's body follows `derivedFrom` (the last worker, or the builder when no review runs); and Save sends
- * the merge train's re-review and the conflict re-reviewer.
+ * the merge train's re-review and the conflict re-reviewer; every brief the re-review reads offers Open.
  */
 import {
   act,
@@ -82,6 +82,14 @@ describe('the re-review after a conflict merge', () => {
     renderDialog();
     act(() => within(dialog()).getByRole('switch', { name: 'Re-review after a conflict merge' }).click());
     expect(screen.getByText('Off: the Re-review step leaves the merge train, and a conflict fix goes straight to the merge gates.')).toBeDefined();
+  });
+
+  test('every brief the re-review reads offers Open, as the facts resolve its text on main', () => {
+    renderDialog();
+    const instructions = within(dialog()).getByRole('group', { name: 'Re-review instructions' });
+    const rows = [...instructions.querySelectorAll<HTMLElement>('.bridge-listed-file')];
+    expect(rows.map((row) => [row.querySelector('.bridge-listed-file-name')?.textContent, within(row).queryByRole('button', { name: 'Open' }) !== null]))
+      .toEqual([['constitution.md', false], ['reviewer.md', true], ['conflictReReviewer.md', true]]);
   });
 
   test('Save sends the merge train\'s re-review and the conflict re-reviewer', async () => {

@@ -1,7 +1,8 @@
 /**
  * The pipeline flow with what it opens: the flow beside an optional aside, the gates area under them, and the dialog a node, a gate row
  * or a + asks for. Its selection is a hook, so the screen holding it can also show a step on the flow: select the node, and for a gate
- * select its phase's tab and scroll to the gates area.
+ * select its phase's tab and scroll to the gates area. The selection also holds the screen's Apply dialog, asked for one setup record:
+ * one modal dialog is open at a time, and an Apply asked for an earlier record never opens over a later one.
  */
 import {
   useEffect,
@@ -35,22 +36,29 @@ type FlowScrollRequest =
   | { readonly target: 'node'; readonly nodeId: string; readonly serial: number };
 
 export interface FlowSelection {
-  readonly openRequest:   FlowOpenRequest | GatesOpenRequest | null;
-  readonly shownNodeId:   string | null;
-  readonly gatesPhase:    GatePhase;
-  readonly scrollRequest: FlowScrollRequest | null;
-  readonly open:          (request: FlowOpenRequest | GatesOpenRequest) => void;
-  readonly close:         () => void;
-  readonly selectPhase:   (phase: GatePhase) => void;
-  readonly showOnFlow:    (target: FlowShowTarget) => void;
+  readonly openRequest:     FlowOpenRequest | GatesOpenRequest | null;
+  readonly shownNodeId:     string | null;
+  readonly gatesPhase:      GatePhase;
+  readonly scrollRequest:   FlowScrollRequest | null;
+  readonly open:            (request: FlowOpenRequest | GatesOpenRequest) => void;
+  readonly close:           () => void;
+  readonly selectPhase:     (phase: GatePhase) => void;
+  readonly showOnFlow:      (target: FlowShowTarget) => void;
+  /** Whether the Apply dialog is open for this setup record. */
+  readonly applyIsAskedFor: (setupId: string) => boolean;
+  /** Opens the Apply dialog for a setup record, and closes the dialog the flow opened. */
+  readonly askApply:        (setupId: string) => void;
+  readonly closeApply:      () => void;
 }
 
 function nodeCellIn(workspace: HTMLElement | null, nodeId: string): HTMLElement | null {
   return [...workspace?.querySelectorAll<HTMLElement>(NODE_CELL_SELECTOR) ?? []].find((cell) => cell.dataset['flowNodeId'] === nodeId) ?? null;
 }
 
-export function useFlowSelection(): FlowSelection {
+/** `applyAskedFor` opens the Apply dialog at once, for a record whose Apply is still pending. */
+export function useFlowSelection(applyAskedFor: string | null = null): FlowSelection {
   const [openRequest, setOpenRequest] = useState<FlowOpenRequest | GatesOpenRequest | null>(null);
+  const [applySetupId, setApplySetupId] = useState<string | null>(applyAskedFor);
   const [shownNodeId, setShownNodeId] = useState<string | null>(null);
   const [gatesPhase, setGatesPhase] = useState<GatePhase>('build');
   const [scrollRequest, setScrollRequest] = useState<FlowScrollRequest | null>(null);
@@ -65,6 +73,7 @@ export function useFlowSelection(): FlowSelection {
     gatesPhase,
     scrollRequest,
     open: (request) => {
+      setApplySetupId(null);
       setOpenRequest(request);
       setShownNodeId(null);
       if (request.kind === 'node' && request.action.kind === 'gates-tab') showPhase(request.action.phase);
@@ -76,6 +85,12 @@ export function useFlowSelection(): FlowSelection {
       if (target.phase === null) setScrollRequest({ target: 'node', nodeId: target.nodeId, serial: nextSerial() });
       else showPhase(target.phase);
     },
+    applyIsAskedFor: (setupId) => applySetupId === setupId,
+    askApply:        (setupId) => {
+      setOpenRequest(null);
+      setApplySetupId(setupId);
+    },
+    closeApply: () => setApplySetupId(null),
   };
 }
 

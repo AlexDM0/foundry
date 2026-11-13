@@ -1,8 +1,8 @@
 /**
  * A pending Apply inside the apply dialogs (A4, A6b): the commit of `CONSTITUTION.md` under way with a busy ring, or the reason it holds
  * or was refused with what User can do next. After a signing failure, "View CONSTITUTION.md" opens the exact text User may commit by hand.
- * The foot under it is the dialogs' shared one: Cancel and Apply with no pending request, Cancel apply while one is pending, and Apply
- * again beside it once the request was refused; each command's refusal shows verbatim beside its button.
+ * The foot under it is the dialogs' shared one, its buttons at the end: Cancel and Apply with no pending request, Cancel apply while one
+ * is pending, and Apply again beside it once the request was refused; each command's refusal shows verbatim beside its button.
  */
 import { useState } from 'react';
 
@@ -73,22 +73,24 @@ export function ApplyFoot({
 }: ApplyFootProps) {
   const offersApply = applyState === null || ApplyPendingStateModel.pendingViewOf(applyState).offersApplyAgain;
   return (
-    <div className="bridge-pipeline-dialog-foot-row">
-      <span className="bridge-pipeline-dialog-foot-gap" />
-      {applyState === null
-        ? <Button label={closeLabel} onPress={onClose} />
-        : <CommandButton label="Cancel apply" command={ApplyPendingStateModel.cancelCommandOf(setupId)} />}
-      {offersApply
-        ? (
-          <CommandButton
-            label={applyLabel}
-            command={applyCommand}
-            primary
-            attention={applyState === null}
-            {...(onApplySent === undefined ? {} : { onApplied: onApplySent })}
-          />
-        )
-        : null}
+    <div className="bridge-pipeline-dialog-foot">
+      <div className="bridge-pipeline-dialog-foot-row">
+        <span className="bridge-pipeline-dialog-foot-gap" />
+        {applyState === null
+          ? <Button label={closeLabel} onPress={onClose} />
+          : <CommandButton label="Cancel apply" command={ApplyPendingStateModel.cancelCommandOf(setupId)} />}
+        {offersApply
+          ? (
+            <CommandButton
+              label={applyLabel}
+              command={applyCommand}
+              primary
+              attention={applyState === null}
+              {...(onApplySent === undefined ? {} : { onApplied: onApplySent })}
+            />
+          )
+          : null}
+      </div>
     </div>
   );
 }
