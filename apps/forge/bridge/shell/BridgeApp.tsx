@@ -78,7 +78,7 @@ import { headerModelOf, type HeaderFigureLane }                 from './HeaderMo
 import { IncidentNotice }                                       from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                              from './IncidentNoticeModel.ts';
 import { QuestionPanelOpenerContext }                           from './QuestionPanelOpener.ts';
-import type { SessionLoss }                                     from './SessionWordingUtil.ts';
+import type { SessionLoss }                                     from './SessionBannerOf.ts';
 import { ThemeBootstrap, type EmbeddingHost, type ThemeChoice } from './ThemeBootstrap.ts';
 import { VersionedEmbedChannel }                                from './VersionedEmbedChannel.ts';
 import { WaitingOnUserModel }                                   from './WaitingOnUserModel.ts';

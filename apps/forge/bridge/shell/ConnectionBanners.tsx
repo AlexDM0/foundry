@@ -5,8 +5,7 @@
  */
 import { Banner } from 'design-system/Banner';
 
-import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
-import { type SessionLoss, SessionWordingUtil } from './SessionWordingUtil.ts';
+import { type SessionLoss, sessionBannerOf } from './SessionBannerOf.ts';
 
 export interface ConnectionBannersProps {
   readonly streamIsDown:       boolean;
@@ -26,7 +25,7 @@ export function ConnectionBanners({
     <>
       {sessionLoss === null
         ? null
-        : <div className="bridge-shell-banner"><Banner tone="error" role="alert" text={SessionWordingUtil.bannerOf(sessionLoss)} /></div>}
+        : <div className="bridge-shell-banner"><Banner tone="error" role="alert" text={sessionBannerOf(sessionLoss)} /></div>}
       {streamIsDown
         ? (
           <div className="bridge-shell-banner">
@@ -47,7 +46,7 @@ export function ConnectionBanners({
               tone="warn"
               role="alert"
               lead="Launches held."
-              text={installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}
+              text={installHeldRefusal ?? 'The install version changed, so launches are held until the board is updated.'}
             />
           </div>
         )}

@@ -1,6 +1,6 @@
 /**
- * Words an `OperationRefusal` wherever the command line prints one: its own message, or its detail. A Board refusal carries only its reason
- * code and facts, and the install-version mismatch is worded as one paragraph, so a refusal is always one report.
+ * Words an `OperationRefusal` for its channel: its own message, or its detail. A Board refusal carries only its reason code and facts, and
+ * the install-version mismatch is worded as one paragraph, so a refusal is always one report.
  */
 import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { JobMoveTarget }                                from '../../lib/tracker-model/@types/Job.ts';
@@ -24,8 +24,25 @@ type InstallVersionMismatchDetail = Extract<OperationRefusalDetail, { kind: 'ins
 
 type OlderProgramPresentDetail = Extract<OperationRefusalDetail, { kind: 'older-program-present' }>;
 
+/**
+ * Who reads the sentence: a person at the command line, or User through the API, in the Bridge or a monitor. User runs no command, so an
+ * API sentence names what is wrong and, where an action exists, the Bridge control or a neutral action, never a command line or a flag.
+ */
+type RefusalChannel = 'command-line' | 'api';
+
 const NOTHING_WAS_WRITTEN = 'Nothing was written.';
 const WINDOWS_CLAUDE_INSTALL_COMMAND = 'irm https://claude.ai/install.ps1 | iex';
+
+const CHART_RANGE_BOUND_TEXT: Readonly<Record<'from' | 'to', string>> = { from: 'The start', to: 'The end' };
+
+function adviceFor(channel: RefusalChannel, commandLineAdvice: string, apiAdvice: string): string {
+  return channel === 'command-line' ? commandLineAdvice : apiAdvice;
+}
+
+/** The sentences joined by a space, an empty one left out. */
+function sentencesOf(...sentences: readonly string[]): string {
+  return sentences.filter((sentence) => sentence !== '').join(' ');
+}
 
 /** `1 agent is`, `2 agents are`: the count, its noun and the verb agreeing with it. */
 function countedText(count: number, singularNoun: string): string {
@@ -60,39 +77,49 @@ function ticketMoveArgumentsFor(ticketId: string, targetStatus: TaskStatus): str
   return STATUSES_A_TICKET_VERB_REACHES.has(targetStatus) ? `${StatusWordingUtil.verbFor(targetStatus)} ${ticketId}` : `status ${ticketId} ${targetStatus}`;
 }
 
-function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
+function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChannel): string {
   switch (detail.reason) {
     case 'unknown-task':
-      return `There is no task #${detail.taskId}. Run \`${PRODUCT_NAMES.PROGRAM} status\` to see the rows this tracker holds.`;
+      return sentencesOf(`There is no task #${detail.taskId}.`, adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} status\` to see the rows this tracker holds.`, ''));
     case 'ticket-owned-row':
       return `Task #${detail.taskId} belongs to ticket #${detail.ticketId}, so moving it here would leave the row and the ticket disagreeing. `
-        + `Run \`${PRODUCT_NAMES.PROGRAM} ticket ${ticketMoveArgumentsFor(detail.ticketId, detail.targetStatus)}\` instead, which moves both, `
-        + 'or pass --force to move only the row.';
+        + adviceFor(
+          channel,
+          `Run \`${PRODUCT_NAMES.PROGRAM} ticket ${ticketMoveArgumentsFor(detail.ticketId, detail.targetStatus)}\` instead, which moves both, `
+            + 'or pass --force to move only the row.',
+          'Move the ticket instead, which moves both.'
+        );
     case 'ticket-already-has-row':
-      return `Ticket #${detail.ticketId} already has task #${detail.taskId} ("${detail.taskName}"). `
-        + 'Pass --force to move the ticket on to the new row, or leave --ticket off.';
+      return sentencesOf(
+        `Ticket #${detail.ticketId} already has task #${detail.taskId} ("${detail.taskName}").`,
+        adviceFor(channel, 'Pass --force to move the ticket on to the new row, or leave --ticket off.', '')
+      );
     case 'ticket-id-already-filed':
       return `Ticket #${detail.ticketId} is already on the board, so a second ticket cannot take its id. ${NOTHING_WAS_WRITTEN}`;
     case 'task-belongs-to-another-ticket':
-      return `Task #${detail.taskId} already belongs to ticket #${detail.owningTicketId}. Pass --force to move it to ticket #${detail.ticketId}.`;
+      return sentencesOf(
+        `Task #${detail.taskId} already belongs to ticket #${detail.owningTicketId}.`,
+        adviceFor(channel, `Pass --force to move it to ticket #${detail.ticketId}.`, '')
+      );
     case 'ticket-already-in-status':
       return `Ticket #${detail.ticketId} is already ${detail.status}, so nothing was changed and nothing was logged.`;
     case 'illegal-ticket-move':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
-        + `and a move to ${detail.targetStatus} takes a ticket that is ${legalSourcesText(detail.targetStatus)}. `
-        + `Run \`${PRODUCT_NAMES.PROGRAM} ticket status ${detail.ticketId} ${detail.targetStatus}\` if you mean to set it directly.`;
+        + `and a move to ${detail.targetStatus} takes a ticket that is ${legalSourcesText(detail.targetStatus)}.`
+        + adviceFor(channel, ` Run \`${PRODUCT_NAMES.PROGRAM} ticket status ${detail.ticketId} ${detail.targetStatus}\` if you mean to set it directly.`, '');
     case 'move-to-draft':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and no move returns a ticket to draft: `
-        + `filing is the only way in. Run \`${PRODUCT_NAMES.PROGRAM} ticket hold ${detail.ticketId}\` to keep it from being built for now.`;
+        + `filing is the only way in. ${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket hold ${detail.ticketId}\``, 'Hold it')} to keep it from being built for now.`;
     case 'move-of-a-draft':
       return `Ticket #${detail.ticketId} is a draft ticket, so it was not moved: `
-        + `run \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build, which checks its Acceptance and Brief.`;
+        + adviceFor(channel, `run \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build`, 'ready it to build')
+        + ', which checks its Acceptance and Brief.';
     case 'move-to-ready-for-review':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and no move takes a ticket to ready for review: `
-        + `only the filer's close does, with \`${PRODUCT_NAMES.PROGRAM} ticket submit\` or \`intake close\`. ${NOTHING_WAS_WRITTEN}`;
+        + `only the filer's close does${adviceFor(channel, `, with \`${PRODUCT_NAMES.PROGRAM} ticket submit\` or \`intake close\``, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'move-of-a-ticket-ready-for-review':
       return `Ticket #${detail.ticketId} is ready for review, so it was not moved: `
-        + `User reviews it and runs \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build.`;
+        + `User reviews it and ${adviceFor(channel, `runs \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it`, 'readies it')} to build.`;
     case 'ready-of-a-ticket-not-in-draft':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, not a draft ticket, `
         + `so nothing was readied: only a draft ticket is readied. ${NOTHING_WAS_WRITTEN}`;
@@ -100,13 +127,17 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Nothing was readied: ${detail.incompleteTickets.map(incompleteTicketText).join('; ')}. `
         + `Number every Acceptance item as \`A1.\` at the start of a line and write a \`## Brief\`, then ready ${detail.incompleteTickets.length === 1 ? 'it' : 'them'} again.`;
     case 'abandon-without-reason':
-      return `Ticket #${detail.ticketId} was not moved: abandon needs --reason. `
-        + `Say why the work was dropped, for example \`${PRODUCT_NAMES.PROGRAM} ticket abandon 3 --reason "superseded by #7"\`.`;
+      return adviceFor(
+        channel,
+        `Ticket #${detail.ticketId} was not moved: abandon needs --reason. `
+          + `Say why the work was dropped, for example \`${PRODUCT_NAMES.PROGRAM} ticket abandon 3 --reason "superseded by #7"\`.`,
+        `Ticket #${detail.ticketId} was not moved: abandon needs a reason. Say why the work was dropped.`
+      );
     case 'tokens-without-a-row':
-      return `Ticket #${detail.ticketId} has no row, so --tokens has nowhere to be recorded: `
-        + 'a low-priority ticket gets its row when it is started. Drop --tokens.';
+      return `Ticket #${detail.ticketId} has no row, so ${adviceFor(channel, '--tokens has', 'its tokens have')} nowhere to be recorded: `
+        + `a low-priority ticket gets its row when it is started.${adviceFor(channel, ' Drop --tokens.', '')}`;
     case 'rereview-outside-review': {
-      const firstReviewAdvice = TicketMoveUtil.ticketMoveIsLegal(detail.status, 'in-review')
+      const firstReviewAdvice = channel === 'command-line' && TicketMoveUtil.ticketMoveIsLegal(detail.status, 'in-review')
         ? ` Run \`${PRODUCT_NAMES.PROGRAM} ticket status ${detail.ticketId} in-review\` to send it to its first reviewer.`
         : '';
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
@@ -114,16 +145,18 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     }
     case 'review-record-without-a-review-bar':
       return `Ticket #${detail.ticketId} has no in-progress review bar, so there is no review pass to record and nothing was logged. `
-        + `A review is recorded on its own bar: \`${PRODUCT_NAMES.PROGRAM} task add "<name>" --review-of ${detail.ticketId} --start\` starts one.`;
+        + `A review is recorded on its own bar${adviceFor(channel, `: \`${PRODUCT_NAMES.PROGRAM} task add "<name>" --review-of ${detail.ticketId} --start\` starts one`, '')}.`;
     case 'review-bar-without-a-round':
       return `Review bar #${detail.taskId} of ticket #${detail.ticketId} stores no round, so the pass cannot be recorded and nothing was logged. `
-        + `Start the pass on a bar of its own with \`${PRODUCT_NAMES.PROGRAM} task add "<name>" --review-of ${detail.ticketId} --start\`.`;
+        + `Start the pass on a bar of its own${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} task add "<name>" --review-of ${detail.ticketId} --start\``, '')}.`;
     case 'review-record-on-a-row-that-is-not-a-review-bar':
-      return `Row #${detail.taskId} is not an in-progress review bar, so the review of ticket #${detail.ticketId} cannot be recorded on it and nothing was logged. `
-        + 'Pass --bar the row your review runs on, the `agent-progress row:` line of your prompt.';
+      return sentencesOf(
+        `Row #${detail.taskId} is not an in-progress review bar, so the review of ticket #${detail.ticketId} cannot be recorded on it and nothing was logged.`,
+        adviceFor(channel, 'Pass --bar the row your review runs on, the `agent-progress row:` line of your prompt.', '')
+      );
     case 'review-record-on-a-bar-outside-the-bundle':
       return `Review bar #${detail.taskId} reviews ticket #${detail.reviewOf}, which was not claimed with ticket #${detail.ticketId}, `
-        + 'so the review cannot be recorded on it and nothing was logged. Pass --bar the review bar of the bundle holding the ticket.';
+        + `so the review cannot be recorded on it and nothing was logged.${adviceFor(channel, ' Pass --bar the review bar of the bundle holding the ticket.', '')}`;
     case 'unclaimable-status':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `and a claim takes a ticket that is ${legalSourcesText('in-progress')}. `
@@ -132,7 +165,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Ticket #${detail.ticketId} is ${TicketPhraseUtil.waitingOnText(detail.unsettledTicketIds)}, `
         + `which must be reviewed or delivered before it is claimed. ${NOTHING_WAS_WRITTEN}`;
     case 'claim-of-a-held-ticket':
-      return `Ticket #${detail.ticketId} is held, so it is not claimed. Nothing was written; \`${PRODUCT_NAMES.PROGRAM} ticket unhold ${detail.ticketId}\` lets it be claimed.`;
+      return `Ticket #${detail.ticketId} is held, so it is not claimed. Nothing was written; `
+        + `${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} ticket unhold ${detail.ticketId}\``, 'unholding it')} lets it be claimed.`;
     case 'claim-under-review':
       return `Ticket #${detail.ticketId} is under review: its review row #${detail.reviewBarTaskId} is in progress. ${NOTHING_WAS_WRITTEN}`;
     case 'claim-after-a-ticket-not-in-review':
@@ -149,9 +183,15 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
         + `${countedText(detail.agentsInFlight, 'agent')} in flight (${countedText(detail.inProgressRowCount, 'row')} in progress) `
         + `and the concurrency limit is ${detail.limit} ${detail.limit === 1 ? 'agent' : 'agents'}. Nothing was written; claim once an agent has finished.`;
     case 'unknown-dependency':
-      return `There is no ticket ${TicketPhraseUtil.ticketReferencesText(detail.missingTicketIds)}. Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds.`;
+      return sentencesOf(
+        `There is no ticket ${TicketPhraseUtil.ticketReferencesText(detail.missingTicketIds)}.`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds.`, '')
+      );
     case 'unknown-linked-ticket':
-      return `There is no ticket #${detail.missingTicketId}. ${NOTHING_WAS_WRITTEN} Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds.`;
+      return sentencesOf(
+        `There is no ticket #${detail.missingTicketId}. ${NOTHING_WAS_WRITTEN}`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds.`, '')
+      );
     case 'introduced-by-on-a-non-bug':
       return `Ticket #${detail.ticketId} is a ${detail.type}, and only a bug names the ticket that introduced it. ${NOTHING_WAS_WRITTEN}`;
     case 'introduced-by-itself':
@@ -169,40 +209,58 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Group "${detail.group}" differs from the existing group "${detail.existingGroup}" only in case, and a case-insensitive `
         + `file system gives both one branch and one worktree. ${NOTHING_WAS_WRITTEN}`;
     case 'epic-already-exists':
-      return `There is already an epic ${detail.epicKey}. Nothing was written; \`${PRODUCT_NAMES.PROGRAM} epic edit ${detail.epicKey}\` changes it.`;
+      return `There is already an epic ${detail.epicKey}. Nothing was written; `
+        + `${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} epic edit ${detail.epicKey}\` changes it`, 'edit that epic to change it')}.`;
     case 'unknown-epic':
-      return `There is no epic ${detail.missingEpicKeys.join(', ')}. Nothing was written; run \`${PRODUCT_NAMES.PROGRAM} epic list\` to see what this tracker holds.`;
+      return `There is no epic ${detail.missingEpicKeys.join(', ')}. `
+        + adviceFor(channel, `Nothing was written; run \`${PRODUCT_NAMES.PROGRAM} epic list\` to see what this tracker holds.`, NOTHING_WAS_WRITTEN);
     case 'epic-still-named':
       return `Epic ${detail.epicKey} was not removed: ${TicketPhraseUtil.ticketReferencesText(detail.ticketIds)} still `
         + `${detail.ticketIds.length === 1 ? 'names' : 'name'} it. Nothing was written; `
-        + `\`${PRODUCT_NAMES.PROGRAM} ticket epic <id> --remove ${detail.epicKey}\` takes it off a ticket.`;
+        + adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} ticket epic <id> --remove ${detail.epicKey}\` takes it off a ticket.`, 'take it off each ticket first.');
     case 'unknown-draft':
-      return `There is no open draft ${detail.draftId}. ${NOTHING_WAS_WRITTEN} Run \`${PRODUCT_NAMES.PROGRAM} draft list\` to see what this tracker holds.`;
+      return sentencesOf(
+        `There is no open draft ${detail.draftId}. ${NOTHING_WAS_WRITTEN}`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} draft list\` to see what this tracker holds.`, '')
+      );
     case 'draft-claimed-by-another-owner':
       return `Draft ${detail.draftId} was not claimed: ${detail.owner} holds it. ${NOTHING_WAS_WRITTEN} `
-        + `Add --force to take it over, or wait for \`${PRODUCT_NAMES.PROGRAM} draft release ${detail.draftId}\`.`;
+        + adviceFor(
+          channel,
+          `Add --force to take it over, or wait for \`${PRODUCT_NAMES.PROGRAM} draft release ${detail.draftId}\`.`,
+          'Take it over, or wait until it is released.'
+        );
     case 'draft-closed-into-unknown-tickets':
       return `Draft ${detail.draftId} was not closed: there is no ticket ${detail.missingTicketReferences.join(', ')}. ${NOTHING_WAS_WRITTEN} `
         + 'File the tickets first, then close the draft into their ids.';
     case 'draft-has-open-questions':
       return `Draft ${detail.draftId} was not closed: ${detail.openQuestionIds.join(', ')} ${detail.openQuestionIds.length === 1 ? 'is' : 'are'} `
-        + `still open. ${NOTHING_WAS_WRITTEN} Answer them with \`${PRODUCT_NAMES.PROGRAM} draft answer\`, or drop the moot ones with \`${PRODUCT_NAMES.PROGRAM} draft drop\`.`;
+        + `still open. ${NOTHING_WAS_WRITTEN} `
+        + adviceFor(
+          channel,
+          `Answer them with \`${PRODUCT_NAMES.PROGRAM} draft answer\`, or drop the moot ones with \`${PRODUCT_NAMES.PROGRAM} draft drop\`.`,
+          'Answer them, or drop the moot ones.'
+        );
     case 'unknown-draft-question':
-      return `Draft ${detail.draftId} has no question ${detail.questionId}. ${NOTHING_WAS_WRITTEN} `
-        + `Run \`${PRODUCT_NAMES.PROGRAM} draft show ${detail.draftId}\` to see its questions.`;
+      return sentencesOf(
+        `Draft ${detail.draftId} has no question ${detail.questionId}. ${NOTHING_WAS_WRITTEN}`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} draft show ${detail.draftId}\` to see its questions.`, '')
+      );
     case 'unknown-draft-item':
-      return `Draft ${detail.draftId} has no note or question ${detail.itemId}. ${NOTHING_WAS_WRITTEN} `
-        + `Run \`${PRODUCT_NAMES.PROGRAM} draft show ${detail.draftId}\` to see what it holds.`;
+      return sentencesOf(
+        `Draft ${detail.draftId} has no note or question ${detail.itemId}. ${NOTHING_WAS_WRITTEN}`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} draft show ${detail.draftId}\` to see what it holds.`, '')
+      );
     case 'draft-question-option-count':
       return `A question takes ${detail.minimum} to ${detail.maximum} options, and ${detail.optionCount} ${detail.optionCount === 1 ? 'was' : 'were'} given. `
         + NOTHING_WAS_WRITTEN;
     case 'draft-question-without-recommendation':
-      return `A question needs --recommended <letter>, the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;
+      return `A question needs ${adviceFor(channel, '--recommended <letter>, ', '')}the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-draft-option-letters':
       return `There is no option ${detail.unknownLetters.join(', ')}: the options are ${detail.optionLetters.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
     case 'several-letters-on-single-select-question':
-      return `${detail.letters.join(', ')} names several options, and the question takes one: only a question asked with --multiple takes `
-        + `several. ${NOTHING_WAS_WRITTEN}`;
+      return `${detail.letters.join(', ')} names several options, and the question takes one: only a question asked `
+        + `${adviceFor(channel, 'with --multiple takes several', 'to take several options does')}. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-gate':
       return `There is no gate ${detail.gateName}: ${detail.gateNames.length === 0 ? 'none is stored' : `the gates are ${detail.gateNames.join(', ')}`}. `
         + NOTHING_WAS_WRITTEN;
@@ -213,10 +271,11 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'phase-order-not-a-reorder':
       return `The ${detail.phase} phase was not reordered: `
         + `${detail.phaseGateNames.length === 0 ? 'it runs no gate' : `name each of ${detail.phaseGateNames.join(', ')} once, and no other gate`}. `
-        + `Nothing was written; \`${PRODUCT_NAMES.PROGRAM} gate add <name> --phases\` changes the phases a gate runs in.`;
+        + adviceFor(channel, `Nothing was written; \`${PRODUCT_NAMES.PROGRAM} gate add <name> --phases\` changes the phases a gate runs in.`, NOTHING_WAS_WRITTEN);
     case 'approval-without-pipeline':
-      return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first with `
-        + `\`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\`. ${NOTHING_WAS_WRITTEN}`;
+      return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first`
+        + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
+        + `. ${NOTHING_WAS_WRITTEN}`;
     case 'gate-profiles-unreadable':
       return `The gate profile runs cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove gate-profiles.json in the data folder.`;
     case 'gate-profile-running':
@@ -318,7 +377,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
         + `since a low ticket has no row until it is started. ${NOTHING_WAS_WRITTEN}`;
     case 'edit-of-a-ticket-past-pending':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and it was not edited: an agent may already be working from it. `
-        + `${NOTHING_WAS_WRITTEN} Pass --force to edit it anyway; the change shows as the body changed since the claim.`;
+        + NOTHING_WAS_WRITTEN
+        + adviceFor(channel, ' Pass --force to edit it anyway; the change shows as the body changed since the claim.', '');
     case 'network-of-a-ticket-past-pending':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its network line was not changed: `
         + `it is set only while the ticket is draft or pending. ${NOTHING_WAS_WRITTEN}`;
@@ -351,14 +411,15 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return detail.releaseTicketId === detail.ticketId
         ? `Ticket #${detail.ticketId} is already the release ticket of group ${detail.group}. ${NOTHING_WAS_WRITTEN}`
         : `Group ${detail.group} already has its release ticket, #${detail.releaseTicketId}: `
-          + `clear it with \`${PRODUCT_NAMES.PROGRAM} ticket release-of ${detail.releaseTicketId} --clear\` first. ${NOTHING_WAS_WRITTEN}`;
+          + `clear ${adviceFor(channel, `it with \`${PRODUCT_NAMES.PROGRAM} ticket release-of ${detail.releaseTicketId} --clear\``, 'its release mark')} `
+          + `first. ${NOTHING_WAS_WRITTEN}`;
     case 'ticket-is-not-a-release-ticket':
       return `Ticket #${detail.ticketId} is not its group's release ticket. ${NOTHING_WAS_WRITTEN}`;
     case 'reopen-beside-an-open-release-ticket':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)} `
         + `and carries the release mark of group ${detail.group}, so it was not moved to ${detail.targetStatus}: `
         + `the group already has its open release ticket, #${detail.releaseTicketId}, and a group has one. `
-        + `Clear that mark with \`${PRODUCT_NAMES.PROGRAM} ticket release-of ${detail.releaseTicketId} --clear\` first. ${NOTHING_WAS_WRITTEN}`;
+        + `Clear that mark${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} ticket release-of ${detail.releaseTicketId} --clear\``, '')} first. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-job':
       return `There is no job ${detail.jobId}. ${NOTHING_WAS_WRITTEN}`;
     case 'job-finished':
@@ -370,7 +431,7 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'question-options-malformed':
       return `The option notes for job ${detail.jobId} are malformed: ${detail.field} ${OPTION_NOTES_PROBLEM_TEXT[detail.problem]}. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-empty':
-      return `The title for the intake of job ${detail.jobId} is blank: write a short title after --. ${NOTHING_WAS_WRITTEN}`;
+      return `The title for the intake of job ${detail.jobId} is blank: write a short title${adviceFor(channel, ' after --', '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-empty':
       return `The intake request is blank and carries no picture: write what the product owner should file. ${NOTHING_WAS_WRITTEN}`;
     case 'pictures-not-taken':
@@ -385,14 +446,14 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
       return `Ticket #${detail.ticketId} was not queued to merge: the Overseer's last green gate run was not on its HEAD tree `
         + `${detail.headTree ?? '(unreadable)'} under the current pipeline. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-approval-off':
-      return `Merge approval is off, so ticket #${detail.ticketId} needs no accept: switch it on with `
-        + `\`${PRODUCT_NAMES.PROGRAM} gate approval merge on\`. ${NOTHING_WAS_WRITTEN}`;
+      return `Merge approval is off, so ticket #${detail.ticketId} needs no accept: switch it on`
+        + `${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate approval merge on\``, ' in the pipeline')}. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-accept-of-a-ticket-not-waiting':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)} and does not wait for merge: only a ticket `
         + `in review whose review passed on a green tree, with no job on it, does. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-accept-would-conflict':
       return `Ticket #${detail.ticketId} was not accepted: its branch conflicts with ${detail.target} in ${detail.conflictedFiles.join(', ')}. `
-        + `Bring it up to date with \`${PRODUCT_NAMES.PROGRAM} merge update ${detail.ticketId}\` first. ${NOTHING_WAS_WRITTEN}`;
+        + `Bring it up to date${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} merge update ${detail.ticketId}\``, '')} first. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-accept-prediction-failed':
       return `Ticket #${detail.ticketId} was not accepted: git could not predict its merge into ${detail.target} (${detail.gitReason}). `
         + `${NOTHING_WAS_WRITTEN}`;
@@ -442,8 +503,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'no-open-incident':
       return `${detail.subject} has no open incident that allows ${detail.move}; it is legal only as an incident's move. ${NOTHING_WAS_WRITTEN}`;
     case 'several-open-incidents':
-      return `${detail.subject} has several open incidents that allow ${detail.move} (${detail.incidentIds.join(', ')}); name one with --incident. `
-        + NOTHING_WAS_WRITTEN;
+      return `${detail.subject} has several open incidents that allow ${detail.move} (${detail.incidentIds.join(', ')}); `
+        + `name one${adviceFor(channel, ' with --incident', '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-in-use':
       return `Job ${detail.jobIds.join(', ')} still runs on the worktree of #${detail.ticketId}; stop it first. ${NOTHING_WAS_WRITTEN}`;
     case 'worktree-has-uncommitted-work':
@@ -459,14 +520,15 @@ function legalJobSourcesText(targetState: JobMoveTarget): string {
   return sourceStates.length === 0 ? 'being launched' : sourceStates.join(' or ');
 }
 
-function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): string {
+function installVersionMismatchSentenceOf(detail: InstallVersionMismatchDetail, channel: RefusalChannel): string {
   const {
     rootDirectory,
     manifestFilePath,
     installVersion,
     mismatch,
   } = detail;
-  const runUpdateSentence = `Run \`${PRODUCT_NAMES.PROGRAM} update\` in ${rootDirectory}.`;
+  const updateAction = adviceFor(channel, `run \`${PRODUCT_NAMES.PROGRAM} update\` in ${rootDirectory}`, 'update the board');
+  const runUpdateSentence = adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} update\` in ${rootDirectory}.`, 'Update the board.');
   switch (mismatch.reason) {
     case 'older':
       return `The files ${PRODUCT_NAMES.PROGRAM} installed in ${rootDirectory} are install version ${mismatch.installedVersion}, from an older ${PRODUCT_NAMES.PROGRAM}, `
@@ -474,7 +536,7 @@ function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): 
     case 'newer':
       return `The files ${PRODUCT_NAMES.PROGRAM} installed in ${rootDirectory} are install version ${mismatch.installedVersion}, from a newer ${PRODUCT_NAMES.PROGRAM} `
         + `than this one (install version ${installVersion}), so nothing was done. Update ${PRODUCT_NAMES.PROGRAM} itself, `
-        + `then run \`${PRODUCT_NAMES.PROGRAM} update\` in ${rootDirectory}.`;
+        + `then ${updateAction}.`;
     case 'unversioned':
       return `The files ${PRODUCT_NAMES.PROGRAM} installed in ${rootDirectory} carry no install version (${manifestFilePath} is missing), so they are from `
         + `an ${PRODUCT_NAMES.PROGRAM} older than this one, which needs install version ${installVersion}; nothing was done. ${runUpdateSentence}`;
@@ -483,31 +545,36 @@ function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): 
         + `${rootDirectory} is unknown and nothing was done. ${runUpdateSentence}`;
     case 'manifest-is-a-directory':
       return `${manifestFilePath} is a directory where ${PRODUCT_NAMES.PROGRAM} keeps its install version file, so nothing was done. `
-        + `Remove that directory, then run \`${PRODUCT_NAMES.PROGRAM} update\` in ${rootDirectory}.`;
+        + `Remove that directory, then ${updateAction}.`;
   }
 }
 
-function noTrackerAtOverrideText(overrideDirectory: string): string {
-  return `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${overrideDirectory}, which ${ROOT_OVERRIDE_VARIABLE} names. `
-    + `Run \`${PRODUCT_NAMES.PROGRAM} init\` there, or unset ${ROOT_OVERRIDE_VARIABLE} to search upwards from the current directory instead.`;
+function noTrackerAtOverrideText(overrideDirectory: string, channel: RefusalChannel): string {
+  return sentencesOf(
+    `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${overrideDirectory}, which ${ROOT_OVERRIDE_VARIABLE} names.`,
+    adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} init\` there, or unset ${ROOT_OVERRIDE_VARIABLE} to search upwards from the current directory instead.`, '')
+  );
 }
 
 /** Not `OLDER_FORMAT_ADVICE`: no release converts a pipeline, so running `update` with an earlier one would not help. */
-function olderPipelineText(filePath: string): string {
+function olderPipelineText(filePath: string, channel: RefusalChannel): string {
   return `${filePath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, and no release `
     + 'converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up again on the '
-    + `Pipeline tab of the Bridge, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\`.`;
+    + `Pipeline tab of the Bridge${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
 }
 
 function olderProgramPresentText({
   rootDirectory, olderDataFolderPath, program, olderProgram
-}: OlderProgramPresentDetail): string {
+}: OlderProgramPresentDetail, channel: RefusalChannel): string {
   return `${olderDataFolderPath} holds what ${olderProgram} keeps for ${rootDirectory}, and ${program} is built to run beside it only in a `
-    + `repository ${olderProgram} does not track, so nothing was written. Run ${program} in a scratch repository instead.`;
+    + `repository ${olderProgram} does not track, so nothing was written. ${adviceFor(channel, `Run ${program} in`, 'Use')} a scratch repository instead.`;
 }
 
-function noTrackerFoundText(searchedFrom: string): string {
-  return `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${searchedFrom} or any directory above it. Run \`${PRODUCT_NAMES.PROGRAM} init\` in the repository you want tracked.`;
+function noTrackerFoundText(searchedFrom: string, channel: RefusalChannel): string {
+  return sentencesOf(
+    `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${searchedFrom} or any directory above it.`,
+    adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} init\` in the repository you want tracked.`, '')
+  );
 }
 
 function trackerLockHeldText(lockDirectoryPath: string): string {
@@ -536,18 +603,18 @@ function unreadableTrackerText(reading: UnreadableTracker): string {
   return `${reading.filePath} cannot be read: ${reading.reason}`;
 }
 
-function messageOf(refusal: OperationRefusal): string {
+function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): string {
   const { detail } = refusal;
   if (detail === null) return refusal.message;
   switch (detail.kind) {
     case 'board-refusal':
-      return boardRefusalMessageOf(detail.boardRefusal);
+      return boardRefusalSentenceOf(detail.boardRefusal, channel);
     case 'unreadable-tracker':
       return unreadableTrackerText(detail.reading);
     case 'no-tracker-at-override':
-      return noTrackerAtOverrideText(detail.overrideDirectory);
+      return noTrackerAtOverrideText(detail.overrideDirectory, channel);
     case 'no-tracker-found':
-      return noTrackerFoundText(detail.searchedFrom);
+      return noTrackerFoundText(detail.searchedFrom, channel);
     case 'tracker-lock-held':
       return trackerLockHeldText(detail.lockDirectoryPath);
     case 'lock-taken-over':
@@ -557,12 +624,14 @@ function messageOf(refusal: OperationRefusal): string {
     case 'hold-journal-unremovable':
       return holdJournalUnremovableText(detail.journalFilePath, detail.reason);
     case 'install-version-mismatch':
-      return installVersionMismatchMessageOf(detail);
+      return installVersionMismatchSentenceOf(detail, channel);
     case 'older-program-present':
-      return olderProgramPresentText(detail);
+      return olderProgramPresentText(detail, channel);
     case 'no-readable-ticket':
-      return `There is no readable ticket ${detail.reference}. Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds; `
-        + 'a file that will not parse is reported there as malformed.';
+      return sentencesOf(
+        `There is no readable ticket ${detail.reference}.`,
+        adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see what this tracker holds; a file that will not parse is reported there as malformed.`, '')
+      );
     case 'malformed-ticket-file':
       return `Ticket file ignored: ${detail.filePath}${detail.line > 0 ? ` (line ${detail.line})` : ''}: ${detail.reason}`;
     case 'unreadable-file-in-the-way':
@@ -572,7 +641,7 @@ function messageOf(refusal: OperationRefusal): string {
       return `${detail.filePath} cannot be read as a pipeline (${detail.reason}), so it is not overwritten. Nothing was written; repair `
         + 'or delete it first.';
     case 'older-pipeline':
-      return olderPipelineText(detail.filePath);
+      return olderPipelineText(detail.filePath, channel);
     case 'role-command-refused':
       return `The Overseer refused the relayed ${detail.commandKind}: ${ROLE_COMMAND_REFUSAL_TEXT[detail.reason]} (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
     case 'verb-not-relayable':
@@ -581,10 +650,11 @@ function messageOf(refusal: OperationRefusal): string {
     case 'malformed-hatch-reply':
       return `The Overseer's reply ${detail.replyFilePath} cannot be read, so whether the request was applied is unknown.`;
     case 'overseer-already-running':
-      return `An Overseer already serves this board at ${detail.url} (${detail.batonFilePath}). Stop it first with \`${PRODUCT_NAMES.PROGRAM} oversee stop\`.`;
+      return `An Overseer already serves this board at ${detail.url} (${detail.batonFilePath}). `
+        + `Stop it first${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} oversee stop\``, '')}.`;
     case 'overseer-down':
       return `No Overseer serves this board (${detail.overseerDirectory} holds no live Baton), so there is nothing to open. `
-        + `Run \`${PRODUCT_NAMES.PROGRAM} open\` again to start one.`;
+        + `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} open\``, 'Open the board')} again to start one.`;
     case 'overseer-contended':
       return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
@@ -604,21 +674,22 @@ function messageOf(refusal: OperationRefusal): string {
         + 'hard link: move the data folder to a filesystem that allows one.';
     case 'overseer-port-in-use':
       return detail.firstPort === detail.lastPort
-        ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so the Overseer did not start. Pass another --port, or 0 for any free one.`
-        : `Every port from ${detail.firstPort} to ${detail.lastPort} on 127.0.0.1 is in use, so the Overseer did not start. Pass a free one with --port.`;
+        ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so the Overseer did not start.${adviceFor(channel, ' Pass another --port, or 0 for any free one.', '')}`
+        : `Every port from ${detail.firstPort} to ${detail.lastPort} on 127.0.0.1 is in use, so the Overseer did not start.`
+          + adviceFor(channel, ' Pass a free one with --port.', '');
     case 'overseer-identity-unreadable':
       return detail.identitySources.length === 0
         ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold an Overseer Baton.`
         : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold an Overseer Baton.`;
     case 'overseer-did-not-start':
       return `The detached Overseer exited${detail.exitCode === null ? '' : ` with code ${detail.exitCode}`} before it answered. `
-        + `Its log is ${detail.logFilePath}; run \`${PRODUCT_NAMES.PROGRAM} oversee\` in the foreground to see why.`;
+        + `Its log is ${detail.logFilePath}${adviceFor(channel, `; run \`${PRODUCT_NAMES.PROGRAM} oversee\` in the foreground to see why`, ', which may name the cause')}.`;
     case 'overseer-still-live':
       return `The Overseer at ${detail.url} (process ${detail.processId}) is still live after being asked to stop; its Baton was left as it is.`;
     case 'baton-pass-failed':
       return `The Baton pass to code ${detail.successorCodeVersion} failed at ${detail.step}: ${detail.error}. `
         + `The old Overseer keeps driving${detail.url === null ? '' : ` at ${detail.url}`} and shows this as a warning; `
-        + `see \`${PRODUCT_NAMES.PROGRAM} oversee status\` and the Overseer log.`;
+        + `see ${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} oversee status\` and `, '')}the Overseer log.`;
     case 'overseer-control-is-runtime-only':
       return `${detail.commandKind} is sent to the live Overseer, never applied to the board. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-close-without-job':
@@ -657,8 +728,8 @@ function messageOf(refusal: OperationRefusal): string {
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'overseer-owns-the-lifecycle':
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
-        + `Record the work with Delivered by hand… on the ticket's form in the Bridge, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first. `
-        + NOTHING_WAS_WRITTEN;
+        + 'Record the work with Delivered by hand… on the ticket\'s form in the Bridge'
+        + `${adviceFor(channel, `, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'watcher-bundle-failed':
       return `The Watcher entry ${detail.entryPath} did not bundle, so the Overseer cannot spawn Watchers: ${detail.reason}`;
     case 'watcher-endpoint-does-not-fit':
@@ -666,10 +737,11 @@ function messageOf(refusal: OperationRefusal): string {
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'chart-range-bound-unreadable':
-      return `--${detail.bound} "${detail.written}" could not be read as a time, so it is not a range bound. `
+      return `${adviceFor(channel, `--${detail.bound}`, CHART_RANGE_BOUND_TEXT[detail.bound])} "${detail.written}" could not be read as a time, so it is not a range bound. `
         + 'Write an ISO 8601 timestamp, `start`, `now`, or a signed offset from now such as `-2h` or `+30m`.';
     case 'chart-range-backwards':
-      return `--from "${detail.from}" is not before --to "${detail.to}", so the axis would have no width. Swap them, or widen the window.`;
+      return `${adviceFor(channel, '--from', CHART_RANGE_BOUND_TEXT.from)} "${detail.from}" is not before ${adviceFor(channel, '--to', 'the end')} "${detail.to}", `
+        + 'so the axis would have no width. Swap them, or widen the window.';
     case 'chart-range-tick-unreadable':
       return `A tick of ${detail.tickMinutes} minutes is not a whole number of minutes above zero. ${NOTHING_WAS_WRITTEN}`;
     case 'tracker-has-live-jobs':
@@ -711,8 +783,27 @@ function agentProgramRefusalTextOf(jobId: string, cause: ExecutableRefusalCause,
   return `job ${jobId} is not launched: ${reason}${repair}`;
 }
 
+function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
+  return boardRefusalSentenceOf(detail, 'command-line');
+}
+
+function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): string {
+  return installVersionMismatchSentenceOf(detail, 'command-line');
+}
+
+/** The sentence the command line prints. */
+function messageOf(refusal: OperationRefusal): string {
+  return refusalSentenceOf(refusal, 'command-line');
+}
+
+/** The sentence an API answer carries for the Bridge or a monitor to show as it is: the same facts, and no command line or flag. */
+function apiMessageOf(refusal: OperationRefusal): string {
+  return refusalSentenceOf(refusal, 'api');
+}
+
 export const OperationRefusalWordingUtil = {
   agentProgramRefusalTextOf,
+  apiMessageOf,
   boardRefusalMessageOf,
   installVersionMismatchMessageOf,
   messageOf,

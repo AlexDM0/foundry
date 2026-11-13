@@ -33,6 +33,7 @@ import { GATE_PROFILE_RUNS_FOLDER }                                             
 import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }                         from '../../src/shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                                                from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                      from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { COMMAND_LINE_FORM }                                                            from '../../src/testing/CommandLineForm.ts';
 import { recordAnswer }                                                                 from '../../src/testing/RecordedAnswers.ts';
 import { useRecordedGit }                                                               from '../../src/testing/RecordedGit.ts';
 import { type SharedRecordedGitFlow, shareRecordedGitFlow, withRecordedGitFirstOnPath } from '../../src/testing/RecordedGitProgram.ts';
@@ -192,7 +193,9 @@ describe('the Overseer API on a scratch board', () => {
     expect(summary['summaryVersion']).toBe(1);
 
     const monitorRefused = await fetch(new URL('api/monitor', url));
-    expect([monitorRefused.status, Object.keys(await monitorRefused.json() as object)]).toEqual([401, ['refusal', 'text']]);
+    const monitorRefusal = await monitorRefused.json() as Record<string, unknown>;
+    expect([monitorRefused.status, Object.keys(monitorRefusal)]).toEqual([401, ['refusal', 'text']]);
+    expect(String(monitorRefusal['text'])).not.toMatch(COMMAND_LINE_FORM);
     const monitor = await (await fetch(new URL('api/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));

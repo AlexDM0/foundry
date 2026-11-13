@@ -41,7 +41,7 @@
         "body": {
           "controlVersion": 1,
           "refusal": "no-readable-ticket",
-          "text": "There is no readable ticket 999. Run `forge ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed."
+          "text": "There is no readable ticket 999."
         }
       }
     },

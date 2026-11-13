@@ -503,10 +503,10 @@ describe('OverseerServer gate profile streams', () => {
 
 describe('the answers the Overseer clients read', () => {
   const RECORDED_PROCESS_ID = 4242;
-  const INSTALL_HELD_REFUSAL = `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`;
+  const INSTALL_HELD_TEXT = 'The install version changed, so launches are held until the board is updated.';
 
   test('A1: each route a client calls answers, and each refusal refuses, as recorded under the record command', async () => {
-    const installHeldAnswer = { status: 423, body: { refusal: INSTALL_HELD_REFUSAL } };
+    const installHeldAnswer = { status: 423, body: { controlVersion: 1, refusal: 'launches-held-by-install-change', text: INSTALL_HELD_TEXT } };
     const { server } = startExampleServer({ command: async () => installHeldAnswer }, undefined, RECORDED_PROCESS_ID);
     const replacements: [string, string][] = [[String(server.port), OVERSEER_PLACEHOLDERS.PORT], [TOKEN, OVERSEER_PLACEHOLDERS.TOKEN]];
     const recordedAs = async (callShape: string, response: Promise<Response>, expectedStatus: number): Promise<Response> => {

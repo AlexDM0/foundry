@@ -32,7 +32,9 @@ Every route passes the shared [request guards](#request-guards), so every route 
 the route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except
 on 409, 413, 415 and 423, where it is a sentence. A 401, a 403 and the 500s `read-failed` and `page-build-failed` are
 `{refusal, text}`: the fixed word, and beside it the sentence a client shows unedited, worded in
-`cli/overseer/routes/OverseerRoutes.ts`. A bare verb such as `oversee status` is `forge oversee status`.
+`cli/overseer/routes/OverseerRoutes.ts`. No sentence an answer carries names a command line or a flag: User runs no
+command, so a sentence names what is wrong and the Bridge control or a neutral action, such as "open the board again".
+A bare verb such as `oversee status` is `forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
@@ -185,7 +187,7 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
 | 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
-| 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is worded by `OperationRefusalWordingUtil`, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
+| 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is the API sentence of `OperationRefusalWordingUtil` (`apiMessageOf`), and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
@@ -596,7 +598,8 @@ a number it knows; a forge with no `contracts` key serves `summary` 1 alone.
 ## The monitor contract
 
 `GET /api/monitor` answers one `MonitorSnapshot`: what a monitor outside the board needs, and nothing else. It holds no
-ticket body, no transcript and no draft text. Every sentence in it is worded by the forge and shown unedited.
+ticket body, no transcript and no draft text. Every sentence in it is worded by the forge and shown unedited, and none
+names a command line: the new-code notice asks to restart the Overseer, the install notice to update the board.
 `monitorVersion` is the version of the shape, `contracts.monitor` on the identity. The snapshot is read fresh for each
 request, from the same reading as `BoardState`.
 

@@ -171,12 +171,12 @@ describe('the shell\'s controls', () => {
   test('a 423 raises the install-change banner with the Overseer\'s sentence and disables every control', async () => {
     const bridge = fakeBridge();
     await renderedLive(bridge);
-    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed: run `forge update`.' });
+    bridge.answerWith({ verdict: 'install-held', refusal: 'The install version changed, so launches are held until the board is updated.' });
     await act(async () => {
       fireEvent.click(pauseButton());
       await Promise.resolve();
     });
-    expect(screen.getByRole('alert').textContent).toBe('Launches held.The install version changed: run `forge update`.');
+    expect(screen.getByRole('alert').textContent).toBe('Launches held.The install version changed, so launches are held until the board is updated.');
     expect(pauseButton().disabled).toBe(true);
   });
 
@@ -310,7 +310,7 @@ describe('waiting on User', () => {
 });
 
 describe('the session banner', () => {
-  const OPEN_AGAIN = `Run \`${PRODUCT_NAMES.PROGRAM} open\` again.`;
+  const OPEN_AGAIN = 'Open the board again.';
 
   test('A3: a refused session code shows that another process may have used it, in place of the wait for a board', () => {
     const bridge = fakeBridge();

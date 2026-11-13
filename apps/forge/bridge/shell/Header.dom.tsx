@@ -200,9 +200,9 @@ describe('the Overseer controls', () => {
     expect(sent).toEqual([{ kind: 'overseer-resume' }]);
   });
 
-  test('with new code on disk Restart posts overseer-restart, beside the notice pointing at update', async () => {
+  test('with new code on disk Restart posts overseer-restart, beside the notice pointing at it', async () => {
     const sent = renderedHeader(boardStateFixture({ notices: [{ kind: 'new-code' }] }));
-    expect(screen.getByText(/^new code: run `.* update`$/u)).toBeDefined();
+    expect(screen.getByText('new code is on disk: restart the Overseer to run it')).toBeDefined();
     await clicked('Restart');
     expect(sent).toEqual([{ kind: 'overseer-restart', now: false }]);
   });
@@ -656,9 +656,9 @@ describe('the header in setup', () => {
     expect(document.querySelector('.bridge-status-details')).toBeNull();
   });
 
-  test('with new code on disk it shows the notice pointing at update, though it offers no Restart', () => {
+  test('with new code on disk it shows the new-code notice, though it offers no Restart', () => {
     renderedSetupHeader({ ...pipelineBoardStateOf('A0'), notices: [{ kind: 'new-code' }] });
-    expect(document.querySelector('.bridge-status-notice')?.textContent).toMatch(/^new code: run `.* update`$/u);
+    expect(document.querySelector('.bridge-status-notice')?.textContent).toBe('new code is on disk: restart the Overseer to run it');
     expect(screen.queryByRole('button', { name: 'Restart' })).toBeNull();
   });
 });

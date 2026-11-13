@@ -1,12 +1,15 @@
 /**
  * A refusal is what the person who ran the command reads, and scripts match on it, so each reason must word as the command did before
  * the Board refused for it. The frozen table pins one row per reason, plus both hold actions, the singular and plural limit, a
- * rereview with and without the first-review advice, and a ticket-owned row sent to each end of the verb table.
+ * rereview with and without the first-review advice, and a ticket-owned row sent to each end of the verb table. Through the API, which
+ * the Bridge and a monitor show to User, no reason names a command line or a flag.
  */
 import { expect, test } from 'bun:test';
 
 import type { BoardRefusalDetail }               from '../../lib/tracker-model/BoardRefusal.ts';
+import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES } from '../../shared/constants/ProductNames.ts';
+import { COMMAND_LINE_FORM }                     from '../../testing/CommandLineForm.ts';
 import { OperationRefusalWordingUtil }           from './OperationRefusalWordingUtil.ts';
 
 const { boardRefusalMessageOf: messageOf } = OperationRefusalWordingUtil;
@@ -386,6 +389,14 @@ const REFUSAL_REASON_COUNT = 49;
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);
   for (const [detail, message] of MESSAGE_FOR_REFUSAL) expect(messageOf(detail), detail.reason).toBe(namingThisProgram(message));
+});
+
+test('through the API no reason names a command line or a flag, though the command line names one for some', () => {
+  const apiSentenceOf = (detail: BoardRefusalDetail): string => OperationRefusalWordingUtil.apiMessageOf(
+    new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: detail })
+  );
+  expect(MESSAGE_FOR_REFUSAL.filter(([detail]) => COMMAND_LINE_FORM.test(messageOf(detail))).length).toBeGreaterThan(0);
+  for (const [detail] of MESSAGE_FOR_REFUSAL) expect(apiSentenceOf(detail), detail.reason).not.toMatch(COMMAND_LINE_FORM);
 });
 
 // No earlier command refused for a job, so these rows are this suite's own wording; an illegal move names the states the table allows.

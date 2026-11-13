@@ -125,7 +125,7 @@ function opensAPage(nodesOfTheFile: readonly ts.Node[]): boolean {
   });
 }
 
-/** Only a bare name: `SessionWordingUtil.openCommand()` is another function. */
+/** Only a bare name: `ExampleWordingUtil.openCommand()` is another function. */
 function calleeNameOf(call: ts.CallExpression): string {
   return ts.isIdentifier(call.expression) ? call.expression.text : '';
 }
@@ -266,7 +266,7 @@ describe('what the guard leaves alone', () => {
     ['an opener on a mock', 'recorded.spawn([\'open\', url]);'],
     ['`openInTheDefaultBrowser` under a spy on Bun.spawn', 'spyOn(Bun, \'spawn\').mockImplementation(fake);\nopenInTheDefaultBrowser(context, url);'],
     ['the `open` command line under a mock of the opener module', 'mock.module(\'../../OpenInTheDefaultBrowser.ts\', () => ({}));\nawait runCommandLine([\'open\'], context);'],
-    ['a member of another object named `openCommand`', 'SessionWordingUtil.openCommand();'],
+    ['a member of another object named `openCommand`', 'ExampleWordingUtil.openCommand();'],
     ['another command line run in this process', 'await runCommandLine([\'status\', \'--json\'], context);'],
     ['another command line in a spawned binary', 'await runAgentProgress([\'render\'], options);'],
   ])('%s', (_form, text) => {

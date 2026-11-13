@@ -23,14 +23,19 @@ them:
 3. **`--json` does not change a refusal, with seven exceptions.** A refused command prints its sentence on standard
    error and nothing on standard output, with or without `--json`. Under `--json`, `start`, `stop`, `init`, `update`,
    `version`, `machine` and `login-item` also print `{answerVersion, refusal, text}` on standard output: the code and
-   the sentence. A refusal worded from the arguments has the code `arguments-refused`.
-4. **The [Bridge](../glossary.md#bridge) shows the same sentence,** beside the Bridge control that was used.
+   the API sentence (rule 4), since a program such as Gaia shows it. A refusal worded from the arguments has the code
+   `arguments-refused`.
+4. **The [Bridge](../glossary.md#bridge) and a monitor show the API sentence,** beside the Bridge control that was used.
+   It holds the same facts as the terminal's sentence, so the words in the first column match both. Where the terminal
+   names a command or a flag, the API sentence names the Bridge control or a neutral action instead, or ends at the
+   facts: User runs no command. "Run `ticket hold <ticket>` to keep it" reads "Hold it to keep it", and "Run `update`"
+   reads "Update the board".
 5. **A [session](../glossary.md#session) under a [job](../glossary.md#job) sees the same sentence too,** worded by its
    own command from the [Hatch](../glossary.md#hatch) reply.
 
 ![Three doors, a terminal command, a Bridge control and a session under a job, reach the same rules. A rule refuses with a code and facts and one wording util turns that into one sentence, which lands on standard error at exit 1 or 2, in a 409 answer shown beside the Bridge control, or, through a Hatch reply carrying the code, on the standard error of the session's own command.](../figures/refusals/one-refusal-three-doors.png)
 
-*Words live in one place, so a sentence here is the sentence at every door.*
+*Words live in one place, so a sentence here is the sentence at every door; through the API it names no command.*
 
 ## The rules in full
 
@@ -45,7 +50,7 @@ status through the reply, so a session exits as a direct run would.
 | Answer | Shown as | Cause | What to do |
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the Bridge control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
-| 423 | `The install version changed` in the shell banner | Launches are held for an install change. | Run `update`. |
+| 423 | `The install version changed, so launches are held until the board is updated.` in the shell banner | Launches are held for an install change. | Update the board: run `update`. |
 | 400 | `The command body is not a control command this Overseer knows` | The body is not a known control command, or a field of a [control contract](overseer-api.md#control-contract-1) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
 
 ## When something was written
@@ -564,6 +569,7 @@ row per reason.
 | The refusal and its status | `src/shared/OperationRefusal.ts` | `OperationRefusal`, `OperationRefusalDetail` | `src/shared/OperationRefusal.spec.ts` |
 | A Board rule's refusal | `src/lib/tracker-model/BoardRefusal.ts` | `BoardRefusalDetail` | `src/lib/tracker-model/BoardRefusal.spec.ts` |
 | All wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf`, `boardRefusalMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
+| The API sentence | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `apiMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.apiChannel.spec.ts` |
 | Exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |
 | The Bridge's answer | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | A relayed refusal | `src/services/overseer/HatchInbox.ts`, `cli/HatchUnderJob.ts` | `replyOf`, `hatchWhenUnderJob` | `cli/HatchUnderJob.spec.ts` |

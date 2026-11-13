@@ -30,7 +30,6 @@ import { WatcherFleet }                                                        f
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
 import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES }              from '../../../src/shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                                       from '../../../src/shared/constants/ProductNames.ts';
 import { JOB_ID_PATTERN }                                                      from '../../constants/RecordIdPatterns.ts';
 import { readBoardState, type BoardStateSource }                               from './BoardStateReader.ts';
 import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
@@ -46,9 +45,9 @@ export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRout
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
-  'unauthorized':      `This needs the Overseer's token or a Bridge session. The Overseer may have restarted: open the board again with \`${PRODUCT_NAMES.PROGRAM} open\`.`,
+  'unauthorized':      'This needs the Overseer\'s token or a Bridge session. The Overseer may have restarted: open the board again.',
   'forbidden':         'The Overseer answers only its own page and programs on this machine that name it by 127.0.0.1 or localhost.',
-  'read-failed':       `The Overseer could not read the board's files. Run \`${PRODUCT_NAMES.PROGRAM} status\` in the repository to see which file is wrong.`,
+  'read-failed':       'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
   'page-build-failed': 'The Overseer could not build the Bridge\'s page; its log names the cause.',
   'malformed-body':    MALFORMED_BODY_TEXT,
 };
@@ -89,7 +88,7 @@ const PICTURE_STATUS = {
 } as const;
 
 function pictureRefusalOf(status: number, detail: OperationRefusalDetail): RouteAnswer {
-  return { status, body: { refusal: OperationRefusalWordingUtil.messageOf(new OperationRefusal('refused', detail)) } };
+  return { status, body: { refusal: OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', detail)) } };
 }
 
 /** `POST /api/pictures`: the picture stored owner-only by its hash, or its refusal worded as every printed refusal is. */

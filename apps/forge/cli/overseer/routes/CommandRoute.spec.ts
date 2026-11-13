@@ -2,7 +2,8 @@
  * `POST /api/commands`' answers that need no running Overseer. What matters: while launches are held for an install change a board command
  * is refused 423 before the tracker is opened, while `overseer-stop` and `overseer-restart` still reach the Overseer; a body with no known
  * kind, or a runtime command whose `now` is no boolean, is 400 and reaches nothing; and a `range`, `clear` or by-hand delivery of the wrong
- * shape is 400 before the hold, since a clear of an unknown scope would otherwise clear.
+ * shape is 400 before the hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: the Bridge
+ * and a monitor show it to User, who runs no command.
  */
 import {
   afterEach,
@@ -42,7 +43,8 @@ describe('answerControlCommand', () => {
     const { request, runtimeCommands, wakes } = heldRoute(true);
     const held = await answerControlCommand({ kind: 'overseer-pause' }, request);
     expect(held.status).toBe(423);
-    expect(held.body).toEqual({ controlVersion: 1, refusal: 'launches-held-by-install-change', text: expect.stringContaining('update') });
+    const heldText = 'The install version changed, so launches are held until the board is updated.';
+    expect(held.body).toEqual({ controlVersion: 1, refusal: 'launches-held-by-install-change', text: heldText });
     const stopAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'overseer-stop' } };
     expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request)).toEqual({ status: 200, body: stopAnswer });
     expect(runtimeCommands).toEqual([{ kind: 'overseer-stop', now: true }]);

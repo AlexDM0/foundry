@@ -2,7 +2,8 @@
  * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
  * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
- * Assistant that cannot come up, each by its own kind, and nothing else.
+ * Assistant that cannot come up, each by its own kind, and nothing else. A notice that asks for an action names the Bridge control or a
+ * neutral action, never a command line, since User runs no command.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,10 +36,20 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
     ];
     expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
       'incident I3 took its default, job-fresh: its delivery turn closed',
-      `new code: run \`${PRODUCT_NAMES.PROGRAM} update\``,
+      'new code is on disk: restart the Overseer to run it',
       'landings on main wait: the main checkout\'s changes to README.md, docs/cli.md block the fast-forward',
       'example-kind',
     ]);
+  });
+
+  test('the notices that ask for an action name it without a command line', () => {
+    const notices = [{ kind: 'install-version-changed' }, { kind: 'new-code' }, { kind: 'claude-md-block-committed', target: 'main' }];
+    expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
+      'the install version changed, so launches are held until the board is updated',
+      'new code is on disk: restart the Overseer to run it',
+      'launches onto main wait: commit the CLAUDE.md change the board\'s update made',
+    ]);
+    for (const sentence of notices.map(NoticeWordingUtil.noticeSentenceOf)) expect(sentence).not.toMatch(new RegExp(`\`|${PRODUCT_NAMES.PROGRAM} `, 'u'));
   });
 
   test('a missing instruction file names its job and its path, never the bare kind', () => {

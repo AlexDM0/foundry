@@ -1,7 +1,7 @@
 /**
  * `POST /api/commands` behind the token, control contract 1: a `ControlCommand` applied in a hold of its own, answered 200 `{controlVersion,
  * outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an install change, each
- * `{controlVersion, refusal, text}`: the refusal's code and the sentence every printed refusal is worded with. `overseer-stop` and
+ * `{controlVersion, refusal, text}`: the refusal's code and its API sentence, which names no command line. `overseer-stop` and
  * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no hold.
  */
 import { OperationRefusalWordingUtil }                              from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
@@ -11,7 +11,6 @@ import type { RouteAnswer }                                         from '../../
 import type { ControlCommand, ControlCommandOf, TrackerClearScope } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal, reasonCodeOf }                           from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
-import { PRODUCT_NAMES }                                            from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                      from '../../CommandContext.ts';
 import { COMMAND_CONTROL_CONTEXT }                                  from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                                    from '../../OpenTrackerForWriting.ts';
@@ -47,6 +46,8 @@ const CONTROL_VERSION = SERVED_CONTRACT_VERSIONS.control;
 export const MALFORMED_BODY_TEXT = 'The command body is not a control command this Overseer knows, or a field of it has the wrong type, so nothing was done.';
 
 const INSTALL_HELD_REFUSAL = 'launches-held-by-install-change';
+
+const INSTALL_HELD_TEXT = 'The install version changed, so launches are held until the board is updated.';
 
 const MALFORMED: RouteAnswer = { status: HTTP_STATUS.BAD_REQUEST, body: { controlVersion: CONTROL_VERSION, refusal: 'malformed-body', text: MALFORMED_BODY_TEXT } };
 
@@ -92,7 +93,7 @@ function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteA
 
 function refusedAnswerOf(refusal: OperationRefusal): RouteAnswer {
   const refusalCode = refusal.detail === null ? 'refused' : reasonCodeOf(refusal.detail);
-  return { status: HTTP_STATUS.CONFLICT, body: { controlVersion: CONTROL_VERSION, refusal: refusalCode, text: OperationRefusalWordingUtil.messageOf(refusal) } };
+  return { status: HTTP_STATUS.CONFLICT, body: { controlVersion: CONTROL_VERSION, refusal: refusalCode, text: OperationRefusalWordingUtil.apiMessageOf(refusal) } };
 }
 
 function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: CommandRouteRequest): RouteAnswer {
@@ -123,7 +124,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   if (request.launchesHeld()) {
     return {
       status: HTTP_STATUS.LOCKED,
-      body:   { controlVersion: CONTROL_VERSION, refusal: INSTALL_HELD_REFUSAL, text: `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.` },
+      body:   { controlVersion: CONTROL_VERSION, refusal: INSTALL_HELD_REFUSAL, text: INSTALL_HELD_TEXT },
     };
   }
   try {

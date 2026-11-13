@@ -13,7 +13,6 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, TaskDocument } from '../@types/BoardStateDocument.ts';
 import {
   boardStateFixture,
@@ -36,10 +35,10 @@ describe('the Overseer state and its controls', () => {
     expect([model.statusLabel, model.isRunning, model.pauseControl]).toEqual(['Paused', false, 'resume']);
   });
 
-  test('new code on disk offers Restart and the notice pointing at update, and is not listed again among the notices', () => {
+  test('new code on disk offers Restart and the notice pointing at it, and is not listed again among the notices', () => {
     const model = headerModelOf(boardStateFixture({ notices: [{ kind: 'new-code' }] }), FIXTURE_NOW, 'live');
     expect(model.restartOffered).toBe(true);
-    expect(model.newCodeNotice).toBe(`new code: run \`${PRODUCT_NAMES.PROGRAM} update\``);
+    expect(model.newCodeNotice).toBe('new code is on disk: restart the Overseer to run it');
     expect(model.notices).toEqual([]);
   });
 

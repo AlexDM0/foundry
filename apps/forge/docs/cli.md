@@ -1228,7 +1228,9 @@ The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-b
 `{state, paused, url, baton, codeVersionOnDisk, codeVersionInMemory, notices, batonPassWarning}`.
 
 An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
-notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Both say to run `forge update`.
+notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Here both say to run
+`forge update`; the Bridge and a monitor word them with no command: the board is to be updated, or, for new code, the
+Overseer restarted.
 
 ### Merges and worktrees
 

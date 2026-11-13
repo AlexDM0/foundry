@@ -287,7 +287,7 @@
   "notices": [
     {
       "kind": "new-code",
-      "text": "new code: run `forge update`"
+      "text": "new code is on disk: restart the Overseer to run it"
     },
     {
       "kind": "incident-defaulted",

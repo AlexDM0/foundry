@@ -1,8 +1,8 @@
 /**
  * The sentences of the Overseer's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
- * and an Assistant that cannot come up. The Bridge shows them and the monitor snapshot carries them, so both read the same words.
+ * and an Assistant that cannot come up. The Bridge shows them and the monitor snapshot carries them, so both read the same words, which
+ * name the Bridge control or a neutral action and never a command line: User runs no command.
  */
-import { PRODUCT_NAMES }       from '../../constants/ProductNames.ts';
 import type { MonitorWarning } from '../@types/MonitorSnapshot.ts';
 
 /** A notice the Overseer derives each pass: its `kind` and the facts that kind carries. */
@@ -43,11 +43,11 @@ function defaultCauseTextOf(cause: string): string {
 function noticeTextOf(notice: NoticeFacts): string {
   switch (notice.kind) {
     case 'install-version-changed':
-      return `the install version changed, so launches are held: run \`${PRODUCT_NAMES.PROGRAM} update\``;
+      return 'the install version changed, so launches are held until the board is updated';
     case 'new-code':
-      return `new code: run \`${PRODUCT_NAMES.PROGRAM} update\``;
+      return 'new code is on disk: restart the Overseer to run it';
     case 'claude-md-block-committed':
-      return `launches onto ${factOf(notice, 'target')} wait: commit the CLAUDE.md change \`update\` made`;
+      return `launches onto ${factOf(notice, 'target')} wait: commit the CLAUDE.md change the board's update made`;
     case 'attribution-found':
       return `ticket #${factOf(notice, 'ticketId')} carries an AI attribution`;
     case 'rounds-not-converging':

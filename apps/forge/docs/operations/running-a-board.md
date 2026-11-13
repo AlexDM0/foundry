@@ -447,7 +447,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 3 | Incident line | the incident defaults applied and the incidents open; see [Banners, warnings and notices](#banners-warnings-and-notices) |
 | 4 | State | above the board name: `Live`, `Paused`, `Held` for an install change, `Handing over`, `Connecting` or `Down` |
 | 5 | Usage | each usage window observed, such as `5-hour window 14%` or `week 18%`, then the window and reset time after a limit was hit; nothing before the first observation |
-| 6 | `new code: run ...` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
+| 6 | `new code is on disk: restart the Overseer to run it` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
 | 7 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
 | 8 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
 | 9 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |

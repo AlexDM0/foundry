@@ -85,6 +85,9 @@ packages/flint/          →  bridge/ (as the workspace package flint, only thro
   format.
 - JSON output, stored files, a reason naming stored values, and a command the output suggests carry the values
   themselves, since the parser reads them back.
+- User runs no command. A sentence that the API, a monitor or the Bridge shows names no command line and no flag. It
+  names the Bridge control or a neutral action, such as "update the board". `OperationRefusalWordingUtil.apiMessageOf`
+  words a refusal for the API; `messageOf` words it for the command line, which keeps its commands.
 
 ### Stored files
 
