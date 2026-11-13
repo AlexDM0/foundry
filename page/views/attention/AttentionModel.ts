@@ -409,7 +409,6 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
   }
 }
 
-/** The machine at its limit shows once, on the machine panel, never as a forge's callout. */
 /** Restart reaches the forge only through its Overseer, in the control contract Gaia knows. */
 function restartAfterUpdateOf(forge: FleetDocumentForge, actions: readonly LookAction[]): LookAction | null {
   const offersAnUpdate = actions.some((action) => action.kind === 'command' && action.command.kind === 'forge-update');
@@ -418,6 +417,7 @@ function restartAfterUpdateOf(forge: FleetDocumentForge, actions: readonly LookA
   return commandAction(restartLabel, 'primary', { kind: 'forge-restart', trackerId: forge.trackerId }, ForgeContractUtil.controlContractIsKnown(forge));
 }
 
+/** The machine at its limit shows once, on the machine panel, never as a forge's callout. */
 function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): LookCallout[] {
   return fleetDocument.needsALook.flatMap((look) => {
     const forge = forgesById.get(look.trackerId);
