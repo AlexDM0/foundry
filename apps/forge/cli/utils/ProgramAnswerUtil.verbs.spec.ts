@@ -49,7 +49,7 @@ test('version answers its versions, the contracts it serves and its monitor fold
       codeVersion:    expect.any(String),
       installVersion: INSTALL_VERSION,
       contracts:      {
-        summary: 1, monitor: 2, control: 1, embed: 1
+        summary: 1, monitor: 3, control: 1, embed: 1
       },
       monitorFolder: expect.any(String),
     },

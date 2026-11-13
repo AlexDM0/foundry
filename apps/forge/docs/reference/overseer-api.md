@@ -584,7 +584,7 @@ numbers: the version of each contract this program serves. A contract it does no
 | Contract | Version | What it covers |
 | --- | --- | --- |
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
-| `monitor` | 2 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+| `monitor` | 3 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
 | `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
 | `embed` | 1 | [The Gaia contract](#the-gaia-contract): `?embedded=gaia` and the embed channel, whose messages carry the same number as `channelVersion` |
 
@@ -601,15 +601,15 @@ ticket body, no transcript and no draft text. Every sentence in it is worded by 
 request, from the same reading as `BoardState`.
 
 Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
-those of version 1. `src/services/overseer/testing/fixtures/monitor-v1.json` and `monitor-v2.json` hold each version,
-frozen.
+those of version 1. Version 3 gives each warning its kind. `src/services/overseer/testing/fixtures/monitor-v1.json`,
+`monitor-v2.json` and `monitor-v3.json` hold each version, frozen.
 
 <details>
 <summary><code>MonitorSnapshot</code> keys</summary>
 
 | Key | Holds |
 | --- | --- |
-| `monitorVersion` | 2 |
+| `monitorVersion` | 3 |
 | `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
 | `overseer` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
 | `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three completed version 1 as `FORGE_REQUIREMENTS.md` F2 defined it. |
@@ -619,7 +619,7 @@ frozen.
 | `attention[]` | What waits on User, the Bridge's Waiting on User list entry for entry: escalated questions first, then every other entry oldest first, a tie in key order. Each is `{key, kind, idText, ticketIds, subject, jobId, askedBy, decisionKind, escalatedFromIncidentId, metaText, stamp, stampWord, actionLabel, route}`; `kind` is `escalated-question`, `question`, `draft-ticket`, `filing-draft`, `review` or `merge-accept`; `stamp` is empty when the board does not hold it; `route` is the Bridge fragment that opens the entry, such as `#questions/E3` or `#kanban/ticket/009`. |
 | `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, route}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `route` is `#agents/<J>`. |
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
-| `warnings[]` | The header's warnings: a failed Baton pass, and an Assistant that cannot come up |
+| `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the Bridge shows for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
 | `usage` | `{resetsAt, window}` |
 | `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |

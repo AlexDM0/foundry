@@ -92,7 +92,7 @@ function startExampleServer(
     onNudge:         () => nudges.push('nudge'),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     summary:         () => ({ summaryVersion: 1 }),
-    monitor:         () => ({ status: 200, body: { monitorVersion: 2 } }),
+    monitor:         () => ({ status: 200, body: { monitorVersion: 3 } }),
     monitorStream:   () => null,
     refusalTextOf:   (refusal) => `Example sentence for ${refusal}`,
     events:          () => broker,
@@ -193,7 +193,7 @@ describe('OverseerServer guards', () => {
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
       contracts:              {
-        summary: 1, monitor: 2, control: 1, embed: 1
+        summary: 1, monitor: 3, control: 1, embed: 1
       },
     });
   });

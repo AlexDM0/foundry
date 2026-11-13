@@ -86,6 +86,14 @@ export interface MonitorNotice {
   readonly text: string;
 }
 
+/** Every warning the header can show: a failed Baton pass, and an Assistant that cannot come up. */
+export type MonitorWarningKind = 'baton-pass-failed' | 'assistant-down';
+
+export interface MonitorWarning {
+  readonly kind: MonitorWarningKind;
+  readonly text: string;
+}
+
 export interface MonitorUsage {
   readonly resetsAt: string | null;
   readonly window:   string | null;
@@ -120,7 +128,7 @@ export interface MonitorSnapshot {
   readonly attention:           readonly MonitorAttentionEntry[];
   readonly jobs:                readonly MonitorJob[];
   readonly notices:             readonly MonitorNotice[];
-  readonly warnings:            readonly string[];
+  readonly warnings:            readonly MonitorWarning[];
   readonly today:               { readonly deliveredTickets: number; readonly tokens: number };
   readonly usage:               MonitorUsage;
   readonly activity:            readonly MonitorActivityEntry[];

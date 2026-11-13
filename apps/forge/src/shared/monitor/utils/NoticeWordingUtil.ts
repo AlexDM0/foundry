@@ -2,7 +2,8 @@
  * The sentences of the Overseer's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
  * and an Assistant that cannot come up. The Bridge shows them and the monitor snapshot carries them, so both read the same words.
  */
-import { PRODUCT_NAMES } from '../../constants/ProductNames.ts';
+import { PRODUCT_NAMES }       from '../../constants/ProductNames.ts';
+import type { MonitorWarning } from '../@types/MonitorSnapshot.ts';
 
 /** A notice the Overseer derives each pass: its `kind` and the facts that kind carries. */
 export interface NoticeFacts {
@@ -81,12 +82,16 @@ function noticeSentenceOf(notice: NoticeFacts): string {
 }
 
 /** Derived from the notices and the Overseer's facts, never stored. */
-function warningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): string[] {
+function warningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): MonitorWarning[] {
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
-  return [
-    ...(batonPassWarning === null ? [] : [`the Baton pass to code ${batonPassWarning.successorCodeVersion} failed at ${batonPassWarning.step}: ${batonPassWarning.error}`]),
-    ...(defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE) ? ['no Assistant can come up: open incidents take their defaults'] : []),
-  ];
+  const batonPassFailed: MonitorWarning[] = batonPassWarning === null ? [] : [{
+    kind: 'baton-pass-failed',
+    text: `the Baton pass to code ${batonPassWarning.successorCodeVersion} failed at ${batonPassWarning.step}: ${batonPassWarning.error}`,
+  }];
+  const assistantDown: MonitorWarning[] = defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE)
+    ? [{ kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' }]
+    : [];
+  return [...batonPassFailed, ...assistantDown];
 }
 
 export const NoticeWordingUtil = Object.freeze({

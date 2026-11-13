@@ -46,7 +46,7 @@ import { COMMON_FOLDER_OUTSIDE }                                                
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
-const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'monitor-v2.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'monitor-v3.json');
 
 const recordedGit = useRecordedGit();
 
@@ -196,13 +196,13 @@ describe('the Overseer API on a scratch board', () => {
     const monitor = await (await fetch(new URL('api/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));
-    expect(monitor).toMatchObject({ monitorVersion: 2, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
+    expect(monitor).toMatchObject({ monitorVersion: 3, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
     const monitorStream = await fetch(new URL('api/monitor/events', url), { headers: tokenHeaders() });
     const firstChunk = await monitorStream.body?.getReader().read();
     const firstEvent = new TextDecoder().decode(firstChunk?.value);
     await monitorStream.body?.cancel().catch(() => undefined);
     expect(/^event: (.+)$/m.exec(firstEvent)?.[1]).toBe('monitor');
-    expect(JSON.parse(/^data: (.+)$/m.exec(firstEvent)?.[1] ?? 'null')).toMatchObject({ monitorVersion: 2, project: 'Example Agency' });
+    expect(JSON.parse(/^data: (.+)$/m.exec(firstEvent)?.[1] ?? 'null')).toMatchObject({ monitorVersion: 3, project: 'Example Agency' });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {

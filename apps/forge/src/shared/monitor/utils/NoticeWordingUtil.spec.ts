@@ -2,7 +2,7 @@
  * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
  * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
- * Assistant that cannot come up, and nothing else.
+ * Assistant that cannot come up, each by its own kind, and nothing else.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -48,13 +48,13 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
 });
 
 describe('NoticeWordingUtil.warningsOf', () => {
-  test('names a failed Baton pass and an Assistant that cannot come up', () => {
+  test('names a failed Baton pass and an Assistant that cannot come up, each by its own kind', () => {
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I3', move: 'job-fresh', cause: 'no-assistant'
     }];
     expect(NoticeWordingUtil.warningsOf(notices, { successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error' })).toEqual([
-      'the Baton pass to code code-example failed at take-baton: Example error',
-      'no Assistant can come up: open incidents take their defaults',
+      { kind: 'baton-pass-failed', text: 'the Baton pass to code code-example failed at take-baton: Example error' },
+      { kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' },
     ]);
   });
 

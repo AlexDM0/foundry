@@ -235,6 +235,6 @@ export function headerModelOf(state: BoardStateDocument | null, now: Date, conne
     activity,
     summaryLine:    figures === null ? null : summaryLineOf(figures),
     notices:        notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(NoticeWordingUtil.noticeTextOf),
-    warnings:       NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null),
+    warnings:       NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null).map((warning) => warning.text),
   };
 }
