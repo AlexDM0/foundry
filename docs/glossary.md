@@ -82,7 +82,6 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | an [epic colour slot](#epic-colour-slot) | the stored `slot` field, set at `epic add`; a colour, no capacity |
 | **orchestrator** | the optional interactive wrapper session | the skill `forge-orchestrate` around a running Overseer; the only use in these documents |
 | | the Assistant, in surviving comments | `UsageMarkerFile.ts`, `ControlCommand.ts`: read as "Assistant" |
-| | the released program's session in the `CLAUDE.md` managed block | that block describes the released program, not this code |
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` |
 | | a retired stored record | the `dispatcher-set` log kind, read so an older log stays readable |
 | **fixer** | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder |

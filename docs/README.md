@@ -68,9 +68,6 @@ reasons a released spelling still appears.
 - **Plans** are in [the backlog](backlog.md).
 - **How a mechanism works in detail** is in the code; [CLAUDE.md](../CLAUDE.md) names where each rule is held.
 
-> **Careful.** The `agent-progress:managed` block at the bottom of [CLAUDE.md](../CLAUDE.md) is this checkout's install
-> of the released program. It does not describe this code.
-
 ## In the code
 
 | Concept | Path | Symbol | Spec |

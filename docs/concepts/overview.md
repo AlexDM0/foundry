@@ -195,8 +195,7 @@ Watcher runs as its child.*
 ## The naming trap
 
 v2 runs beside the released v1 program under names of its own. The program is `forge`, and its data
-folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name. The `agent-progress:managed` block
-in `CLAUDE.md` is the released program's v1 install, so its commands, paths and workflow do not describe v2.
+folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 
 ## In the code
 

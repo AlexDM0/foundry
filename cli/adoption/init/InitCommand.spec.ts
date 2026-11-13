@@ -15,17 +15,17 @@ import { join } from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import { OperationRefusalWordingUtil }                    from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
-import { type RecordedGitStage, useRecordedGit }          from '../../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                      from '../../../src/testing/ToolGuard.ts';
-import { installedFilePathsIn }                           from '../../InstalledFiles.ts';
-import { runCommandLine }                                 from '../../Main.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                   from '../../constants/ClaudeManagedBlockMarkers.ts';
-import { INSTALL_VERSION }                                from '../../constants/InstallVersion.ts';
-import { createCapturedCommandContext }                   from '../../testing/CapturedCommandContext.ts';
-import { createRecordedGitRepository }                    from '../../testing/InitializedScratchRepository.ts';
+import { OperationRefusalWordingUtil }                                       from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { ORIGINAL_PRODUCT_NAMES, PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../../src/shared/constants/ProductNames.ts';
+import { type RecordedGitStage, useRecordedGit }                             from '../../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                    from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                         from '../../../src/testing/ToolGuard.ts';
+import { installedFilePathsIn }                                              from '../../InstalledFiles.ts';
+import { runCommandLine }                                                    from '../../Main.ts';
+import { CLAUDE_MANAGED_BLOCK_MARKERS }                                      from '../../constants/ClaudeManagedBlockMarkers.ts';
+import { INSTALL_VERSION }                                                   from '../../constants/InstallVersion.ts';
+import { createCapturedCommandContext }                                      from '../../testing/CapturedCommandContext.ts';
+import { createRecordedGitRepository }                                       from '../../testing/InitializedScratchRepository.ts';
 import {
   COMMON_FOLDER_AT_THE_ROOT,
   commonFolderInAWorktreeOf,
@@ -47,6 +47,19 @@ const INIT_CUT_SHORT_AT_THE_SKILLS: RecordedGitStage = INIT_IN_A_NEW_REPOSITORY.
 
 /** A second `init` at the root reads the newer manifest after its version check and refuses. */
 const INIT_REFUSED_BY_A_NEWER_MANIFEST: RecordedGitStage = [COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION];
+
+const OTHER_PRODUCT_NAMES = PRODUCT_NAMES === ORIGINAL_PRODUCT_NAMES ? SIDE_BY_SIDE_PRODUCT_NAMES : ORIGINAL_PRODUCT_NAMES;
+
+/** Every text the other program goes by: a file or an output line that holds one sends a session to the other program. */
+const OTHER_PRODUCT_NAME_TEXTS = [...new Set(Object.values(OTHER_PRODUCT_NAMES).filter((value): value is string => typeof value === 'string'))];
+
+/** Comfortably under today's count, so a scan that read the wrong folder fails rather than passing on nothing. */
+const SMALLEST_INSTALLED_FILE_COUNT = 10;
+
+/** Each place whose path or text holds one of the names, as the failure names it. */
+function placesNaming(textByPlace: ReadonlyMap<string, string>, names: readonly string[]): string[] {
+  return [...textByPlace].flatMap(([place, text]) => names.filter((name) => place.includes(name) || text.includes(name)).map((name) => `${place} names ${name}`));
+}
 
 const scratchDirectories: string[] = [];
 
@@ -94,6 +107,31 @@ describeWhenGitIsRecorded('initialising a repository', () => {
     expect(context.outputText()).toContain('progress.html');
     expect(context.outputText(), 'a fresh init ends with what to run next').toContain(`Run \`${PRODUCT_NAMES.PROGRAM} open\`. It starts the Overseer`);
     expect(context.errorText()).toBe('');
+  });
+
+  test('writes and prints nothing that names the other program, its folders, its skills or its variables, and the scan names a planted one', async () => {
+    const repositoryDirectory = scratchRepository();
+
+    const { exitCode, context } = await runIn(repositoryDirectory, ['init', '--project', 'Example Agency'], INIT_IN_A_NEW_REPOSITORY);
+    expect(exitCode).toBe(0);
+
+    // The scratch folders carry the released program's name, so their paths are no finding.
+    const outsideTheScratchPath = (text: string): string => text.replaceAll(realpathSync(repositoryDirectory), '').replaceAll(repositoryDirectory, '');
+    const installedFiles = repositoryFileContentsOf(repositoryDirectory);
+    const textByPlace = new Map([
+      ...installedFiles,
+      ['standard output', outsideTheScratchPath(context.outputText())],
+      ['standard error', outsideTheScratchPath(context.errorText())],
+    ]);
+    expect(installedFiles.size).toBeGreaterThan(SMALLEST_INSTALLED_FILE_COUNT);
+    expect(context.outputText()).not.toBe('');
+
+    expect(placesNaming(textByPlace, OTHER_PRODUCT_NAME_TEXTS)).toEqual([]);
+
+    const plantedSkillPath = join('.claude', 'skills', OTHER_PRODUCT_NAMES.PRODUCT_OWNER_SKILL, 'SKILL.md');
+    const plantedPlaces = new Map([[plantedSkillPath, ''], ['standard output', `Run \`${OTHER_PRODUCT_NAMES.PROGRAM} open\`.`]]);
+    expect(placesNaming(plantedPlaces, OTHER_PRODUCT_NAME_TEXTS)).toContain(`${plantedSkillPath} names ${OTHER_PRODUCT_NAMES.PRODUCT_OWNER_SKILL}`);
+    expect(placesNaming(plantedPlaces, OTHER_PRODUCT_NAME_TEXTS)).toContain(`standard output names ${OTHER_PRODUCT_NAMES.PROGRAM}`);
   });
 
   // A new tracker's log starts empty, so a log left from a removed tracker is never adopted as its history.
