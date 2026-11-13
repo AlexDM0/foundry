@@ -1,6 +1,6 @@
 /**
  * ForgeProgram over the recorded forge program, one answer set per stage: a forge checkout recorded before it answers in versioned JSON,
- * and every verb done or refused as F8 states it (authored until the forge serves it). What matters: the call each verb makes and where,
+ * and a forge that answers F8 recorded with every verb done, and with every verb refused. What matters: the call each verb makes and where,
  * the program PLAN 8.2 picks, a refusal's code and sentence passed through unchanged, and an answer Gaia does not understand named so.
  */
 import {
@@ -23,6 +23,9 @@ import {
   recordedForgeProgramRunOf,
   type ForgeProgramStage,
 } from './testing/RecordedForgeProgram.ts';
+
+/** The code version of the forge the F8 answers were recorded from; retake it after `bun run record forge-program-done`. */
+const RECORDED_CODE_VERSION = '9fc4e996dd57';
 
 const EXAMPLE_CONTRACTS = {
   summary: 1, monitor: 1, control: 1, embed: 1
@@ -72,7 +75,7 @@ function forgeProgramNotingWorkingDirectories(stage: ForgeProgramStage) {
   };
 }
 
-/** The refusal document the authored recording holds for a call shape, read from the recording itself. */
+/** The refusal document the refused recording holds for a call shape, read from the recording itself. */
 function recordedRefusalOf(programArguments: readonly string[]): { readonly verdict: 'refused'; readonly refusal: string; readonly text: string } {
   const callShape = runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, programArguments);
   const recorded  = recordedRunsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-refused']).find((run) => run.callShape === callShape);
@@ -99,17 +102,17 @@ describe('a forge checkout that does not answer in versioned JSON yet (recorded)
   });
 });
 
-describe('every verb done (authored from F8)', () => {
+describe('every verb done (recorded)', () => {
   test('start answers done with the started Overseer, its code, install version and contracts', async () => {
     const { forgeProgram } = forgeProgramAt('every-verb-done');
     expect(await forgeProgram.start(registeredForge())).toEqual({
       verdict: 'done',
       answer:  {
         started:        true,
-        url:            'http://127.0.0.1:47213',
+        url:            'http://127.0.0.1:47213/',
         generation:     1,
         trackerId:      'example-tracker',
-        codeVersion:    '3a6e9e6043da',
+        codeVersion:    RECORDED_CODE_VERSION,
         installVersion: 27,
         contracts:      EXAMPLE_CONTRACTS,
       },
@@ -122,10 +125,10 @@ describe('every verb done (authored from F8)', () => {
     expect(await forgeProgram.init(registeredForge(), 'Example Project')).toEqual({
       verdict: 'done',
       answer:  {
-        outcome: 'done', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
+        outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
       },
     });
-    expect(await forgeProgram.update(registeredForge())).toEqual({ verdict: 'done', answer: { outcome: 'done', installVersion: 27, batonPass: { outcome: 'done' } } });
+    expect(await forgeProgram.update(registeredForge())).toEqual({ verdict: 'done', answer: { outcome: 'done', installVersion: 27, batonPass: { outcome: 'not-needed' } } });
   });
 
   test('version answers done with the code and install versions, the contracts and the monitor folder', async () => {
@@ -133,7 +136,7 @@ describe('every verb done (authored from F8)', () => {
     expect(await forgeProgram.version(registeredForge())).toEqual({
       verdict: 'done',
       answer:  {
-        codeVersion: '3a6e9e6043da', installVersion: 27, contracts: EXAMPLE_CONTRACTS, monitorFolder: '/Users/example/.forge-monitor'
+        codeVersion: RECORDED_CODE_VERSION, installVersion: 27, contracts: EXAMPLE_CONTRACTS, monitorFolder: '/Users/example/.forge-monitor'
       },
     });
   });
@@ -176,7 +179,7 @@ describe('every verb done (authored from F8)', () => {
   });
 });
 
-describe('every verb refused (authored from F8)', () => {
+describe('every verb refused (recorded)', () => {
   test('a refusal at exit 1 answers refused with the forge\'s code and sentence unchanged', async () => {
     const { forgeProgram } = forgeProgramAt('every-verb-refused');
     const forge = registeredForge();
@@ -193,7 +196,7 @@ describe('every verb refused (authored from F8)', () => {
     expect(await forgeProgram.machineLimitSet(registeredForge(), 64)).toEqual({
       verdict: 'refused',
       refusal: 'machine-agent-limit-above-cpus',
-      text:    '64 agents is above the 10 CPUs of this machine; the machine agent limit stays at 4.',
+      text:    'A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.',
     });
   });
 });

@@ -10,6 +10,7 @@ import type {
   ForgeAnswerNotUnderstoodReason,
   ForgeBatonPass,
   ForgeInitAnswer,
+  ForgeInitOutcome,
   ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,
   ForgeOpenAnswer,
@@ -34,6 +35,7 @@ export interface ForgeProgramRunPlace {
 
 const ANSWER_VERSION_KEY = 'answerVersion';
 const OUTCOMES: ReadonlySet<unknown> = new Set<ForgeProgramOutcome>(['done', 'nothing-to-do']);
+const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created', 'refreshed']);
 const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);
 const CONTRACT_KEYS = ['summary', 'monitor', 'control', 'embed'] as const;
 
@@ -109,10 +111,11 @@ function stopAnswerOf(document: JsonObject): ForgeStopAnswer | null {
 }
 
 function initAnswerOf(document: JsonObject): ForgeInitAnswer | null {
-  const outcome   = outcomeOf(document);
-  const trackerId = textOf(document, 'trackerId');
-  const project   = textOf(document, 'project');
-  const root      = textOf(document, 'root');
+  const initOutcome = ownValueOf(document, 'outcome');
+  const outcome     = INIT_OUTCOMES.has(initOutcome) ? initOutcome as ForgeInitOutcome : null;
+  const trackerId   = textOf(document, 'trackerId');
+  const project     = textOf(document, 'project');
+  const root        = textOf(document, 'root');
   if (outcome === null || trackerId === null || project === null || root === null) return null;
   return {
     outcome,
@@ -122,12 +125,12 @@ function initAnswerOf(document: JsonObject): ForgeInitAnswer | null {
   };
 }
 
-/** `batonPass` is `done`, `not-needed`, or `failed` with the step that failed in `failedStep`. */
+/** `batonPass` is `done`, `not-needed`, or `failed` with the step that failed in `batonPassStep`, which is `null` otherwise. */
 function batonPassOf(document: JsonObject): ForgeBatonPass | null {
   const batonPass = ownValueOf(document, 'batonPass');
   if (batonPass === 'done' || batonPass === 'not-needed') return { outcome: batonPass };
   if (batonPass !== 'failed') return null;
-  const failedStep = textOf(document, 'failedStep');
+  const failedStep = textOf(document, 'batonPassStep');
   return failedStep === null ? null : { outcome: 'failed', failedStep };
 }
 
@@ -153,14 +156,15 @@ function versionAnswerOf(document: JsonObject): ForgeVersionAnswer | null {
   };
 }
 
+/** The item's `state` after the step; its label, location and repository are the forge's to show and are not read. */
 function loginItemAnswerOf(document: JsonObject): ForgeLoginItemAnswer | null {
-  const loginItem = ownValueOf(document, 'loginItem');
+  const loginItem = ownValueOf(document, 'state');
   return LOGIN_ITEM_STATES.has(loginItem) ? { loginItem: loginItem as ForgeLoginItemAnswer['loginItem'] } : null;
 }
 
 function machineLimitAnswerOf(document: JsonObject): ForgeMachineLimitAnswer | null {
   const outcome    = outcomeOf(document);
-  const agentLimit = wholeNumberOf(document, 'agentLimit');
+  const agentLimit = wholeNumberOf(document, 'limit');
   if (outcome === null || agentLimit === null) return null;
   return { outcome, agentLimit };
 }

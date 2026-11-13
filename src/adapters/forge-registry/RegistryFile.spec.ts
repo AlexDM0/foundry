@@ -1,10 +1,11 @@
 /**
- * The registry's ingestion, over the authored five-entry fixture and variants of it written to the scratch root: the fixture maps to five
- * forges in its order, a newer version maps nothing, a malformed entry is left out and named while the rest map, and every file that is no
- * registry at version 1 answers a verdict, never a throw.
+ * The registry's ingestion, over the registry a forge wrote for five boards (recorded) and variants of it written to the scratch root: the
+ * recording maps to five forges in its order, an entry from a forge before F4 or F9 maps its token file or program as unknown, a newer
+ * version maps nothing, a malformed entry is left out and named while the rest map, and every file that is no registry at version 1
+ * answers a verdict, never a throw.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                   from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -13,64 +14,68 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
-import type { RegisteredForge }                      from './@types/RegisteredForge.ts';
-import { RegistryFile, registryFilePathIn }          from './RegistryFile.ts';
+import { createScratchDirectory, removeScratchPath }    from '../../testing/ScratchRoot.ts';
+import type { RegisteredForge }                         from './@types/RegisteredForge.ts';
+import { RegistryFile, registryFilePathIn }             from './RegistryFile.ts';
+import { REGISTRY_RECORDING, recordedRegistryDocument } from './testing/RecordedRegistry.ts';
 
-const FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'projects-v1.json');
+const BOARDS = REGISTRY_RECORDING.boards;
+const AGENCY_TRACKER_ID   = BOARDS['example-agency'].trackerId;
+const BOOKSHOP_TRACKER_ID = BOARDS['example-bookshop'].trackerId;
+const DAIRY_TRACKER_ID    = BOARDS['example-dairy'].trackerId;
+const ESTATE_TRACKER_ID   = BOARDS['example-estate'].trackerId;
+const EXAMPLE_PROGRAM = '/Users/example/.bun/bin/forge';
 
-const AGENCY_TRACKER_ID = '5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37';
-const DAIRY_TRACKER_ID  = 'e2b86d14-9f3a-4c70-a5d2-3b8e0f6c7a91';
-
-const FIXTURE_FORGES: readonly RegisteredForge[] = [
+/** What the recorded registry maps to; retake the stamps from the recording after `bun run record forge-registry`. */
+const RECORDED_FORGES: readonly RegisteredForge[] = [
   {
     trackerId: AGENCY_TRACKER_ID,
     project:   'Example Agency',
-    root:      '/Users/alex.example/development/example-agency',
-    program:   '/Users/alex.example/development/forge/bin/forge',
+    root:      BOARDS['example-agency'].root,
+    program:   EXAMPLE_PROGRAM,
     overseer:  {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
-      startedAt: '2026-10-21T10:05:00+02:00',
-      tokenPath: `/Users/alex.example/.forge-monitor/watchers/${AGENCY_TRACKER_ID}/token`,
+      startedAt: '2026-11-13T02:34:02+01:00',
+      tokenPath: `/Users/example/.forge-monitor/watchers/${AGENCY_TRACKER_ID}/token`,
     },
   },
   {
-    trackerId: '8a3d1f60-2c4b-4e7a-b915-6f0e2d8c4b19',
+    trackerId: BOOKSHOP_TRACKER_ID,
     project:   'Example Bookshop',
-    root:      '/Users/alex.example/development/example-bookshop',
-    program:   '/Users/alex.example/development/forge/bin/forge',
+    root:      BOARDS['example-bookshop'].root,
+    program:   EXAMPLE_PROGRAM,
     overseer:  {
       url:       'http://127.0.0.1:4988/',
       processId: 5151,
-      startedAt: '2026-11-12T08:15:00+01:00',
-      tokenPath: null,
+      startedAt: '2026-11-13T02:34:03+01:00',
+      tokenPath: `/Users/example/.forge-monitor/watchers/${BOOKSHOP_TRACKER_ID}/token`,
     },
   },
   {
-    trackerId: 'c47e9b2a-0d5f-4a18-8e63-91b7f4a2d0c5',
+    trackerId: BOARDS['example-clinic'].trackerId,
     project:   'Example Clinic',
-    root:      '/Users/alex.example/development/example-clinic',
-    program:   '/Users/alex.example/development/forge-next/bin/forge',
+    root:      BOARDS['example-clinic'].root,
+    program:   EXAMPLE_PROGRAM,
     overseer:  null,
   },
   {
     trackerId: DAIRY_TRACKER_ID,
     project:   'Example Dairy',
-    root:      '/Users/alex.example/development/example-dairy',
-    program:   null,
+    root:      BOARDS['example-dairy'].root,
+    program:   EXAMPLE_PROGRAM,
     overseer:  null,
   },
   {
-    trackerId: '1d7f3c58-6a2e-4b9d-8c04-e5a19b3f6d82',
+    trackerId: ESTATE_TRACKER_ID,
     project:   'Example Estate',
-    root:      '/Users/alex.example/development/example-estate',
-    program:   null,
+    root:      BOARDS['example-estate'].root,
+    program:   EXAMPLE_PROGRAM,
     overseer:  {
       url:       'http://127.0.0.1:4989/',
       processId: 6060,
-      startedAt: '2026-11-12T07:55:00+01:00',
-      tokenPath: '/Users/alex.example/.forge-monitor/watchers/1d7f3c58-6a2e-4b9d-8c04-e5a19b3f6d82/token',
+      startedAt: '2026-11-13T02:34:05+01:00',
+      tokenPath: `/Users/example/.forge-monitor/watchers/${ESTATE_TRACKER_ID}/token`,
     },
   },
 ];
@@ -91,7 +96,7 @@ afterEach(() => {
 });
 
 function fixtureDocument(): RegistryDocument {
-  return JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as RegistryDocument;
+  return structuredClone(recordedRegistryDocument()) as unknown as RegistryDocument;
 }
 
 function registryWith(contents: string): RegistryFile {
@@ -106,9 +111,25 @@ function fixtureEntry(document: RegistryDocument, trackerId: string): Record<str
   return entry;
 }
 
-describe('the registry fixture', () => {
+describe('the registry a forge wrote', () => {
   test('maps its five entries to five forges, in the registry order, with nothing left out', async () => {
-    expect(await new RegistryFile(FIXTURE_PATH).read()).toEqual({ verdict: 'readable', forges: FIXTURE_FORGES, leftOutEntries: [] });
+    expect(await registryWith(JSON.stringify(fixtureDocument(), null, 2)).read()).toEqual({ verdict: 'readable', forges: RECORDED_FORGES, leftOutEntries: [] });
+  });
+});
+
+describe('an entry written by a forge before F4 or F9', () => {
+  test('maps a live Overseer without its token file to an unknown token path, and an entry without its program to an unknown program', async () => {
+    const document = fixtureDocument();
+    delete (fixtureEntry(document, BOOKSHOP_TRACKER_ID)['overseer'] as Record<string, unknown>)['tokenPath'];
+    delete fixtureEntry(document, DAIRY_TRACKER_ID)['program'];
+    const reading = await registryWith(JSON.stringify(document)).read();
+    expect(reading.verdict === 'readable' ? reading.forges.map(({ program, overseer }) => [program, overseer?.tokenPath ?? null]) : null).toEqual([
+      [EXAMPLE_PROGRAM, RECORDED_FORGES[0]?.overseer?.tokenPath ?? null],
+      [EXAMPLE_PROGRAM, null],
+      [EXAMPLE_PROGRAM, null],
+      [null, null],
+      [EXAMPLE_PROGRAM, RECORDED_FORGES[4]?.overseer?.tokenPath ?? null],
+    ]);
   });
 });
 
@@ -132,7 +153,7 @@ describe('a malformed entry', () => {
     delete fixtureEntry(document, DAIRY_TRACKER_ID)['root'];
     expect(await registryWith(JSON.stringify(document)).read()).toEqual({
       verdict:        'readable',
-      forges:         FIXTURE_FORGES.filter((forge) => forge.trackerId !== DAIRY_TRACKER_ID),
+      forges:         RECORDED_FORGES.filter((forge) => forge.trackerId !== DAIRY_TRACKER_ID),
       leftOutEntries: [{ trackerId: DAIRY_TRACKER_ID, problems: [{ key: 'root', reason: 'missing' }] }],
     });
   });
@@ -143,7 +164,7 @@ describe('a malformed entry', () => {
     const reading = await registryWith(JSON.stringify(document)).read();
     expect(reading).toEqual({
       verdict:        'readable',
-      forges:         FIXTURE_FORGES.filter((forge) => forge.trackerId !== AGENCY_TRACKER_ID),
+      forges:         RECORDED_FORGES.filter((forge) => forge.trackerId !== AGENCY_TRACKER_ID),
       leftOutEntries: [{ trackerId: AGENCY_TRACKER_ID, problems: [{ key: 'overseer.url', reason: 'missing' }] }],
     });
   });

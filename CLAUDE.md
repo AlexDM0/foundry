@@ -60,18 +60,20 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `Frame
 
 Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers (`src/testing/RecordedRuns.ts` for
 process-run, `src/testing/RecordedAnswers.ts` for overseer-fetch, one answer set per situation of the forge), and the clock's timers with
-`src/testing/ManualTimers.ts`, which a spec fires by hand, so no spec waits a real interval. A fixture for a forge contract
-that does not exist yet is authored by hand and stamped `source: 'authored'` until it is recorded from a real forge.
+`src/testing/ManualTimers.ts`, which a spec fires by hand, so no spec waits a real interval. Every forge answer is recorded from a real
+forge; a program that is no forge on an Overseer's port is recorded from a local Bun server and stamped with Bun's version.
 
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
-with the system's version. Verify fails on a stale stamp, lists a boundary with no recording for the OS as not finished, and lists an
-authored recording as a warning; an authored recording is listed with no recording spec until its system serves the contract. The one
-exception is a dialog only a person can answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and
-cancel a file, and until someone has, its recording stays authored beside its spec. macOS's programs are stamped with the Darwin release.
-The forge's version is read only by running it: `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that
-forge under a scratch home in a scratch repository (an Overseer it starts launches the forge's fake agent) and stamps the recording with
-its install version, and verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
+with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
+for the OS as not finished. The one recording stamped `authored` is a dialog only a person can answer: `bun run record path-chooser` asks
+the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its recording stays authored beside its spec and
+verify lists it as a warning. macOS's programs are stamped with the Darwin release. The forge's version is read only by running it:
+`GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through
+`src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a
+tracker never reaches a board above the scratch root (an Overseer it starts launches the forge's fake agent). It records the paths, tracker
+ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and
+verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.
 
 The browser's recordings (`browser-window-watch`, `launcher-programs`) are taken from the Chrome or Edge in `/Applications`, which opens

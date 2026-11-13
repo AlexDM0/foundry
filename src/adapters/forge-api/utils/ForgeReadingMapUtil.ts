@@ -23,6 +23,9 @@ import type {
   MonitorSnapshotDocument,
 } from '../@types/MonitorSnapshotDocument.ts';
 
+/** The kind a warning of monitor contract 1 reads as: the forge sends its sentence and names no kind. */
+export const FORGE_WARNING_WITHOUT_KIND = 'forge-warning';
+
 const NO_CONTRACTS: ForgeContracts = {
   summary: null,
   monitor: null,
@@ -90,7 +93,8 @@ function agentRowOfMonitorJob(job: MonitorJobDocument): AgentRow {
     tokens:              job.tokens,
     ticketTitle:         job.ticketTitle,
     attempt:             job.attempt,
-    startedAt:           job.startedAt,
+    // The forge sends an empty stamp for a job whose launch stamp it lost; the job's running time is then unknown.
+    startedAt:           job.startedAt === '' ? null : job.startedAt,
     calls:               job.calls,
     callBudget:          job.callBudget,
     toolCalls:           job.toolCalls,
@@ -135,6 +139,11 @@ function agentRowOfSummaryJob(job: SummaryJobDocument): AgentRow {
 
 function noticeOf(notice: MonitorNoticeDocument): ForgeNotice {
   return { kind: notice.kind, text: notice.text };
+}
+
+/** Monitor contract 1 sends a warning as the forge's sentence alone, so each one reads as the kind the forge gave none. */
+function warningOf(sentence: string): ForgeNotice {
+  return { kind: FORGE_WARNING_WITHOUT_KIND, text: sentence };
 }
 
 function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
@@ -182,7 +191,7 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
     attentionCount:   null,
     agents:           snapshot.jobs.map(agentRowOfMonitorJob),
     notices:          snapshot.notices.map(noticeOf),
-    warnings:         snapshot.warnings.map(noticeOf),
+    warnings:         snapshot.warnings.map(warningOf),
     activity:         snapshot.activity.map(activityEntryOf),
     today:            { deliveredTickets: snapshot.today.deliveredTickets, tokens: snapshot.today.tokens },
     usage:            { resetsAt: snapshot.usage.resetsAt, window: snapshot.usage.window },

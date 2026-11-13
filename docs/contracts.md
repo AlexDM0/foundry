@@ -31,9 +31,8 @@ reads another `fleetVersion` is a stale page and reloads once.
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1 | `recordingVersion` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
-The forge's requirements F1 to F9 are the owner's to run on the forge's own board. Until the forge serves one, the fixtures of that
-contract are authored by hand and stamped `authored`, and `bun run verify` lists each of them; recording them from a real forge waits in
-`docs/backlog.md`.
+The forge's requirements F1 to F9 are the owner's to run on the forge's own board. Every fixture of a forge contract is recorded from a
+forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`.
 
 ## The install version
 

@@ -1,7 +1,8 @@
 /**
  * The readings of a forge the watch cannot read now, held against the five-forge fixture: a forge stopped in this run keeps what it last
  * reported about its board, log and limits and loses what only a running Overseer knows; an unreachable forge keeps its whole last reading;
- * a forge never read shows only what the registry says, and no fact stands in as zero.
+ * a forge never read shows only what the registry says, and no fact stands in as zero. An Overseer is starting while it refuses as starting
+ * or not ready, and for no other failure.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -84,6 +85,21 @@ describe('a starting forge', () => {
       processId:         EXAMPLE_OVERSEER.processId,
       overseerStartedAt: EXAMPLE_OVERSEER.startedAt,
     });
+  });
+});
+
+describe('an Overseer that has not finished starting', () => {
+  test('is told by its identity or monitor refusing as starting, and by its monitor stream refusing as not ready', () => {
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'starting', text: null })).toBe(true);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'not-ready', text: null })).toBe(true);
+  });
+
+  test('is not told by another refusal, a refusal without a code, or any other failure', () => {
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'read-failed', text: 'The Overseer could not read the board\'s files.' })).toBe(false);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: null, text: null })).toBe(false);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'unauthorized' })).toBe(false);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'unreachable' })).toBe(false);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'malformed' })).toBe(false);
   });
 });
 

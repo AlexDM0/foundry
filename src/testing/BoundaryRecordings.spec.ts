@@ -1,7 +1,7 @@
 /**
  * A recording is read only at the format version Gaia knows and only with a whole stamp; anything else is unreadable and maps nothing.
  * The list of recorded boundaries names exactly the recording specs in the repository, so no real-system spec runs unrecorded and no
- * listed one is missing; a boundary without a spec is one authored by hand. A recording spec run outside `bun run record` refuses to record
+ * listed one is missing. A recording spec run outside `bun run record` refuses to record
  * an answer or a system version.
  */
 import { existsSync }             from 'node:fs';
@@ -55,7 +55,7 @@ describe('reading a recording', () => {
 describe('the recorded boundaries', () => {
   test('list exactly the recording specs in the repository, each beside a boundary module that exists', () => {
     const recordingSpecsOnDisk = ['src', 'page'].flatMap((folder) => [...new Bun.Glob(`${folder}/**/*${RECORDING_SPEC_SUFFIX}`).scanSync({ cwd: repositoryRoot() })]);
-    const listedRecordingSpecs = RECORDED_BOUNDARIES.flatMap(({ recordingSpec }) => (recordingSpec === null ? [] : [recordingSpec]));
+    const listedRecordingSpecs = RECORDED_BOUNDARIES.map(({ recordingSpec }) => recordingSpec);
     expect(recordingSpecsOnDisk.sort()).toEqual(listedRecordingSpecs.sort());
     for (const boundary of RECORDED_BOUNDARIES) expect(existsSync(join(repositoryRoot(), boundary.boundaryModule))).toBe(true);
   });

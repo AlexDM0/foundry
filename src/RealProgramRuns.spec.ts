@@ -21,7 +21,10 @@ const DIRECT_PROCESS_STARTS_ALLOWED: Readonly<Record<string, string>> = {
 };
 
 /** Each spec or test helper allowed to use the real process-run besides the recording specs, with the reason. */
-const REAL_BOUNDARY_USES_ALLOWED_IN_TESTING: Readonly<Record<string, string>> = { 'src/testing/RecordBoundary.ts': 'the record command runs a recording spec in its own test run' };
+const REAL_BOUNDARY_USES_ALLOWED_IN_TESTING: Readonly<Record<string, string>> = {
+  'src/testing/RecordBoundary.ts': 'the record command runs a recording spec in its own test run',
+  'src/testing/ScratchForge.ts':   'runs the forge program for the forge recording specs, under a scratch home in scratch repositories only',
+};
 
 const BUN_PROCESS_STARTS: ReadonlySet<string> = new Set(['spawn', 'spawnSync', '$']);
 const CHILD_PROCESS_MODULE = /^(?:node:)?child_process$/;
@@ -193,6 +196,7 @@ describe('the guard on program starts', () => {
       { path: 'src/testing/LeakCheck.ts', reaches: programReachesIn('LeakCheck.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/LeakCheck.spec.ts', reaches: programReachesIn('LeakCheck.spec.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/RecordBoundary.ts', reaches: programReachesIn('RecordBoundary.ts', realBoundaryImport) },
+      { path: 'src/testing/ScratchForge.ts', reaches: programReachesIn('ScratchForge.ts', realBoundaryImport) },
       { path: 'src/features/example/Example.spec.ts', reaches: programReachesIn('Example.spec.ts', 'Bun.spawnSync([]);') },
       { path: 'src/features/example/Other.spec.ts', reaches: programReachesIn('Other.spec.ts', realBoundaryImport) },
       { path: 'src/features/example/Example.recording.spec.ts', reaches: programReachesIn('Example.recording.spec.ts', realBoundaryImport) },

@@ -4,7 +4,8 @@
     "recordingName": "forge-program-refused",
     "operatingSystem": "darwin",
     "system": "forge",
-    "source": "authored"
+    "source": "recorded",
+    "systemVersion": "install version 27, code 9fc4e996dd57"
   },
   "answers": [
     {
@@ -12,8 +13,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"tracker-exists\",\n  \"text\": \"/Users/example/development/example-project is already tracked as Example Project; nothing was written.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"arguments-refused\",\n  \"text\": \"/Users/example/development/example-bare is inside a bare git repository, which has no working tree to track. Run `forge init` in a checkout of it, or pass --root <path> to track a directory explicitly.\"\n}\n",
+        "standardError": "/Users/example/development/example-bare is inside a bare git repository, which has no working tree to track. Run `forge init` in a checkout of it, or pass --root <path> to track a directory explicitly.\n"
       }
     },
     {
@@ -21,8 +22,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"login-item-unwritable\",\n  \"text\": \"The login item for /Users/example/development/example-project could not be written; nothing was changed.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"no-tracker-at-override\",\n  \"text\": \"No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names. Run `forge init` there, or unset FORGE_ROOT to search upwards from the current directory instead.\"\n}\n",
+        "standardError": "No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names. Run `forge init` there, or unset FORGE_ROOT to search upwards from the current directory instead.\n"
       }
     },
     {
@@ -30,8 +31,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"machine-agent-limit-above-cpus\",\n  \"text\": \"64 agents is above the 10 CPUs of this machine; the machine agent limit stays at 4.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"machine-agent-limit-above-cpus\",\n  \"text\": \"A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.\"\n}\n",
+        "standardError": "A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.\n"
       }
     },
     {
@@ -39,8 +40,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The board at /Users/example/development/example-project was installed by install version 28, which this forge program (install version 27) does not know, so it started nothing.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 28, from a newer forge than this one (install version 27), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\"\n}\n",
+        "standardError": "The files forge installed in /Users/example/development/example-project are install version 28, from a newer forge than this one (install version 27), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     },
     {
@@ -48,8 +49,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"overseer-still-live\",\n  \"text\": \"The Overseer at http://127.0.0.1:47213 is still live after the stop was asked; nothing more was done.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"overseer-still-live\",\n  \"text\": \"The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\"\n}\n",
+        "standardError": "The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\n"
       }
     },
     {
@@ -57,8 +58,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"baton-pass-refused\",\n  \"text\": \"The Overseer refused to hand over to the new code, so the board stays on code 3a6e9e6043da; nothing was written.\"\n}\n",
-        "standardError": ""
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 28, from a newer forge than this one (install version 27), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\"\n}\n",
+        "standardError": "The files forge installed in /Users/example/development/example-project are install version 28, from a newer forge than this one (install version 27), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     }
   ]

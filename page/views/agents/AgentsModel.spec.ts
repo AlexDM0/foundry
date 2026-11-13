@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { FleetDocument, FleetDocumentFleetAgentRow }                           from '../../@types/FleetDocument.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
@@ -163,7 +163,7 @@ describe('the selected agent', () => {
       ticketIdsText: '#034',
       ticketTitle:   'Credit note numbering',
       facts:         [
-        { label: 'Turn', value: '7' },
+        { label: 'Turn', value: 'Mid-turn' },
         { label: 'Calls', value: '58 of 120' },
         { label: 'Tool calls', value: '143' },
         { label: 'Subagents', value: '1 running' },
@@ -176,13 +176,17 @@ describe('the selected agent', () => {
   });
 
   test('the selection survives a new document, which brings the agent\'s new figures', () => {
+    const isJ12 = (row: FleetDocumentFleetAgentRow): boolean => row.trackerId === TRACKER_IDS.invoiceService && row.jobId === 'J12';
     const nextDocument = {
       ...FLEET_FIVE_FORGES,
-      agents: FLEET_FIVE_FORGES.agents.map((row) => (row.trackerId === TRACKER_IDS.invoiceService && row.jobId === 'J12' ? { ...row, calls: 59, turn: 8 } : row)),
+      agents: FLEET_FIVE_FORGES.agents.map((row) => (isJ12(row) ? { ...row, calls: 59, turn: 'between-turns' as const } : row)),
     };
     const content = contentOf(nextDocument, { selectedAgent: J12_OF_INVOICE_SERVICE });
     expect(content.rows.filter((row) => row.isSelected).map((row) => row.calls?.text)).toEqual(['59 / 120']);
-    expect(content.selected.kind === 'running' ? content.selected.facts.slice(0, 2) : null).toEqual([{ label: 'Turn', value: '8' }, { label: 'Calls', value: '59 of 120' }]);
+    expect(content.selected.kind === 'running' ? content.selected.facts.slice(0, 2) : null).toEqual([
+      { label: 'Turn', value: 'Between turns' },
+      { label: 'Calls', value: '59 of 120' },
+    ]);
   });
 
   test('when the selected agent\'s job ends, the panel says it is no longer running and no row is selected', () => {

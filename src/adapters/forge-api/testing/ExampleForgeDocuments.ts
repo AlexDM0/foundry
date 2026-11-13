@@ -1,5 +1,5 @@
 /**
- * The forge documents the forge-api specs read, taken through the forge client from the recorded and authored overseer answers, and the
+ * The forge documents the forge-api specs read, taken through the forge client from the recorded overseer answers, and the
  * registry facts of the forges the fleet fixtures show. Test-only.
  */
 import type { ForgeDocumentAnswer }                                                 from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';

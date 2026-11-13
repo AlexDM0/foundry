@@ -1,3 +1,6 @@
+/** Where a job's session stands: waiting between two turns, or inside one. */
+export type JobTurn = 'between-turns' | 'mid-turn';
+
 /**
  * One job of a forge that runs an agent. A forge read through its summary reports only the job id, kind, role, tickets, state and tokens;
  * every other fact is then `null`, never zero.
@@ -20,7 +23,8 @@ export interface AgentRow {
   silentSweeps:        number | null;
   /** The forge's own quiet-job verdict, never Gaia's. */
   quiet:               boolean | null;
-  turn:                number | null;
+  /** `null` for a job with no session turn to tell, such as an Assistant's or a merge. */
+  turn:                JobTurn | null;
   messagesWaiting:     number | null;
   lastLine:            string | null;
   waitingOnDecisionId: string | null;

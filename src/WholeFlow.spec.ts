@@ -1,12 +1,12 @@
 /**
  * Gaia whole, in one process, from the registry to the page: the forge watch, the fleet, forge-control and the page server, wired as
- * `gaia serve` wires them, over recorded and authored answers of every forge and of the forge program, under a scratch home. The page's
+ * `gaia serve` wires them, over recorded answers of every forge and of the forge program, under a scratch home. The page's
  * side is what the page reads and sends: the session it buys, the `fleet` events it follows, the commands it posts.
  *
  * The flow: five forges appear, each in its own condition; the dormant Example Storefront is started and reads starting, then live; the
  * unreachable Invoice Service refuses a stop, in the forge's own words; the machine limit is lowered through the live forge, which then
  * reports it. Each forge answers from one answer set per stage of the flow, the forge program from one per stage, and every timer is fired
- * by hand, so nothing waits a real interval. W5.6 (notifications) and W7.2 (the recordings of a real forge) are not built and not in it.
+ * by hand, so nothing waits a real interval. W5.6 (notifications) is not built and not in it.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -60,14 +60,15 @@ const INTERVALS: ForgeWatchIntervals = {
 const HEARTBEAT_MILLISECONDS = 4_000;
 const SHORT_BOUND_MILLISECONDS = 200;
 
-const CPU_COUNT = 12;
-const LOWERED_MACHINE_LIMIT = 10;
+/** The CPU count of the machine the forge was recorded on, which its machine limit reads as until one is set, and the limit it was lowered to. */
+const CPU_COUNT = 10;
+const LOWERED_MACHINE_LIMIT = 4;
 const READ_AT = '2026-11-12T13:19:30.000Z';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 
 /**
- * The forges of the flow. Example Storefront is the forge the authored monitor answers describe, Example Project the one today's forge was
- * recorded as; the other three answer nothing or are never asked.
+ * The forges of the flow. Example Storefront is the one a forge serving every contract was recorded as, Example Project the one a forge
+ * before F1 was recorded as; the other three answer nothing or are never asked.
  */
 const FORGES = {
   exampleStorefront: { trackerId: 'example-storefront-7c41', project: 'Example Storefront', overseerOrigin: 'http://127.0.0.1:4951' },
@@ -401,8 +402,8 @@ describe('Gaia from the registry to the page', () => {
     await timers.untilPending(INTERVALS.streamReconnectIntervalMilliseconds);
     timers.fire(INTERVALS.streamReconnectIntervalMilliseconds);
     const started = await fleet.untilFleet((fleetDocument) => conditionOf(fleetDocument, 'exampleStorefront') === 'live');
-    expect(started.forges[0]).toMatchObject({ fidelity: 'full', url: FORGES.exampleStorefront.overseerOrigin });
-    expect(started.figures.machineLimit).toBe(12);
+    expect(started.forges[0]).toMatchObject({ fidelity: 'full', url: `${FORGES.exampleStorefront.overseerOrigin}/` });
+    expect(started.figures.machineLimit).toBe(CPU_COUNT);
 
     gaia.forgeProgramRun.enter('every-verb-refused');
     const stopAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-stop', trackerId: FORGES.invoiceService.trackerId, agents: 'keep' });
@@ -410,7 +411,7 @@ describe('Gaia from the registry to the page', () => {
       answerVersion: 1,
       outcome:       'refused',
       refusal:       'overseer-still-live',
-      text:          'The Overseer at http://127.0.0.1:47213 is still live after the stop was asked; nothing more was done.',
+      text:          'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
     });
 
     const limitAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT });

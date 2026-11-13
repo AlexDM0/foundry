@@ -106,24 +106,45 @@ describe('the done answers of each verb', () => {
 
   test('update reads a failed Baton pass with the step that failed, and refuses a failed one without it', () => {
     const updateDocument = {
-      answerVersion: 1, outcome: 'done', installVersion: 27, batonPass: 'failed', failedStep: 'successor-health-check'
+      answerVersion: 1, outcome: 'done', installVersion: 27, batonPass: 'failed', batonPassStep: 'restart-not-taken'
     };
-    const failedBatonPass: ForgeBatonPass = { outcome: 'failed', failedStep: 'successor-health-check' };
+    const failedBatonPass: ForgeBatonPass = { outcome: 'failed', failedStep: 'restart-not-taken' };
     expect(ForgeAnswerMapUtil.updateAnswerOf(updateDocument)).toEqual({ outcome: 'done', installVersion: 27, batonPass: failedBatonPass });
     const notNeededBatonPass: ForgeBatonPass = { outcome: 'not-needed' };
-    expect(ForgeAnswerMapUtil.updateAnswerOf({ ...updateDocument, batonPass: 'not-needed' })).toEqual({ outcome: 'done', installVersion: 27, batonPass: notNeededBatonPass });
-    expect(ForgeAnswerMapUtil.updateAnswerOf({ ...updateDocument, failedStep: undefined })).toBeNull();
+    const notNeededDocument = { ...updateDocument, batonPass: 'not-needed', batonPassStep: null };
+    expect(ForgeAnswerMapUtil.updateAnswerOf(notNeededDocument)).toEqual({ outcome: 'done', installVersion: 27, batonPass: notNeededBatonPass });
+    expect(ForgeAnswerMapUtil.updateAnswerOf({ ...updateDocument, batonPassStep: null })).toBeNull();
+  });
+
+  test('init reads whether it created the tracker or refreshed one that was there', () => {
+    const initDocument = {
+      answerVersion: 1, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
+    };
+    expect(ForgeAnswerMapUtil.initAnswerOf(initDocument)).toEqual({
+      outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
+    });
+    expect(ForgeAnswerMapUtil.initAnswerOf({ ...initDocument, outcome: 'refreshed' })?.outcome).toBe('refreshed');
+    expect(ForgeAnswerMapUtil.initAnswerOf({ ...initDocument, outcome: 'done' })).toBeNull();
+  });
+
+  test('the login item reads its state after the step, and the machine limit the limit it stored', () => {
+    expect(ForgeAnswerMapUtil.loginItemAnswerOf({
+      answerVersion: 1, outcome: null, state: 'absent', label: 'com.forge.overseer.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
+    })).toEqual({ loginItem: 'absent' });
+    expect(ForgeAnswerMapUtil.machineLimitAnswerOf({
+      answerVersion: 1, outcome: 'nothing-to-do', limit: 4, ceiling: 10
+    })).toEqual({ outcome: 'nothing-to-do', agentLimit: 4 });
   });
 
   test('init, version, the login item and the machine limit each refuse a document without a key they need', () => {
     expect(ForgeAnswerMapUtil.initAnswerOf({
-      answerVersion: 1, outcome: 'done', trackerId: 'example-tracker', project: 'Example Project'
+      answerVersion: 1, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project'
     })).toBeNull();
     expect(ForgeAnswerMapUtil.versionAnswerOf({
       answerVersion: 1, codeVersion: '3a6e9e6043da', installVersion: 27, contracts: {}
     })).toBeNull();
-    expect(ForgeAnswerMapUtil.loginItemAnswerOf({ answerVersion: 1, loginItem: 'written' })).toBeNull();
-    expect(ForgeAnswerMapUtil.machineLimitAnswerOf({ answerVersion: 1, outcome: 'done', agentLimit: -1 })).toBeNull();
+    expect(ForgeAnswerMapUtil.loginItemAnswerOf({ answerVersion: 1, outcome: 'done', state: 'written' })).toBeNull();
+    expect(ForgeAnswerMapUtil.machineLimitAnswerOf({ answerVersion: 1, outcome: 'done', limit: -1 })).toBeNull();
   });
 
   test('reads a key only as the document\'s own, never through its prototype', () => {

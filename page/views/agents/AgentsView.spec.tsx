@@ -149,7 +149,7 @@ describe('the selected agent', () => {
     expect(panel.props['aria-label']).toBe('Selected agent');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-head')])).toBe('J12builderquiet · 4 sweeps');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-subject')])).toBe('Invoice Service · #034 Credit note numbering');
-    expect(tree.textOf([tree.onlyWithTag([panel], 'dl')])).toBe('Turn7Calls58 of 120Tool calls143Subagents1 runningMessages waiting0');
+    expect(tree.textOf([tree.onlyWithTag([panel], 'dl')])).toBe('TurnMid-turnCalls58 of 120Tool calls143Subagents1 runningMessages waiting0');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-last-line')])).toBe(
       'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
     );

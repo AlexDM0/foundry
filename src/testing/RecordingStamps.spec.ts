@@ -1,8 +1,9 @@
 /**
  * The stamp check fails only on a stale recording: one stamped with another version than the installed one, one stamped for another
- * boundary, OS or system, one that cannot be read, and one that records no listed boundary. A boundary with no recording for the OS is
- * listed as not finished, an authored recording as a warning, and a recording of a system whose installed version only a run reads as
- * unchecked; none of those fails the check. Each stale and unchecked line names the command to record again.
+ * boundary, OS or system, one that cannot be read, one that records no listed boundary, and a forge recording authored by hand. A boundary
+ * with no recording for the OS is listed as not finished, an authored recording of another system as a warning, and a recording of a
+ * system whose installed version only a run reads as unchecked; none of those fails the check. Each stale and unchecked line names the
+ * command to record again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -85,7 +86,7 @@ describe('the recording-stamp check', () => {
     });
   });
 
-  test('lists an authored recording as a warning, and fails nothing', () => {
+  test('lists an authored recording of a system other than the forge as a warning, and fails nothing', () => {
     const authoredStamp: RecordingStamp = {
       recordingName: 'example-boundary', operatingSystem: 'darwin', system: 'bun', source: 'authored'
     };
@@ -93,6 +94,27 @@ describe('the recording-stamp check', () => {
       staleLines:      [],
       unfinishedLines: [],
       authoredLines:   [expect.stringContaining('example-boundary.json is authored by hand and waits to be recorded from a real bun.')],
+      uncheckedLines:  [],
+    });
+  });
+
+  test('names an authored forge recording as stale, since every forge recording must be recorded', () => {
+    const forgeBoundary: RecordedBoundary = { ...EXAMPLE_BOUNDARY, system: 'forge' };
+    const authoredStamp: RecordingStamp = {
+      recordingName: 'example-boundary', operatingSystem: 'darwin', system: 'forge', source: 'authored'
+    };
+    expect(recordingStampReportOf({
+      recordedBoundaries: [forgeBoundary],
+      operatingSystem:    'darwin',
+      recordingTexts:     new Map([['example-boundary.json', recordingText(authoredStamp)]]),
+      installedVersionOf: () => null,
+    })).toEqual({
+      staleLines: [
+        'src/testing/recordings/darwin/example-boundary.json is authored by hand, and a forge recording must be recorded. '
+          + 'Record it again with `bun run record example-boundary`.',
+      ],
+      unfinishedLines: [],
+      authoredLines:   [],
       uncheckedLines:  [],
     });
   });

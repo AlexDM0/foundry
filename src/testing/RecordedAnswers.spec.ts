@@ -1,5 +1,5 @@
 /**
- * The overseer-fetch mock must answer exactly what was recorded or authored for a situation, and fail the spec on everything it cannot
+ * The overseer-fetch mock must answer exactly what was recorded for a situation, and fail the spec on everything it cannot
  * answer from a recording: a call with no answer, an address the real boundary throws on, a bound of zero, an answer set with two answers
  * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
  * open is counted until it is closed or read to its end, as the real connection stays open.

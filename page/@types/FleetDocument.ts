@@ -79,7 +79,7 @@ export interface FleetDocumentAgentRow {
   runningSubagents:    number | null;
   silentSweeps:        number | null;
   quiet:               boolean | null;
-  turn:                number | null;
+  turn:                'between-turns' | 'mid-turn' | null;
   messagesWaiting:     number | null;
   lastLine:            string | null;
   waitingOnDecisionId: string | null;

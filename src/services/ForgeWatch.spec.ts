@@ -1,5 +1,5 @@
 /**
- * The forge watch over a registry in the scratch root, recorded and authored Overseer answers, and timers the spec fires by hand. The flow
+ * The forge watch over a registry in the scratch root, recorded Overseer answers, and timers the spec fires by hand. The flow
  * spec walks one forge through every stage PLAN 7.1 names, one answer set per stage: dormant, started, live, stream lost, unreachable and
  * back. Around it: a missing repository, a forge read as counts, another program or another forge on the port, a hidden forge, an unchanged
  * registry, look again, and a stop at any moment leaves no timer and no open stream. No spec waits a real interval.
@@ -48,8 +48,10 @@ const SUMMARY_POLL_MILLISECONDS = INTERVALS.summaryPollIntervalMilliseconds;
 const SHORT_BOUND_MILLISECONDS = 200;
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 
-/** The forge the authored monitor answers describe, and the one the recorded answers of today's forge came from. */
+/** The forge the answers of a forge serving every contract were recorded as, and the one the answers of a forge before F1 came from. */
 const STOREFRONT_TRACKER_ID = 'example-storefront-7c41';
+/** The limit the recorded serving stream's second snapshot reports. */
+const RAISED_CONCURRENCY_LIMIT = 3;
 const RECORDED_TRACKER_ID = '712f8bdb-e7cf-48bc-86a5-2616d2cf935f';
 
 const STAMPS = {
@@ -217,7 +219,7 @@ describe('a forge through every stage of PLAN 7.1', () => {
     overseerFetch.enter(STAGE_ANSWERS.live);
     timers.fire(RECONNECT_MILLISECONDS);
     const live = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
-    expect(live).toMatchObject({ project: 'Example Storefront', lastReportedAt: STAMPS.live, url: 'http://127.0.0.1:4951' });
+    expect(live).toMatchObject({ project: 'Example Storefront', lastReportedAt: STAMPS.live, url: 'http://127.0.0.1:4951/' });
     expect(live.agents.length).toBeGreaterThan(0);
     expect(live.attention.length).toBeGreaterThan(0);
     await timers.untilPending(RECONNECT_MILLISECONDS);
@@ -263,7 +265,8 @@ describe('a forge through every stage of PLAN 7.1', () => {
     const overseerFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
-    const live = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
+    // The recorded stream's second snapshot is the last the forge reported, after a command raised its limit.
+    const live = onlyReadingOf(await untilReadings((readings) => onlyReadingIs('full', 'live')(readings) && readings[0]?.concurrency?.limit === RAISED_CONCURRENCY_LIMIT));
 
     overseerFetch.enter(STAGE_ANSWERS.dormant);
     writeRegistry([{ hasOverseer: false }]);

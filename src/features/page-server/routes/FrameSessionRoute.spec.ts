@@ -1,5 +1,5 @@
 /**
- * The frame session route over recorded and authored Overseer answers. What matters: the answer holds the Bridge's address with
+ * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with
  * `?embedded=gaia` and the forge's one-time code; the token travels only as the bearer of the one request and reaches no answer and no
  * log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported` and is asked for nothing; and every other way
  * a code is not given ends in its own outcome.
@@ -106,7 +106,7 @@ function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch 
   return recordedOverseerFetch(recordedOverseerAnswersOf(situation).filter((answer) => answer.callShape === SESSION_CODES_CALL_SHAPE));
 }
 
-/** The session code the authored Overseer answer holds, read from the recording itself. */
+/** The session code the recorded Overseer answer holds, read from the recording itself. */
 function recordedSessionCode(): string {
   const [recorded] = recordedOverseerAnswersOf('serving-every-contract').filter((answer) => answer.callShape === SESSION_CODES_CALL_SHAPE);
   if (recorded?.answer.verdict !== 'answered') throw new Error('The serving-every-contract situation holds no answered session code.');

@@ -1,5 +1,5 @@
 /**
- * The identity ingestion over the identity recorded from a forge as it stands today and the authored F1 identity, read through the forge
+ * The identity ingestion over the identity recorded from a forge before F1 and from one serving every contract, read through the forge
  * client. What matters: PLAN 7.1's choice of how a forge is read, from no `contracts` key (counts only) to a monitor at the known number
  * (in full) to a newer number (nothing, at fidelity newer-contract, which equals B3's fixture); an identity of another forge at the
  * registry's address; and an identity at a newer `identityVersion` mapped to nothing.
@@ -58,7 +58,7 @@ describe('the identity of a forge that serves F1', () => {
       identity: {
         trackerId:      'example-storefront-7c41',
         project:        'Example Storefront',
-        codeVersion:    '3f9a2c1',
+        codeVersion:    '9fc4e996dd57',
         installVersion: 27,
         processId:      48_107,
         contracts:      {

@@ -18,13 +18,20 @@ export interface ForgeStopAnswer {
   readonly outcome: ForgeProgramOutcome;
 }
 
+/** `created` for a new tracker; `refreshed` when the root was tracked already and only what `update` writes was refreshed. */
+export type ForgeInitOutcome = 'created' | 'refreshed';
+
 export interface ForgeInitAnswer {
-  readonly outcome:   ForgeProgramOutcome;
+  readonly outcome:   ForgeInitOutcome;
   readonly trackerId: string;
   readonly project:   string;
   readonly root:      string;
 }
 
+/**
+ * A failed pass names its step: `restart-not-taken` when the live Overseer did not take the pass and the old one still drives, at exit 0;
+ * a pass that failed after it was taken is the refusal `baton-pass-failed`.
+ */
 export type ForgeBatonPass =
   | { readonly outcome: 'done' }
   | { readonly outcome: 'not-needed' }

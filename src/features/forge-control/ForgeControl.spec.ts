@@ -1,5 +1,5 @@
 /**
- * forge-control over recorded and authored Overseer answers, forge program runs and chooser runs, and the real settings store under a
+ * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a
  * scratch home: one spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code
  * and sentence passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract
  * Gaia does not know, a stop and a machine limit that fall back to the program when no Overseer answers, an add that runs `init`, then
@@ -222,14 +222,15 @@ function sentBodiesOf(overseerFetch: RecordedOverseerFetch): readonly unknown[] 
   return overseerFetch.callsAnswered().map((call) => (call.jsonBody === null ? null : JSON.parse(call.jsonBody) as unknown));
 }
 
-/** The forge's refusal the authored Overseer answer holds, read from the recording itself. */
+/** The forge's refusal the recorded Overseer answer holds, read from the recording itself. */
 function recordedApiRefusal(): { readonly refusal: string; readonly text: string } {
   const [recorded] = recordedOverseerAnswersOf('command-refused').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE);
   if (recorded?.answer.verdict !== 'answered') throw new Error('The command-refused situation holds no answered command.');
-  return JSON.parse(recorded.answer.bodyText) as { refusal: string; text: string };
+  const { refusal, text } = JSON.parse(recorded.answer.bodyText) as { refusal: string; text: string };
+  return { refusal, text };
 }
 
-/** The forge program's refusal the authored run holds for a verb, read from the recording itself. */
+/** The forge program's refusal the recorded run holds for a verb, read from the recording itself. */
 function recordedProgramRefusal(programArguments: readonly string[]): { readonly refusal: string; readonly text: string } {
   const callShape = runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, programArguments);
   const recorded  = recordedRunsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-refused']).find((run) => run.callShape === callShape);

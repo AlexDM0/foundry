@@ -238,7 +238,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     if (initVerdict.verdict !== 'done') return verdictOfProgramFailure(initVerdict);
     const startVerdict = await forgeProgram.start(target);
     if (startVerdict.verdict !== 'done') return verdictOfProgramFailure(startVerdict);
-    return { verdict: initVerdict.answer.outcome === 'done' || startVerdict.answer.started ? 'done' : 'nothing-to-do' };
+    return { verdict: initVerdict.answer.outcome === 'created' || startVerdict.answer.started ? 'done' : 'nothing-to-do' };
   }
 
   /**

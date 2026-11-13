@@ -1,7 +1,7 @@
 /**
  * The judgement of the recording-stamp check: from the recordings of one OS and the installed versions, which recordings are stale (a
- * failure, naming the command that records them again), which boundaries have no recording for the OS (not finished, listed), and which
- * recordings are authored by hand (a warning until the system they stand in for exists), and which recordings it cannot judge because the
+ * failure, naming the command that records them again), which boundaries have no recording for the OS (not finished, listed), which
+ * recordings are authored by hand (a failure for a forge recording, a warning for the rest), and which recordings it cannot judge because the
  * installed version of their system is read only by running it (listed with the command that records them again). It makes no real call.
  */
 import {
@@ -45,6 +45,8 @@ function judgementOf(boundary: RecordedBoundary, input: RecordingStampInput, rec
     };
   }
   if (stamp.source === 'authored') {
+    // The forge serves every contract Gaia reads (PLAN 10.3), so a forge answer written by hand is a defect, not a placeholder.
+    if (stamp.system === 'forge') return { kind: 'stale', line: `${recordingPath} is authored by hand, and a forge recording must be recorded. ${recordAgain}` };
     return { kind: 'authored', line: `${recordingPath} is authored by hand and waits to be recorded from a real ${stamp.system}.` };
   }
   const installedVersion = input.installedVersionOf(stamp.system);

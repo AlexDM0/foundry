@@ -1,6 +1,6 @@
 /**
  * Every call of the forge client answers a document or a verdict, never a throw, and each outcome of each call is proven against an answer
- * recorded from a real forge or authored from FORGE_REQUIREMENTS.md; the table below uses every such answer, so none is left unproven. A
+ * recorded from a real forge, or from a program that is no forge; the table below uses every such answer, so none is left unproven. A
  * monitor stream that ends inside an event hands on no half snapshot. The token travels as a bearer on the guarded routes only, and no
  * answer carries it.
  */
@@ -43,6 +43,17 @@ async function followedSnapshotsOf(overseerFetch: RecordedOverseerFetch, stopAft
 }
 
 const PAUSE_COMMAND: ForgeControlCommand = { kind: 'overseer-pause' };
+
+/** The forge's refusal while it cannot read its board's files, as recorded. */
+const READ_FAILED = {
+  verdict: 'refused',
+  refusal: 'read-failed',
+  text:    'The Overseer could not read the board\'s files. Run `forge status` in the repository to see which file is wrong.',
+} as const;
+
+/** The machine limit the recorded forge was lowered to, and its CPU count. */
+const LOWERED_MACHINE_LIMIT = 4;
+const RECORDED_CPU_COUNT = 10;
 
 interface OutcomeCase {
   readonly call:      string;
@@ -122,7 +133,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'board-unreadable',
     callShape: 'GET /api/summary',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
-    expected:  { verdict: 'refused', refusal: null, text: null },
+    expected:  READ_FAILED,
   },
   {
     call:      'summaryOf',
@@ -157,7 +168,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'board-unreadable',
     callShape: 'GET /api/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
-    expected:  { verdict: 'refused', refusal: null, text: null },
+    expected:  READ_FAILED,
   },
   {
     call:      'monitorOf',
@@ -185,7 +196,11 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'command-refused',
     callShape: 'POST /api/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, { kind: 'machine-agent-limit-set', limit: 64 }),
-    expected:  { verdict: 'refused', refusal: 'machine-agent-limit-above-cpus', text: 'The machine agent limit cannot be above the 12 CPUs of this machine.' },
+    expected:  {
+      verdict: 'refused',
+      refusal: 'machine-agent-limit-above-cpus',
+      text:    `A machine agent limit of 64 is above the ${RECORDED_CPU_COUNT} CPUs this machine has, so nothing was written.`,
+    },
   },
   {
     call:      'send',
@@ -259,6 +274,13 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   },
   {
     call:      'followMonitor',
+    situation: 'stream-cut-inside-event',
+    callShape: 'STREAM /api/monitor/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    expected:  { verdict: 'ended', ending: 'closed' },
+  },
+  {
+    call:      'followMonitor',
     situation: 'connection-broken',
     callShape: 'STREAM /api/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
@@ -269,7 +291,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'machine-limit-lowered',
     callShape: 'STREAM /api/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
-    expected:  [expect.objectContaining({ concurrency: expect.objectContaining({ machineLimit: 10, machineAgentsInFlight: 10 }) })],
+    expected:  [expect.objectContaining({ concurrency: expect.objectContaining({ machineLimit: LOWERED_MACHINE_LIMIT, machineAgentsInFlight: 0 }) })],
   },
   {
     call:      'followMonitor',
@@ -296,8 +318,8 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     call:      'followMonitor',
     situation: 'board-unreadable',
     callShape: 'STREAM /api/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
-    expected:  { verdict: 'refused', refusal: null, text: null },
+    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
+    expected:  [expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' })],
   },
   {
     call:      'followMonitor',
@@ -315,7 +337,7 @@ describe('each outcome of each call', () => {
     });
   }
 
-  test('is proven by exactly the recorded and authored answers, each used once', () => {
+  test('is proven by exactly the recorded answers, each used once', () => {
     const provenCallShapes   = OUTCOME_CASES.map(({ situation, callShape }) => situationCallShapeOf(situation, callShape));
     const recordedCallShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape);
     expect([...provenCallShapes].sort()).toEqual([...recordedCallShapes].sort());
@@ -326,14 +348,14 @@ describe('following a monitor stream', () => {
   test('hands on each whole snapshot in order, passing over the heartbeat, and closes the stream when stopped', async () => {
     const { snapshots, overseerFetch } = await followedSnapshotsOf(overseerFetchOf('serving-every-contract'), 2);
     expect(snapshots).toEqual([
-      expect.objectContaining({ monitorVersion: 1, attention: [expect.objectContaining({ idText: '#015' }), expect.objectContaining({ idText: 'E2' })] }),
-      expect.objectContaining({ monitorVersion: 1, attention: [expect.objectContaining({ idText: '#015' })] }),
+      expect.objectContaining({ monitorVersion: 1, concurrency: expect.objectContaining({ limit: 2 }) }),
+      expect.objectContaining({ monitorVersion: 1, concurrency: expect.objectContaining({ limit: 3 }) }),
     ]);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('hands on no half snapshot when the stream ends inside an event', async () => {
-    const { end, snapshots } = await followedSnapshotsOf(overseerFetchOf('baton-pass'));
+    const { end, snapshots } = await followedSnapshotsOf(overseerFetchOf('stream-cut-inside-event'));
     expect(snapshots).toEqual([expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' })]);
     expect(end).toEqual({ verdict: 'ended', ending: 'closed' });
   });

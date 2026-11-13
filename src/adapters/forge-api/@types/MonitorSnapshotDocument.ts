@@ -3,6 +3,7 @@
  * after their check. Keys Gaia does not read, such as `ticketCountByStatus` and the Overseer's `generation`, are passed over.
  */
 import type { ActivityCategory }                                        from '../../../shared/@types/ActivityEntry.ts';
+import type { JobTurn }                                                 from '../../../shared/@types/AgentRow.ts';
 import type { AttentionActionLabel, AttentionKind, AttentionStampWord } from '../../../shared/@types/AttentionItem.ts';
 
 export type MonitorOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton';
@@ -50,6 +51,7 @@ export interface MonitorJobDocument {
   readonly ticketIds:           readonly string[];
   readonly ticketTitle:         string | null;
   readonly attempt:             number;
+  /** `''` when the forge lost the job's launch stamp. */
   readonly startedAt:           string;
   readonly calls:               number;
   readonly callBudget:          number | null;
@@ -59,7 +61,7 @@ export interface MonitorJobDocument {
   readonly runningSubagents:    number;
   readonly silentSweeps:        number;
   readonly quiet:               boolean;
-  readonly turn:                number;
+  readonly turn:                JobTurn | null;
   readonly messagesWaiting:     number;
   readonly lastLine:            string | null;
   readonly waitingOnDecisionId: string | null;
@@ -102,7 +104,8 @@ export interface MonitorSnapshotDocument {
   readonly attention:      readonly MonitorAttentionEntryDocument[];
   readonly jobs:           readonly MonitorJobDocument[];
   readonly notices:        readonly MonitorNoticeDocument[];
-  readonly warnings:       readonly MonitorNoticeDocument[];
+  /** The header's warnings, each the forge's sentence alone: monitor contract 1 gives a warning no kind. */
+  readonly warnings:       readonly string[];
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
   readonly activity:       readonly MonitorActivityEntryDocument[];

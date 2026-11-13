@@ -191,10 +191,16 @@ function rowContentOf(input: AgentsModelInput, filters: AgentFilters, row: Fleet
   };
 }
 
+/** The forge tells only whether a session is inside a turn or between two, not how many it took. */
+const TURN_WORDS: Readonly<Record<NonNullable<FleetDocumentFleetAgentRow['turn']>, string>> = {
+  'between-turns': 'Between turns',
+  'mid-turn':      'Mid-turn',
+};
+
 function factsOf(row: FleetDocumentFleetAgentRow): AgentFact[] {
   const callsText = row.calls === null ? null : `${row.calls}${row.callBudget === null ? '' : ` of ${row.callBudget}`}`;
   const facts: readonly (readonly [label: string, value: string | null])[] = [
-    ['Turn', row.turn === null ? null : String(row.turn)],
+    ['Turn', row.turn === null ? null : TURN_WORDS[row.turn]],
     ['Calls', callsText],
     ['Tool calls', row.toolCalls === null ? null : String(row.toolCalls)],
     ['Subagents', row.runningSubagents === null ? null : `${row.runningSubagents} running`],

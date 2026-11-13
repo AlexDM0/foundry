@@ -25,11 +25,8 @@ export type RecordedSystem = 'bun' | 'forge' | 'macos' | 'browser';
 export interface RecordedBoundary {
   readonly recordingName:  string;
   readonly boundaryModule: string;
-  /**
-   * Run only by `bun run record`: `bunfig.toml` keeps every `*.recording.spec.ts` out of a plain `bun test`. `null` for a recording
-   * authored by hand for a contract the system does not serve yet; its spec comes with the system's contract (PLAN 10.3).
-   */
-  readonly recordingSpec:  string | null;
+  /** Run only by `bun run record`: `bunfig.toml` keeps every `*.recording.spec.ts` out of a plain `bun test`. */
+  readonly recordingSpec:  string;
   readonly system:         RecordedSystem;
 }
 
@@ -49,13 +46,13 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
   {
     recordingName:  'forge-program-done',
     boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
-    recordingSpec:  null,
+    recordingSpec:  'src/adapters/forge-program/ForgeProgram.done.recording.spec.ts',
     system:         'forge',
   },
   {
     recordingName:  'forge-program-refused',
     boundaryModule: 'src/adapters/forge-program/ForgeProgram.ts',
-    recordingSpec:  null,
+    recordingSpec:  'src/adapters/forge-program/ForgeProgram.refused.recording.spec.ts',
     system:         'forge',
   },
   {
@@ -89,16 +86,31 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'macos',
   },
   {
-    recordingName:  'overseer-fetch-authored',
+    recordingName:  'overseer-fetch-every-contract',
     boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:  null,
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.everyContract.recording.spec.ts',
     system:         'forge',
+  },
+  {
+    recordingName:  'forge-registry',
+    boundaryModule: 'src/adapters/forge-registry/RegistryFile.ts',
+    recordingSpec:  'src/adapters/forge-registry/RegistryFile.recording.spec.ts',
+    system:         'forge',
+  },
+  {
+    recordingName:  'overseer-fetch-other-programs',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.otherPrograms.recording.spec.ts',
+    system:         'bun',
   },
 ];
 
 export const RECORDING_SPEC_SUFFIX = '.recording.spec.ts';
 
-/** `recorded`: taken from the real system at `systemVersion`. `authored`: written by hand for a contract that does not exist yet (PLAN 10.3). */
+/**
+ * `recorded`: taken from the real system at `systemVersion`. `authored`: written by hand until a person answers its recording spec, as
+ * `path-chooser` waits for one at a Mac's screen; a forge recording is never authored (PLAN 10.3).
+ */
 export type RecordingStamp =
   | {
     readonly recordingName:   string;

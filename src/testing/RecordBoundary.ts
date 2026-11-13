@@ -85,10 +85,6 @@ export async function recordBoundary(recordingName: string, output: RecordOutput
     return 1;
   }
   const { recordingSpec } = boundary;
-  if (recordingSpec === null) {
-    output.writeStandardError(`${boundary.recordingName} is authored by hand: its ${boundary.system} does not serve the contract yet, so it has no recording spec.\n`);
-    return 1;
-  }
   const answersPath       = answersInProgressPathOf(boundary.recordingName);
   const systemVersionPath = systemVersionInProgressPathOf(boundary.recordingName);
   mkdirSync(scratchRoot(), { recursive: true });

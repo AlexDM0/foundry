@@ -1,0 +1,80 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "overseer-fetch-other-programs",
+    "operatingSystem": "darwin",
+    "system": "bun",
+    "source": "recorded",
+    "systemVersion": "1.4.2"
+  },
+  "answers": [
+    {
+      "callShape": "port-held-by-another-program: GET /api/identity",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/monitor with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/summary",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/commands with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/session-codes with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: STREAM /api/monitor/events with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "snapshot-unreadable: STREAM /api/monitor/events with bearer",
+      "answer": {
+        "verdict": "streaming",
+        "chunks": [
+          "event: monitor\ndata: {\"monitorVersion\":1,\"trackerId\"\n\nevent: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\"}\n\n"
+        ],
+        "ending": "closed"
+      }
+    },
+    {
+      "callShape": "stream-cut-inside-event: STREAM /api/monitor/events with bearer",
+      "answer": {
+        "verdict": "streaming",
+        "chunks": [
+          "event: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\"}\n\nevent: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-sto"
+        ],
+        "ending": "closed"
+      }
+    }
+  ]
+}

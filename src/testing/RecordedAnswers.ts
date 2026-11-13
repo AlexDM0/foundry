@@ -1,6 +1,6 @@
 /**
- * The overseer-fetch mock every spec uses in place of the real boundary. It answers from the answers recorded from a real forge, or
- * authored for a contract no forge serves yet, for one situation of the forge, and fails the spec on a call with no answer. It keeps the
+ * The overseer-fetch mock every spec uses in place of the real boundary. It answers from the answers recorded from a real forge, or from
+ * a program that is no forge, for one situation of the forge, and fails the spec on a call with no answer. It keeps the
  * real boundary's demands on the caller: an address that parses, a bound above zero, and a stream left open is counted until closed.
  * Test-only.
  */
@@ -25,8 +25,9 @@ import {
 } from './BoundaryRecordings.ts';
 
 /**
- * The state of the forge a set of answers was taken in. `serving` and `stopped` are recorded from a forge as it stands today;
- * `serving-every-contract` is a forge that serves F1 to F8; the rest name the one outcome they hold.
+ * The state of the forge a set of answers was taken in. `serving` and `stopped` are recorded from a forge before F1;
+ * `serving-every-contract` is a forge that serves F1 to F8; `port-held-by-another-program`, `snapshot-unreadable` and
+ * `stream-cut-inside-event` are programs that are no forge; the rest name the one outcome they hold.
  */
 export const OVERSEER_SITUATIONS = [
   'serving',
@@ -41,6 +42,7 @@ export const OVERSEER_SITUATIONS = [
   'port-held-by-another-program',
   'baton-pass',
   'snapshot-unreadable',
+  'stream-cut-inside-event',
   'connection-broken',
   'machine-limit-lowered',
 ] as const;
@@ -72,8 +74,8 @@ export interface RecordedOverseerFetch extends OverseerFetch {
   readonly streamsLeftOpen: () => number;
 }
 
-/** The recording taken from a real forge, and the one written by hand from FORGE_REQUIREMENTS.md until W7.2 records it. */
-export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-authored'] as const;
+/** The recordings taken from a forge before F1, from a forge that serves every contract, and from programs that are no forge. */
+export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-every-contract', 'overseer-fetch-other-programs'] as const;
 
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';
 const BEARER_SUFFIX = ' with bearer';
@@ -121,7 +123,7 @@ function answerFitsCallShape(callShape: string, answer: unknown): boolean {
 
 function answersOfRecording(recordingName: string, operatingSystem: string): readonly RecordedOverseerAnswer[] {
   const recordingPath = recordingPathOf(recordingName, operatingSystem);
-  const remedy        = `Record it with \`${recordCommandOf(recordingName)}\`, or write it by hand when it is authored.`;
+  const remedy        = `Record it with \`${recordCommandOf(recordingName)}\`.`;
   let recordingText: string;
   try {
     recordingText = readFileSync(join(repositoryRoot(), recordingPath), 'utf8');
@@ -141,7 +143,7 @@ export function everyRecordedOverseerAnswerOf(operatingSystem: string = process.
   return OVERSEER_RECORDING_NAMES.flatMap((recordingName) => answersOfRecording(recordingName, operatingSystem));
 }
 
-/** The answers of one situation, recorded and authored, each call shape without its situation. */
+/** The answers of one situation, from every recording, each call shape without its situation. */
 export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   const situationPrefix = situationCallShapeOf(situation, '');
   return everyRecordedOverseerAnswerOf(operatingSystem)

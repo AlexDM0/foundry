@@ -71,9 +71,6 @@ const DEFAULT_INTERVALS: ForgeWatchIntervals = {
   unreachableAfterFailedTries:         UNREACHABLE_AFTER_FAILED_TRIES,
 };
 
-/** The identity's refusal while the Overseer has not finished starting. */
-const STARTING_REFUSAL = 'starting';
-
 /** The real timers, over the runtime's own. */
 export function realWatchTimers(): WatchTimers {
   return {
@@ -167,6 +164,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
     }
 
+    function readStarting(): void {
+      setReading(WatchReadingUtil.startingReadingOf(entry, lastWholeReading));
+      scheduleRound(intervals.streamReconnectIntervalMilliseconds);
+    }
+
     async function decideWithoutOverseer(round: WatchRound): Promise<void> {
       const isAFolder = await rootIsAFolder(entry.root);
       if (!round.isCurrent()) return;
@@ -207,6 +209,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       if (!round.isCurrent()) return;
       monitorFollow = null;
       if (end.verdict === 'ended' && end.ending === 'stopped') return;
+      if (end.verdict !== 'ended' && WatchReadingUtil.failureMeansStarting(end)) return readStarting();
       // A stream that gave a whole snapshot ended as a Baton pass or a lost connection does; one that gave none is a failed try.
       if (wholeSnapshotsRead === 0) return failedTry();
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
@@ -218,10 +221,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       const registryFacts = WatchReadingUtil.registryFactsOf(entry, overseer);
       const answer = await forgeClient.identityOf(overseer.url);
       if (!round.isCurrent()) return;
-      if (answer.verdict === 'refused' && answer.refusal === STARTING_REFUSAL) {
-        setReading(WatchReadingUtil.startingReadingOf(entry, lastWholeReading));
-        return scheduleRound(intervals.streamReconnectIntervalMilliseconds);
-      }
+      if (answer.verdict !== 'answered' && WatchReadingUtil.failureMeansStarting(answer)) return readStarting();
       if (answer.verdict !== 'answered') return failedTry();
       const identityReading = new IdentityIngestion(registryFacts).readingOf(answer.document);
       if (identityReading.verdict === 'newer-contract') {

@@ -1,5 +1,5 @@
 /**
- * The record command refuses a name that is no recorded boundary, and a boundary authored by hand, before it starts anything, and lists the
+ * The record command refuses a name that is no recorded boundary before it starts anything, and lists the
  * names it knows. Its recording path runs real programs, so it is exercised by `bun run record` itself, never in this suite.
  */
 import { describe, expect, test } from 'bun:test';
@@ -26,13 +26,5 @@ describe('bun run record', () => {
       standardError:  `"example-unknown-boundary" is no recorded boundary. Name one of:\n${recordedNames}`,
     });
     expect(recordedNames).toContain('  process-run\n');
-  });
-
-  test('refuses a boundary authored by hand, which has no recording spec to run', async () => {
-    expect(await recordCommandOutputOf('forge-program-done')).toEqual({
-      exitCode:       1,
-      standardOutput: '',
-      standardError:  'forge-program-done is authored by hand: its forge does not serve the contract yet, so it has no recording spec.\n',
-    });
   });
 });

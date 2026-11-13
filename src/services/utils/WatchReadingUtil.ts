@@ -4,6 +4,7 @@
  */
 import type { ForgeRegistryFacts }                  from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import type { RegisteredForge, RegisteredOverseer } from '../../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { ForgeClientFailure }                  from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeContracts, ForgeReading }        from '../../shared/@types/ForgeReading.ts';
 
 const NO_CONTRACTS: ForgeContracts = {
@@ -104,7 +105,18 @@ function unreachableReadingOf(forge: RegisteredForge, lastWholeReading: ForgeRea
   return { ...lastWholeReading, fidelity: 'unreachable', condition: 'unreachable' };
 }
 
+/**
+ * The refusals of an Overseer that has not finished starting: its identity and its monitor answer `starting` until it serves, and its
+ * monitor stream `not-ready` until it took its generation.
+ */
+const STARTING_REFUSALS: ReadonlySet<string | null> = new Set(['starting', 'not-ready']);
+
+function failureMeansStarting(failure: ForgeClientFailure): boolean {
+  return failure.verdict === 'refused' && STARTING_REFUSALS.has(failure.refusal);
+}
+
 export const WatchReadingUtil = {
+  failureMeansStarting,
   registryFactsOf,
   dormantReadingOf,
   repositoryMissingReadingOf,
