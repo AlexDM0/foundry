@@ -1,31 +1,38 @@
 #!/usr/bin/env bun
 /** The one entry point: reads the verb, runs it, and maps the app-level error to an exit code. Only this file exits. */
+import { mkdir }                from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
+import { join }                 from 'node:path';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
-import { createForgeProgram }                           from './adapters/forge-program/ForgeProgram.ts';
-import { RegistryFile, registryFilePathIn }             from './adapters/forge-registry/RegistryFile.ts';
-import { SettingsFile }                                 from './adapters/gaia-files/SettingsFile.ts';
-import { createSettingsWriter }                         from './adapters/gaia-files/SettingsWriter.ts';
-import { createPathChooser }                            from './adapters/path-chooser/PathChooser.ts';
-import { fleetSnapshotOf }                              from './features/fleet/FleetAssembly.ts';
-import { createForgeControl }                           from './features/forge-control/ForgeControl.ts';
-import { startPageServer, type PageServerStartVerdict } from './features/page-server/PageServer.ts';
-import { builtPageFilesOf, pageIndexFilePath }          from './features/page-server/routes/PageFilesRoute.ts';
-import { forgeClientOf }                                from './lib/forge-client/ForgeClient.ts';
-import { realOverseerFetch }                            from './lib/forge-client/OverseerFetch.ts';
-import { realProcessRun }                               from './lib/process-run/ProcessRun.ts';
-import { stampOfNow }                                   from './services/Clock.ts';
-import { environmentCopy, gaiaPort, homeDirectory }     from './services/Environment.ts';
-import { createFleetStore }                             from './services/FleetStore.ts';
-import { createForgeWatch, realWatchTimers }            from './services/ForgeWatch.ts';
-import { createSettingsStore }                          from './services/SettingsStore.ts';
-import type { FleetSnapshot }                           from './shared/@types/FleetSnapshot.ts';
-import { GaiaError }                                    from './shared/GaiaError.ts';
-import { CONTRACT_VERSIONS }                            from './shared/constants/ContractVersions.ts';
-import { GAIA_INSTALL_VERSION }                         from './shared/constants/InstallVersion.ts';
-import { PRODUCT_NAMES }                                from './shared/constants/ProductNames.ts';
+import { createForgeProgram }                                  from './adapters/forge-program/ForgeProgram.ts';
+import { RegistryFile, registryFilePathIn }                    from './adapters/forge-registry/RegistryFile.ts';
+import { ServerTokenFile }                                     from './adapters/gaia-files/ServerTokenFile.ts';
+import { SettingsFile }                                        from './adapters/gaia-files/SettingsFile.ts';
+import { createSettingsWriter }                                from './adapters/gaia-files/SettingsWriter.ts';
+import { realGaiaServerClient }                                from './adapters/gaia-server/GaiaServerClient.ts';
+import { createPathChooser }                                   from './adapters/path-chooser/PathChooser.ts';
+import { fleetSnapshotOf }                                     from './features/fleet/FleetAssembly.ts';
+import { createForgeControl }                                  from './features/forge-control/ForgeControl.ts';
+import { foundBrowserIn }                                      from './features/launcher/BrowserFinder.ts';
+import { realBrowserWindowWatch }                              from './features/launcher/BrowserWindowWatch.ts';
+import { createLauncher, launchMessageOf, type LaunchVerdict } from './features/launcher/Launcher.ts';
+import { startPageServer, type PageServerStartVerdict }        from './features/page-server/PageServer.ts';
+import { builtPageFilesOf, pageIndexFilePath }                 from './features/page-server/routes/PageFilesRoute.ts';
+import { forgeClientOf }                                       from './lib/forge-client/ForgeClient.ts';
+import { realOverseerFetch }                                   from './lib/forge-client/OverseerFetch.ts';
+import { realProcessRun }                                      from './lib/process-run/ProcessRun.ts';
+import { stampOfNow }                                          from './services/Clock.ts';
+import { environmentCopy, gaiaPort, homeDirectory }            from './services/Environment.ts';
+import { createFleetStore }                                    from './services/FleetStore.ts';
+import { createForgeWatch, realWatchTimers }                   from './services/ForgeWatch.ts';
+import { createSettingsStore }                                 from './services/SettingsStore.ts';
+import type { FleetSnapshot }                                  from './shared/@types/FleetSnapshot.ts';
+import { GaiaError }                                           from './shared/GaiaError.ts';
+import { CONTRACT_VERSIONS }                                   from './shared/constants/ContractVersions.ts';
+import { GAIA_INSTALL_VERSION }                                from './shared/constants/InstallVersion.ts';
+import { PRODUCT_NAMES }                                       from './shared/constants/ProductNames.ts';
 
 export interface ProgramOutput {
   readonly writeStandardOutput: (text: string) => void;
@@ -41,6 +48,7 @@ const USAGE_TEXT = [
   `Usage: ${PRODUCT_NAMES.programName} <verb> [--json]`,
   '',
   'Verbs:',
+  '  launch    open Gaia\'s window, starting its server when none runs, and stop that server when the window closes',
   '  serve     serve Gaia\'s page and its API on 127.0.0.1 until stopped by a signal',
   '  version   the version of Gaia and of the app bundle contract it installs',
   '  help      this text',
@@ -65,17 +73,28 @@ async function printUsage(_remainingArguments: readonly string[], output: Progra
   return 0;
 }
 
-/** The signals that end `serve`: Ctrl-C in a terminal, and the launcher's stop of the server it started. */
+/** The signals that end `serve` and `launch`: Ctrl-C in a terminal, and the launcher's stop of the server it started. */
 const STOP_SIGNALS = ['SIGINT', 'SIGTERM'] as const;
 
-function untilAStopSignal(): Promise<void> {
-  return new Promise((resolve) => {
+interface StopSignalWatch {
+  readonly untilAStopSignal: Promise<void>;
+  /** Stops listening without a signal, as a verb that ended by itself does. */
+  readonly release:          () => void;
+}
+
+function watchStopSignals(): StopSignalWatch {
+  let release: () => void = () => undefined;
+  const untilAStopSignal = new Promise<void>((resolve) => {
     const stop = (): void => {
-      for (const signal of STOP_SIGNALS) process.off(signal, stop);
+      release();
       resolve();
+    };
+    release = () => {
+      for (const signal of STOP_SIGNALS) process.off(signal, stop);
     };
     for (const signal of STOP_SIGNALS) process.on(signal, stop);
   });
+  return { untilAStopSignal, release };
 }
 
 function refusalOfStart(startVerdict: Exclude<PageServerStartVerdict, { readonly verdict: 'serving' }>): GaiaError {
@@ -168,14 +187,58 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   forgeWatch.start();
   output.writeStandardOutput(`${PRODUCT_NAMES.applicationName} serves ${pageServer.url.href}\n`);
 
-  await untilAStopSignal();
+  await watchStopSignals().untilAStopSignal;
   unsubscribeFromSettings();
   forgeWatch.stop();
   await pageServer.stop();
   return 0;
 }
 
+const BROWSER_PROFILE_FOLDER_NAME = 'browser-profile';
+
+/** Gaia's data folder is owner-only, since it holds the token; the browser would make it open to all if it came first. */
+const OWNER_ONLY_FOLDER_MODE = 0o700;
+
+/** A launch that did not close normally, as the app-level error: a refusal User can act on, or a failure Gaia will not repair. */
+export function launchErrorOf(verdict: Exclude<LaunchVerdict, { readonly verdict: 'closed' }>, port: number): GaiaError {
+  const reason = verdict.verdict === 'refused' ? verdict.refusal : verdict.failure;
+  return new GaiaError(verdict.verdict, reason, launchMessageOf(verdict, port));
+}
+
+/** Wires the launcher (PLAN 9.2) to the real programs, browser and server; the launcher itself shows its dialogs. */
+async function launch(_remainingArguments: readonly string[], _output: ProgramOutput): Promise<ExitCode> {
+  const port = gaiaPort();
+  if (port === null) throw new GaiaError('refused', 'port-invalid', `${PRODUCT_NAMES.environmentPrefix}PORT names no port Gaia can listen on.`);
+  const home = homeDirectory();
+  const browserProfileFolder = join(home, PRODUCT_NAMES.dataFolderName, BROWSER_PROFILE_FOLDER_NAME);
+  try {
+    await mkdir(join(home, PRODUCT_NAMES.dataFolderName), { recursive: true, mode: OWNER_ONLY_FOLDER_MODE });
+  } catch (error) {
+    throw new GaiaError('unrepaired', 'data-folder-unwritable', `${PRODUCT_NAMES.applicationName} cannot make its data folder: ${String(error)}.`);
+  }
+  const stopSignals = watchStopSignals();
+  const verdict = await createLauncher({
+    port,
+    serverProgram:      { program: process.execPath, programArguments: [join(import.meta.dir, 'Main.ts'), 'serve'], workingDirectory: join(import.meta.dir, '..') },
+    browserProfileFolder,
+    splashPagePath:     join(import.meta.dir, '..', 'resources', 'page', 'loading.html'),
+    theme:              (await new SettingsFile(home).read()).settings.theme,
+    workingDirectory:   home,
+    findBrowser:        () => foundBrowserIn(home),
+    processRun:         realProcessRun(environmentCopy),
+    browserWindowWatch: realBrowserWindowWatch(),
+    gaiaServer:         realGaiaServerClient(),
+    readServerToken:    () => new ServerTokenFile(home).read(),
+    timers:             realWatchTimers(),
+    untilStopRequested: stopSignals.untilAStopSignal,
+  }).launch();
+  stopSignals.release();
+  if (verdict.verdict !== 'closed') throw launchErrorOf(verdict, port);
+  return 0;
+}
+
 const VERB_RUNS: Readonly<Record<string, VerbRun>> = {
+  launch,
   serve,
   version: printVersion,
   help:    printUsage,

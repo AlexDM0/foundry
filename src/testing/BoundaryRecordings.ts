@@ -16,8 +16,11 @@ import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { scratchRoot } from './ScratchRoot.ts';
 
-/** The outside system whose version stamps a recording; `macos` stands for the programs the system ships, such as `osascript`. */
-export type RecordedSystem = 'bun' | 'forge' | 'macos';
+/**
+ * The outside system whose version stamps a recording; `macos` stands for the programs the system ships, such as `osascript`, and `browser`
+ * for the Chrome or Edge that Gaia's window opens in.
+ */
+export type RecordedSystem = 'bun' | 'forge' | 'macos' | 'browser';
 
 export interface RecordedBoundary {
   readonly recordingName:  string;
@@ -68,6 +71,18 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'forge',
   },
   {
+    recordingName:  'browser-window-watch',
+    boundaryModule: 'src/features/launcher/BrowserWindowWatch.ts',
+    recordingSpec:  'src/features/launcher/BrowserWindowWatch.recording.spec.ts',
+    system:         'browser',
+  },
+  {
+    recordingName:  'launcher-programs',
+    boundaryModule: 'src/features/launcher/Launcher.ts',
+    recordingSpec:  'src/features/launcher/Launcher.recording.spec.ts',
+    system:         'browser',
+  },
+  {
     recordingName:  'overseer-fetch-authored',
     boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
     recordingSpec:  null,
@@ -110,7 +125,7 @@ export type BoundaryRecordingReading =
 
 const RECORDINGS_FOLDER = join('src', 'testing', 'recordings');
 export const RECORDING_FILE_SUFFIX = '.json';
-const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun', 'forge', 'macos']);
+const RECORDED_SYSTEMS: ReadonlySet<string> = new Set<RecordedSystem>(['bun', 'forge', 'macos', 'browser']);
 
 export function repositoryRoot(): string {
   return join(import.meta.dir, '..', '..');
@@ -139,14 +154,15 @@ export function recordingPathOf(recordingName: string, operatingSystem: string):
 
 /**
  * The installed version of a system, read without starting a process: the running program is the installed Bun, and macOS is the Darwin
- * release the kernel reports. `null` for the forge, whose version only a run of the forge program answers; its recording spec reports the
- * version it recorded from.
+ * release the kernel reports. `null` for the forge, whose version only a run of the forge program answers, and for the browser, which
+ * updates itself and only a run of it names; their recording specs report the version they recorded from.
  */
 export function installedVersionOf(system: RecordedSystem): string | null {
   switch (system) {
     case 'bun': return Bun.version;
     case 'forge': return null;
     case 'macos': return process.platform === 'darwin' ? release() : null;
+    case 'browser': return null;
   }
 }
 

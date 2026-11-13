@@ -20,4 +20,10 @@ bun run verify
 bun src/Main.ts help
 ```
 
+```bash
+bun src/Main.ts launch
+```
+
+opens Gaia's window in Google Chrome or Microsoft Edge, starting its server when none runs, and stops that server when the window closes.
+
 The rules for working in this repository are in `CLAUDE.md`.

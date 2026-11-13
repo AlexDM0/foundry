@@ -73,6 +73,16 @@ forge under a scratch home in a scratch repository (an Overseer it starts launch
 its install version, and verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.
 
+The browser's recordings (`browser-window-watch`, `launcher-programs`) are taken from the Chrome or Edge in `/Applications`, which opens
+visible windows and dismisses its own dialogs, and are stamped with that browser's version; verify lists them as not checked, since the
+browser updates itself. A recording spec that starts the browser under the scratch home passes `--use-mock-keychain`: without it the
+browser waits on the account's keychain and its windows answer no navigation.
+
+The launcher's splash (`resources/page/loading.html`) is a file page, and Gaia's server answers no cross-origin read and refuses a file
+page's origin, so the splash cannot read the health route itself: the launcher follows it and moves the splash on through the browser's
+debugging port, and navigates the window to Gaia's page with the session code. When Gaia already runs, no splash shows: the window opens
+on the page with the code at once (PLAN 9.2).
+
 # Coding conventions
 
 These are rules, not preferences. Where a linter or type checker can hold a rule, it does; everything else is checked in review.

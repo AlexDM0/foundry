@@ -7,9 +7,9 @@ import { describe, expect, test } from 'bun:test';
 
 import packageManifest from '../package.json' with { type: 'json' };
 
-import { runGaia, type ProgramOutput }               from './Main.ts';
-import { environmentCopy }                           from './services/Environment.ts';
-import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
+import { launchErrorOf, runGaia, type ProgramOutput } from './Main.ts';
+import { environmentCopy }                            from './services/Environment.ts';
+import { createScratchDirectory, removeScratchPath }  from './testing/ScratchRoot.ts';
 
 interface CapturedOutput extends ProgramOutput {
   readonly standardOutput: () => string;
@@ -61,9 +61,25 @@ describe('gaia help', () => {
   test('lists every verb, also when no verb is given', async () => {
     const output = capturedOutput();
     expect(await runGaia([], output)).toBe(0);
+    expect(output.standardOutput()).toContain('launch');
     expect(output.standardOutput()).toContain('serve');
     expect(output.standardOutput()).toContain('version');
     expect(output.standardOutput()).toContain('help');
+  });
+});
+
+describe('a launch that does not close normally', () => {
+  test('is a refusal, which exits 1, for no browser and for another program on the port, with the dialog\'s sentence', () => {
+    const noBrowser = launchErrorOf({ verdict: 'refused', refusal: 'no-browser' }, 4790);
+    const portHeld  = launchErrorOf({ verdict: 'refused', refusal: 'port-held-by-another-program' }, 4790);
+    expect([noBrowser.kind, noBrowser.reason, portHeld.kind, portHeld.reason]).toEqual(['refused', 'no-browser', 'refused', 'port-held-by-another-program']);
+    expect(noBrowser.message).toBe('Gaia opens in a Google Chrome or Microsoft Edge window, and neither is in an Applications folder.');
+    expect(portHeld.message).toBe('Another application answers on port 4790, where Gaia serves. Gaia did not start.');
+  });
+
+  test('is unrepaired, which exits 2, for a failure', () => {
+    const serverEnded = launchErrorOf({ verdict: 'unrepaired', failure: 'server-ended' }, 4790);
+    expect([serverEnded.kind, serverEnded.reason]).toEqual(['unrepaired', 'server-ended']);
   });
 });
 

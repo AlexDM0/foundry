@@ -1,0 +1,83 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "browser-window-watch",
+    "operatingSystem": "darwin",
+    "system": "browser",
+    "source": "recorded",
+    "systemVersion": "Google Chrome 157.0.8103.51"
+  },
+  "answers": [
+    {
+      "callShape": "browser-ended: debugging port",
+      "answer": {
+        "verdict": "written",
+        "debuggingPort": 60014
+      }
+    },
+    {
+      "callShape": "browser-ended: navigate",
+      "answer": {
+        "verdict": "unreachable"
+      }
+    },
+    {
+      "callShape": "browser-ended: page targets",
+      "answer": {
+        "verdict": "unreachable"
+      }
+    },
+    {
+      "callShape": "browser-starting: debugging port",
+      "answer": {
+        "verdict": "not-written"
+      }
+    },
+    {
+      "callShape": "window-closed: debugging port",
+      "answer": {
+        "verdict": "written",
+        "debuggingPort": 60014
+      }
+    },
+    {
+      "callShape": "window-closed: navigate",
+      "answer": {
+        "verdict": "unreachable"
+      }
+    },
+    {
+      "callShape": "window-closed: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": []
+      }
+    },
+    {
+      "callShape": "window-open: debugging port",
+      "answer": {
+        "verdict": "written",
+        "debuggingPort": 60014
+      }
+    },
+    {
+      "callShape": "window-open: navigate",
+      "answer": {
+        "verdict": "navigated"
+      }
+    },
+    {
+      "callShape": "window-open: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": [
+          {
+            "targetId": "7CF7EAD1F9611DE26B93830C1E6BBB6E",
+            "url": "http://127.0.0.1:60013/resources/page/loading.html?address=127.0.0.1:4790&theme=dark",
+            "debuggerAddress": "ws://127.0.0.1:60014/devtools/page/7CF7EAD1F9611DE26B93830C1E6BBB6E"
+          }
+        ]
+      }
+    }
+  ]
+}

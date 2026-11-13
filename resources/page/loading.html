@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaia</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../page/styles/tokens.css">
+  <!--
+    The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
+    health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
+    this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
+    the window to Gaia's page. Every colour is a token of tokens.css.
+  -->
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      background: var(--bg);
+      color: var(--ink);
+      font: var(--fs-body)/var(--line-height-body) var(--font-ui);
+    }
+    .splash-brand { display: flex; align-items: center; gap: 14px; }
+    .splash-brand-name {
+      font-size: var(--fs-splash);
+      line-height: 1;
+      font-weight: var(--weight-brand);
+      letter-spacing: var(--brand-tracking);
+    }
+    .splash-steps { display: flex; flex-direction: column; gap: var(--sp-2); width: 320px; margin: 0; padding: 0; list-style: none; }
+    .splash-step { display: flex; align-items: center; gap: 10px; }
+    .splash-step[data-step="next"] { color: var(--ink-muted); }
+    .splash-step-label { flex: 1; }
+    .splash-step-fact { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-micro); color: var(--ink-muted); }
+    .splash-step-dot {
+      display: inline-block;
+      flex: none;
+      box-sizing: border-box;
+      width: var(--condition-dot-size);
+      height: var(--condition-dot-size);
+      border-radius: var(--r-pill);
+    }
+    .splash-step[data-step="done"] .splash-step-dot { background: var(--status-live); }
+    .splash-step[data-step="now"] .splash-step-dot { border: var(--dot-ring-width) solid var(--status-live); }
+    .splash-step[data-step="next"] .splash-step-dot { border: var(--dot-ring-width) solid var(--line-strong); }
+    .splash-closing { font-size: var(--fs-small); color: var(--ink-muted); }
+  </style>
+</head>
+<body>
+  <div class="splash-brand">
+    <svg aria-hidden="true" width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.4">
+      <circle cx="11" cy="11" r="4"></circle><path d="M2.5 11a8.5 8.5 0 0 1 14.5-6"></path><path d="M19.5 11a8.5 8.5 0 0 1-14.5 6"></path>
+    </svg>
+    <span class="splash-brand-name">Gaia</span>
+  </div>
+  <ol class="splash-steps" aria-live="polite">
+    <li class="splash-step" id="server-step" data-step="now">
+      <span class="splash-step-dot"></span><span class="splash-step-label" id="server-label" data-label-now="Starting Gaia's server" data-label-done="Gaia's server is up">Starting Gaia's server</span><span class="splash-step-fact" id="server-fact"></span>
+    </li>
+    <li class="splash-step" id="forges-step" data-step="next">
+      <span class="splash-step-dot"></span><span class="splash-step-label">Looking for forges</span><span class="splash-step-fact" id="forges-fact"></span>
+    </li>
+    <li class="splash-step" id="opening-step" data-step="next">
+      <span class="splash-step-dot"></span><span class="splash-step-label">Opening Attention</span>
+    </li>
+  </ol>
+  <div class="splash-closing">Closing this window stops Gaia. The forges keep running.</div>
+  <script>
+    'use strict';
+    /* The launcher's steps, in order: the server starting, the server up and the forges being looked for, Attention opening. */
+    const SPLASH_STEPS = ['starting', 'looking', 'opening'];
+
+    function applyTheme(theme) {
+      const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+      if (theme === 'dark' || (theme !== 'light' && prefersDark)) document.documentElement.dataset.theme = 'dark';
+    }
+
+    function stepStateOf(stepIndex, currentIndex) {
+      if (stepIndex < currentIndex) return 'done';
+      return stepIndex === currentIndex ? 'now' : 'next';
+    }
+
+    function render() {
+      const query    = new URLSearchParams(location.search);
+      const fragment = new URLSearchParams(location.hash.slice(1));
+      const stepIndex = Math.max(0, SPLASH_STEPS.indexOf(fragment.get('step') ?? 'starting'));
+      const answered   = fragment.get('answered');
+      const registered = fragment.get('registered');
+      document.getElementById('server-step').dataset.step  = stepStateOf(0, stepIndex);
+      document.getElementById('forges-step').dataset.step  = stepStateOf(1, stepIndex);
+      document.getElementById('opening-step').dataset.step = stepStateOf(2, stepIndex);
+      const serverLabel = document.getElementById('server-label');
+      serverLabel.textContent = stepIndex === 0 ? serverLabel.dataset.labelNow : serverLabel.dataset.labelDone;
+      document.getElementById('server-fact').textContent  = stepIndex === 0 ? '' : (query.get('address') ?? '');
+      document.getElementById('forges-fact').textContent  = stepIndex > 0 && answered !== null && registered !== null ? `${answered} of ${registered} answered` : '';
+    }
+
+    applyTheme(new URLSearchParams(location.search).get('theme'));
+    render();
+    addEventListener('hashchange', render);
+  </script>
+</body>
+</html>
