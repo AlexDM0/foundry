@@ -33,4 +33,10 @@ bun src/Main.ts install-app
 installs `Gaia.app` into `~/Applications`, which opens the same window from the Finder, Launchpad or Spotlight. It runs Gaia from this
 checkout; when Gaia's install version changes, the app says so and asks for this command again.
 
-The rules for working in this repository are in `CLAUDE.md`.
+## Read further
+
+- `CLAUDE.md`: the rules for working in this repository, its map and its boundaries.
+- `docs/architecture.md`: how the launcher, the server, the page and the forges fit together at run time.
+- `docs/contracts.md`: every versioned contract Gaia reads, writes, sends or serves, with its version.
+- `docs/backlog.md`: what is agreed and not started, with the reason it waits.
+- `docs/spikes.md`: what was seen on a real Mac before the frame, the notifications and the launcher were written.

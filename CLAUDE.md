@@ -31,7 +31,7 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
 ## Map
 
 ```
-docs/              the contracts reference and the backlog
+docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS by a spec), the backlog, the spikes' findings
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
