@@ -76,15 +76,21 @@ export function Composer({
         {status === null ? null : <Tag {...status} />}
       </div>
       {attachments}
-      <textarea
-        className="bridge-textarea bridge-composer-input"
-        aria-label={label}
-        placeholder={placeholder}
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={sendOnEnter}
-        onPaste={passPastedFiles}
-      />
+      <div className="bridge-composer-entry">
+        <textarea
+          className="bridge-textarea bridge-composer-input"
+          aria-label={label}
+          placeholder={placeholder}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={sendOnEnter}
+          onPaste={passPastedFiles}
+        />
+        <span className="bridge-control">
+          <Button label={sendLabel} emphasis="primary" disabled={!sender.enabled} onPress={() => void sender.send()} />
+          {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
+        </span>
+      </div>
       <div className="bridge-composer-foot">
         {footStart}
         <span className="bridge-key-hint">
@@ -96,10 +102,6 @@ export function Composer({
           {' + '}
           <kbd>Enter</kbd>
           {' new line'}
-        </span>
-        <span className="bridge-control">
-          <Button label={sendLabel} emphasis="primary" disabled={!sender.enabled} onPress={() => void sender.send()} />
-          {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
         </span>
       </div>
     </div>

@@ -67,7 +67,7 @@ export function ResearchStep({
               level={meter.level}
               levelCount={meter.levelCount}
               accessibleName={meter.accessibleName}
-              size="node"
+              size="hero"
             />
           )}
       </section>

@@ -4,7 +4,8 @@
  * once, and the text clears once the Overseer applied it, keeps what User typed while it was on its way, and stays on a refusal, shown
  * verbatim; Shift + Enter, Enter during an input
  * method's composition, Enter while the caller makes no command (its empty-text rule) and Enter while controls are unavailable all send
- * nothing; the caller's attachments and foot controls take their places; pasted files reach the caller and a text paste does not; and the
+ * nothing; the caller's attachments and foot controls take their places; the text box and Send share one row (SCREENS A1 6: one height,
+ * held in the browser by `board.css`); pasted files reach the caller and a text paste does not; and the
  * recipient and the status are text, never markup.
  */
 import {
@@ -190,6 +191,17 @@ describe('the composer\'s slots and pastes', () => {
       composer?.querySelector('.bridge-composer-foot')?.firstElementChild?.textContent,
       [...(composer?.querySelectorAll('.bridge-key-hint') ?? [])].map((hint) => hint.textContent),
     ]).toEqual(['Example picture tray', 'Attach pictures', ['Enter sends', 'Shift + Enter new line']]);
+  });
+
+  test('the text box and Send share one row, where the row stretches Send to the text box\'s height, and the foot holds no Send', () => {
+    renderedComposer();
+    const entryRow = document.querySelector('.bridge-composer-entry');
+    expect([
+      [...(entryRow?.children ?? [])].map((part) => part.className),
+      entryRow?.querySelector('textarea')?.getAttribute('aria-label'),
+      entryRow?.querySelector('button')?.textContent,
+      document.querySelector('.bridge-composer-foot button'),
+    ]).toEqual([['bridge-textarea bridge-composer-input', 'bridge-control'], MESSAGE_LABEL, 'Send', null]);
   });
 
   test('pasted files reach the caller, and a paste without files does not', () => {

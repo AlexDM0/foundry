@@ -232,8 +232,8 @@
  *   .bridge-tool-fold       a details of a turn's tool calls: .bridge-tool-fold-summary (.bridge-tool-fold-names,
  *                           .bridge-tool-fold-errors) over the ol.bridge-tool-calls of .bridge-tool-call[data-outcome] lines (ok | error
  *                           | running), each a .bridge-tool-call-name, .bridge-tool-call-input and .bridge-tool-call-result
- *   .bridge-composer        .bridge-composer-head (To, .bridge-composer-recipient, a status tag), the .bridge-composer-input text box,
- *                           .bridge-composer-foot (.bridge-key-hint kbd hints, Send in its .bridge-control)
+ *   .bridge-composer        .bridge-composer-head (To, .bridge-composer-recipient, a status tag), the .bridge-composer-entry row (the
+ *                           .bridge-composer-input text box, Send in its .bridge-control), .bridge-composer-foot (.bridge-key-hint kbd hints)
  *   .bridge-path            a repository path an option touches, a mono chip in the option's facts
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
@@ -405,7 +405,7 @@ a:hover { color: var(--ink); text-decoration: underline; }
 /* The identity column, a divider, the figures on one line and the controls at the end; the figures and controls sit down by the title.
    On a wide window the row never wraps: a long status line wraps inside the identity column instead of pushing the controls down.
    Below that width the figures take a line of their own under the identity and the controls, so neither column is squeezed. */
-.bridge-head-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--sp-4); min-width: 0; }
+.bridge-head-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--sp-4); min-width: 0; min-height: 52px; }
 @media (min-width: 1600px) { .bridge-head-title-row { flex-wrap: nowrap; } }
 @media (min-width: 901px) and (max-width: 1599px) {
   .bridge-head-title-row { row-gap: var(--sp-3); }
@@ -429,7 +429,7 @@ a:hover { color: var(--ink); text-decoration: underline; }
 .bridge-status-detail { min-width: 0; overflow-wrap: anywhere; }
 .bridge-status-notice { color: var(--warn-ink); font-weight: 600; }
 
-.bridge-title { margin: 0; font: 700 26px/1 var(--font-ui); letter-spacing: -0.02em; color: var(--ink); overflow-wrap: anywhere; }
+.bridge-title { margin: 0; font: 600 15px/1.2 var(--font-ui); color: var(--ink); overflow-wrap: anywhere; }
 
 /* In setup the title row ends with the amber setup chip, then the theme switch at its far end; the setup steps take the tab row's place,
    over the same 1px rule. */
@@ -625,6 +625,14 @@ button.bridge-tab { background: transparent; border-width: 0 0 2px; border-style
 .bridge-tabs[data-size="section"] { gap: 2px; }
 .bridge-tabs[data-size="section"] .bridge-tab { padding: 8px 10px 10px; font-size: 14px; }
 .bridge-tabs[data-mode="switch"] .bridge-tab::after { background: var(--link); }
+/* The header's view tabs: a 40px row of body-size words, the current one in bold over a 2px underline in the link colour. */
+.bridge-tabs[data-size="page"] { gap: 4px; }
+.bridge-tabs[data-size="page"] .bridge-tab {
+  display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 40px; padding: 0 10px;
+  font: 400 var(--fs-body)/1 var(--font-ui);
+}
+.bridge-tabs[data-size="page"] .bridge-tab[aria-current="page"] { font-weight: 600; }
+.bridge-tabs[data-size="page"] .bridge-tab::after { background: var(--link); }
 
 /* ------------------------------------------------------------ filter line -- */
 .bridge-filter { position: relative; display: flex; justify-content: flex-end; min-width: 0; }
@@ -822,6 +830,7 @@ button:not(:disabled):active, [role="button"]:active, .bridge-tab:active, a.brid
 /* The incoming tab's view fades in and rises 4px. */
 .bridge-panel[data-entering] { animation: bridge-panel-enter var(--motion-base) var(--ease-out); }
 @keyframes bridge-panel-enter { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .bridge-panel[data-entering] { animation: none; } }
 
 .bridge-empty {
   margin: 0;
@@ -1568,7 +1577,7 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
   .bridge-toast-timer,
   .bridge-log-tail-line,
   .bridge-change-row-edge,
-  .bridge-activity-row-mark,
+  .bridge-activity-row[data-status] .bridge-activity-row-mark,
   .bridge-typing-dot { animation: none; }
   .bridge-toast-check path { stroke-dasharray: none; }
   .bridge-listed-file,
@@ -2288,12 +2297,12 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
 .agents-scroll { overflow-x: auto; }
 .agents-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-small); }
 .agents-table[data-diagnostics] { min-width: 1900px; }
-.agents-table col[data-column="job"] { width: 150px; }
+.agents-table col[data-column="job"] { width: 196px; }
 .agents-table col[data-column="subject"] { width: 230px; }
-.agents-table col[data-column="state"] { width: 240px; }
+.agents-table col[data-column="state"] { width: 224px; }
 .agents-table col[data-column="calls"] { width: 230px; }
 .agents-table col[data-column="subagents"] { width: 200px; }
-.agents-table col[data-column="last-tool"] { width: 160px; }
+.agents-table col[data-column="last-tool"] { width: 130px; }
 .agents-table col[data-column="tokens"] { width: 130px; }
 .agents-table col[data-column="phase"] { width: 90px; }
 .agents-table col[data-column="tool-calls"] { width: 150px; }
@@ -2450,17 +2459,23 @@ a.bridge-stepper-label:hover { color: inherit; text-decoration: underline; text-
 .bridge-tool-call[data-outcome="running"] .bridge-tool-call-result { color: var(--s-ink); }
 .bridge-tool-call-result .bridge-lane-dot { width: 6px; height: 6px; }
 
-/* The composer: To and its recipient, the status tag at the line's end, the text box, then the key hints and Send. */
+/* The composer: To and its recipient, the status tag at the line's end, the text box and Send, then the key hints. */
 .bridge-composer { display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 32px 18px; background: var(--surface); border-top: 1px solid var(--line); }
 .bridge-composer-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
 .bridge-composer-head > .bridge-tag { margin-left: auto; }
 .bridge-composer-recipient { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
-.bridge-composer-input { min-height: 64px; font-size: var(--fs-body); }
+/* The text box and Send share one row and one height, Send stretched to the text box; a refusal shows beside Send. */
+.bridge-composer-entry { display: flex; align-items: stretch; gap: var(--sp-2); }
+.bridge-composer-entry > .bridge-control { flex: none; align-items: stretch; }
+.bridge-composer-entry .bridge-refusal { align-self: center; max-width: 16em; }
+.bridge-composer-input { flex: 1 1 auto; width: auto; min-width: 0; min-height: 64px; font-size: var(--fs-body); resize: none; }
 .bridge-composer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); font-size: var(--fs-micro); color: var(--ink-muted); }
-.bridge-composer-foot > .bridge-control { margin-left: auto; }
 .bridge-key-hint kbd { padding: 0 5px; font: var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-muted); border: 1px solid var(--line-strong); border-radius: var(--r-1); }
 /* A path an option touches: a mono chip that never breaks, beside the others on the wrapping line. */
 .bridge-path { padding: 0 4px; font: var(--fs-micro)/1.6 var(--font-mono); color: var(--ink); white-space: nowrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); }
+/* Outside a chat card, as in the pipeline agent panel, the thread and the composer add no side gutter: their container gives it. */
+.bridge-chat-thread:not(.bridge-chat > *),
+.bridge-composer:not(.bridge-chat > *) { padding-right: 0; padding-left: 0; }
 /* On a phone the thread and the composer keep a narrow gutter, a bubble widens and the tool fold may be as narrow as the column. */
 @media (max-width: 480px) {
   .bridge-chat-thread,
