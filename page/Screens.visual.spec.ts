@@ -150,9 +150,20 @@ describe('each screen shows the state its artboard draws', () => {
     expect(markup).not.toContain('data-form="stacked"');
   });
 
-  test('B4: no forge registered, with Add a repository in the head\'s place', () => {
+  test('A4 and B2: the Forges table sets its columns close, each root carrying its full path', () => {
+    for (const artboard of ['A4', 'B2'] as const) {
+      const markup = screenMarkupOf(screenOf(artboard), 'dark');
+      expect(markup).toContain('class="gaia-table" role="table" aria-label="Forges" data-column-gap="narrow"');
+      expect(markup).toContain('<span class="gaia-forges-forge-root" title="/Users/alexexample/development/example-storefront">~/development/example-storefront</span>');
+    }
+  });
+
+  test('B4: no forge registered, with Add a repository in the head\'s place and the rail\'s forges group saying so, and no meter', () => {
     const markup = screenMarkupOf(screenOf('B4'), 'dark');
     expect(markup).toContain('Nothing waits on you, because no forge is registered.');
     expect(markup).toContain('Add and start');
+    expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered.']);
+    expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
+    expect(markup).not.toContain('class="gaia-meter"');
   });
 });

@@ -1,11 +1,13 @@
 /**
- * The Forges view's Gaia panel (SCREENS A4), beside this machine's: the two settings checkboxes, "What notifies" at the end of the second,
- * the line of a settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts. It takes no hooks: the content and the
- * handlers come in as props, so a spec unfolds it whole. `SettingsRefusalLine` is shared with the "What notifies" list.
+ * The Forges view's Gaia panel (SCREENS A4), beside this machine's: the two settings checkboxes, "What notifies" at the end of the second, the line of a
+ * settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash. It takes no hooks: the
+ * content and the handlers come in as props, so a spec unfolds it whole. `SettingsRefusalLine` is shared with the "What notifies" list.
  */
+import { Fragment, type ReactNode } from 'react';
+
 import type { CommandSubject }                                      from '../../api/CommandSender.ts';
 import { Checkbox }                                                 from '../../design-system/Checkbox.tsx';
-import { FactList }                                                 from '../../design-system/FactList.tsx';
+import { type Fact, FactList }                                      from '../../design-system/FactList.tsx';
 import { MicroCapsLabel }                                           from '../../design-system/MicroCapsLabel.tsx';
 import { Refusal }                                                  from '../../design-system/Refusal.tsx';
 import type { GaiaPanelContent, SettingsCheckbox, SettingsRefusal } from './GaiaPanelModel.ts';
@@ -24,6 +26,20 @@ export interface GaiaPanelProps {
 const GAIA_HEAD_ID = 'gaia-forges-gaia-head';
 
 const SETTINGS_SUBJECT: CommandSubject = { fleetCommand: 'settings-set' };
+
+const PATH_SEPARATOR = '/';
+
+/** The aside narrows to give the Forges table room, so a path may break after a slash rather than inside a name. */
+function withBreaksAfterSlashes(value: ReactNode): ReactNode {
+  if (typeof value !== 'string' || !value.includes(PATH_SEPARATOR)) return value;
+  const segments = value.split(PATH_SEPARATOR);
+  const lastSegment = segments.pop() ?? '';
+  return [...segments.map((segment, i) => <Fragment key={i}>{segment}{PATH_SEPARATOR}<wbr /></Fragment>), lastSegment];
+}
+
+function breakableFactOf(fact: Fact): Fact {
+  return { ...fact, value: withBreaksAfterSlashes(fact.value) };
+}
 
 export function SettingsCheckboxView({ checkbox, handlers }: { readonly checkbox: SettingsCheckbox; readonly handlers: Pick<GaiaPanelHandlers, 'onSettingsCheckbox'> }) {
   return (
@@ -65,7 +81,7 @@ export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
         <button type="button" className="gaia-forges-gaia-what-notifies" onClick={handlers.onOpenWhatNotifies}>What notifies</button>
       </div>
       <SettingsRefusalLine refusal={content.refusal} handlers={handlers} />
-      <FactList facts={content.facts} />
+      <FactList facts={content.facts.map(breakableFactOf)} />
     </section>
   );
 }

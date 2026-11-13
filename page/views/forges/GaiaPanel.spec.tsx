@@ -1,8 +1,8 @@
 /**
- * The Gaia panel laid out, and the "What notifies" list. What matters (SCREENS A4 and C2): the panel sits under this machine's in the
- * Forges view; its two checkboxes hand the view the checkbox clicked, "What notifies" opens the list and is a button of its own beside the
- * second checkbox, not inside its label; a refusal offers Try again and its dismissal; the facts and a settings file line show; the list
- * holds the seven kinds with their lines, hands the view the kind clicked, and closes on Done. Both are unfolded without a document.
+ * The Gaia panel laid out, and the "What notifies" list. What matters (SCREENS A4 and C2): the panel sits under this machine's in the Forges view; its two
+ * checkboxes hand the view the checkbox clicked, "What notifies" opens the list and is a button of its own beside the second checkbox, not inside its
+ * label; a refusal offers Try again and its dismissal; the facts and a settings file line show, a path free to break after each slash; the list holds the
+ * seven kinds with their lines, hands the view the kind clicked, and closes on Done. Both are unfolded without a document.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -148,6 +148,17 @@ describe('the panel', () => {
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
     expect(tree.hostElementsIn(unfolded, tree.withTag('input')).map((input) => input.props['disabled'])).toEqual([true, true]);
+  });
+
+  test('a path among the facts may break after each slash and nowhere else, and a fact with no slash is left whole', () => {
+    const { unfolded } = panelOf(FLEET_FIVE_FORGES);
+    const values = tree.hostElementsIn(unfolded, tree.withTag('dd'));
+    expect(values.map((value) => [tree.textOf([value]), tree.hostElementsIn([value], tree.withTag('wbr')).length])).toEqual([
+      ['~/.bun/bin/forge', 3],
+      ['~/.forge-monitor/projects.json', 2],
+      ['monitor 1 · control 1 · embed 1', 0],
+      ['0.1.0 on 127.0.0.1:4790', 0],
+    ]);
   });
 
   test('a refused change shows its code and sentence under the checkboxes, with Try again and its dismissal', async () => {

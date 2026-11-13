@@ -108,6 +108,8 @@ export interface ForgeRow {
   readonly trackerId:     string;
   readonly project:       string;
   readonly rootText:      string;
+  /** The root in full, for a window too narrow to print `rootText` whole. */
+  readonly rootPath:      string;
   readonly condition:     DotCondition;
   readonly conditionWord: string;
   readonly conditionTone: ConditionTone | null;
@@ -445,6 +447,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     trackerId:     forge.trackerId,
     project:       forge.project,
     rootText:      homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
+    rootPath:      forge.root,
     condition:     ForgeTextUtil.dotConditionOf(shownCondition),
     conditionWord: ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone: conditionToneOf(shownCondition),

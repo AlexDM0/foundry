@@ -1,6 +1,6 @@
 /**
- * The 232 px rail on every screen: the brand, the four views with their counts, one row per forge, and this machine. Every row is a link
- * to its route; the current one carries `aria-current`.
+ * The 232 px rail on every screen: the brand, the four views with their counts, one row per forge or the line saying there is none, and
+ * this machine. Every row is a link to its route; the current one carries `aria-current`.
  */
 import { ConditionDot }                             from '../design-system/ConditionDot.tsx';
 import { GaiaMark }                                 from '../design-system/GaiaMark.tsx';
@@ -45,11 +45,12 @@ export function Rail({ content }: { readonly content: RailContent }) {
           </a>
         ))}
       </div>
-      {content.forges.length === 0 ? null : (
+      {content.forges.length === 0 && content.noForgeLine === null ? null : (
         <div className="gaia-rail-group" role="group" aria-labelledby={FORGES_HEAD_ID}>
           <div className="gaia-rail-group-head">
             <MicroCapsLabel text="Forges" id={FORGES_HEAD_ID} />
           </div>
+          {content.noForgeLine === null ? null : <p className="gaia-rail-no-forge">{content.noForgeLine}</p>}
           {content.forges.map((row) => (
             <a key={row.trackerId} className="gaia-rail-row" href={row.href} aria-current={row.isCurrent ? 'page' : undefined}>
               <ConditionDot condition={row.condition} />

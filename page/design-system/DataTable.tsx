@@ -1,6 +1,7 @@
 /**
  * A table drawn as one CSS grid per row inside a bordered card: a micro-caps head row, then rows of 40 px, or 64 px for the tall variant.
- * A row may be the selected one, and may carry content under its cells, such as a confirm panel or a refusal, spanning every column.
+ * A row may be the selected one, and may carry content under its cells, such as a confirm panel or a refusal, spanning every column. A
+ * table with many narrow columns may set them closer together.
  */
 import type { ReactNode } from 'react';
 
@@ -24,14 +25,15 @@ export interface DataTableProps<Key extends string> {
   readonly columnWidths: string;
   readonly rows:         readonly DataTableRow<Key>[];
   readonly rowHeight?:   'regular' | 'tall';
+  readonly columnGap?:   'regular' | 'narrow';
 }
 
 export function DataTable<Key extends string>({
-  label, columns, columnWidths, rows, rowHeight = 'regular'
+  label, columns, columnWidths, rows, rowHeight = 'regular', columnGap = 'regular'
 }: DataTableProps<Key>) {
   const gridStyle = { gridTemplateColumns: columnWidths };
   return (
-    <div className="gaia-table" role="table" aria-label={label}>
+    <div className="gaia-table" role="table" aria-label={label} data-column-gap={columnGap === 'regular' ? undefined : columnGap}>
       <div className="gaia-table-row" role="row" data-head="">
         <div className="gaia-table-cells" role="none" style={gridStyle}>
           {columns.map((column) => <span key={column.key} className="gaia-table-cell" role="columnheader" data-align={column.align ?? 'start'}>{column.label}</span>)}

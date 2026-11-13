@@ -1,6 +1,7 @@
 /**
  * The data table. What matters: the head row holds the column labels and each row its cells in column order, every row on the same grid
- * tracks; a selected row is marked and current; content under a row spans every column; an end-aligned column and tall rows are marked.
+ * tracks; a selected row is marked and current; content under a row spans every column; an end-aligned column, tall rows and a narrow
+ * column gap are marked.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -16,13 +17,14 @@ const COLUMNS = [
 
 const COLUMN_WIDTHS = 'minmax(0, 1fr) 116px';
 
-function tableOf(rowHeight?: 'regular' | 'tall') {
+function tableOf(rowHeight?: 'regular' | 'tall', columnGap?: 'regular' | 'narrow') {
   return ReactElementTree.unfolded(
     <DataTable<ForgeColumn>
       label="Forges"
       columns={COLUMNS}
       columnWidths={COLUMN_WIDTHS}
       {...(rowHeight === undefined ? {} : { rowHeight })}
+      {...(columnGap === undefined ? {} : { columnGap })}
       rows={[
         {
           key: 'example-storefront', cells: { forge: 'Example Storefront', agents: '4 / 5' }, selected: true, below: 'Stop the Overseer of Example Storefront?'
@@ -66,5 +68,10 @@ describe('the data table', () => {
     const isBodyRow = (element: HostElement) => ReactElementTree.hasClass(element, 'gaia-table-row') && element.props['data-head'] === undefined;
     const heights = (rowHeight?: 'regular' | 'tall') => ReactElementTree.hostElementsIn(tableOf(rowHeight), isBodyRow).map((row) => row.props['data-height']);
     expect([heights(), heights('tall')]).toEqual([['regular', 'regular'], ['tall', 'tall']]);
+  });
+
+  test('the columns sit at the regular gap unless a narrow one is asked', () => {
+    const gapOf = (columnGap?: 'regular' | 'narrow') => ReactElementTree.onlyWithClass(tableOf(undefined, columnGap), 'gaia-table').props['data-column-gap'];
+    expect([gapOf(), gapOf('regular'), gapOf('narrow')]).toEqual([undefined, undefined, 'narrow']);
   });
 });

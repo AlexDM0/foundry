@@ -231,6 +231,7 @@
   padding: 0 var(--sp-4);
 }
 .gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--table-tall-row-height); }
+.gaia-table[data-column-gap="narrow"] .gaia-table-cells { column-gap: var(--sp-2); }
 .gaia-table-row[data-head] .gaia-table-cells {
   min-height: var(--table-head-height);
   font-size: var(--fs-micro);
@@ -469,6 +470,7 @@ body {
   color: var(--ink-muted);
 }
 .gaia-rail-count[data-tone="attention"] { color: var(--attn-ink); }
+.gaia-rail-no-forge { margin: 0; padding: 0 var(--rail-inset); font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-rail-spacer { flex: 1; }
 .gaia-rail-machine {
   display: flex;
@@ -780,8 +782,21 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   box-sizing: border-box;
   padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
 }
-.gaia-forges-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
-.gaia-forges-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--forges-aside-width); }
+/* The table keeps its width while the aside can give way; in a window too narrow for both, the Forge column gives way instead. */
+.gaia-forges-main {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: min(var(--forges-table-width), 100% - var(--forges-aside-least-width) - var(--sp-6));
+}
+.gaia-forges-aside {
+  display: flex;
+  flex: 0 1 var(--forges-aside-width);
+  flex-direction: column;
+  gap: var(--sp-5);
+  min-width: var(--forges-aside-least-width);
+}
 .gaia-forges-empty { margin: 0; color: var(--ink-muted); }
 
 /* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */

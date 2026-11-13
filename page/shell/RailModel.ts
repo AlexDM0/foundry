@@ -1,6 +1,7 @@
 /**
- * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, and this
- * machine's agents against its limit. Every count is the document's own figure; one the document does not hold is absent, never zero.
+ * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
+ * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
+ * does not hold is absent, never zero.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
@@ -42,10 +43,12 @@ export interface RailMachine {
 }
 
 export interface RailContent {
-  readonly views:   readonly RailViewRow[];
-  readonly forges:  readonly RailForgeRow[];
+  readonly views:       readonly RailViewRow[];
+  readonly forges:      readonly RailForgeRow[];
+  /** The line under the forges' head when the registry holds no forge (B4); `null` while it holds one and before the first document. */
+  readonly noForgeLine: string | null;
   /** `null` until the first fleet document. */
-  readonly machine: RailMachine | null;
+  readonly machine:     RailMachine | null;
 }
 
 const VIEW_LABELS: Readonly<Record<RailView, string>> = {
@@ -56,6 +59,8 @@ const VIEW_LABELS: Readonly<Record<RailView, string>> = {
 };
 
 const RAIL_VIEWS: readonly RailView[] = ['attention', 'agents', 'activity', 'forges'];
+
+const NO_FORGE_LINE = 'No forge is registered.';
 
 /** An unreachable forge's count is the one it last reported. */
 const AS_LAST_REPORTED_MARK = '?';
@@ -158,7 +163,8 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
       count:     forgeCountOf(forge),
       isCurrent: forge.trackerId === currentTrackerId,
     })),
-    machine: fleetDocument === null ? null : machineOf(fleetDocument),
+    noForgeLine: fleetDocument !== null && fleetDocument.forges.length === 0 ? NO_FORGE_LINE : null,
+    machine:     fleetDocument === null ? null : machineOf(fleetDocument),
   };
 }
 

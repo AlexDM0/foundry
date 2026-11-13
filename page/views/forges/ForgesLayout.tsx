@@ -187,7 +187,7 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
       forge: (
         <span className="gaia-forges-forge">
           <ForgeName trackerId={row.trackerId} project={row.project} condition={row.condition} />
-          <span className="gaia-forges-forge-root">{row.rootText}</span>
+          <span className="gaia-forges-forge-root" title={row.rootPath}>{row.rootText}</span>
         </span>
       ),
       condition: (
@@ -289,7 +289,16 @@ export function ForgesLayout({
           onTryAgain={() => handlers.onCommand({ kind: 'fleet-look-again' })}
         />
         {content.emptySentence === null
-          ? <DataTable label="Forges" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={content.rows.map((row) => tableRowOf(row, handlers))} rowHeight="tall" />
+          ? (
+            <DataTable
+              label="Forges"
+              columns={COLUMNS}
+              columnWidths={COLUMN_WIDTHS}
+              rows={content.rows.map((row) => tableRowOf(row, handlers))}
+              rowHeight="tall"
+              columnGap="narrow"
+            />
+          )
           : <p className="gaia-forges-empty">{content.emptySentence}</p>}
         {content.heldBanners.map((banner) => <HeldBannerCard key={banner.trackerId} banner={banner} handlers={handlers} />)}
         {content.notFound.length === 0 ? null : (

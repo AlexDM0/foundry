@@ -146,6 +146,12 @@ describe('a row of the table (A4)', () => {
     ]);
   });
 
+  test('keeps the root in full beside the one read from ~', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).rows.map((row) => [row.rootText, row.rootPath])[0]).toEqual([
+      '~/development/example-storefront', '/Users/alexexample/development/example-storefront',
+    ]);
+  });
+
   test('a paused forge says what still finishes and that it starts no new job', () => {
     expect(rowOf(contentOf(FLEET_AT_LIMIT), TRACKER_IDS.researchWiki).detailText).toBe('1 agent finishing · starts no new job');
     const idle = fleetWithOneForgeIn('paused', { concurrency: { ...READINGS.exampleStorefront.concurrency, agentsInFlight: 0 } as FleetDocumentForge['concurrency'] });

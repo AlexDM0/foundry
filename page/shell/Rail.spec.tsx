@@ -1,7 +1,8 @@
 /**
  * The rail as markup. What matters: it is the navigation landmark named Gaia; each row is a link to its route showing the model's label
  * and count, in the count's tone; the current row carries `aria-current`; a forge row leads with its condition dot, hidden from the
- * accessibility tree; and this machine is one link to the Forges view, with a meter only when its limit is known.
+ * accessibility tree; with no forge registered the forges' group says so in one line; and this machine is one link to the Forges view, with
+ * a meter only when its limit is known.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -84,7 +85,20 @@ describe('the rail', () => {
     expect(tree.onlyWithClass([atLimit], 'gaia-meter').props['data-full']).toBe('');
     const empty = unfoldedRail(FLEET_EMPTY, DEFAULT_ROUTE);
     expect(tree.hostElementsIn(empty, tree.withClass('gaia-meter'))).toEqual([]);
-    expect(tree.hostElementsIn(empty, (element) => element.props['role'] === 'group')).toEqual([]);
+    expect(tree.textOf([tree.onlyWithClass(empty, 'gaia-rail-machine-line')])).toBe('no limit known · 12 CPUs');
+  });
+
+  test('with no forge registered (B4) the forges\' group is headed as ever and says so in one line, with no forge row', () => {
+    const empty = unfoldedRail(FLEET_EMPTY, DEFAULT_ROUTE);
+    const group = tree.onlyHostElementIn(empty, (element) => element.props['role'] === 'group');
+    expect(tree.onlyWithClass([group], 'gaia-micro-caps').props['id']).toBe(group.props['aria-labelledby']);
+    expect(tree.textOf([tree.onlyWithClass([group], 'gaia-rail-no-forge')])).toBe('No forge is registered.');
+    expect(tree.hostElementsIn([group], tree.withClass('gaia-rail-row'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedRail(FLEET_FIVE_FORGES, DEFAULT_ROUTE), tree.withClass('gaia-rail-no-forge'))).toEqual([]);
+  });
+
+  test('before the first document there is no forges\' group at all', () => {
+    expect(tree.hostElementsIn(unfoldedRail(null, DEFAULT_ROUTE), (element) => element.props['role'] === 'group')).toEqual([]);
   });
 
   test('before the first document the rail shows its four views without counts and no machine', () => {

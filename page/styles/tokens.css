@@ -57,9 +57,21 @@
   --agents-table-columns: 160px 44px 72px minmax(0, 1fr) 196px 72px 132px 76px 208px;
   --agents-calls-meter-width: 64px;
   --agents-panel-facts-width: 320px;
-  /* The artboard's 148 116 64 96 284 px tracks leave its Forge column no room at 1440 px; these keep the controls whole and give it the rest. */
-  --forges-table-columns: minmax(0, 1fr) 120px 100px 52px 56px 244px;
-  --forges-aside-width:   336px;
+  /* The artboard's 148 116 64 96 284 px tracks leave its Forge column no room at 1440 px: these fit each column's content, and the aside
+     gives way, down to its least width, until a forge's name and root path fit on their lines. */
+  --forges-forge-column-width:     216px;
+  --forges-condition-column-width: 92px;
+  --forges-agents-column-width:    100px;
+  --forges-waiting-column-width:   56px;
+  --forges-code-column-width:      52px;
+  --forges-controls-column-width:  240px;
+  --forges-table-columns:          minmax(0, 1fr) var(--forges-condition-column-width) var(--forges-agents-column-width)
+                                   var(--forges-waiting-column-width) var(--forges-code-column-width) var(--forges-controls-column-width);
+  --forges-table-width:            calc(var(--forges-forge-column-width) + var(--forges-condition-column-width) + var(--forges-agents-column-width)
+                                   + var(--forges-waiting-column-width) + var(--forges-code-column-width) + var(--forges-controls-column-width)
+                                   + 5 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
+  --forges-aside-width:            336px;
+  --forges-aside-least-width:      272px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 

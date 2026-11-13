@@ -1,11 +1,10 @@
 /**
- * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows; Stop opens its dialog under the row, and the
- * dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button that sends
- * `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's
- * plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count
- * shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge; a paused row offers
- * Resume first; a hidden forge folds away with Show again. The command states come from the real sender over Gaia's server stood in for by
- * authored answers.
+ * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop opens its
+ * dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button
+ * that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's plus
+ * at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count shows in the panel; a
+ * row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge; a paused row offers Resume first; a hidden forge folds away
+ * with Show again. The command states come from the real sender over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -116,6 +115,18 @@ describe('the table (A4)', () => {
       'Research Wiki~/development/research-wiki',
       'Example Mobile App~/development/example-mobile-app',
       'Design System~/development/design-system',
+    ]);
+  });
+
+  test('sets its many columns close, and each root carries its full path for a window too narrow to print it whole', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    expect(tree.onlyWithClass(unfolded, 'gaia-table').props['data-column-gap']).toBe('narrow');
+    expect(rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge-root').props['title'])).toEqual([
+      '/Users/alexexample/development/example-storefront',
+      '/Users/alexexample/development/invoice-service',
+      '/Users/alexexample/development/research-wiki',
+      '/Users/alexexample/development/example-mobile-app',
+      '/Users/alexexample/development/design-system',
     ]);
   });
 

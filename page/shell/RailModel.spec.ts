@@ -2,7 +2,8 @@
  * The rail's model, on the four fleet fixtures. What matters (SCREENS "The shell", acceptance 1): each count is the fleet document's own
  * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the agent rows; Forges
  * and the forge rows count and list the forges not hidden, in registry order. A count the document does not hold is absent, never 0.
- * Also: each condition's dot, where a forge row leads, and this machine's line at, under and without a limit.
+ * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
+ * this machine's line at, under and without a limit.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -110,6 +111,7 @@ describe('the counts that are absent', () => {
       attention: null, agents: null, activity: null, forges: null
     });
     expect(content.forges).toEqual([]);
+    expect(content.noForgeLine).toBeNull();
     expect(content.machine).toBeNull();
   });
 
@@ -121,6 +123,20 @@ describe('the counts that are absent', () => {
     expect(content.machine).toEqual({
       agentsText: '0', meter: null, limitLine: 'no limit known · 12 CPUs', isAtTheLimit: false
     });
+  });
+
+  test('with no forge (B4) the forges\' group says no forge is registered; with one, it lists the forge and says nothing of the kind', () => {
+    expect(RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE).noForgeLine).toBe('No forge is registered.');
+    expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).noForgeLine).toBeNull();
+  });
+
+  test('a registry whose every forge is hidden lists no forge, yet does not say none is registered', () => {
+    const everyForgeHidden: FleetDocument = {
+      ...FLEET_FIVE_FORGES,
+      settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: FLEET_FIVE_FORGES.forges.map((forge) => forge.trackerId) },
+    };
+    const content = RailModel.railContentOf(everyForgeHidden, DEFAULT_ROUTE);
+    expect([content.forges, content.noForgeLine]).toEqual([[], null]);
   });
 
   test('a hidden forge is neither counted nor listed, even when a document still carries it', () => {
