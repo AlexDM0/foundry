@@ -1,9 +1,9 @@
 /**
  * The visual pass's screens (W7.3): each artboard the page builds, painted from its fixture as the page paints it, as a whole document a
  * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
- * and differ only in the theme the root names, so a theme is the tokens' work alone; a screen holds no colour of its own; and each screen
- * shows the state its artboard draws, since a pass that compares an artboard with another state compares nothing. C2 waits for
- * notifications (W5.6), and C3 is the launcher's own splash page, opened as it is.
+ * and differ only in the theme the root names and the switch presses (B1 has no switch), so a theme is the tokens' work alone; a screen
+ * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
+ * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard.
@@ -85,7 +85,8 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the switch presses', () => {
-    for (const screen of ARTBOARD_SCREENS.filter((candidate) => themesOf(candidate).length === 2)) {
+    const screensWithTheSwitch = ARTBOARD_SCREENS.filter((candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1');
+    for (const screen of screensWithTheSwitch) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
       expect(dark).toContain('aria-pressed="true">Dark<');
@@ -93,6 +94,11 @@ describe('the screens of the visual pass', () => {
       const unpressed = (markup: string) => markup.replaceAll('aria-pressed="true"', 'aria-pressed="false"');
       expect(unpressed(dark)).toBe(unpressed(light));
     }
+  });
+
+  test('B1, whose bar leaves the theme switch out, paints the very same markup in both themes', () => {
+    const forgeInPlace = screenOf('B1');
+    expect(screenMarkupOf(forgeInPlace, 'dark')).toBe(screenMarkupOf(forgeInPlace, 'light'));
   });
 });
 
@@ -123,6 +129,9 @@ describe('each screen shows the state its artboard draws', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
     expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Example Storefront']);
     expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
+    expect(textsOfClass(markup, 'gaia-top-bar-status-text')).toEqual(['4 / 5 agents · 2 wait on you · since 09:12']);
+    expect(markup).toContain('>Open in new tab<svg class="gaia-button-icon"');
+    expect(markup).not.toContain('aria-label="Theme"');
   });
 
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {

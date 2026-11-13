@@ -1,12 +1,12 @@
 /**
  * What a forge in place shows of a fleet document. What matters (SCREENS B1, with A4's buttons per condition and B2's Stop question): the
- * bar names the forge's condition by its word beside the dot and prints one mono line of agents, what waits, usage and since, the one of
- * artboard B1 for Example Storefront; a value the forge did not report is absent, not zero; an Overseer that stopped answering says its
- * line is as last reported; each condition shows exactly its controls, and a forge whose control contract Gaia does not know cannot be
- * paused, resumed or stopped from Gaia; the Stop question offers its two choices only while agents run; the frame area is the Bridge only
- * for a forge read in full with the embed channel Gaia knows, B3's callout for one that stopped answering, and otherwise why it cannot be
- * shown; a new address or start of the Overseer is a new frame session; `leave` goes back to the view Gaia came from; a refusal is worded
- * with the forge's own sentence.
+ * bar names the forge's condition by its word beside the dot and prints one mono line of agents, what waits, a usage limit hit and since,
+ * artboard B1's line for Example Storefront shortened to fit one line (owner decision D2); a value the forge did not report is absent, not
+ * zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly its controls, and a forge whose
+ * control contract Gaia does not know cannot be paused, resumed or stopped from Gaia; the Stop question offers its two choices only while
+ * agents run; the frame area is the Bridge only for a forge read in full with the embed channel Gaia knows, B3's callout for one that
+ * stopped answering, and otherwise why it cannot be shown; a new address or start of the Overseer is a new frame session; `leave` goes back
+ * to the view Gaia came from; a refusal is worded with the forge's own sentence.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -41,9 +41,9 @@ function barOf(forge: FleetDocumentForge) {
 }
 
 describe('the bar', () => {
-  test('of Example Storefront is artboard B1\'s: its word beside the live dot and one mono line of agents, what waits, usage and since', () => {
+  test('of Example Storefront is artboard B1\'s, shortened to fit one line: its word beside the live dot, then agents, what waits and since', () => {
     const bar = barOf(READINGS.exampleStorefront);
-    expect(bar.status).toEqual({ condition: 'live', word: 'Live', text: '4 / 5 agents · 2 wait on you · usage under its limit · since 09:12' });
+    expect(bar.status).toEqual({ condition: 'live', word: 'Live', text: '4 / 5 agents · 2 wait on you · since 09:12' });
     expect(bar.openInNewTab).toEqual({ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront });
     expect(bar.controlContractIsKnown).toBe(true);
   });
@@ -62,19 +62,20 @@ describe('the bar', () => {
     expect(bar?.status).toEqual({
       condition: 'unreachable',
       word:      'Unreachable',
-      text:      'as last reported 13:14 · 3 / 5 agents · 2 wait on you · usage under its limit · since 08:40',
+      text:      'as last reported 13:14 · 3 / 5 agents · 2 wait on you · since 08:40',
     });
   });
 
   test('of a forge read through its summary counts what waits from its summary', () => {
     const { bar } = contentOf(TRACKER_IDS.researchWiki, FLEET_DEGRADED);
-    expect(bar?.status.text).toBe('1 agent · 1 waits on you · usage under its limit');
+    expect(bar?.status.text).toBe('1 agent · 1 waits on you');
     expect(bar?.controlContractIsKnown).toBe(false);
   });
 
-  test('prints a usage limit that was hit with its window and the clock time it resets', () => {
+  test('names usage only when its limit was hit, with the clock time it resets and without its window, so the line stays short', () => {
     const limitHit = barOf({ ...READINGS.exampleStorefront, usage: { window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
-    expect(limitHit.status.text).toBe('4 / 5 agents · 2 wait on you · usage five-hour limit hit · resets 16:00 · since 09:12');
+    expect(limitHit.status.text).toBe('4 / 5 agents · 2 wait on you · usage limit hit · resets 16:00 · since 09:12');
+    expect(barOf({ ...READINGS.exampleStorefront, usage: { window: null, resetsAt: null } }).status.text).not.toContain('usage');
   });
 });
 

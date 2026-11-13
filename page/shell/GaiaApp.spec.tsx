@@ -2,7 +2,8 @@
  * The shell's root. What matters (SCREENS "The shell", acceptance 2 and 4): a forge that joins or leaves the registry joins or leaves the
  * rail from the fleet source's next document, with no reload; Tab meets every control in visual order, the rail top to bottom and then
  * the top bar from its view's buttons to the theme switch, and every control, an icon-only one included, has a name. Also: the route is
- * read from the fragment, and the settings' theme choice shows on the switch from the first document. And (W4.3): a lost event stream
+ * read from the fragment, the settings' theme choice shows on the switch from the first document, and a forge in place leaves the switch
+ * out. And (W4.3): a lost event stream
  * shows the connection banner under the top bar and disables every control until the stream opens again. And (W5.2): the Agents route
  * shows the Agents view under its status line, its selected agent survives the source's next document, and a filter press goes to the
  * fragment that keeps it.
@@ -119,10 +120,22 @@ describe('the route and the theme', () => {
     expect(inPlace).toContain('<h1 class="gaia-top-bar-title">Invoice Service</h1>');
   });
 
+  test('the theme switch shows on every view but a forge in place, whose bar leaves it out', () => {
+    const source = createFleetSource();
+    source.publish(FLEET_FIVE_FORGES);
+    for (const fragment of ['#attention', '#agents', '#activity', '#forges']) {
+      expect(renderToStaticMarkup(appAt(source, fragment))).toContain('aria-label="Theme"');
+    }
+    const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
+    expect(inPlace).not.toContain('aria-label="Theme"');
+    expect(inPlace).not.toContain('class="gaia-segmented"');
+  });
+
   test('#activity shows the Activity view under its status line once a document holds, its filters inside the controls\' fieldset', () => {
     const source = createFleetSource();
     const app = appAt(source, '#activity');
-    const statusLine = '<span class="gaia-top-bar-status">the newest 50 entries of each forge, as each forge words them</span>';
+    const statusText = 'the newest 50 entries of each forge, as each forge words them';
+    const statusLine = `<span class="gaia-top-bar-status"><span class="gaia-top-bar-status-text" title="${statusText}">${statusText}</span></span>`;
     const beforeTheDocument = renderToStaticMarkup(app);
     expect(beforeTheDocument).toContain(statusLine);
     expect(beforeTheDocument).not.toContain('class="gaia-activity"');
@@ -292,7 +305,8 @@ describe('the Agents view in the shell', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
-    expect(markup).toContain('<span class="gaia-top-bar-status">10 working across 4 forges · 821,300 tokens in flight</span>');
+    const statusText = '10 working across 4 forges · 821,300 tokens in flight';
+    expect(markup).toContain(`<span class="gaia-top-bar-status"><span class="gaia-top-bar-status-text" title="${statusText}">${statusText}</span></span>`);
     expect(markup).toContain('<div class="gaia-table" role="table" aria-label="Agents">');
   });
 

@@ -1,5 +1,7 @@
 /**
- * The 64 px bar over every view: the view's title, its one mono status line, the view's own buttons, and at the far end the theme switch.
+ * The 64 px bar over every view: the view's title, its one mono status line, the view's own buttons, and at the far end the theme switch,
+ * which a forge in place leaves out. The mono line keeps to one line: what does not fit ends in an ellipsis, with the whole line as its
+ * tooltip.
  */
 import type { ReactNode } from 'react';
 
@@ -16,12 +18,14 @@ export interface TopBarStatus {
 }
 
 export interface TopBarProps {
-  readonly title:         string;
-  readonly status:        TopBarStatus | null;
+  readonly title:            string;
+  readonly status:           TopBarStatus | null;
   /** The view's own buttons, placed before the theme switch. */
-  readonly actions:       ReactNode;
-  readonly themeChoice:   ThemeChoice;
-  readonly onThemeChoice: (choice: ThemeChoice) => void;
+  readonly actions:          ReactNode;
+  /** A forge shown in place leaves the switch out, so its bar has room for the forge's own line and buttons. */
+  readonly showsThemeSwitch: boolean;
+  readonly themeChoice:      ThemeChoice;
+  readonly onThemeChoice:    (choice: ThemeChoice) => void;
 }
 
 const THEME_OPTIONS = [
@@ -31,7 +35,7 @@ const THEME_OPTIONS = [
 ] as const;
 
 export function TopBar({
-  title, status, actions, themeChoice, onThemeChoice
+  title, status, actions, showsThemeSwitch, themeChoice, onThemeChoice
 }: TopBarProps) {
   return (
     <header className="gaia-top-bar">
@@ -40,11 +44,11 @@ export function TopBar({
         <span className="gaia-top-bar-status">
           {status.condition === null ? null : <ConditionDot condition={status.condition} />}
           {status.word === undefined ? null : <span className="gaia-top-bar-status-word">{status.word}</span>}
-          {status.text}
+          <span className="gaia-top-bar-status-text" title={status.text}>{status.text}</span>
         </span>
       )}
       <span className="gaia-top-bar-actions">{actions}</span>
-      <SegmentedControl<ThemeChoice> label="Theme" options={THEME_OPTIONS} selected={themeChoice} onSelect={onThemeChoice} />
+      {showsThemeSwitch ? <SegmentedControl<ThemeChoice> label="Theme" options={THEME_OPTIONS} selected={themeChoice} onSelect={onThemeChoice} /> : null}
     </header>
   );
 }

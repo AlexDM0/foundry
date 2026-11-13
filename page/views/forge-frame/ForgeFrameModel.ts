@@ -8,7 +8,8 @@ import type {
   FleetDocument,
   FleetDocumentCondition,
   FleetDocumentFidelity,
-  FleetDocumentForge
+  FleetDocumentForge,
+  FleetDocumentUsage
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
@@ -129,7 +130,16 @@ function agentsTextOf(forge: FleetDocumentForge): string | null {
     : `${concurrency.agentsInFlight} / ${countedPhrase(concurrency.limit, 'agent', 'agents')}`;
 }
 
-/** The mono line: agents, what waits, usage and since; a forge that stopped answering says first that this is what it last reported. */
+/**
+ * The bar's usage names only a limit that was hit, without its window, so the line fits beside the bar's buttons; usage under its limit is
+ * no news there.
+ */
+function usageTextOf(usage: FleetDocumentUsage | null, clock: ForgeFrameClock): string | null {
+  if (usage === null || usage.resetsAt === null) return null;
+  return `usage limit hit · resets ${clockTextOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
+}
+
+/** The mono line: agents, what waits, a usage limit hit and since; a forge that stopped answering says first that this is what it last reported. */
 function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string {
   const waitingCount = waitingCountOf(forge);
   const startedClock = clockTextOf(forge.overseerStartedAt, clock);
@@ -139,7 +149,7 @@ function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string
     forge.fidelity === 'unreachable' ? asLastReported : null,
     agentsTextOf(forge),
     waitingCount === null || waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
-    forge.usage === null ? null : `usage ${ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTextOf(stamp, clock) ?? stamp)}`,
+    usageTextOf(forge.usage, clock),
     startedClock === null ? null : `since ${startedClock}`,
   ].filter((part) => part !== null).join(LINE_SEPARATOR);
 }

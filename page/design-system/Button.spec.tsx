@@ -1,9 +1,11 @@
 /**
  * The button. What matters: a press reaches onPress; primary is a data attribute on the one class; with an href the button is a link,
  * but a disabled one is a disabled button, since a link cannot be disabled; an icon-only button keeps its label as its accessible name
- * and tooltip; the "Open in new tab" arrow is drawn and hidden, the dismiss sign is a character, also hidden.
+ * and tooltip; the "Open in new tab" arrow is drawn and hidden, and follows the label as the artboard draws it; the dismiss sign is a
+ * character, also hidden.
  */
 import { describe, expect, test } from 'bun:test';
+import { renderToStaticMarkup }   from 'react-dom/server';
 
 import { GaiaStylesheet }   from '../testing/GaiaStylesheet.ts';
 import { ReactElementTree } from '../testing/ReactElementTree.ts';
@@ -51,6 +53,11 @@ describe('the button', () => {
     const withLabel = ReactElementTree.unfolded(<Button label="Open in new tab" icon="open-in-new-tab" />);
     const button = ReactElementTree.onlyWithClass(withLabel, 'gaia-button');
     expect([button.props['aria-label'], button.props['data-icon-only'], ReactElementTree.textOf(withLabel)]).toEqual([undefined, undefined, 'Open in new tab']);
+  });
+
+  test('the "Open in new tab" arrow follows its label, as artboard B1 draws it', () => {
+    const markup = renderToStaticMarkup(<Button label="Open in new tab" icon="open-in-new-tab" />);
+    expect(markup).toMatch(/^<button[^>]*>Open in new tab<svg class="gaia-button-icon"/);
   });
 
   test('iconOnly without an icon still shows its label, so no button is left without a name', () => {

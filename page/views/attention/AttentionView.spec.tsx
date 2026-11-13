@@ -123,9 +123,9 @@ describe('the view follows the fleet source, with no reload', () => {
 describe('the top bar and the clock', () => {
   test('the top bar carries the view\'s status line; B4 adds Look again, A1 no button of its own', () => {
     const fleet = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES)));
-    expect(fleet).toContain('4 forges running, 1 holds its launches · 1 dormant · 1 repository missing</span><span class="gaia-top-bar-actions"></span>');
+    expect(fleet).toContain('4 forges running, 1 holds its launches · 1 dormant · 1 repository missing</span></span><span class="gaia-top-bar-actions"></span>');
     const empty = renderToStaticMarkup(appAt(sourceHolding(FLEET_EMPTY)));
-    expect(empty).toMatch(/no forge on this machine yet<\/span><span class="gaia-top-bar-actions"><button[^>]*>Look again<\/button><\/span>/);
+    expect(empty).toMatch(/no forge on this machine yet<\/span><\/span><span class="gaia-top-bar-actions"><button[^>]*>Look again<\/button><\/span>/);
   });
 
   test('ages are printed from the page\'s clock', () => {

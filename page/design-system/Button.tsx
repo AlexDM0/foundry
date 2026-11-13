@@ -1,6 +1,7 @@
 /**
  * Gaia's one button, 28 px high: plain, or primary (ink on the page ground, at most one per group). It is a link when it navigates and is
- * enabled; an icon-only button keeps its label as its accessible name and its tooltip. A variant is a `data-*` attribute, never a class.
+ * enabled; an icon follows the label, as the artboards draw "Open in new tab"; an icon-only button keeps its label as its accessible name
+ * and its tooltip. A variant is a `data-*` attribute, never a class.
  */
 export type ButtonEmphasis = 'primary' | 'plain';
 
@@ -42,8 +43,8 @@ export function Button({
   };
   const content = (
     <>
-      {icon === undefined ? null : <ButtonIconShape icon={icon} />}
       {showsOnlyTheIcon ? null : label}
+      {icon === undefined ? null : <ButtonIconShape icon={icon} />}
     </>
   );
   if (href !== undefined && !disabled) return <a className="gaia-button" href={href} {...sharedAttributes}>{content}</a>;

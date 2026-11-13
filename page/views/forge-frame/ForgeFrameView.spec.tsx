@@ -1,11 +1,12 @@
 /**
  * A forge in place in the shell, fed by the fleet source. What matters (SCREENS B1): Answer on E2 in Attention links to
- * `#forge/<trackerId>/#questions/E2`, and that address shows Example Storefront's bar, its word and mono line of artboard B1 and its
- * controls, over "Opening Example Storefront." while the frame session is asked for; an unreachable forge shows B3's callout in the frame
- * area; a forge without the embed channel says it cannot be shown inside Gaia; a command on its way disables the bar's controls, and the
- * forge's refusal shows under the bar; nothing of the frame is asked for or painted before the first fleet document, and the page's
- * markup carries no session code. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect, so no frame
- * session is asked while rendering; the surroundings fail a spec that asks one.
+ * `#forge/<trackerId>/#questions/E2`, and that address shows Example Storefront's bar, its word and its mono line shortened to fit one
+ * line, and its controls with the arrow after "Open in new tab" and no theme switch, as artboard B1 draws the bar, over "Opening Example
+ * Storefront." while the frame session is asked for; an unreachable forge shows B3's callout in the frame area; a forge without the embed
+ * channel says it cannot be shown inside Gaia; a command on its way disables the bar's controls, and the forge's refusal shows under the
+ * bar; nothing of the frame is asked for or painted before the first fleet document, and the page's markup carries no session code.
+ * `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect, so no frame session is asked while rendering;
+ * the surroundings fail a spec that asks one.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
@@ -34,8 +35,8 @@ function markupAt(fragment: string, fleetDocument: FleetDocument | null, command
 }
 
 function buttonsIn(markup: string): string[] {
-  const topBarActions = /<span class="gaia-top-bar-actions">(.*?)<\/span><div class="gaia-segmented"/.exec(markup)?.[1] ?? '';
-  return [...topBarActions.matchAll(/<button type="button" class="gaia-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
+  const topBarActions = /<span class="gaia-top-bar-actions">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
+  return [...topBarActions.matchAll(/<button type="button" class="gaia-button"( disabled="")?[^>]*>([^<]*)(?:<svg.*?<\/svg>)?<\/button>/g)]
     .map(([, disabled, label = '']) => `${label}${disabled === undefined ? '' : ' (disabled)'}`);
 }
 
@@ -47,8 +48,11 @@ describe('from Answer on E2 to Example Storefront in place', () => {
   test('that address shows the forge\'s bar of artboard B1 over "Opening Example Storefront."', () => {
     const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
     expect(markup).toContain('<h1 class="gaia-top-bar-title">Example Storefront</h1>');
-    expect(markup).toContain('<span class="gaia-top-bar-status-word">Live</span>4 / 5 agents · 2 wait on you · usage under its limit · since 09:12');
+    const line = '4 / 5 agents · 2 wait on you · since 09:12';
+    expect(markup).toContain(`<span class="gaia-top-bar-status-word">Live</span><span class="gaia-top-bar-status-text" title="${line}">${line}</span>`);
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+    expect(markup).toContain('>Open in new tab<svg class="gaia-button-icon"');
+    expect(markup).not.toContain('aria-label="Theme"');
     expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);
   });
@@ -63,7 +67,7 @@ describe('from Answer on E2 to Example Storefront in place', () => {
 describe('a forge that cannot show its Bridge here', () => {
   test('an unreachable forge shows B3\'s callout in the frame area, under a bar that says so and can still stop it', () => {
     const markup = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, FLEET_DEGRADED);
-    expect(markup).toContain('<span class="gaia-top-bar-status-word">Unreachable</span>as last reported 13:14');
+    expect(markup).toContain('<span class="gaia-top-bar-status-word">Unreachable</span><span class="gaia-top-bar-status-text" title="as last reported 13:14');
     expect(markup).toContain('Its Overseer stopped answering. The registry still names it.');
     expect(markup).toContain('127.0.0.1:4957 · process 48211 · last answer 13:14');
     expect(buttonsIn(markup)).toEqual(['Stop', 'Open in new tab']);

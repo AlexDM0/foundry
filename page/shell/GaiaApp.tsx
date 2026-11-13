@@ -136,7 +136,14 @@ export function GaiaShell({
       <Rail content={RailModel.railContentOf(fleetDocument, route)} />
       <main className="gaia-shell-main">
         <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
-          <TopBar title={viewTitle} status={view.status} actions={view.actions} themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
+          <TopBar
+            title={viewTitle}
+            status={view.status}
+            actions={view.actions}
+            showsThemeSwitch={route.view !== 'forge'}
+            themeChoice={themeChoice}
+            onThemeChoice={onThemeChoice}
+          />
           <ConnectionBanner streamState={streamState} />
           <div className="gaia-shell-view">{view.content}</div>
         </fieldset>
