@@ -3,8 +3,9 @@
  * job with none, `monitorSnapshotOf` answers `monitorVersion: 3` exactly as `testing/fixtures/monitor-v3.json` holds it, so a change to the
  * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
  * `monitor-v2.json` stay as versions 1 and 2 froze them. Beside it: `activity` keeps only the kinds a person cares about, newest last, each
- * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs, an
- * unstamped report the oldest, and its reset is passed on as reported, also once it is past: a clock decides nothing.
+ * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
+ * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
+ * clock decides nothing.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -244,6 +245,20 @@ describe('the current usage window', () => {
       { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: null },
       { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' },
     ])).toMatchObject({ currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T15:00:00.000Z' });
+  });
+
+  test('a report whose stamp does not read loses to a stamped one, in whichever order the jobs come', () => {
+    const unreadable = { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: 'not a stamp' };
+    const stamped    = { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' };
+    expect(usageOfJobsReporting([unreadable, stamped])).toMatchObject({ currentWindow: 'five_hour' });
+    expect(usageOfJobsReporting([stamped, unreadable])).toMatchObject({ currentWindow: 'five_hour' });
+  });
+
+  test('stamps with different offsets are ordered by the instant they name, not their text', () => {
+    expect(usageOfJobsReporting([
+      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T12:30:00+01:00' },
+      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:45:00Z' },
+    ])).toMatchObject({ currentWindow: 'seven_day' });
   });
 
   test('a reset before now is passed on as reported, since a clock decides nothing', () => {

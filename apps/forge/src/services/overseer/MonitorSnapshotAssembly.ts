@@ -249,18 +249,21 @@ function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
   return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
 }
 
-/** A report with no stamp, from a log written before stamps, is older than any stamped one. */
-function reportedLater(candidate: UsageWindowReport, newest: UsageWindowReport): boolean {
-  if (candidate.reportedAt === null) return false;
-  return newest.reportedAt === null || Date.parse(candidate.reportedAt) > Date.parse(newest.reportedAt);
+/** A report with no stamp, from a log written before stamps, or with a stamp that does not read, is older than any stamped one. */
+function reportedInstantOf(report: UsageWindowReport): number {
+  if (report.reportedAt === null) return Number.NEGATIVE_INFINITY;
+  return LocalTimeUtil.parseIso(report.reportedAt)?.getTime() ?? Number.NEGATIVE_INFINITY;
 }
 
-/** The newest report across the board's jobs, its reset passed on as reported: only shown, never compared with now. */
+/**
+ * The newest report across the board's jobs, its reset passed on as reported, never compared with now. A stated exception to "a clock
+ * decides nothing": the report stamps decide only which report is shown.
+ */
 function currentUsageWindowOf(jobs: readonly JobWithLiveFacts[]): Pick<MonitorUsage, 'currentWindow' | 'currentWindowResetsAt'> {
   const newest = jobs.reduce<UsageWindowReport | null>((latest, job) => {
     const report = job.live.usageWindow;
     if (report === null) return latest;
-    return latest === null || reportedLater(report, latest) ? report : latest;
+    return latest === null || reportedInstantOf(report) > reportedInstantOf(latest) ? report : latest;
   }, null);
   return { currentWindow: newest?.window ?? null, currentWindowResetsAt: newest?.resetsAt ?? null };
 }

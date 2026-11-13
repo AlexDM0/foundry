@@ -508,7 +508,8 @@ Subagents are grouped by `parentToolUseId`. An event log can lose one after a cr
 already tallied is skipped unread.
 
 The stamps, `startedAt`, `lastLine.at`, `usageWindow.reportedAt`, a job's `launchedAt` and the transcript entry stamp
-`at`, are only recorded and shown: no Overseer decision reads them.
+`at`, are only recorded and shown: no Overseer decision reads them. `usageWindow.reportedAt` only picks which job's
+report the monitor's `usage` shows.
 
 > **As built.** A subagent with no `.meta.json` cannot be matched, so if the log also holds it, it counts twice in
 > `tokens`, `subagents` and `toolCallsWithSubagents`.
@@ -625,7 +626,7 @@ those of version 1. Version 3 gives each warning its kind and adds the current u
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
 | `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the Bridge shows for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
-| `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit; both `null` when no job on the board reported one. The reset is passed on as reported, also once it is past. |
+| `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit. The newest is the one whose `reportedAt` names the latest instant; a report with no stamp or an unreadable one counts as the oldest. Both are `null` when no job on the board reported one, so the window of a job that left the board is no longer shown. The reset is passed on as reported, also once it is past. |
 | `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |
 
 </details>
