@@ -76,6 +76,7 @@ named in the [Glossary](../glossary.md#reading-names).
 | [gap-quiet-job-decisions-stack](#gap-quiet-job-decisions-stack) | Lifecycle | bug | A silent job opens one more decision per quiet cycle |
 | [gap-install-hold-lets-merges-land](#gap-install-hold-lets-merges-land) | Lifecycle | misleading text | Airlocks keep landing while launches are held |
 | [gap-customs-fail-open-edges](#gap-customs-fail-open-edges) | Lifecycle | bug | Two Customs and gate reads pass when git fails |
+| [gap-merged-definition-file-fails-job](#gap-merged-definition-file-fails-job) | Lifecycle | bug | A definition file main changed fails a job that merges main |
 | [gap-twice-run-judges-a-changed-snapshot](#gap-twice-run-judges-a-changed-snapshot) | Lifecycle | bug | A pipeline check's prepare output lands on its first gate |
 | [gap-clear-keeps-live-jobs](#gap-clear-keeps-live-jobs) | Lifecycle | bug | `clear` leaves live jobs without their log records |
 | [gap-row-with-ticket-and-review-of](#gap-row-with-ticket-and-review-of) | Lifecycle | bug | A row can hold both `ticket` and `reviewOf` |
@@ -391,14 +392,18 @@ named in the [Glossary](../glossary.md#reading-names).
 
 - **Expected:** a resumed job runs in one session, because the instance that reported has its input closed.
 - **Does:** `deliverBuildJobFrames` closes input only for a job in `in-customs` or `gating` when its effects run. A job
-  that a Customs red moves on, or that ends from `in-customs`, has left those states by then.
-- **Effect:** the instance that reported stays alive, and a resume runs beside it. It stays alive after the job ends
-  too.
+  that a Customs red moves on to a red handoff has left those states by then. A job that ends in the hold, from
+  `in-customs` or any other state, gets its input closed after that hold, and again each Pass until its Watcher takes
+  the frame or ends; that retry lives only in the Pass's memory.
+- **Effect:** the instance that reported a resumable red stays alive, and a resume runs beside it. An ended job's
+  session whose close was not yet taken when the Overseer stopped runs on after the restart.
 - **Instead:** no verb closes that input, so nothing can be done at a terminal.
-- **Evidence:** `src/services/overseer/JobLaunch.ts` `deliverBuildJobFrames`, `runBuildJobEffects`, `verifyAndRoute`.
+- **Evidence:** `src/services/overseer/JobLaunch.ts` `deliverBuildJobFrames`, `runBuildJobEffects`, `verifyAndRoute`;
+  `src/services/overseer/JobControlDelivery.ts` `closeInputOfEndedJobs`; `src/services/overseer/DrivePass.ts`
+  `runOnePass`.
 - **Established:** probed with the fake agent and a V15 red: the job ended `red-resumes-spent` with three instances
-  `live` and no `input-closed` marker. How a real vendor session behaves beside its resume was not tested. **Severity:**
-  bug.
+  `live` and no `input-closed` marker. The ended job's close is held by `cli/overseer/OverseerBuildJob.spec.ts`. How a
+  real vendor session behaves beside its resume was not tested. **Severity:** bug.
 
 <a id="gap-job-stop-misses-merge"></a>
 
@@ -586,6 +591,23 @@ named in the [Glossary](../glossary.md#reading-names).
 - **Instead:** nothing to do at a terminal.
 - **Evidence:** `src/services/lifecycle/Customs.ts` `noAiAttributionInRange`; `src/services/lifecycle/GateRun.ts`
   `trackedChangesOf`, `gateOutcomeOf`.
+- **Established:** read. **Severity:** bug.
+
+<a id="gap-merged-definition-file-fails-job"></a>
+
+### A definition file main changed fails a job that merges main
+
+- **Expected:** [V11](../architecture/customs-and-gates.md) refuses a branch for the definition files it changed itself.
+- **Does:** `checksDefinitionUnchanged` reads `checks-definition-changed` from every path in the job's range: each commit
+  of `start..HEAD` and the net diff from the start. A merge of the main line brings main's commits into that range.
+  Tracked instruction files, the constitution among them, count only where the branch changed them itself, against
+  the job's target; definition files have no such rule.
+- **Effect:** a ticket that landed a change to a file a gate's `definedBy` names, such as `package.json`, fails each
+  live build or review that merges the main line in after it, cause `checks-definition-changed`. A fresh attempt
+  started after the merge passes.
+- **Instead:** land a ticket that changes a definition file while no other job of the board is live.
+- **Evidence:** `src/services/lifecycle/Customs.ts` `checksDefinitionUnchanged`, `pathsChangedInRange`,
+  `instructionFilesChangedByTheBranch`.
 - **Established:** read. **Severity:** bug.
 
 <a id="gap-twice-run-judges-a-changed-snapshot"></a>

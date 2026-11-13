@@ -70,7 +70,7 @@ import { HatchInbox, type PendingHatchRequest }                             from
 import { type DefaultedIncident, IncidentRouter }                           from './IncidentRouter.ts';
 import { InstructionFiles }                                                 from './InstructionFiles.ts';
 import { IntakeSessions, type IntakeFacts }                                 from './IntakeSessions.ts';
-import { JobControlDelivery }                                               from './JobControlDelivery.ts';
+import { type EndedJobSession, JobControlDelivery }                         from './JobControlDelivery.ts';
 import {
   BUILD_JOB_CAUSES,
   type BuildJobObservation,
@@ -273,7 +273,10 @@ export interface DrivePass {
   regroup:        () => Promise<RegroupingReport>;
   /** Coalesced: wakes during a pass add exactly one more pass. `forced` runs it even when nothing observed changed. */
   wake:           (forced?: boolean) => void;
-  /** The backstop sweep: counts each running job's quiet sweeps and wakes a forced pass to open `quiet-job` for one that reached the count. */
+  /**
+   * The backstop sweep: counts each running job's quiet sweeps and wakes a forced pass to open `quiet-job` for one that reached the count,
+   * and to recheck a target the last pass held.
+   */
   sweep:          () => void;
   /** The sweeps a running build or review has been quiet for, which the Bridge tints; 0 for any other job. */
   silentSweepsOf: (jobId: string) => number;
@@ -925,6 +928,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const quietJobIdsDue: string[] = [];
   const forcedStopRetryJobIdsDue: string[] = [];
   let jobsAtTheLastPass: readonly Readonly<Job>[] = [];
+  let targetsHeldAtTheLastPass = 0;
   const assistantQuietWatch = AssistantSession.createAssistantQuietWatch(QUIET_JOB_SWEEPS);
   const quietAssistantIdsDue: string[] = [];
   let assistantsMidTurnAtTheLastPass: readonly string[] = [];
@@ -967,6 +971,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   };
   const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
+  let endedSessionsAwaitingClose: EndedJobSession[] = [];
   const triedPipelineAgentSnapshots = new Set<string>();
 
   /** A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`. */
@@ -1267,6 +1272,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await JobControlDelivery.deliverJobControls({
       platformPorts, trackerDirectory: request.workspace.trackerDirectory, board: written.board, adapter: request.agentAdapter, windDownMessage: request.windDownMessage,
     });
+    const sessionsEndedThisPass = observation.watchers
+      .filter((watcher) => watcher.liveness.verdict === 'live' && written.board.jobById(watcher.jobId) === undefined)
+      .map((watcher) => ({ jobId: watcher.jobId, watcherInstance: watcher.instance }));
+    endedSessionsAwaitingClose = await JobControlDelivery.closeInputOfEndedJobs(
+      platformPorts, request.workspace.trackerDirectory, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
+    );
     unwatchHatchFoldersOfEndedJobs(written.board);
     const launchRefusals: LaunchRefusal[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
@@ -1307,6 +1318,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       answerMessageOf:           request.answerMessageOf,
     });
     const heldTargets = written.board.pipeline() === null && !constitutionCommitIsDue(written.board) ? [] : await airlocks.sweep();
+    targetsHeldAtTheLastPass = heldTargets.length;
     gateProfiling.followRuns(written.board);
     pipelineChecking.followChecks(written.board);
     await WatcherFleet.reapEndedWatchers(platformPorts, trackerDirectory);
@@ -1385,13 +1397,17 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await pipelineChecking.stopAll();
   }
 
-  /** Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one. */
+  /**
+   * Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one. A held target is
+   * rechecked each sweep, since the checkout that holds it is not in the fingerprint: User cleaning it wakes nothing else.
+   */
   function sweep(): void {
     const due = quietJobWatch.sweep(jobsAtTheLastPass);
     const quietAssistants = assistantQuietWatch.sweep(jobsAtTheLastPass, assistantsMidTurnAtTheLastPass);
     const noAssistantIsLive = !jobsAtTheLastPass.some((job) => AssistantBoot.isAssistantJob(job));
     const forcedStopRetries = RefusedForcedStops.jobIdsToRetryOf(jobsAtTheLastPass);
-    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0) return;
+    const heldTargetIsDue = targetsHeldAtTheLastPass > 0;
+    if (due.length === 0 && quietAssistants.length === 0 && !noAssistantIsLive && forcedStopRetries.length === 0 && !heldTargetIsDue) return;
     quietJobIdsDue.push(...due);
     forcedStopRetryJobIdsDue.push(...forcedStopRetries);
     quietAssistantIdsDue.push(...quietAssistants);

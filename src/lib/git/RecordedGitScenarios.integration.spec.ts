@@ -12,6 +12,7 @@ import { afterAll, expect, test } from 'bun:test';
 
 import { recordAnswer }        from '../../testing/RecordedAnswers.ts';
 import {
+  CUSTOMS_MAIN_MERGE_SCENARIO_CALLS,
   CUSTOMS_SCENARIO_CALLS,
   PIPELINE_AGENT_SCENARIO_CALLS,
   PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME,
@@ -320,6 +321,44 @@ describeWhenGitIsPresent('the git scenarios the Customs verification spec replay
     const built = builtRepository();
     const namedCommits = plant(built);
     recordStateOf(scenario, built.directory, { '<start>': built.startCommit, ...namedCommits });
+  });
+});
+
+describeWhenGitIsPresent('the git scenarios of a branch that merged the main line in, which the Customs verification spec replays', () => {
+  const MERGE_MAIN = [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-ff', '-m', 'Merge the main line', SCENARIO_MAIN_LINE];
+
+  /** Main at the start with base.ts, ticket-001 off it with feature.ts, then main's own example-constitution.md, ticket-001 checked out. */
+  function branchBesideMain(): { directory: string; commits: Record<string, string> } {
+    const directory = scratchRepository('customs-main-merge-scenarios');
+    const startCommit = commitFile(directory, 'base.ts', 'export const base = true;\n');
+    gitOutputIn(directory, ['checkout', '-q', '-b', 'ticket-001']);
+    commitFile(directory, 'feature.ts', 'export const feature = true;\n');
+    gitOutputIn(directory, ['checkout', '-q', SCENARIO_MAIN_LINE]);
+    const mainTip = commitFile(directory, 'example-constitution.md', '# Example rules\n');
+    gitOutputIn(directory, ['checkout', '-q', 'ticket-001']);
+    return { directory, commits: { '<start>': startCommit, '<main tip>': mainTip } };
+  }
+
+  test(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED, () => {
+    const { directory, commits } = branchBesideMain();
+    gitOutputIn(directory, MERGE_MAIN);
+    recordStateOf(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED, directory, commits, CUSTOMS_MAIN_MERGE_SCENARIO_CALLS);
+  });
+
+  test(GIT_SCENARIOS.OWN_INSTRUCTION_EDIT_AFTER_MERGE, () => {
+    const { directory, commits } = branchBesideMain();
+    gitOutputIn(directory, MERGE_MAIN);
+    commitFile(directory, 'example-constitution.md', '# Example rules\n\n- A rule the worker added.\n');
+    recordStateOf(GIT_SCENARIOS.OWN_INSTRUCTION_EDIT_AFTER_MERGE, directory, commits, CUSTOMS_MAIN_MERGE_SCENARIO_CALLS);
+  });
+
+  test(GIT_SCENARIOS.INSTRUCTION_EDIT_IN_THE_MERGE, () => {
+    const { directory, commits } = branchBesideMain();
+    gitOutputIn(directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-ff', '--no-commit', SCENARIO_MAIN_LINE]);
+    writeFileSync(join(directory, 'example-constitution.md'), '# Example rules, changed in the merge\n');
+    gitOutputIn(directory, ['add', '--', 'example-constitution.md']);
+    commitAll(directory, 'Merge the main line');
+    recordStateOf(GIT_SCENARIOS.INSTRUCTION_EDIT_IN_THE_MERGE, directory, commits, CUSTOMS_MAIN_MERGE_SCENARIO_CALLS);
   });
 });
 

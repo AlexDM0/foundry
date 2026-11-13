@@ -160,6 +160,7 @@ export const GIT_CALL_SHAPES = {
   WORKTREE_LIST_WITH_A_LINKED:         'worktree list --porcelain, the main checkout <repository> on <branch> and <path> on worktree/planted',
   SHORT_STATUS_CLEAN:                  'status --porcelain --untracked-files=all, the worktree clean',
   SHORT_STATUS_OF_A_NEW_FILE:          'status --porcelain --untracked-files=all, planted-file.txt untracked',
+  COMMIT_SIGNING_OFF:                  'config --bool commit.gpgsign, set to false',
   STAGE_OF_A_CHANGED_PATH:             'add -- <path>, the path written in a detached worktree',
   COMMIT_OF_A_STAGED_PATH:             'commit --no-verify -q -m <subject>, one path staged',
   COMMIT_UNSIGNED_BY_A_FAILING_SIGNER: 'commit --no-verify -q -m <subject>, commit.gpgsign true and a gpg.program that fails',

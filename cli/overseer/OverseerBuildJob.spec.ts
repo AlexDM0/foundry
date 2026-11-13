@@ -629,6 +629,17 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
     expect(drivePass.state().notices).toContainEqual({ kind: 'attribution-found', ticketId: '001' });
   });
 
+  test('a session that Customs ends in the hold that verified it gets its input closed, and its Watcher ends', async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    const drivePass = await drivePassPlaying(buildingSession('tree changed with trailer'));
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
+    expect(buildStates.slice(-2)).toEqual(['in-customs', 'ended']);
+    const sessionFolder = jobFolderOf(firstBuildJobId());
+    await waitUntil(() => WatcherFleet.livenessOf(ports, sessionFolder, 1).verdict === 'ended', () => `the ended job's Watcher ending:\n${overseerLog.join('\n')}`);
+    const clientLines = (WatcherFleet.eventsAfter(sessionFolder, 1, 0) as readonly { origin: string; line: string }[]).filter((entry) => entry.origin === 'client');
+    expect(clientLines.map((entry) => entry.line)).toContain(JSON.stringify({ kind: 'close-input' }));
+  });
+
   test('a commit changing .claude/ fails the pass on V13, opens branch-touches-agent-config and launches no review while it is open', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying([

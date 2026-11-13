@@ -875,6 +875,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     refMovesAllowed:  refMovesAllowedFor(hold.context, board, job),
     gates:            board.pipeline()?.gates ?? [],
     instructionFiles: InstructionFiles.trackedInstructionPathsOf(board.pipeline()),
+    target:           job.target ?? hold.context.mainLine,
     pathStyle:        hold.context.platformPorts.dataFolders,
   };
   const reportVerdict = CUSTOMS_CHECKS.V1(subject);
