@@ -24,6 +24,7 @@ import type {
 } from '../../shared/@types/GaiaCommand.ts';
 import type { GaiaSettings }                                                              from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS, FLINT_BRAIN_CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
+import { OVERSEER_ANSWERED_FIDELITIES }                                                   from '../../shared/constants/ForgeFidelities.ts';
 
 import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
 
@@ -43,9 +44,6 @@ export interface ForgeControlOptions {
 export interface ForgeControl {
   readonly carry: (command: GaiaCommand) => Promise<CommandVerdict>;
 }
-
-/** The fidelities at which the forge's Overseer answered its last read. */
-const OVERSEER_ANSWERS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'newer-contract']);
 
 /** The machine limit, the chooser and the login items are one each, whatever the forge; a forge and a repository being added are named. */
 const MACHINE_LIMIT_SUBJECT = 'machine-limit';
@@ -77,7 +75,7 @@ function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
 
 function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiReach {
   const { overseer } = forge;
-  if (overseer === null || reading === null || reading.url !== overseer.url || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { reach: 'no-overseer' };
+  if (overseer === null || reading === null || reading.url !== overseer.url || !OVERSEER_ANSWERED_FIDELITIES.has(reading.fidelity)) return { reach: 'no-overseer' };
   const controlVersion = reading.contracts.control;
   return controlVersion !== null && CONTROL_VERSIONS_SENT.has(controlVersion) ? { reach: 'api', overseer, controlVersion } : { reach: 'control-unknown' };
 }
