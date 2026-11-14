@@ -339,6 +339,17 @@ describe('forge-stop, carried by the API while the Overseer answers, else by the
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(['stop', '--json']) });
   });
 
+  test('runs `forge stop --json` for a live forge whose token file cannot be read, or whose registry entry names none', async () => {
+    for (const forgeTokenPath of [join(scratchFolder, 'absent-token'), null]) {
+      const overseerFetch = overseerAnswering('serving-every-contract');
+      const processRun = recordedForgeProgramRunOf('every-verb-done');
+      const verdict = await controlOver({ forges: [exampleForgeOf({ tokenPath: forgeTokenPath })], overseerFetch, processRun }).carry(STOP_KEEPING_AGENTS);
+      expect(verdict).toEqual({ verdict: 'done' });
+      expect(overseerFetch.callsAnswered()).toEqual([]);
+      expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json'])]);
+    }
+  });
+
   test('runs `forge stop --json`, and sends the API nothing, when the registry names the Overseer at another address than the watch read', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     const processRun = recordedForgeProgramRunOf('every-verb-done');
@@ -642,6 +653,19 @@ describe('machine-agent-limit-set, carried by a live forge\'s API, else by the f
     expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
   });
 
+  test('asks the next live forge when the first one\'s token file cannot be read', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const forges = [exampleForgeOf({ tokenPath: join(scratchFolder, 'absent-token') }), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
+    expect(await controlOver({ forges, overseerFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
+  });
+
+  test('runs the program when the one live forge\'s registry entry names no token file', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    expect(await controlOver({ forges: [exampleForgeOf({ tokenPath: null })], processRun }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
+  });
+
   test('sends nothing to a live forge whose control contract Gaia does not know, and sets the limit through the program', async () => {
     const processRun = recordedForgeProgramRunOf('every-verb-done');
     const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })], processRun }).carry(SET_MACHINE_LIMIT);
@@ -874,6 +898,47 @@ describe('settings-set of startForgesAtLogin, carried by each forge\'s program a
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json']),
     ]);
     expect(settingsStore.settings().startForgesAtLogin).toBe(false);
+  });
+
+  test('switched on and refused by the settings write, removes the login items it wrote, so none is left while the setting is off', async () => {
+    writeFileSync(join(scratchFolder, '.gaia'), 'a file where the folder belongs');
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const settingsStore = settingsStoreInScratch();
+    const verdict = await controlOver({ processRun: recorded, settingsStore }).carry(START_AT_LOGIN_ON);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-unwritable' });
+    expect(recorded.callShapesAnswered()).toEqual([
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json']),
+    ]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(false);
+  });
+
+  test('switched off and refused for a later forge, writes back the login items it already removed, so each is there while the setting is on', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.change({ ...GAIA_SETTINGS_DEFAULTS, startForgesAtLogin: true });
+    const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID, program: null })];
+    const verdict = await controlOver({ forges, processRun: recorded, settingsStore }).carry(START_AT_LOGIN_OFF);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'program-not-found' });
+    expect(recorded.callShapesAnswered()).toEqual([
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json']),
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+    ]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(true);
+  });
+
+  test('switched off and refused by the settings write, writes back the login items it removed', async () => {
+    const recorded = recordedForgeProgramRunOf('every-verb-done');
+    const settingsStore = settingsStoreInScratch();
+    await settingsStore.change({ ...GAIA_SETTINGS_DEFAULTS, startForgesAtLogin: true });
+    writeFileSync(settingsFilePathIn(scratchFolder), JSON.stringify({ version: 2 }));
+    const verdict = await controlOver({ processRun: recorded, settingsStore }).carry(START_AT_LOGIN_OFF);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'settings-newer-version' });
+    expect(recorded.callShapesAnswered()).toEqual([
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'remove', '--json']),
+      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'add', '--json']),
+    ]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(true);
   });
 
   test('answers nothing-to-do and runs no forge when the setting already holds the value', async () => {

@@ -101,6 +101,12 @@ function verdictOfApiFailure(answer: Exclude<ForgeCommandAnswer, { verdict: 'ans
   }
 }
 
+/** No answer came, or no request went out for want of a token: the forge program, or the next live forge, may still carry the command. */
+function apiLeftTheCommandUncarried(apiVerdict: CommandVerdict): boolean {
+  if (apiVerdict.verdict === 'unreachable') return true;
+  return apiVerdict.verdict === 'refused' && apiVerdict.refusedBy === 'gaia' && apiVerdict.refusal === 'token-unreadable';
+}
+
 function verdictOfSettingsUpdate(updateVerdict: SettingsUpdateVerdict): CommandVerdict {
   switch (updateVerdict.verdict) {
     case 'written':
@@ -211,7 +217,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
 
   /**
    * The contract check comes before the carrier: an Overseer that answers in a control contract Gaia does not know is sent nothing and
-   * left running. With no Overseer answering, or none answering the stop, the forge program stops the forge.
+   * left running. With no Overseer answering, none answering the stop, or no token to send it with, the forge program stops the forge.
    */
   async function stop(forge: RegisteredForge, reading: ForgeReading | null, agents: ForgeStopAgents): Promise<CommandVerdict> {
     const apiReach = apiReachOf(forge, reading);
@@ -220,7 +226,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const overseerStop: ForgeControlCommand = { kind: 'overseer-stop', now: false };
       const controlCommands: readonly ForgeControlCommand[] = agents === 'stop-first' ? [{ kind: 'job-stop-all', mode: 'stop' }, overseerStop] : [overseerStop];
       const apiVerdict = await sendOverApi(apiReach.overseer, controlCommands);
-      if (apiVerdict.verdict !== 'unreachable') return apiVerdict;
+      if (!apiLeftTheCommandUncarried(apiVerdict)) return apiVerdict;
     }
     return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.stop(programTargetOf(forge)), (answer) => answer.outcome);
   }
@@ -236,8 +242,8 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
   }
 
   /**
-   * The limit is the machine's, so any live forge whose control contract Gaia knows carries it; the next is asked when one gives no answer.
-   * With none live, the forge program of a registered forge whose repository is there sets it.
+   * The limit is the machine's, so any live forge whose control contract Gaia knows carries it; the next is asked when one gives no answer
+   * or its token cannot be read. With none live, the forge program of a registered forge whose repository is there sets it.
    */
   async function setMachineLimit(limit: number): Promise<CommandVerdict> {
     const forges = await registeredForges();
@@ -246,22 +252,23 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const apiReach = apiReachOf(forge, readingOf(forge.trackerId));
       if (apiReach.reach !== 'api') continue;
       const apiVerdict = await sendOverApi(apiReach.overseer, [{ kind: 'machine-agent-limit-set', limit }]);
-      if (apiVerdict.verdict !== 'unreachable') return apiVerdict;
+      if (!apiLeftTheCommandUncarried(apiVerdict)) return apiVerdict;
     }
     const forgeWithItsRepository = forges.find((forge) => readingOf(forge.trackerId)?.fidelity !== 'repository-missing');
     if (forgeWithItsRepository === undefined) return gaiaRefusalOf('no-forge-registered');
     return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.machineLimitSet(programTargetOf(forgeWithItsRepository), limit), (answer) => answer.outcome);
   }
 
-  /** Each forge's program removes its login item; a forge that refuses is passed over, since the refusal that caused the undo is the answer. */
-  async function removeLoginItemsOf(forges: readonly RegisteredForge[]): Promise<void> {
-    for (const forge of forges) await forgeProgram.loginItem(programTargetOf(forge), 'remove');
+  /** Each forge's program undoes the change just made to its login item; one that refuses is passed over: the refusal that led here is the answer. */
+  async function undoLoginItemsOf(forges: readonly RegisteredForge[], startForgesAtLogin: boolean): Promise<void> {
+    for (const forge of forges) await forgeProgram.loginItem(programTargetOf(forge), startForgesAtLogin ? 'remove' : 'add');
   }
 
   /**
    * PLAN A6: switched on, each running forge's own program writes its login item; switched off, each forge's program removes it. The
-   * setting is kept only once every forge's verb is done, so the first refusal leaves it as it was and the forge words why. A refused
-   * switch-on removes the login items it already wrote: with the setting left off, the page offers no switch-off that would remove them.
+   * setting is kept only once every forge's verb is done, so the first refusal leaves it as it was and the forge words why. A refusal, of a
+   * forge or of the settings write, turns back the login items already changed: the page shows the setting as it was, and offers no change
+   * that would turn them back.
    */
   async function setStartForgesAtLogin(startForgesAtLogin: boolean): Promise<CommandVerdict> {
     if (settingsStore.settings().startForgesAtLogin === startForgesAtLogin) return { verdict: 'nothing-to-do' };
@@ -273,16 +280,18 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       const reading = readingOf(forge.trackerId);
       return reading !== null && forgeFidelities.has(reading.fidelity);
     });
-    const forgesWithTheirLoginItemWritten: RegisteredForge[] = [];
+    const forgesWithTheirLoginItemChanged: RegisteredForge[] = [];
     for (const forge of forges) {
       const loginItemVerdict = await forgeProgram.loginItem(programTargetOf(forge), startForgesAtLogin ? 'add' : 'remove');
       if (loginItemVerdict.verdict !== 'done') {
-        await removeLoginItemsOf(forgesWithTheirLoginItemWritten);
+        await undoLoginItemsOf(forgesWithTheirLoginItemChanged, startForgesAtLogin);
         return ProgramVerdictUtil.verdictOfProgramFailure(loginItemVerdict);
       }
-      if (startForgesAtLogin) forgesWithTheirLoginItemWritten.push(forge);
+      forgesWithTheirLoginItemChanged.push(forge);
     }
-    return verdictOfSettingsUpdate(await settingsStore.update(changing({ key: 'startForgesAtLogin', value: startForgesAtLogin })));
+    const settingsVerdict = verdictOfSettingsUpdate(await settingsStore.update(changing({ key: 'startForgesAtLogin', value: startForgesAtLogin })));
+    if (settingsVerdict.verdict === 'refused') await undoLoginItemsOf(forgesWithTheirLoginItemChanged, startForgesAtLogin);
+    return settingsVerdict;
   }
 
   async function carryForForge(command: ForgeCommand): Promise<CommandVerdict> {
