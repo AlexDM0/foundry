@@ -5,8 +5,9 @@
 :root {
   --sp-half: 2px;
 
-  --fs-figure: 17px; --line-height-figure: 22px; --fs-figure-folded: 15px; --line-height-figure-folded: 20px; --fs-splash: 44px;
+  --fs-figure: 17px; --line-height-figure: 22px; --fs-figure-folded: 15px; --line-height-figure-folded: 20px;
   --fs-wordmark: 20px; --line-height-wordmark: 24px;
+  --fs-splash: 60px; --line-height-splash: 64px;
   --fs-confirm-question: 14px; --line-height-confirm-question: 20px;
   --weight-figure: 500;
   --weight-chip: 500;
@@ -15,9 +16,7 @@
   --wordmark-tracking: -0.035em;
   --weight-strong: 600;
   --weight-page-title: 650;
-  --weight-brand: 700;
   --page-title-tracking: -0.01em;
-  --brand-tracking: -0.02em;
 
   --field-height:        36px;
   --menu-item-height:    24px;
@@ -43,6 +42,7 @@
   --brand-bar-end-padding: 20px;
   --brand-bar-divider-height: 18px;
   --wordmark-gap:        9px;
+  --splash-stack-gap:    30px;
   --rail-width:          232px;
   --rail-section-gap:    22px;
   --rail-inset:          10px;

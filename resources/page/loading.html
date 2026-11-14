@@ -11,34 +11,68 @@
     The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
     health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
     this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
-    the window to Gaia's page. Every colour is a token: the design-system package's, linked by its file because a file page resolves no
-    package export, and Gaia's own.
+    the window to Gaia's page. The package's tokens and fonts are reached by their files, because a file page resolves no package export:
+    the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way.
   -->
   <style>
+    @font-face {
+      font-family: "Inter";
+      src: url("../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: swap;
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                     U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: "Inter";
+      src: url("../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: swap;
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+                     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
     body {
+      position: relative;
+      box-sizing: border-box;
       margin: 0;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 28px;
+      gap: var(--splash-stack-gap);
+      padding-bottom: var(--space-24);
       background: var(--bg);
       color: var(--ink);
       font: var(--fs-body)/var(--line-height-body) var(--font-ui);
+      -webkit-font-smoothing: antialiased;
     }
-    .splash-brand { display: flex; align-items: center; gap: 14px; }
+    .splash-brand { display: flex; align-items: center; gap: var(--space-20); }
     .splash-brand-name {
       font-size: var(--fs-splash);
-      line-height: 1;
-      font-weight: var(--weight-brand);
-      letter-spacing: var(--brand-tracking);
+      line-height: var(--line-height-splash);
+      font-weight: var(--weight-wordmark);
+      letter-spacing: var(--wordmark-tracking);
     }
-    .splash-steps { display: flex; flex-direction: column; gap: var(--sp-2); width: 320px; margin: 0; padding: 0; list-style: none; }
-    .splash-step { display: flex; align-items: center; gap: 10px; }
-    .splash-step[data-step="next"] { color: var(--ink-muted); }
-    .splash-step-label { flex: 1; }
-    .splash-step-fact { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-micro); color: var(--ink-muted); }
+    .gaia-mark { display: block; flex: none; }
+    .gaia-mark-ground-from { stop-color: var(--mark-from); }
+    .gaia-mark-ground-to { stop-color: var(--mark-to); }
+    .gaia-mark-mask-open { fill: var(--mark-mask-open); }
+    .gaia-mark-mask-shut { fill: var(--mark-mask-shut); }
+    .gaia-mark-ring { stroke: var(--mark-line); }
+    .gaia-mark-core { fill: var(--mark-core); }
+    .gaia-mark-node-ring { stroke: var(--mark-node-ring); }
+    .gaia-mark-node-core { fill: var(--mark-node-core); }
+    .gaia-mark-rim { stroke: var(--mark-rim); }
+    .splash-steps { display: flex; align-items: center; gap: var(--space-10); height: var(--line-height-lead); margin: 0; padding: 0; list-style: none; }
+    .splash-step { display: flex; align-items: center; gap: var(--space-10); }
+    .splash-step:not([data-step="now"]) { display: none; }
+    /* Opening, the line names the address the server answered at, which the server's own step holds. */
+    .splash-steps:has(#opening-step[data-step="now"]) #server-step { display: flex; order: 1; }
+    .splash-steps:has(#opening-step[data-step="now"]) #server-step > :not(.splash-step-fact) { display: none; }
+    .splash-step-label { font-size: var(--fs-lead); line-height: var(--line-height-lead); color: var(--ink-muted); }
+    .splash-step-fact { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-4); }
+    .splash-step-fact:empty { display: none; }
     .splash-step-dot {
       display: inline-block;
       flex: none;
@@ -46,19 +80,25 @@
       width: var(--condition-dot-size);
       height: var(--condition-dot-size);
       border-radius: var(--r-pill);
+      border: var(--dot-ring-width) solid var(--signal);
     }
-    .splash-step[data-step="done"] .splash-step-dot { background: var(--status-live); }
-    .splash-step[data-step="now"] .splash-step-dot { border: var(--dot-ring-width) solid var(--status-live); }
-    .splash-step[data-step="next"] .splash-step-dot { border: var(--dot-ring-width) solid var(--line-strong); }
-    .splash-closing { font-size: var(--fs-small); color: var(--ink-muted); }
+    #opening-step .splash-step-dot { background: var(--signal); border: none; }
+    .splash-closing {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: var(--space-28);
+      text-align: center;
+      font-size: var(--fs-small);
+      line-height: var(--line-height-body);
+      color: var(--ink-4);
+    }
   </style>
 </head>
 <body>
   <div class="splash-brand">
-    <svg aria-hidden="true" width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.4">
-      <circle cx="11" cy="11" r="4"></circle><path d="M2.5 11a8.5 8.5 0 0 1 14.5-6"></path><path d="M19.5 11a8.5 8.5 0 0 1-14.5 6"></path>
-    </svg>
-    <span class="splash-brand-name">Gaia</span>
+    <svg class="gaia-mark" aria-hidden="true" width="88" height="88" viewBox="0 0 64 64"><defs><linearGradient id="gaia-mark-ground" x1="0" y1="0" x2="1" y2="1"><stop class="gaia-mark-ground-from" offset="0"></stop><stop class="gaia-mark-ground-to" offset="1"></stop></linearGradient><mask id="gaia-mark-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect class="gaia-mark-mask-open" width="64" height="64"></rect><circle class="gaia-mark-mask-shut" cx="44.4" cy="19.6" r="10.4"></circle></mask></defs><rect x="1" y="1" width="62" height="62" rx="13" fill="url(#gaia-mark-ground)"></rect><g mask="url(#gaia-mark-gap)"><circle class="gaia-mark-ring" cx="32" cy="32" r="17.5" fill="none" stroke-width="5"></circle></g><circle class="gaia-mark-core" cx="32" cy="32" r="6.4"></circle><circle class="gaia-mark-node-ring" cx="44.4" cy="19.6" r="7.1" fill="none" stroke-width="2.6"></circle><circle class="gaia-mark-node-core" cx="44.4" cy="19.6" r="3.3"></circle><rect class="gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none"></rect></svg>
+    <span class="splash-brand-name">gaia</span>
   </div>
   <ol class="splash-steps" aria-live="polite">
     <li class="splash-step" id="server-step" data-step="now">

@@ -16,6 +16,7 @@ const COLOUR_VALUE = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|colo
 const TOKEN_READ = /var\((--[\w-]+)\)/g;
 const TOKEN_DEFINITION = /(--[\w-]+)\s*:/g;
 const STYLESHEET_LINK = /<link rel="stylesheet" href="([^"]+)">/g;
+const FONT_SOURCE = /src: url\("([^"]+)"\) format\("woff2"\)/g;
 
 function splashText(): string {
   return readFileSync(SPLASH_PATH, 'utf8');
@@ -82,6 +83,16 @@ describe('the splash', () => {
     const linked = linkedStylesheetsOf(splashText());
     expect(linked).toEqual(['../../node_modules/design-system/styles/tokens.css', '../../page/styles/tokens.css']);
     for (const stylesheet of linked) expect(existsSync(join(dirname(SPLASH_PATH), stylesheet))).toBe(true);
+  });
+
+  test('draws in the package\'s own Inter files, by paths that reach them from the splash\'s folder, so no font is fetched off the machine', () => {
+    const fontSources = [...styleOf(splashText()).matchAll(FONT_SOURCE)].map((source) => source[1] ?? '');
+    expect(fontSources).toEqual([
+      '../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2',
+      '../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2',
+    ]);
+    for (const fontSource of fontSources) expect(existsSync(join(dirname(SPLASH_PATH), fontSource))).toBe(true);
+    expect(splashText()).not.toMatch(/https?:\/\//);
   });
 
   test('holds no colour value and reads only tokens that the linked tokens define', () => {

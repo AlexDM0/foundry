@@ -3,17 +3,21 @@
  * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
  * and differ only in the theme the root names and the theme button shows (B1 has no theme button), so a theme is the tokens' work alone; a screen
  * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
- * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is. The restart an update left
- * pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so
- * are the two warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4.
+ * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash file, opened at both its steps and drawing the
+ * page's own mark. The restart an update left pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update
+ * forge can leave it, under the same checks; so are the two warnings of monitor contract 2, a failed Baton pass as A1's look and an
+ * Assistant that cannot come up as a notice on A4.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
- * artboard's size in Chrome or Chromium, and compares the picture with the artboard.
+ * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { createElement }          from 'react';
+import { renderToStaticMarkup }   from 'react-dom/server';
 
+import { GaiaMark } from './design-system/GaiaMark.tsx';
 import {
   ARTBOARD_SCREENS,
   ARTBOARD_SIZE_PIXELS,
@@ -25,7 +29,13 @@ import {
   type PageArtboard,
   RESTART_PENDING_SCREENS,
   screenDocumentOf,
+  SCREEN_THEMES,
   screenMarkupOf,
+  SPLASH_MARK_SIZE_PIXELS,
+  SPLASH_PAGE_PATH,
+  SPLASH_SCREENS,
+  SPLASH_SIZE_PIXELS,
+  splashScreenAddressOf,
   themesOf,
 } from './testing/ArtboardScreens.tsx';
 import { DesignSystemStylesheet } from './testing/DesignSystemStylesheet.ts';
@@ -249,5 +259,34 @@ describe('the warnings of monitor contract 2, over the artboard that shows each'
     const activity = ARTBOARD_SCREENS.find((screen) => screen.artboard === 'A3');
     if (activity === undefined) throw new Error('No screen paints artboard A3.');
     expect(textsOfClass(screenMarkupOf(activity, 'dark'), 'gaia-activity-usage-line')).toEqual(['under its limit · window resets 16:00']);
+  });
+});
+
+describe('C3, the launcher\'s splash, opened as the file it is', () => {
+  const splashText = readFileSync(SPLASH_PAGE_PATH, 'utf8');
+
+  test('is shown at both steps C3 draws, in both themes, at C3\'s size, from its own artboard source', () => {
+    expect(SPLASH_SCREENS.map((screen) => [screen.artboard, screen.designFile, screen.step])).toEqual([
+      ['C3', 'Splash.dc.html', 'starting'],
+      ['C3', 'Splash.dc.html', 'opening'],
+    ]);
+    expect(SPLASH_SIZE_PIXELS).toEqual({ width: 900, height: 560 });
+    const addresses = SPLASH_SCREENS.flatMap((screen) => SCREEN_THEMES.map((theme) => new URL(splashScreenAddressOf(screen, theme))));
+    expect(addresses.map((address) => [address.protocol, address.searchParams.get('theme'), address.hash])).toEqual([
+      ['file:', 'dark', '#step=starting'],
+      ['file:', 'light', '#step=starting'],
+      ['file:', 'dark', '#step=opening'],
+      ['file:', 'light', '#step=opening'],
+    ]);
+  });
+
+  test('draws the very mark the page draws, at the splash\'s size', () => {
+    expect(splashText).toContain(renderToStaticMarkup(createElement(GaiaMark, { sizePixels: SPLASH_MARK_SIZE_PIXELS })));
+  });
+
+  test('paints the mark with the page\'s own rules for it, since a file page links no gaia.css', () => {
+    const markRules = (STYLESHEETS[1] ?? '').split('\n').filter((line) => line.startsWith('.gaia-mark'));
+    expect(markRules.length).toBeGreaterThan(0);
+    for (const markRule of markRules) expect(splashText).toContain(markRule);
   });
 });

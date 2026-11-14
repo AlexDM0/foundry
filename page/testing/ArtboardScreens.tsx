@@ -6,6 +6,7 @@
  */
 import { readFileSync }         from 'node:fs';
 import { join }                 from 'node:path';
+import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
@@ -31,7 +32,7 @@ export const SCREEN_THEMES: readonly ScreenTheme[] = ['dark', 'light'];
 /** Every artboard Gaia's page builds is drawn at this size. */
 export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 
-/** The artboards in `designs/canvas.json`, by their mark. C2 waits for notifications (W5.6); C3 is the launcher's static splash page. */
+/** The artboards in `designs/canvas.json`, by their mark. C2 waits for notifications (W5.6); C3, the splash, is a file page of its own. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4' | 'C1';
 
 /** How the view of a screen is set: as the route shows it, with B2's controls in use, or after an update that left a restart pending. */
@@ -353,4 +354,40 @@ export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): st
     '</html>',
     '',
   ].join('\n');
+}
+
+/** The two steps C3's `step` tweak draws: the server starting, and the window about to open on Gaia's page. */
+export type SplashStepShown = 'starting' | 'opening';
+
+export interface SplashScreen {
+  readonly artboard:   'C3';
+  readonly designFile: 'Splash.dc.html';
+  readonly step:       SplashStepShown;
+}
+
+/** C3 is drawn at this size, smaller than the window the launcher opens. */
+export const SPLASH_SIZE_PIXELS = { width: 900, height: 560 } as const;
+
+/** The mark's size on the splash (COMPONENT_LIBRARY 3.1). */
+export const SPLASH_MARK_SIZE_PIXELS = 88;
+
+/** The address C3 draws on its `opening` step. */
+const SPLASH_SERVER_ADDRESS = '127.0.0.1:4790';
+
+export const SPLASH_PAGE_PATH = join(import.meta.dir, '..', '..', 'resources', 'page', 'loading.html');
+
+export const SPLASH_SCREENS: readonly SplashScreen[] = [
+  { artboard: 'C3', designFile: 'Splash.dc.html', step: 'starting' },
+  { artboard: 'C3', designFile: 'Splash.dc.html', step: 'opening' },
+];
+
+/**
+ * The splash's own file at a step, as the launcher addresses it: Gaia's address and the theme in the query, the step in the fragment. A
+ * browser opens it at C3's size; the splash is a file page and is shown as it is, never rebuilt.
+ */
+export function splashScreenAddressOf(screen: SplashScreen, theme: ScreenTheme): string {
+  const splashAddress = pathToFileURL(SPLASH_PAGE_PATH);
+  splashAddress.search = new URLSearchParams({ address: SPLASH_SERVER_ADDRESS, theme }).toString();
+  splashAddress.hash = new URLSearchParams({ step: screen.step }).toString();
+  return splashAddress.href;
 }
