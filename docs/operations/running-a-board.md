@@ -440,6 +440,18 @@ Three readings trip people up.
 A Kanban card carries no pill: its colour comes from the same state. Paused, Waiting and a hold change no lane. A held
 ticket stays where its status puts it, and only the `held` mark and the fact in its panel show it.
 
+## Flint
+
+Flint is the small orange diamond with eyes that lives on the Bridge. It shows what the agents do; it never changes the
+board and sends no request. Its home is a corner at the bottom right of the page, where it sleeps. It visits the chat
+or the Agents view you last clicked or typed in, and there it plays along: in a chat it thinks, types, fastens a bolt
+for a tool call, looks doubtful at a question and is happy when the turn is done; on Agents it waves to a new agent,
+copies the work of a running one below the job column, and goes to sleep when every agent is idle.
+
+Click Flint and it plays with the pointer for a moment. Drag it onto a chat or onto Agents and it lives there; drop it
+anywhere else and it goes back. The Bridge remembers, per board, where Flint lives. Flint takes no click away from the
+page: only its own body takes the pointer.
+
 ## Daily routines
 
 A normal day is a loop: file and ready work, answer Questions, glance at notices. The other routines are occasional.
@@ -639,3 +651,6 @@ A monitor is a separate tool, such as agent-dashboard, that shows several boards
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Stop with agents running | `cli/overseer/OverseerForeground.ts` | `WatcherFleet.stopLiveProcessWatchers` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |
+| Flint's host | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |
+| Chat cues | `bridge/conversation/ChatCueOccasion.ts` | `chatCueOccasionOf` | `bridge/conversation/ChatCueOccasion.spec.ts` |
+| Agents cues | `bridge/views/agents/AgentPanelSpriteModel.ts` | `AgentPanelSpriteModel` | `bridge/views/agents/AgentPanelSpriteModel.spec.ts` |

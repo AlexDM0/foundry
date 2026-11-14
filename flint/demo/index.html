@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flint demo</title>
+<style>
+:root{--ground:#f6f6f6;--card:#fefefe;--ink:#181818;--muted:#6b6b6b;--line:#d9d9d9;--floor:#c9c9c9;--card-edge:#cfcfcf;--card-text:#e6e6e6;--card-title:#d9d9d9;--accent:#fa5f01}
+:root[data-ground="dark"]{--ground:#141414;--card:#1e1e1e;--ink:#ececec;--muted:#a0a0a0;--line:#3a3a3a;--floor:#4a4a4a;--card-edge:#4a4a4a;--card-text:#333;--card-title:#3d3d3d}
+body{margin:0;padding:24px 16px;background:var(--ground);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:680px;margin:0 auto}
+h1{font-size:18px;margin:0 0 12px}
+.stage{position:relative;width:680px;max-width:100%;height:260px;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;outline-offset:2px}
+.floor{position:absolute;left:20px;top:220px;width:640px;height:2px;background:var(--floor)}
+.home{position:absolute;left:20px;top:0;width:640px;height:220px}
+.card{position:absolute;left:60px;top:110px;width:120px;height:110px;box-sizing:border-box;background:var(--card);border:1px solid var(--card-edge);border-radius:4px}
+.card span{position:absolute;left:12px;height:4px;border-radius:2px;background:var(--card-text)}
+.card .title{top:14px;width:56px;height:6px;background:var(--card-title)}
+.card .button{left:12px;top:80px;width:34px;height:14px;border-radius:3px;background:var(--accent)}
+.floating-target{position:absolute;left:474px;top:94px;width:12px;height:12px;background:var(--accent)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.controls strong{font-weight:600;color:var(--muted);min-width:64px}
+button{font:inherit;padding:6px 12px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;cursor:pointer}
+button:hover{border-color:#a8a8a8}
+label{display:inline-flex;gap:4px;align-items:center}
+p{color:var(--muted);font-size:13px;margin:12px 0 0}
+#readout{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<h1>Flint</h1>
+<div id="stage" class="stage" tabindex="0" role="application" aria-label="Flint demo stage. Arrow keys move, space jumps, P points, T and R cycle typing and reviewing, G grabs, F fastens, S sleeps, M merges, E researches, K makes a ticket, H waves, O pops in, 1 to 8 show emotes, Escape rests.">
+<div class="floor"></div>
+<div id="home" class="home"></div>
+<div id="card" class="card"><span class="title"></span><span style="top:30px;width:94px"></span><span style="top:40px;width:80px"></span><span style="top:50px;width:88px"></span><span class="button"></span></div>
+<div id="floating-target" class="floating-target"></div>
+</div>
+<div class="controls">
+<strong>Move</strong>
+<button data-held-walk="walk-left" aria-label="Walk left">←</button>
+<button data-held-walk="walk-right" aria-label="Walk right">→</button>
+<button data-steering="jump">Jump</button>
+<button data-steering="face-left">Face left</button>
+<button data-steering="face-right">Face right</button>
+<button data-steering="rest">Idle</button>
+</div>
+<div class="controls">
+<strong>Work</strong>
+<button data-intent="type">Type</button>
+<button data-intent="type-busy">Type busily</button>
+<button data-intent="type-angry">Type angrily</button>
+<button data-intent="review">Review</button>
+<button data-intent="review-busy">Review busily</button>
+<button data-intent="review-angry">Review angrily</button>
+<button data-intent="research">Research</button>
+<button data-intent="make-ticket">Make ticket</button>
+<button data-intent="merge">Merge</button>
+<button data-intent="fasten">Fasten</button>
+<button data-intent="point">Point</button>
+<button data-intent="grab">Grab</button>
+</div>
+<div class="controls">
+<strong>Social</strong>
+<button data-intent="wave">Wave</button>
+<button data-intent="visit">Pop in</button>
+<button data-intent="sleep">Sleep</button>
+</div>
+<div class="controls">
+<strong>Emotes</strong>
+<button data-intent="annoyed">1 Annoyed</button>
+<button data-intent="sweatdrop">2 Sweatdrop</button>
+<button data-intent="surprised">3 Surprised</button>
+<button data-intent="doubt">4 Doubt</button>
+<button data-intent="thinking">5 Thinking</button>
+<button data-intent="idea">6 Idea</button>
+<button data-intent="happy">7 Happy</button>
+<button data-intent="nervous">8 Nervous</button>
+</div>
+<div class="controls">
+<strong>Options</strong>
+<label><input type="radio" name="size" value="1" checked> 1 pixel for one unit</label>
+<label><input type="radio" name="size" value="0.5"> 0.5</label>
+<label><input type="checkbox" id="reduced-motion"> Reduced motion</label>
+<label><input type="radio" name="ground" value="light" checked> Light ground</label>
+<label><input type="radio" name="ground" value="dark"> Dark ground</label>
+</div>
+<p>Click Flint to play with the pointer. Drag Flint to carry it; drop it on the card, or anywhere else to see it doubt and go back. Pop in sends Flint around the corner of the card and into it; Sleep sends it home. Last: <span id="readout">nothing yet</span></p>
+</main>
+<script type="module" src="./DemoEntry.ts"></script>
+</body>
+</html>

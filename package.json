@@ -7,10 +7,12 @@
     "forge": "agent-progress.ts"
   },
   "scripts": {
-    "typecheck": "bun run --parallel typecheck:root typecheck:bridge typecheck:bridge-specs",
+    "typecheck": "bun run --parallel typecheck:root typecheck:bridge typecheck:bridge-specs typecheck:flint typecheck:flint-specs",
     "typecheck:root": "tsc -p tsconfig.json",
     "typecheck:bridge": "tsc -p bridge/tsconfig.json",
     "typecheck:bridge-specs": "tsc -p bridge/tsconfig.spec.json",
+    "typecheck:flint": "tsc -p flint/tsconfig.json",
+    "typecheck:flint-specs": "tsc -p flint/tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "setup": "bun setup.ts",

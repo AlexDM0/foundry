@@ -1,16 +1,28 @@
 /**
  * A conversation as a chat: the card around a thread and its composer, and the thread of turns a conversation view words from its model.
  * A system line sits between two rules and can reveal the text it stands for; an agent turn leads with its speaker, folds its tool calls
- * and then speaks; User's message is a bubble, dashed while it waits in a queue; a decision is placed by the caller.
+ * and then speaks; User's message is a bubble, dashed while it waits in a queue; a decision is placed by the caller. The thread is the
+ * chat habitat of Flint: it cues what its newest turn shows, and the card relays the composer's cue to it.
  */
-import { useState, type ReactNode } from 'react';
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react';
 
-import type { DisplayState }         from '../../src/lib/tracker-model/@types/Task.ts';
-import { TextButton }                from '../design-system/Button.tsx';
-import { Stamp, type StampProps }    from '../design-system/Stamp.tsx';
-import { StateDot }                  from '../design-system/StateDot.tsx';
-import { Tag, type TagProps }        from '../design-system/Tag.tsx';
-import { ToolUseFold, type ToolUse } from './ToolUseFold.tsx';
+import { useFlintHabitat }                         from '../../flint/react/UseFlintHabitat.ts';
+import type { DisplayState }                       from '../../src/lib/tracker-model/@types/Task.ts';
+import { TextButton }                              from '../design-system/Button.tsx';
+import { Stamp, type StampProps }                  from '../design-system/Stamp.tsx';
+import { StateDot }                                from '../design-system/StateDot.tsx';
+import { Tag, type TagProps }                      from '../design-system/Tag.tsx';
+import { useCueOnChange }                          from '../flint/UseCueOnChange.ts';
+import { chatCueOccasionOf }                       from './ChatCueOccasion.ts';
+import { ChatCueRelayContext, createChatCueRelay } from './ChatCueRelay.ts';
+import { CHAT_SPRITE_HABITAT }                     from './ChatSpriteHabitat.ts';
+import { ToolUseFold, type ToolUse }               from './ToolUseFold.tsx';
 
 export interface ChatCardProps {
   readonly label:    string;
@@ -19,7 +31,12 @@ export interface ChatCardProps {
 
 /** The card around a thread and its composer. */
 export function ChatCard({ label, children }: ChatCardProps) {
-  return <section className="bridge-chat" aria-label={label}>{children}</section>;
+  const [cueRelay] = useState(createChatCueRelay);
+  return (
+    <ChatCueRelayContext.Provider value={cueRelay}>
+      <section className="bridge-chat" aria-label={label} data-flint-workplace="">{children}</section>
+    </ChatCueRelayContext.Provider>
+  );
 }
 
 export interface SystemChatTurn {
@@ -127,8 +144,13 @@ function UserTurn({ turn }: { readonly turn: UserChatTurn }) {
 }
 
 export function ChatThread({ label, turns, renderDecision }: ChatThreadProps) {
+  const threadElement = useRef<HTMLOListElement>(null);
+  const sendCue = useFlintHabitat(threadElement, CHAT_SPRITE_HABITAT);
+  useCueOnChange(sendCue, chatCueOccasionOf(turns));
+  const cueRelay = useContext(ChatCueRelayContext);
+  useEffect(() => cueRelay?.connect(sendCue), [cueRelay, sendCue]);
   return (
-    <ol className="bridge-chat-thread" aria-label={label}>
+    <ol className="bridge-chat-thread" aria-label={label} ref={threadElement}>
       {turns.map((turn) => {
         switch (turn.kind) {
           case 'system':

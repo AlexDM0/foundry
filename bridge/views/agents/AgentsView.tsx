@@ -2,9 +2,14 @@
  * The Agents view: the worker list (builders and reviewers, under the project row holding the launch-slot meter and the concurrency
  * limit), then Sessions (intake and the Assistant), both ticking each second, and for the job the route names, its controls and its
  * transcript. Show diagnostics adds the same four columns to both cards. Its clock and transcript stream arrive as props, so a DOM spec
- * drives both.
+ * drives both. The view is the agent panel habitat of Flint.
  */
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 
 import type {
   ConcurrencyDocument,
@@ -21,6 +26,7 @@ import { AgentsModel }                                                   from '.
 import { JobControls }                                                   from './JobControls.tsx';
 import { SessionCard }                                                   from './SessionCard.tsx';
 import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
+import { useAgentPanelHabitat }                                          from './UseAgentPanelHabitat.ts';
 import { WorkerCard }                                                    from './WorkerCard.tsx';
 
 export interface AgentsViewProps {
@@ -57,9 +63,11 @@ export function AgentsView({
   const workerJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'workers');
   const sessionJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
+  const viewElement = useRef<HTMLDivElement>(null);
+  useAgentPanelHabitat(viewElement, jobs, selectedJobId);
 
   return (
-    <div className="agents-view">
+    <div className="agents-view" ref={viewElement}>
       <WorkerCard
         project={project}
         jobs={workerJobs}

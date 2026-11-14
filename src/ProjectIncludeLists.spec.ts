@@ -1,8 +1,9 @@
 /**
- * The `include` list of `bridge/tsconfig.json`, held against what the Bridge reaches: every file outside its folder that its shipping
- * modules import, directly or through each other, and every shipping module of the tracker model, which it compiles whole to prove the
- * package DOM-safe. The comparison is exact both ways, so a missing entry and one nothing needs both fail. The scan first proves it found
- * the project's reach, and each form is planted once in memory to prove the guard still names it.
+ * The `include` lists of `bridge/tsconfig.json` and `flint/tsconfig.json`, held against what each project reaches: every file outside its
+ * folder that its shipping modules import, directly or through each other, and every shipping module of the tracker model, which the
+ * Bridge compiles whole to prove the package DOM-safe. The Flint package is its own project: the Bridge lists the entry files it imports
+ * from it, and not what they import. The comparison is exact both ways, so a missing entry and one nothing needs both fail. The scan first
+ * proves it found each project's reach, and each form is planted once in memory to prove the guard still names it.
  */
 import { posix } from 'node:path';
 
@@ -19,15 +20,27 @@ interface IncludeListContract {
   readonly wholePackageFolders: readonly string[];
   /** The globs naming the project's own folder, one per source extension. */
   readonly ownFolderGlobs:      readonly string[];
+  /** Folders another project of their own type-checks: the list names a file imported from one, and not what that file imports. */
+  readonly ownProjectFolders:   readonly string[];
 }
 
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
+const FLINT_FOLDER = 'flint/';
 
 const BRIDGE_PROJECT: IncludeListContract = {
   configurationPath:   'bridge/tsconfig.json',
   projectFolder:       'bridge/',
   wholePackageFolders: [TRACKER_MODEL_FOLDER],
   ownFolderGlobs:      ['./**/*.ts', './**/*.tsx'],
+  ownProjectFolders:   [FLINT_FOLDER],
+};
+
+const FLINT_PROJECT: IncludeListContract = {
+  configurationPath:   'flint/tsconfig.json',
+  projectFolder:       FLINT_FOLDER,
+  wholePackageFolders: [],
+  ownFolderGlobs:      ['./**/*.ts', './**/*.tsx'],
+  ownProjectFolders:   [],
 };
 
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
@@ -48,7 +61,9 @@ function listedPathsOf(project: IncludeListContract, includeEntries: readonly st
 
 function reachedPathsOf(project: IncludeListContract, graph: ImportGraph): ReadonlySet<string> {
   const shippingModulePaths = graph.scannedPaths.filter((path) => path.startsWith(project.projectFolder) && isShippingModule(path));
-  const reachedOutside = [...reachablePathsFrom(graph, shippingModulePaths)].filter((path) => !path.startsWith(project.projectFolder));
+  const isInAnOwnProject = (path: string): boolean => project.ownProjectFolders.some((folder) => path.startsWith(folder));
+  const graphStoppingAtOwnProjects: ImportGraph = { ...graph, edges: graph.edges.filter((edge) => !isInAnOwnProject(edge.fromPath)) };
+  const reachedOutside = [...reachablePathsFrom(graphStoppingAtOwnProjects, shippingModulePaths)].filter((path) => !path.startsWith(project.projectFolder));
   const wholePackagePaths = graph.scannedPaths.filter((path) => isShippingModule(path) && project.wholePackageFolders.some((folder) => path.startsWith(folder)));
   return new Set([...reachedOutside, ...wholePackagePaths]);
 }
@@ -84,6 +99,12 @@ test('bridge/tsconfig.json lists every file the Bridge reaches and the whole tra
   expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), SCANNER.graph)).toEqual([]);
 });
 
+test('flint/tsconfig.json lists only the package\'s own folder, which reaches nothing outside it', () => {
+  const includeEntries = includeEntriesOf(FLINT_PROJECT.configurationPath);
+  expect(includeEntries).toEqual([...FLINT_PROJECT.ownFolderGlobs]);
+  expect(includeListSentencesOf(FLINT_PROJECT, includeEntries, SCANNER.graph)).toEqual([]);
+});
+
 describe('the guard still names each form, planted in memory', () => {
   test('a needed entry removed from the list', () => {
     const includeEntries = includeEntriesOf(BRIDGE_PROJECT.configurationPath).filter((entry) => entry !== '../src/lib/html-escape/HtmlEscapeUtil.ts');
@@ -115,6 +136,21 @@ describe('the guard still names each form, planted in memory', () => {
     expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), graph)).toEqual([
       'bridge/tsconfig.json does not list src/shared/PlantedDeeperValue.ts, which bridge/ reaches: add it to the include list',
       'bridge/tsconfig.json does not list src/shared/PlantedValue.ts, which bridge/ reaches: add it to the include list',
+    ]);
+  });
+
+  test('a Flint entry file a Bridge module imports, and not what that entry file imports', () => {
+    const graph = SCANNER.graphWithPlantedFiles({ 'bridge/PlantedSprite.ts': 'import { createFlint } from \'../flint/CreateFlint.ts\';\nexport const sprite = createFlint;\n' });
+    const includeEntries = includeEntriesOf(BRIDGE_PROJECT.configurationPath).filter((entry) => entry !== '../flint/CreateFlint.ts');
+    expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntries, graph)).toEqual([
+      'bridge/tsconfig.json does not list flint/CreateFlint.ts, which bridge/ reaches: add it to the include list',
+    ]);
+  });
+
+  test('a file outside the Flint package that one of its modules imports', () => {
+    const graph = SCANNER.graphWithPlantedFiles({ 'flint/PlantedPart.ts': 'import { planted } from \'../src/shared/PlantedValue.ts\';\nexport const part = planted;\n' });
+    expect(includeListSentencesOf(FLINT_PROJECT, includeEntriesOf(FLINT_PROJECT.configurationPath), graph)).toEqual([
+      'flint/tsconfig.json does not list src/shared/PlantedValue.ts, which flint/ reaches: add it to the include list',
     ]);
   });
 

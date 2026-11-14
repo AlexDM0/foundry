@@ -118,6 +118,10 @@
  *   .bridge-composer        .bridge-composer-head (To, .bridge-composer-recipient, a status tag), the .bridge-composer-input text box,
  *                           .bridge-composer-foot (.bridge-key-hint kbd hints, Send in its .bridge-control)
  *   .bridge-path            a repository path an option touches, a mono chip in the option's facts
+ * Flint (bridge/flint/), the sprite of the agents, drawn by `flint/` in its own overlay
+ *   .bridge-flint-home      Flint's home corner: a fixed box at the bottom right whose bottom edge Flint stands on; it takes no
+ *                           pointer input
+ *   [data-sprite-habitat][data-sprite-drop-target]  the habitat below a Flint that User carries, outlined as the drop target
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          .bridge-kanban-frame[data-overflow?] (its edge fades), which holds .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
@@ -2686,3 +2690,7 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   .bridge-question-panel-ask { overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
   .bridge-question-panel-reading-body { overflow: visible; }
 }
+
+/* Flint's home corner and the drop target of a carried Flint; Flint draws itself, and only its body takes pointer input. */
+.bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 56px; pointer-events: none; }
+[data-sprite-habitat][data-sprite-drop-target] { outline: 2px dashed var(--flint-body); outline-offset: 2px; }

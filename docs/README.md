@@ -54,6 +54,7 @@ If something is wrong right now, start here.
 | [Guards and testing](development/guards-and-testing.md) | Which spec holds which rule, and how is this codebase tested without ever touching live data? |
 | [The Claude Code contract](development/overseer-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? |
 | [Platform status](development/platform-status.md) | Which behaviour has never run on which OS, per port? |
+| [Flint](../flint/README.md) | How does the sprite package work, and what does a host page give it? |
 
 ## Names
 
@@ -74,3 +75,5 @@ reasons a released spelling still appears.
 | --- | --- | --- | --- |
 | Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | Component names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| Flint, the sprite | `flint/CreateFlint.ts` | `createFlint` | `flint/CreateFlint.dom.tsx` |
+| Flint in the Bridge | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |

@@ -40,6 +40,7 @@ import { BridgeApp }                                                            
 import type { BridgeClock }                                                                from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
+import { createManualFlintFrames }                                                         from '../../testing/ManualFlintFrames.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                                        from '../../testing/TimestampSlicesFixture.ts';
 import type { AgentJobDocument, JobLiveFactsDocument }                                     from './AgentJobDocument.ts';
@@ -398,6 +399,7 @@ describe('a row\'s live facts', () => {
         setDocumentTitle:  () => undefined,
         baseDocumentTitle: 'agent-progress',
       },
+      flintFrameSource: createManualFlintFrames().frameSource,
     }} />);
     const stream = (): EventStreamHandlers => {
       if (handlers === null) throw new Error('no event stream');

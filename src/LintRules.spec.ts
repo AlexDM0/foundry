@@ -31,6 +31,7 @@ const MECHANISED_RULE_IDS = [
   'id-length',
   '@typescript-eslint/no-magic-numbers',
   'react-hooks/rules-of-hooks',
+  'import/no-extraneous-dependencies',
 ];
 
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
@@ -96,6 +97,23 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'bridge/shell/Planted.ts', text: 'export const storage = window.sessionStorage;\n', ruleId: 'no-restricted-properties' },
   { path: 'bridge/shell/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
   { path: 'bridge/shell/Planted.tsx', text: 'export const scaled = (side: number): number => side * 7;\n', ruleId: '@typescript-eslint/no-magic-numbers' },
+  ...[
+    'export const now = Date.now();\n',
+    'export const now = performance.now();\n',
+    'export const now = new Date();\n',
+    'export const fill = (element: Element): void => {\n  element.innerHTML = \'<b>bold</b>\';\n};\n',
+    'export const swap = (element: Element): void => {\n  element.outerHTML = \'<b>bold</b>\';\n};\n',
+    'export const add = (element: Element): void => {\n  element.insertAdjacentHTML(\'beforeend\', \'<b>bold</b>\');\n};\n',
+    'export const answer = fetch(\'/api\');\n',
+    'export const request = new XMLHttpRequest();\n',
+    'export const socket = new WebSocket(\'ws://example.test\');\n',
+    'export const stream = new EventSource(\'/events\');\n',
+    'export const database = indexedDB;\n',
+  ].map((text) => ({ path: 'flint/Planted.ts', text, ruleId: 'no-restricted-syntax' })),
+  { path: 'flint/react/Planted.tsx', text: 'export const view = <div dangerouslySetInnerHTML={{ __html: \'<b>bold</b>\' }} />;\n', ruleId: 'no-restricted-syntax' },
+  { path: 'flint/Planted.ts', text: 'export const stored = localStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
+  { path: 'flint/react/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
+  { path: 'flint/Planted.ts', text: 'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n', ruleId: 'import/no-extraneous-dependencies' },
 ];
 
 const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
@@ -129,6 +147,12 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the Bridge\'s preference store reaching storage', 'bridge/preferences/PreferenceStore.ts', 'export const storage = (): Storage => window.localStorage;\n'],
   ['a number in a DOM spec', 'bridge/shell/Planted.dom.tsx', 'export const scaled = (side: number): number => side * 7;\n'],
   ['a component rendering a value as text', 'bridge/shell/Planted.tsx', 'export const view = (text: string) => <p className="bridge-empty">{text}</p>;\n'],
+  [
+    'a Flint spec importing a test package of the forge',
+    'flint/Planted.spec.ts',
+    'import { GlobalRegistrator } from \'@happy-dom/global-registrator\';\n\nexport const register = GlobalRegistrator;\n',
+  ],
+  ['a Flint DOM spec importing a test package of the forge', 'flint/Planted.dom.tsx', 'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n'],
 ];
 
 describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {

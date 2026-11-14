@@ -2,9 +2,10 @@
  * The box under a chat: it names its recipient, says through its status tag whether a message sends now or queues, and sends what its
  * caller makes of the text. Enter sends and Shift + Enter starts a new line; Enter and Send share one send, so both obey every rule of a
  * Bridge control. The text clears once the Overseer applied the command, unless User changed it while the command was on its way, and
- * stays on a refusal, which shows verbatim beside Send.
+ * stays on a refusal, which shows verbatim beside Send. Inside a chat card, the first letter of a text cues Flint that User types.
  */
 import {
+  useContext,
   useState,
   type ClipboardEvent,
   type KeyboardEvent,
@@ -15,6 +16,8 @@ import type { ControlCommandBody } from '../api/CommandClient.ts';
 import { Button }                  from '../design-system/Button.tsx';
 import { Tag, type TagProps }      from '../design-system/Tag.tsx';
 import { useControlCommand }       from '../shell/ControlCommandSender.ts';
+import { ChatCueRelayContext }     from './ChatCueRelay.ts';
+import { CHAT_CUES }               from './ChatSpriteHabitat.ts';
 import { JobLink }                 from './ConversationParts.tsx';
 
 export interface ComposerProps {
@@ -40,6 +43,7 @@ export function Composer({
   label, recipientLabel, recipientJobId, status, placeholder, sendLabel, commandOf, onApplied, attachments, footStart, onFilesPasted
 }: ComposerProps) {
   const [text, setText] = useState('');
+  const cueRelay = useContext(ChatCueRelayContext);
   const sender = useControlCommand(commandOf(text), {
     onApplied: (result) => {
       onApplied?.(text, result);
@@ -81,7 +85,10 @@ export function Composer({
         aria-label={label}
         placeholder={placeholder}
         value={text}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          if (text === '' && event.target.value !== '') cueRelay?.cue(CHAT_CUES.USER_IS_TYPING);
+          setText(event.target.value);
+        }}
         onKeyDown={sendOnEnter}
         onPaste={passPastedFiles}
       />

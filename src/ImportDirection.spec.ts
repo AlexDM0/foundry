@@ -1,7 +1,8 @@
 /**
- * The Imports rules of the root `CLAUDE.md`, held over every file the root, page and Bridge programs compile. Every violation list is
+ * The Imports rules of the root `CLAUDE.md`, held over every file the root, Bridge and Flint programs compile. Every violation list is
  * empty in a tree that obeys them, so the scan first proves it saw the tree (all three programs, every file placed in a layer, every
- * allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge.
+ * allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge. The Flint
+ * package imports nothing of the forge, and the Bridge reaches it only through the entry files its `package.json` exports.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -15,6 +16,7 @@ type ImportViolation =
   | 'command-set-imports-another-set'
   | 'bridge-view-imports-a-sibling-view'
   | 'bridge-design-system-reaches-outside'
+  | 'flint-reached-beside-its-entry-files'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
   | 'test-helper-imported-outside-its-allowlist'
@@ -41,6 +43,7 @@ type Layer =
   | 'repository-guard'
   | 'cli'
   | 'bridge'
+  | 'flint'
   | 'unplaced';
 
 interface Finding {
@@ -83,7 +86,9 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   'test-support':      [...SOURCE_LAYERS],
   'repository-guard':  [],
   'cli':               [...SOURCE_LAYERS, 'cli'],
-  'bridge':            [...SOURCE_LAYERS, 'bridge'],
+  'bridge':            [...SOURCE_LAYERS, 'bridge', 'flint'],
+  // Narrowed further to the package's entry files by flintEntryFinding.
+  'flint':             ['flint'],
   'unplaced':          [],
 };
 
@@ -101,6 +106,7 @@ const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
   'src/services/overseer/testing/': ['src/services/overseer/', 'cli/overseer/OverseerCommand.integration.spec.ts'],
   'cli/testing/':                   ['cli/', 'bridge/'],
   'bridge/testing/':                ['bridge/'],
+  'flint/testing/':                 ['flint/'],
 };
 
 /** One allowed import, as an exact importer and target. */
@@ -140,6 +146,8 @@ const BRIDGE_DESIGN_SYSTEM_FOLDER = 'bridge/design-system/';
 /** The one file outside its folder a design-system part may import: the display-state type its marks are coloured by. */
 const DISPLAY_STATE_TYPE_PATH = 'src/lib/tracker-model/@types/Task.ts';
 const LIB_FOLDER = 'src/lib/';
+const FLINT_FOLDER = 'flint/';
+const FLINT_PACKAGE_PATH = `${FLINT_FOLDER}package.json`;
 const LIB_DEPENDENCY_SENTENCE = /depends on ([^.]+)/i;
 const LIB_PACKAGE_REFERENCE = /`src\/lib\/([a-z-]+)`/g;
 const HEADER_COMMENT = /^\/\*\*([\s\S]*?)\*\//;
@@ -171,7 +179,7 @@ const layerOf = memoisedPerPath((path: string): Layer => {
   if (path === LAUNCHER_BINARY_PATH) return 'launcher-binary';
   if (path === SETUP_BINARY_PATH) return 'setup-binary';
   const [topFolder, layerFolder, unitFolder] = path.split('/');
-  if (topFolder === 'cli' || topFolder === 'bridge') return topFolder;
+  if (topFolder === 'cli' || topFolder === 'bridge' || topFolder === 'flint') return topFolder;
   if (topFolder !== 'src' || layerFolder === undefined) return 'unplaced';
   if (unitFolder === undefined) return isSpec(path) ? 'repository-guard' : 'unplaced';
   switch (layerFolder) {
@@ -335,13 +343,24 @@ function libFinding(edge: ImportEdge, declarations: ReadonlyMap<string, readonly
   return edgeFinding(edge, 'lib-imports-an-undeclared-package', `the header of src/lib/${fromPackage}/'s main module does not name src/lib/${targetPackage}`);
 }
 
+/** Outside its own folder, the Flint package is reached only through the files its `package.json` exports, as it will be once split off. */
+function flintEntryFinding(edge: ImportEdge, targetPath: string, flintEntryPaths: readonly string[]): Finding | null {
+  if (!isInside(targetPath, FLINT_FOLDER) || isInside(edge.fromPath, FLINT_FOLDER) || flintEntryPaths.includes(targetPath)) return null;
+  return edgeFinding(edge, 'flint-reached-beside-its-entry-files', `outside ${FLINT_FOLDER}, only its entry files are imported: ${flintEntryPaths.join(', ')}`);
+}
+
 function vendorSeamFinding(edge: ImportEdge, targetPath: string): Finding | null {
   if (targetPath !== VENDOR_ADAPTER_PATH || isInside(edge.fromPath, VENDOR_ADAPTER_PACKAGE_FOLDER)) return null;
   if (edge.fromPath === VENDOR_ADAPTER_SEAM) return null;
   return edgeFinding(edge, 'vendor-adapter-imported-outside-its-seam', `only ${VENDOR_ADAPTER_SEAM} chooses the vendor's adapter`);
 }
 
-function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, readonly string[]>, allowlists: Allowlists): readonly (Finding | null)[] {
+function edgeFindingsOf(
+  edge: ImportEdge,
+  declarations: ReadonlyMap<string, readonly string[]>,
+  allowlists: Allowlists,
+  flintEntryPaths: readonly string[],
+): readonly (Finding | null)[] {
   if (edge.form === 're-export') {
     return [edgeFinding(edge, 'barrel', 'a re-export makes one module stand for others')];
   }
@@ -361,6 +380,7 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
     bridgeDesignSystemFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
     vendorSeamFinding(edge, targetPath),
+    flintEntryFinding(edge, targetPath, flintEntryPaths),
     libVerdict,
   ];
 }
@@ -426,9 +446,17 @@ function cycleFindingsOf(graph: ImportGraph): readonly Finding[] {
   }));
 }
 
+/** The repository paths of the files the package's `package.json` exports. */
+function flintEntryPathsOf(packageText: string): readonly string[] {
+  const { exports: entries = {} } = JSON.parse(packageText) as { exports?: Record<string, string> };
+  return Object.values(entries).map((entry) => `${FLINT_FOLDER}${entry.replace(/^\.\//, '')}`).sort();
+}
+
+const FLINT_ENTRY_PATHS = flintEntryPathsOf(await Bun.file(`${repositoryRootOfThisCheckout()}/${FLINT_PACKAGE_PATH}`).text());
+
 function findingsOf(graph: ImportGraph, allowlists: Allowlists): readonly Finding[] {
   const declarations = declaredLibDependenciesOf(graph);
-  const edgeFindings = graph.edges.flatMap((edge) => edgeFindingsOf(edge, declarations, allowlists)).filter((finding) => finding !== null);
+  const edgeFindings = graph.edges.flatMap((edge) => edgeFindingsOf(edge, declarations, allowlists, FLINT_ENTRY_PATHS)).filter((finding) => finding !== null);
   const indexFileFindings = graph.scannedPaths
     .filter((path) => path.split('/').at(-1) === 'index.ts')
     .map((path): Finding => ({ violation: 'barrel', sentence: `${path} is an index file, which stands for the modules beside it`, involvedPaths: [path] }));
@@ -501,7 +529,7 @@ describe('the scan itself', () => {
     expect(GRAPH.scannedPaths).toContain(WATCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(LAUNCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(SETUP_BINARY_PATH);
-    for (const topFolder of ['cli/', 'bridge/', 'src/lib/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
+    for (const topFolder of ['cli/', 'bridge/', 'flint/', 'src/lib/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
       expect(GRAPH.scannedPaths.filter((path) => isInside(path, topFolder)).length, `files under ${topFolder}`).toBeGreaterThanOrEqual(5);
       expect(repositoryEdges.filter((edge) => isInside(edge.fromPath, topFolder)).length, `imports made under ${topFolder}`).toBeGreaterThanOrEqual(5);
     }
@@ -532,6 +560,12 @@ describe('the scan itself', () => {
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
     expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'owner-only-files', 'process-identity']);
+  });
+
+  test('it reads the Flint package\'s entry files from its package.json, and each exists', () => {
+    expect(FLINT_ENTRY_PATHS).toContain('flint/CreateFlint.ts');
+    expect(FLINT_ENTRY_PATHS).toContain('flint/react/Flint.tsx');
+    expect(FLINT_ENTRY_PATHS.filter((path) => !GRAPH.scannedPaths.includes(path))).toEqual([]);
   });
 
   test('every allowlist entry and every declared lib dependency is still used, and every testing folder is listed', () => {
@@ -644,6 +678,30 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     const importingPartAndType = `${importing('./Button.tsx')}${importing('../../src/lib/tracker-model/@types/Task.ts').replaceAll('planted', 'plantedState')}`;
     expect(plantedSentencesOf({ 'bridge/design-system/Planted.tsx': importingPartAndType })).toEqual([]);
+  });
+
+  test('the Flint package importing the forge, and the forge reaching it but through an entry file of the Bridge', () => {
+    expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('../src/shared/constants/ProductNames.ts') })).toEqual([
+      'layer-imports-upward — flint/PlantedPart.ts:1 imports src/shared/constants/ProductNames.ts: flint reaches only flint, not shared',
+    ]);
+    expect(plantedSentencesOf({ 'flint/react/PlantedPart.tsx': importing('../../bridge/shell/HashRouter.ts') })).toEqual([
+      'layer-imports-upward — flint/react/PlantedPart.tsx:1 imports bridge/shell/HashRouter.ts: flint reaches only flint, not bridge',
+    ]);
+    expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('../flint/CreateFlint.ts') })).toEqual([
+      'layer-imports-upward — cli/PlantedView.ts:1 imports flint/CreateFlint.ts: cli reaches only lib, shared, adapters, render-service, tracker-service, '
+        + 'lifecycle-service, control-service, overseer-service, cli, not flint',
+    ]);
+    const entryFilesReason = `outside flint/, only its entry files are imported: ${FLINT_ENTRY_PATHS.join(', ')}`;
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importing('../../flint/SpritePose.ts') })).toEqual([
+      `flint-reached-beside-its-entry-files — bridge/shell/PlantedSprite.tsx:1 imports flint/SpritePose.ts: ${entryFilesReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.dom.tsx': importing('../../flint/testing/ManualFrameSource.ts') })).toEqual([
+      `flint-reached-beside-its-entry-files — bridge/shell/PlantedSprite.dom.tsx:1 imports flint/testing/ManualFrameSource.ts: ${entryFilesReason}`,
+      'test-helper-imported-outside-its-allowlist — bridge/shell/PlantedSprite.dom.tsx:1 imports flint/testing/ManualFrameSource.ts: '
+        + 'flint/testing/ is test-only and may be imported by only the specs of flint/',
+    ]);
+    const importingEntries = `${importing('../../flint/CreateFlint.ts')}${importing('../../flint/react/UseFlintHabitat.ts').replaceAll('planted', 'plantedHook')}`;
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importingEntries })).toEqual([]);
   });
 
   test('the binary importing anything but cli/', () => {
@@ -792,6 +850,10 @@ describe('the imports of the tree', () => {
 
   test('no bridge/views/ view folder imports a sibling view\'s folder', () => {
     expect(sentencesAbout(FINDINGS, 'bridge-view-imports-a-sibling-view')).toEqual([]);
+  });
+
+  test('outside flint/, only the entry files of the Flint package are imported', () => {
+    expect(sentencesAbout(FINDINGS, 'flint-reached-beside-its-entry-files')).toEqual([]);
   });
 
   test('no bridge/design-system/ file imports outside itself but the display-state type', () => {

@@ -34,6 +34,7 @@ import type { EventStreamHandlers }                                from '../api/
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
+import { createManualFlintFrames }                                 from '../testing/ManualFlintFrames.ts';
 import { DARK_MODE_QUESTION }                                      from '../testing/QuestionPanelFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
 import { ESCALATED_DECISION, WAITING_TICKETS, waitingOnUserBoard } from '../testing/WaitingOnUserFixture.ts';
@@ -101,6 +102,7 @@ function fakeBridge(): FakeBridge {
         setDocumentTitle:  () => undefined,
         baseDocumentTitle: 'agent-progress',
       },
+      flintFrameSource: createManualFlintFrames().frameSource,
     },
     storage,
     stream: () => {

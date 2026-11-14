@@ -82,6 +82,39 @@
   --epic-4-fill: oklch(0.48 0.08 180); --epic-4-tint: oklch(0.955 0.025 180); --epic-4-ink: oklch(0.38 0.07 180);
   --epic-5-fill: oklch(0.52 0.16 280); --epic-5-tint: oklch(0.955 0.030 280); --epic-5-ink: oklch(0.44 0.15 280);
   --epic-6-fill: oklch(0.56 0.17 325); --epic-6-tint: oklch(0.955 0.030 325); --epic-6-ink: oklch(0.45 0.15 325);
+
+  /* Flint (`flint/`), the sprite of the agents: the Bridge's values for its colour properties. The dark theme keeps the same values, so
+     the dark block sets none. */
+  --flint-body:                 #fa5f01;
+  --flint-eye:                  #181818;
+  --flint-hand:                 #e24f00;
+  --flint-glow:                 #ffc9a3;
+  --flint-ember-light:          #ffb27a;
+  --flint-ember-dark:           #c43300;
+  --flint-alarm:                #b7014d;
+  --flint-water:                #8cc7d0;
+  --flint-water-light:          #e4f2f5;
+  --flint-done:                 #3d9c5e;
+  --flint-paper:                #fefefe;
+  --flint-paper-edge:           #8a8a8a;
+  --flint-paper-text:           #b5b5b5;
+  --flint-graphite:             #454545;
+  --flint-paper-stacked:        #f3f3f3;
+  --flint-paper-fold:           #d9d9d9;
+  --flint-lens:                 #eef6f8;
+  --flint-keyboard:             #e6e6e6;
+  --flint-bolt:                 #a8a8a8;
+  --flint-thinking:             #8a8a8a;
+  --flint-bulb-glass-light:     #ffedb8;
+  --flint-bulb-glass-middle:    #ffe191;
+  --flint-bulb-glass-deep:      #ffd475;
+  --flint-bulb-outline:         #f5b650;
+  --flint-bulb-rays:            #ffd475;
+  --flint-bulb-fitting-dark:    #6e6e6e;
+  --flint-bulb-fitting-shine:   #dcdcdc;
+  --flint-bulb-fitting-middle:  #9a9a9a;
+  --flint-bulb-fitting-shadow:  #5c5c5c;
+  --flint-bulb-contact:         #5c5c5c;
 }
 
 /* Outline is left out on purpose: a focus ring appears and leaves at once. */

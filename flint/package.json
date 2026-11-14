@@ -1,0 +1,21 @@
+{
+  "name": "flint",
+  "version": "0.1.0",
+  "description": "Flint, the orange diamond that personifies a host's agents: an SVG sprite with a mind, for any page",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./CreateFlint.ts",
+    "./SpriteHabitat": "./SpriteHabitat.ts",
+    "./react": "./react/Flint.tsx",
+    "./react/UseFlintHabitat": "./react/UseFlintHabitat.ts"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

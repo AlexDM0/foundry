@@ -48,6 +48,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 
 ```
 src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → overseer)  →  features (cli/, bridge/)
+flint/  →  bridge/ (only through the entry files of flint/package.json)
 ```
 
 - `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, feature and sibling-command isolation, the bin
@@ -57,6 +58,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
+- `flint/` imports no file of the forge. The Bridge imports only the files that `flint/package.json` exports.
+  `src/ImportDirection.spec.ts` holds this (see The flint/ package).
 
 ### Values and wording
 
@@ -229,10 +232,11 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
   answer without this action, write the answer from the documentation of that system and name the source in a
   comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts the default browser opener.
-- `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a component spec is a
-  `<Component>.dom.tsx` under `bridge/` alone, and no spec or test helper creates the real process context.
-- `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` with the skip report and the
-  happy-dom preload, `bun run verify` runs it after `bun test`, and it fails when it finds none.
+- `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a DOM spec is a
+  `<Module>.dom.tsx` under `bridge/` or `flint/` alone, and no spec or test helper creates the real process context.
+- `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` of `bridge/` and `flint/` with
+  the skip report and the happy-dom preload, `bun run verify` runs it after `bun test`, and it fails when it finds none
+  in either folder.
 
 ### Documentation and commits
 
@@ -253,7 +257,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM, `flint/demo/DemoEntry.ts` starts the demo page. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
 | Only `src/shared/Environment.ts` reads the environment. | `watcher.ts` reads `SystemRoot` and gives it to `runWatcher`, with a reader of any other variable, for the variables that a launch copies. | The Watcher bundle cannot reach `src/shared/`. |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/overseer/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
@@ -275,6 +279,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 | Code starts beside its only consumer. | `bridge/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. | The owner ordered the design system first, so the views share one set of parts. |
+| Code starts beside its only consumer. | `flint/` is a package at the root of the repository, not a folder of the Bridge. | The owner decided that Flint is a portable package. Gaia uses it after the package goes to its own repository. |
+| A clock decides nothing. | Flint makes decisions from the elapsed time of its frame source: it falls asleep after a quiet time, it stops cursor play after some seconds with no pointer movement, and it stops the brain after the maximum time that the host gives to `startBrain`. | These times are animation times. The frame source gives them, and a spec gives its own frame source. Flint reads no clock. |
+| `bridge/styles/tokens.css` holds every colour. | `flint/constants/Palette.ts` holds the default colour of each `--flint-*` custom property. The Bridge sets the `--flint-*` properties from its tokens in `bridge/styles/tokens.css`, with the same values in the light and the dark theme. | Flint is a portable package. It must show its colours on a page that sets no property. |
 
 ## Local rules
 
@@ -361,6 +368,40 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `<STORAGE_PREFIX>:<trackerId>` and the theme under `<STORAGE_PREFIX>:theme`.
 - `bridge/HeadlessBridge.integration.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a
   console error, an exception or a failed request; it skips through `src/testing/ToolGuard.ts` without Chrome.
+
+### The flint/ package
+
+- `flint/` is Flint, the sprite of the forge agents, as a portable package. It has its own `package.json`,
+  `tsconfig.json`, `tsconfig.spec.json` and `README.md`. The folder can go to its own repository with no change to a
+  source file.
+- No file in `flint/` imports a file outside `flint/`. A file that ships does not import a `bun:` module or a `node:`
+  module. Only `flint/react/` imports React. `flint/PackageIsolation.spec.ts` holds this.
+- `bun run typecheck` checks `flint/tsconfig.json` and `flint/tsconfig.spec.json`. The project uses only the DOM
+  library and no Bun or Node types. `src/ProjectIncludeLists.spec.ts` holds that its `include` list names only its own
+  folder.
+- Flint makes no network call, calls no model, and reads no clock and no browser storage. The time comes from a frame
+  source that the host can replace. The host gives a storage port. `eslint.config.js` holds the clock, the markup, the
+  network and the storage in `flint/`.
+- Flint adds no global CSS. The renderer makes each element with `createElementNS` and sets only attributes. Each
+  colour is a `--flint-*` custom property with its default.
+- There is one Flint on a document. A second `createFlint` on the same document is refused.
+- Flint knows no component of the host. It knows only the cue names that the host sends and its own list of intents.
+  The host gives the home element, the habitats and the policy that selects the habitat to visit.
+- A behaviour, a gesture, an emote and sleep each give only a part of the target pose. `flint/PoseComposition.ts` puts
+  the parts together in one order: behaviour, gesture, emote, sleep, reduced motion. Only `flint/PoseEasing.ts` eases.
+  The renderer knows nothing about behaviour.
+- The mind and the pose are pure, with plain `.spec.ts` specs. The renderer and `createFlint` have `.dom.tsx` specs. A
+  spec gives a manual frame source (`flint/testing/ManualFrameSource.ts`) and never waits for real time.
+- Each value of the design handoff is a named constant in `flint/constants/`, with its unit in its name.
+- `flint/demo/index.html` shows each animation of the design handoff through `createFlint`, `perform` and `steer`. The
+  command in `flint/README.md` builds it into one file in `flint/demo/build/`. Git ignores this folder.
+- `bridge/flint/` is the host of Flint in the Bridge. `bridge/flint/BridgeFlint.tsx` gives the home corner at the
+  bottom right, the storage port on `bridge/preferences/PreferenceStore.ts` for each board, and the visit target. The
+  visit target is the habitat that User last focused or clicked. An element with `data-flint-workplace` around a
+  habitat, such as the chat card, counts as part of that habitat.
+- The habitats of the Bridge are the chat thread (`bridge/conversation/ChatThread.tsx`) and the Agents view
+  (`bridge/views/agents/`). A habitat makes its cues from the data that its component gets. It never reads text from
+  the page and never calls a model. `bridge/flint/BridgeFlint.dom.tsx` holds the host.
 
 ### Skills
 

@@ -2,7 +2,8 @@
  * The Bridge's shell: it follows the Overseer's event stream into one state, routes the hash to a tab, wires the embedded channel, and says
  * whether controls may act. After the stream comes back it asks `/api/identity` again and reloads when the Overseer runs new code, since
  * the bundle it holds may no longer match the API. A refused session code, or a session the Overseer no longer knows, raises the session
- * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it.
+ * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it. Flint,
+ * the sprite of the agents, lives over the whole page, its habitat stored with the board's preferences.
  */
 import {
   useCallback,
@@ -22,6 +23,7 @@ import type { PictureUploadClient }                                             
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
+import { BridgeFlint, type FlintFrameSource }                                            from '../flint/BridgeFlint.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
@@ -90,6 +92,8 @@ export interface BridgeServices {
   readonly now:                  () => Date;
   readonly followTranscript:     TranscriptFollower;
   readonly questionNotifier:     QuestionNotifier;
+  /** The frames Flint moves on; the default is the browser's animation frames. */
+  readonly flintFrameSource?:    FlintFrameSource;
 }
 
 export interface BridgeAppProps {
@@ -385,98 +389,100 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   return (
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <QuestionPanelOpenerContext.Provider value={questionPanel.open}>
-        <div className="bridge-shell">
-          <ConnectionBanners
-            streamIsDown={streamIsDown}
-            boardShownAsOf={boardShownAsOf}
-            installHeldRefusal={installIsHeld ? installRefusal : undefined}
-            sessionLoss={sessionLoss}
-            warnings={headerModel.warnings}
-            notices={headerModel.notices}
-          />
-          {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
-          <Header
-            project={boardState?.project ?? identity?.project ?? ''}
-            model={headerModel}
-            selectedTab={route.tab}
-            shownTabs={shownTabs}
-            themeChoice={themeChoice}
-            onThemeChoice={chooseTheme}
-            activityIsLive={connection === 'live'}
-            clock={bridgeClock}
-            tabBarEnd={filter}
-            onShowLane={showLane}
-            waitingOnUser={waitingOnUser}
-            tabCounts={tabCounts}
-            questionNotifier={services.questionNotifier}
-            timestampSlices={boardState?.page?.payload.limits ?? null}
-          />
-          <main
-            className="bridge-panel"
-            data-tab={route.tab}
-            data-entering={enteringTab === route.tab ? '' : undefined}
-            onAnimationEnd={(event) => {
-              if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
-            }}
-          >
-            {boardState === null && sessionLoss === null
-              ? <EmptyState text="Waiting for the Overseer's first board." />
-              : null}
-            {boardState !== null && route.tab === 'agents'
-              ? (
-                <AgentsView
-                  project={boardState.project}
-                  jobs={boardState.jobs}
-                  decisions={boardState.decisions}
-                  incidents={boardState.incidents}
-                  launchSlots={boardState.launchSlots ?? null}
-                  concurrency={boardState.concurrency ?? null}
-                  tickets={boardState.page?.tickets ?? []}
-                  selectedJobId={route.item}
-                  clock={bridgeClock}
-                  timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
-                />
-              )
-              : null}
-            {conversationBoard !== null && route.tab === 'questions'
-              ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
-              : null}
-            {conversationBoard !== null && route.tab === 'assistant'
-              ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
-              : null}
-            {conversationBoard !== null && route.tab === 'intake'
-              ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
-              : null}
-            <BridgeClockContext.Provider value={bridgeClock}>
-              <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
-                <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>
-                  {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
-                </QuestionPanelShownContext.Provider>
-              </FinishedWorkWindowContext.Provider>
-            </BridgeClockContext.Provider>
-            {boardState !== null && !boardViewIsShown
-              ? <BoardCounts boardState={boardState} tab={route.tab} />
-              : null}
-          </main>
-          {boardState === null
-            ? null
-            : (
+        <BridgeFlint boardStore={boardStore} {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}>
+          <div className="bridge-shell">
+            <ConnectionBanners
+              streamIsDown={streamIsDown}
+              boardShownAsOf={boardShownAsOf}
+              installHeldRefusal={installIsHeld ? installRefusal : undefined}
+              sessionLoss={sessionLoss}
+              warnings={headerModel.warnings}
+              notices={headerModel.notices}
+            />
+            {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
+            <Header
+              project={boardState?.project ?? identity?.project ?? ''}
+              model={headerModel}
+              selectedTab={route.tab}
+              shownTabs={shownTabs}
+              themeChoice={themeChoice}
+              onThemeChoice={chooseTheme}
+              activityIsLive={connection === 'live'}
+              clock={bridgeClock}
+              tabBarEnd={filter}
+              onShowLane={showLane}
+              waitingOnUser={waitingOnUser}
+              tabCounts={tabCounts}
+              questionNotifier={services.questionNotifier}
+              timestampSlices={boardState?.page?.payload.limits ?? null}
+            />
+            <main
+              className="bridge-panel"
+              data-tab={route.tab}
+              data-entering={enteringTab === route.tab ? '' : undefined}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
+              }}
+            >
+              {boardState === null && sessionLoss === null
+                ? <EmptyState text="Waiting for the Overseer's first board." />
+                : null}
+              {boardState !== null && route.tab === 'agents'
+                ? (
+                  <AgentsView
+                    project={boardState.project}
+                    jobs={boardState.jobs}
+                    decisions={boardState.decisions}
+                    incidents={boardState.incidents}
+                    launchSlots={boardState.launchSlots ?? null}
+                    concurrency={boardState.concurrency ?? null}
+                    tickets={boardState.page?.tickets ?? []}
+                    selectedJobId={route.item}
+                    clock={bridgeClock}
+                    timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
+                  />
+                )
+                : null}
+              {conversationBoard !== null && route.tab === 'questions'
+                ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
+                : null}
+              {conversationBoard !== null && route.tab === 'assistant'
+                ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
+                : null}
+              {conversationBoard !== null && route.tab === 'intake'
+                ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
+                : null}
               <BridgeClockContext.Provider value={bridgeClock}>
-                <QuestionPanel
-                  board={boardState as unknown as QuestionPanelBoard}
-                  queue={questionQueue}
-                  shownDecision={questionPanel.shownDecision}
-                  isHiddenBehindDetail={openDetail !== null}
-                  format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(boardState) }}
-                  followTranscript={services.followTranscript}
-                  onFold={questionPanel.fold}
-                  onClose={questionPanel.close}
-                  onNext={questionPanel.showNext}
-                  focusesCloseOnOpen={() => questionPanel.openedByUser}
-                />
+                <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
+                  <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>
+                    {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
+                  </QuestionPanelShownContext.Provider>
+                </FinishedWorkWindowContext.Provider>
               </BridgeClockContext.Provider>
-            )}
-        </div>
+              {boardState !== null && !boardViewIsShown
+                ? <BoardCounts boardState={boardState} tab={route.tab} />
+                : null}
+            </main>
+            {boardState === null
+              ? null
+              : (
+                <BridgeClockContext.Provider value={bridgeClock}>
+                  <QuestionPanel
+                    board={boardState as unknown as QuestionPanelBoard}
+                    queue={questionQueue}
+                    shownDecision={questionPanel.shownDecision}
+                    isHiddenBehindDetail={openDetail !== null}
+                    format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(boardState) }}
+                    followTranscript={services.followTranscript}
+                    onFold={questionPanel.fold}
+                    onClose={questionPanel.close}
+                    onNext={questionPanel.showNext}
+                    focusesCloseOnOpen={() => questionPanel.openedByUser}
+                  />
+                </BridgeClockContext.Provider>
+              )}
+          </div>
+        </BridgeFlint>
       </QuestionPanelOpenerContext.Provider>
     </ControlSurroundingsContext.Provider>
   );

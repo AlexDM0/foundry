@@ -6,10 +6,11 @@
 
 ## In one screen
 
-Two items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
+Three items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
-[Board](glossary.md#board), which wait for the next change that touches them; and two steps of an
-[incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own.
+[Board](glossary.md#board), which wait for the next change that touches them; two steps of an
+[incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own; and
+two parts of Flint, the sprite of the agents, that wait for the owner's design.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -36,6 +37,16 @@ steps the board designs drew have no record to read, so the trail leaves them ou
 | --- | --- | --- |
 | The delivery of a settled incident: delivered to the Assistant J1 in chat 14 | The open incident carries `deliveredInTurn`, but no log record notes the delivery, so it goes with the incident once settled. | A delivery record in the log, such as `incident-delivered` with the job and the chat |
 | The fresh agent a `job-fresh` default started: fresh builder J2 took #001 | `job-fresh` logs `job-stop-requested` under the old job; the new job is launched later and names no incident. | The launch of a replacing job naming the incident it answers |
+
+## Flint parts not built
+
+The build of Flint (`flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff. Two parts
+of the handoff are agreed and not built.
+
+| Part | Why it waits | Waits for |
+| --- | --- | --- |
+| The brain (handoff step 9): a second director on the Overseer side that answers through the event stream, its limits, and the double-click on the logo that starts it for two minutes. The package keeps `Director`, `startBrain` and `stopBrain` for it. | The owner scoped the build to steps 1 to 8. | The owner's go, the Overseer channel and a logo |
+| Look at the composer: the chat habitat's answer to "the user types", and the look after the doubt of "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint. | No intent of the fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. | A look in the playground, and a `look` intent with the element the habitat names |
 
 ## Out of the code-owned lifecycle epic
 
