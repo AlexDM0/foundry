@@ -132,15 +132,16 @@
 .gaia-brain-chip-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .gaia-brain-chip-note { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-tab); color: var(--ink-muted); white-space: nowrap; }
 .gaia-brain-chip-refusal {
-  overflow: hidden;
+  display: inline-flex;
+  gap: var(--sp-1);
   max-width: var(--brain-chip-refusal-width);
   font-size: var(--fs-tab);
   line-height: var(--line-height-tab);
   color: var(--err-ink);
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.gaia-brain-chip-refusal-code { font-family: var(--font-mono); font-weight: var(--weight-strong); }
+.gaia-brain-chip-refusal-sentence { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
+.gaia-brain-chip-refusal-code { flex: none; font-family: var(--font-mono); font-weight: var(--weight-strong); }
 
 /* Callout: the package's banner or dashed card around a title line, a sentence and a mono line */
 .gaia-callout { display: block; }

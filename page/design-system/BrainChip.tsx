@@ -1,9 +1,9 @@
 /**
  * Flint's brain in B1's bar (COMPONENT_LIBRARY 3.4, SCREENS B1), one of five states, each replacing the last: off (the Wake button),
  * starting (the starting dot and its note), running (the orange chip with the model, the effort, the countdown and the tokens, and Stop),
- * refused (the forge's refusal on one line, and Wake again) and ended (a grey diamond and the forge's sentence). It computes nothing from a
- * clock: the countdown arrives as the text to show. A control is absent where the forge takes no brain command, and disabled while its
- * command is on its way.
+ * refused (the forge's refusal on one line, its sentence cut short before its code, then Wake again) and ended (a grey diamond and the
+ * forge's sentence). It computes nothing from a clock: the countdown arrives as the text to show. A control is absent where the forge takes
+ * no brain command, and disabled while its command is on its way.
  */
 import { Button } from 'design-system/Button';
 
@@ -84,11 +84,11 @@ function BrainStateParts(props: BrainChipProps) {
       const wholeRefusal = `The forge refused: ${props.sentence} ${props.code}`;
       return (
         <>
-          <WakeButton wake={props.wake} />
           <span className="gaia-brain-chip-refusal" role="alert" title={wholeRefusal}>
-            {`The forge refused: ${props.sentence} `}
+            <span className="gaia-brain-chip-refusal-sentence">{`The forge refused: ${props.sentence}`}</span>
             <span className="gaia-brain-chip-refusal-code">{props.code}</span>
           </span>
+          <WakeButton wake={props.wake} />
         </>
       );
     }

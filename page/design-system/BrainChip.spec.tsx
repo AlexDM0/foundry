@@ -2,7 +2,8 @@
  * Flint's brain in B1's bar, in each of its five states. What matters: each state shows exactly its parts of SCREENS B1 and nothing of
  * another: off the Wake button with its diamond; starting the starting dot and its note as a status; running the orange chip with the
  * model, the effort, the countdown and the tokens it is given, the figures in mono, and Stop named "Stop Flint's brain on <forge>"; refused
- * the forge's refusal on one line, whole in its title, then Wake again; ended the grey diamond and the forge's sentence with no button.
+ * the forge's refusal on one line, its sentence apart from its code so that only the sentence is cut short, whole in its title, then Wake
+ * again; ended the grey diamond and the forge's sentence with no button.
  * A control the forge does not take is absent, and one on its way is disabled. The chip computes nothing: the countdown it shows is the
  * text it is given.
  */
@@ -81,21 +82,19 @@ describe('the brain chip', () => {
     expect(ReactElementTree.hostElementsIn(withoutStop, ReactElementTree.withClass('gaia-brain-chip'))).toHaveLength(1);
   });
 
-  test('refused: Wake again, then the forge\'s refusal on one line with its code in mono, whole in its title, as an alert', () => {
+  test('refused: the forge\'s refusal on one line, its sentence apart from its code in mono, whole in its title, as an alert, then Wake again', () => {
     const unfolded = chipOf({
       state: 'refused', sentence: 'launches are held until 16:00 (usage limit)', code: 'usage-limit-holds', wake: { onPress: () => undefined, disabled: false },
     });
     const group = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-group');
     const [first, second] = group.children;
-    expect(typeof first === 'object' ? first.tag : null).toBe('button');
-    expect(typeof second === 'object' ? second.props['className'] : null).toBe('gaia-brain-chip-refusal');
+    expect(typeof first === 'object' ? first.props['className'] : null).toBe('gaia-brain-chip-refusal');
+    expect(typeof second === 'object' ? second.tag : null).toBe('button');
     const refusal = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-refusal');
-    expect([refusal.props['role'], refusal.props['title'], ReactElementTree.textOf([refusal])]).toEqual([
-      'alert',
-      'The forge refused: launches are held until 16:00 (usage limit) usage-limit-holds',
-      'The forge refused: launches are held until 16:00 (usage limit) usage-limit-holds',
-    ]);
-    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-refusal-code')])).toBe('usage-limit-holds');
+    expect([refusal.props['role'], refusal.props['title']]).toEqual(['alert', 'The forge refused: launches are held until 16:00 (usage limit) usage-limit-holds']);
+    expect(['gaia-brain-chip-refusal-sentence', 'gaia-brain-chip-refusal-code'].map((className) => (
+      ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, className)])
+    ))).toEqual(['The forge refused: launches are held until 16:00 (usage limit)', 'usage-limit-holds']);
     expect(buttonsOf(unfolded).map((button) => ReactElementTree.textOf([button]))).toEqual(['Wake Flint\'s brain']);
   });
 
