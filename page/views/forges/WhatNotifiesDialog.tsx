@@ -20,7 +20,7 @@ export interface WhatNotifiesDialogProps {
   readonly onClose:  () => void;
 }
 
-/** C2 draws the list 536 px wide; the package's 600 px dialog leaves it 552 px inside its padding. */
+/** The package's wide dialog is the one whose list comes closest to the width C2 draws. */
 const WHAT_NOTIFIES_WIDTH: DialogWidth = 'wide';
 
 /** "5 of 7 on": the kinds checked, out of every kind the list shows. */

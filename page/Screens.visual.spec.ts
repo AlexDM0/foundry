@@ -3,10 +3,10 @@
  * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
  * and differ only in the theme the root names and the theme button shows (B1 has no theme button), so a theme is the tokens' work alone; a screen
  * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
- * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash file, opened at both its steps and drawing the
- * page's own mark. The restart an update left pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update
- * forge can leave it, under the same checks; so are the two warnings of monitor contract 2, a failed Baton pass as A1's look and an
- * Assistant that cannot come up as a notice on A4.
+ * compares nothing. C2 is its "What notifies" checklist, opened over Forges as the page opens it (the notifications wait for W5.6), and C3
+ * is the launcher's own splash file, opened at both its steps and drawing the page's own mark. The restart an update left pending, which no
+ * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
+ * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`.
