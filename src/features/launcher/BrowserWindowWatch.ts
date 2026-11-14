@@ -4,7 +4,8 @@
  * targets the browser lists, one per open window, and navigates one window to another address. A browser that does not answer is an
  * ordinary answer, never a throw.
  */
-import type { ChildChannel } from '../../lib/process-run/ProcessRun.ts';
+import { JsonValueUtil, type JsonObject } from '../../lib/json-value/JsonValueUtil.ts';
+import type { ChildChannel }              from '../../lib/process-run/ProcessRun.ts';
 
 export interface PageTarget {
   readonly targetId: string;
@@ -33,25 +34,21 @@ const MESSAGE_END = '\0';
 const PAGE_TARGET_TYPE = 'page';
 
 type ProtocolAnswer =
-  | { readonly verdict: 'answered'; readonly result: Readonly<Record<string, unknown>> }
+  | { readonly verdict: 'answered'; readonly result: JsonObject }
   | { readonly verdict: 'refused'; readonly failure: string }
   | { readonly verdict: 'unreachable' };
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 /** A listed target as Gaia reads it: a page with an address, or nothing. */
 function pageTargetOf(listed: unknown): PageTarget | null {
-  if (!isRecord(listed) || listed['type'] !== PAGE_TARGET_TYPE) return null;
+  if (!JsonValueUtil.isJsonObject(listed) || listed['type'] !== PAGE_TARGET_TYPE) return null;
   const { targetId, url } = listed;
   return typeof targetId === 'string' && typeof url === 'string' ? { targetId, url } : null;
 }
 
-function protocolAnswerOf(message: Readonly<Record<string, unknown>>): ProtocolAnswer {
+function protocolAnswerOf(message: JsonObject): ProtocolAnswer {
   const { error, result } = message;
-  if (isRecord(error)) return { verdict: 'refused', failure: typeof error['message'] === 'string' ? error['message'] : 'the browser refused the request' };
-  return isRecord(result) ? { verdict: 'answered', result } : { verdict: 'refused', failure: 'the browser answered without a result' };
+  if (JsonValueUtil.isJsonObject(error)) return { verdict: 'refused', failure: typeof error['message'] === 'string' ? error['message'] : 'the browser refused the request' };
+  return JsonValueUtil.isJsonObject(result) ? { verdict: 'answered', result } : { verdict: 'refused', failure: 'the browser answered without a result' };
 }
 
 function navigationAnswerOf(answer: ProtocolAnswer): NavigationAnswer {
@@ -68,13 +65,8 @@ export function browserWindowWatchOver(channel: ChildChannel): BrowserWindowWatc
   let channelIsClosed = false;
 
   function settleAnswerIn(messageText: string): void {
-    let message: unknown;
-    try {
-      message = JSON.parse(messageText);
-    } catch {
-      return;
-    }
-    if (!isRecord(message) || typeof message['id'] !== 'number') return;
+    const message = JsonValueUtil.parsedValueOf(messageText)?.parsed;
+    if (!JsonValueUtil.isJsonObject(message) || typeof message['id'] !== 'number') return;
     const settle = settleById.get(message['id']);
     if (settle === undefined) return;
     settleById.delete(message['id']);

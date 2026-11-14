@@ -127,4 +127,4 @@ function registeredForgesOf(entries: JsonObject): RegistryEntriesMapping {
   return { forges, leftOutEntries };
 }
 
-export const RegistryMapUtil = { registeredForgesOf, } as const;
+export const RegistryMapUtil = { registeredForgesOf } as const;
