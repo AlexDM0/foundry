@@ -390,6 +390,24 @@ describe('Flint\'s brain in the bar', () => {
     });
   });
 
+  test('a wake refused here with no sentence is worded as the forge\'s own brain refusal of that code, never as a bare refusal', () => {
+    const brain = brainOf(STOREFRONT_BRAINS.off);
+    if (brain === null) throw new Error('The forge has no brain.');
+    const refusedWithoutText = (refusal: string) => ({
+      kind:   'forge-brain-start',
+      result: {
+        verdict: 'answered',
+        answer:  {
+          answerVersion: 2, outcome: 'refused', refusal, text: null,
+        },
+      },
+    } as const);
+    const usageLimit = { state: 'refused', code: 'usage-limit-holds', sentence: 'launches are held until the usage limit resets' } as const;
+    const notServed = { state: 'refused', code: 'brain-not-served', sentence: 'Flint\'s brain did not wake' } as const;
+    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
+    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('brain-not-served'))).toEqual(notServed);
+  });
+
   test('the mark wakes the brain only where Wake shows, and its title says so or says how the brain is', () => {
     const markOf = (brain: FleetDocumentBrain | 'not-reported', control: number | null = 2) => {
       const barBrain = brainOf(brain, { contracts: { ...READINGS.exampleStorefront.contracts, control } });

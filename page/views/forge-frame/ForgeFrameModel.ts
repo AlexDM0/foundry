@@ -413,6 +413,10 @@ function barRefusalOf(trackerId: string, failure: CommandFailure | null): BarRef
  */
 function brainShownAfter(brain: BarBrain, failure: CommandFailure | null): BarBrainShown {
   if (failure === null || failure.kind !== 'forge-brain-start' || !BRAIN_WAKES_FROM.has(brain.shown.state)) return brain.shown;
+  const { result } = failure;
+  if (result.verdict === 'answered' && result.answer.refusal !== null) {
+    return { state: 'refused', code: result.answer.refusal, sentence: brainRefusalSentenceOf(result.answer.refusal, result.answer.text) };
+  }
   return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure) };
 }
 
