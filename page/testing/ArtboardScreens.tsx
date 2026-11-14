@@ -66,10 +66,10 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
   },
   {
     artboard:      'A2',
-    title:         'Agents',
+    title:         'Agents, a job selected',
     designFile:    'Agents.dc.html',
     fleetDocument: FLEET_FIVE_FORGES,
-    fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' }, query: '' }),
+    fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'J4' }, query: '' }),
     viewState:     'as-routed',
     onlyTheme:     null,
   },

@@ -1,15 +1,18 @@
 /**
  * What the Agents view shows of a fleet document: the page title's figures, the two filters with their counts, the rows the filters
- * leave in the document's order, and the selected agent. The selection and the filters live in the route, so both survive a new document;
- * a value the forge did not report is `null` here and a dash on screen, never zero.
+ * leave in the document's order and the same rows grouped by forge in the registry's order, and the selected agent. The selection and the
+ * filters live in the route, so both survive a new document; a value the forge did not report is `null` here and a dash on screen, never
+ * zero.
  */
 import type { SegmentOption } from 'design-system/SegmentedControl';
 import type { TagTone }       from 'design-system/Tag';
 
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { DotCondition }                                                  from '../../design-system/ConditionDot.tsx';
 import type { PageFigure }                                                    from '../../design-system/PageTitle.tsx';
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
 import { ForgeContractUtil }                                                  from '../../shared/utils/ForgeContractUtil.ts';
+import { ForgeTextUtil }                                                      from '../../shared/utils/ForgeTextUtil.ts';
 import { HashRouter, type SelectedAgent }                                     from '../../shell/HashRouter.ts';
 import { RailModel, type RailMachine }                                        from '../../shell/RailModel.ts';
 import {
@@ -30,7 +33,8 @@ export interface AgentFlag {
   readonly tone: Exclude<TagTone, 'state'>;
 }
 
-export type AgentMeterTone = 'neutral' | 'builder' | 'reviewer' | 'paused';
+/** `asks` is the orange of an agent that waits on User; `paused` the grey of one that waits on something else. */
+export type AgentMeterTone = 'neutral' | 'builder' | 'reviewer' | 'asks' | 'paused';
 
 export interface AgentCalls {
   readonly text:  string;
@@ -58,6 +62,21 @@ export interface AgentRowContent {
   readonly isSelected:    boolean;
 }
 
+/** A forge's head row over its agents: its condition, its agents against its limit, and what of it waits on User or holds its launches. */
+export interface AgentGroupContent {
+  readonly trackerId:    string;
+  readonly project:      string;
+  /** `null` for agents whose forge the document no longer holds. */
+  readonly condition:    DotCondition | null;
+  /** `4 / 5` against the forge's limit, or the count alone when it reports none. */
+  readonly agentsFigure: string;
+  readonly agentsWord:   string;
+  /** `null` when the forge reports no limit: then there is no meter, not an empty one. */
+  readonly slots:        { readonly filled: number; readonly limit: number; readonly label: string } | null;
+  readonly noteText:     string | null;
+  readonly rows:         readonly AgentRowContent[];
+}
+
 export interface AgentFact {
   readonly label: string;
   readonly value: string;
@@ -70,10 +89,16 @@ export type SelectedAgentContent =
     readonly kind:          'running';
     readonly jobId:         string;
     readonly role:          string | null;
+    readonly dotRole:       DotRole | null;
+    readonly stateText:     string;
+    readonly runningText:   string | null;
     readonly flags:         readonly AgentFlag[];
     readonly project:       string;
     readonly ticketIdsText: string | null;
     readonly ticketTitle:   string | null;
+    readonly calls:         AgentCalls | null;
+    readonly tokensText:    string;
+    readonly lastToolCall:  string | null;
     readonly facts:         readonly AgentFact[];
     readonly lastLine:      string | null;
     readonly openHref:      string;
@@ -86,6 +111,8 @@ export interface AgentsContent {
   readonly roleOptions:      readonly SegmentOption<AgentRoleFilter>[];
   readonly conditionOptions: readonly SegmentOption<AgentConditionFilter>[];
   readonly rows:             readonly AgentRowContent[];
+  /** The same rows under their forges, in the registry's order; a forge the filters leave no row of has no group. */
+  readonly groups:           readonly AgentGroupContent[];
   readonly selected:         SelectedAgentContent;
   /** This machine's agents against its limit, shown when no agent runs. */
   readonly machine:          RailMachine;
@@ -102,9 +129,10 @@ export interface AgentsModelInput {
 const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents/';
 
 const METER_TONE_OF_DOT_ROLE: Readonly<Partial<Record<DotRole, AgentMeterTone>>> = {
-  builder:  'builder',
-  reviewer: 'reviewer',
-  waiting:  'paused',
+  'builder':    'builder',
+  'reviewer':   'reviewer',
+  'needs-user': 'asks',
+  'waiting':    'paused',
 };
 
 const DOT_ROLE_OF_ROLE: Readonly<Record<string, DotRole>> = {
@@ -145,8 +173,10 @@ function flagsOf(row: FleetDocumentFleetAgentRow): AgentFlag[] {
   return flags;
 }
 
+/** An agent that asks User a question is orange, as everything that waits on User; one that waits on anything else is grey. */
 function dotRoleOf(row: FleetDocumentFleetAgentRow): DotRole | null {
-  if (row.waitingOnDecisionId !== null || AgentTextUtil.stateIsWaiting(row.state)) return 'waiting';
+  if (row.waitingOnDecisionId !== null) return 'needs-user';
+  if (AgentTextUtil.stateIsWaiting(row.state)) return 'waiting';
   if (row.role === null || !Object.hasOwn(DOT_ROLE_OF_ROLE, row.role)) return null;
   return DOT_ROLE_OF_ROLE[row.role] ?? null;
 }
@@ -167,6 +197,10 @@ function callsOf(row: FleetDocumentFleetAgentRow, dotRole: DotRole | null): Agen
 
 function ticketIdsTextOf(row: FleetDocumentFleetAgentRow): string | null {
   return row.ticketIds.length === 0 ? null : row.ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
+}
+
+function runningTextOf(row: FleetDocumentFleetAgentRow, readAtMilliseconds: number): string | null {
+  return row.startedAt === null ? null : AgentTextUtil.runningTimeText(row.startedAt, readAtMilliseconds);
 }
 
 function isTheSelectedAgent(row: FleetDocumentFleetAgentRow, selectedAgent: SelectedAgent | null): boolean {
@@ -190,7 +224,7 @@ function rowContentOf(input: AgentsModelInput, filters: AgentFilters, row: Fleet
     dotRole,
     stateText:     AgentTextUtil.stateWordOf(row.state, row.role),
     flags:         flagsOf(row),
-    runningText:   row.startedAt === null ? null : AgentTextUtil.runningTimeText(row.startedAt, readAtMilliseconds),
+    runningText:   runningTextOf(row, readAtMilliseconds),
     calls:         callsOf(row, dotRole),
     tokensText:    AgentTextUtil.groupedNumberText(row.tokens),
     lastToolCall:  row.lastToolCall,
@@ -204,13 +238,18 @@ const TURN_WORDS: Readonly<Record<NonNullable<FleetDocumentFleetAgentRow['turn']
   'mid-turn':      'Mid-turn',
 };
 
+function subagentsTextOf(runningSubagents: number | null): string | null {
+  if (runningSubagents === null) return null;
+  return runningSubagents === 0 ? 'none' : `${runningSubagents} running`;
+}
+
 function factsOf(row: FleetDocumentFleetAgentRow): AgentFact[] {
   const callsText = row.calls === null ? null : `${row.calls}${row.callBudget === null ? '' : ` of ${row.callBudget}`}`;
   const facts: readonly (readonly [label: string, value: string | null])[] = [
     ['Turn', row.turn === null ? null : TURN_WORDS[row.turn]],
     ['Calls', callsText],
     ['Tool calls', row.toolCalls === null ? null : String(row.toolCalls)],
-    ['Subagents', row.runningSubagents === null ? null : `${row.runningSubagents} running`],
+    ['Subagents', subagentsTextOf(row.runningSubagents)],
     ['Messages waiting', row.messagesWaiting === null ? null : String(row.messagesWaiting)],
   ];
   return facts.flatMap(([label, value]) => (value === null ? [] : [{ label, value }]));
@@ -222,14 +261,21 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
   const project = projectOf(fleetDocument, selectedAgent.trackerId);
   const row = jobRowsOf(fleetDocument).find((candidate) => isTheSelectedAgent(candidate, selectedAgent));
   if (row === undefined) return { kind: 'no-longer-running', jobId: selectedAgent.jobId, project };
+  const dotRole = dotRoleOf(row);
   return {
     kind:          'running',
     jobId:         row.jobId,
     role:          row.role,
+    dotRole,
+    stateText:     AgentTextUtil.stateWordOf(row.state, row.role),
+    runningText:   runningTextOf(row, input.readAtMilliseconds),
     flags:         flagsOf(row),
     project,
     ticketIdsText: ticketIdsTextOf(row),
     ticketTitle:   row.ticketTitle,
+    calls:         callsOf(row, dotRole),
+    tokensText:    AgentTextUtil.groupedNumberText(row.tokens),
+    lastToolCall:  row.lastToolCall,
     facts:         factsOf(row),
     lastLine:      row.lastLine,
     openHref:      jobHrefOf(fleetDocument, row),
@@ -250,6 +296,52 @@ function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
     { value: String(forgeCount), label: forgeCount === 1 ? 'forge' : 'forges' },
     { value: AgentTextUtil.groupedNumberText(tokens), label: tokens === 1 ? 'token in flight' : 'tokens in flight' },
   ];
+}
+
+/** What waits on User in the forge as its forge counts it, or `null` when it reports no count. */
+function waitingCountOf(forge: FleetDocumentForge): number | null {
+  return forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
+}
+
+/** A held forge says so first, as its head's note in orange; then what of it waits on User. */
+function groupNoteOf(forge: FleetDocumentForge): string | null {
+  const waitingCount = waitingCountOf(forge);
+  const parts = [
+    forge.condition === 'held' ? ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition) : null,
+    waitingCount === null || waitingCount === 0 ? null : AgentTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
+  ];
+  const shownParts = parts.filter((part) => part !== null);
+  return shownParts.length === 0 ? null : shownParts.join(' · ');
+}
+
+/** The forge's own job rows count against its limit, whatever the filters leave; a brain's row never does. */
+function groupOf(fleetDocument: FleetDocument, trackerId: string, rows: readonly AgentRowContent[]): AgentGroupContent {
+  const forge = forgeOf(fleetDocument, trackerId);
+  const agentCount = jobRowsOf(fleetDocument).filter((row) => row.trackerId === trackerId).length;
+  const limit = forge?.concurrency?.limit ?? null;
+  return {
+    trackerId,
+    project:      forge?.project ?? trackerId,
+    condition:    forge === null ? null : ForgeTextUtil.dotConditionOf(forge.condition),
+    agentsFigure: limit === null ? String(agentCount) : `${agentCount} / ${limit}`,
+    agentsWord:   limit === null && agentCount === 1 ? 'agent' : 'agents',
+    slots:        limit === null ? null : {
+      filled: agentCount,
+      limit,
+      label:  `${AgentTextUtil.countedPhrase(agentCount, 'agent', 'agents')} against a limit of ${limit}`,
+    },
+    noteText: forge === null ? null : groupNoteOf(forge),
+    rows,
+  };
+}
+
+/** The forges in the registry's order, then any forge the document no longer holds, in the order its rows come. */
+function groupsOf(fleetDocument: FleetDocument, rows: readonly { readonly trackerId: string; readonly content: AgentRowContent }[]): AgentGroupContent[] {
+  const trackerIds = [...new Set([...fleetDocument.forges.map((forge) => forge.trackerId), ...rows.map((row) => row.trackerId)])];
+  return trackerIds.flatMap((trackerId) => {
+    const groupRows = rows.filter((row) => row.trackerId === trackerId).map((row) => row.content);
+    return groupRows.length === 0 ? [] : [groupOf(fleetDocument, trackerId, groupRows)];
+  });
 }
 
 /** Each filter counts the rows it would leave beside the other filter as it stands. */
@@ -274,12 +366,16 @@ function conditionOptionsOf(fleetDocument: FleetDocument, role: AgentRoleFilter)
 function agentsContentOf(input: AgentsModelInput): AgentsContent {
   const { fleetDocument, query } = input;
   const filters = AgentsFilters.filtersOf(query);
+  const shownRows = jobRowsOf(fleetDocument)
+    .filter((row) => AgentsFilters.rowPassesFilters(row, filters))
+    .map((row) => ({ trackerId: row.trackerId, content: rowContentOf(input, filters, row) }));
   return {
     agentCount:       jobRowsOf(fleetDocument).length,
     filters,
     roleOptions:      roleOptionsOf(fleetDocument, filters.condition),
     conditionOptions: conditionOptionsOf(fleetDocument, filters.role),
-    rows:             jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesFilters(row, filters)).map((row) => rowContentOf(input, filters, row)),
+    rows:             shownRows.map((row) => row.content),
+    groups:           groupsOf(fleetDocument, shownRows),
     selected:         selectedContentOf(input),
     machine:          RailModel.machineOf(fleetDocument),
   };

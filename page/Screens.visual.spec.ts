@@ -148,13 +148,14 @@ describe('each screen shows the state its artboard draws', () => {
     }
   });
 
-  test('A2: the Agents table holds its ten agents with J12 of Invoice Service selected', () => {
+  test('A2: the Agents table holds its ten agents under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
     const markup = screenMarkupOf(screenOf('A2'), 'dark');
-    expect(markup.match(/class="gaia-table-row" role="row" data-height=/g)).toHaveLength(10);
+    expect(markup.match(/class="gaia-agents-row" role="row"(?! data-head)/g)).toHaveLength(10);
+    expect(markup.match(/class="gaia-agents-group" role="rowgroup"/g)).toHaveLength(4);
     const selectedRow = markup.slice(markup.indexOf('aria-current="true"')).split('role="row"')[0] ?? '';
-    expect(selectedRow).toContain('Invoice Service');
-    expect(selectedRow).toContain('>J12<');
-    expect(markup).toContain('Open J12 in its forge');
+    expect(selectedRow).toContain('aria-label="Example Storefront, J4"');
+    expect(selectedRow).toContain('>J4<');
+    expect(markup).toContain('Open J4 in its forge');
   });
 
   test('A3 and A4: Activity and Forges each open under their own title', () => {

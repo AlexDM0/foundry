@@ -349,7 +349,7 @@ describe('the Agents view in the shell', () => {
     expect(pageTitleIn(markup)).toBe('Agents');
     const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
     expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
-    expect(markup).toContain('<div class="gaia-table" role="table" aria-label="Agents">');
+    expect(markup).toContain('<div class="gaia-agents-table" role="table" aria-label="Agents">');
   });
 
   test('before the first document the Agents route shows its page title with no figure and no view', () => {
@@ -366,7 +366,7 @@ describe('the Agents view in the shell', () => {
     expect(renderToStaticMarkup(app)).toContain('aria-current="true"');
     source.publish({ ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, tokens: row.tokens + 1 })) });
     const next = renderToStaticMarkup(app);
-    expect(next).toMatch(/aria-current="true"><div class="gaia-table-cells"[^>]*><span class="gaia-table-cell"[^>]*><a class="gaia-agents-select"[^>]*>Invoice Service</);
+    expect(next).toMatch(/aria-current="true"><span class="gaia-agents-cell"[^>]*><span class="gaia-agents-job-cell"><a class="gaia-agents-select"[^>]*"Invoice Service, J12"/);
     expect(next).toContain('Open J12 in its forge');
     source.publish({ ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.filter((row) => !(row.trackerId === TRACKER_IDS.invoiceService && row.jobId === 'J12')) });
     const ended = renderToStaticMarkup(app);

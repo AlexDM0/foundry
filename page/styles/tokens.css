@@ -57,9 +57,19 @@
   --activity-head-height: 32px;
   --activity-row-height: 36px;
   --activity-today-value-width: 56px;
-  --agents-table-columns: 160px 44px 72px minmax(0, 1fr) 196px 72px 132px 76px 208px;
-  --agents-calls-meter-width: 64px;
-  --agents-panel-facts-width: 320px;
+  --agents-table-columns: 128px minmax(0, 1fr) 116px 124px 64px;
+  --agents-head-height:  32px;
+  --agents-group-head-height: 30px;
+  /* 56 px, not the 58 px of other lists, so that A2's eleven rows and four forge heads fit at 1016 px. */
+  --agents-row-height:   56px;
+  --agents-calls-meter-width: 60px;
+  --agents-panel-width:  404px;
+  --agents-machine-width: 320px;
+  --agents-ticket-chip-height: 24px;
+  --fs-agents-role:      10.5px;
+  --agents-role-tracking: 0.08em;
+  --fs-agents-panel-kind: 14px;
+  --line-height-agents-last-line: 18px;
   /* The artboard's 148 116 64 96 284 px tracks leave its Forge column no room at 1440 px: these fit each column's content, and the aside
      gives way, down to its least width, until a forge's name and root path fit on their lines. */
   --forges-forge-column-width:     216px;

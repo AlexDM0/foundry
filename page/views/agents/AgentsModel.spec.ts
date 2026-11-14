@@ -1,7 +1,8 @@
 /**
  * What the Agents view shows of a fleet document (SCREENS A2). What matters: the status line counts the document's job rows, forges and
  * tokens (821,300 for `fleet-five-forges`), and a running brain's row is not drawn among them; each filter's count is what pressing it
- * would leave; "Needs a look" leaves exactly the rows the forge flags; a Calls meter exists only beside a budget; a `counts-only` forge's
+ * would leave; "Needs a look" leaves exactly the rows the forge flags; the rows stand under their forges in the registry's order, each forge
+ * counting its own job rows against its limit and saying what of it waits on User; a Calls meter exists only beside a budget; a `counts-only` forge's
  * row holds `null` wherever its summary is silent; the selection, kept in the route, survives a new document and turns into "no longer
  * running" when its job ends; and every link goes where SCREENS says, keeping the filters.
  */
@@ -92,6 +93,42 @@ describe('the rows the filters leave', () => {
   });
 });
 
+describe('the forges\' groups', () => {
+  test('the rows stand under their forges in the registry\'s order, each forge with its condition, its agents against its limit and its note', () => {
+    const { groups } = contentOf(FLEET_FIVE_FORGES);
+    expect(groups.map((group) => [group.project, group.condition, group.agentsFigure, group.agentsWord, group.noteText, group.rows.map((row) => row.jobId)])).toEqual([
+      ['Example Storefront', 'live', '4 / 5', 'agents', '2 wait on you', ['J2', 'J3', 'J4', 'J6']],
+      ['Invoice Service', 'live', '3 / 5', 'agents', '2 wait on you', ['J11', 'J12', 'J14']],
+      ['Research Wiki', 'live', '1 / 3', 'agents', '1 waits on you', ['J2']],
+      ['Example Mobile App', 'held', '2 / 2', 'agents', 'Launches held', ['J5', 'J7']],
+    ]);
+    expect(groups[0]?.slots).toEqual({ filled: 4, limit: 5, label: '4 agents against a limit of 5' });
+  });
+
+  test('a running brain is in no group\'s count, and a filter hides a forge it leaves no row of but not its count', () => {
+    const { groups } = contentOf(FLEET_FIVE_FORGES, { query: 'condition=needs-a-look' });
+    expect(groups.map((group) => [group.project, group.agentsFigure, group.rows.map((row) => row.jobId)])).toEqual([
+      ['Example Storefront', '4 / 5', ['J3']],
+      ['Invoice Service', '3 / 5', ['J12']],
+    ]);
+  });
+
+  test('a forge that reports no limit counts its agents alone and has no slots, and one the document no longer holds is named by its tracker', () => {
+    const noLimit = {
+      ...FLEET_FIVE_FORGES,
+      forges: FLEET_FIVE_FORGES.forges.flatMap((forge) => {
+        if (forge.trackerId === TRACKER_IDS.invoiceService) return [];
+        return forge.trackerId === TRACKER_IDS.researchWiki ? [{ ...forge, concurrency: null }] : [forge];
+      }),
+    };
+    const { groups } = contentOf(noLimit);
+    const wiki = groups.find((group) => group.trackerId === TRACKER_IDS.researchWiki);
+    expect([wiki?.agentsFigure, wiki?.agentsWord, wiki?.slots]).toEqual(['1', 'agent', null]);
+    const gone = groups.at(-1);
+    expect([gone?.trackerId, gone?.project, gone?.condition, gone?.noteText]).toEqual([TRACKER_IDS.invoiceService, TRACKER_IDS.invoiceService, null, null]);
+  });
+});
+
 describe('one row', () => {
   const { rows } = contentOf(FLEET_FIVE_FORGES);
 
@@ -108,9 +145,15 @@ describe('one row', () => {
     });
   });
 
-  test('an agent waiting on a decision takes the waiting dot and the paused meter', () => {
+  test('an agent waiting on User\'s decision takes the orange asking dot and meter, and one waiting on anything else the grey ones', () => {
     const row = rowOf(rows, 'Example Storefront', 'J3');
-    expect([row.dotRole, row.stateText, row.calls?.meter?.tone]).toEqual(['waiting', 'Waiting', 'paused']);
+    expect([row.dotRole, row.stateText, row.calls?.meter?.tone]).toEqual(['needs-user', 'Waiting', 'asks']);
+    const waitingOnNothingOfUser = {
+      ...FLEET_FIVE_FORGES,
+      agents: FLEET_FIVE_FORGES.agents.map((agent) => (agent.jobId === 'J3' ? { ...agent, waitingOnDecisionId: null } : agent)),
+    };
+    const waiting = rowOf(contentOf(waitingOnNothingOfUser).rows, 'Example Storefront', 'J3');
+    expect([waiting.dotRole, waiting.stateText, waiting.calls?.meter?.tone]).toEqual(['waiting', 'Waiting', 'paused']);
   });
 
   test('the Calls meter is absent, not empty, when the forge reports no call budget', () => {
@@ -168,11 +211,22 @@ describe('the selected agent', () => {
       kind:          'running',
       jobId:         'J12',
       role:          'builder',
+      dotRole:       'builder',
+      stateText:     'Building',
+      runningText:   '34m 02s',
       flags:         [{ text: 'quiet · 4 sweeps', tone: 'neutral' }],
       project:       'Invoice Service',
       ticketIdsText: '#034',
       ticketTitle:   'Credit note numbering',
-      facts:         [
+      calls:         {
+        text:  '58 / 120',
+        meter: {
+          used: 58, whole: 120, label: '58 of 120 calls', tone: 'builder'
+        }
+      },
+      tokensText:   '122,300',
+      lastToolCall: 'Bash bun test ./src/features/credit-notes',
+      facts:        [
         { label: 'Turn', value: 'Mid-turn' },
         { label: 'Calls', value: '58 of 120' },
         { label: 'Tool calls', value: '143' },
@@ -216,6 +270,11 @@ describe('the selected agent', () => {
     expect(content.selected.kind).toBe('running');
   });
 
+  test('an agent that runs no subagent says none, in words', () => {
+    const content = contentOf(FLEET_FIVE_FORGES, { selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'J4' } });
+    expect(content.selected.kind === 'running' ? content.selected.facts.find((fact) => fact.label === 'Subagents') : null).toEqual({ label: 'Subagents', value: 'none' });
+  });
+
   test('a counts-only agent\'s panel lists only the facts its summary holds', () => {
     const content = contentOf(FLEET_DEGRADED, { selectedAgent: { trackerId: TRACKER_IDS.researchWiki, jobId: 'J2' } });
     expect(content.selected.kind === 'running' ? [content.selected.facts, content.selected.lastLine] : null).toEqual([[], null]);
@@ -226,7 +285,7 @@ describe('no agent', () => {
   test('with fleet-empty there is no row, the figures count none, and the machine shows its agents with no limit known', () => {
     const content = contentOf(FLEET_EMPTY);
     expect(titleFiguresTextOf(FLEET_EMPTY)).toEqual(['0 agents', '0 forges', '0 tokens in flight']);
-    expect([content.agentCount, content.rows]).toEqual([0, []]);
+    expect([content.agentCount, content.rows, content.groups]).toEqual([0, [], []]);
     expect(content.machine).toEqual({
       agentsText:     '0',
       meter:          { filled: 0, slots: 12, label: '0 agents, no limit known' },

@@ -541,95 +541,180 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 /* ── Agents ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
+/* The table and its filters on the left, the selected agent's panel beside them at its full height */
 .gaia-agents {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--space-20);
   box-sizing: border-box;
   min-height: 100%;
-  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+  padding: var(--space-14) var(--sp-5) var(--space-20) var(--space-28);
 }
-.gaia-agents-filters { display: flex; align-items: center; gap: var(--sp-4); }
-.gaia-agents-order { flex: 1; text-align: end; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-agents[data-layout="empty"] { flex-direction: column; gap: var(--sp-4); }
+.gaia-agents-main { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
+.gaia-agents-filters { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-agents-order { flex: 1; text-align: end; font-size: var(--fs-small); color: var(--ink-4); }
 .gaia-agents-no-match { margin: 0; color: var(--ink-muted); }
+.gaia-agents-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 
-/* A row selects itself: the forge's link stretches over the whole row, and the job's link sits above it. */
-.gaia-agents .gaia-table-row { position: relative; transition: var(--feedback-transition); }
-.gaia-agents .gaia-table-row:not([data-head]):not([data-selected]):hover { background: var(--wash); }
-.gaia-agents-select {
+/* The table: a card of grid rows, a lane-grounded head row per forge, the selected row on the wash with an orange inset edge */
+.gaia-agents-table {
   overflow: hidden;
-  color: var(--ink);
-  font-weight: var(--weight-strong);
-  text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.gaia-agents-select::after { content: ""; position: absolute; inset: 0; }
-.gaia-agents-job {
-  position: relative;
-  z-index: 1;
-  color: var(--link);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  text-decoration: none;
-}
-.gaia-agents-job:hover { text-decoration: underline; }
-.gaia-agents-select,
-.gaia-agents-ticket,
-.gaia-agents-last-tool-call { display: block; }
-.gaia-agents-role,
-.gaia-agents-not-reported { color: var(--ink-muted); }
-.gaia-agents-ticket { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gaia-agents-ticket-ids { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
-.gaia-agents-state { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
-.gaia-agents-machine-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.gaia-agents-machine-value[data-tone="muted"] { color: var(--ink-muted); }
-.gaia-agents-calls { display: inline-flex; align-items: center; gap: var(--sp-2); }
-.gaia-agents-calls-meter { flex: none; width: var(--agents-calls-meter-width); }
-.gaia-agents-calls-text { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
-.gaia-agents-last-tool-call {
-  overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-  color: var(--ink-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Selected agent */
-.gaia-agents-panel {
-  display: flex;
-  flex: 1;
-  gap: var(--sp-5);
-  min-height: 0;
-  padding: var(--sp-4) var(--sp-5);
-  border: var(--hairline) solid var(--line);
+  border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-3);
   background: var(--surface);
 }
-.gaia-agents-panel-column { display: flex; flex-direction: column; gap: var(--sp-3); }
-.gaia-agents-panel-column[data-column="facts"] { flex: none; width: var(--agents-panel-facts-width); }
-.gaia-agents-panel-column[data-column="last-line"] { flex: 1; gap: var(--sp-2); min-width: 0; }
-.gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-title); font-weight: var(--weight-strong); }
-.gaia-agents-panel-job { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.gaia-agents-panel-subject { color: var(--ink-muted); }
-.gaia-agents-panel-actions { display: flex; gap: var(--sp-2); margin-top: auto; }
-.gaia-agents-panel-last-line {
-  flex: 1;
-  min-height: 0;
+.gaia-agents-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--agents-table-columns);
+  align-items: center;
+  column-gap: var(--sp-3);
+  box-sizing: border-box;
+  min-height: var(--agents-row-height);
+  padding: 0 var(--space-18);
+  border-top: var(--hairline) solid var(--line);
+  transition: var(--feedback-transition);
+}
+.gaia-agents-row[data-head] {
+  min-height: var(--agents-head-height);
+  border-top: 0;
+  font-size: var(--fs-micro);
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--letter-spacing-micro);
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.gaia-agents-row:not([data-head]):not([data-selected]):hover { background: var(--wash); }
+.gaia-agents-row[data-selected] { background: var(--wash); box-shadow: inset var(--selected-edge-width) 0 0 var(--signal); }
+.gaia-agents-cell { min-width: 0; }
+.gaia-agents-cell[data-align="end"] { text-align: end; }
+.gaia-agents-group { display: block; }
+.gaia-agents-group-head { border-top: var(--hairline) solid var(--line); background: var(--lane-bg); }
+.gaia-agents-group-head-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  box-sizing: border-box;
+  min-height: var(--agents-group-head-height);
+  padding: 0 var(--space-18);
+}
+.gaia-agents-group-name { font-weight: var(--weight-strong); }
+.gaia-agents-group-agents { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.gaia-agents-group-figure { font-family: var(--font-mono); font-size: var(--fs-tab); font-variant-numeric: tabular-nums; font-weight: var(--weight-strong); }
+.gaia-agents-group-word { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-agents-group-note { margin-left: auto; font-size: var(--fs-small); font-weight: var(--weight-strong); color: var(--link); }
+
+/* A row selects itself: the select link lies over the whole row, and the job's link sits above it. */
+.gaia-agents-select { position: absolute; inset: 0; }
+.gaia-agents-job-cell { display: flex; align-items: center; gap: var(--space-9); min-width: 0; }
+.gaia-agents-no-dot { flex: none; width: var(--condition-dot-size); }
+.gaia-agents-job-lines { display: flex; flex-direction: column; min-width: 0; }
+.gaia-agents-job {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-tab);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-strong);
+  text-decoration: none;
+}
+.gaia-agents-job:hover { color: var(--link); }
+.gaia-agents-job-line { display: flex; align-items: baseline; gap: var(--space-6); white-space: nowrap; }
+.gaia-agents-role {
+  font-family: var(--font-mono);
+  font-size: var(--fs-agents-role);
+  font-weight: var(--weight-brand);
+  letter-spacing: var(--agents-role-tracking);
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.gaia-agents-role[data-role="builder"] { color: var(--link); }
+.gaia-agents-role[data-role="reviewer"] { color: var(--badge-info-ink); }
+.gaia-agents-running,
+.gaia-agents-last-tool-call { font-family: var(--font-mono); font-size: var(--fs-pill); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+.gaia-agents-not-reported { color: var(--ink-4); }
+.gaia-agents-ticket-cell { display: flex; flex-direction: column; min-width: 0; }
+.gaia-agents-ticket,
+.gaia-agents-last-tool-call { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-agents-ticket-ids { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+.gaia-agents-state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-half); }
+.gaia-agents-calls { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.gaia-agents-calls-meter { display: flex; flex: none; width: var(--agents-calls-meter-width); }
+.gaia-agents-calls-text { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gaia-agents-tokens { font-family: var(--font-mono); font-size: var(--fs-tab); font-variant-numeric: tabular-nums; }
+
+/* Selected agent: the head, what the forge reports, the last line and the foot, one section under the other */
+.gaia-agents-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--agents-panel-width);
   overflow: hidden;
-  padding: var(--sp-3) var(--sp-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.gaia-agents-panel-section { display: flex; flex-direction: column; gap: var(--space-10); padding: var(--space-14) var(--space-18); }
+.gaia-agents-panel-section[data-section="head"] { gap: var(--sp-3); border-bottom: var(--hairline) solid var(--line); }
+.gaia-agents-panel-section[data-section="last-line"],
+.gaia-agents-panel-section[data-section="sentence"] { flex: 1; gap: var(--sp-2); min-height: 0; padding-top: var(--sp-1); }
+.gaia-agents-panel-section[data-section="sentence"] { padding-top: var(--space-14); }
+.gaia-agents-panel-section[data-section="foot"] { padding-bottom: var(--sp-4); border-top: var(--hairline) solid var(--line); }
+.gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-agents-panel-kind { font-size: var(--fs-agents-panel-kind); font-weight: var(--weight-strong); }
+.gaia-agents-panel-job { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; font-weight: var(--weight-label); }
+.gaia-agents-panel-live-dot { display: inline-flex; animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .gaia-agents-panel-live-dot { animation: none; }
+}
+.gaia-agents-panel-state { font-size: var(--fs-tab); color: var(--ink-muted); }
+.gaia-agents-panel-running { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-agents-panel-lines { display: flex; flex-direction: column; gap: var(--space-7); font-size: var(--fs-tab); }
+.gaia-agents-panel-subject { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-agents-panel-project { color: var(--ink-muted); }
+.gaia-agents-panel-ticket {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-6);
+  box-sizing: border-box;
+  max-width: 100%;
+  height: var(--agents-ticket-chip-height);
+  padding: 0 var(--sp-2);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.gaia-agents-panel-ticket:hover { border-color: var(--line-strong); }
+.gaia-agents-panel-ticket .gaia-agents-ticket-ids { font-weight: var(--weight-label); color: var(--ink-muted); }
+.gaia-agents-panel-ticket-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-agents-panel-calls { display: flex; align-items: center; color: var(--ink-muted); white-space: pre; }
+.gaia-agents-panel-calls .gaia-agents-calls { margin-right: var(--space-6); }
+.gaia-agents-panel-calls .gaia-agents-calls-text { color: var(--ink); }
+.gaia-agents-panel-tokens { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-agents-panel-last-tool { color: var(--ink-muted); }
+.gaia-agents-panel-last-tool-call { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink); }
+.gaia-agents-panel-last-line {
+  overflow: hidden;
+  padding: var(--sp-3) var(--space-14);
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-2);
   background: var(--bg);
   color: var(--ink-muted);
   font-family: var(--font-mono);
   font-size: var(--fs-small);
+  line-height: var(--line-height-agents-last-line);
   white-space: pre-wrap;
 }
 .gaia-agents-panel-last-line[data-reported="no"] { font-family: var(--font-ui); }
 .gaia-agents-panel-sentence { margin: 0; }
-.gaia-agents-panel-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-agents-panel-note { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
+.gaia-agents-panel-actions { display: flex; gap: var(--sp-2); }
 
 /* No agent runs */
 .gaia-agents-empty { display: flex; flex-direction: column; gap: var(--sp-4); }
@@ -639,13 +724,13 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   flex-direction: column;
   gap: var(--sp-2);
   box-sizing: border-box;
-  width: var(--agents-panel-facts-width);
+  width: var(--agents-machine-width);
   padding: var(--sp-4) var(--sp-5);
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-3);
   background: var(--surface);
 }
-.gaia-agents-machine-agents { display: flex; align-items: baseline; gap: calc(var(--sp-1) + var(--sp-half)); }
+.gaia-agents-machine-agents { display: flex; align-items: baseline; gap: var(--space-6); }
 .gaia-agents-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-agents-machine-figure {
   font-family: var(--font-mono);
@@ -656,11 +741,12 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
 .gaia-agents-machine[data-at-the-limit] .gaia-agents-machine-line { color: var(--link); }
 
-.gaia-agents-select:focus-visible,
-.gaia-agents-job:focus-visible {
+.gaia-agents-job:focus-visible,
+.gaia-agents-panel-ticket:focus-visible {
   outline: var(--focus-ring-width) solid var(--link);
-  outline-offset: calc(-1 * var(--focus-ring-width));
+  outline-offset: var(--focus-ring-width);
 }
+.gaia-agents-select:focus-visible { outline: var(--focus-ring-width) solid var(--link); outline-offset: calc(-1 * var(--focus-ring-width)); }
 
 /* ── Forges (A4, B2) ────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 

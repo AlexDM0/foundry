@@ -1,9 +1,9 @@
 /**
  * The Agents view's markup (SCREENS A2), unfolded without a document. What matters: with `fleet-five-forges` the table holds A2's ten rows
- * cell for cell; "Needs a look" leaves the two rows the forge flags; the Calls cell holds no meter when there is no budget; a `counts-only`
- * forge's row shows a dash where its summary is silent; the selected row is marked and its panel survives a new document or says the agent
- * is no longer running; with no agent the view says so beside the machine meter; a filter press hands the view's caller the new filters;
- * and the view holds no control that would message or stop an agent, and says so.
+ * cell for cell under their forges' heads; "Needs a look" leaves the two rows the forge flags; the Calls cell holds no meter when there is
+ * no budget; a `counts-only` forge's row shows a dash where its summary is silent; the selected row is marked and its panel survives a new
+ * document or says the agent is no longer running; with no agent the view says so beside the machine meter; a filter press hands the
+ * view's caller the new filters; and the view holds no control that would message or stop an agent, and says so.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -23,21 +23,30 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const J12_OF_INVOICE_SERVICE = { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' };
 
 /**
- * A2's rows as the artboard's example data writes them (designs/Agents.dc.html), in the document's order: by forge, then job (PLAN 7.4).
- * Each row is its cells' text: forge, job, role, ticket, state with its flag, running, calls, tokens, last tool call. Retake it from the
- * artboard's script when the artboard changes.
+ * A2's groups as the artboard's example data writes them (designs/Agents.dc.html): each forge's head, then its rows, the forges in the
+ * registry's order and the jobs in the document's. Each row is its cells' text: job with its role and running time, ticket with its last
+ * tool call, state with its flag, calls, tokens. Example Mobile App's limit is the fixture's 2, where the artboard draws 4. Retake it from
+ * the artboard's script when the artboard changes.
  */
-const ARTBOARD_ROWS = [
-  ['Example Mobile App', 'J5', 'builder', '#021 Offline queue', 'Building', '41m 12s', '88 / 120', '97,200', 'Bash bun run verify'],
-  ['Example Mobile App', 'J7', 'reviewer', '#020 Push permission prompt', 'Reviewing', '5m 03s', '12 / 80', '41,300', 'Read src/push/Permission.ts'],
-  ['Example Storefront', 'J2', 'builder', '#012 Checkout address form', 'Building', '12m 04s', '41 / 120', '84,210', 'Edit src/checkout/AddressForm.tsx'],
-  ['Example Storefront', 'J3', 'builder', '#014 Password reset flow', 'Waitingasks you · E2', '9m 40s', '22 / 120', '51,900', 'Bash forge ask'],
-  ['Example Storefront', 'J4', 'builder', '#013 Product image zoom', 'Building', '3m 10s', '9 / 120', '18,400', 'Read src/product/Gallery.tsx'],
-  ['Example Storefront', 'J6', 'reviewer', '#011 Cart badge count', 'Reviewing', '6m 22s', '30 / 80', '96,700', 'Bash bun run verify'],
-  ['Invoice Service', 'J11', 'builder', '#033 PDF footer totals', 'Building', '21m 15s', '77 / 120', '141,800', 'Edit src/pdf/FooterTotals.ts'],
-  ['Invoice Service', 'J12', 'builder', '#034 Credit note numbering', 'Buildingquiet · 4 sweeps', '34m 02s', '58 / 120', '122,300', 'Bash bun test ./src/features/credit-notes'],
-  ['Invoice Service', 'J14', 'reviewer', '#032 VAT rounding rules', 'Reviewing', '8m 51s', '19 / 80', '64,000', 'Read src/vat/Rounding.ts'],
-  ['Research Wiki', 'J2', 'builder', '#007 Citation importer', 'Building', '16m 30s', '49 / 120', '103,490', 'Edit src/import/Citations.ts'],
+const ARTBOARD_GROUPS = [
+  ['Example Storefront4 / 5agents2 wait on you', [
+    ['J2builder12m 04s', '#012 Checkout address formEdit src/checkout/AddressForm.tsx', 'Building', '41 / 120', '84,210'],
+    ['J3builder9m 40s', '#014 Password reset flowBash forge ask', 'Waitingasks you · E2', '22 / 120', '51,900'],
+    ['J4builder3m 10s', '#013 Product image zoomRead src/product/Gallery.tsx', 'Building', '9 / 120', '18,400'],
+    ['J6reviewer6m 22s', '#011 Cart badge countBash bun run verify', 'Reviewing', '30 / 80', '96,700'],
+  ]],
+  ['Invoice Service3 / 5agents2 wait on you', [
+    ['J11builder21m 15s', '#033 PDF footer totalsEdit src/pdf/FooterTotals.ts', 'Building', '77 / 120', '141,800'],
+    ['J12builder34m 02s', '#034 Credit note numberingBash bun test ./src/features/credit-notes', 'Buildingquiet · 4 sweeps', '58 / 120', '122,300'],
+    ['J14reviewer8m 51s', '#032 VAT rounding rulesRead src/vat/Rounding.ts', 'Reviewing', '19 / 80', '64,000'],
+  ]],
+  ['Research Wiki1 / 3agents1 waits on you', [
+    ['J2builder16m 30s', '#007 Citation importerEdit src/import/Citations.ts', 'Building', '49 / 120', '103,490'],
+  ]],
+  ['Example Mobile App2 / 2agentsLaunches held', [
+    ['J5builder41m 12s', '#021 Offline queueBash bun run verify', 'Building', '88 / 120', '97,200'],
+    ['J7reviewer5m 03s', '#020 Push permission promptRead src/push/Permission.ts', 'Reviewing', '12 / 80', '41,300'],
+  ]],
 ];
 
 const FORGE_SENDS_NOTE = 'Gaia shows what the forge reports. Messages and stops are sent from the agent\'s own forge.';
@@ -56,7 +65,15 @@ function unfoldedView(fleetDocument: FleetDocument, overrides: InputOverrides = 
 }
 
 function bodyRowsIn(nodes: ReturnType<typeof unfoldedView>): HostElement[] {
-  return tree.hostElementsIn(nodes, (element) => element.props['role'] === 'row' && element.props['data-head'] === undefined);
+  return tree.hostElementsIn(nodes, (element) => element.props['role'] === 'row' && element.props['data-head'] === undefined && !tree.hasClass(element, 'gaia-agents-group-head'));
+}
+
+function groupsIn(nodes: ReturnType<typeof unfoldedView>): HostElement[] {
+  return tree.hostElementsIn(nodes, (element) => element.props['role'] === 'rowgroup');
+}
+
+function groupHeadTextOf(group: HostElement): string {
+  return tree.textOf([tree.onlyHostElementIn([group], (element) => element.props['role'] === 'rowheader')]);
 }
 
 function cellTextsOf(row: HostElement): string[] {
@@ -78,12 +95,19 @@ function segmentNamed(nodes: ReturnType<typeof unfoldedView>, groupLabel: string
 }
 
 describe('the table', () => {
-  test('with fleet-five-forges the table holds A2\'s ten rows, cell for cell', () => {
+  test('with fleet-five-forges the table holds A2\'s ten rows, cell for cell, under their forges\' heads', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES);
     expect(tree.hostElementsIn(view, (element) => element.props['role'] === 'columnheader').map((head) => tree.textOf([head]))).toEqual([
-      'Forge', 'Job', 'Role', 'Ticket', 'State', 'Running', 'Calls', 'Tokens', 'Last tool call',
+      'Job', 'Ticket · last tool', 'State', 'Calls', 'Tokens',
     ]);
-    expect(bodyRowsIn(view).map(cellTextsOf)).toEqual(ARTBOARD_ROWS);
+    expect(groupsIn(view).map((group) => [groupHeadTextOf(group), bodyRowsIn([group]).map(cellTextsOf)])).toEqual(ARTBOARD_GROUPS);
+    expect(bodyRowsIn(view)).toHaveLength(10);
+  });
+
+  test('each forge\'s head names it and meters its agents against its limit', () => {
+    const [storefront] = groupsIn(unfoldedView(FLEET_FIVE_FORGES));
+    expect(storefront?.props['aria-label']).toBe('Example Storefront');
+    expect(tree.onlyWithClass([storefront as HostElement], 'design-system-slot-meter').props['aria-label']).toBe('4 agents against a limit of 5');
   });
 
   test('the filters show A2\'s counts, with All and Every agent pressed', () => {
@@ -96,27 +120,29 @@ describe('the table', () => {
 
   test('"Needs a look" leaves exactly the row that asks User and the quiet one', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { query: 'condition=needs-a-look' });
-    expect(bodyRowsIn(view).map((row) => cellTextsOf(row).slice(0, 2))).toEqual([['Example Storefront', 'J3'], ['Invoice Service', 'J12']]);
+    expect(groupsIn(view).map((group) => [group.props['aria-label'], bodyRowsIn([group]).map((row) => tree.textOf([tree.onlyWithClass([row], 'gaia-agents-job')]))])).toEqual([
+      ['Example Storefront', ['J3']], ['Invoice Service', ['J12']],
+    ]);
     expect(segmentNamed(view, 'Condition', 'Needs a look').props['aria-pressed']).toBe(true);
   });
 
   test('the Calls cell holds a meter beside a budget, and none at all when the forge reports no budget', () => {
-    const withBudget = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[7] as HostElement;
-    const callsWithBudget = cellsOf(withBudget)[6] as HostElement;
+    const withBudget = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[5] as HostElement;
+    const callsWithBudget = cellsOf(withBudget)[3] as HostElement;
     expect(tree.onlyWithClass([callsWithBudget], 'design-system-fill-meter').props['aria-label']).toBe('58 of 120 calls');
     const withoutBudgets = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, callBudget: null })) };
-    const callsWithoutBudget = cellsOf(bodyRowsIn(unfoldedView(withoutBudgets))[7] as HostElement)[6] as HostElement;
+    const callsWithoutBudget = cellsOf(bodyRowsIn(unfoldedView(withoutBudgets))[5] as HostElement)[3] as HostElement;
     expect(tree.hostElementsIn([callsWithoutBudget], tree.withClass('design-system-fill-meter'))).toEqual([]);
     expect(tree.textOf([callsWithoutBudget])).toBe('58');
   });
 
-  test('a counts-only forge\'s row shows id, role, tickets, state and tokens, and a dash in every other cell', () => {
-    const wikiRow = bodyRowsIn(unfoldedView(FLEET_DEGRADED)).find((row) => cellTextsOf(row)[0] === 'Research Wiki') as HostElement;
-    expect(cellTextsOf(wikiRow)).toEqual(['Research Wiki', 'J2', 'builder', '#007', 'Building', '—', '—', '103,490', '—']);
+  test('a counts-only forge\'s row shows id, role, tickets, state and tokens, and a dash in every other place', () => {
+    const wikiGroup = groupsIn(unfoldedView(FLEET_DEGRADED)).find((group) => group.props['aria-label'] === 'Research Wiki') as HostElement;
+    expect(bodyRowsIn([wikiGroup]).map(cellTextsOf)).toEqual([['J2builder—', '#007—', 'Building', '—', '103,490']]);
   });
 
-  test('a row\'s forge selects it and its job opens the agent in its forge', () => {
-    const row = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[7] as HostElement;
+  test('a row selects itself, named by its forge and job, and its job opens the agent in its forge', () => {
+    const row = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[5] as HostElement;
     const links = tree.hostElementsIn([row], tree.withTag('a'));
     expect(links.map((link) => [link.props['className'], link.props['href']])).toEqual([
       ['gaia-agents-select', `#agents/${TRACKER_IDS.invoiceService}/J12`],
@@ -126,7 +152,7 @@ describe('the table', () => {
 
   test('filters that leave no row say so in the table\'s place', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { query: 'role=reviewers&condition=needs-a-look' });
-    expect(tree.hostElementsIn(view, tree.withClass('gaia-table'))).toEqual([]);
+    expect(tree.hostElementsIn(view, tree.withClass('gaia-agents-table'))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-no-match')])).toBe('No agent matches these filters.');
   });
 });
@@ -145,11 +171,14 @@ describe('the selected agent', () => {
   test('the selected row is marked current and the panel shows A2\'s facts, last line and way to the forge', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { selectedAgent: J12_OF_INVOICE_SERVICE });
     const marked = bodyRowsIn(view).filter((row) => row.props['aria-current'] === 'true');
-    expect(marked.map((row) => cellTextsOf(row).slice(0, 2))).toEqual([['Invoice Service', 'J12']]);
+    expect(marked.map((row) => tree.onlyWithClass([row], 'gaia-agents-select').props['aria-label'])).toEqual(['Invoice Service, J12']);
     const panel = panelIn(view);
     expect(panel.props['aria-label']).toBe('Selected agent');
-    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-head')])).toBe('J12builderquiet · 4 sweeps');
-    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-subject')])).toBe('Invoice Service · #034 Credit note numbering');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-head')])).toBe('JobJ12Building · 34m 02s');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-subject')])).toBe('builderInvoice Servicequiet · 4 sweeps');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-ticket')])).toBe('#034Credit note numbering');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-calls')])).toBe('58 / 120calls · 122,300 tokens');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-last-tool')])).toBe('Last tool Bash bun test ./src/features/credit-notes');
     expect(tree.textOf([tree.onlyWithTag([panel], 'dl')])).toBe('TurnMid-turnCalls58 of 120Tool calls143Subagents1 runningMessages waiting0');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-last-line')])).toBe(
       'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
@@ -162,7 +191,7 @@ describe('the selected agent', () => {
     const nextDocument = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, tokens: row.tokens + 100 })) };
     const view = unfoldedView(nextDocument, { selectedAgent: J12_OF_INVOICE_SERVICE });
     const marked = bodyRowsIn(view).filter((row) => row.props['aria-current'] === 'true');
-    expect(marked.map((row) => cellTextsOf(row)[7])).toEqual(['122,400']);
+    expect(marked.map((row) => cellTextsOf(row)[4])).toEqual(['122,400']);
     expect(tree.textOf([panelIn(view)])).toContain('Open J12 in its forge');
   });
 
@@ -209,7 +238,7 @@ describe('no agent', () => {
     const view = unfoldedView(FLEET_EMPTY);
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-empty-sentence')])).toBe('No agents are running.');
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-machine')])).toBe('This machine0agentsno limit known · 12 CPUs');
-    expect(tree.hostElementsIn(view, (element) => tree.hasClass(element, 'gaia-table') || tree.hasClass(element, 'design-system-segments'))).toEqual([]);
+    expect(tree.hostElementsIn(view, (element) => tree.hasClass(element, 'gaia-agents-table') || tree.hasClass(element, 'design-system-segments'))).toEqual([]);
   });
 
   test('with a known limit the machine meter shows beside the sentence', () => {
