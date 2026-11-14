@@ -21,4 +21,4 @@ function currentDocumentOf(document: MonitorSnapshotDocumentOfVersionOne): Monit
   };
 }
 
-export const MonitorSnapshotMigrationUtil = { currentDocumentOf, } as const;
+export const MonitorSnapshotMigrationUtil = { currentDocumentOf } as const;

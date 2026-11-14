@@ -23,4 +23,4 @@ export const CONTRACT_VERSIONS = {
 } as const;
 
 /** The older numbers of a contract that Gaia still reads, each migrated on its ingestion to the current number's shape. */
-export const OLDER_CONTRACT_VERSIONS_READ: { readonly forgeMonitor: readonly number[] } = { forgeMonitor: [1], };
+export const OLDER_CONTRACT_VERSIONS_READ: { readonly forgeMonitor: readonly number[] } = { forgeMonitor: [1] };
