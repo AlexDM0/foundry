@@ -22,8 +22,8 @@ import type {
   GaiaCommand,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
-import type { GaiaSettings }                               from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
+import type { GaiaSettings }                                                              from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS, FLINT_BRAIN_CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
 
 import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
 
@@ -60,9 +60,6 @@ const LOGIN_ITEM_REMOVED_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>
 
 /** The control contracts Gaia sends to: the current one, and the older ones, which lack only the commands the later ones add. */
 const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]);
-
-/** Control contract 2 adds Flint's brain's two commands; an older one is sent neither. */
-const CONTROL_VERSIONS_SERVING_THE_BRAIN: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl]);
 
 /**
  * `api`: the Overseer answers and speaks a control contract Gaia sends to, named by `controlVersion`. `control-unknown`: it answers in
@@ -208,7 +205,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     const apiReach = apiReachOf(forge, reading);
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
     if (apiReach.reach === 'no-overseer') return { verdict: 'unreachable' };
-    if (!CONTROL_VERSIONS_SERVING_THE_BRAIN.has(apiReach.controlVersion)) return gaiaRefusalOf('brain-not-served');
+    if (apiReach.controlVersion < FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl) return gaiaRefusalOf('brain-not-served');
     return sendOverApi(apiReach.overseer, [controlCommand]);
   }
 

@@ -25,6 +25,7 @@ import {
   type OverseerStream,
   type OverseerStreamRequest,
 } from '../lib/forge-client/OverseerFetch.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { recordAnswer, recordSystemVersion } from './BoundaryRecordings.ts';
 import {
@@ -59,8 +60,6 @@ const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The draft ticket, and the question the Overseer's first pass opens on a board with no checks set. */
 const SETTLED_ATTENTION_ENTRIES = 2;
 const SETTLING_EVENTS_AT_MOST = 40;
-/** The control contract that adds the commands of Flint's brain (G3). */
-const CONTROL_VERSION_OF_FLINT_BRAIN = 2;
 /** A brain the forge starts ends by itself after at most two minutes (G3), so its states are looked for within that and a margin. */
 const FLINT_BRAIN_TIMEOUT_MILLISECONDS = 180_000;
 
@@ -292,7 +291,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: cpuCount })).toMatchObject({ verdict: 'answered', status: 200 });
     });
 
-    describe.if(controlVersion >= CONTROL_VERSION_OF_FLINT_BRAIN)('Flint\'s brain', () => {
+    describe.if(controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl)('Flint\'s brain', () => {
       const commandShape = (): string => requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken));
 
       test('answers a start of the brain done, and serves the brain running', async () => {

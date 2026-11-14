@@ -30,3 +30,6 @@ export const OLDER_CONTRACT_VERSIONS_READ: { readonly forgeMonitor: readonly num
   forgeMonitor: [1, 2],
   forgeControl: [1],
 };
+
+/** The first number of a forge contract that carries Flint's brain (G3): a forge at an older control contract is sent neither brain command. */
+export const FLINT_BRAIN_CONTRACT_VERSIONS = { forgeControl: 2 } as const;
