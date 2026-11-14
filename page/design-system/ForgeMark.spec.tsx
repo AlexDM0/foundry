@@ -1,6 +1,6 @@
 /**
- * Forge's mark. What matters: it is an image named "Forge", 22 px by default, drawn in the mark's token classes as Gaia's is, with Forge's
- * hexagon ring and core and the node at Forge's place; its title and its double-click handler reach the drawing only when given.
+ * Forge's mark. What matters: it is an image named "Forge", 22 px by default, on the tile Gaia's mark draws but in colour classes of its own,
+ * with Forge's hexagon ring and core and the node at Forge's place; its title and its double-click handler reach the drawing only when given.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,9 +13,9 @@ describe('the forge mark', () => {
     const mark = ReactElementTree.onlyWithTag(unfolded, 'svg');
     expect([mark.props['role'], mark.props['aria-label'], mark.props['width'], mark.props['onDoubleClick']]).toEqual(['img', 'Forge', 22, undefined]);
     expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withTag('title'))).toEqual([]);
-    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-mark-ring').tag).toBe('path');
-    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-mark-core').tag).toBe('path');
-    const node = ReactElementTree.onlyWithClass(unfolded, 'gaia-mark-node-core');
+    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-forge-mark-ring').tag).toBe('path');
+    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-forge-mark-core').tag).toBe('path');
+    const node = ReactElementTree.onlyWithClass(unfolded, 'gaia-forge-mark-node-core');
     expect([node.props['cx'], node.props['cy'], node.props['r']]).toEqual(['48.02', '22.75', '3.4']);
   });
 

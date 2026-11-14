@@ -36,11 +36,11 @@ export function ForgeMark({ sizePixels = DEFAULT_SIZE_PIXELS, title, onDoubleCli
       <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#gaia-forge-mark-ground)" />
       <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
         <g mask="url(#gaia-forge-mark-gap)">
-          <path className="gaia-mark-ring" d={HEXAGON_RING_PATH} fill="none" strokeWidth="5" />
+          <path className="gaia-forge-mark-ring" d={HEXAGON_RING_PATH} fill="none" strokeWidth="5" />
         </g>
-        <path className="gaia-mark-core" d={HEXAGON_CORE_PATH} />
-        <circle className="gaia-mark-node-ring" cx="48.02" cy="22.75" r="7.4" fill="none" strokeWidth="2.6" />
-        <circle className="gaia-mark-node-core" cx="48.02" cy="22.75" r="3.4" />
+        <path className="gaia-forge-mark-core" d={HEXAGON_CORE_PATH} />
+        <circle className="gaia-forge-mark-node-ring" cx="48.02" cy="22.75" r="7.4" fill="none" strokeWidth="2.6" />
+        <circle className="gaia-forge-mark-node-core" cx="48.02" cy="22.75" r="3.4" />
       </g>
       <rect className="gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" />
     </svg>

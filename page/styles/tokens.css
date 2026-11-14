@@ -111,15 +111,21 @@
   /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
   --neutral-fill: #8f8f8f;
 
-  /* The Gaia mark: the tile's gradient and rim, the ring, the core, and the orange node. */
+  /* The tile under Gaia's and Forge's marks: its gradient and rim. */
   --mark-from:      #ffffff;
   --mark-to:        #d6d6d6;
   --mark-rim:       rgba(0, 0, 0, 0.14);
-  --mark-line:      #3d3d3d;
-  --mark-core:      rgba(250, 95, 1, 0.5);
-  --mark-node-ring: #ee5600;
-  --mark-node-core: #ff8d42;
-  /* The mark's mask: what it keeps open and what it shuts, the gap around the node. */
+  /* Gaia's constellation: the orange ring, the slate core and node cores, each node's halo, and the glow on the top left node. */
+  --mark-ring:      #f26100;
+  --mark-core:      #2f4a5c;
+  --mark-node-halo: #f5a473;
+  --mark-glow:      #ff8d42;
+  /* Forge's mark: its ring, its core and its orange node. */
+  --forge-mark-line:      #3d3d3d;
+  --forge-mark-core:      rgba(250, 95, 1, 0.5);
+  --forge-mark-node-ring: #ee5600;
+  --forge-mark-node-core: #ff8d42;
+  /* A mark's mask: what it keeps open and what it shuts, the gaps around its nodes. */
   --mark-mask-open: #ffffff;
   --mark-mask-shut: #000000;
 }
@@ -130,10 +136,14 @@
   --mark-from:      #343434;
   --mark-to:        #121212;
   --mark-rim:       rgba(255, 255, 255, 0.12);
-  --mark-line:      #dcdcdc;
-  --mark-core:      rgba(255, 148, 80, 0.85);
-  --mark-node-ring: #ee5600;
-  --mark-node-core: #ff8d42;
+  --mark-ring:      #ff7417;
+  --mark-core:      #c9dbe6;
+  --mark-node-halo: #d9854c;
+  --mark-glow:      #ff8d42;
+  --forge-mark-line:      #dcdcdc;
+  --forge-mark-core:      rgba(255, 148, 80, 0.85);
+  --forge-mark-node-ring: #ee5600;
+  --forge-mark-node-core: #ff8d42;
   --mark-mask-open: #ffffff;
   --mark-mask-shut: #000000;
 }
