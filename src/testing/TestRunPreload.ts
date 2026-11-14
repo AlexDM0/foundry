@@ -1,7 +1,7 @@
 /**
- * Preloaded by `bunfig.toml`: moves `HOME` and `TMPDIR` into the run's scratch folder and takes the leak check's baseline when it loads; after the whole
- * run, fails it on whatever it left behind and removes the run's scratch folder. Its statements are its registration, the reason it may do
- * work at load.
+ * Preloaded by `bunfig.toml`: moves `HOME` and `TMPDIR` into the run's scratch folder and takes the leak check's baseline when it loads;
+ * after the whole run, fails it on whatever it left behind, warns of a change in the real home's guarded paths, and removes the run's
+ * scratch folder. Its statements are its registration, the reason it may do work at load.
  */
 import { afterAll } from 'bun:test';
 
@@ -14,8 +14,10 @@ import {
 import {
   leakReport,
   leaksAfterTheRunFolderWent,
+  realHomeChangeReport,
+  realHomeChangesOf,
   runFolderLeaksOf,
-  spawnedGitStatusLines,
+  SPAWNED_RUN_STATE_READERS,
   takeTestRunBaseline,
 } from './LeakCheck.ts';
 import {
@@ -25,7 +27,7 @@ import {
   scratchTemporaryDirectory,
 } from './ScratchRoot.ts';
 
-const baseline = takeTestRunBaseline(homeDirectory(), temporaryDirectory(), spawnedGitStatusLines);
+const baseline = takeTestRunBaseline(homeDirectory(), temporaryDirectory(), SPAWNED_RUN_STATE_READERS);
 moveHomeDirectoryTo(scratchHomeDirectory());
 moveTemporaryDirectoryTo(scratchTemporaryDirectory());
 
@@ -34,7 +36,9 @@ afterAll(() => {
   moveHomeDirectoryTo(baseline.realHomeDirectory);
   moveTemporaryDirectoryTo(baseline.realTemporaryDirectory);
   removeRunScratchFolder();
-  leaks.push(...leaksAfterTheRunFolderWent(baseline, spawnedGitStatusLines));
+  leaks.push(...leaksAfterTheRunFolderWent(baseline, SPAWNED_RUN_STATE_READERS));
+  const realHomeChanges = realHomeChangesOf(baseline);
+  if (realHomeChanges.length > 0) console.error(realHomeChangeReport(realHomeChanges));
   if (leaks.length === 0) return;
   // Bun may show a throw from this hook only as an unnamed failure, so the report goes to standard error first.
   console.error(leakReport(leaks));
