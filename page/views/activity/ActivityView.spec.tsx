@@ -4,9 +4,9 @@
  * hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from a menu that
  * names the chosen one and closes on Escape and when focus leaves it; a row links into its forge only when it has a route; every empty
  * place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts, the side lists are cards with
- * a mono total, the usage dot says under or at the limit beside the words, and the page title carries the view's figures. Flint's brain
- * (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens' bars a note names its part per forge in mono, absent when no
- * brain ran today.
+ * a mono total, the usage dot says under or at the limit beside the words with its reset time in mono, and the page title carries the
+ * view's figures. Flint's brain (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens' bars a note names its part per
+ * forge in mono, absent when no brain ran today.
  *
  * `ActivityLayout` takes no hooks and unfolds to its host elements; `ActivityView`, which keeps the filters, is rendered with React's own
  * server renderer, which runs its hooks without a document.
@@ -153,7 +153,7 @@ describe('the filters', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const forges = buttonsIn(forgeFilterIn(unfolded));
     expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
-      ['All forges', true], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['2 more▾', false],
+      ['All forges', true], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['2 more', false],
     ]);
     const [allForges, storefront] = forges;
     if (allForges === undefined || storefront === undefined) throw new Error('A forge segment is missing.');
@@ -186,7 +186,7 @@ describe('the filters', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES, { kind: 'everything', trackerId: TRACKER_IDS.designSystem });
     const forges = buttonsIn(forgeFilterIn(unfolded));
     expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
-      ['All forges', false], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['Design System▾', true],
+      ['All forges', false], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['Design System', true],
     ]);
     expect(bodyRowsIn(unfolded).map(cellTextsOf)).toEqual([['12:20', 'Design System', 'Forge', 'Overseer stopped']]);
   });
@@ -284,6 +284,22 @@ describe('the look of the parts', () => {
     };
     const limitHit = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: hitUsage })) };
     expect(toneOfReading(EVERY_ENTRY, limitHit)).toBe('accent');
+  });
+
+  test('the usage reading sets the clock time its window resets as a mono stamp, and a reading with no clock time has none', () => {
+    const stampsOf = (fleetDocument: FleetDocument) => {
+      const line = tree.onlyWithClass(layoutOf(fleetDocument).unfolded, 'gaia-activity-usage-line');
+      return { text: tree.textOf([line]), stamps: tree.hostElementsIn([line], tree.withClass('design-system-stamp')).map((stamp) => tree.textOf([stamp])) };
+    };
+    expect(stampsOf(FLEET_FIVE_FORGES)).toEqual({ text: 'under its limit · window resets 16:00', stamps: ['16:00'] });
+    const noWindowUsage = {
+      window: null, resetsAt: null, currentWindow: null, currentWindowResetsAt: null,
+    };
+    const noClockTime = {
+      ...FLEET_FIVE_FORGES,
+      forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: noWindowUsage })),
+    };
+    expect(stampsOf(noClockTime)).toEqual({ text: 'under its limit', stamps: [] });
   });
 
   test('the page title carries the view\'s figures once the first fleet document is in', () => {

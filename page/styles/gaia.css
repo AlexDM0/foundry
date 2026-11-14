@@ -463,10 +463,12 @@ body {
 .gaia-activity-columns { display: flex; gap: var(--space-28); }
 .gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
 
-/* The table's rows are the artboard's: 36 px under a 32 px head, each with its hairline, 18 px in from the card's edges; a link ringed on hover. */
+/* The table's rows are the artboard's: 36 px under a 32 px head, each with its hairline over it, 18 px in from the card's edges; a link
+   ringed on hover. */
 .gaia-activity .gaia-table-cells { min-height: calc(var(--activity-row-height) - var(--hairline)); padding: 0 var(--space-18); }
-.gaia-activity .gaia-table-row[data-head] .gaia-table-cells { min-height: calc(var(--activity-head-height) - var(--hairline)); }
-.gaia-activity .gaia-table-row { position: relative; }
+.gaia-activity .gaia-table-row[data-head] .gaia-table-cells { min-height: var(--activity-head-height); }
+.gaia-activity .gaia-table-row { position: relative; border-top: var(--hairline) solid var(--line); border-bottom: 0; }
+.gaia-activity .gaia-table-row[data-head] { border-top: 0; }
 .gaia-activity .gaia-table-row:not([data-head]):has(a.gaia-activity-text):hover { box-shadow: 0 0 0 var(--focus-ring-width) var(--shadow-card-lift); }
 .gaia-activity-at { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 .gaia-activity-forge {
@@ -515,7 +517,16 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-activity-more-forges-button:hover { color: var(--ink); }
 .gaia-activity-more-forges-button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 var(--hairline) var(--line-strong); }
-.gaia-activity-menu-mark { font-size: var(--fs-micro); }
+.gaia-activity-menu-mark {
+  flex: none;
+  width: var(--space-10);
+  height: var(--space-10);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--glyph-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .gaia-activity-forge-menu {
   position: absolute;
   top: calc(100% + var(--sp-1));
@@ -576,7 +587,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   padding-top: var(--space-10);
   border-top: var(--hairline) solid var(--line);
   font-size: var(--fs-small);
-  line-height: var(--line-height-small);
+  line-height: var(--line-height-tab);
   color: var(--ink-muted);
 }
 .gaia-activity-brain-note-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }

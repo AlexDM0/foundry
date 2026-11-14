@@ -370,7 +370,9 @@ describe('the warnings of monitor contract 2, over the artboard that shows each'
   test('A3: the usage line names when the current window resets, under the limit', () => {
     const activity = ARTBOARD_SCREENS.find((screen) => screen.artboard === 'A3');
     if (activity === undefined) throw new Error('No screen paints artboard A3.');
-    expect(textsOfClass(screenMarkupOf(activity, 'dark'), 'gaia-activity-usage-line')).toEqual(['under its limit · window resets 16:00']);
+    const markup = screenMarkupOf(activity, 'dark');
+    expect(textsOfClass(markup, 'gaia-activity-usage-line')).toEqual(['under its limit · window resets ']);
+    expect(textsOfClass(markup, 'design-system-stamp')).toEqual(['16:00']);
   });
 });
 

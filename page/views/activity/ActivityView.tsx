@@ -9,6 +9,7 @@ import { EmptyState }                           from 'design-system/EmptyState';
 import { FillMeter }                            from 'design-system/FillMeter';
 import { SectionHead }                          from 'design-system/SectionHead';
 import { type SegmentOption, SegmentedControl } from 'design-system/SegmentedControl';
+import { Stamp }                                from 'design-system/Stamp';
 import { StateDot }                             from 'design-system/StateDot';
 import type { StateTone }                       from 'design-system/StateTone';
 import { Text }                                 from 'design-system/Text';
@@ -147,7 +148,7 @@ function ForgeMenu({
         onClick={onMenuToggle}
       >
         {chosenInMenu === null ? `${choices.inMenu.length} more` : chosenInMenu.project}
-        <span className="gaia-activity-menu-mark" aria-hidden="true">▾</span>
+        <svg className="gaia-activity-menu-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 4 L5 6.5 L7.5 4" /></svg>
       </button>
       {menuIsOpen ? (
         <span className="gaia-activity-forge-menu" id={FORGE_MENU_ID} role="group" aria-label="More forges">
@@ -232,6 +233,15 @@ interface UsageSectionProps {
   readonly linesAtTheLimit: readonly string[];
 }
 
+/** A forge's usage reading ends at the clock time its window resets, when it names one; that time is set as a stamp. */
+const TRAILING_CLOCK_TIME = /\d{1,2}:\d{2}$/;
+
+function UsageLine({ line }: { readonly line: string }) {
+  const clockTime = TRAILING_CLOCK_TIME.exec(line)?.[0] ?? null;
+  if (clockTime === null) return <p className="gaia-activity-usage-line">{line}</p>;
+  return <p className="gaia-activity-usage-line">{line.slice(0, -clockTime.length)}<Stamp shortText={clockTime} /></p>;
+}
+
 /** A neutral dot under the limit and an orange one at it, each beside its words. */
 function UsageSection({ lines, linesAtTheLimit }: UsageSectionProps) {
   if (lines.length === 0) return null;
@@ -241,7 +251,7 @@ function UsageSection({ lines, linesAtTheLimit }: UsageSectionProps) {
       {lines.map((line) => (
         <div key={line} className="gaia-activity-usage-reading">
           <StateDot tone={linesAtTheLimit.includes(line) ? 'accent' : 'neutral'} small />
-          <p className="gaia-activity-usage-line">{line}</p>
+          <UsageLine line={line} />
         </div>
       ))}
       <Text typeRole="small" element="p" subtle>{USAGE_SOURCE_SENTENCE}</Text>
