@@ -1,8 +1,8 @@
 /**
  * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Start the running forges at login" and "Notify me while Gaia is
- * open", each a checkbox that sends `settings-set`; the forge program, the registry, the contracts Gaia reads, Gaia's version and address;
- * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the checkboxes are then off. A
- * refusal shows in the place whose checkbox sent the change, and only for that send.
+ * open", each a switch that sends `settings-set`; the forge program, the registry, the contracts Gaia reads, Gaia's version and address;
+ * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
+ * refusal shows in the place whose switch sent the change, and only for that send.
  */
 import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
@@ -10,14 +10,14 @@ import { type CommandResult, CommandSender, type CommandStates }                
 import { CommandFailureTextUtil, type RefusalText }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
 import { PathTextUtil }                                                             from '../../shared/utils/PathTextUtil.ts';
 
-/** Where a settings checkbox sits: the Gaia panel, or the "What notifies" list over the view. */
-
 /** One of Gaia's facts: its value in mono, unless the fact says its value is words. */
 export interface GaiaFact {
   readonly label:      string;
   readonly value:      string;
   readonly valueFace?: 'mono' | 'ui';
 }
+
+/** Where a settings switch sits: the Gaia panel, or the "What notifies" list over the view. */
 export type SettingsPlace = 'gaia-panel' | 'what-notifies';
 
 /** One settings checkbox: its label, whether it is ticked, and the change it sends when it is clicked. */
