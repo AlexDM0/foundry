@@ -27,6 +27,8 @@ const REAL_BOUNDARY_USES_ALLOWED_IN_TESTING: Readonly<Record<string, string>> = 
 };
 
 const BUN_PROCESS_STARTS: ReadonlySet<string> = new Set(['spawn', 'spawnSync', '$']);
+const BUN_MODULE = 'bun';
+const WHOLE_BUN_MODULE_FORM = 'the whole bun module';
 const CHILD_PROCESS_MODULE = /^(?:node:)?child_process$/;
 const REAL_BOUNDARY_EXPORT = 'realProcessRun';
 const REAL_BOUNDARY_MODULE = /(?:^|\/)process-run\/ProcessRun(?:\.ts)?$/;
@@ -40,6 +42,27 @@ interface ProgramReaches {
 
 function isChildProcessModule(node: typescript.Node | undefined): boolean {
   return node !== undefined && typescript.isStringLiteralLike(node) && CHILD_PROCESS_MODULE.test(node.text);
+}
+
+function isBunModule(node: typescript.Node | undefined): boolean {
+  return node !== undefined && typescript.isStringLiteralLike(node) && node.text === BUN_MODULE;
+}
+
+function isModuleLoad(node: typescript.CallExpression): boolean {
+  return node.expression.kind === typescript.SyntaxKind.ImportKeyword || (typescript.isIdentifier(node.expression) && node.expression.text === 'require');
+}
+
+/** A default or namespace import hands over the whole module, so every start in it is reachable. */
+function importsTheWholeModule(declaration: typescript.ImportDeclaration): boolean {
+  const clause = declaration.importClause;
+  if (clause === undefined || clause.isTypeOnly) return false;
+  return clause.name !== undefined || (clause.namedBindings !== undefined && typescript.isNamespaceImport(clause.namedBindings));
+}
+
+function bunImportStartOf(declaration: typescript.ImportDeclaration): string | null {
+  if (importsTheWholeModule(declaration)) return WHOLE_BUN_MODULE_FORM;
+  const taken = importedNamesOf(declaration).filter((name) => BUN_PROCESS_STARTS.has(name));
+  return taken.length > 0 ? `Bun.${taken.join(', Bun.')}` : null;
 }
 
 function importsOnlyTypes(declaration: typescript.ImportDeclaration): boolean {
@@ -71,24 +94,24 @@ function directStartOf(node: typescript.Node): string | null {
   }
   if (typescript.isImportDeclaration(node) && !importsOnlyTypes(node)) {
     if (isChildProcessModule(node.moduleSpecifier)) return 'child_process';
-    if (typescript.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === 'bun' && importedNamesOf(node).includes('$')) return 'Bun.$';
+    if (isBunModule(node.moduleSpecifier)) return bunImportStartOf(node);
   }
-  if (typescript.isCallExpression(node)) {
-    const isModuleLoad = node.expression.kind === typescript.SyntaxKind.ImportKeyword || (typescript.isIdentifier(node.expression) && node.expression.text === 'require');
-    if (isModuleLoad && isChildProcessModule(node.arguments[0])) return 'child_process';
+  if (typescript.isCallExpression(node) && isModuleLoad(node)) {
+    if (isChildProcessModule(node.arguments[0])) return 'child_process';
+    if (isBunModule(node.arguments[0])) return WHOLE_BUN_MODULE_FORM;
   }
   return null;
 }
 
-function importsTheWholeBoundaryModule(declaration: typescript.ImportDeclaration): boolean {
-  const bindings = declaration.importClause?.namedBindings;
-  return bindings !== undefined && typescript.isNamespaceImport(bindings)
-    && typescript.isStringLiteral(declaration.moduleSpecifier) && REAL_BOUNDARY_MODULE.test(declaration.moduleSpecifier.text);
+function isRealBoundaryModule(node: typescript.Node | undefined): boolean {
+  return node !== undefined && typescript.isStringLiteralLike(node) && REAL_BOUNDARY_MODULE.test(node.text);
 }
 
 function realBoundaryUseOf(node: typescript.Node): string | null {
+  if (typescript.isCallExpression(node) && isModuleLoad(node)) return isRealBoundaryModule(node.arguments[0]) ? REAL_BOUNDARY_EXPORT : null;
   if (!typescript.isImportDeclaration(node) || importsOnlyTypes(node)) return null;
-  const reachesTheRealBoundary = importedNamesOf(node).includes(REAL_BOUNDARY_EXPORT) || importsTheWholeBoundaryModule(node);
+  const importsTheWholeBoundaryModule = importsTheWholeModule(node) && isRealBoundaryModule(node.moduleSpecifier);
+  const reachesTheRealBoundary = importedNamesOf(node).includes(REAL_BOUNDARY_EXPORT) || importsTheWholeBoundaryModule;
   return reachesTheRealBoundary ? REAL_BOUNDARY_EXPORT : null;
 }
 
@@ -165,6 +188,11 @@ describe('the guard on program starts', () => {
     ['Bun["spawn"](["git"]);', 'Bun.spawn'],
     ['const { spawnSync } = Bun;', 'Bun.spawnSync'],
     ['import { $ } from "bun";', 'Bun.$'],
+    ['import { spawn, spawnSync } from "bun";', 'Bun.spawn, Bun.spawnSync'],
+    ['import { spawnSync as startProgram } from "bun";', 'Bun.spawnSync'],
+    ['import * as bunModule from "bun";', WHOLE_BUN_MODULE_FORM],
+    ['import bunModule from "bun";', WHOLE_BUN_MODULE_FORM],
+    ['const loaded = await import("bun");', WHOLE_BUN_MODULE_FORM],
     ['import { execFileSync } from "node:child_process";', 'child_process'],
     ['import childProcess from "child_process";', 'child_process'],
     ['const loaded = await import("node:child_process");', 'child_process'],
@@ -177,9 +205,20 @@ describe('the guard on program starts', () => {
     });
   }
 
-  test('names the real process-run reached through a namespace import of its module', () => {
-    const namespaceImport = 'import * as processRunModule from "../lib/process-run/ProcessRun.ts";';
-    expect(programReachesIn('src/Planted.spec.ts', namespaceImport).realBoundaryUses).toEqual([REAL_BOUNDARY_EXPORT]);
+  const plantedBoundaryReaches: readonly string[] = [
+    'import * as processRunModule from "../lib/process-run/ProcessRun.ts";',
+    'const loaded = await import("../lib/process-run/ProcessRun.ts");',
+    'const loaded = require("../lib/process-run/ProcessRun");',
+  ];
+
+  for (const plantedSource of plantedBoundaryReaches) {
+    test(`names the real process-run reached through a planted ${plantedSource}`, () => {
+      expect(programReachesIn('src/Planted.spec.ts', plantedSource).realBoundaryUses).toEqual([REAL_BOUNDARY_EXPORT]);
+    });
+  }
+
+  test('does not count a named import from bun that starts no program', () => {
+    expect(programReachesIn('src/Planted.spec.ts', 'import { plugin } from "bun";').directStarts).toEqual([]);
   });
 
   test('does not count a mention in a string, a comment or a type-only import', () => {
