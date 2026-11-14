@@ -1,7 +1,7 @@
 /** Writes `GaiaSettings` to `~/.gaia/settings.json` at version 1, atomically, and never over a file of a newer version. */
 import type { GaiaSettings }                from '../../shared/@types/GaiaSettings.ts';
+import { GaiaFile }                         from './GaiaFile.ts';
 import { SettingsFile, settingsFilePathIn } from './SettingsFile.ts';
-import { GaiaFileWriteUtil }                from './utils/GaiaFileWriteUtil.ts';
 import { SettingsFormatUtil }               from './utils/SettingsFormatUtil.ts';
 
 /** Gaia's own folder also holds the token, so only its owner may list or enter it. */
@@ -20,7 +20,7 @@ export function createSettingsWriter(homeDirectory: string): SettingsWriter {
   async function write(settings: GaiaSettings): Promise<SettingsWriteVerdict> {
     const storedReading = await new SettingsFile(homeDirectory).read();
     if (storedReading.verdict === 'newer-version') return { verdict: 'kept-newer-version', storedVersion: storedReading.storedVersion };
-    return GaiaFileWriteUtil.writeJson(settingsFilePathIn(homeDirectory), SettingsFormatUtil.storedFormOf(settings), GAIA_FOLDER_MODE);
+    return GaiaFile.writeJson(settingsFilePathIn(homeDirectory), SettingsFormatUtil.storedFormOf(settings), GAIA_FOLDER_MODE);
   }
 
   return { write };

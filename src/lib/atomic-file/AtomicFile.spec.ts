@@ -1,6 +1,7 @@
 /**
  * The boundary's own spec, on the real file system in the scratch root: a reader holding the old file open keeps reading whole old bytes
  * while a write lands, a mode is exact, a failed write leaves nothing beside the target, and a read answers with a verdict, never a throw.
+ * A failure is worded as the system's error code, or the message when it carries none.
  */
 import {
   closeSync,
@@ -151,5 +152,13 @@ describe('a read', () => {
     const parent = join(folder, 'parent');
     writeFileSync(parent, '');
     expect(await AtomicFile.read(join(parent, 'settings.json'))).toEqual({ verdict: 'unreadable', failure: 'ENOTDIR' });
+  });
+});
+
+describe('a failure', () => {
+  test('is the system\'s error code, or the message of an error that carries none', () => {
+    expect(AtomicFile.failureOf(Object.assign(new Error('example message'), { code: 'ENOENT' }))).toBe('ENOENT');
+    expect(AtomicFile.failureOf(new Error('example message'))).toBe('example message');
+    expect(AtomicFile.failureOf('example text')).toBe('example text');
   });
 });

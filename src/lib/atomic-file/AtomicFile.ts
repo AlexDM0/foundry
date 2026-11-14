@@ -77,4 +77,5 @@ async function read(targetPath: string): Promise<AtomicReadVerdict> {
 export const AtomicFile = {
   write,
   read,
+  failureOf,
 } as const;

@@ -5,10 +5,10 @@
  */
 import { join } from 'node:path';
 
-import { AtomicFile, type AtomicWriteVerdict }       from '../../lib/atomic-file/AtomicFile.ts';
-import { CONTRACT_VERSIONS }                         from '../../shared/constants/ContractVersions.ts';
-import { FORGE_PLACES }                              from '../../shared/constants/ForgePlaces.ts';
-import { GaiaFileWriteUtil, type FileRemoveVerdict } from './utils/GaiaFileWriteUtil.ts';
+import { AtomicFile, type AtomicWriteVerdict } from '../../lib/atomic-file/AtomicFile.ts';
+import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
+import { FORGE_PLACES }                        from '../../shared/constants/ForgePlaces.ts';
+import { GaiaFile, type FileRemoveVerdict }    from './GaiaFile.ts';
 
 /** The record's place is part of the forge's contract (F5), so no name follows Gaia's own product names. */
 const GAIA_FOLDER_IN_FORGE_MONITOR = 'gaia';
@@ -70,11 +70,11 @@ export function createServerRecordWriter(homeDirectory: string): ServerRecordWri
     if (stored.verdict === 'absent') return stored;
     if (stored.verdict === 'unreadable') return { verdict: 'unremovable', failure: stored.failure };
     if (!storedRecordNamesProcess(stored.contents, processId)) return { verdict: 'held-by-another-process' };
-    return GaiaFileWriteUtil.remove(recordPath);
+    return GaiaFile.remove(recordPath);
   }
 
   return {
-    write: async (record) => GaiaFileWriteUtil.writeJson(serverRecordPathIn(homeDirectory), storedFormOf(record)),
+    write: async (record) => GaiaFile.writeJson(serverRecordPathIn(homeDirectory), storedFormOf(record)),
     remove,
   };
 }
