@@ -6,7 +6,6 @@
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }      from '../../../src/shared/constants/ContractVersions.ts';
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
@@ -332,22 +331,10 @@ function brainShownOf(brain: FleetDocumentBrain, clock: ForgeFrameClock): BarBra
   }
 }
 
-/**
- * Wake and Stop go to an Overseer that answers, at a control contract Gaia knows that carries the brain's commands (G3); under an older
- * one, or as an Overseer that stopped answering last reported it, the brain only shows.
- */
-function brainControlsAreServed(forge: FleetDocumentForge): boolean {
-  const controlVersion = forge.contracts.control;
-  return forge.fidelity === 'full'
-    && ForgeContractUtil.controlContractIsKnown(forge)
-    && controlVersion !== null
-    && controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl;
-}
-
 function barBrainOf(forge: FleetDocumentForge, clock: ForgeFrameClock): BarBrain | null {
   const { brain } = forge;
   if (brain === 'not-reported') return null;
-  return { shown: brainShownOf(brain, clock), controlsAreServed: brainControlsAreServed(forge) };
+  return { shown: brainShownOf(brain, clock), controlsAreServed: ForgeContractUtil.brainCommandsAreServed(forge) };
 }
 
 function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {

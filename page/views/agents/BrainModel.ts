@@ -4,8 +4,7 @@
  * Wake and Stop exist only where the forge serves the brain's commands. Its times count from the forge's stamps for display and decide
  * nothing: the row leaves when the forge's document drops it.
  */
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
-import type { ForgeCommandBody }         from '../../@types/CommandDocument.ts';
+import type { ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentBrain,
@@ -121,14 +120,8 @@ function reportedBrainOf(forge: FleetDocumentForge | null): FleetDocumentBrain |
   return forge === null || forge.brain === 'not-reported' ? null : forge.brain;
 }
 
-/** The forge takes `forge-brain-start` and `forge-brain-stop` only at a control contract Gaia knows that carries them (G3). */
-function brainCommandsAreServed(forge: FleetDocumentForge): boolean {
-  const controlVersion = forge.contracts.control;
-  return ForgeContractUtil.controlContractIsKnown(forge) && controlVersion !== null && controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl;
-}
-
 function brainCommandButtonOf(forge: FleetDocumentForge, kind: BrainCommandKind, commandStates: CommandStates): BrainCommandButton | null {
-  if (!brainCommandsAreServed(forge)) return null;
+  if (!ForgeContractUtil.brainCommandsAreServed(forge)) return null;
   const { onItsWay } = CommandSender.stateOf(commandStates, { trackerId: forge.trackerId });
   return { command: { kind, trackerId: forge.trackerId }, disabled: onItsWay !== null };
 }

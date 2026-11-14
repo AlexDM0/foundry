@@ -1,14 +1,15 @@
 /**
  * What Gaia can do with a forge by its contracts. What matters: a forge opens in place only with the known embed contract and while it is
  * read in full or as last reported, so a forge read through its summary, or of a newer contract, never does; and only a control contract
- * Gaia sends to, the current one or the older one, is sent what an Overseer carries.
+ * Gaia sends to, the current one or the older one, is sent what an Overseer carries; the brain's commands go only to an Overseer that answers.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocumentForge }    from '../../@types/FleetDocument.ts';
-import { FLEET_DEGRADED }             from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_FIVE_FORGES_READINGS } from '../../testing/fixtures/fleet-five-forges.ts';
-import { ForgeContractUtil }          from './ForgeContractUtil.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
+import type { FleetDocumentForge }       from '../../@types/FleetDocument.ts';
+import { FLEET_DEGRADED }                from '../../testing/fixtures/fleet-degraded.ts';
+import { FLEET_FIVE_FORGES_READINGS }    from '../../testing/fixtures/fleet-five-forges.ts';
+import { ForgeContractUtil }             from './ForgeContractUtil.ts';
 
 const STOREFRONT = FLEET_FIVE_FORGES_READINGS.exampleStorefront;
 
@@ -41,5 +42,16 @@ describe('the control contract', () => {
     expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 2 } })).toBe(true);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Research Wiki'))).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
+  });
+});
+
+describe('the brain\'s commands', () => {
+  test('are served only by an Overseer that answers, at a known control contract that carries them', () => {
+    const atTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } };
+    expect(ForgeContractUtil.brainCommandsAreServed(atTheBrainContract)).toBe(true);
+    expect(ForgeContractUtil.brainCommandsAreServed({ ...atTheBrainContract, fidelity: 'unreachable' })).toBe(false);
+    const belowTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl - 1 } };
+    expect(ForgeContractUtil.brainCommandsAreServed(belowTheBrainContract)).toBe(false);
+    expect(ForgeContractUtil.brainCommandsAreServed(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });
 });

@@ -106,6 +106,14 @@ describe('the brain\'s row', () => {
     expect(brainRow?.stop).toEqual({ command: { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }, disabled: false });
   });
 
+  test('an unreachable forge\'s last-reported brain shows on its row and in its panel with no Stop, since no Overseer answers it', () => {
+    const unreachable = withForge(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront, (forge) => ({ ...forge, fidelity: 'unreachable' }));
+    const content = contentOf(unreachable, { selectedAgent: STOREFRONT_BRAIN });
+    const storefront = content.groups.find((group) => group.trackerId === TRACKER_IDS.exampleStorefront);
+    expect([storefront?.brainRow?.project, storefront?.brainRow?.stop]).toEqual(['Example Storefront', null]);
+    expect(content.selected.kind === 'brain-running' ? content.selected.stop : 'not the brain').toBeNull();
+  });
+
   test('its Stop is disabled while a command to its forge is on its way', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.exampleStorefront, { onItsWay: 'forge-brain-stop', failure: null, restartPending: false });
     expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront, { commandStates }).brainRow?.stop?.disabled).toBe(true);
