@@ -1,4 +1,6 @@
 /** The steps of reading and writing `settings.json`: find its version, validate version 1, map it in to `GaiaSettings` and back out. */
+import { isAbsolute } from 'node:path';
+
 import type { GaiaSettings, NotificationKind } from '../../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }                   from '../../../shared/constants/ContractVersions.ts';
 import { SETTINGS_CHOICES }                    from '../../../shared/constants/SettingsChoices.ts';
@@ -16,6 +18,11 @@ function ownValueOf(record: UnknownRecord, key: string): unknown {
 
 function isStringList(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+/** Gaia runs the program in each forge's root, so a path it stores never depends on the folder it runs in; the settings command holds the same. */
+function isForgeProgramPath(value: unknown): value is string | null {
+  return value === null || (typeof value === 'string' && value !== '' && isAbsolute(value));
 }
 
 function kindsOf(value: unknown): Record<NotificationKind, boolean> | null {
@@ -45,7 +52,7 @@ function storedSettingsOf(parsed: unknown): StoredSettingsVersion1 | null {
   const notifications      = ownValueOf(parsed, 'notifications');
   const startForgesAtLogin = ownValueOf(parsed, 'startForgesAtLogin');
   if (theme === undefined || !isStringList(hiddenTrackerIds) || typeof startForgesAtLogin !== 'boolean') return null;
-  if (forgeProgramPath !== null && typeof forgeProgramPath !== 'string') return null;
+  if (!isForgeProgramPath(forgeProgramPath)) return null;
   if (!isRecord(notifications)) return null;
   const enabled = ownValueOf(notifications, 'enabled');
   const kinds   = kindsOf(ownValueOf(notifications, 'kinds'));

@@ -1,6 +1,6 @@
 /**
- * The pure steps of the settings format: a version is a whole number or nothing, version 1 is accepted only whole and typed, and the
- * mapping in and back out keeps every key, so a stored file and the model never drift apart.
+ * The pure steps of the settings format: a version is a whole number or nothing, version 1 is accepted only whole and typed, a forge
+ * program path only absolute, and the mapping in and back out keeps every key, so a stored file and the model never drift apart.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -101,6 +101,11 @@ describe('storedSettingsOf', () => {
   test('accepts a null forge program path and refuses one that is neither text nor null', () => {
     expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', null))?.forgeProgramPath).toBeNull();
     expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', 42))).toBeNull();
+  });
+
+  test('refuses an empty or relative forge program path, as the command that sets it does', () => {
+    expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', ''))).toBeNull();
+    expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', 'bin/forge'))).toBeNull();
   });
 
   test('refuses a start-at-login choice that is not a boolean', () => {
