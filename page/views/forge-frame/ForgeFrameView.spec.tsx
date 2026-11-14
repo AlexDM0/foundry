@@ -4,7 +4,8 @@
  * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
  * with the arrow of "Open in new tab", and no theme button, over "Opening Example Storefront." while the frame session is asked for; an
  * unreachable forge shows B3's callout in the frame area; a forge without the embed channel says it cannot be shown inside Gaia; a command
- * on its way disables the bar's controls, and the forge's refusal shows under the bar; nothing of the frame is asked for or painted before
+ * on its way disables the bar's controls, and the forge's refusal shows under the bar; Flint's brain shows in the bar as the forge reports
+ * it, Wake waits while it is on its way, and a refused wake shows beside Wake, not under the bar; nothing of the frame is asked for or painted before
  * the first fleet document, and the page's markup carries no session code. `GaiaApp` is rendered with React's own server renderer, which
  * runs the hooks but no effect, so no frame session is asked while rendering; the surroundings fail a spec that asks one.
  */
@@ -19,6 +20,7 @@ import { createFleetSource }                                from '../../shell/Fl
 import { GaiaApp }                                          from '../../shell/GaiaApp.tsx';
 import { answerResponse, senderOver }                       from '../../testing/CommandServer.ts';
 import { shellSurroundingsAt }                              from '../../testing/ShellSurroundingsAt.ts';
+import { fleetWithStorefrontBrainOf }                       from '../../testing/fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                   from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../../testing/fixtures/fleet-five-forges.ts';
 
@@ -41,8 +43,8 @@ function figure(text: string): string {
 
 function buttonsIn(markup: string): string[] {
   const barControls = /<span class="gaia-forge-frame-bar-controls">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
-  return [...barControls.matchAll(/<button type="button" class="design-system-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
-    .map(([, disabled, label = '']) => `${label}${disabled === undefined ? '' : ' (disabled)'}`);
+  return [...barControls.matchAll(/<button type="button" class="design-system-button"([^>]*)>(?:<svg.*?<\/svg>|<span[^>]*><\/span>)?([^<]*)<\/button>/g)]
+    .map(([, attributes = '', label = '']) => `${label.replace('&#x27;', '\'')}${attributes.includes(' disabled=""') ? ' (disabled)' : ''}`);
 }
 
 describe('from Answer on E2 to Example Storefront in place', () => {
@@ -110,5 +112,61 @@ describe('the bar\'s commands', () => {
     const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender);
     expect(markup).toContain('The forge refused Stop: <span class="gaia-refusal-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+  });
+});
+
+describe('Flint\'s brain in the bar', () => {
+  const BRAIN_OFF = fleetWithStorefrontBrainOf('off');
+
+  test('a running brain at control contract 1 shows its chip with no Stop, as the five forges\' fixture publishes it', () => {
+    const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
+    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="running"><span class="gaia-brain-chip">');
+    expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+  });
+
+  test('at control contract 2 the running brain\'s Stop sits between the forge\'s Stop and Open in new tab', () => {
+    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, fleetWithStorefrontBrainOf('running')))).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
+  });
+
+  test('a brain that is off offers Wake, and the forge mark says a double click wakes it', () => {
+    const markup = markupAt(STOREFRONT_ON_E2, BRAIN_OFF);
+    expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
+    expect(markup).toContain('aria-label="Forge" width="22" height="22" viewBox="0 0 64 64"><title>Double-click to wake Flint&#x27;s brain</title>');
+  });
+
+  test('while the wake is on its way, Wake waits with the rest of the bar', () => {
+    const sender = senderOver([() => new Promise<Response>(() => undefined)]);
+    void sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
+    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, BRAIN_OFF, sender))).toEqual([
+      'Pause (disabled)', 'Stop (disabled)', 'Wake Flint\'s brain (disabled)', 'Open in new tab (disabled)',
+    ]);
+  });
+
+  test('a refused wake shows beside Wake, where it was asked, and not under the bar', async () => {
+    const refused: CommandAnswerDocument = {
+      answerVersion: 2, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
+    };
+    const sender = senderOver([async () => answerResponse(refused)]);
+    await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
+    const markup = markupAt(STOREFRONT_ON_E2, BRAIN_OFF, sender);
+    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="refused">');
+    expect(markup).toContain('title="The forge refused: the Overseer is paused overseer-paused"');
+    expect(markup).not.toContain('class="gaia-forge-frame-refusal"');
+    expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
+  });
+
+  test('a wake refused on Example Storefront is not Invoice Service\'s: its bar offers its own Wake, with no refusal', async () => {
+    const everyForgeServesTheBrain = {
+      ...BRAIN_OFF,
+      forges: BRAIN_OFF.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 2 } })),
+    };
+    const sender = senderOver([async () => answerResponse({
+      answerVersion: 2, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
+    })]);
+    await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
+    const markup = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, everyForgeServesTheBrain, sender);
+    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="off">');
+    expect(markup).not.toContain('gaia-brain-chip-refusal');
+    expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
   });
 });

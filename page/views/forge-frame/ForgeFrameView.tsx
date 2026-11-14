@@ -1,6 +1,7 @@
 /**
  * A forge in place, the root of `#forge/<trackerId>` (SCREENS B1). It reads the command sender, keeps the Stop question's state, and keeps
  * one frame session per Overseer: a new address or a new start of the forge's Overseer, as the fleet document reports it, mounts a new one.
+ * The bar's Wake, its Stop for Flint's brain and the forge mark's double click send the brain's commands for this forge alone.
  * The view heads itself with the forge's bar, so `forgeFrameViewPartsOf` hands the shell no page title, only the bar over the frame area.
  * A new fleet document changes both at once.
  */
@@ -23,6 +24,7 @@ import {
   ForgeBarLayout,
   type FrameAreaShown,
   ForgeFrameAreaLayout,
+  forgeMarkPropsOf,
 } from './ForgeFrameLayout.tsx';
 import {
   type ForgeBar,
@@ -64,27 +66,39 @@ function shownOf(state: ForgeFrameState): FrameAreaShown {
   }
 }
 
-function ForgeBarActions({ bar }: { readonly bar: ForgeBar }) {
+function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
   const { send, states } = useCommandSender();
   const [stopIsOpen, setStopIsOpen] = useState(false);
   const [stopAgents, setStopAgents] = useState<ForgeStopAgents>('keep');
-  const commandIsOnItsWay = CommandSender.stateOf(states, { trackerId: bar.trackerId }).onItsWay !== null;
+  const commandState = CommandSender.stateOf(states, { trackerId: bar.trackerId });
+  const commandIsOnItsWay = commandState.onItsWay !== null;
+  const brainShown = bar.brain === null ? null : ForgeFrameModel.brainShownAfter(bar.brain, commandState.failure);
+  const markWake = ForgeFrameModel.markWakeOf(bar.brain, brainShown);
+  const wakeBrain = (): void => void send({ kind: 'forge-brain-start', trackerId: bar.trackerId });
   return (
-    <ForgeBarControls
-      bar={bar}
-      commandIsOnItsWay={commandIsOnItsWay}
-      stopIsOpen={stopIsOpen}
-      stopAgents={stopAgents}
-      onCommand={(command) => {
-        if (command.kind === 'forge-stop') setStopIsOpen(false);
-        void send(command);
-      }}
-      onOpenStop={() => {
-        setStopAgents('keep');
-        setStopIsOpen((isOpen) => !isOpen);
-      }}
-      onChooseStop={setStopAgents}
-      onCancelStop={() => setStopIsOpen(false)}
+    <ForgeBarLayout
+      name={bar.project}
+      status={bar.status}
+      mark={forgeMarkPropsOf(markWake, commandIsOnItsWay, wakeBrain)}
+      controls={(
+        <ForgeBarControls
+          bar={bar}
+          brainShown={brainShown}
+          commandIsOnItsWay={commandIsOnItsWay}
+          stopIsOpen={stopIsOpen}
+          stopAgents={stopAgents}
+          onCommand={(command) => {
+            if (command.kind === 'forge-stop') setStopIsOpen(false);
+            void send(command);
+          }}
+          onOpenStop={() => {
+            setStopAgents('keep');
+            setStopIsOpen((isOpen) => !isOpen);
+          }}
+          onChooseStop={setStopAgents}
+          onCancelStop={() => setStopIsOpen(false)}
+        />
+      )}
     />
   );
 }
@@ -192,7 +206,7 @@ export function forgeFrameViewPartsOf(
     title: null, lead: '', figures: [], actions: null
   } as const;
   if (fleetDocument === null) {
-    return { ...selfHeaded, content: <div className="gaia-forge-frame-view"><ForgeBarLayout name={route.trackerId} status={null} controls={null} /></div> };
+    return { ...selfHeaded, content: <div className="gaia-forge-frame-view"><ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} /></div> };
   }
   const content = ForgeFrameModel.forgeFrameContentOf(route.trackerId, fleetDocument, clock);
   const { bar } = content;
@@ -200,11 +214,9 @@ export function forgeFrameViewPartsOf(
     ...selfHeaded,
     content: (
       <div className="gaia-forge-frame-view">
-        <ForgeBarLayout
-          name={bar === null ? route.trackerId : bar.project}
-          status={bar === null ? null : bar.status}
-          controls={bar === null ? null : <ForgeBarActions key={bar.trackerId} bar={bar} />}
-        />
+        {bar === null
+          ? <ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} />
+          : <ForgeBarWithControls key={bar.trackerId} bar={bar} />}
         <ForgeFrameContentView content={content} bridgeFragment={route.bridgeFragment} surroundings={surroundings} />
       </div>
     ),
