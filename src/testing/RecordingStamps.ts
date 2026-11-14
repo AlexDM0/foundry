@@ -1,8 +1,9 @@
 /**
  * The judgement of the recording-stamp check: from the recordings of one OS and the installed versions, which recordings are stale (a
  * failure, naming the command that records them again), which boundaries have no recording for the OS (not finished, listed), which
- * recordings are authored by hand (a failure for a forge recording, a warning for the rest), and which recordings it cannot judge because the
- * installed version of their system is read only by running it (listed with the command that records them again). It makes no real call.
+ * recordings are authored by hand (a failure for a forge recording, unless its boundary names the forge requirements it awaits; a warning
+ * for the rest), and which recordings it cannot judge because the installed version of their system is read only by running it (listed with
+ * the command that records them again). It makes no real call.
  */
 import {
   boundaryRecordingReadingOf,
@@ -44,10 +45,21 @@ function judgementOf(boundary: RecordedBoundary, input: RecordingStampInput, rec
         + `not for ${boundary.recordingName} on ${input.operatingSystem} with ${boundary.system}. ${recordAgain}`,
     };
   }
+  const requirementsAwaited = boundary.forgeRequirementsAwaited ?? [];
   if (stamp.source === 'authored') {
-    // The forge serves every contract Gaia reads (PLAN 10.3), so a forge answer written by hand is a defect, not a placeholder.
+    if (stamp.system === 'forge' && requirementsAwaited.length > 0) {
+      return { kind: 'authored', line: `${recordingPath} is authored from the forge requirements ${requirementsAwaited.join(', ')} and waits for a forge that serves them.` };
+    }
+    // Outside the requirements it awaits, the forge serves every contract Gaia reads, so a forge answer written by hand is a defect.
     if (stamp.system === 'forge') return { kind: 'stale', line: `${recordingPath} is authored by hand, and a forge recording must be recorded. ${recordAgain}` };
     return { kind: 'authored', line: `${recordingPath} is authored by hand and waits to be recorded from a real ${stamp.system}.` };
+  }
+  if (requirementsAwaited.length > 0) {
+    return {
+      kind: 'stale',
+      line: `${recordingPath} is recorded, and its boundary still awaits the forge requirements ${requirementsAwaited.join(', ')}: `
+        + `leave forgeRequirementsAwaited out of ${boundary.recordingName} in RECORDED_BOUNDARIES.`,
+    };
   }
   const installedVersion = input.installedVersionOf(stamp.system);
   if (installedVersion === null) {

@@ -70,9 +70,11 @@ forge; a program that is no forge on an Overseer's port is recorded from a local
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
-for the OS as not finished. The one recording stamped `authored` is a dialog only a person can answer: `bun run record path-chooser` asks
-the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its recording stays authored beside its spec and
-verify lists it as a warning. macOS's programs are stamped with the Darwin release. The forge's version is read only by running it:
+for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
+answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
+recording stays authored beside its spec. The other is `overseer-fetch-monitor-3`, the forge contracts of Flint's brain that no forge serves
+yet (`UPCOMING_CONTRACT_VERSIONS`): its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`),
+which alone lets a forge recording be authored, and verify fails while a recorded one still names them. macOS's programs are stamped with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through
 `src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a
 tracker never reaches a board above the scratch root (an Overseer it starts launches the forge's fake agent). It records the paths, tracker

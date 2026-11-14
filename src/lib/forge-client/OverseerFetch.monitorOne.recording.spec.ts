@@ -5,4 +5,4 @@
  */
 import { describeEveryContractRecording } from '../../testing/EveryContractRecording.ts';
 
-describeEveryContractRecording({ recordingName: 'overseer-fetch-monitor-1', monitorVersion: 1 });
+describeEveryContractRecording({ recordingName: 'overseer-fetch-monitor-1', monitorVersion: 1, controlVersion: 1 });

@@ -32,8 +32,9 @@ reads another `fleetVersion` is a stale page and reloads once.
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1 | `recordingVersion` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
-The forge's requirements F1 to F9 are the owner's to run on the forge's own board. Every fixture of a forge contract is recorded from a
-forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`.
+The forge's requirements F1 to F9 and G1 to G4 are the owner's to run on the forge's own board. Every fixture of a forge contract is
+recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`, except
+one of an upcoming version below, whose entry in `RECORDED_BOUNDARIES` names the requirements it waits on.
 
 ## Older versions Gaia still reads
 
@@ -44,6 +45,18 @@ ingestion to the current number's shape, and a mapper only ever sees the current
 | Key in `CONTRACT_VERSIONS` | Older version | What the migration does | Migrated by |
 | --- | --- | --- | --- |
 | `forgeMonitor` | 1 | A warning is the forge's sentence alone, so it reads as a warning of no kind, worded only by the command guard and firing no look; the current usage window is unknown, so `null`. An identity naming monitor 1 or 2 is read in full. | `src/adapters/forge-api/utils/MonitorSnapshotMigrationUtil.ts`, called by `MonitorSnapshotIngestion.ts` |
+
+## Upcoming versions Gaia does not read yet
+
+A contract the forge has not shipped is authored from its requirements before Gaia reads it, so the model and the page can be built
+against its answers. Gaia neither reads nor sends it yet: a reading at an upcoming number is refused as newer, and the number moves into
+`CONTRACT_VERSIONS` when its ingestion learns it. The numbers live once, in `UPCOMING_CONTRACT_VERSIONS`
+(`src/shared/constants/ContractVersions.ts`), and the same spec holds this table to it, both ways.
+
+| Key in `CONTRACT_VERSIONS` | Upcoming version | What it adds | Authored answers |
+| --- | --- | --- | --- |
+| `forgeMonitor` | 3 | `flintBrain` in the snapshot, `null` for a forge without Flint; an ended brain's activity entry and its tokens in the day's (G1, G2) | `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` |
+| `forgeControl` | 2 | the commands `flint-brain-start` and `flint-brain-stop`, and their refusals (G3) | the same recording, each command answer in its situation |
 
 ## The install version
 

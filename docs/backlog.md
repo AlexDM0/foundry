@@ -7,6 +7,11 @@ What is agreed and not started, with the reason it waits.
   because the shell (W4.2) landed before the command existed and no page item names the change.
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
+- **Record Flint's brain from a real forge.** `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` is authored from the forge's
+  requirements G1 to G3 (monitor contract 3 and control contract 2), which no forge serves yet. Once one does, `bun run record
+  overseer-fetch-monitor-3` takes it and `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec reaches a
+  running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or
+  to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one.
 - **The embed channel's messages are recorded from a real Bridge.** `page/testing/AuthoredBridge.ts` holds the Bridge's messages as
   authored from FORGE_REQUIREMENTS F5; they match the forge's `bridge/shell/VersionedEmbedChannel.ts` at 55beb9cd. The forge serves F5
   now, but a recording needs a recording boundary of its own: the browser framing a live Bridge from Gaia's origin and collecting what it

@@ -1,19 +1,20 @@
 /**
- * `docs/contracts.md` names every versioned contract with its number, and the older numbers Gaia still reads, and `CONTRACT_VERSIONS` and
- * `OLDER_CONTRACT_VERSIONS_READ` hold the numbers. What matters: each of the reference's two tables and its constant agree both ways, a key
- * or an older number missing from either side, a number that differs and a key listed twice each named. The reading first proves it found
- * each table, and each disagreement is planted to prove the comparison names it.
+ * `docs/contracts.md` names every versioned contract with its number, the older numbers Gaia still reads and the upcoming numbers it does not
+ * read yet, and `CONTRACT_VERSIONS`, `OLDER_CONTRACT_VERSIONS_READ` and `UPCOMING_CONTRACT_VERSIONS` hold the numbers. What matters: each of
+ * the reference's three tables and its constant agree both ways, a key or a number missing from either side, a number that differs and a
+ * key listed twice each named. The reading first proves it found each table, and each disagreement is planted to prove the comparison names it.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from './ContractVersions.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ, UPCOMING_CONTRACT_VERSIONS } from './ContractVersions.ts';
 
 const CONTRACTS_REFERENCE_PATH = join(import.meta.dir, '..', '..', '..', 'docs', 'contracts.md');
 const VERSIONED_CONTRACTS_HEADING = '## Versioned contracts';
 const OLDER_VERSIONS_HEADING = '## Older versions Gaia still reads';
+const UPCOMING_VERSIONS_HEADING = '## Upcoming versions Gaia does not read yet';
 const NEXT_SECTION_HEADING = /^## /;
 const CONTRACT_ROW = /^\|\s*`(?<contractKey>[A-Za-z]+)`\s*\|\s*(?<version>\d+)\s*\|/;
 
@@ -24,7 +25,7 @@ interface ReferenceRow {
 
 type KnownVersions = Readonly<Record<string, number>>;
 
-type OlderVersionsRead = Readonly<Record<string, readonly number[]>>;
+type ListedVersions = Readonly<Record<string, readonly number[]>>;
 
 function sectionOf(reference: string, heading: string): readonly string[] {
   const lines = reference.split('\n');
@@ -63,13 +64,13 @@ function disagreementsBetween(rows: readonly ReferenceRow[], knownVersions: Know
   return disagreements;
 }
 
-/** Each older number is named once on each side: `forgeMonitor 1`. */
-function olderVersionDisagreementsBetween(rows: readonly ReferenceRow[], olderVersions: OlderVersionsRead): readonly string[] {
+/** Each older or upcoming number is named once on each side: `forgeMonitor 1`. */
+function listedVersionDisagreementsBetween(rows: readonly ReferenceRow[], listedVersions: ListedVersions, constantName: string): readonly string[] {
   const listed = rows.map(({ contractKey, version }) => `${contractKey} ${version}`);
-  const known = Object.entries(olderVersions).flatMap(([contractKey, versions]) => versions.map((version) => `${contractKey} ${version}`));
+  const known = Object.entries(listedVersions).flatMap(([contractKey, versions]) => versions.map((version) => `${contractKey} ${version}`));
   return [
     ...listed.filter((entry, index) => listed.indexOf(entry) !== index).map((entry) => `${entry} is listed more than once`),
-    ...listed.filter((entry) => !known.includes(entry)).map((entry) => `${entry} is not in OLDER_CONTRACT_VERSIONS_READ`),
+    ...listed.filter((entry) => !known.includes(entry)).map((entry) => `${entry} is not in ${constantName}`),
     ...known.filter((entry) => !listed.includes(entry)).map((entry) => `${entry} is missing from the reference`),
   ];
 }
@@ -145,7 +146,10 @@ describe('the comparison of the reference with the known versions', () => {
 });
 
 describe('the comparison of the older versions the reference lists with those Gaia reads', () => {
-  const PLANTED_OLDER_VERSIONS: OlderVersionsRead = { exampleMonitor: [1] };
+  const PLANTED_OLDER_VERSIONS: ListedVersions = { exampleMonitor: [1] };
+  const olderVersionDisagreementsBetween = (rows: readonly ReferenceRow[], olderVersions: ListedVersions): readonly string[] => (
+    listedVersionDisagreementsBetween(rows, olderVersions, 'OLDER_CONTRACT_VERSIONS_READ')
+  );
   const olderRowsOf = (rowLines: readonly string[]): readonly ReferenceRow[] => referenceRowsOf(
     ['# Contracts', '', OLDER_VERSIONS_HEADING, '', '| Key | Older version |', '| --- | --- |', ...rowLines].join('\n'),
     OLDER_VERSIONS_HEADING,
@@ -178,13 +182,27 @@ describe('docs/contracts.md', () => {
   test('lists the older numbers Gaia still reads, and agrees with OLDER_CONTRACT_VERSIONS_READ on each, both ways', () => {
     const olderRows = referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'), OLDER_VERSIONS_HEADING);
     expect(olderRows.length).toBeGreaterThan(0);
-    expect(olderVersionDisagreementsBetween(olderRows, OLDER_CONTRACT_VERSIONS_READ)).toEqual([]);
+    expect(listedVersionDisagreementsBetween(olderRows, OLDER_CONTRACT_VERSIONS_READ, 'OLDER_CONTRACT_VERSIONS_READ')).toEqual([]);
   });
 
   test('names every older number below its contract\'s current one', () => {
     for (const [contractKey, versions] of Object.entries(OLDER_CONTRACT_VERSIONS_READ)) {
       const currentVersion = Object.hasOwn(CONTRACT_VERSIONS, contractKey) ? CONTRACT_VERSIONS[contractKey as keyof typeof CONTRACT_VERSIONS] : 0;
       for (const version of versions) expect(version).toBeLessThan(currentVersion);
+    }
+  });
+
+  test('lists the upcoming numbers Gaia does not read yet, and agrees with UPCOMING_CONTRACT_VERSIONS on each, both ways', () => {
+    const upcomingRows = referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'), UPCOMING_VERSIONS_HEADING);
+    const upcomingVersions = Object.fromEntries(Object.entries(UPCOMING_CONTRACT_VERSIONS).map(([contractKey, version]) => [contractKey, [version]]));
+    expect(upcomingRows.length).toBeGreaterThan(0);
+    expect(listedVersionDisagreementsBetween(upcomingRows, upcomingVersions, 'UPCOMING_CONTRACT_VERSIONS')).toEqual([]);
+  });
+
+  test('names every upcoming number above its contract\'s current one', () => {
+    for (const [contractKey, version] of Object.entries(UPCOMING_CONTRACT_VERSIONS)) {
+      const currentVersion = Object.hasOwn(CONTRACT_VERSIONS, contractKey) ? CONTRACT_VERSIONS[contractKey as keyof typeof CONTRACT_VERSIONS] : Number.POSITIVE_INFINITY;
+      expect(version).toBeGreaterThan(currentVersion);
     }
   });
 });

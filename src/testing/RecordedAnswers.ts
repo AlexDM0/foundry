@@ -49,6 +49,16 @@ export const OVERSEER_SITUATIONS = [
 
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];
 
+/** The states of Flint's brain on a forge at monitor contract 3 and control contract 2, each with the command answer that brought it there. */
+export const FLINT_BRAIN_SITUATIONS = [
+  'brain-running',
+  'brain-ended',
+  'brain-refused',
+  'no-flint',
+] as const;
+
+export type FlintBrainSituation = typeof FLINT_BRAIN_SITUATIONS[number];
+
 /** `stays-open`: after its chunks the stream sends nothing more and ends only when it is closed. */
 export type RecordedStreamEnding = 'closed' | 'broken' | 'stays-open';
 
@@ -86,6 +96,12 @@ export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-every
  */
 export const MONITOR_ONE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-1';
 
+/**
+ * The recording of a forge that serves monitor contract 3 and control contract 2, authored from the forge's requirements G1 to G3 until a
+ * forge serves them: the states of Flint's brain, read apart from the recordings above.
+ */
+export const MONITOR_THREE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-3';
+
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';
 const BEARER_SUFFIX = ' with bearer';
 const SITUATION_SEPARATOR = ': ';
@@ -100,7 +116,7 @@ export function streamCallShapeOf(request: Pick<OverseerStreamRequest, 'path' | 
   return `${STREAM_CALL_SHAPE_PREFIX}${request.path}${request.bearerToken === null ? '' : BEARER_SUFFIX}`;
 }
 
-export function situationCallShapeOf(situation: OverseerSituation, callShape: string): string {
+export function situationCallShapeOf(situation: OverseerSituation | FlintBrainSituation, callShape: string): string {
   return `${situation}${SITUATION_SEPARATOR}${callShape}`;
 }
 
@@ -157,7 +173,12 @@ export function everyRecordedMonitorOneAnswerOf(operatingSystem: string = proces
   return answersOfRecording(MONITOR_ONE_OVERSEER_RECORDING_NAME, operatingSystem);
 }
 
-function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
+/** Every answer of the monitor-3 recording for an OS, each call shape still led by its situation. */
+export function everyRecordedMonitorThreeAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfRecording(MONITOR_THREE_OVERSEER_RECORDING_NAME, operatingSystem);
+}
+
+function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situation: OverseerSituation | FlintBrainSituation): readonly RecordedOverseerAnswer[] {
   const situationPrefix = situationCallShapeOf(situation, '');
   return answers
     .filter(({ callShape }) => callShape.startsWith(situationPrefix))
@@ -172,6 +193,11 @@ export function recordedOverseerAnswersOf(situation: OverseerSituation, operatin
 /** The answers of one situation of the forge at monitor contract 1, each call shape without its situation. */
 export function recordedMonitorOneAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfSituation(everyRecordedMonitorOneAnswerOf(operatingSystem), situation);
+}
+
+/** The answers of one state of Flint's brain on a forge at monitor contract 3, each call shape without its situation. */
+export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfSituation(everyRecordedMonitorThreeAnswerOf(operatingSystem), situation);
 }
 
 function recordedStreamOf(chunks: readonly string[], ending: RecordedStreamEnding): { readonly stream: OverseerStream; readonly isLeftOpen: () => boolean } {

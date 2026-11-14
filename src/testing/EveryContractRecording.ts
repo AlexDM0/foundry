@@ -3,9 +3,10 @@
  * spec runs: `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` with the program of such a forge. It starts that
  * forge under a scratch home in a scratch repository as Example Storefront, and records what the boundary answers in each situation a
  * running forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered,
- * a board file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. The
- * values the run draws (paths, tracker id, port, process ids) are recorded as the Storefront's example values; the forge's install version
- * stamps the recording. Test-only.
+ * a board file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. From
+ * control contract 2 it also records the states of Flint's brain that the brain's commands bring it into. The values the run draws (paths,
+ * tracker id, port, process ids) are recorded as the Storefront's example values; the forge's install version stamps the recording.
+ * Test-only.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -30,6 +31,7 @@ import {
   requestCallShapeOf,
   situationCallShapeOf,
   streamCallShapeOf,
+  type FlintBrainSituation,
   type OverseerSituation,
   type RecordedStreamAnswer,
 } from './RecordedAnswers.ts';
@@ -57,6 +59,10 @@ const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The draft ticket, and the question the Overseer's first pass opens on a board with no checks set. */
 const SETTLED_ATTENTION_ENTRIES = 2;
 const SETTLING_EVENTS_AT_MOST = 40;
+/** The control contract that adds the commands of Flint's brain (G3). */
+const CONTROL_VERSION_OF_FLINT_BRAIN = 2;
+/** A brain the forge starts ends by itself after at most two minutes (G3), so its states are looked for within that and a margin. */
+const FLINT_BRAIN_TIMEOUT_MILLISECONDS = 180_000;
 
 interface KeptAnswer {
   readonly callShape: string;
@@ -67,9 +73,11 @@ export interface EveryContractRecording {
   readonly recordingName:  string;
   /** The monitor contract the forge recorded from serves: the identity names it and every snapshot carries it. */
   readonly monitorVersion: number;
+  /** The control contract the forge recorded from serves, which the identity names. */
+  readonly controlVersion: number;
 }
 
-export function describeEveryContractRecording({ recordingName, monitorVersion }: EveryContractRecording): void {
+export function describeEveryContractRecording({ recordingName, monitorVersion, controlVersion }: EveryContractRecording): void {
   let scratchForge: ScratchForge;
   let repository = '';
   let overseerUrl = '';
@@ -81,7 +89,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion }
   let tokenPath = '';
   const keptAnswers: KeptAnswer[] = [];
 
-  function keep(situation: OverseerSituation, callShape: string, answer: OverseerAnswer | RecordedStreamAnswer): void {
+  function keep(situation: OverseerSituation | FlintBrainSituation, callShape: string, answer: OverseerAnswer | RecordedStreamAnswer): void {
     keptAnswers.push({ callShape: situationCallShapeOf(situation, callShape), answer });
   }
 
@@ -159,6 +167,28 @@ export function describeEveryContractRecording({ recordingName, monitorVersion }
     }
   }
 
+  /** Reads the stream until a snapshot shows Flint's brain in `state`, and keeps what the stream, the monitor and the identity answer then. */
+  async function keepTheBrainOnceItIs(situation: FlintBrainSituation, state: string): Promise<void> {
+    const stream = await openedStream(bearerToken);
+    const chunks: string[] = [];
+    try {
+      const brainIsInState = (snapshot: Record<string, unknown>): boolean => (snapshot['flintBrain'] as { state?: unknown } | null)?.state === state;
+      for (let event = 1; !snapshotsIn(chunks).some(brainIsInState); event += 1) {
+        if (event > SETTLING_EVENTS_AT_MOST) throw new Error(`Flint's brain was not ${state} within ${SETTLING_EVENTS_AT_MOST} monitor events.`);
+        const { chunks: eventChunks, ending } = await chunksUntil(stream, 1);
+        chunks.push(...eventChunks);
+        if (ending !== null) throw new Error(`The monitor stream ended ${ending} before Flint's brain was ${state}.`);
+      }
+    } finally {
+      stream.close();
+    }
+    keep(situation, streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending: 'stays-open' });
+    const monitorRequest = requestOf('GET', '/api/monitor', bearerToken);
+    keep(situation, requestCallShapeOf(monitorRequest), await realOverseerFetch().request(monitorRequest));
+    const identityRequest = requestOf('GET', '/api/identity', null);
+    keep(situation, requestCallShapeOf(identityRequest), await realOverseerFetch().request(identityRequest));
+  }
+
   function exampleAnswerOf(answer: OverseerAnswer | RecordedStreamAnswer): OverseerAnswer | RecordedStreamAnswer {
     if (answer.verdict === 'answered') return { ...answer, bodyText: scratchForge.exampleTextOf(answer.bodyText) };
     if (answer.verdict === 'streaming') return { ...answer, chunks: answer.chunks.map((chunk) => scratchForge.exampleTextOf(chunk)) };
@@ -190,7 +220,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion }
   }, SETUP_TIMEOUT_MILLISECONDS);
 
   describe('a forge that serves every contract', () => {
-    test(`answers its identity with identityVersion 1, monitor contract ${monitorVersion} and every other contract at 1`, async () => {
+    test(`answers its identity with identityVersion 1, monitor contract ${monitorVersion}, control contract ${controlVersion} and every other contract at 1`, async () => {
       const identityRequest = requestOf('GET', '/api/identity', null);
       const answer = await realOverseerFetch().request(identityRequest);
       expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
@@ -198,7 +228,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion }
       expect(identity).toMatchObject({
         identityVersion: 1,
         contracts:       {
-          summary: 1, monitor: monitorVersion, control: 1, embed: 1
+          summary: 1, monitor: monitorVersion, control: controlVersion, embed: 1
         }
       });
       recordSystemVersion(recordingName, `install version ${String(identity['installVersion'])}, code ${String(identity['codeVersion'])}`);
@@ -260,6 +290,33 @@ export function describeEveryContractRecording({ recordingName, monitorVersion }
       keep('machine-limit-lowered', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending: 'stays-open' });
       // The situations after this one are recorded at the machine's own limit, its CPU count, again.
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: cpuCount })).toMatchObject({ verdict: 'answered', status: 200 });
+    });
+
+    describe.if(controlVersion >= CONTROL_VERSION_OF_FLINT_BRAIN)('Flint\'s brain', () => {
+      const commandShape = (): string => requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken));
+
+      test('answers a start of the brain done, and serves the brain running', async () => {
+        const answer = await sendCommand({ kind: 'flint-brain-start' });
+        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
+        keep('brain-running', commandShape(), answer);
+        await keepTheBrainOnceItIs('brain-running', 'running');
+      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
+
+      test('answers a stop of the running brain done, and serves the brain ended', async () => {
+        const answer = await sendCommand({ kind: 'flint-brain-stop' });
+        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
+        keep('brain-ended', commandShape(), answer);
+        await keepTheBrainOnceItIs('brain-ended', 'ended');
+      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
+
+      // The forge's requirements name no way to hold a scratch forge's usage limit or to run it without Flint, so these refuse to record.
+      test('refuses a start while the usage limit holds, and serves the brain refused', () => {
+        throw new Error('No requirement of the forge says how a scratch forge holds its usage limit: `brain-refused` stays authored.');
+      });
+
+      test('refuses a start without Flint, and serves no brain', () => {
+        throw new Error('No requirement of the forge says how a scratch forge runs without Flint: `no-flint` stays authored.');
+      });
     });
 
     test('answers its refusal to the summary and the monitor while its board file cannot be read, and what its stream answers then', async () => {

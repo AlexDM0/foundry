@@ -2,15 +2,22 @@
  * The overseer-fetch mock must answer exactly what was recorded for a situation, and fail the spec on everything it cannot
  * answer from a recording: a call with no answer, an address the real boundary throws on, a bound of zero, an answer set with two answers
  * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
- * open is counted until it is closed or read to its end, as the real connection stays open.
+ * open is counted until it is closed or read to its end, as the real connection stays open. Every number of the monitor and control
+ * contracts Gaia knows, reads or builds toward has a recording, and each state of Flint's brain a whole answer set at monitor 3.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { OverseerRequest, OverseerStreamRequest } from '../lib/forge-client/OverseerFetch.ts';
 
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ, UPCOMING_CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
+
 import {
+  everyRecordedMonitorOneAnswerOf,
+  everyRecordedMonitorThreeAnswerOf,
   everyRecordedOverseerAnswerOf,
+  FLINT_BRAIN_SITUATIONS,
   OVERSEER_SITUATIONS,
+  recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
   requestCallShapeOf,
@@ -64,6 +71,79 @@ describe('the recorded overseer answers', () => {
   test('fail the spec for an OS with no recording, naming the command that takes it', () => {
     expect(() => recordedOverseerAnswersOf('serving', 'example-os')).toThrow('overseer-fetch has no recording for example-os');
     expect(() => recordedOverseerAnswersOf('serving', 'example-os')).toThrow('`bun run record overseer-fetch`');
+  });
+});
+
+function documentsAnsweredIn(answers: readonly RecordedOverseerAnswer[]): readonly Record<string, unknown>[] {
+  return answers.flatMap(({ answer }) => {
+    const bodyTexts = answer.verdict === 'answered' ? [answer.bodyText] : [];
+    const streamLines = answer.verdict === 'streaming' ? answer.chunks.join('').split('\n') : [];
+    const eventTexts = streamLines.filter((line) => line.startsWith('data: ')).map((line) => line.slice('data: '.length));
+    return [...bodyTexts, ...eventTexts].flatMap((documentText) => {
+      try {
+        const document: unknown = JSON.parse(documentText);
+        return typeof document === 'object' && document !== null && !Array.isArray(document) ? [document as Record<string, unknown>] : [];
+      } catch {
+        return [];
+      }
+    });
+  });
+}
+
+describe('the recorded forge contracts', () => {
+  const everyDocument = (): readonly Record<string, unknown>[] => documentsAnsweredIn([
+    ...everyRecordedOverseerAnswerOf(),
+    ...everyRecordedMonitorOneAnswerOf(),
+    ...everyRecordedMonitorThreeAnswerOf(),
+  ]);
+
+  test('hold a snapshot at every monitor number Gaia reads, still reads or builds toward', () => {
+    const monitorVersions = new Set(everyDocument().map((document) => document['monitorVersion']));
+    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor, UPCOMING_CONTRACT_VERSIONS.forgeMonitor];
+    for (const version of knownVersions) expect([version, monitorVersions.has(version)]).toEqual([version, true]);
+  });
+
+  test('hold an identity naming, and a command answered at, every control number Gaia sends or builds toward', () => {
+    const documents = everyDocument();
+    const identityControlVersions = new Set(documents.map((document) => (document['contracts'] as { control?: unknown } | undefined)?.control));
+    const answerControlVersions = new Set(documents.map((document) => document['controlVersion']));
+    for (const version of [CONTRACT_VERSIONS.forgeControl, UPCOMING_CONTRACT_VERSIONS.forgeControl]) {
+      expect([version, identityControlVersions.has(version), answerControlVersions.has(version)]).toEqual([version, true, true]);
+    }
+  });
+});
+
+describe('the recorded states of Flint\'s brain', () => {
+  test('lead every call shape with a state of the brain, once', () => {
+    const callShapes = everyRecordedMonitorThreeAnswerOf().map(({ callShape }) => callShape);
+    for (const callShape of callShapes) expect(FLINT_BRAIN_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))).toBe(true);
+    expect(new Set(callShapes).size).toBe(callShapes.length);
+  });
+
+  test('hold for each state the identity, the monitor, its stream and the command that brought the brain there', () => {
+    for (const situation of FLINT_BRAIN_SITUATIONS) {
+      expect([situation, recordedFlintBrainAnswersOf(situation).map(({ callShape }) => callShape).sort()]).toEqual([situation, [
+        'GET /api/identity',
+        'GET /api/monitor with bearer',
+        'POST /api/commands with bearer',
+        MONITOR_STREAM_CALL_SHAPE,
+      ]]);
+    }
+  });
+
+  test('serve the brain running, ended, refused with usage-limit-holds, and absent as null, each at monitor 3 beside control 2', () => {
+    const brainOf = (situation: typeof FLINT_BRAIN_SITUATIONS[number]): unknown => {
+      const snapshots = documentsAnsweredIn(recordedFlintBrainAnswersOf(situation)).filter((document) => Object.hasOwn(document, 'monitorVersion'));
+      for (const snapshot of snapshots) expect(snapshot['monitorVersion']).toBe(UPCOMING_CONTRACT_VERSIONS.forgeMonitor);
+      return snapshots.map((snapshot) => snapshot['flintBrain']);
+    };
+    expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);
+    expect(brainOf('brain-ended')).toEqual([expect.objectContaining({ state: 'ended', endedReason: 'stopped' }), expect.objectContaining({ state: 'ended' })]);
+    expect(brainOf('brain-refused')).toEqual([
+      expect.objectContaining({ state: 'refused', refusal: expect.objectContaining({ code: 'usage-limit-holds' }) }),
+      expect.objectContaining({ state: 'refused' }),
+    ]);
+    expect(brainOf('no-flint')).toEqual([null, null]);
   });
 });
 

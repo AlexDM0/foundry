@@ -5,4 +5,8 @@
 import { CONTRACT_VERSIONS }              from '../../shared/constants/ContractVersions.ts';
 import { describeEveryContractRecording } from '../../testing/EveryContractRecording.ts';
 
-describeEveryContractRecording({ recordingName: 'overseer-fetch-every-contract', monitorVersion: CONTRACT_VERSIONS.forgeMonitor });
+describeEveryContractRecording({
+  recordingName:  'overseer-fetch-every-contract',
+  monitorVersion: CONTRACT_VERSIONS.forgeMonitor,
+  controlVersion: CONTRACT_VERSIONS.forgeControl,
+});
