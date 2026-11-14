@@ -77,7 +77,7 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `Frame
 | HTTP to an Overseer | `src/lib/forge-client/OverseerFetch.ts` |
 | The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
-| The Notification API | `page/notifications/NotificationBoundary.ts` |
+| The Notification API | none yet: no page code reaches it; notifications (W5.6 in the backlog) bring `page/notifications/NotificationBoundary.ts` |
 | A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge-frame/EmbedChannel.ts` |
 | The clock | an injected `now` and injected timers; the clock, wall and monotonic, is read only in `src/services/Clock.ts` |
 
