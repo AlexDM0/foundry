@@ -61,7 +61,7 @@ function ModelLine({ content }: { readonly content: RunningBrain }) {
             level={effortLevel}
             levelCount={BRAIN_EFFORT_LEVEL_COUNT}
             accessibleName={`Model ${model}, effort ${effort}`}
-            size="node"
+            size="hero"
           />
         )
         : <span className="gaia-agents-panel-brain-model-words">{[model, effort].filter((word) => word !== null).join(' · ')}</span>}
