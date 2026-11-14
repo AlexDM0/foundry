@@ -7,14 +7,14 @@
 import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
 import type { ForgeProgram, ForgeProgramTarget }                     from '../../adapters/forge-program/ForgeProgram.ts';
 import type { RegisteredForge, RegisteredOverseer }                  from '../../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }                                      from '../../adapters/forge-registry/RegistryFile.ts';
+import { registeredForgesOf, type RegistryReading }                  from '../../adapters/forge-registry/RegistryFile.ts';
 import type { PathChoiceVerdict }                                    from '../../adapters/path-chooser/@types/PathChoiceVerdict.ts';
 import type { PathChooser }                                          from '../../adapters/path-chooser/PathChooser.ts';
 import type { ForgeCommandAnswer }                                   from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeControlCommand }                                  from '../../lib/forge-client/@types/ForgeControlCommand.ts';
 import type { ForgeClient }                                          from '../../lib/forge-client/ForgeClient.ts';
 import type { SettingsStore, SettingsUpdate, SettingsUpdateVerdict } from '../../services/SettingsStore.ts';
-import type { CommandVerdict, GaiaRefusal }                          from '../../shared/@types/CommandVerdict.ts';
+import type { CommandVerdict, GaiaRefusal, RegistryRefusal }         from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeFidelity, ForgeReading }                          from '../../shared/@types/ForgeReading.ts';
 import type {
   ForgeCommand,
@@ -63,7 +63,8 @@ const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.fo
 
 /**
  * `api`: the Overseer answers and speaks a control contract Gaia sends to, named by `controlVersion`. `control-unknown`: it answers in
- * another contract or names none. `no-overseer`: no Overseer answered the last read.
+ * another contract or names none. `no-overseer`: no Overseer answered the last read, or the registry now names another address than the
+ * one the watch read, so the contract read is not that Overseer's.
  */
 type ApiReach =
   | { readonly reach: 'api'; readonly overseer: RegisteredOverseer; readonly controlVersion: number }
@@ -76,7 +77,7 @@ function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
 
 function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiReach {
   const { overseer } = forge;
-  if (overseer === null || reading === null || reading.url === null || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { reach: 'no-overseer' };
+  if (overseer === null || reading === null || reading.url !== overseer.url || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { reach: 'no-overseer' };
   const controlVersion = reading.contracts.control;
   return controlVersion !== null && CONTROL_VERSIONS_SENT.has(controlVersion) ? { reach: 'api', overseer, controlVersion } : { reach: 'control-unknown' };
 }
@@ -169,9 +170,8 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
   const { forgeClient, forgeProgram, settingsStore } = options;
   const subjectsWithCommandInFlight = new Set<string>();
 
-  async function registeredForges(): Promise<readonly RegisteredForge[]> {
-    const registryReading = await options.readRegistry();
-    return registryReading.verdict === 'readable' ? registryReading.forges : [];
+  async function registeredForges(): Promise<readonly RegisteredForge[] | RegistryRefusal> {
+    return registeredForgesOf(await options.readRegistry());
   }
 
   function readingOf(trackerId: string): ForgeReading | null {
@@ -241,6 +241,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
    */
   async function setMachineLimit(limit: number): Promise<CommandVerdict> {
     const forges = await registeredForges();
+    if (typeof forges === 'string') return gaiaRefusalOf(forges);
     for (const forge of forges) {
       const apiReach = apiReachOf(forge, readingOf(forge.trackerId));
       if (apiReach.reach !== 'api') continue;
@@ -265,8 +266,10 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
   async function setStartForgesAtLogin(startForgesAtLogin: boolean): Promise<CommandVerdict> {
     if (settingsStore.settings().startForgesAtLogin === startForgesAtLogin) return { verdict: 'nothing-to-do' };
     if (settingsStore.fileState() === 'newer-version') return gaiaRefusalOf('settings-newer-version');
+    const registeredForgeList = await registeredForges();
+    if (typeof registeredForgeList === 'string') return gaiaRefusalOf(registeredForgeList);
     const forgeFidelities = startForgesAtLogin ? RUNNING_FOR_LOGIN_ITEMS_AT : LOGIN_ITEM_REMOVED_AT;
-    const forges = (await registeredForges()).filter((forge) => {
+    const forges = registeredForgeList.filter((forge) => {
       const reading = readingOf(forge.trackerId);
       return reading !== null && forgeFidelities.has(reading.fidelity);
     });
@@ -284,7 +287,9 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
 
   async function carryForForge(command: ForgeCommand): Promise<CommandVerdict> {
     if (command.kind === 'forge-unhide') return verdictOfSettingsUpdate(await settingsStore.update(showingAgain(command.trackerId)));
-    const forge = (await registeredForges()).find((registeredForge) => registeredForge.trackerId === command.trackerId);
+    const forges = await registeredForges();
+    if (typeof forges === 'string') return gaiaRefusalOf(forges);
+    const forge = forges.find((registeredForge) => registeredForge.trackerId === command.trackerId);
     if (forge === undefined) return gaiaRefusalOf('forge-not-registered');
     const reading = readingOf(command.trackerId);
     switch (command.kind) {

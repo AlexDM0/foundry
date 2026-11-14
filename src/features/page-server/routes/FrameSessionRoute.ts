@@ -3,15 +3,15 @@
  * token, and answers the Bridge's address with `?embedded=gaia` and that code in its fragment, which the page sets as the frame's `src`.
  * The token travels only as the bearer of that one request: it reaches no answer and no log line.
  */
-import { OverseerTokenFile }                from '../../../adapters/forge-api/OverseerTokenFile.ts';
-import type { RegisteredOverseer }          from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }             from '../../../adapters/forge-registry/RegistryFile.ts';
-import { FrameSessionAnswerMapUtil }        from '../../../adapters/page-api/FrameSessionAnswerMapUtil.ts';
-import type { ForgeSessionCodeAnswer }      from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeClient }                 from '../../../lib/forge-client/ForgeClient.ts';
-import type { ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
-import type { FrameSessionVerdict }         from '../../../shared/@types/FrameSessionVerdict.ts';
-import { CONTRACT_VERSIONS }                from '../../../shared/constants/ContractVersions.ts';
+import { OverseerTokenFile }                        from '../../../adapters/forge-api/OverseerTokenFile.ts';
+import type { RegisteredOverseer }                  from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
+import { registeredForgesOf, type RegistryReading } from '../../../adapters/forge-registry/RegistryFile.ts';
+import { FrameSessionAnswerMapUtil }                from '../../../adapters/page-api/FrameSessionAnswerMapUtil.ts';
+import type { ForgeSessionCodeAnswer }              from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeClient }                         from '../../../lib/forge-client/ForgeClient.ts';
+import type { ForgeFidelity, ForgeReading }         from '../../../shared/@types/ForgeReading.ts';
+import type { FrameSessionVerdict }                 from '../../../shared/@types/FrameSessionVerdict.ts';
+import { CONTRACT_VERSIONS }                        from '../../../shared/constants/ContractVersions.ts';
 
 export interface FrameSessionSources {
   /** Read at each request, so the Overseer's address and token file are the ones the registry names now. */
@@ -82,13 +82,17 @@ async function sessionCodeVerdictOf(overseer: RegisteredOverseer, forgeClient: F
   return verdictOfSessionCodeAnswer(overseer.url, await forgeClient.sessionCodeOf({ overseerUrl: overseer.url, bearerToken }));
 }
 
-/** The contract check comes before the token is read: a forge with no embed channel Gaia knows is asked for nothing. */
+/**
+ * The contract check comes before the token is read: a forge with no embed channel Gaia knows is asked for nothing. The embed channel
+ * checked is the one the watch read, so an Overseer the registry now names at another address is not asked until the watch reads it.
+ */
 export async function frameSessionVerdictFor(trackerId: string, sources: FrameSessionSources): Promise<FrameSessionVerdict> {
-  const registryReading = await sources.readRegistry();
-  const forge = registryReading.verdict === 'readable' ? registryReading.forges.find((registered) => registered.trackerId === trackerId) : undefined;
+  const forges = registeredForgesOf(await sources.readRegistry());
+  if (typeof forges === 'string') return { verdict: 'refused', refusedBy: 'gaia', refusal: forges };
+  const forge = forges.find((registered) => registered.trackerId === trackerId);
   if (forge === undefined) return { verdict: 'refused', refusedBy: 'gaia', refusal: 'forge-not-registered' };
   const reading = sources.readings().find((watched) => watched.trackerId === trackerId);
-  if (forge.overseer === null || reading === undefined || reading.url === null || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { verdict: 'unreachable' };
+  if (forge.overseer === null || reading === undefined || reading.url !== forge.overseer.url || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { verdict: 'unreachable' };
   if (reading.contracts.embed !== CONTRACT_VERSIONS.forgeEmbedChannel) return { verdict: 'not-supported' };
   return sessionCodeVerdictOf(forge.overseer, sources.forgeClient);
 }

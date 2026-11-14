@@ -173,6 +173,8 @@ const SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT = 3;
 /** Gaia's own reasons for no frame session, worded where the forge sent no sentence. */
 const FRAME_SESSION_REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
   'forge-not-registered':       'The registry does not name this forge.',
+  'registry-unreadable':        'Gaia could not read the forges\' registry.',
+  'registry-newer-version':     'The forges\' registry is newer than this Gaia reads.',
   'token-unreadable':           'Gaia could not read this forge\'s token.',
   'token-rejected':             'The forge did not accept Gaia\'s token.',
   'server-unreachable':         'Gaia\'s server could not be reached.',

@@ -1,10 +1,11 @@
 /** How Gaia ended one request for a forge's frame session (PLAN 8.3). Internal only, so it carries no version. */
+import type { RegistryRefusal } from './CommandVerdict.ts';
 
 /**
- * `forge-not-registered`: the registry names no such forge. `token-unreadable`: the Overseer's token file cannot be read.
+ * `forge-not-registered`: the registry Gaia read names no such forge. `token-unreadable`: the Overseer's token file cannot be read.
  * `token-rejected`: the Overseer refused the token.
  */
-export type FrameSessionRefusal = 'forge-not-registered' | 'token-unreadable' | 'token-rejected';
+export type FrameSessionRefusal = 'forge-not-registered' | RegistryRefusal | 'token-unreadable' | 'token-rejected';
 
 /**
  * `opened`: the forge gave a session code, and `frameUrl` holds it. `unreachable`: no Overseer of the forge answers. `not-supported`: the

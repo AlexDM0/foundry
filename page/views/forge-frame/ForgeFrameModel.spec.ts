@@ -446,4 +446,10 @@ describe('the reason there is no frame session', () => {
     expect(ForgeFrameModel.frameSessionRefusalTextOf('session-lost-while-opening', null).sentence).toBe('The Bridge lost its session as it opened.');
     expect(ForgeFrameModel.frameSessionRefusalTextOf('constructor', null).sentence).toBe('Gaia could not open a session in this forge.');
   });
+
+  test('names a registry Gaia cannot read, or one newer than it reads, apart from a registry that does not name the forge', () => {
+    expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-unreadable', null).sentence).toBe('Gaia could not read the forges\' registry.');
+    expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-newer-version', null).sentence).toBe('The forges\' registry is newer than this Gaia reads.');
+    expect(ForgeFrameModel.frameSessionRefusalTextOf('forge-not-registered', null).sentence).toBe('The registry does not name this forge.');
+  });
 });

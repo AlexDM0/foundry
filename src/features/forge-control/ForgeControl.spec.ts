@@ -1,12 +1,13 @@
 /**
- * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a
- * scratch home: one spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code
- * and sentence passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract
- * Gaia does not know, the guard that sends Flint's brain's commands only at control 2 and refuses them with brain-not-served under 1, a
- * stop and a machine limit that fall back to the program when no Overseer answers, an add that runs `init`, then `start`, and stops at the
- * first refusal, settings changed one key at a time, "Start at login" written as each forge's login item before the setting is kept and
- * undone when a forge refuses, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one
- * repository, the machine limit, the chooser and the login items, and leaves the others free.
+ * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
+ * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
+ * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
+ * know, the guard that sends Flint's brain's commands only at control 2 and refuses them with brain-not-served under 1, a stop and a
+ * machine limit that fall back to the program, or the next live forge, when no Overseer answers or no token can be read, a command sent
+ * only to the Overseer at the address the watch read, a registry Gaia cannot read refused with its reason, an add that runs `init`, then
+ * `start`, and stops at the first refusal, settings changed one key at a time, "Start at login" written as each forge's login item before
+ * the setting is kept and turned back when a forge or the settings write refuses, a cancelled chooser that answers nothing-to-do, and the
+ * in-flight rule, which holds one forge, one repository, the machine limit, the chooser and the login items, and leaves the others free.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -101,7 +102,7 @@ interface ForgeOptions {
   readonly root?:      string;
   readonly state?:     ForgeState;
   readonly program?:   string | null;
-  readonly tokenPath?: string;
+  readonly tokenPath?: string | null;
 }
 
 interface ExampleForge {
@@ -124,7 +125,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
       url:       isWiki ? WIKI_URL : STOREFRONT_URL,
       processId: 48_107,
       startedAt: '2026-11-12T09:12:00.000Z',
-      tokenPath: forgeOptions.tokenPath ?? tokenPath,
+      tokenPath: forgeOptions.tokenPath === undefined ? tokenPath : forgeOptions.tokenPath,
     } : null,
   };
   const dormantReading = WatchReadingUtil.dormantReadingOf(entry, null);
@@ -240,6 +241,13 @@ function liveForgeAtControl(controlVersion: number): ExampleForge {
   return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 3, control: controlVersion } } };
 }
 
+/** The forge as the watch last read it, while the registry already names its Overseer at another address. */
+function forgeMovedSinceTheWatchRead(): ExampleForge {
+  const forge = exampleForgeOf();
+  const overseer = forge.entry.overseer === null ? null : { ...forge.entry.overseer, url: 'http://127.0.0.1:4961/' };
+  return { ...forge, entry: { ...forge.entry, overseer } };
+}
+
 function sentBodiesOf(overseerFetch: RecordedOverseerFetch): readonly unknown[] {
   return overseerFetch.callsAnswered().map((call) => (call.jsonBody === null ? null : JSON.parse(call.jsonBody) as unknown));
 }
@@ -331,6 +339,15 @@ describe('forge-stop, carried by the API while the Overseer answers, else by the
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedProgramRefusal(['stop', '--json']) });
   });
 
+  test('runs `forge stop --json`, and sends the API nothing, when the registry names the Overseer at another address than the watch read', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const verdict = await controlOver({ forges: [forgeMovedSinceTheWatchRead()], overseerFetch, processRun }).carry(STOP_KEEPING_AGENTS);
+    expect(verdict).toEqual({ verdict: 'done' });
+    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json'])]);
+  });
+
   test('sends nothing and runs nothing for a live forge whose control contract Gaia does not know', async () => {
     const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })] }).carry(STOP_KEEPING_AGENTS);
     expect(verdict).toEqual({ verdict: 'not-supported' });
@@ -393,6 +410,12 @@ describe('forge-pause, forge-resume and forge-restart, carried by the API', () =
 
   test('answers unreachable and sends nothing to a dormant forge', async () => {
     expect(await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
+  });
+
+  test('answers unreachable and sends nothing when the registry names the Overseer at another address than the watch read', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    expect(await controlOver({ forges: [forgeMovedSinceTheWatchRead()], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
+    expect(overseerFetch.callsAnswered()).toEqual([]);
   });
 });
 
@@ -493,9 +516,36 @@ describe('a forge the registry does not name', () => {
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'forge-not-registered' });
   });
 
-  test('refuses every forge command while the registry cannot be read', async () => {
-    const verdict = await controlOver({ registry: { verdict: 'unreadable', reason: 'not-json', failure: null } }).carry(START);
-    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'forge-not-registered' });
+  test('refuses a forge command with forge-not-registered while there is no registry yet', async () => {
+    expect(await controlOver({ registry: { verdict: 'absent' } }).carry(START)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'forge-not-registered' });
+  });
+});
+
+describe('a registry Gaia cannot read', () => {
+  const UNREADABLE_REGISTRY: RegistryReading = { verdict: 'unreadable', reason: 'not-json', failure: null };
+  const NEWER_REGISTRY: RegistryReading = { verdict: 'newer-version', version: 2 };
+
+  test('refuses every forge command with registry-unreadable, or registry-newer-version, though the watch still shows the forge', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    expect(await controlOver({ registry: UNREADABLE_REGISTRY, processRun }).carry(START)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'registry-unreadable' });
+    expect(await controlOver({ registry: NEWER_REGISTRY, processRun }).carry(PAUSE)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'registry-newer-version' });
+    expect(processRun.callShapesAnswered()).toEqual([]);
+  });
+
+  test('refuses the machine limit with the registry\'s reason, and runs no program', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const verdict = await controlOver({ registry: NEWER_REGISTRY, processRun }).carry({ kind: 'machine-agent-limit-set', limit: 4 });
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'registry-newer-version' });
+    expect(processRun.callShapesAnswered()).toEqual([]);
+  });
+
+  test('refuses "Start at login" with the registry\'s reason, runs no forge and keeps the setting as it was', async () => {
+    const processRun = recordedForgeProgramRunOf('every-verb-done');
+    const settingsStore = settingsStoreInScratch();
+    const verdict = await controlOver({ registry: UNREADABLE_REGISTRY, processRun, settingsStore }).carry(START_AT_LOGIN_ON);
+    expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'registry-unreadable' });
+    expect(processRun.callShapesAnswered()).toEqual([]);
+    expect(settingsStore.settings().startForgesAtLogin).toBe(false);
   });
 });
 

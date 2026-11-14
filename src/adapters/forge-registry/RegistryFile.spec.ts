@@ -1,8 +1,8 @@
 /**
  * The registry's ingestion, over the registry a forge wrote for five boards (recorded) and variants of it written to the scratch root: the
  * recording maps to five forges in its order, an entry from a forge before F4 or F9 maps its token file or program as unknown, a newer
- * version maps nothing, a malformed entry is left out and named while the rest map, and every file that is no registry at version 1
- * answers a verdict, never a throw.
+ * version maps nothing, a malformed entry is left out and named while the rest map, every file that is no registry at version 1
+ * answers a verdict, never a throw, and a registry Gaia cannot read names no forge but the reason.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -14,10 +14,10 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchPath }    from '../../testing/ScratchRoot.ts';
-import type { RegisteredForge }                         from './@types/RegisteredForge.ts';
-import { RegistryFile, registryFilePathIn }             from './RegistryFile.ts';
-import { REGISTRY_RECORDING, recordedRegistryDocument } from './testing/RecordedRegistry.ts';
+import { createScratchDirectory, removeScratchPath }            from '../../testing/ScratchRoot.ts';
+import type { RegisteredForge }                                 from './@types/RegisteredForge.ts';
+import { RegistryFile, registeredForgesOf, registryFilePathIn } from './RegistryFile.ts';
+import { REGISTRY_RECORDING, recordedRegistryDocument }         from './testing/RecordedRegistry.ts';
 
 const BOARDS = REGISTRY_RECORDING.boards;
 const AGENCY_TRACKER_ID   = BOARDS['example-agency'].trackerId;
@@ -199,6 +199,18 @@ describe('a file that is no registry', () => {
 describe('a registry with no projects key', () => {
   test('reads as a registry of no forges', async () => {
     expect(await registryWith('{"version": 1}').read()).toEqual({ verdict: 'readable', forges: [], leftOutEntries: [] });
+  });
+});
+
+describe('the forges a reading names', () => {
+  test('are the forges of a readable registry, and none of an absent one', async () => {
+    expect(registeredForgesOf(await registryWith(JSON.stringify(fixtureDocument())).read())).toEqual(RECORDED_FORGES);
+    expect(registeredForgesOf({ verdict: 'absent' })).toEqual([]);
+  });
+
+  test('are none, but the reason Gaia cannot act on them, for a registry it cannot read or that is newer than it reads', () => {
+    expect(registeredForgesOf({ verdict: 'unreadable', reason: 'not-json', failure: null })).toBe('registry-unreadable');
+    expect(registeredForgesOf({ verdict: 'newer-version', version: 2 })).toBe('registry-newer-version');
   });
 });
 

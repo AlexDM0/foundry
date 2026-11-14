@@ -5,6 +5,7 @@
 import { join } from 'node:path';
 
 import { AtomicFile }                                 from '../../lib/atomic-file/AtomicFile.ts';
+import type { RegistryRefusal }                       from '../../shared/@types/CommandVerdict.ts';
 import { CONTRACT_VERSIONS }                          from '../../shared/constants/ContractVersions.ts';
 import { FORGE_PLACES }                               from '../../shared/constants/ForgePlaces.ts';
 import type { LeftOutRegistryEntry, RegisteredForge } from './@types/RegisteredForge.ts';
@@ -23,6 +24,20 @@ export type RegistryReading =
   /** `failure` is the system's error code of a read that failed, `null` for a file that was read and is not a registry. */
   | { readonly verdict: 'unreadable'; readonly reason: RegistryUnreadableReason; readonly failure: string | null }
   | { readonly verdict: 'newer-version'; readonly version: number };
+
+/** The forges a reading names, or why it names none Gaia may act on; a registry that is absent names no forge yet. */
+export function registeredForgesOf(registryReading: RegistryReading): readonly RegisteredForge[] | RegistryRefusal {
+  switch (registryReading.verdict) {
+    case 'readable':
+      return registryReading.forges;
+    case 'absent':
+      return [];
+    case 'unreadable':
+      return 'registry-unreadable';
+    case 'newer-version':
+      return 'registry-newer-version';
+  }
+}
 
 /** The registry every forge of the account writes itself into: `<home>/.forge-monitor/projects.json`. */
 export function registryFilePathIn(homeDirectory: string): string {

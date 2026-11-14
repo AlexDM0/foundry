@@ -5,9 +5,15 @@
  */
 
 /**
+ * Why the registry names no forge to carry a command or to open a frame session in, though the forge watch may still show some: Gaia
+ * cannot read it, or it is newer than this Gaia.
+ */
+export type RegistryRefusal = 'registry-unreadable' | 'registry-newer-version';
+
+/**
  * `command-in-flight`: a command to the same forge, the same repository or the machine limit is on its way. `forge-not-registered`: the
- * registry names no such forge. `no-forge-registered`: the machine limit has no forge to carry it. `program-not-found`: neither the
- * registry nor the settings name a forge program that runs. `repository-missing`: the forge's root is gone. `token-unreadable`: the
+ * registry Gaia read names no such forge. `no-forge-registered`: the machine limit has no forge to carry it. `program-not-found`: neither
+ * the registry nor the settings name a forge program that runs. `repository-missing`: the forge's root is gone. `token-unreadable`: the
  * Overseer's token file cannot be read. `token-rejected`: the Overseer refused the token. `settings-newer-version`: the settings file is
  * newer than this Gaia and is kept as it is. `settings-unwritable`: the settings file cannot be written. `path-chooser-failed`: the chooser
  * ended without a choice and without being cancelled. `brain-not-served`: the forge's control contract is older than the one that carries
@@ -16,6 +22,7 @@
 export type GaiaRefusal =
   | 'command-in-flight'
   | 'forge-not-registered'
+  | RegistryRefusal
   | 'no-forge-registered'
   | 'program-not-found'
   | 'repository-missing'

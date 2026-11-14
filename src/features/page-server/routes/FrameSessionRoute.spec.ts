@@ -2,7 +2,7 @@
  * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with
  * `?embedded=gaia` and the forge's one-time code; the token travels only as the bearer of the one request and reaches no answer and no
  * log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported` and is asked for nothing; and every other way
- * a code is not given ends in its own outcome.
+ * a code is not given ends in its own outcome, a registry Gaia cannot read and an Overseer moved since the watch read it among them.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -255,9 +255,24 @@ describe('a forge that gives no code', () => {
     expect(exchange.document.refusal).toBe('forge-not-registered');
   });
 
-  test('refuses with forge-not-registered when the registry cannot be read', async () => {
+  test('refuses with forge-not-registered when there is no registry yet', async () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf(), recordedOverseerFetch([]), { verdict: 'absent' }));
     expect(exchange.document.refusal).toBe('forge-not-registered');
+  });
+
+  test('refuses with registry-unreadable or registry-newer-version when the registry cannot be read, though the watch still shows the forge', async () => {
+    const unreadable = await exchangeOf(sourcesOver(exampleForgeOf(), recordedOverseerFetch([]), { verdict: 'unreadable', reason: 'not-json', failure: null }));
+    const newer = await exchangeOf(sourcesOver(exampleForgeOf(), recordedOverseerFetch([]), { verdict: 'newer-version', version: 2 }));
+    expect([unreadable.status, unreadable.document.refusal, newer.document.refusal]).toEqual([409, 'registry-unreadable', 'registry-newer-version']);
+  });
+
+  test('answers unreachable, and asks nothing, when the registry names the Overseer at another address than the watch read', async () => {
+    const forge = exampleForgeOf();
+    const overseer = forge.entry.overseer === null ? null : { ...forge.entry.overseer, url: 'http://127.0.0.1:4961/' };
+    const overseerFetch = recordedOverseerFetch([]);
+    const exchange = await exchangeOf(sourcesOver({ ...forge, entry: { ...forge.entry, overseer } }, overseerFetch));
+    expect(exchange.document.outcome).toBe('unreachable');
+    expect(overseerFetch.callsAnswered()).toEqual([]);
   });
 });
 
