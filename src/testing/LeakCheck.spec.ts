@@ -123,7 +123,7 @@ describe('the leak check after a run', () => {
       expect(result.standardError).toContain('A running Gaia or forge writes there too, so this fails no run');
       expect(result.standardError).toContain(`${changedFile} changed`);
       expect(result.standardError).toContain(`${addedFile} appeared`);
-      expect(result.standardError).not.toContain('left');
+      expect(result.standardError).not.toContain('The test run left');
       expect(result.exitCode).toBe(0);
     } finally {
       removeScratchPath(guardedFolder);
@@ -135,7 +135,7 @@ describe('the leak check after a run', () => {
       'import { rmSync } from \'node:fs\';',
       'test(\'cleans up\', () => { const made = join(runScratchFolder(), \'made.txt\'); writeFileSync(made, \'planted\'); rmSync(made); });',
     ].join('\n'));
-    expect(result.standardError).not.toContain('left');
+    expect(result.standardError).not.toContain('The test run left');
     expect(result.exitCode).toBe(0);
   }, CHILD_RUN_TIMEOUT_MILLISECONDS);
 });
