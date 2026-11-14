@@ -131,10 +131,3 @@ describe('registeredForgesOf', () => {
     expect(RegistryMapUtil.registeredForgesOf(entries).forges.map((forge) => forge.trackerId)).toEqual(['__proto__']);
   });
 });
-
-describe('jsonObjectOf', () => {
-  test('answers an object and null for an array, null and every other value', () => {
-    expect(RegistryMapUtil.jsonObjectOf({ version: 1 })).toEqual({ version: 1 });
-    for (const value of [[], null, 'text', 1, true, undefined]) expect(RegistryMapUtil.jsonObjectOf(value)).toBeNull();
-  });
-});

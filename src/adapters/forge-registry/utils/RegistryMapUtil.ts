@@ -4,6 +4,7 @@
  */
 import { isAbsolute } from 'node:path';
 
+import { JsonValueUtil, type JsonObject } from '../../../lib/json-value/JsonValueUtil.ts';
 import type {
   LeftOutRegistryEntry,
   RegisteredForge,
@@ -18,20 +19,9 @@ export interface RegistryEntriesMapping {
   readonly leftOutEntries: readonly LeftOutRegistryEntry[];
 }
 
-type JsonObject = Readonly<Record<string, unknown>>;
-
 type TextRule = 'text' | 'absolute-path' | 'http-address';
 
 const HTTP_PROTOCOL = 'http:';
-
-/** A JSON object, and nothing else: `null` for an array, `null` itself and every other value. */
-function jsonObjectOf(value: unknown): JsonObject | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonObject : null;
-}
-
-function ownValueOf(record: JsonObject, field: string): unknown {
-  return Object.hasOwn(record, field) ? record[field] : undefined;
-}
 
 function textIsHttpAddress(text: string): boolean {
   return URL.canParse(text) && new URL(text).protocol === HTTP_PROTOCOL;
@@ -47,7 +37,7 @@ function textProblemOf(value: unknown, rule: TextRule): RegistryEntryProblemReas
 }
 
 function requiredTextOf(record: JsonObject, field: string, key: RegistryEntryKey, rule: TextRule, problems: RegistryEntryProblem[]): string | null {
-  const value  = ownValueOf(record, field);
+  const value  = JsonValueUtil.ownValueOf(record, field);
   const reason = textProblemOf(value, rule);
   if (reason !== null) {
     problems.push({ key, reason });
@@ -58,13 +48,13 @@ function requiredTextOf(record: JsonObject, field: string, key: RegistryEntryKey
 
 /** An optional key that is absent or `null` reads as `null`; one that is present must hold to its rule. */
 function optionalTextOf(record: JsonObject, field: string, key: RegistryEntryKey, rule: TextRule, problems: RegistryEntryProblem[]): string | null {
-  const value = ownValueOf(record, field);
+  const value = JsonValueUtil.ownValueOf(record, field);
   if (value === undefined || value === null) return null;
   return requiredTextOf(record, field, key, rule, problems);
 }
 
 function processIdOf(record: JsonObject, problems: RegistryEntryProblem[]): number | null {
-  const value = ownValueOf(record, 'processId');
+  const value = JsonValueUtil.ownValueOf(record, 'processId');
   if (value === undefined) {
     problems.push({ key: 'overseer.processId', reason: 'missing' });
     return null;
@@ -78,15 +68,15 @@ function processIdOf(record: JsonObject, problems: RegistryEntryProblem[]): numb
 
 /** A fact Gaia only shows: any value but text with something in it reads as `null`, and never leaves the forge out. */
 function shownTextOf(record: JsonObject, field: string): string | null {
-  const value = ownValueOf(record, field);
+  const value = JsonValueUtil.ownValueOf(record, field);
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
 /** An absent or `null` overseer is a forge with no live Overseer; one that is present must be whole. */
 function overseerOf(entry: JsonObject, problems: RegistryEntryProblem[]): RegisteredOverseer | null {
-  const value = ownValueOf(entry, 'overseer');
+  const value = JsonValueUtil.ownValueOf(entry, 'overseer');
   if (value === undefined || value === null) return null;
-  const overseer = jsonObjectOf(value);
+  const overseer = JsonValueUtil.jsonObjectOf(value);
   if (overseer === null) {
     problems.push({ key: 'overseer', reason: 'not-an-object' });
     return null;
@@ -105,7 +95,7 @@ function overseerOf(entry: JsonObject, problems: RegistryEntryProblem[]): Regist
 }
 
 function registeredForgeOf(trackerId: string, entryValue: unknown): { forge: RegisteredForge } | { leftOut: LeftOutRegistryEntry } {
-  const entry = jsonObjectOf(entryValue);
+  const entry = JsonValueUtil.jsonObjectOf(entryValue);
   if (entry === null) return { leftOut: { trackerId, problems: [{ key: 'entry', reason: 'not-an-object' }] } };
   const problems: RegistryEntryProblem[] = trackerId === '' ? [{ key: 'trackerId', reason: 'empty' }] : [];
   const project  = requiredTextOf(entry, 'project', 'project', 'text', problems);
@@ -137,8 +127,4 @@ function registeredForgesOf(entries: JsonObject): RegistryEntriesMapping {
   return { forges, leftOutEntries };
 }
 
-export const RegistryMapUtil = {
-  jsonObjectOf,
-  ownValueOf,
-  registeredForgesOf,
-} as const;
+export const RegistryMapUtil = { registeredForgesOf, } as const;

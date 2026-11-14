@@ -3,6 +3,7 @@
  * code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read them.
  */
 import { eventStreamParserOf, type EventStreamParser } from '../event-stream/EventStreamParser.ts';
+import { JsonValueUtil, type JsonObject }              from '../json-value/JsonValueUtil.ts';
 
 import type {
   ForgeClientFailure,
@@ -55,26 +56,14 @@ const MONITOR_EVENT_NAME = 'monitor';
 
 type SuccessBody = { readonly verdict: 'success'; readonly parsed: unknown } | ForgeClientFailure;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parsedJsonOf(text: string): { readonly parsed: unknown } | null {
-  try {
-    return { parsed: JSON.parse(text) as unknown };
-  } catch {
-    return null;
-  }
-}
-
-function ownTextOf(record: Record<string, unknown>, key: string): string | null {
-  const value = Object.hasOwn(record, key) ? record[key] : undefined;
+function ownTextOf(record: JsonObject, key: string): string | null {
+  const value = JsonValueUtil.ownValueOf(record, key);
   return typeof value === 'string' ? value : null;
 }
 
 function refusalOf(bodyText: string): ForgeClientFailure {
-  const parsing = parsedJsonOf(bodyText);
-  if (parsing === null || !isRecord(parsing.parsed)) return { verdict: 'refused', refusal: null, text: null };
+  const parsing = JsonValueUtil.parsedValueOf(bodyText);
+  if (parsing === null || !JsonValueUtil.isJsonObject(parsing.parsed)) return { verdict: 'refused', refusal: null, text: null };
   return { verdict: 'refused', refusal: ownTextOf(parsing.parsed, 'refusal'), text: ownTextOf(parsing.parsed, 'text') };
 }
 
@@ -82,7 +71,7 @@ function successBodyOf(answer: OverseerAnswer): SuccessBody {
   if (answer.verdict !== 'answered') return { verdict: 'unreachable' };
   if (answer.status === UNAUTHORIZED_STATUS) return { verdict: 'unauthorized' };
   if (answer.status !== SUCCESS_STATUS) return refusalOf(answer.bodyText);
-  const parsing = parsedJsonOf(answer.bodyText);
+  const parsing = JsonValueUtil.parsedValueOf(answer.bodyText);
   return parsing === null ? { verdict: 'malformed' } : { verdict: 'success', parsed: parsing.parsed };
 }
 
@@ -94,14 +83,14 @@ function documentAnswerOf(answer: OverseerAnswer): ForgeDocumentAnswer {
 function commandAnswerOf(answer: OverseerAnswer): ForgeCommandAnswer {
   const body = successBodyOf(answer);
   if (body.verdict !== 'success') return body;
-  const outcome = isRecord(body.parsed) && Object.hasOwn(body.parsed, 'outcome') ? body.parsed['outcome'] : undefined;
+  const outcome = JsonValueUtil.isJsonObject(body.parsed) ? JsonValueUtil.ownValueOf(body.parsed, 'outcome') : undefined;
   return outcome === 'done' || outcome === 'nothing-to-do' ? { verdict: 'answered', outcome } : { verdict: 'malformed' };
 }
 
 function sessionCodeAnswerOf(answer: OverseerAnswer): ForgeSessionCodeAnswer {
   const body = successBodyOf(answer);
   if (body.verdict !== 'success') return body;
-  const code = isRecord(body.parsed) ? ownTextOf(body.parsed, 'code') : null;
+  const code = JsonValueUtil.isJsonObject(body.parsed) ? ownTextOf(body.parsed, 'code') : null;
   return code === null || code === '' ? { verdict: 'malformed' } : { verdict: 'answered', code };
 }
 
@@ -146,7 +135,7 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
         if (stopIsRequested) return;
         if (event.eventName !== MONITOR_EVENT_NAME) continue;
         // A snapshot that cannot be read is passed over: the next whole one replaces it.
-        const parsing = parsedJsonOf(event.data);
+        const parsing = JsonValueUtil.parsedValueOf(event.data);
         if (parsing !== null) onSnapshot(parsing.parsed);
       }
     }

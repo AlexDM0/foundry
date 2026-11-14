@@ -2,6 +2,7 @@
  * Gaia's health contract, `GET /api/health`: that a server is Gaia, at which health and install version, and how far it is with its
  * forges. The page server answers it; the launcher's probe and `serve`'s refusal of a second Gaia read it.
  */
+import { JsonValueUtil }        from '../../lib/json-value/JsonValueUtil.ts';
 import { CONTRACT_VERSIONS }    from '../../shared/constants/ContractVersions.ts';
 import { GAIA_INSTALL_VERSION } from '../../shared/constants/InstallVersion.ts';
 import { PRODUCT_NAMES }        from '../../shared/constants/ProductNames.ts';
@@ -31,7 +32,8 @@ export function healthDocumentOf(forgeCounts: ForgeCounts): HealthDocument {
 }
 
 function ownValueOf(parsed: unknown, key: string): unknown {
-  return typeof parsed === 'object' && parsed !== null && Object.hasOwn(parsed, key) ? (parsed as Readonly<Record<string, unknown>>)[key] : undefined;
+  const document = JsonValueUtil.jsonObjectOf(parsed);
+  return document === null ? undefined : JsonValueUtil.ownValueOf(document, key);
 }
 
 /** Whether a parsed answer of the health route says Gaia, at whatever health version: an older Gaia on the port is still a Gaia. */

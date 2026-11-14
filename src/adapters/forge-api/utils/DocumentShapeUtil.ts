@@ -2,8 +2,7 @@
  * Checks a parsed JSON document against the shape of the keys a reader needs, and names every key that is missing or fails its rule as a
  * path into the document. Every key is read as the document's own, never through its prototype.
  */
-
-type JsonObject = Readonly<Record<string, unknown>>;
+import { JsonValueUtil, type JsonObject } from '../../../lib/json-value/JsonValueUtil.ts';
 
 /**
  * `text` is any string, `whole-number` a safe integer of zero or more, `text-list` an array of strings. `optional` lets the key be absent,
@@ -26,16 +25,6 @@ export type DocumentShape = Readonly<Record<string, FieldRule>>;
 export type ShapeOf<Document> = { readonly [Key in keyof Document]-?: FieldRule };
 
 const NO_KEYS: JsonObject = Object.freeze({});
-
-/** A JSON object, and nothing else: `null` for an array, `null` itself and every other value. */
-function jsonObjectOf(value: unknown): JsonObject | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonObject : null;
-}
-
-/** `undefined` for a key the record does not hold as its own. */
-function ownValueOf(record: JsonObject, key: string): unknown {
-  return Object.hasOwn(record, key) ? record[key] : undefined;
-}
 
 function isWholeNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -60,7 +49,7 @@ function valueFitsNamedRule(value: unknown, rule: 'text' | 'whole-number' | 'boo
 
 function collectInvalidKeysOfShape(record: JsonObject, shape: DocumentShape, parentPath: string, invalidKeys: string[]): void {
   for (const [key, rule] of Object.entries(shape)) {
-    collectInvalidKeysOfValue(ownValueOf(record, key), rule, keyPathOf(parentPath, key), invalidKeys);
+    collectInvalidKeysOfValue(JsonValueUtil.ownValueOf(record, key), rule, keyPathOf(parentPath, key), invalidKeys);
   }
 }
 
@@ -71,7 +60,7 @@ function collectInvalidKeysOfList(value: unknown, itemShape: DocumentShape, path
   }
   value.forEach((item: unknown, i) => {
     const itemPath = `${path}[${i}]`;
-    const record   = jsonObjectOf(item);
+    const record   = JsonValueUtil.jsonObjectOf(item);
     if (record === null) invalidKeys.push(itemPath);
     else collectInvalidKeysOfShape(record, itemShape, itemPath, invalidKeys);
   });
@@ -98,7 +87,7 @@ function collectInvalidKeysOfValue(value: unknown, rule: FieldRule, path: string
     collectInvalidKeysOfList(value, rule.listOf, path, invalidKeys);
     return;
   }
-  const record = jsonObjectOf(value);
+  const record = JsonValueUtil.jsonObjectOf(value);
   if (record === null) invalidKeys.push(path);
   else collectInvalidKeysOfShape(record, rule.object, path, invalidKeys);
 }
@@ -106,13 +95,13 @@ function collectInvalidKeysOfValue(value: unknown, rule: FieldRule, path: string
 /** A document that is not a JSON object holds none of the shape's keys, so each key it requires is named. */
 function invalidKeysOf(document: unknown, shape: DocumentShape): readonly string[] {
   const invalidKeys: string[] = [];
-  collectInvalidKeysOfShape(jsonObjectOf(document) ?? NO_KEYS, shape, '', invalidKeys);
+  collectInvalidKeysOfShape(JsonValueUtil.jsonObjectOf(document) ?? NO_KEYS, shape, '', invalidKeys);
   return invalidKeys;
 }
 
 /** The document's own value at a top-level key; `undefined` when the document is no object or does not hold the key. */
 function topLevelValueOf(document: unknown, key: string): unknown {
-  return ownValueOf(jsonObjectOf(document) ?? NO_KEYS, key);
+  return JsonValueUtil.ownValueOf(JsonValueUtil.jsonObjectOf(document) ?? NO_KEYS, key);
 }
 
 export const DocumentShapeUtil = {

@@ -5,6 +5,7 @@
 import { join } from 'node:path';
 
 import { AtomicFile }                                 from '../../lib/atomic-file/AtomicFile.ts';
+import { JsonValueUtil }                              from '../../lib/json-value/JsonValueUtil.ts';
 import type { RegistryRefusal }                       from '../../shared/@types/CommandVerdict.ts';
 import { CONTRACT_VERSIONS }                          from '../../shared/constants/ContractVersions.ts';
 import { FORGE_PLACES }                               from '../../shared/constants/ForgePlaces.ts';
@@ -47,33 +48,25 @@ export function registryFilePathIn(homeDirectory: string): string {
 const VERSION_KEY = 'version';
 const ENTRIES_KEY = 'projects';
 
-function parsedValueOf(contents: string): { readonly parsed: unknown } | null {
-  try {
-    return { parsed: JSON.parse(contents) as unknown };
-  } catch {
-    return null;
-  }
-}
-
 function unreadableReadingFor(reason: RegistryUnreadableReason): RegistryReading {
   return { verdict: 'unreadable', reason, failure: null };
 }
 
 function readingOf(contents: string): RegistryReading {
-  const parsing = parsedValueOf(contents);
+  const parsing = JsonValueUtil.parsedValueOf(contents);
   if (parsing === null) return unreadableReadingFor('not-json');
-  const document = RegistryMapUtil.jsonObjectOf(parsing.parsed);
+  const document = JsonValueUtil.jsonObjectOf(parsing.parsed);
   if (document === null) return unreadableReadingFor('not-a-json-object');
 
-  const version = RegistryMapUtil.ownValueOf(document, VERSION_KEY);
+  const version = JsonValueUtil.ownValueOf(document, VERSION_KEY);
   if (typeof version !== 'number' || !Number.isSafeInteger(version)) return unreadableReadingFor('version-unknown');
   if (version > CONTRACT_VERSIONS.forgeRegistry) return { verdict: 'newer-version', version };
   if (version !== CONTRACT_VERSIONS.forgeRegistry) return unreadableReadingFor('version-unknown');
 
   // The forge writes `projects` from its first registration on; a registry without it holds no forge yet.
-  const entriesValue = RegistryMapUtil.ownValueOf(document, ENTRIES_KEY);
+  const entriesValue = JsonValueUtil.ownValueOf(document, ENTRIES_KEY);
   if (entriesValue === undefined) return { verdict: 'readable', forges: [], leftOutEntries: [] };
-  const entries = RegistryMapUtil.jsonObjectOf(entriesValue);
+  const entries = JsonValueUtil.jsonObjectOf(entriesValue);
   if (entries === null) return unreadableReadingFor('projects-not-an-object');
   return { verdict: 'readable', ...RegistryMapUtil.registeredForgesOf(entries) };
 }

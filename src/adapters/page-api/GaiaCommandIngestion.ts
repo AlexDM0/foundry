@@ -5,7 +5,8 @@
  */
 import { isAbsolute } from 'node:path';
 
-import type { CommandKind } from '../../../page/@types/CommandDocument.ts';
+import type { CommandKind }               from '../../../page/@types/CommandDocument.ts';
+import { JsonValueUtil, type JsonObject } from '../../lib/json-value/JsonValueUtil.ts';
 import type {
   ForgeCommand,
   ForgeStopAgents,
@@ -33,8 +34,6 @@ export type GaiaCommandReading =
   | { readonly verdict: 'other-version'; readonly commandVersion: number | null }
   | { readonly verdict: 'unknown-kind'; readonly kind: string | null }
   | { readonly verdict: 'malformed'; readonly invalidKeys: readonly string[] };
-
-type JsonObject = Readonly<Record<string, unknown>>;
 
 type SingleForgeKind = Exclude<ForgeCommand['kind'], 'forge-stop' | 'forge-concurrency-set'>;
 
@@ -67,25 +66,8 @@ const PATH_CHOICE_TARGETS: ReadonlySet<unknown> = new Set<PathChoiceTarget>(['fo
 const THEME_CHOICES: ReadonlySet<unknown> = new Set<ThemeChoice>(SETTINGS_CHOICES.themes);
 const SETTINGS_KEYS: ReadonlySet<unknown> = new Set<keyof GaiaSettings>(['theme', 'hiddenTrackerIds', 'forgeProgramPath', 'notifications', 'startForgesAtLogin']);
 
-function parsedValueOf(bodyText: string): { readonly parsed: unknown } | null {
-  try {
-    return { parsed: JSON.parse(bodyText) as unknown };
-  } catch {
-    return null;
-  }
-}
-
-function jsonObjectOf(value: unknown): JsonObject | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonObject : null;
-}
-
-/** `undefined` for a key the body does not hold as its own. */
-function ownValueOf(body: JsonObject, key: string): unknown {
-  return Object.hasOwn(body, key) ? body[key] : undefined;
-}
-
 function nonEmptyTextOf(body: JsonObject, key: string): string | null {
-  const value = ownValueOf(body, key);
+  const value = JsonValueUtil.ownValueOf(body, key);
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
@@ -95,7 +77,7 @@ function trackerIdOf(body: JsonObject): string | null {
 
 /** A limit counts agents, so it is a whole number of at least one; which ceiling it may reach is the forge's to say. */
 function limitOf(body: JsonObject): number | null {
-  const limit = ownValueOf(body, LIMIT_KEY);
+  const limit = JsonValueUtil.ownValueOf(body, LIMIT_KEY);
   return typeof limit === 'number' && Number.isSafeInteger(limit) && limit >= 1 ? limit : null;
 }
 
@@ -126,14 +108,14 @@ function isTextList(value: unknown): value is readonly string[] {
 }
 
 function notificationSettingsOf(value: unknown): NotificationSettings | null {
-  const notifications = jsonObjectOf(value);
+  const notifications = JsonValueUtil.jsonObjectOf(value);
   if (notifications === null) return null;
-  const enabled = ownValueOf(notifications, 'enabled');
-  const kinds   = jsonObjectOf(ownValueOf(notifications, 'kinds'));
+  const enabled = JsonValueUtil.ownValueOf(notifications, 'enabled');
+  const kinds   = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(notifications, 'kinds'));
   if (typeof enabled !== 'boolean' || kinds === null) return null;
   const choices: Partial<Record<NotificationKind, boolean>> = {};
   for (const kind of SETTINGS_CHOICES.notificationKinds) {
-    const choice = ownValueOf(kinds, kind);
+    const choice = JsonValueUtil.ownValueOf(kinds, kind);
     if (typeof choice !== 'boolean') return null;
     choices[kind] = choice;
   }
@@ -167,7 +149,7 @@ function malformedReadingOf(keysAndWhetherValid: readonly (readonly [string, boo
 
 function forgeStopReadingOf(body: JsonObject): GaiaCommandReading {
   const trackerId = trackerIdOf(body);
-  const agents    = ownValueOf(body, AGENTS_KEY);
+  const agents    = JsonValueUtil.ownValueOf(body, AGENTS_KEY);
   if (trackerId === null || !isStopAgents(agents)) return malformedReadingOf([[TRACKER_ID_KEY, trackerId !== null], [AGENTS_KEY, isStopAgents(agents)]]);
   return { verdict: 'readable', command: { kind: 'forge-stop', trackerId, agents } };
 }
@@ -197,15 +179,15 @@ function isSettingsKey(value: unknown): value is keyof GaiaSettings {
 }
 
 function settingsSetReadingOf(body: JsonObject): GaiaCommandReading {
-  const settingsKey = ownValueOf(body, SETTINGS_KEY_KEY);
+  const settingsKey = JsonValueUtil.ownValueOf(body, SETTINGS_KEY_KEY);
   if (!isSettingsKey(settingsKey)) return { verdict: 'malformed', invalidKeys: [SETTINGS_KEY_KEY] };
-  const change = settingsChangeOf(settingsKey, ownValueOf(body, SETTINGS_VALUE_KEY));
+  const change = settingsChangeOf(settingsKey, JsonValueUtil.ownValueOf(body, SETTINGS_VALUE_KEY));
   if (change === null) return { verdict: 'malformed', invalidKeys: [SETTINGS_VALUE_KEY] };
   return { verdict: 'readable', command: { kind: 'settings-set', change } };
 }
 
 function pathChooseReadingOf(body: JsonObject): GaiaCommandReading {
-  const what = ownValueOf(body, PATH_CHOICE_TARGET_KEY);
+  const what = JsonValueUtil.ownValueOf(body, PATH_CHOICE_TARGET_KEY);
   if (!isPathChoiceTarget(what)) return { verdict: 'malformed', invalidKeys: [PATH_CHOICE_TARGET_KEY] };
   return { verdict: 'readable', command: { kind: 'path-choose', what } };
 }
@@ -241,13 +223,13 @@ export class GaiaCommandIngestion {
   }
 
   public read(): GaiaCommandReading {
-    const parsing = parsedValueOf(this.#bodyText);
+    const parsing = JsonValueUtil.parsedValueOf(this.#bodyText);
     if (parsing === null) return { verdict: 'not-json' };
-    const body = jsonObjectOf(parsing.parsed);
+    const body = JsonValueUtil.jsonObjectOf(parsing.parsed);
     if (body === null) return { verdict: 'not-a-json-object' };
-    const commandVersion = ownValueOf(body, VERSION_KEY);
+    const commandVersion = JsonValueUtil.ownValueOf(body, VERSION_KEY);
     if (commandVersion !== CONTRACT_VERSIONS.gaiaCommand) return { verdict: 'other-version', commandVersion: typeof commandVersion === 'number' ? commandVersion : null };
-    const kind = ownValueOf(body, KIND_KEY);
+    const kind = JsonValueUtil.ownValueOf(body, KIND_KEY);
     if (typeof kind !== 'string') return { verdict: 'unknown-kind', kind: null };
     return commandReadingOf(body, kind);
   }

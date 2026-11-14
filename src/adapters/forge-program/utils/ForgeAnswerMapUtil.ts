@@ -3,6 +3,7 @@
  * `answerVersion`, as a done answer at exit 0 or a refusal at any other exit; and a detached start to the process it started. Every key is
  * read as the document's own.
  */
+import { JsonValueUtil, type JsonObject }                             from '../../../lib/json-value/JsonValueUtil.ts';
 import type { DetachedStartAnswer, NotFoundAnswer, ProgramRunAnswer } from '../../../lib/process-run/ProcessRun.ts';
 import type { ForgeContracts }                                        from '../../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                                          from '../../../shared/constants/ContractVersions.ts';
@@ -22,8 +23,6 @@ import type {
   ForgeVersionAnswer,
 } from '../@types/ForgeProgramAnswer.ts';
 
-type JsonObject = Readonly<Record<string, unknown>>;
-
 /** Maps a done document to its answer, or `null` when the document lacks a key the answer needs. */
 export type DoneAnswerMapper<Answer> = (document: JsonObject) => Answer | null;
 
@@ -39,42 +38,34 @@ const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created'
 const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);
 const CONTRACT_KEYS = ['summary', 'monitor', 'control', 'embed'] as const;
 
-function jsonObjectOf(value: unknown): JsonObject | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonObject : null;
-}
-
-function ownValueOf(record: JsonObject, key: string): unknown {
-  return Object.hasOwn(record, key) ? record[key] : undefined;
-}
-
 function documentIn(standardOutput: string): JsonObject | null {
   try {
-    return jsonObjectOf(JSON.parse(standardOutput));
+    return JsonValueUtil.jsonObjectOf(JSON.parse(standardOutput));
   } catch {
     return null;
   }
 }
 
 function textOf(record: JsonObject, key: string): string | null {
-  const value = ownValueOf(record, key);
+  const value = JsonValueUtil.ownValueOf(record, key);
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
 function wholeNumberOf(record: JsonObject, key: string): number | null {
-  const value = ownValueOf(record, key);
+  const value = JsonValueUtil.ownValueOf(record, key);
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
 function outcomeOf(record: JsonObject): ForgeProgramOutcome | null {
-  const value = ownValueOf(record, 'outcome');
+  const value = JsonValueUtil.ownValueOf(record, 'outcome');
   return OUTCOMES.has(value) ? value as ForgeProgramOutcome : null;
 }
 
 /** A contract the forge does not serve is absent from the object; one that is present must be a whole number. */
 function contractsOf(record: JsonObject): ForgeContracts | null {
-  const contracts = jsonObjectOf(ownValueOf(record, 'contracts'));
+  const contracts = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(record, 'contracts'));
   if (contracts === null) return null;
-  const presentContractsAreWholeNumbers = CONTRACT_KEYS.every((key) => ownValueOf(contracts, key) === undefined || wholeNumberOf(contracts, key) !== null);
+  const presentContractsAreWholeNumbers = CONTRACT_KEYS.every((key) => JsonValueUtil.ownValueOf(contracts, key) === undefined || wholeNumberOf(contracts, key) !== null);
   if (!presentContractsAreWholeNumbers) return null;
   return {
     summary: wholeNumberOf(contracts, 'summary'),
@@ -85,7 +76,7 @@ function contractsOf(record: JsonObject): ForgeContracts | null {
 }
 
 function startAnswerOf(document: JsonObject): ForgeStartAnswer | null {
-  const started        = ownValueOf(document, 'started');
+  const started        = JsonValueUtil.ownValueOf(document, 'started');
   const url            = textOf(document, 'url');
   const generation     = wholeNumberOf(document, 'generation');
   const trackerId      = textOf(document, 'trackerId');
@@ -111,7 +102,7 @@ function stopAnswerOf(document: JsonObject): ForgeStopAnswer | null {
 }
 
 function initAnswerOf(document: JsonObject): ForgeInitAnswer | null {
-  const initOutcome = ownValueOf(document, 'outcome');
+  const initOutcome = JsonValueUtil.ownValueOf(document, 'outcome');
   const outcome     = INIT_OUTCOMES.has(initOutcome) ? initOutcome as ForgeInitOutcome : null;
   const trackerId   = textOf(document, 'trackerId');
   const project     = textOf(document, 'project');
@@ -127,7 +118,7 @@ function initAnswerOf(document: JsonObject): ForgeInitAnswer | null {
 
 /** `batonPass` is `done`, `not-needed`, or `failed` with the step that failed in `batonPassStep`, which is `null` otherwise. */
 function batonPassOf(document: JsonObject): ForgeBatonPass | null {
-  const batonPass = ownValueOf(document, 'batonPass');
+  const batonPass = JsonValueUtil.ownValueOf(document, 'batonPass');
   if (batonPass === 'done' || batonPass === 'not-needed') return { outcome: batonPass };
   if (batonPass !== 'failed') return null;
   const failedStep = textOf(document, 'batonPassStep');
@@ -158,7 +149,7 @@ function versionAnswerOf(document: JsonObject): ForgeVersionAnswer | null {
 
 /** The item's `state` after the step; its label, location and repository are the forge's to show and are not read. */
 function loginItemAnswerOf(document: JsonObject): ForgeLoginItemAnswer | null {
-  const loginItem = ownValueOf(document, 'state');
+  const loginItem = JsonValueUtil.ownValueOf(document, 'state');
   return LOGIN_ITEM_STATES.has(loginItem) ? { loginItem: loginItem as ForgeLoginItemAnswer['loginItem'] } : null;
 }
 
@@ -184,7 +175,7 @@ function refusalVerdictOf<Answer>(document: JsonObject, exitCode: number): Forge
 function verdictOfFinishedRun<Answer>(exitCode: number, standardOutput: string, doneAnswerOf: DoneAnswerMapper<Answer>): ForgeProgramVerdict<Answer> {
   const document = documentIn(standardOutput);
   if (document === null) return notUnderstood('no-json', exitCode);
-  if (ownValueOf(document, ANSWER_VERSION_KEY) !== CONTRACT_VERSIONS.forgeProgramAnswer) return notUnderstood('other-answer-version', exitCode);
+  if (JsonValueUtil.ownValueOf(document, ANSWER_VERSION_KEY) !== CONTRACT_VERSIONS.forgeProgramAnswer) return notUnderstood('other-answer-version', exitCode);
   if (exitCode !== 0) return refusalVerdictOf(document, exitCode);
   const answer = doneAnswerOf(document);
   return answer === null ? notUnderstood('malformed', exitCode) : { verdict: 'done', answer };
