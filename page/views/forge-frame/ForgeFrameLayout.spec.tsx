@@ -119,7 +119,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
     expect(tree.onlyWithClass([popover], 'gaia-confirm').props['aria-label']).toBe('Stop Example Storefront');
     expect(tree.textOf([tree.onlyWithClass([popover], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
     const choices = choicesIn(popover);
-    expect(choices.map((choice) => [choice.label, choice.input?.checked])).toEqual([['Stop the Overseer only', true], ['Stop the agents, then the Overseer', false]]);
+    expect(choices.map((choice) => [choice.label, choice.input?.props.checked])).toEqual([['Stop the Overseer only', true], ['Stop the agents, then the Overseer', false]]);
     expect(tree.textOf([tree.onlyWithClass([popover], 'gaia-confirm-consequence')])).toBe('2 entries keep waiting on you while it is stopped.');
   });
 
@@ -128,7 +128,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
     const popover = tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover');
     const [, stopFirst] = choicesIn(popover);
     if (stopFirst?.input === undefined) throw new Error('The question has no second choice.');
-    stopFirst.input.onChange();
+    stopFirst.input.props.onChange();
     tree.dispatch(buttonNamed([popover], 'Stop'), 'onClick');
     tree.dispatch(buttonNamed([popover], 'Cancel'), 'onClick');
     expect(events).toEqual(['choose stop-first', 'cancel stop']);

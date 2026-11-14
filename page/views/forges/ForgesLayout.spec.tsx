@@ -201,11 +201,11 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
     expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
     const choices = tree.hostElementsIn([dialog], tree.withTag('ChoiceOption')).map((choice) => choice.props as unknown as ChoiceOptionProps);
-    expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.type, choice.input?.checked, choice.input?.name])).toEqual([
+    expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.props.type, choice.input?.props.checked, choice.input?.props.name])).toEqual([
       ['Stop the Overseer only', true, 'radio', true, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
       ['Stop the agents, then the Overseer', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
     ]);
-    choices.find((choice) => !choice.chosen)?.input?.onChange();
+    choices.find((choice) => !choice.chosen)?.input?.props.onChange();
     tree.dispatch(controlNamed([dialog], 'Cancel'), 'onClick');
     tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary'), 'onClick');
     expect(handled.stopChoices).toEqual(['stop-first']);

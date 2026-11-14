@@ -4,10 +4,10 @@
  * Bridge's frame, B3's callout, or why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec
  * unfolds it whole.
  */
-import { Button }              from 'design-system/Button';
-import { ChoiceOption }        from 'design-system/ChoiceOption';
-import { Text }                from 'design-system/Text';
-import type { ReactNode, Ref } from 'react';
+import { Button }                    from 'design-system/Button';
+import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
+import { Text }                      from 'design-system/Text';
+import type { ReactNode, Ref }       from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import { Callout }                                from '../../design-system/Callout.tsx';
@@ -53,16 +53,18 @@ function StopPopover({
       description={choice.consequence}
       chosen={choice.agents === stopAgents}
       variant="card"
-      input={{
-        type:           'radio',
-        name:           `gaia-stop-${bar.trackerId}`,
-        checked:        choice.agents === stopAgents,
-        accessibleName: choice.title,
-        // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
-        onChange:       () => {
-          if (!commandIsOnItsWay) onChooseStop(choice.agents);
-        },
-      }}
+      input={(
+        <ChoiceInput
+          type="radio"
+          name={`gaia-stop-${bar.trackerId}`}
+          checked={choice.agents === stopAgents}
+          accessibleName={choice.title}
+          // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
+          onChange={() => {
+            if (!commandIsOnItsWay) onChooseStop(choice.agents);
+          }}
+        />
+      )}
     />
   ));
   return (

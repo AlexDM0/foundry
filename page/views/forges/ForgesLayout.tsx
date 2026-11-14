@@ -3,13 +3,13 @@
  * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside
  * them this machine's panel and Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Button }        from 'design-system/Button';
-import { ChoiceOption }  from 'design-system/ChoiceOption';
-import { CountBadge }    from 'design-system/CountBadge';
-import { NumberStepper } from 'design-system/NumberStepper';
-import { SlotMeter }     from 'design-system/SlotMeter';
-import { StatePill }     from 'design-system/StatePill';
-import { Text }          from 'design-system/Text';
+import { Button }                    from 'design-system/Button';
+import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
+import { CountBadge }                from 'design-system/CountBadge';
+import { NumberStepper }             from 'design-system/NumberStepper';
+import { SlotMeter }                 from 'design-system/SlotMeter';
+import { StatePill }                 from 'design-system/StatePill';
+import { Text }                      from 'design-system/Text';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
@@ -228,16 +228,18 @@ function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: Sto
       description={choice.consequence}
       chosen={choice.chosen}
       variant="card"
-      input={{
-        type:           'radio',
-        name:           `gaia-forges-stop-${trackerId}`,
-        checked:        choice.chosen,
-        accessibleName: choice.title,
-        // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
-        onChange:       () => {
-          if (!dialog.isOnItsWay) handlers.onStopChoice(choice.agents);
-        },
-      }}
+      input={(
+        <ChoiceInput
+          type="radio"
+          name={`gaia-forges-stop-${trackerId}`}
+          checked={choice.chosen}
+          accessibleName={choice.title}
+          // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
+          onChange={() => {
+            if (!dialog.isOnItsWay) handlers.onStopChoice(choice.agents);
+          }}
+        />
+      )}
     />
   ));
   return (
