@@ -93,6 +93,11 @@ describe('the session code', () => {
     expect(await sessionCodeFor(strangePort, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'refused', status: 200 });
   });
 
+  test('is refused with its status, not unreachable, when the port answers with success and a body that is no JSON', async () => {
+    const htmlPort = portAnswering(() => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } }));
+    expect(await sessionCodeFor(htmlPort, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'refused', status: 200 });
+  });
+
   test('is unreachable where nothing listens', async () => {
     expect(await sessionCodeFor(await freedPort(), EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'unreachable' });
   });

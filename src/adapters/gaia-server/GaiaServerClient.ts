@@ -70,7 +70,6 @@ function issuedCodeIn(parsed: unknown): string | null {
 /** The token travels only as a bearer to 127.0.0.1; the code is for one window and buys one session. */
 export async function sessionCodeFor(port: number, token: string, timeoutMilliseconds = SESSION_CODE_TIMEOUT_MILLISECONDS): Promise<SessionCodeAnswer> {
   let response: Response;
-  let parsed: unknown;
   try {
     response = await fetch(addressOf(port, SESSION_CODES_PATH), {
       method:   'POST',
@@ -78,10 +77,11 @@ export async function sessionCodeFor(port: number, token: string, timeoutMillise
       redirect: 'manual',
       signal:   AbortSignal.timeout(timeoutMilliseconds),
     });
-    parsed = response.ok ? await response.json() : null;
   } catch {
     return { verdict: 'unreachable' };
   }
+  // A body that is no JSON is a refusal at the answer's status, not a server that cannot be reached.
+  const parsed: unknown = response.ok ? await response.json().catch(() => null) : null;
   const code = issuedCodeIn(parsed);
   return code === null ? { verdict: 'refused', status: response.status } : { verdict: 'issued', code };
 }
