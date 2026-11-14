@@ -5,9 +5,10 @@
  * says no limit is enforced and its stepper is off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and keeps the
  * agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a refusal stays on
  * its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the forge answers;
- * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner or under its row; a forge whose Assistant
- * cannot come up says so under its row. Flint's brain (R4.6): only a forge whose brain runs marks it on its row, with the time left and a
- * name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine panel says the brain runs
+ * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner, with its refusal, or under its row;
+ * a forge whose Assistant cannot come up says so under its row. Flint's brain (R4.6): only a forge whose brain runs marks it on its row,
+ * with the time left and a name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine
+ * panel says the brain runs
  * outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender over Gaia's server
  * stood in for by authored answers.
  */
@@ -568,6 +569,18 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     });
     expect(content.heldBanners[0]?.refusal).toBeNull();
     expect(rowOf(content, TRACKER_IDS.exampleStorefront).pendingRestart).toBeNull();
+  });
+
+  test('a held forge\'s refused restart, pressed on its banner, shows on the banner beside Restart, not under its row', async () => {
+    const refusedRestart: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(RESTART_PENDING)), () => Promise.resolve(answerResponse(refusedRestart))]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
+    const content = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
+    expect(rowOf(content, TRACKER_IDS.exampleMobileApp).refusal).toBeNull();
+    expect(content.heldBanners[0]?.refusal).toMatchObject({ commandLabel: 'Restart', code: 'update-in-progress' });
   });
 
   test('a forge no longer held shows its pending restart under its row; Restart is off without its API and while a command is on its way', async () => {

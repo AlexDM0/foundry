@@ -496,9 +496,11 @@ function stopDialogOf(forge: FleetDocumentForge, surroundings: ForgesSurrounding
   };
 }
 
-/** A held forge's Update forge sits on its banner, so its refusal shows there and not under the row. */
-function refusalShowsOnTheRow(forge: FleetDocumentForge): (kind: CommandKind) => boolean {
-  return (kind) => !(forge.condition === 'held' && kind === 'forge-update');
+const SENT_FROM_THE_HELD_BANNER: ReadonlySet<CommandKind> = new Set<CommandKind>(['forge-update', 'forge-restart']);
+
+/** A held forge's Update forge, and the Restart its update may leave pending, sit on its banner, so their refusals show there. */
+function refusalBelongsToTheHeldBanner(forge: FleetDocumentForge, kind: CommandKind): boolean {
+  return forge.condition === 'held' && SENT_FROM_THE_HELD_BANNER.has(kind);
 }
 
 /** The restart an update left pending, until a restart, stop or update of the forge succeeds or it is dismissed; Restart needs its API. */
@@ -546,7 +548,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     buttons:        buttonsOf(forge, rowSurroundings),
     isInView:       surroundings.forgeInView === forge.trackerId,
     stopDialog:     stopDialogOf(forge, surroundings),
-    refusal:        refusalOf(forge.trackerId, surroundings, refusalShowsOnTheRow(forge)),
+    refusal:        refusalOf(forge.trackerId, surroundings, (kind) => !refusalBelongsToTheHeldBanner(forge, kind)),
     pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
     noticeText:     forge.notices.find((notice) => notice.kind === NOTICE_KIND_OF_ASSISTANT_DOWN)?.text ?? null,
     brain:          rowBrainOf(forge, surroundings.clock),
@@ -568,7 +570,7 @@ function heldBannerOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
     sentence:       [noticeSentenceOf(forge), keepRunning].filter((part) => part !== null).join(' '),
     // A4: Update forge is secondary, so a pending restart's Restart is the held area's one primary.
     updateButton:   commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings)),
-    refusal:        refusalOf(trackerId, rowSurroundings.surroundings, (kind) => kind === 'forge-update'),
+    refusal:        refusalOf(trackerId, rowSurroundings.surroundings, (kind) => refusalBelongsToTheHeldBanner(forge, kind)),
     pendingRestart: pendingRestartOf(forge, rowSurroundings),
   };
 }
