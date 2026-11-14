@@ -10,7 +10,7 @@ import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
-import type { FleetDocument }                                                       from '../@types/FleetDocument.ts';
+import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
 import { GaiaShell, viewPartsOf }                                                   from '../shell/GaiaApp.tsx';
 import { HashRouter }                                                               from '../shell/HashRouter.ts';
@@ -21,6 +21,7 @@ import { WhatNotifiesDialog }                                                   
 import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
 import { forgeFrameSurroundingsAt }                                                 from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
+import { fleetWithStorefrontBrainOf }                                               from './fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from './fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fixtures/fleet-five-forges.ts';
@@ -96,7 +97,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     artboard:      'B1',
     title:         'A forge in place',
     designFile:    'Forge.dc.html',
-    fleetDocument: FLEET_FIVE_FORGES,
+    fleetDocument: fleetWithStorefrontBrainOf('off'),
     fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
     viewState:     'as-routed',
     onlyTheme:     null,
@@ -138,6 +139,26 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     onlyTheme:     'light',
   },
 ];
+
+export interface BrainStateScreen extends ArtboardScreen {
+  readonly artboard:   'B1';
+  /** The state of B1's `brain` tweak the screen paints; its artboard render is `B1-<state>-<theme>.png`. */
+  readonly brainState: FleetDocumentBrainState;
+}
+
+const BRAIN_STATES_OF_B1: readonly FleetDocumentBrainState[] = ['off', 'starting', 'running', 'refused', 'ended'];
+
+/** B1 in each state of its `brain` tweak, Example Storefront's brain set to it: off, the artboard's own state, then the four others. */
+export const BRAIN_STATE_SCREENS: readonly BrainStateScreen[] = BRAIN_STATES_OF_B1.map((brainState) => ({
+  artboard:      'B1',
+  title:         `A forge in place, Flint's brain ${brainState}`,
+  designFile:    'Forge.dc.html',
+  fleetDocument: fleetWithStorefrontBrainOf(brainState),
+  fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
+  viewState:     'as-routed',
+  onlyTheme:     null,
+  brainState,
+}));
 
 /**
  * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Overseer did not take.
