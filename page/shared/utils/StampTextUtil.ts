@@ -1,9 +1,11 @@
 /**
- * A forge's stamp as the page prints it: an age against the page's clock (`4m`, `2h 04m`, `3d 05h`), or a clock time in the
- * page's time zone, with its month and day when it is from another day. A stamp that does not parse prints nothing rather than a wrong
- * time. Comparing the stamp's day with the clock's is a stated clock exception: it decides only the text printed.
+ * A forge's stamp as the page prints it: an age against the page's clock (`4m`, `2h 04m`, `3d 05h`), a clock time in the page's time
+ * zone, with its month and day when it is from another day, or the time left until it (`1:24`). A stamp that does not parse prints nothing
+ * rather than a wrong time. Comparing a stamp with the clock is a stated clock exception: it decides only the text and the counts printed.
  */
+const MILLISECONDS_PER_SECOND = 1_000;
 const MILLISECONDS_PER_MINUTE = 60_000;
+const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
@@ -61,11 +63,27 @@ function clockTextOf(stamp: string, nowEpochMilliseconds: number, timeZone: stri
   const stampEpochMilliseconds = epochMillisecondsOf(stamp);
   if (stampEpochMilliseconds === null) return null;
   const stampParts = calendarPartsOf(stampEpochMilliseconds, timeZone);
-  const isFromToday = stampParts.calendarDay === calendarPartsOf(nowEpochMilliseconds, timeZone).calendarDay;
-  return isFromToday ? stampParts.clock : `${stampParts.monthAndDay} ${stampParts.clock}`;
+  return stampIsOfTheClocksDay(stamp, nowEpochMilliseconds, timeZone) ? stampParts.clock : `${stampParts.monthAndDay} ${stampParts.clock}`;
+}
+
+/** Whether the stamp falls on the clock's own day in the time zone handed in; a stamp that does not parse falls on no day. */
+function stampIsOfTheClocksDay(stamp: string, nowEpochMilliseconds: number, timeZone: string | undefined): boolean {
+  const stampEpochMilliseconds = epochMillisecondsOf(stamp);
+  if (stampEpochMilliseconds === null) return false;
+  return calendarPartsOf(stampEpochMilliseconds, timeZone).calendarDay === calendarPartsOf(nowEpochMilliseconds, timeZone).calendarDay;
+}
+
+/** Whole minutes and padded seconds left until the stamp, `1:24`; it stops at `0:00` once the stamp has passed. */
+function countdownTextOf(stamp: string, nowEpochMilliseconds: number): string | null {
+  const stampEpochMilliseconds = epochMillisecondsOf(stamp);
+  if (stampEpochMilliseconds === null) return null;
+  const secondsLeft = Math.max(0, Math.floor((stampEpochMilliseconds - nowEpochMilliseconds) / MILLISECONDS_PER_SECOND));
+  return `${Math.floor(secondsLeft / SECONDS_PER_MINUTE)}:${padToTwoDigits(secondsLeft % SECONDS_PER_MINUTE)}`;
 }
 
 export const StampTextUtil = {
   ageTextOf,
   clockTextOf,
+  stampIsOfTheClocksDay,
+  countdownTextOf,
 } as const;

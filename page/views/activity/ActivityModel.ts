@@ -1,8 +1,8 @@
 /**
  * What the Activity view shows of a fleet document under its two filters: the entries in the document's own order, newest first, each with
  * its forge, its category and the forge's text unedited; the forge choices, the first three as segments and the rest in a menu; today's
- * landings and tokens per forge that reports them; the usage line the forges report; and the page title's figures. A value no forge reports
- * is absent, never zero.
+ * landings and tokens per forge that reports them, with the tokens of Flint's brain they include; the usage line the forges report; and the
+ * page title's figures. Flint's brain's entries carry its kind word and diamond. A value no forge reports is absent, never zero.
  */
 import type {
   FleetDocument,
@@ -14,7 +14,14 @@ import type {
 import type { PageFigure } from '../../design-system/PageTitle.tsx';
 import type { DotRole }    from '../../design-system/RoleDot.tsx';
 import { ForgeTextUtil }   from '../../shared/utils/ForgeTextUtil.ts';
+import { StampTextUtil }   from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }      from '../../shell/HashRouter.ts';
+
+/** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
+export interface ClockReading {
+  readonly nowEpochMilliseconds: number;
+  readonly timeZone:             string | undefined;
+}
 
 export type ActivityKindFilter = 'everything' | FleetDocumentActivityCategory;
 
@@ -63,6 +70,19 @@ export interface TodayList {
   readonly rows:      readonly TodayRow[];
 }
 
+/** A forge's part of the brain's tokens today, already shortened. */
+export interface BrainTokensOfAForge {
+  readonly trackerId:  string;
+  readonly project:    string;
+  readonly tokensText: string;
+}
+
+/** The tokens of Flint's brain that today's totals include, as the forges report them: a running brain's so far, and today's ended runs. */
+export interface BrainTokensNote {
+  readonly totalText: string;
+  readonly forges:    readonly BrainTokensOfAForge[];
+}
+
 /** The kinds whose segment counts its entries, as the artboard counts them. */
 export type CountedKind = 'needs-user' | 'landed';
 
@@ -75,6 +95,8 @@ export interface ActivityContent {
   readonly forgeChoices:         ForgeChoices;
   readonly landedToday:          TodayList;
   readonly tokensToday:          TodayList;
+  /** `null` when no brain ran today. */
+  readonly brainTokensNote:      BrainTokensNote | null;
   /** One line per distinct usage reading; the usage limit is the machine's, so every forge normally reports the same. */
   readonly usageLines:           readonly string[];
   /** The lines of a forge that hit its limit, so their dot can say so beside the words. */
@@ -105,6 +127,8 @@ const FORGE_SEGMENTS_SHOWN = 3;
 const ONE_THOUSAND = 1_000;
 const ONE_MILLION = 1_000_000;
 const SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT = 3;
+
+const BRAIN_KIND_WORD = 'Flint\'s brain';
 
 const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
 const NOTHING_MATCHES_SENTENCE = 'No entry matches these filters.';
@@ -139,6 +163,7 @@ function projectsByTrackerIdOf(fleetDocument: FleetDocument): ReadonlyMap<string
 
 /** An agent's entry and the job it names carry the same route, so the job's role gives the dot while the forge still reports the job. */
 function dotRoleOf(entry: FleetDocumentFleetActivityEntry, forge: FleetDocumentForge | undefined): DotRole | null {
+  if (entry.kind === 'flint-brain') return 'brain';
   switch (entry.category) {
     case 'needs-user':
       return 'needs-user';
@@ -180,7 +205,7 @@ function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerI
       at:           entry.at,
       clockTime:    clockTimeOf(entry.at, clockFormat),
       project:      projects.get(entry.trackerId) ?? entry.trackerId,
-      categoryWord: CATEGORY_WORDS[entry.category],
+      categoryWord: entry.kind === 'flint-brain' ? BRAIN_KIND_WORD : CATEGORY_WORDS[entry.category],
       dotRole:      dotRoleOf(entry, forges.get(entry.trackerId)),
       text:         entry.text,
       href:         entry.route === null ? null : HashRouter.fragmentOf({ view: 'forge', trackerId: entry.trackerId, bridgeFragment: entry.route }),
@@ -230,8 +255,46 @@ function emptySentenceOf(fleetDocument: FleetDocument, rows: readonly ActivityRo
   return fleetDocument.activity.length === 0 ? NO_ACTIVITY_SENTENCE : NOTHING_MATCHES_SENTENCE;
 }
 
-function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilters, timeZone?: string): ActivityContent {
-  const clockFormat = clockFormatOf(timeZone);
+/** G2's entry of a brain's run that ended carries its tokens; another entry of the brain, such as its start, carries none. */
+function entryEndsABrainRun(entry: FleetDocumentFleetActivityEntry): entry is FleetDocumentFleetActivityEntry & { readonly tokens: number } {
+  return entry.kind === 'flint-brain' && entry.tokens !== null;
+}
+
+/** Counting the runs of the clock's day compares each entry's stamp with the clock: a stated clock exception that decides only a count shown. */
+function brainRunsEndedTodayOf(fleetDocument: FleetDocument, clock: ClockReading) {
+  return fleetDocument.activity.filter(entryEndsABrainRun).filter((entry) => StampTextUtil.stampIsOfTheClocksDay(entry.at, clock.nowEpochMilliseconds, clock.timeZone));
+}
+
+function runningBrainsOf(fleetDocument: FleetDocument) {
+  return fleetDocument.forges.flatMap((forge) => (forge.brain !== 'not-reported' && forge.brain.state === 'running' ? [{ forge, brain: forge.brain }] : []));
+}
+
+function brainTokensNoteOf(fleetDocument: FleetDocument, clock: ClockReading): BrainTokensNote | null {
+  const endedToday = brainRunsEndedTodayOf(fleetDocument, clock);
+  const running = runningBrainsOf(fleetDocument);
+  const forges = fleetDocument.forges.flatMap((forge) => {
+    const runningTokens = running.find((candidate) => candidate.forge.trackerId === forge.trackerId)?.brain.tokens ?? null;
+    const tokens = [
+      ...(runningTokens === null ? [] : [runningTokens]),
+      ...endedToday.filter((entry) => entry.trackerId === forge.trackerId).map((entry) => entry.tokens),
+    ];
+    return tokens.length === 0 ? [] : [{ trackerId: forge.trackerId, project: forge.project, tokens: tokens.reduce((sum, value) => sum + value, 0) }];
+  });
+  if (forges.length === 0) return null;
+  return {
+    totalText: tokenCountTextOf(forges.reduce((sum, forge) => sum + forge.tokens, 0)),
+    forges:    forges.map(({ trackerId, project, tokens }) => ({ trackerId, project, tokensText: tokenCountTextOf(tokens) })),
+  };
+}
+
+/** Today's runs as the forges report them: each run that ended today and each brain running now; `null` when no forge reports a brain. */
+function brainRunsTodayOf(fleetDocument: FleetDocument, clock: ClockReading): number | null {
+  if (fleetDocument.forges.every((forge) => forge.brain === 'not-reported')) return null;
+  return brainRunsEndedTodayOf(fleetDocument, clock).length + runningBrainsOf(fleetDocument).length;
+}
+
+function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilters, clock: ClockReading): ActivityContent {
+  const clockFormat = clockFormatOf(clock.timeZone);
   const forgeChoices = forgeChoicesOf(fleetDocument, filters.trackerId);
   const rows = rowsOf(fleetDocument, filters.kind, forgeChoices.chosen, clockFormat);
   return {
@@ -241,6 +304,7 @@ function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilter
     forgeChoices,
     landedToday:          landedTodayOf(fleetDocument),
     tokensToday:          tokensTodayOf(fleetDocument),
+    brainTokensNote:      brainTokensNoteOf(fleetDocument, clock),
     usageLines:           usageLinesOf(fleetDocument, clockFormat, () => true),
     usageLinesAtTheLimit: usageLinesOf(fleetDocument, clockFormat, limitIsHit),
   };
@@ -254,15 +318,20 @@ function tokensTodayOf(fleetDocument: FleetDocument): TodayList {
   return todayListOf(fleetDocument, (today) => today.tokens, tokenCountTextOf, (project, valueText) => `${project}: ${valueText} tokens today`);
 }
 
-/** What waits on User, with `+` while a forge is not fully read, then today's landings and tokens, each only when a forge reports today. */
-function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
+/**
+ * What waits on User, with `+` while a forge is not fully read, then today's landings and tokens, each only when a forge reports today,
+ * and the brain's runs today once a forge reports a brain.
+ */
+function titleFiguresOf(fleetDocument: FleetDocument, clock: ClockReading): PageFigure[] {
   const { waitingOnUser, incompleteFor } = fleetDocument.figures;
   const landedTotal = landedTodayOf(fleetDocument).totalText;
   const tokensTotal = tokensTodayOf(fleetDocument).totalText;
+  const brainRuns = brainRunsTodayOf(fleetDocument, clock);
   return [
     { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'need you', attention: true },
     ...(landedTotal === null ? [] : [{ value: landedTotal, label: 'landed today' }]),
     ...(tokensTotal === null ? [] : [{ value: tokensTotal, label: 'tokens today' }]),
+    ...(brainRuns === null ? [] : [{ value: String(brainRuns), label: 'brain runs today' }]),
   ];
 }
 

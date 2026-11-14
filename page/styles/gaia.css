@@ -524,7 +524,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-activity-forge-menu-item[aria-pressed="true"] { color: var(--ink); }
 .gaia-activity-forge-menu-item:disabled { cursor: default; }
 
-/* Today's cards: per forge its name and value over a 6 px bar; then the usage line, its dot beside its words */
+/* Today's cards: per forge its name and value over a 6 px bar, then the brain's note; then the usage line, its dot beside its words */
 .gaia-activity-side { display: flex; flex: none; flex-direction: column; gap: var(--space-22); width: var(--view-side-width); }
 .gaia-activity-side-section { display: flex; flex-direction: column; }
 .gaia-activity-today-list { display: flex; flex-direction: column; gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
@@ -539,6 +539,19 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-activity-today-meter { display: flex; grid-column: 1 / -1; }
 .gaia-activity-today-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gaia-activity-today-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; }
+/* The tokens of Flint's brain that the total includes, under a hairline, the diamond on its first line */
+.gaia-activity-brain-note {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  padding-top: var(--space-10);
+  border-top: var(--hairline) solid var(--line);
+  font-size: var(--fs-small);
+  line-height: var(--line-height-small);
+  color: var(--ink-muted);
+}
+.gaia-activity-brain-note-figure { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .gaia-activity-usage { display: flex; flex-direction: column; gap: var(--space-6); padding: 0 var(--space-2); }
 .gaia-activity-usage-reading { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-activity-usage-line { margin: 0; font-size: var(--fs-tab); }
@@ -802,6 +815,21 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-condition { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .gaia-forges-forge-name-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .gaia-forges-forge-name { overflow: hidden; min-width: 0; font-weight: var(--weight-strong); text-overflow: ellipsis; white-space: nowrap; }
+/* Flint's brain after the name: the diamond, the mono role word in caps and the time left, in orange text */
+.gaia-forges-brain { display: inline-flex; flex: none; }
+.gaia-forges-brain-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: var(--line-height-micro);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-strong);
+  color: var(--link);
+  white-space: nowrap;
+}
+.gaia-forges-brain-word { letter-spacing: var(--letter-spacing-micro); text-transform: uppercase; }
 .gaia-forges-condition-detail {
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
@@ -948,6 +976,17 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-machine-fact dt { color: var(--ink-muted); }
 .gaia-forges-machine-fact dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 .gaia-forges-machine-fact[data-attention] dd { color: var(--link); }
+.gaia-forges-machine-brain {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  padding-top: var(--space-10);
+  border-top: var(--hairline) solid var(--line);
+  font-size: var(--fs-small);
+  line-height: var(--line-height-small);
+  color: var(--ink-muted);
+}
 
 /* Gaia: its settings as switches, "What notifies" under the second's label, and its facts */
 .gaia-forges-gaia-settings-file { margin: 0; font-size: var(--fs-small); color: var(--link); }
@@ -1120,6 +1159,16 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-running-job[data-role="builder"] .gaia-attention-running-job-role { color: var(--link); }
 .gaia-attention-running-job[data-role="reviewer"] .gaia-attention-running-job-role { color: var(--info-ink); }
 .gaia-attention-running-waiting { font-size: var(--fs-small); font-weight: var(--weight-strong); color: var(--link); white-space: nowrap; }
+.gaia-attention-running-brain {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  overflow: hidden;
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.gaia-attention-running-brain-countdown { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
 /* Just happened */
 .gaia-attention-recent-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }

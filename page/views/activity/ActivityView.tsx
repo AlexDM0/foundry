@@ -1,8 +1,8 @@
 /**
- * The Activity view (artboard A3): the two filters across the top, then what happened across the fleet, newest first, beside the cards of
- * today's landings and tokens per forge and the usage line. `ActivityView` keeps the filters and whether the forge menu is open;
- * `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the page
- * title's parts with the view.
+ * The Activity view (artboard A3): the two filters across the top, then what happened across the fleet, newest first, beside the cards of today's
+ * landings and tokens per forge, with the note of the brain's tokens they include, and the usage line. `ActivityView` keeps the filters and whether the
+ * forge menu is open; `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the
+ * page title's parts with the view.
  */
 import { Card }                                 from 'design-system/Card';
 import { FillMeter }                            from 'design-system/FillMeter';
@@ -19,6 +19,7 @@ import {
 
 import { LIMITS }                          from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument }              from '../../@types/FleetDocument.ts';
+import { BrainDiamond }                    from '../../design-system/BrainDiamond.tsx';
 import { DataTable, type DataTableColumn } from '../../design-system/DataTable.tsx';
 import { RoleDot }                         from '../../design-system/RoleDot.tsx';
 import type { ViewParts }                  from '../../shared/@types/ViewParts.ts';
@@ -28,6 +29,8 @@ import {
   type ActivityKindFilter,
   ActivityModel,
   type ActivityRow,
+  type BrainTokensNote,
+  type ClockReading,
   type CountedKind,
   EVERY_ENTRY,
   type ForgeChoices,
@@ -163,13 +166,38 @@ function ForgeMenu({
   );
 }
 
-interface TodaySectionProps {
-  readonly head: string;
-  readonly list: TodayList;
-  readonly tone: StateTone;
+/** Under the tokens' bars: the diamond, then how many of today's tokens were Flint's brain's, per forge, each figure in mono. */
+function BrainTokensLine({ note }: { readonly note: BrainTokensNote }) {
+  return (
+    <p className="gaia-activity-brain-note">
+      <BrainDiamond />
+      <span>
+        {'Includes '}
+        <span className="gaia-activity-brain-note-figure">{note.totalText}</span>
+        {' of Flint\'s brain: '}
+        {note.forges.map((forge, index) => (
+          <span key={forge.trackerId}>
+            {index === 0 ? '' : ', '}
+            {`${forge.project} `}
+            <span className="gaia-activity-brain-note-figure">{forge.tokensText}</span>
+          </span>
+        ))}
+        .
+      </span>
+    </p>
+  );
 }
 
-function TodaySection({ head, list, tone }: TodaySectionProps) {
+interface TodaySectionProps {
+  readonly head:       string;
+  readonly list:       TodayList;
+  readonly tone:       StateTone;
+  readonly brainNote?: BrainTokensNote | null;
+}
+
+function TodaySection({
+  head, list, tone, brainNote = null
+}: TodaySectionProps) {
   return (
     <section className="gaia-activity-side-section">
       <Card paddingTop="fourteen" paddingHorizontal="eighteen" paddingBottom="sixteen" gap="twelve">
@@ -191,6 +219,7 @@ function TodaySection({ head, list, tone }: TodaySectionProps) {
             ))}
           </ul>
         )}
+        {brainNote === null ? null : <BrainTokensLine note={brainNote} />}
       </Card>
     </section>
   );
@@ -251,7 +280,7 @@ export function ActivityLayout({
         </section>
         <aside className="gaia-activity-side" aria-label="Today">
           <TodaySection head="Landed today" list={content.landedToday} tone="success" />
-          <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" />
+          <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" brainNote={content.brainTokensNote} />
           <UsageSection lines={content.usageLines} linesAtTheLimit={content.usageLinesAtTheLimit} />
         </aside>
       </div>
@@ -261,14 +290,14 @@ export function ActivityLayout({
 
 export interface ActivityViewProps {
   readonly fleetDocument: FleetDocument;
-  /** The time zone clock times are shown in; the page's own when absent. */
-  readonly timeZone?:     string;
+  /** The page's clock: the time zone clock times are shown in, and the day whose brain runs are counted. */
+  readonly clock:         ClockReading;
 }
 
-export function ActivityView({ fleetDocument, timeZone }: ActivityViewProps) {
+export function ActivityView({ fleetDocument, clock }: ActivityViewProps) {
   const [filters, setFilters] = useState<ActivityFilters>(EVERY_ENTRY);
   const [menuIsOpen, setMenuIsOpen] = useState(false);
-  const content = useMemo(() => ActivityModel.activityContentOf(fleetDocument, filters, timeZone), [fleetDocument, filters, timeZone]);
+  const content = useMemo(() => ActivityModel.activityContentOf(fleetDocument, filters, clock), [fleetDocument, filters, clock]);
   return (
     <ActivityLayout
       content={content}
@@ -286,12 +315,12 @@ export function ActivityView({ fleetDocument, timeZone }: ActivityViewProps) {
 }
 
 /** Before the first fleet document the title and its lead stand alone. */
-export function activityViewPartsOf(fleetDocument: FleetDocument | null): ViewParts {
+export function activityViewPartsOf(fleetDocument: FleetDocument | null, clock: ClockReading): ViewParts {
   return {
     title:   TITLE,
     lead:    LEAD,
-    figures: fleetDocument === null ? [] : ActivityModel.titleFiguresOf(fleetDocument),
+    figures: fleetDocument === null ? [] : ActivityModel.titleFiguresOf(fleetDocument, clock),
     actions: null,
-    content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
+    content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} clock={clock} />,
   };
 }

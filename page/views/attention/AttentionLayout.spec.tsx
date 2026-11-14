@@ -1,26 +1,32 @@
 /**
- * The Attention view's layout. What matters (SCREENS A1 acceptance 1, 3 and 4; B3 acceptance 1 and 2): the list draws its rows in the
- * content's order, the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to
- * `#questions/E2`; "Update forge" sends `forge-update` through the command sender and is disabled while it is on its way; a refusal shows
- * under its callout with the forge's code and sentence until dismissed; an update that left a restart pending offers Restart under the
- * callout that sent it until dismissed; nothing waiting says so; B3's banner, its stale rows that can be read and not acted on, its figures
- * folded into one line atop the main column so the side panel and Running fit the window, and the side panel that names the forges the
- * totals cannot vouch for; an empty place says so. The content comes
- * from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
+ * The Attention view's layout. What matters (SCREENS A1 acceptance 1, 3 and 4; B3 acceptance 1 and 2): the list draws its rows in the content's order,
+ * the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to `#questions/E2`; "Update forge" sends
+ * `forge-update` through the command sender and is disabled while it is on its way; a refusal shows under its callout with the forge's code and sentence
+ * until dismissed; an update that left a restart pending offers Restart under the callout that sent it until dismissed; nothing waiting says so; B3's
+ * banner, its stale rows that can be read and not acted on, its figures folded into one line atop the main column so the side panel and Running fit the
+ * window, and the side panel that names the forges the totals cannot vouch for; an empty place says so; Flint's brain running draws one line on its
+ * forge's card, the diamond beside its words with the time left in mono, and no line otherwise. The content comes from the model over the artboards'
+ * fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
-import { type CommandSender, type CommandSubject }                                  from '../../api/CommandSender.ts';
-import { answerResponse, senderOver, type SentRequest }                             from '../../testing/CommandServer.ts';
-import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
-import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
-import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
-import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
-import { AttentionLayout }                                                          from './AttentionLayout.tsx';
-import { AttentionModel }                                                           from './AttentionModel.ts';
+import type { CommandAnswerDocument }                   from '../../@types/CommandDocument.ts';
+import type { FleetDocument }                           from '../../@types/FleetDocument.ts';
+import { type CommandSender, type CommandSubject }      from '../../api/CommandSender.ts';
+import { answerResponse, senderOver, type SentRequest } from '../../testing/CommandServer.ts';
+import { DrawnDots }                                    from '../../testing/DrawnDots.ts';
+import { PackageButtons }                               from '../../testing/PackageButtons.ts';
+import { type HostElement, ReactElementTree }           from '../../testing/ReactElementTree.ts';
+import { FLEET_DEGRADED }                               from '../../testing/fixtures/fleet-degraded.ts';
+import {
+  FLEET_FIVE_FORGES,
+  FLEET_FIVE_FORGES_BRAINS,
+  FLEET_FIVE_FORGES_READINGS,
+  FLEET_FIVE_FORGES_TRACKER_IDS,
+  FLEET_FIXTURES_READ_AT,
+} from '../../testing/fixtures/fleet-five-forges.ts';
+import { AttentionLayout } from './AttentionLayout.tsx';
+import { AttentionModel }  from './AttentionModel.ts';
 
 const tree = ReactElementTree;
 
@@ -273,6 +279,27 @@ describe('the side of the view', () => {
     expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
     expect(tree.onlyWithClass(unfolded, 'gaia-attention-link').props['href']).toBe('#activity');
+  });
+
+  test('a running brain draws one line under its forge\'s job chips: the diamond, "Flint\'s brain · haiku · 1:24 left", the time in mono', () => {
+    const cards = tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-attention-running-card'));
+    const brainLines = cards.map((card) => tree.hostElementsIn([card], tree.withClass('gaia-attention-running-brain')));
+    expect(brainLines.map((lines) => lines.length)).toEqual([1, 0, 0, 0]);
+    const [brainLine] = brainLines[0] ?? [];
+    if (brainLine === undefined) throw new Error('Expected the brain line on Example Storefront\'s card.');
+    expect(tree.textOf([brainLine])).toBe('Flint\'s brain · haiku · 1:24 left');
+    expect(tree.hostElementsIn([brainLine], DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
+    expect(tree.textOf([tree.onlyWithClass([brainLine], 'gaia-attention-running-brain-countdown')])).toBe('1:24');
+  });
+
+  test('with the brain ended, refused, off or not reported, no card draws a brain line', () => {
+    const brains = [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off, 'not-reported' as const];
+    for (const brain of brains) {
+      const storefront = { ...FLEET_FIVE_FORGES_READINGS.exampleStorefront, brain };
+      const forges = FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? storefront : forge));
+      const fleet: FleetDocument = { ...FLEET_FIVE_FORGES, forges };
+      expect(tree.hostElementsIn(unfoldedLayout(fleet), tree.withClass('gaia-attention-running-brain'))).toEqual([]);
+    }
   });
 
   test('with no activity reported, just happened says so in its place', () => {

@@ -1,6 +1,7 @@
 /**
- * The example data of artboards A1 to A4: four running forges, one dormant, one whose repository is gone, and Flint's brain running on
- * Example Storefront. Stamps are UTC; read at `FLEET_FIXTURES_READ_AT`, every age and running time is the one the artboards show.
+ * The example data of artboards A1 to A4: four running forges, one dormant, one whose repository is gone, Flint's brain running on
+ * Example Storefront with the entry of its start, and the entry of a brain that ended on Invoice Service. Stamps are UTC; read at
+ * `FLEET_FIXTURES_READ_AT`, every age and running time is the one the artboards show.
  */
 import type {
   FleetDocument,
@@ -78,6 +79,24 @@ const STOREFRONT_BRAIN_RUNNING: FleetDocumentBrain = {
   endedReason: null,
   sentence:    'Flint\'s brain is running until 13:20',
   refusal:     null,
+};
+
+/** Stopped from the Bridge after 0:26, and still reported within the forge's minute, as a spec puts it in the running brain's place. */
+const STOREFRONT_BRAIN_ENDED: FleetDocumentBrain = {
+  ...STOREFRONT_BRAIN_RUNNING,
+  state:       'ended',
+  tokens:      2_400,
+  endedAt:     '2026-11-12T13:19:20.000Z',
+  endedReason: 'stopped',
+  sentence:    'Flint\'s brain stopped after 0:26',
+};
+
+/** A start the forge refused while the usage limit held, as a spec puts it in the running brain's place. */
+const STOREFRONT_BRAIN_REFUSED: FleetDocumentBrain = {
+  ...BRAIN_OFF,
+  state:    'refused',
+  sentence: null,
+  refusal:  { code: 'usage-limit-holds', sentence: 'The usage limit holds until 16:00.' },
 };
 
 const STOREFRONT_DRAFT_015: FleetDocumentAttentionItem = {
@@ -437,6 +456,15 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   warnings:         [],
   activity:         [
     {
+      logPosition: 457,
+      at:          '2026-11-12T13:18:54.000Z',
+      category:    'agent',
+      text:        'Flint\'s brain started from Gaia · haiku low · 2:00 at most',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      null,
+    },
+    {
       logPosition: 455,
       at:          '2026-11-12T13:16:20.000Z',
       category:    'agent',
@@ -551,6 +579,15 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       route:       '#questions/E4',
       kind:        null,
       tokens:      null,
+    },
+    {
+      logPosition: 312,
+      at:          '2026-11-12T12:46:00.000Z',
+      category:    'agent',
+      text:        'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      4_200,
     },
     {
       logPosition: 309,
@@ -758,6 +795,14 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   brain:             'not-reported',
 };
 
+/** A brain in each state the forge reports, for the specs that put one in Example Storefront's place. */
+export const FLEET_FIVE_FORGES_BRAINS = {
+  off:     BRAIN_OFF,
+  running: STOREFRONT_BRAIN_RUNNING,
+  ended:   STOREFRONT_BRAIN_ENDED,
+  refused: STOREFRONT_BRAIN_REFUSED,
+} as const;
+
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
 export const FLEET_FIVE_FORGES_READINGS = {
   exampleStorefront: EXAMPLE_STOREFRONT,
@@ -835,6 +880,7 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     agentOf(RESEARCH_WIKI, 'J2'),
   ],
   activity: [
+    activityOf(EXAMPLE_STOREFRONT, 457),
     activityOf(EXAMPLE_STOREFRONT, 455),
     activityOf(EXAMPLE_STOREFRONT, 452),
     activityOf(INVOICE_SERVICE, 321),
@@ -843,6 +889,7 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     activityOf(INVOICE_SERVICE, 315),
     activityOf(RESEARCH_WIKI, 124),
     activityOf(RESEARCH_WIKI, 120),
+    activityOf(INVOICE_SERVICE, 312),
     activityOf(EXAMPLE_MOBILE_APP, 213),
     activityOf(EXAMPLE_MOBILE_APP, 210),
     activityOf(INVOICE_SERVICE, 309),

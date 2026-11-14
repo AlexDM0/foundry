@@ -427,6 +427,15 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
   warnings:         [],
   activity:         [
     {
+      logPosition: 457,
+      at:          '2026-11-12T13:18:54.000Z',
+      category:    'agent',
+      text:        'Flint\'s brain started from Gaia · haiku low · 2:00 at most',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      null,
+    },
+    {
       logPosition: 455,
       at:          '2026-11-12T13:16:20.000Z',
       category:    'agent',
@@ -541,6 +550,15 @@ const INVOICE_SERVICE: ForgeReading = {
       route:       '#questions/E4',
       kind:        null,
       tokens:      null,
+    },
+    {
+      logPosition: 312,
+      at:          '2026-11-12T12:46:00.000Z',
+      category:    'agent',
+      text:        'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      4_200,
     },
     {
       logPosition: 309,
@@ -825,6 +843,7 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     agentOf(RESEARCH_WIKI, 'J2'),
   ],
   activity: [
+    activityOf(EXAMPLE_STOREFRONT, 457),
     activityOf(EXAMPLE_STOREFRONT, 455),
     activityOf(EXAMPLE_STOREFRONT, 452),
     activityOf(INVOICE_SERVICE, 321),
@@ -833,6 +852,7 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     activityOf(INVOICE_SERVICE, 315),
     activityOf(RESEARCH_WIKI, 124),
     activityOf(RESEARCH_WIKI, 120),
+    activityOf(INVOICE_SERVICE, 312),
     activityOf(EXAMPLE_MOBILE_APP, 213),
     activityOf(EXAMPLE_MOBILE_APP, 210),
     activityOf(INVOICE_SERVICE, 309),

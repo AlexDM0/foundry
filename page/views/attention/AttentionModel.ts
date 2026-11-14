@@ -1,8 +1,8 @@
 /**
- * What the Attention view shows of a fleet document (SCREENS A1, B3, B4): the figures, what waits on User in the fleet's
- * own order, the forges that need a look with their actions, the running forges, the newest activity, and for a forge Gaia cannot read in
- * full, its banner and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the
- * document does not hold is absent, never zero.
+ * What the Attention view shows of a fleet document (SCREENS A1, B3, B4): the figures, what waits on User in the fleet's own order, the forges that need
+ * a look with their actions, the running forges with a running brain's line, the newest activity, and for a forge Gaia cannot read in full, its banner
+ * and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the document does not hold is absent,
+ * never zero.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
@@ -95,6 +95,13 @@ export interface RunningJob {
   readonly text:  string;
 }
 
+/** Flint's brain running in a forge, as its Running card's line words it: the model the forge reports and the time left, each when known. */
+export interface RunningBrainLine {
+  readonly model:     string | null;
+  /** Counted from the forge's `endsAt` for display, `1:24`; the line leaves when the forge reports the brain ended, never by this count. */
+  readonly countdown: string | null;
+}
+
 export interface RunningCard {
   readonly trackerId:     string;
   readonly project:       string;
@@ -105,6 +112,8 @@ export interface RunningCard {
   readonly jobs:          readonly RunningJob[];
   readonly waitingText:   string | null;
   readonly isStale:       boolean;
+  /** `null` unless the forge reports its brain running. */
+  readonly brain:         RunningBrainLine | null;
 }
 
 export interface RecentEntry {
@@ -441,6 +450,15 @@ function slotsTextOf(forge: FleetDocumentForge): string {
     : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`;
 }
 
+function runningBrainLineOf(forge: FleetDocumentForge, clock: ClockReading): RunningBrainLine | null {
+  if (forge.brain === 'not-reported' || forge.brain.state !== 'running') return null;
+  return {
+    model:     forge.brain.model,
+    countdown: forge.brain.endsAt === null ? null : StampTextUtil.countdownTextOf(forge.brain.endsAt, clock.nowEpochMilliseconds),
+  };
+}
+
+/** A card is for a forge that runs agents: a brain running in a forge with no job has none (SCREENS A1). */
 function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReading): RunningCard[] {
   return forges.filter((forge) => forge.agents.length > 0).map((forge) => {
     const waitingCount = waitingCountOf(forge);
@@ -454,12 +472,15 @@ function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReadi
       jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), text: `${row.jobId} ${row.role ?? row.kind}` })),
       waitingText:   waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
       isStale:       forge.fidelity === 'unreachable',
+      brain:         runningBrainLineOf(forge, clock),
     };
   });
 }
 
+/** Flint's brain shows on A1 only as its Running card's line, so its entries stay on Activity and every other part of A1 is unchanged. */
 function recentOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): RecentEntry[] {
-  return fleetDocument.activity.slice(0, RECENT_ENTRIES_SHOWN).map((entry) => ({
+  const entries = fleetDocument.activity.filter((entry) => entry.kind !== 'flint-brain');
+  return entries.slice(0, RECENT_ENTRIES_SHOWN).map((entry) => ({
     key:       `${entry.trackerId}/${entry.logPosition}`,
     clockText: clockTextOf(entry.at, clock),
     project:   forgesById.get(entry.trackerId)?.project ?? entry.trackerId,

@@ -1,10 +1,12 @@
 /**
- * The Activity view (SCREENS A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the artboard's sixteen rows,
+ * The Activity view (SCREENS A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the artboard's eighteen rows,
  * interleaved across forges newest first, each with its clock time, forge, category and the forge's own text (acceptance 1); the side lists
  * hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from a menu that
  * names the chosen one and closes on Escape and when focus leaves it; a row links into its forge only when it has a route; every empty
  * place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts, the side lists are cards with
- * a mono total, the usage dot says under or at the limit beside the words, and the page title carries the view's figures.
+ * a mono total, the usage dot says under or at the limit beside the words, and the page title carries the view's figures. Flint's brain
+ * (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens' bars a note names its part per forge in mono, absent when no
+ * brain ran today.
  *
  * `ActivityLayout` takes no hooks and unfolds to its host elements; `ActivityView`, which keeps the filters, is rendered with React's own
  * server renderer, which runs its hooks without a document.
@@ -12,15 +14,16 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import type { FleetDocument }                               from '../../@types/FleetDocument.ts';
-import { DrawnDots }                                        from '../../testing/DrawnDots.ts';
-import { type HostElement, ReactElementTree }               from '../../testing/ReactElementTree.ts';
-import { FLEET_EMPTY }                                      from '../../testing/fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../../testing/fixtures/fleet-five-forges.ts';
+import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
+import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
+import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
 import {
   type ActivityFilters,
   type ActivityKindFilter,
   ActivityModel,
+  type ClockReading,
   EVERY_ENTRY,
 } from './ActivityModel.ts';
 import {
@@ -32,7 +35,7 @@ import {
 
 const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
-const FIXTURE_TIME_ZONE = 'UTC';
+const ARTBOARD_CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 interface Handled {
   readonly kinds:       ActivityKindFilter[];
@@ -43,7 +46,7 @@ interface Handled {
 
 function layoutPropsOf(fleetDocument: FleetDocument, filters: ActivityFilters, menuIsOpen = false, handled?: Handled): ActivityLayoutProps {
   return {
-    content:       ActivityModel.activityContentOf(fleetDocument, filters, FIXTURE_TIME_ZONE),
+    content:       ActivityModel.activityContentOf(fleetDocument, filters, ARTBOARD_CLOCK),
     kindFilter:    filters.kind,
     menuIsOpen,
     onKindFilter:  (kind) => handled?.kinds.push(kind),
@@ -85,10 +88,11 @@ function buttonsIn(group: HostElement): HostElement[] {
 }
 
 describe('the table', () => {
-  test('with fleet-five-forges it holds the artboard\'s sixteen rows, interleaved across forges newest first', () => {
+  test('with fleet-five-forges it holds the artboard\'s eighteen rows, interleaved across forges newest first', () => {
     const rows = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
-    expect(rows).toHaveLength(16);
-    expect(rows.slice(0, 5).map(cellTextsOf)).toEqual([
+    expect(rows).toHaveLength(18);
+    expect(rows.slice(0, 6).map(cellTextsOf)).toEqual([
+      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started from Gaia · haiku low · 2:00 at most'],
       ['13:16', 'Example Storefront', 'Agent', 'J4 builder started on #013 Product image zoom'],
       ['13:15', 'Example Storefront', 'Needs you', 'J3 asked E2: How long should a password reset link stay valid?'],
       ['13:07', 'Invoice Service', 'Needs you', '#031 Round VAT per line, not per invoice was reviewed and waits for your accept'],
@@ -101,21 +105,23 @@ describe('the table', () => {
 
   test('a row with a route is a link into its forge, a row without one is plain text, and the forge\'s text is shown whole as its title', () => {
     const rows = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
-    const [newest] = rows;
-    if (newest === undefined) throw new Error('The table holds no row.');
-    const link = tree.onlyWithTag([newest], 'a');
+    const [brainStart, newestJob] = rows;
+    if (brainStart === undefined || newestJob === undefined) throw new Error('The table holds no row.');
+    expect(tree.hostElementsIn([brainStart], tree.withTag('a'))).toEqual([]);
+    const link = tree.onlyWithTag([newestJob], 'a');
     expect([link.props['href'], link.props['title']]).toEqual([`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`, 'J4 builder started on #013 Product image zoom']);
     const heldRow = rows.find((row) => tree.textOf([row]).includes('Launches held'));
     if (heldRow === undefined) throw new Error('The held forge\'s entry is missing.');
     expect(tree.hostElementsIn([heldRow], tree.withTag('a'))).toEqual([]);
   });
 
-  test('each row\'s category shows its dot, and an agent whose job ended keeps its place without one', () => {
-    const [newest] = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
-    if (newest === undefined) throw new Error('The table holds no row.');
+  test('each row\'s category shows its dot, the brain\'s the diamond, and an agent whose job ended keeps its place without one', () => {
+    const [brainStart, newest] = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
+    if (brainStart === undefined || newest === undefined) throw new Error('The table holds no row.');
+    expect(DrawnDots.roleOf(tree.onlyHostElementIn([brainStart], DrawnDots.isDot))).toBe('brain');
     expect(DrawnDots.roleOf(tree.onlyHostElementIn([newest], DrawnDots.isDot))).toBe('builder');
     const storefront = FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, agents: [] } : forge));
-    const [withoutJob] = bodyRowsIn(layoutOf({ ...FLEET_FIVE_FORGES, forges: storefront }).unfolded);
+    const [, withoutJob] = bodyRowsIn(layoutOf({ ...FLEET_FIVE_FORGES, forges: storefront }).unfolded);
     if (withoutJob === undefined) throw new Error('The table holds no row.');
     expect(tree.hostElementsIn([withoutJob], DrawnDots.isDot)).toEqual([]);
     expect(tree.onlyWithClass([withoutJob], 'gaia-activity-dot-space').props['aria-hidden']).toBe('true');
@@ -237,6 +243,29 @@ describe('the side lists', () => {
   });
 });
 
+describe('Flint\'s brain on the tokens-today card', () => {
+  test('under the bars a note with the diamond names the brain\'s part of the total and each forge\'s, every figure in mono', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    const [, tokensSection] = tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-side-section'));
+    if (tokensSection === undefined) throw new Error('The tokens-today card is missing.');
+    const note = tree.onlyWithClass([tokensSection], 'gaia-activity-brain-note');
+    expect(tree.textOf([note])).toBe('Includes 7.3k of Flint\'s brain: Example Storefront 3.1k, Invoice Service 4.2k.');
+    expect(tree.hostElementsIn([note], DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
+    expect(tree.hostElementsIn([note], tree.withClass('gaia-activity-brain-note-figure')).map((figure) => tree.textOf([figure]))).toEqual(['7.3k', '3.1k', '4.2k']);
+  });
+
+  test('with no brain today the note is absent, and the landed card never has one', () => {
+    const noBrainToday: FleetDocument = {
+      ...FLEET_FIVE_FORGES,
+      forges:   FLEET_FIVE_FORGES.forges.map((forge) => (forge.brain === 'not-reported' ? forge : { ...forge, brain: { ...forge.brain, state: 'off' as const } })),
+      activity: FLEET_FIVE_FORGES.activity.filter((entry) => entry.kind !== 'flint-brain'),
+    };
+    expect(tree.hostElementsIn(layoutOf(noBrainToday).unfolded, tree.withClass('gaia-activity-brain-note'))).toEqual([]);
+    const [landedSection] = tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-activity-side-section'));
+    expect(tree.hostElementsIn(landedSection === undefined ? [] : [landedSection], tree.withClass('gaia-activity-brain-note'))).toEqual([]);
+  });
+});
+
 describe('the look of the parts', () => {
   test('each side list is a card, its total in mono, and the usage reading has a neutral dot under the limit and an orange one at it', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
@@ -257,17 +286,17 @@ describe('the look of the parts', () => {
   });
 
   test('the page title carries the view\'s figures once the first fleet document is in', () => {
-    expect(activityViewPartsOf(null).figures).toEqual([]);
-    expect(activityViewPartsOf(FLEET_FIVE_FORGES).figures.map((figure) => [figure.value, figure.label])).toEqual([
-      ['5', 'need you'], ['6', 'landed today'], ['1.24M', 'tokens today'],
+    expect(activityViewPartsOf(null, ARTBOARD_CLOCK).figures).toEqual([]);
+    expect(activityViewPartsOf(FLEET_FIVE_FORGES, ARTBOARD_CLOCK).figures.map((figure) => [figure.value, figure.label])).toEqual([
+      ['5', 'need you'], ['6', 'landed today'], ['1.24M', 'tokens today'], ['2', 'brain runs today'],
     ]);
   });
 });
 
 describe('the view with its filters', () => {
   test('it opens on every entry of every forge, with the menu closed', () => {
-    const markup = renderToStaticMarkup(<ActivityView fleetDocument={FLEET_FIVE_FORGES} timeZone={FIXTURE_TIME_ZONE} />);
-    expect(markup.match(/<time class="gaia-activity-at"/g)).toHaveLength(16);
+    const markup = renderToStaticMarkup(<ActivityView fleetDocument={FLEET_FIVE_FORGES} clock={ARTBOARD_CLOCK} />);
+    expect(markup.match(/<time class="gaia-activity-at"/g)).toHaveLength(18);
     expect(markup).toContain('aria-pressed="true">Everything</button>');
     expect(markup).toContain('aria-pressed="true">All forges</button>');
     expect(markup).toContain('aria-expanded="false"');

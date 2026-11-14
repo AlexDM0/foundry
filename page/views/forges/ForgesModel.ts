@@ -1,7 +1,8 @@
 /**
  * What the Forges view shows of a fleet document (SCREENS A4 and B2): the status line, one row per forge with the buttons of its condition,
  * the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
- * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
+ * machine's agent limit. A row marks Flint's brain while its forge reports it running, and the machine panel says the brain runs outside
+ * the limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
  * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
@@ -119,6 +120,13 @@ export interface StopDialog {
   readonly isOnItsWay:  boolean;
 }
 
+/** Flint's brain running in a forge, as its row marks it after the name. */
+export interface ForgeRowBrain {
+  /** Counted from the forge's `endsAt` for display, `1:24`; the mark leaves when the forge reports the brain ended, never by this count. */
+  readonly countdown:      string | null;
+  readonly accessibleName: string;
+}
+
 export interface ForgeRow {
   readonly trackerId:      string;
   readonly project:        string;
@@ -142,6 +150,8 @@ export interface ForgeRow {
   readonly pendingRestart: PendingRestart | null;
   /** The forge's notice that its Assistant cannot come up, as the server worded it in Gaia's words. */
   readonly noticeText:     string | null;
+  /** `null` unless the forge reports its brain running. */
+  readonly brain:          ForgeRowBrain | null;
 }
 
 export interface HeldBanner {
@@ -186,6 +196,14 @@ export interface MachinePanel {
   readonly isAtTheLimit:   boolean;
   readonly atTheLimitText: string | null;
   readonly facts:          readonly MachineFact[];
+  /** That Flint's brain runs outside the limit, and where one runs now; `null` while no forge reports a brain or no limit is known. */
+  readonly brainLine:      MachineBrainLine | null;
+}
+
+export interface MachineBrainLine {
+  readonly sentence:        string;
+  /** `null` while no brain runs. */
+  readonly runningSentence: string | null;
 }
 
 export interface ForgesContent {
@@ -504,6 +522,15 @@ function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroun
   };
 }
 
+function rowBrainOf(forge: FleetDocumentForge, clock: ClockReading): ForgeRowBrain | null {
+  if (forge.brain === 'not-reported' || forge.brain.state !== 'running') return null;
+  const countdown = forge.brain.endsAt === null ? null : StampTextUtil.countdownTextOf(forge.brain.endsAt, clock.nowEpochMilliseconds);
+  return {
+    countdown,
+    accessibleName: `Flint's brain is running, ${countdown === null ? '' : `${countdown} left, `}outside the agent limit`,
+  };
+}
+
 function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeRow {
   const { fleetDocument, surroundings } = rowSurroundings;
   const shownCondition = shownConditionOf(forge, surroundings.commandStates);
@@ -527,6 +554,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     refusal:        refusalOf(forge.trackerId, surroundings, refusalShowsOnTheRow(forge)),
     pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
     noticeText:     forge.notices.find((notice) => notice.kind === NOTICE_KIND_OF_ASSISTANT_DOWN)?.text ?? null,
+    brain:          rowBrainOf(forge, surroundings.clock),
   };
 }
 
@@ -610,6 +638,23 @@ function machineFactsOf(fleetDocument: FleetDocument, isAtTheLimit: boolean): Ma
   ];
 }
 
+/** `Example Storefront`, `Example Storefront and Invoice Service`, `A, B and C`. */
+function namesInASentenceOf(names: readonly string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`;
+}
+
+function machineBrainLineOf(fleetDocument: FleetDocument): MachineBrainLine | null {
+  if (fleetDocument.forges.every((forge) => forge.brain === 'not-reported')) return null;
+  const running = fleetDocument.forges.filter((forge) => forge.brain !== 'not-reported' && forge.brain.state === 'running').map((forge) => forge.project);
+  return {
+    sentence:        'Flint\'s brain runs outside this limit.',
+    runningSentence: running.length === 0
+      ? null
+      : `${running.length} ${running.length === 1 ? 'is' : 'are'} running now, in ${namesInASentenceOf(running)}, and ${running.length === 1 ? 'takes' : 'take'} no agent slot.`,
+  };
+}
+
 /** Without F6 no forge reports a machine limit: the panel says so and its stepper is off. A limit above the CPU count cannot be chosen. */
 function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStates): MachinePanel {
   const { machineLimit, agentsInFlight } = fleetDocument.figures;
@@ -627,6 +672,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
       isAtTheLimit:   false,
       atTheLimitText: null,
       facts:          machineFactsOf(fleetDocument, false),
+      brainLine:      null,
     };
   }
   const isAtTheLimit = agentsInFlight >= machineLimit;
@@ -641,6 +687,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
     isAtTheLimit,
     atTheLimitText: isAtTheLimit ? atTheLimitTextOf(fleetDocument) : null,
     facts:          machineFactsOf(fleetDocument, isAtTheLimit),
+    brainLine:      machineBrainLineOf(fleetDocument),
   };
 }
 

@@ -1,7 +1,8 @@
 /**
  * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with a notice that the Assistant cannot come up, the Stop dialog, a
- * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside
- * them this machine's panel and Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
+ * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and
+ * beside them this machine's panel and Gaia's. A forge whose brain runs marks it after its name, and this machine's panel says the brain runs outside
+ * its limit. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import { Button }                    from 'design-system/Button';
 import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
@@ -13,6 +14,7 @@ import { Text }                      from 'design-system/Text';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
+import { BrainDiamond }                                        from '../../design-system/BrainDiamond.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
 import { DataTable, type DataTableColumn, type DataTableRow }  from '../../design-system/DataTable.tsx';
@@ -25,6 +27,7 @@ import type {
   ForgeButton,
   ForgeEntry,
   ForgeRow,
+  ForgeRowBrain,
   ForgesContent,
   HeldBanner,
   MachinePanel,
@@ -151,14 +154,29 @@ function PendingRestartLine({ pendingRestart, trackerId, handlers }: PendingRest
   );
 }
 
+/** The brain's mark after a forge's name: the diamond, the role word and the time left, named in one sentence for a screen reader. */
+function ForgeBrainMark({ brain }: { readonly brain: ForgeRowBrain }) {
+  return (
+    <span className="gaia-forges-brain">
+      <span className="gaia-visually-hidden">{brain.accessibleName}</span>
+      <span className="gaia-forges-brain-mark" aria-hidden="true">
+        <BrainDiamond />
+        <span className="gaia-forges-brain-word">Brain</span>
+        {brain.countdown === null ? null : <span>{brain.countdown}</span>}
+      </span>
+    </span>
+  );
+}
+
 function ForgeName({
-  trackerId, project, condition, pillWord = null
-}: Pick<ForgeRow, 'trackerId' | 'project' | 'condition'> & { readonly pillWord?: string | null }) {
+  trackerId, project, condition, pillWord = null, brain = null
+}: Pick<ForgeRow, 'trackerId' | 'project' | 'condition'> & { readonly pillWord?: string | null; readonly brain?: ForgeRowBrain | null }) {
   return (
     <span className="gaia-forges-forge-name-line" id={forgeAnchorIdOf(trackerId)}>
       <ConditionDot condition={condition} />
       <span className="gaia-forges-forge-name">{project}</span>
       {pillWord === null ? null : <StatePill label={pillWord} tone="neutral" width="fit" />}
+      {brain === null ? null : <ForgeBrainMark brain={brain} />}
     </span>
   );
 }
@@ -276,7 +294,7 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
     cells:    {
       forge: (
         <span className="gaia-forges-forge">
-          <ForgeName trackerId={row.trackerId} project={row.project} condition={row.condition} />
+          <ForgeName trackerId={row.trackerId} project={row.project} condition={row.condition} brain={row.brain} />
           <span className="gaia-forges-forge-root" title={row.rootPath}>{row.rootText}</span>
         </span>
       ),
@@ -381,6 +399,12 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
           </div>
         ))}
       </dl>
+      {machine.brainLine === null ? null : (
+        <p className="gaia-forges-machine-brain">
+          <BrainDiamond />
+          <span>{machine.brainLine.runningSentence === null ? machine.brainLine.sentence : `${machine.brainLine.sentence} ${machine.brainLine.runningSentence}`}</span>
+        </p>
+      )}
       <CommandFailureRefusal
         commandStates={commandStates}
         subject={MACHINE_LIMIT_SUBJECT}

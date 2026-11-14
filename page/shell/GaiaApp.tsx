@@ -101,7 +101,7 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
     case 'agents':
       return agentsViewPartsOf(fleetDocument, route, readAtMilliseconds, goTo);
     case 'activity':
-      return activityViewPartsOf(fleetDocument);
+      return activityViewPartsOf(fleetDocument, clock);
     case 'forge':
       return forgeFrameViewPartsOf(route, fleetDocument, clock, forgeFrame);
     case 'forges':

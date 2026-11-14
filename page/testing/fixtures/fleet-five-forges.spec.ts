@@ -1,8 +1,8 @@
 /**
  * The fixture must hold the example data of artboards A1 to A4, or every view spec built on it checks the wrong screen. What matters: A1's
  * rows in their order with their ages, A2's ten agents and their running times, Flint's brain running on Example Storefront with A2's
- * 0:36 run and 1:24 left, outside every figure, A3's interleaved entries and daily sums, A4's limits, and the fleet-wide lists being copies
- * of their forges' own entries.
+ * 0:36 run and 1:24 left, outside every figure, A3's interleaved entries with its two of the brain and its daily sums, A4's limits, and the
+ * fleet-wide lists being copies of their forges' own entries.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -67,14 +67,24 @@ describe('the fleet-five-forges fixture', () => {
     expect([FLEET_FIVE_FORGES.figures.agentsInFlight, storefront?.concurrency?.agentsInFlight]).toEqual([10, 4]);
   });
 
-  test('interleaves the sixteen entries of A3 newest first, and sums landed and tokens today as A3 does', () => {
+  test('interleaves the eighteen entries of A3 newest first, and sums landed and tokens today as A3 does', () => {
     const stamps = FLEET_FIVE_FORGES.activity.map((entry) => entry.at);
-    expect(stamps).toHaveLength(16);
+    expect(stamps).toHaveLength(18);
     expect(stamps).toEqual([...stamps].sort().reverse());
     const todays = FLEET_FIVE_FORGES.forges.flatMap((forge) => (forge.today === null ? [] : [forge.today]));
     expect(todays.reduce((sum, today) => sum + today.deliveredTickets, 0)).toBe(FLEET_FIVE_FORGES.figures.deliveredToday);
     expect(todays.reduce((sum, today) => sum + today.tokens, 0)).toBe(1_240_000);
     expect(FLEET_FIVE_FORGES.figures.tokensToday).toBe(1_240_000);
+  });
+
+  test('holds A3\'s two entries of Flint\'s brain: its start on Example Storefront at the brain\'s own, and Invoice Service\'s run that ended at 12:46 with 4.2k tokens', () => {
+    const brainEntries = FLEET_FIVE_FORGES.activity.filter((entry) => entry.kind === 'flint-brain');
+    expect(brainEntries.map((entry) => [projectOf(entry.trackerId), entry.category, entry.at, entry.tokens, entry.text])).toEqual([
+      ['Example Storefront', 'agent', '2026-11-12T13:18:54.000Z', null, 'Flint\'s brain started from Gaia · haiku low · 2:00 at most'],
+      ['Invoice Service', 'agent', '2026-11-12T12:46:00.000Z', 4200, 'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia'],
+    ]);
+    const storefront = FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
+    expect(storefront?.brain === 'not-reported' ? null : storefront?.brain.startedAt).toBe(brainEntries[0]?.at);
   });
 
   test('holds the forges of A4, whose own limits ask for 17 agents of a machine of 12 CPUs', () => {

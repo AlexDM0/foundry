@@ -13,6 +13,7 @@ import { Text }   from 'design-system/Text';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
+import { BrainDiamond }                                           from '../../design-system/BrainDiamond.tsx';
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
 import { Figure }                                                 from '../../design-system/Figure.tsx';
@@ -31,6 +32,7 @@ import {
   type LookAction,
   type LookCallout,
   type RecentEntry,
+  type RunningBrainLine,
   type RunningCard,
   type RunningCardForm,
   type UnreachableBanner,
@@ -65,6 +67,10 @@ const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
 const WAITING_ORDER_SENTENCE = 'oldest first · escalations on top';
 
 const HEAD_SEPARATOR = ' · ';
+
+const LINE_SEPARATOR = ' · ';
+
+const BRAIN_NAME = 'Flint\'s brain';
 
 function commandIsOnItsWay(commandStates: CommandStates, command: CommandBody): boolean {
   return CommandSender.stateOf(commandStates, CommandSender.subjectOf(command)).onItsWay !== null;
@@ -255,6 +261,26 @@ function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) 
   );
 }
 
+/** Flint's brain under the job chips: the diamond, then the model and the time left as its forge reports them. */
+function RunningBrain({ brain }: { readonly brain: RunningBrainLine }) {
+  return (
+    <span className="gaia-attention-running-brain">
+      <BrainDiamond />
+      <span>
+        {BRAIN_NAME}
+        {brain.model === null ? null : `${LINE_SEPARATOR}${brain.model}`}
+        {brain.countdown === null ? null : (
+          <>
+            {LINE_SEPARATOR}
+            <span className="gaia-attention-running-brain-countdown">{brain.countdown}</span>
+            {' left'}
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
 function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly form: RunningCardForm }) {
   return (
     <a className="gaia-attention-running-card" href={card.href} data-stale={card.isStale ? '' : undefined} data-form={form}>
@@ -268,6 +294,7 @@ function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly 
       <span className="gaia-attention-running-jobs">
         {card.jobs.map((job) => <RunningJobChip key={job.jobId} job={job} />)}
       </span>
+      {card.brain === null ? null : <RunningBrain brain={card.brain} />}
       {form === 'full' ? <RunningWaiting card={card} /> : null}
     </a>
   );

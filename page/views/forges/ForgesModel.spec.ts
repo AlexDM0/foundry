@@ -6,19 +6,28 @@
  * agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a refusal stays on
  * its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the forge answers;
  * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner or under its row; a forge whose Assistant
- * cannot come up says so under its row. Command states come from the real sender over Gaia's server stood in for by authored answers.
+ * cannot come up says so under its row. Flint's brain (R4.6): only a forge whose brain runs marks it on its row, with the time left and a
+ * name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine panel says the brain runs
+ * outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender over Gaia's server
+ * stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommandAnswerDocument, CommandBody, ForgeCommandBody }      from '../../@types/CommandDocument.ts';
-import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import { type CommandSender, type CommandStates }                         from '../../api/CommandSender.ts';
-import { answerResponse, senderOver }                                     from '../../testing/CommandServer.ts';
-import { FLEET_AT_LIMIT }                                                 from '../../testing/fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }                                                 from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }                                                    from '../../testing/fixtures/fleet-empty.ts';
+import type { CommandAnswerDocument, CommandBody, ForgeCommandBody } from '../../@types/CommandDocument.ts';
+import type {
+  FleetDocument,
+  FleetDocumentBrain,
+  FleetDocumentCondition,
+  FleetDocumentForge,
+} from '../../@types/FleetDocument.ts';
+import { type CommandSender, type CommandStates } from '../../api/CommandSender.ts';
+import { answerResponse, senderOver }             from '../../testing/CommandServer.ts';
+import { FLEET_AT_LIMIT }                         from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }                         from '../../testing/fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }                            from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
+  FLEET_FIVE_FORGES_BRAINS,
   FLEET_FIVE_FORGES_READINGS,
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
@@ -339,6 +348,65 @@ describe('this machine (A4 acceptance 2 and 3, B2)', () => {
     const sender = pendingSender();
     void sender.send({ kind: 'machine-agent-limit-set', limit: 11 });
     expect(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).machine.stepperIsOff).toBe(true);
+  });
+});
+
+function withBrainOn(trackerId: string, brain: FleetDocumentBrain | 'not-reported', fleetDocument: FleetDocument = FLEET_FIVE_FORGES): FleetDocument {
+  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => (forge.trackerId === trackerId ? { ...forge, brain } : forge)) };
+}
+
+describe('Flint\'s brain on A4', () => {
+  test('only the forge whose brain runs marks it on its row, with the time left and a name that it runs outside the agent limit', () => {
+    const { rows } = contentOf(FLEET_FIVE_FORGES);
+    expect(rows.map((row) => [row.project, row.brain])).toEqual([
+      ['Example Storefront', { countdown: '1:24', accessibleName: 'Flint\'s brain is running, 1:24 left, outside the agent limit' }],
+      ['Invoice Service', null],
+      ['Research Wiki', null],
+      ['Example Mobile App', null],
+      ['Design System', null],
+    ]);
+  });
+
+  test('the time left follows the page\'s clock and stops at 0:00, and a brain whose end the forge does not report shows none', () => {
+    const later = { ...ARTBOARD_CLOCK, nowEpochMilliseconds: ARTBOARD_CLOCK.nowEpochMilliseconds + 90_000 };
+    expect(rowOf(contentOf(FLEET_FIVE_FORGES, { clock: later }), TRACKER_IDS.exampleStorefront).brain?.countdown).toBe('0:00');
+    const noEnd = withBrainOn(TRACKER_IDS.exampleStorefront, { ...FLEET_FIVE_FORGES_BRAINS.running, endsAt: null });
+    expect(rowOf(contentOf(noEnd), TRACKER_IDS.exampleStorefront).brain).toEqual({ countdown: null, accessibleName: 'Flint\'s brain is running, outside the agent limit' });
+  });
+
+  test('an ended, refused, off or unreported brain marks no row', () => {
+    const brains = [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off, 'not-reported' as const];
+    expect(brains.map((brain) => rowOf(contentOf(withBrainOn(TRACKER_IDS.exampleStorefront, brain)), TRACKER_IDS.exampleStorefront).brain)).toEqual([null, null, null, null]);
+  });
+
+  test('a running brain leaves the machine\'s figure, slots and facts at 10 / 12, as without it', () => {
+    const withBrain = contentOf(FLEET_FIVE_FORGES).machine;
+    const withoutBrain = contentOf(withBrainOn(TRACKER_IDS.exampleStorefront, FLEET_FIVE_FORGES_BRAINS.off)).machine;
+    expect(withBrain.meter).toEqual({ used: 10, whole: 12, label: '10 of 12 agents' });
+    expect([withBrain.meter, withBrain.facts, withBrain.isAtTheLimit]).toEqual([withoutBrain.meter, withoutBrain.facts, withoutBrain.isAtTheLimit]);
+  });
+
+  test('the machine panel says the brain runs outside the limit, and where one runs now', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).machine.brainLine).toEqual({
+      sentence:        'Flint\'s brain runs outside this limit.',
+      runningSentence: '1 is running now, in Example Storefront, and takes no agent slot.',
+    });
+    const two = withBrainOn(TRACKER_IDS.invoiceService, FLEET_FIVE_FORGES_BRAINS.running);
+    expect(contentOf(two).machine.brainLine?.runningSentence).toBe('2 are running now, in Example Storefront and Invoice Service, and take no agent slot.');
+  });
+
+  test('with no brain running the panel keeps only that the brain runs outside the limit', () => {
+    for (const brain of [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off]) {
+      const { brainLine } = contentOf(withBrainOn(TRACKER_IDS.exampleStorefront, brain)).machine;
+      expect(brainLine).toEqual({ sentence: 'Flint\'s brain runs outside this limit.', runningSentence: null });
+    }
+  });
+
+  test('the brain line is absent while no forge reports a brain, and while no machine limit is known', () => {
+    const noBrain = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, brain: 'not-reported' as const })) };
+    expect(contentOf(noBrain).machine.brainLine).toBeNull();
+    const withoutF6 = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
+    expect(contentOf(withoutF6).machine.brainLine).toBeNull();
   });
 });
 
