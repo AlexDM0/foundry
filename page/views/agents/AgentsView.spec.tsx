@@ -210,7 +210,7 @@ describe('the table', () => {
   test('filters that leave no row say so in the table\'s place', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { query: 'role=reviewers&condition=needs-a-look' });
     expect(tree.hostElementsIn(view, tree.withClass('gaia-agents-table'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-no-match')])).toBe('No agent matches these filters.');
+    expect(tree.textOf([tree.onlyWithClass(view, 'design-system-empty')])).toBe('No agent matches these filters.');
   });
 });
 
@@ -354,6 +354,14 @@ describe('Flint\'s brain', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES);
     expect(tree.hostElementsIn(view, (element) => element.tag === 'button' && /Flint's brain on/.test(String(element.props['aria-label'])))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-group-brain-pill')])).toBe('+ brain');
+  });
+
+  test('the brain\'s panel sets the run it is allowed in the plain face and the machine figure apart, as parts of their lines', () => {
+    const panel = panelIn(viewSending(servingTheBrain(FLEET_FIVE_FORGES), { selectedAgent: STOREFRONT_BRAIN }).view);
+    expect(tree.hostElementsIn([tree.onlyWithClass([panel], 'gaia-agents-panel-brain-model')], tree.withClass('gaia-agents-panel-running'))).toEqual([]);
+    const outsideLine = tree.onlyWithClass([panel], 'gaia-agents-panel-brain-outside');
+    expect(outsideLine.children.filter((child) => typeof child === 'string')).toEqual(['Not counted in the ', ' machine limit']);
+    expect(tree.textOf([tree.onlyWithClass([outsideLine], 'gaia-agents-panel-running')])).toBe('10 / 12');
   });
 
   test('selecting it shows the brain\'s panel: its time left, model and effort, what the forge reports, its moves, Stop and the way to its forge', () => {

@@ -4,6 +4,7 @@
  * the brain, the panel says it is no longer running and keeps the way to its forge.
  */
 import { Button }           from 'design-system/Button';
+import { EmptyState }       from 'design-system/EmptyState';
 import { FactList }         from 'design-system/FactList';
 import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
 import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
@@ -67,11 +68,7 @@ function ModelLine({ content }: { readonly content: RunningBrain }) {
         )
         : <span className="gaia-agents-panel-brain-model-words">{[model, effort].filter((word) => word !== null).join(' · ')}</span>}
       {spanText === null ? null : (
-        <span className="gaia-agents-panel-project">
-          {'· '}
-          <span className="gaia-agents-panel-running">{spanText}</span>
-          {' at most'}
-        </span>
+        <span className="gaia-agents-panel-project">{`· ${spanText} at most`}</span>
       )}
     </div>
   );
@@ -82,11 +79,11 @@ function OutsideTheLimitLine({ machineLimitFigure }: { readonly machineLimitFigu
     <div className="gaia-agents-panel-brain-outside">
       <BrainDiamond />
       {machineLimitFigure === null ? 'Not counted in any agent limit' : (
-        <span>
+        <>
           {'Not counted in the '}
           <span className="gaia-agents-panel-running">{machineLimitFigure}</span>
           {' machine limit'}
-        </span>
+        </>
       )}
     </div>
   );
@@ -123,7 +120,7 @@ function RunningBrainPanel({ content, handlers }: { readonly content: RunningBra
       <div className="gaia-agents-panel-section" data-section="moves">
         <MicroCapsLabel text="Last moves it chose" element="div" />
         {content.moves.length === 0
-          ? <p className="gaia-agents-panel-sentence">The forge reports no move yet.</p>
+          ? <EmptyState text="The forge reports no move yet." compact />
           : (
             <ol className="gaia-agents-panel-moves" aria-label="Last moves of Flint's brain">
               {content.moves.map((move) => (

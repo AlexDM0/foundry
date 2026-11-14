@@ -4,6 +4,7 @@
  * document, and hands it the way to change the filters, which it writes into the route, and to send a forge's brain its Wake or Stop.
  * `agentsViewPartsOf` hands the shell the page title's parts with it.
  */
+import { EmptyState }       from 'design-system/EmptyState';
 import { FillMeter }        from 'design-system/FillMeter';
 import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
 import { SegmentedControl } from 'design-system/SegmentedControl';
@@ -98,7 +99,7 @@ export function AgentsView({ content, handlers }: AgentsViewProps) {
       <section className="gaia-agents-main" aria-label="Agents per forge">
         <AgentFilterBar content={content} onFiltersChange={handlers.onFiltersChange} />
         {content.groups.length === 0
-          ? <p className="gaia-agents-no-match">No agent matches these filters.</p>
+          ? <EmptyState text="No agent matches these filters." />
           : <AgentsTable groups={content.groups} handlers={handlers} />}
         <p className="gaia-agents-footnote">{footnoteOf(content)}</p>
       </section>
