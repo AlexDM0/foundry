@@ -23,6 +23,7 @@ import { CommandSender }                                                        
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
 import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
 import { TextField }                                                                from '../design-system/TextField.tsx';
+import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
 import { forgeFrameSurroundingsAt, shellSurroundingsAt }                            from '../testing/ShellSurroundingsAt.ts';
@@ -40,6 +41,7 @@ import {
   GaiaApp,
   type GaiaAppProps,
   GaiaShell,
+  themeChoiceHandlerOf,
   viewPartsOf,
 } from './GaiaApp.tsx';
 import { DEFAULT_ROUTE, HashRouter } from './HashRouter.ts';
@@ -192,6 +194,20 @@ describe('the route and the theme', () => {
     expect(themeButtonNameIn(renderToStaticMarkup(app))).toBe('Theme: light. Switch to dark');
     source.publish(FLEET_FIVE_FORGES);
     expect(themeButtonNameIn(renderToStaticMarkup(app))).toBe('Theme: dark. Switch to auto');
+  });
+
+  test('a theme picked with the switch shows at once and is sent to Gaia\'s settings, so the next document does not bring back the old one', async () => {
+    const sent: SentRequest[] = [];
+    const sender = senderOver([() => Promise.resolve(answerResponse({
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
+    }))], sent);
+    const shown: string[] = [];
+    themeChoiceHandlerOf((choice) => shown.push(choice), sender.send)('light');
+    await Promise.resolve();
+    expect(shown).toEqual(['light']);
+    expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([{
+      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 2
+    }]);
   });
 });
 

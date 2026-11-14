@@ -7,7 +7,6 @@
  * every rail row is, still navigates.
  */
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -112,6 +111,14 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
   }
 }
 
+/** A choice shows at once and goes to Gaia's settings, so the next fleet document carries it instead of bringing back the old one. */
+export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, send: CommandSender['send']): (choice: ThemeChoice) => void {
+  return (choice) => {
+    showChoice(choice);
+    void send({ kind: 'settings-set', key: 'theme', value: choice });
+  };
+}
+
 /** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (D2). */
 export function GaiaShell({
   fleetDocument, streamState, route, view, themeChoice, onThemeChoice
@@ -164,7 +171,10 @@ export function GaiaApp({
   // Adjusting state while rendering, as React advises for a value derived from a changed input: no frame shows the old theme.
   if (themeStateForDocument !== themeState) setThemeState(themeStateForDocument);
   const shownThemeChoice = themeStateForDocument.shown;
-  const onThemeChoice = useCallback((choice: ThemeChoice) => setThemeState((state) => ThemeBootstrap.themeStateAfterChoice(state, choice)), []);
+  const onThemeChoice = useMemo(() => themeChoiceHandlerOf(
+    (choice) => setThemeState((state) => ThemeBootstrap.themeStateAfterChoice(state, choice)),
+    commandSender.send,
+  ), [commandSender]);
 
   useLayoutEffect(() => ThemeBootstrap.chooseTheme(theme, shownThemeChoice), [theme, shownThemeChoice]);
   useEffect(() => (shownThemeChoice === 'auto' ? theme.followSystemScheme(() => ThemeBootstrap.applyChoice(theme, 'auto')) : undefined), [theme, shownThemeChoice]);
