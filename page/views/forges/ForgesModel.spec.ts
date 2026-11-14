@@ -143,19 +143,20 @@ describe('a row of the table (A4)', () => {
 
   test('reads the root from ~, the condition word with when it started or stopped, the agents against the limit, what waits and the code', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
-    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText, row.waitingText, row.codeText];
+    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText, row.waitingCount, row.codeText];
     expect(content.rows.map(cellsOf)).toEqual([
-      ['~/development/example-storefront', 'Live', null, 'since 09:12', '2', '3f9a2c1'],
-      ['~/development/invoice-service', 'Live', null, 'since 08:40', '2', '3f9a2c1'],
-      ['~/development/research-wiki', 'Live', null, 'since 11:02', '1', '3f9a2c1'],
+      ['~/development/example-storefront', 'Live', null, 'since 09:12', 2, '3f9a2c1'],
+      ['~/development/invoice-service', 'Live', null, 'since 08:40', 2, '3f9a2c1'],
+      ['~/development/research-wiki', 'Live', null, 'since 11:02', 1, '3f9a2c1'],
       ['~/development/example-mobile-app', 'Launches held', 'warn', 'since 12:40', null, 'b81e07d'],
       ['~/development/design-system', 'Dormant', 'muted', 'stopped 12:20', null, '3f9a2c1'],
     ]);
-    expect(content.rows.map((row) => (row.agents === null ? null : [row.agents.kind, row.agents.kind === 'text' ? row.agents.text : row.agents.valueText]))).toEqual([
-      ['stepper', '4 / 5'],
-      ['stepper', '3 / 5'],
-      ['stepper', '1 / 3'],
-      ['stepper', '2 / 2'],
+    const agentsCellOf = ({ agents }: ForgeRow) => (agents === null ? null : [agents.kind, agents.kind === 'text' ? agents.text : [agents.inFlight, agents.limit]]);
+    expect(content.rows.map(agentsCellOf)).toEqual([
+      ['stepper', [4, 5]],
+      ['stepper', [3, 5]],
+      ['stepper', [1, 3]],
+      ['stepper', [2, 2]],
       ['text', '0 / 2'],
     ]);
   });
@@ -175,7 +176,7 @@ describe('a row of the table (A4)', () => {
   test('a forge read through its summary shows no limit and its waiting count; one that stopped answering, what it last reported', () => {
     const content = contentOf(FLEET_DEGRADED);
     const wiki = rowOf(content, TRACKER_IDS.researchWiki);
-    expect([wiki.agents, wiki.waitingText]).toEqual([null, '1']);
+    expect([wiki.agents, wiki.waitingCount]).toEqual([null, 1]);
     const invoice = rowOf(content, TRACKER_IDS.invoiceService);
     expect([invoice.conditionWord, invoice.detailText, invoice.agents]).toEqual(['Unreachable', 'as last reported 13:14', { kind: 'text', text: '3 / 5' }]);
   });

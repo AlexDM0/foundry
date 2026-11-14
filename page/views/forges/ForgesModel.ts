@@ -73,7 +73,6 @@ export type ForgeButton =
 export type ForgeAgentsCell =
   | {
     readonly kind:         'stepper';
-    readonly valueText:    string;
     /** The agents running now, shown before the limit the stepper changes. */
     readonly inFlight:     number;
     readonly limit:        number;
@@ -140,7 +139,6 @@ export interface ForgeRow {
   readonly detailText:     string | null;
   readonly detailFace:     DetailFace;
   readonly agents:         ForgeAgentsCell | null;
-  readonly waitingText:    string | null;
   /** What waits on User in this forge, counted for its badge; `null` where nothing waits or the count is not known. */
   readonly waitingCount:   number | null;
   readonly codeText:       string | null;
@@ -422,7 +420,6 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   const { limit } = concurrency;
   return {
     kind:         'stepper',
-    valueText,
     inFlight:     concurrency.agentsInFlight,
     limit,
     lowerLabel:   `Lower ${project}'s agent limit`,
@@ -436,11 +433,6 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
 function waitingCountOf(forge: FleetDocumentForge): number | null {
   const count = forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
   return count === null || count === 0 ? null : count;
-}
-
-function waitingTextOf(forge: FleetDocumentForge): string | null {
-  const count = waitingCountOf(forge);
-  return count === null ? null : String(count);
 }
 
 /** A command that names only its forge can be sent again from its kind alone; any other only as this view last sent it. */
@@ -542,7 +534,6 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     detailText:     detailTextOf(forge, shownCondition, rowSurroundings),
     detailFace:     detailFaceOf(shownCondition, rowSurroundings.forgeProgramIsMissing),
     agents:         agentsCellOf(forge, rowSurroundings),
-    waitingText:    waitingTextOf(forge),
     waitingCount:   waitingCountOf(forge),
     codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:        buttonsOf(forge, rowSurroundings),
