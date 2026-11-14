@@ -26,6 +26,7 @@ export type ForgeSessionCodeAnswer = { readonly verdict: 'answered'; readonly co
 export type MonitorFollowEnd = { readonly verdict: 'ended'; readonly ending: 'closed' | 'broken' | 'stopped' } | ForgeClientFailure;
 
 export interface MonitorFollow {
+  /** Rejects only with what the caller's snapshot handler threw, and closes the stream all the same. */
   readonly ended: Promise<MonitorFollowEnd>;
   /** Stops following and closes the stream; `ended` then answers `stopped`. */
   readonly stop:  () => void;

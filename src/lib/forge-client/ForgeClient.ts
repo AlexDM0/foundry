@@ -168,13 +168,17 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
       openStream = stream;
       if (stopIsRequested) stream.close();
       const parser = eventStreamParserOf();
-      let chunk = await stream.nextChunk();
-      while (chunk.kind === 'text') {
-        handOnWholeSnapshots(chunk.text, parser);
-        chunk = await stream.nextChunk();
+      // A throw of the caller's snapshot handler rejects `ended`, and still closes the stream.
+      try {
+        let chunk = await stream.nextChunk();
+        while (chunk.kind === 'text') {
+          handOnWholeSnapshots(chunk.text, parser);
+          chunk = await stream.nextChunk();
+        }
+        return { verdict: 'ended', ending: stopIsRequested ? 'stopped' : chunk.ending };
+      } finally {
+        stream.close();
       }
-      stream.close();
-      return { verdict: 'ended', ending: stopIsRequested ? 'stopped' : chunk.ending };
     }
 
     function stop(): void {

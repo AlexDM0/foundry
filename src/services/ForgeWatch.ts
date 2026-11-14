@@ -151,17 +151,28 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       roundTimer?.cancel();
       roundTimer = timers.start(() => {
         roundTimer = null;
-        void identifyAndRead(beginRound());
+        launchRound();
       }, delayMilliseconds);
+    }
+
+    /** A round that throws, a reading listener's throw included, is a failed try: it never ends the server. */
+    function launchRound(): void {
+      const round = beginRound();
+      identifyAndRead(round)
+        .catch(() => {
+          if (round.isCurrent()) failedTry();
+        })
+        // The failed try scheduled the next round before it told the listener, so a listener that throws again loses nothing.
+        .catch(() => undefined);
     }
 
     /** A forge never read in this run reads unreachable at once; one read before keeps its reading for a few tries (PLAN 7.1). */
     function failedTry(): void {
       failedTries += 1;
+      scheduleRound(intervals.streamReconnectIntervalMilliseconds);
       if (lastWholeReading === null || failedTries >= intervals.unreachableAfterFailedTries) {
         setReading(WatchReadingUtil.unreachableReadingOf(entry, lastWholeReading));
       }
-      scheduleRound(intervals.streamReconnectIntervalMilliseconds);
     }
 
     function readStarting(): void {
@@ -192,6 +203,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       if (bearerToken === null) return failedTry();
       const ingestion = new MonitorSnapshotIngestion(registryFacts, identity);
       let wholeSnapshotsRead = 0;
+      let snapshotWasUnreadable = false;
       const follow = forgeClient.followMonitor({ overseerUrl: registryFacts.overseerUrl, bearerToken }, (document) => {
         if (!round.isCurrent()) return;
         const snapshotReading = ingestion.readingOf(document, options.now());
@@ -202,12 +214,17 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
           // Gaia reads nothing of a newer contract; the forge is identified again when its registry entry changes.
           setReading(snapshotReading.reading);
           follow.stop();
+        } else {
+          // An open stream that only sends what Gaia cannot read would otherwise keep the forge as it was, never failing a try.
+          snapshotWasUnreadable = true;
+          follow.stop();
         }
       });
       monitorFollow = follow;
       const end = await follow.ended;
       if (!round.isCurrent()) return;
       monitorFollow = null;
+      if (snapshotWasUnreadable) return failedTry();
       if (end.verdict === 'ended' && end.ending === 'stopped') return;
       if (end.verdict !== 'ended' && WatchReadingUtil.failureMeansStarting(end)) return readStarting();
       // A stream that gave a whole snapshot ended as a Baton pass or a lost connection does; one that gave none is a failed try.
@@ -238,11 +255,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     function follow(nextEntry: RegisteredForge): void {
       entry       = nextEntry;
       failedTries = 0;
-      void identifyAndRead(beginRound());
+      launchRound();
     }
 
     function lookAgain(): void {
-      if (monitorFollow === null) void identifyAndRead(beginRound());
+      if (monitorFollow === null) launchRound();
     }
 
     return {
@@ -288,8 +305,13 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     registryTimer?.cancel();
     registryTimer = timers.start(() => {
       registryTimer = null;
-      void checkRegistry(false);
+      launchRegistryCheck();
     }, intervals.registryCheckIntervalMilliseconds);
+  }
+
+  /** A check that throws, a reading listener's throw included, never ends the server: the next check is scheduled all the same. */
+  function launchRegistryCheck(): void {
+    checkRegistry(false).catch(() => undefined);
   }
 
   /**
@@ -297,26 +319,29 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
    * is newer than Gaia knows, leaves every watch as it is.
    */
   async function checkRegistry(isLookAgain: boolean): Promise<void> {
-    const registryReading = await options.readRegistry();
-    if (isStopped) return;
-    let visibleEntries: readonly RegisteredForge[] | null = null;
-    if (registryReading.verdict === 'absent') visibleEntries = [];
-    if (registryReading.verdict === 'readable') {
-      const hiddenTrackerIds = new Set(options.hiddenTrackerIds());
-      visibleEntries = registryReading.forges.filter((forge) => !hiddenTrackerIds.has(forge.trackerId));
+    try {
+      const registryReading = await options.readRegistry();
+      if (isStopped) return;
+      let visibleEntries: readonly RegisteredForge[] | null = null;
+      if (registryReading.verdict === 'absent') visibleEntries = [];
+      if (registryReading.verdict === 'readable') {
+        const hiddenTrackerIds = new Set(options.hiddenTrackerIds());
+        visibleEntries = registryReading.forges.filter((forge) => !hiddenTrackerIds.has(forge.trackerId));
+      }
+      if (visibleEntries !== null) {
+        const registryHash = contentHashOf(visibleEntries);
+        if (isLookAgain || registryHash !== lastRegistryHash) applyEntries(visibleEntries, isLookAgain);
+        lastRegistryHash = registryHash;
+      }
+    } finally {
+      if (!isStopped) scheduleRegistryCheck();
     }
-    if (visibleEntries !== null) {
-      const registryHash = contentHashOf(visibleEntries);
-      if (isLookAgain || registryHash !== lastRegistryHash) applyEntries(visibleEntries, isLookAgain);
-      lastRegistryHash = registryHash;
-    }
-    scheduleRegistryCheck();
   }
 
   function start(): void {
     if (isStarted || isStopped) return;
     isStarted = true;
-    void checkRegistry(false);
+    launchRegistryCheck();
   }
 
   function readings(): readonly ForgeReading[] {

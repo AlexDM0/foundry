@@ -1,8 +1,8 @@
 /**
  * Every call of the forge client answers a document or a verdict, never a throw, and each outcome of each call is proven against an answer
  * recorded from a real forge, or from a program that is no forge; the table below uses every such answer, so none is left unproven. A
- * monitor stream that ends inside an event hands on no half snapshot. The token travels as a bearer on the guarded routes only, and no
- * answer carries it.
+ * monitor stream that ends inside an event hands on no half snapshot, and one whose snapshot handler throws is closed all the same. The
+ * token travels as a bearer on the guarded routes only, and no answer carries it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -378,6 +378,16 @@ describe('following a monitor stream', () => {
     follow.stop();
     expect(await follow.ended).toEqual({ verdict: 'ended', ending: 'stopped' });
     expect(snapshots).toEqual([]);
+    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+  });
+
+  test('closes the stream and rejects with the handler\'s throw when the snapshot handler throws', async () => {
+    const overseerFetch = overseerFetchOf('serving-every-contract');
+    const handlerFailure = new Error('The snapshot handler failed.');
+    const follow = clientOf(overseerFetch).followMonitor(ACCESS, () => {
+      throw handlerFailure;
+    });
+    await expect(follow.ended).rejects.toBe(handlerFailure);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });
 

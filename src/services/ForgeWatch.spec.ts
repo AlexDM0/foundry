@@ -1,8 +1,9 @@
 /**
  * The forge watch over a registry in the scratch root, recorded Overseer answers, and timers the spec fires by hand. The flow
  * spec walks one forge through every stage PLAN 7.1 names, one answer set per stage: dormant, started, live, stream lost, unreachable and
- * back. Around it: a missing repository, a forge read as counts, another program or another forge on the port, a hidden forge, an unchanged
- * registry, look again, and a stop at any moment leaves no timer and no open stream. No spec waits a real interval.
+ * back. Around it: a missing repository, a forge read as counts, another program or another forge on the port, an open stream of snapshots
+ * Gaia cannot read, a hidden forge, an unchanged registry, look again, a readings listener that throws, and a stop at any moment leaves no
+ * timer and no open stream. No spec waits a real interval.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -63,6 +64,10 @@ const STAMPS = {
 function answersOf(situation: OverseerSituation, callShape: string | null = null): readonly RecordedOverseerAnswer[] {
   return recordedOverseerAnswersOf(situation).filter((answer) => callShape === null || answer.callShape === callShape);
 }
+
+/** The program's unreadable snapshots on a stream held open after them, as a forge holds its stream open between heartbeats. */
+const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedOverseerAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/monitor/events with bearer')
+  .map((recorded) => (recorded.answer.verdict === 'streaming' ? { ...recorded, answer: { ...recorded.answer, ending: 'stays-open' as const } } : recorded));
 
 const STAGE_ANSWERS = {
   dormant:     [],
@@ -152,7 +157,8 @@ interface WatchUnderTest {
   readonly changes:       () => number;
 }
 
-function watchOver(overseerFetch: OverseerFetch, hiddenTrackerIds: readonly string[] = []): WatchUnderTest {
+/** `throwingListenerCalls`: the calls of the readings listener, counted from one, that throw once the waiters have heard them. */
+function watchOver(overseerFetch: OverseerFetch, hiddenTrackerIds: readonly string[] = [], throwingListenerCalls: ReadonlySet<number> = new Set()): WatchUnderTest {
   const timers = manualTimers();
   const waiters: { readonly claim: (readings: readonly ForgeReading[]) => boolean; readonly resolve: (readings: readonly ForgeReading[]) => void }[] = [];
   let changes = 0;
@@ -170,6 +176,7 @@ function watchOver(overseerFetch: OverseerFetch, hiddenTrackerIds: readonly stri
         waiters.splice(waiters.indexOf(waiter), 1);
         waiter.resolve(readings);
       }
+      if (throwingListenerCalls.has(changes)) throw new Error(`The readings listener failed on call ${changes}.`);
     },
   });
   watchesToStop.push(watch);
@@ -360,6 +367,17 @@ describe('a forge that cannot be read', () => {
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity']);
   });
 
+  test('reads unreachable and closes the stream when an open stream sends only snapshots it cannot read', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch([...answersOf('serving-every-contract', 'GET /api/identity'), ...UNREADABLE_SNAPSHOTS_HELD_OPEN]);
+    const { watch, timers, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+
+    await untilReadings(onlyReadingIs('unreachable', 'unreachable'));
+    await timers.untilPending(RECONNECT_MILLISECONDS);
+    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+  });
+
   test('counts a stream whose token is refused as a failed try', async () => {
     writeRegistry([{}]);
     const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/monitor/events with bearer');
@@ -475,6 +493,31 @@ describe('the registry', () => {
     expect(watch.readings()).toEqual([]);
     expect(watch.watchedForgeCount()).toBe(0);
     expect(overseerFetch.callShapes()).toEqual([]);
+  });
+});
+
+describe('a readings listener that throws', () => {
+  test('leaves the registry checked again on its interval when it throws as the registry is applied', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(answersOf('port-held-by-another-program'));
+    const { watch, timers, untilReadings } = watchOver(overseerFetch, [], new Set([1]));
+    watch.start();
+
+    await untilReadings(onlyReadingIs('unreachable', 'unreachable'));
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
+  });
+
+  test('counts a round it throws in as a failed try, and the forge is tried again on the reconnect interval', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(answersOf('port-held-by-another-program'));
+    const { watch, timers, untilReadings } = watchOver(overseerFetch, [], new Set([2]));
+    watch.start();
+
+    await untilReadings(onlyReadingIs('unreachable', 'unreachable'));
+    await timers.untilPending(RECONNECT_MILLISECONDS);
+    timers.fire(RECONNECT_MILLISECONDS);
+    await timers.untilPending(RECONNECT_MILLISECONDS);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/identity']);
   });
 });
 
