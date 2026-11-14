@@ -7,13 +7,17 @@ What is agreed and not started, with the reason it waits.
   because the shell (W4.2) landed before the command existed and no page item names the change.
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
-- **Record Flint's brain from a real forge.** `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` is authored from the forge's
-  requirements G1 to G3 (monitor contract 3 and control contract 2), which no forge serves yet. Once one does, `bun run record
+- **Record Flint's brain from a real forge (R5.1).** It waits for the forge to ship G1 to G3 of version 2's forge requirements; until then
+  the brain is complete against authored recordings only. `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` is authored from
+  the forge's requirements G1 to G3 (monitor contract 3 and control contract 2), which no forge serves yet. Once one does, `bun run record
   overseer-fetch-monitor-3` takes it and `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec reaches a
-  running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or
-  to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended brain's
-  activity entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'`
-  and `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
+  running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or to
+  run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended brain's activity
+  entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'` and
+  `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
+- **Flint's box in the framed Bridge (G4).** B1 frames the Bridge with its "Agents at work" strip, where Flint has its Kanban box; the
+  Bridge decides under `embedded=gaia` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
+  forge and on the owner's answer to Q11.
 - **The embed channel's messages are recorded from a real Bridge.** `page/testing/AuthoredBridge.ts` holds the Bridge's messages as
   authored from FORGE_REQUIREMENTS F5; they match the forge's `bridge/shell/VersionedEmbedChannel.ts` at 55beb9cd. The forge serves F5
   now, but a recording needs a recording boundary of its own: the browser framing a live Bridge from Gaia's origin and collecting what it
@@ -28,7 +32,9 @@ What is agreed and not started, with the reason it waits.
 - **Notifications (W5.6).** SCREENS C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
-  the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`).
+  the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is
+  the "What notifies" checklist; version 2's C2 also draws the notification card, the line that Flint's brain does not notify, and the
+  permission line, which wait with W5.6.
 - **Record an update whose Baton pass was not taken.** `forge update --json` answers `batonPass: 'failed'` with `batonPassStep:
   'restart-not-taken'` at exit 0 when the live Overseer does not take the pass, and Gaia answers it as restart pending
   (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording

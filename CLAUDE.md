@@ -44,6 +44,11 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
     Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
     symlinks, `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run, and the page build's
     `SingleReactPlugin` (`src/features/page-server/routes/`) resolves every React import to Gaia's own copy.
+12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
+    crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
+    no shadow at rest; mono for machine values. Gaia draws no Flint and calls no model: the brain's only mark is the diamond, a brain counts
+    in no figure, limit or slot, and a forge that reports no brain shows none of its parts. `page/Screens.visual.spec.ts` paints every
+    artboard from `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the design's renders.
 
 ## Map
 

@@ -24,8 +24,9 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
   window is left stops the browser and only the server it started.
 - **`Gaia.app`** is generated into `~/Applications` by `gaia install-app` (`src/features/app-install/`): a compiled stub that runs a
   generated script, which runs `gaia launch` from this checkout.
-- **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory. It reaches nothing but Gaia's own server, and
-  one forge's Bridge in a frame.
+- **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory, drawn with Forge's linked `design-system`
+  package, whose stylesheet and fonts Gaia's server serves from its own origin. It reaches nothing but Gaia's own server, and one forge's
+  Bridge in a frame.
 
 ## A reading, from forge to screen
 
@@ -63,6 +64,15 @@ The page asks `POST /api/forges/<trackerId>/frame-session`. Gaia asks that forge
 token and answers the Bridge's address with the code in its fragment, which the page sets as the frame's `src`. The token never reaches
 the page. The Bridge and the page talk only over the embed channel (`page/views/forge-frame/EmbedChannel.ts`). A forge lets Gaia's
 origin frame it because Gaia writes `~/.forge-monitor/gaia/server.json` while it serves.
+
+## Flint's brain
+
+Each forge runs its own Flint and its brain; Gaia runs none and calls no model. A forge at monitor contract 3 reports `flintBrain`, which
+its ingestion maps into the reading's `brain` (`'not-reported'` under monitor 1 and 2, or for a forge without Flint). The fleet adds a
+running brain as an agent row of role `brain` that counts in no figure, limit or slot, and shows an ended run as the forge's one activity
+entry for it. Wake and Stop are the commands `forge-brain-start` and `forge-brain-stop`, sent as control contract 2's `flint-brain-start`
+and `flint-brain-stop`; under control 1 Gaia refuses them itself with `brain-not-served`, and the page offers neither. The page counts the
+forge's `endsAt` down for display only: the brain leaves when the forge reports it ended.
 
 ## Guards and sessions
 
