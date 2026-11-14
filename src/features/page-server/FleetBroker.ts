@@ -4,13 +4,13 @@
  */
 import { FleetDocumentMapUtil }                        from '../../adapters/page-api/FleetDocumentMapUtil.ts';
 import { servedEventStreamOf, type ServedEventStream } from '../../lib/event-stream/ServedEventStream.ts';
+import type { ClockTimer, ClockTimers }                from '../../services/Clock.ts';
 import type { FleetStore }                             from '../../services/FleetStore.ts';
-import type { WatchTimer, WatchTimers }                from '../../services/ForgeWatch.ts';
 import type { FleetSnapshot }                          from '../../shared/@types/FleetSnapshot.ts';
 
 export interface FleetBrokerOptions {
   readonly fleetStore:                     FleetStore;
-  readonly timers:                         WatchTimers;
+  readonly timers:                         ClockTimers;
   readonly heartbeatIntervalMilliseconds?: number;
 }
 
@@ -39,7 +39,7 @@ export function createFleetBroker(options: FleetBrokerOptions): FleetBroker {
   const { fleetStore, timers } = options;
   const heartbeatIntervalMilliseconds = options.heartbeatIntervalMilliseconds ?? FLEET_HEARTBEAT_INTERVAL_MILLISECONDS;
   const openStreams = new Set<ServedEventStream>();
-  let heartbeatTimer: WatchTimer | null = null;
+  let heartbeatTimer: ClockTimer | null = null;
   let isStopped = false;
 
   function cancelHeartbeat(): void {

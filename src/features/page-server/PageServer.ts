@@ -12,8 +12,8 @@ import { originGuardVerdictFor }                                                
 import { createSessionCodes, type SessionCodes }                                                   from '../../lib/local-http-guards/SessionCodes.ts';
 import { bearerTokenMatches }                                                                      from '../../lib/local-http-guards/TokenCheck.ts';
 import { monotonicMillisecondsOfNow }                                                              from '../../services/Clock.ts';
+import type { ClockTimers }                                                                        from '../../services/Clock.ts';
 import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
-import type { WatchTimers }                                                                        from '../../services/ForgeWatch.ts';
 import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
@@ -39,7 +39,7 @@ export interface PageServerOptions {
   readonly carryCommand:                    CommandCarrier;
   /** What the frame session route asks a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
   readonly frameSessionSources:             FrameSessionSources;
-  readonly timers:                          WatchTimers;
+  readonly timers:                          ClockTimers;
   /** The stamp the server record carries: recorded for a reader to show, never compared. */
   readonly now:                             () => string;
   readonly processId:                       number;

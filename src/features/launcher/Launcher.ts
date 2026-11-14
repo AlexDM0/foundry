@@ -10,7 +10,7 @@ import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/a
 import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';
 import type { ForgeCounts }                               from '../../adapters/gaia-server/HealthDocument.ts';
 import type { ChildChannel, OwnedChild, ProcessRun }      from '../../lib/process-run/ProcessRun.ts';
-import type { WatchTimers }                               from '../../services/ForgeWatch.ts';
+import type { ClockTimers }                               from '../../services/Clock.ts';
 import type { ThemeChoice }                               from '../../shared/@types/GaiaSettings.ts';
 import { GAIA_INSTALL_VERSION }                           from '../../shared/constants/InstallVersion.ts';
 import type { FoundBrowser }                              from './BrowserFinder.ts';
@@ -63,7 +63,7 @@ export interface LauncherOptions {
   readonly browserWindowWatchOver: (channel: ChildChannel) => BrowserWindowWatch;
   readonly gaiaServer:             GaiaServerClient;
   readonly readServerToken:        () => Promise<string | null>;
-  readonly timers:                 WatchTimers;
+  readonly timers:                 ClockTimers;
   /** Settles when the launcher is asked to end, as by a signal: it then closes as if the window had closed. */
   readonly untilStopRequested:     Promise<void>;
   readonly waits?:                 LaunchWaits;
@@ -125,7 +125,7 @@ interface StopLatch {
 }
 
 /** One listener on the stop request for the whole launch, however many waits it makes. */
-function stopLatchOf(untilStopRequested: Promise<void>, timers: WatchTimers): StopLatch {
+function stopLatchOf(untilStopRequested: Promise<void>, timers: ClockTimers): StopLatch {
   let stopIsRequested = false;
   const wakeOnStop = new Set<() => void>();
   void untilStopRequested.then(() => {

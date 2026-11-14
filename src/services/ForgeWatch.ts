@@ -16,16 +16,8 @@ import type { RegistryReading }                   from '../adapters/forge-regist
 import type { MonitorFollow }                     from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                       from '../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }                      from '../shared/@types/ForgeReading.ts';
+import type { ClockTimer, ClockTimers }           from './Clock.ts';
 import { WatchReadingUtil }                       from './utils/WatchReadingUtil.ts';
-
-export interface WatchTimer {
-  readonly cancel: () => void;
-}
-
-/** The clock's timers, injected so that a spec fires them by hand and never waits a real interval. */
-export interface WatchTimers {
-  readonly start: (callback: () => void, delayMilliseconds: number) => WatchTimer;
-}
 
 export interface ForgeWatchIntervals {
   readonly registryCheckIntervalMilliseconds:   number;
@@ -39,7 +31,7 @@ export interface ForgeWatchOptions {
   readonly forgeClient:       ForgeClient;
   /** Read at each registry check, so a forge hidden or shown again counts from the next check on. */
   readonly hiddenTrackerIds:  () => readonly string[];
-  readonly timers:            WatchTimers;
+  readonly timers:            ClockTimers;
   /** The stamp a reading is taken at: recorded and shown, never compared. */
   readonly now:               () => string;
   readonly onReadingsChanged: () => void;
@@ -70,16 +62,6 @@ const DEFAULT_INTERVALS: ForgeWatchIntervals = {
   summaryPollIntervalMilliseconds:     SUMMARY_POLL_INTERVAL_MILLISECONDS,
   unreachableAfterFailedTries:         UNREACHABLE_AFTER_FAILED_TRIES,
 };
-
-/** The real timers, over the runtime's own. */
-export function realWatchTimers(): WatchTimers {
-  return {
-    start: (callback, delayMilliseconds) => {
-      const timeout = setTimeout(callback, delayMilliseconds);
-      return { cancel: () => clearTimeout(timeout) };
-    },
-  };
-}
 
 async function rootIsAFolder(root: string): Promise<boolean> {
   try {
@@ -124,7 +106,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
   const watchedForges = new Map<string, WatchedForge>();
   let trackerIdsInRegistryOrder: readonly string[] = [];
   let lastRegistryHash: string | null = null;
-  let registryTimer: WatchTimer | null = null;
+  let registryTimer: ClockTimer | null = null;
   let isStarted = false;
   let isStopped = false;
 
@@ -134,7 +116,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     let lastWholeReading: ForgeReading | null = null;
     let failedTries = 0;
     let generation = 0;
-    let roundTimer: WatchTimer | null = null;
+    let roundTimer: ClockTimer | null = null;
     let monitorFollow: MonitorFollow | null = null;
 
     /** The last command is always the one the entry names now, whatever round the reading was taken in. */

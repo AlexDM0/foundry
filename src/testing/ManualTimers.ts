@@ -2,9 +2,9 @@
  * Timers a spec fires by hand in place of the clock's, so no spec waits a real interval. A spec waits for a timer to be started, never for
  * time to pass, and counts the timers still pending after a stop. Test-only.
  */
-import type { WatchTimer, WatchTimers } from '../services/ForgeWatch.ts';
+import type { ClockTimer, ClockTimers } from '../services/Clock.ts';
 
-export interface ManualTimers extends WatchTimers {
+export interface ManualTimers extends ClockTimers {
   /** The delay of every timer started and neither fired nor cancelled, in the order they were started. */
   readonly pendingDelays: () => readonly number[];
   /** Fires every pending timer of this delay, skipping one an earlier callback cancelled, and answers how many fired; none pending fails the spec. */
@@ -22,7 +22,7 @@ export function manualTimers(): ManualTimers {
   const pendingTimers: PendingTimer[] = [];
   const waiters: { readonly delayMilliseconds: number; readonly resolve: () => void }[] = [];
 
-  function start(callback: () => void, delayMilliseconds: number): WatchTimer {
+  function start(callback: () => void, delayMilliseconds: number): ClockTimer {
     const pendingTimer: PendingTimer = { callback, delayMilliseconds };
     pendingTimers.push(pendingTimer);
     for (const waiter of waiters.filter((candidate) => candidate.delayMilliseconds === delayMilliseconds)) {

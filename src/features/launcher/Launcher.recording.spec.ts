@@ -29,8 +29,8 @@ import {
   type OwnedStartRequest,
   type ProcessRun,
 } from '../../lib/process-run/ProcessRun.ts';
+import { realClockTimers }                                     from '../../services/Clock.ts';
 import { environmentCopy, homeDirectory }                      from '../../services/Environment.ts';
-import { realWatchTimers }                                     from '../../services/ForgeWatch.ts';
 import { GAIA_INSTALL_VERSION }                                from '../../shared/constants/InstallVersion.ts';
 import { recordAnswer, recordSystemVersion, repositoryRoot }   from '../../testing/BoundaryRecordings.ts';
 import { detachedStartCallShapeOf, ownedStartCallShapeOf }     from '../../testing/RecordedRuns.ts';
@@ -198,7 +198,7 @@ function launchOf(situation: LaunchSituation, port: number, findBrowser: () => F
     browserWindowWatchOver,
     gaiaServer:           realGaiaServerClient(),
     readServerToken:      () => new ServerTokenFile(launchHome).read(),
-    timers:               realWatchTimers(),
+    timers:               realClockTimers(),
     untilStopRequested,
   }).launch();
 }

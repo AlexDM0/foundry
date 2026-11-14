@@ -25,10 +25,10 @@ import { builtPageFilesOf, pageIndexFilePath }                           from '.
 import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
 import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
 import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
-import { stampOfNow }                                                    from './services/Clock.ts';
+import { realClockTimers, stampOfNow }                                   from './services/Clock.ts';
 import { environmentCopy, gaiaPort, homeDirectory }                      from './services/Environment.ts';
 import { createFleetStore }                                              from './services/FleetStore.ts';
-import { createForgeWatch, realWatchTimers }                             from './services/ForgeWatch.ts';
+import { createForgeWatch }                                              from './services/ForgeWatch.ts';
 import { createSettingsStore }                                           from './services/SettingsStore.ts';
 import type { FleetSnapshot }                                            from './shared/@types/FleetSnapshot.ts';
 import { GaiaError }                                                     from './shared/GaiaError.ts';
@@ -130,7 +130,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     readRegistry,
     forgeClient,
     hiddenTrackerIds:  () => settingsStore.settings().hiddenTrackerIds,
-    timers:            realWatchTimers(),
+    timers:            realClockTimers(),
     now:               stampOfNow,
     onReadingsChanged: () => publishSnapshot(),
   });
@@ -178,7 +178,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     pageFiles:           builtPageFilesOf(pageIndexFilePath()),
     carryCommand:        forgeControl.carry,
     frameSessionSources: { readRegistry, readings: forgeWatch.readings, forgeClient },
-    timers:              realWatchTimers(),
+    timers:              realClockTimers(),
     now:                 stampOfNow,
     processId:           process.pid,
   });
@@ -246,7 +246,7 @@ async function launch(remainingArguments: readonly string[], _output: ProgramOut
     browserWindowWatchOver,
     gaiaServer:         realGaiaServerClient(),
     readServerToken:    () => new ServerTokenFile(home).read(),
-    timers:             realWatchTimers(),
+    timers:             realClockTimers(),
     untilStopRequested: stopSignals.untilAStopSignal,
   }).launch();
   stopSignals.release();

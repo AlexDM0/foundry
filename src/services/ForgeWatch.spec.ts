@@ -27,13 +27,8 @@ import {
   type RecordedOverseerAnswer,
   type RecordedOverseerFetch,
 } from '../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath } from '../testing/ScratchRoot.ts';
-import {
-  createForgeWatch,
-  realWatchTimers,
-  type ForgeWatch,
-  type ForgeWatchIntervals,
-} from './ForgeWatch.ts';
+import { createScratchDirectory, removeScratchPath }                   from '../testing/ScratchRoot.ts';
+import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals } from './ForgeWatch.ts';
 
 /** Distinct delays, so the spec fires exactly the timer it means; none is ever waited out. */
 const INTERVALS: ForgeWatchIntervals = {
@@ -578,19 +573,5 @@ describe('a stopped watch', () => {
     expect(recordedFetch.callShapes()).toEqual(['GET /api/identity']);
     expect(recordedFetch.streamsLeftOpen()).toBe(0);
     expect(watch.readings()).toEqual([]);
-  });
-});
-
-describe('the real timers', () => {
-  test('call back after their delay, and a cancelled one never does', async () => {
-    const timers = realWatchTimers();
-    let cancelledFired = false;
-    timers.start(() => {
-      cancelledFired = true;
-    }, 0).cancel();
-    await new Promise<void>((resolve) => {
-      timers.start(resolve, 0);
-    });
-    expect(cancelledFired).toBe(false);
   });
 });
