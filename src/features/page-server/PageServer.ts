@@ -1,10 +1,9 @@
 /**
  * Gaia's server on 127.0.0.1 (PLAN 8.1): every request passes the Host and Origin guards, each route its own guard, and every answer
- * carries the page's CSP, a refusal and a failure included. It writes a fresh token before it listens and the server record once it does,
- * removes the record when it stops, and refuses to start where Gaia already answers.
+ * carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token, then opens its routes and writes
+ * the server record; it removes the record when it stops, and refuses to start where Gaia already answers.
  */
-import { createServerRecordWriter }                                                                from '../../adapters/gaia-files/ServerRecordWriter.ts';
-import type { FileRemoveVerdict }                                                                  from '../../adapters/gaia-files/utils/GaiaFileWriteUtil.ts';
+import { createServerRecordWriter, type ServerRecordRemoveVerdict }                                from '../../adapters/gaia-files/ServerRecordWriter.ts';
 import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS, SESSION_CODES_PATH }            from '../../adapters/gaia-server/GaiaServerClient.ts';
 import { HEALTH_PATH, type ForgeCounts }                                                           from '../../adapters/gaia-server/HealthDocument.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor, withContentSecurityPolicy } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
@@ -53,8 +52,8 @@ export interface PageServerOptions {
 export interface PageServer {
   readonly url:  URL;
   readonly port: number;
-  /** Ends every event stream, closes the listener and its connections, and removes the server record. */
-  readonly stop: () => Promise<FileRemoveVerdict>;
+  /** Ends every event stream, closes the listener and its connections, and removes the server record while it is still this process's. */
+  readonly stop: () => Promise<ServerRecordRemoveVerdict>;
 }
 
 export type PageServerStartVerdict =
@@ -208,10 +207,6 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
     if (probeVerdict === 'gaia-answers') return { verdict: 'gaia-already-serving', url: urlOfPort(options.port) };
   }
 
-  // The token is written before the server listens, so a caller that finds the health route answering reads this start's token.
-  const tokenWrite = await writeFreshServerToken(options.homeDirectory);
-  if (tokenWrite.verdict === 'unwritable') return { verdict: 'unwritable', file: 'token', failure: tokenWrite.failure };
-
   const contentSecurityPolicy = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
   const broker = createFleetBroker({
     fleetStore: options.fleetStore,
@@ -244,6 +239,20 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
     return { verdict: 'port-unavailable', port: options.port, failure: failureOf(error) };
   }
 
+  const stopListening = async (): Promise<void> => {
+    broker.stop();
+    // Graceful, so each stream the broker just ended still sends its last bytes; a command still in flight holds the stop until it answers.
+    await server.stop(false);
+  };
+
+  // The token is written only once the port is held, and every route answers a failure until then: a start that loses the port leaves the
+  // token of the Gaia that holds it, and a caller that finds the health route answering reads this start's token.
+  const tokenWrite = await writeFreshServerToken(options.homeDirectory);
+  if (tokenWrite.verdict === 'unwritable') {
+    await stopListening();
+    return { verdict: 'unwritable', file: 'token', failure: tokenWrite.failure };
+  }
+
   const port = server.port ?? options.port;
   const url  = urlOfPort(port);
   const context: RouteContext = {
@@ -255,11 +264,6 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   routing = { context, routes: routesOf(context) };
 
   const serverRecordWriter = createServerRecordWriter(options.homeDirectory);
-  const stopListening = async (): Promise<void> => {
-    broker.stop();
-    // Graceful, so each stream the broker just ended still sends its last bytes; what remains in flight is a short answer.
-    await server.stop(false);
-  };
   const recordWrite = await serverRecordWriter.write({ url, processId: options.processId, startedAt: options.now() });
   if (recordWrite.verdict === 'unwritable') {
     await stopListening();
@@ -273,7 +277,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
       port,
       stop: async () => {
         await stopListening();
-        return serverRecordWriter.remove();
+        return serverRecordWriter.remove(options.processId);
       },
     },
   };

@@ -1,10 +1,11 @@
 /**
  * Writes and removes `<monitor>/gaia/server.json`, the record a forge reads to let Gaia's origin frame its Bridge (FORGE_REQUIREMENTS F5).
- * Only `remove()` removes it: a record left by a crash names a dead process and is overwritten by the next start.
+ * Only `remove()` removes it, and only while it names the process that asks: a record left by a crash names a dead process and is
+ * overwritten by the next start, and a newer Gaia's record outlives an older Gaia's slow stop.
  */
 import { join } from 'node:path';
 
-import type { AtomicWriteVerdict }                   from '../../lib/atomic-file/AtomicFile.ts';
+import { AtomicFile, type AtomicWriteVerdict }       from '../../lib/atomic-file/AtomicFile.ts';
 import { CONTRACT_VERSIONS }                         from '../../shared/constants/ContractVersions.ts';
 import { FORGE_PLACES }                              from '../../shared/constants/ForgePlaces.ts';
 import { GaiaFileWriteUtil, type FileRemoveVerdict } from './utils/GaiaFileWriteUtil.ts';
@@ -28,9 +29,12 @@ interface StoredServerRecordVersion1 {
   readonly startedAt: string;
 }
 
+/** `held-by-another-process`: the record names another process, or cannot be read as one of this version, so it is left standing. */
+export type ServerRecordRemoveVerdict = FileRemoveVerdict | { readonly verdict: 'held-by-another-process' };
+
 export interface ServerRecordWriter {
   write(record: ServerRecord): Promise<AtomicWriteVerdict>;
-  remove(): Promise<FileRemoveVerdict>;
+  remove(processId: number): Promise<ServerRecordRemoveVerdict>;
 }
 
 export function serverRecordPathIn(homeDirectory: string): string {
@@ -47,9 +51,30 @@ function storedFormOf(record: ServerRecord): StoredServerRecordVersion1 {
   };
 }
 
+function storedRecordNamesProcess(contents: string, processId: number): boolean {
+  let stored: unknown;
+  try {
+    stored = JSON.parse(contents);
+  } catch {
+    return false;
+  }
+  if (typeof stored !== 'object' || stored === null) return false;
+  const storedFields = stored as Readonly<Record<string, unknown>>;
+  return storedFields['version'] === CONTRACT_VERSIONS.gaiaServerRecord && storedFields['processId'] === processId;
+}
+
 export function createServerRecordWriter(homeDirectory: string): ServerRecordWriter {
+  async function remove(processId: number): Promise<ServerRecordRemoveVerdict> {
+    const recordPath = serverRecordPathIn(homeDirectory);
+    const stored = await AtomicFile.read(recordPath);
+    if (stored.verdict === 'absent') return stored;
+    if (stored.verdict === 'unreadable') return { verdict: 'unremovable', failure: stored.failure };
+    if (!storedRecordNamesProcess(stored.contents, processId)) return { verdict: 'held-by-another-process' };
+    return GaiaFileWriteUtil.remove(recordPath);
+  }
+
   return {
-    write:  async (record) => GaiaFileWriteUtil.writeJson(serverRecordPathIn(homeDirectory), storedFormOf(record)),
-    remove: async () => GaiaFileWriteUtil.remove(serverRecordPathIn(homeDirectory)),
+    write: async (record) => GaiaFileWriteUtil.writeJson(serverRecordPathIn(homeDirectory), storedFormOf(record)),
+    remove,
   };
 }

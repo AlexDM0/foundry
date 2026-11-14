@@ -2,12 +2,18 @@
  * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
  * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
  * per guard, a command carried through the command port and answered with its verdict, a frame session routed behind the session guard,
- * and the CSP on every answer, refusals and failures included. It refuses to start where Gaia already answers. The page's files are a
- * stand-in for the build, whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries
- * every kind; the frame session route's own spec asks a forge for a code; the heartbeat's timers are fired by hand.
+ * and the CSP on every answer, refusals and failures included. It refuses to start where Gaia already answers, and a start that loses the
+ * port leaves the token as it was; a stop leaves a newer Gaia's server record standing. The page's files are a stand-in for the build,
+ * whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the frame
+ * session route's own spec asks a forge for a code; the heartbeat's timers are fired by hand.
  */
-import { readFileSync, statSync } from 'node:fs';
-import { join }                   from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -16,7 +22,7 @@ import {
   test
 } from 'bun:test';
 
-import { serverRecordPathIn }                                           from '../../adapters/gaia-files/ServerRecordWriter.ts';
+import { createServerRecordWriter, serverRecordPathIn }                 from '../../adapters/gaia-files/ServerRecordWriter.ts';
 import { serverTokenPathIn }                                            from '../../adapters/gaia-files/ServerTokenFile.ts';
 import { FleetDocumentMapUtil }                                         from '../../adapters/page-api/FleetDocumentMapUtil.ts';
 import { FLEET_SNAPSHOT_EMPTY }                                         from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
@@ -39,6 +45,7 @@ const STARTED_AT = '2026-11-13T09:00:00.000Z';
 const PROCESS_ID = 48_321;
 const HEARTBEAT_MILLISECONDS = 1_000;
 const SHORT_PROBE_MILLISECONDS = 500;
+const EARLIER_TOKEN = `${'0'.repeat(63)}1`;
 
 const OWNER_ONLY_FILE_MODE = 0o600;
 const OWNER_ONLY_FOLDER_MODE = 0o700;
@@ -461,6 +468,27 @@ describe('a start where something already answers', () => {
       await otherProgram.stop(true);
     }
   });
+
+  test('leaves the token in place byte for byte when it loses the port, since the program that holds the port may be a Gaia that serves it', async () => {
+    mkdirSync(join(homeDirectory, '.gaia'), { recursive: true });
+    writeFileSync(serverTokenPathIn(homeDirectory), EARLIER_TOKEN);
+    const otherProgram = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => Response.json({ application: 'another-program' }) });
+    try {
+      expect((await startPageServer(optionsWith({ port: otherProgram.port ?? 0 }))).verdict).toBe('port-unavailable');
+      expect(storedToken()).toBe(EARLIER_TOKEN);
+    } finally {
+      await otherProgram.stop(true);
+    }
+  });
+});
+
+describe('a start that cannot write its token', () => {
+  test('answers unwritable for the token and writes no server record', async () => {
+    writeFileSync(join(homeDirectory, '.gaia'), 'a file where the data folder belongs');
+    const startVerdict = await startPageServer(optionsWith());
+    expect(startVerdict).toMatchObject({ verdict: 'unwritable', file: 'token' });
+    expect(() => statSync(serverRecordPathIn(homeDirectory))).toThrow();
+  });
 });
 
 describe('a stop', () => {
@@ -473,5 +501,14 @@ describe('a stop', () => {
     await pageServer.stop();
     await events.untilEnd();
     expect(timers.pendingDelays()).toEqual([]);
+  });
+
+  test('leaves the server record standing when a newer Gaia has written its own over it', async () => {
+    const pageServer = await servingPageServer();
+    const newerRecord = { url: new URL('http://127.0.0.1:4791/'), processId: PROCESS_ID + 1, startedAt: STARTED_AT };
+    await createServerRecordWriter(homeDirectory).write(newerRecord);
+
+    expect(await pageServer.stop()).toEqual({ verdict: 'held-by-another-process' });
+    expect(JSON.parse(readFileSync(serverRecordPathIn(homeDirectory), 'utf8'))).toMatchObject({ processId: PROCESS_ID + 1 });
   });
 });

@@ -1,6 +1,7 @@
 /**
  * The server record under a scratch home: it is written at version 1 with the origin taken from the url, a second write replaces it, and
  * it goes away by `remove()` and by nothing else, which a scan of the source holds: no other module names the record's file or its path.
+ * `remove()` takes it away only while it names the process that asks, so an older Gaia's slow stop leaves a newer Gaia's record standing.
  */
 import {
   existsSync,
@@ -89,12 +90,30 @@ describe('the server record', () => {
     expect(storedRecord()).toMatchObject({ origin: 'http://127.0.0.1:4791', processId: 4343 });
   });
 
-  test('is removed by remove(), which then finds it absent', async () => {
+  test('is removed by remove() from the process it names, which then finds it absent', async () => {
     const writer = createServerRecordWriter(homeDirectory);
     await writer.write(EXAMPLE_RECORD);
-    expect(await writer.remove()).toEqual({ verdict: 'removed' });
+    expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'removed' });
     expect(existsSync(serverRecordPathIn(homeDirectory))).toBe(false);
-    expect(await writer.remove()).toEqual({ verdict: 'absent' });
+    expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'absent' });
+  });
+
+  test('is left standing by remove() from a process it does not name', async () => {
+    const writer = createServerRecordWriter(homeDirectory);
+    await writer.write(EXAMPLE_RECORD);
+    expect(await writer.remove(EXAMPLE_RECORD.processId + 1)).toEqual({ verdict: 'held-by-another-process' });
+    expect(storedRecord()).toMatchObject({ processId: EXAMPLE_RECORD.processId });
+  });
+
+  test('is left standing by remove() when it cannot be read as a record of its version', async () => {
+    const writer = createServerRecordWriter(homeDirectory);
+    await writer.write(EXAMPLE_RECORD);
+    const recordOfAnotherVersion = `${JSON.stringify({ ...storedRecord() as object, version: 2 })}\n`;
+    writeFileSync(serverRecordPathIn(homeDirectory), recordOfAnotherVersion);
+    expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'held-by-another-process' });
+    writeFileSync(serverRecordPathIn(homeDirectory), 'no JSON');
+    expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'held-by-another-process' });
+    expect(readFileSync(serverRecordPathIn(homeDirectory), 'utf8')).toBe('no JSON');
   });
 
   test('is removed by nothing else: writing it again, and reading and writing the settings, leave it standing', async () => {
@@ -113,7 +132,7 @@ describe('the server record', () => {
   test('answers unwritable, and unremovable, where a file stands in place of its folder', async () => {
     writeFileSync(join(homeDirectory, '.forge-monitor'), 'a file where the folder belongs');
     expect((await createServerRecordWriter(homeDirectory).write(EXAMPLE_RECORD)).verdict).toBe('unwritable');
-    expect((await createServerRecordWriter(homeDirectory).remove()).verdict).toBe('unremovable');
+    expect((await createServerRecordWriter(homeDirectory).remove(EXAMPLE_RECORD.processId)).verdict).toBe('unremovable');
   });
 });
 
