@@ -33,6 +33,7 @@ import { BrandStatusModel }                                   from './BrandStatu
 import { ConnectionBanner }                                   from './ConnectionBanner.tsx';
 import type { FleetSource }                                   from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings }  from './HashRouter.ts';
+import { MotionReadiness }                                    from './MotionReadiness.ts';
 import { PageClock }                                          from './PageClock.ts';
 import { Rail }                                               from './Rail.tsx';
 import { RailModel }                                          from './RailModel.ts';
@@ -171,10 +172,10 @@ export function GaiaApp({
   const windowTitle = WindowTitle.windowTitleOf(WindowTitle.viewTitleOf(route, fleetDocument), fleetDocument);
   useEffect(() => setWindowTitle(windowTitle), [setWindowTitle, windowTitle]);
 
-  const holdsADocument = fleetDocument !== null;
+  const motionMayStart = MotionReadiness.motionMayStartWith(fleetDocument);
   useEffect(() => {
-    if (holdsADocument) markMotionReady();
-  }, [markMotionReady, holdsADocument]);
+    if (motionMayStart) markMotionReady();
+  }, [markMotionReady, motionMayStart]);
 
   return (
     <CommandSenderContext value={commandSender}>
@@ -208,7 +209,7 @@ export function browserShellSurroundings(): ShellSurroundings {
     setWindowTitle: (title) => {
       document.title = title;
     },
-    markMotionReady: () => document.documentElement.setAttribute('data-motion', 'ready'),
+    markMotionReady: () => MotionReadiness.markReadyAfterNextPaint(MotionReadiness.browserMotionSurroundings()),
     clock:           PageClock.create(PageClock.browserSurroundings()),
     forgeFrame:      {
       requestFrameSession: (trackerId) => FrameSessionRequest.requestFrameSession((path, requestOptions) => fetch(path, requestOptions), trackerId),

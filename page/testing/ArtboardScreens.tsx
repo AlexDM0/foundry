@@ -395,8 +395,9 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
 }
 
 /**
- * A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion ready, and the stylesheets
- * inline in the page's order, the design system's fonts and stylesheet before Gaia's.
+ * A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion off as before the first document
+ * has painted, so no fade or pulse is caught mid-way, and the stylesheets inline in the page's order, the design system's fonts and
+ * stylesheet before Gaia's.
  */
 export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): string {
   return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
@@ -411,7 +412,7 @@ function documentAround(title: string, theme: ScreenTheme, bodyMarkup: string): 
   const stylesheets = stylesheetTexts.map((stylesheetText) => `<style>\n${stylesheetText}</style>`).join('\n');
   return [
     '<!doctype html>',
-    `<html lang="en" data-theme="${theme}" data-motion="ready">`,
+    `<html lang="en" data-theme="${theme}">`,
     '<head>',
     '<meta charset="utf-8">',
     `<title>${title}</title>`,

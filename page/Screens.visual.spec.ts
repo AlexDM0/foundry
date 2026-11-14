@@ -11,7 +11,9 @@
  * Flint's brain between Stop and Open in new tab.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
- * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`.
+ * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`. A screen
+ * leaves motion off, so none of Gaia's own motion runs; the browser is opened with reduced motion forced (`--force-prefers-reduced-motion`),
+ * since the package's own pulse and dialog entry run whether or not motion is ready, and a shot must not land mid-way.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -104,12 +106,12 @@ describe('the screens of the visual pass', () => {
     expect(SCREEN_THEMES).toEqual(['light', 'dark']);
   });
 
-  test('a screen document names its theme on the root, as the page does before its first paint, and holds every stylesheet whole, the package\'s first', () => {
+  test('a screen document names its theme on the root as the page does before its first paint, leaves motion off, and holds every stylesheet whole', () => {
     const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text()];
     for (const screen of ARTBOARD_SCREENS) {
       for (const theme of SCREEN_THEMES) {
         const screenDocument = screenDocumentOf(screen, theme);
-        expect(screenDocument).toStartWith(`<!doctype html>\n<html lang="en" data-theme="${theme}" data-motion="ready">`);
+        expect(screenDocument).toStartWith(`<!doctype html>\n<html lang="en" data-theme="${theme}">`);
         const stylesheetPlaces = [...packageStylesheets, ...STYLESHEETS].map((stylesheet) => screenDocument.indexOf(stylesheet));
         expect(stylesheetPlaces.every((place) => place > 0)).toBe(true);
         expect(stylesheetPlaces).toEqual([...stylesheetPlaces].sort((a, b) => a - b));

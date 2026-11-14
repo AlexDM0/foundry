@@ -7,7 +7,7 @@
  * from the first document, named after the next choice, and a forge in place (B1) has no theme button. And (W4.3): a lost event stream
  * shows the connection banner under the page title and disables every control until the stream opens again. And (W5.2): the Agents route
  * shows the Agents view under its page title and figures, its selected agent survives the source's next document, and a filter press goes
- * to the fragment that keeps it.
+ * to the fragment that keeps it. And motion may start only once the source holds a document; the frames after it are MotionReadiness's.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
  * would paint for the source's current document; `GaiaShell` takes no hooks and unfolds to its host elements.
@@ -43,6 +43,7 @@ import {
   viewPartsOf,
 } from './GaiaApp.tsx';
 import { DEFAULT_ROUTE, HashRouter } from './HashRouter.ts';
+import { MotionReadiness }           from './MotionReadiness.ts';
 
 const tree = ReactElementTree;
 
@@ -407,5 +408,16 @@ describe('the Agents view in the shell', () => {
     const needsALook = tree.onlyHostElementIn(view, (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
     tree.dispatch(needsALook, 'onClick');
     expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);
+  });
+});
+
+describe('motion', () => {
+  test('may start only from the first document the fleet source holds, so everything the shell shows before it, and with it, shows at once', () => {
+    const source = createFleetSource();
+    expect(MotionReadiness.motionMayStartWith(source.current())).toBe(false);
+    source.publish(FLEET_FIVE_FORGES);
+    expect(MotionReadiness.motionMayStartWith(source.current())).toBe(true);
+    source.publish(FLEET_EMPTY);
+    expect(MotionReadiness.motionMayStartWith(source.current())).toBe(true);
   });
 });
