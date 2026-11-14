@@ -852,7 +852,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   color: var(--ink);
 }
 .gaia-forges-held-text { flex: 1; min-width: 0; margin: 0; }
-.gaia-forges-held-project { display: block; margin-bottom: var(--space-3); }
+.gaia-forges-held-project { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--space-3); }
 .gaia-forges-held-name { font-weight: var(--weight-strong); }
 .gaia-forges-held-word { font-weight: var(--weight-strong); color: var(--link); }
 .gaia-forges-held-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-5); }

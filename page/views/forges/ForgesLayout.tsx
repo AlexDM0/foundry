@@ -301,9 +301,9 @@ function HeldBannerCard({ banner, handlers }: { readonly banner: HeldBanner; rea
   return (
     <div className="gaia-forges-held-group">
       <section className="gaia-forges-held" aria-label={`${banner.project} holds its launches`}>
-        <ConditionDot condition="held" />
         <p className="gaia-forges-held-text">
           <span className="gaia-forges-held-project">
+            <ConditionDot condition="held" />
             <span className="gaia-forges-held-name">{banner.project}</span>
             <span className="gaia-forges-held-word">{' holds its launches.'}</span>
           </span>
