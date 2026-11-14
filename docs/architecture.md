@@ -20,8 +20,8 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
 - **`gaia serve`** (`src/Main.ts`) is the one long-lived process. It holds every forge's token and no state a restart loses, except the
   page sessions. It refuses to start when Gaia's health route already answers on its port.
 - **`gaia launch`** (`src/features/launcher/`) probes the health route, starts `gaia serve` as an owned child when nothing answers, opens
-  a Chrome or Edge app window with Gaia's kept browser profile, follows that window through the browser's debugging port, and when no
-  window is left stops the browser and only the server it started.
+  a Chrome or Edge app window with Gaia's kept browser profile, follows that window through the browser's debugging pipe, and when no
+  window is left stops the browser and only the server it started; a server it started that ends closes the window with a dialog.
 - **`Gaia.app`** is generated into `~/Applications` by `gaia install-app` (`src/features/app-install/`): a compiled stub that runs a
   generated script, which runs `gaia launch` from this checkout.
 - **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory, drawn with Forge's linked `design-system`
@@ -77,9 +77,21 @@ forge's `endsAt` down for display only: the brain leaves when the forge reports 
 ## Guards and sessions
 
 The server binds `127.0.0.1` only and checks Host and Origin on every request (`lib/local-http-guards/`); no route answers a cross-origin
-read. Every data route needs the session cookie or Gaia's bearer token. The launcher reads `~/.gaia/token`, buys a one-time code at
-`POST /api/session-codes`, and opens the window with it; the page spends it at `POST /api/session` for an `HttpOnly`, `SameSite=Strict`
-cookie.
+read. Every data route needs the session cookie or Gaia's bearer token. The launcher opens the window on the splash, never on an address
+with a code, since a program's arguments are readable by every account on the Mac. Once the window is listed it reads `~/.gaia/token`,
+buys a one-time code at `POST /api/session-codes`, and moves the window to Gaia's page with the code in the fragment; the page spends it
+at `POST /api/session` for an `HttpOnly`, `SameSite=Strict` cookie.
+
+Two decisions hold these guards together:
+
+- **The window is followed over the browser's debugging pipe, not a port.** The browser starts with `--remote-debugging-pipe` and speaks
+  its DevTools protocol over descriptors 3 and 4, which only the launcher holds (`lib/process-run/` hands them over). A debugging port on
+  `127.0.0.1` would let any local process, of any account, drive the window that holds the session cookie and so pass every guard of the
+  server; the browser therefore opens none.
+- **The session cookie stays host-only on `127.0.0.1`.** Cookies ignore ports, so a forge's Bridge in Gaia's frame, served on another port
+  of `127.0.0.1`, carries Gaia's cookie on its own requests. Serving Gaia on another host name to keep the cookie apart would make the
+  framed Bridge's own session cookie cross-site to the page, which the browser then withholds, and the frame would lose its session. The
+  only program that receives Gaia's cookie this way is a local forge, which Gaia already trusts with that forge's token.
 
 ## Errors
 
