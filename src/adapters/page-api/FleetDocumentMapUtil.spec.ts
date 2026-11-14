@@ -2,8 +2,7 @@
  * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
  * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
  * report stays `null` rather than becoming zero, a notice, warning, activity entry, brain sentence or brain move that names a command reaches it in
- * Gaia's words or not
- * at all (D10), and a forge's brain and a running brain's row outside every limit reach it as the forge reports them.
+ * Gaia's words or not at all (D10), and a forge's brain and a running brain's row outside every limit reach it as the forge reports them.
  */
 import { describe, expect, test } from 'bun:test';
 
