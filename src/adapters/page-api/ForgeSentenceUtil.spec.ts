@@ -6,7 +6,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { ForgeSentenceUtil } from './ForgeSentenceUtil.ts';
+import { FORGE_NOTICE_KINDS } from '../../shared/constants/ForgeNoticeKinds.ts';
+import { ForgeSentenceUtil }  from './ForgeSentenceUtil.ts';
 
 const NEW_CODE_NOTICE = 'new code: run `forge update`';
 const INSTALL_CHANGED_NOTICE = 'the install version changed, so launches are held: run `forge update`';
@@ -63,7 +64,7 @@ describe('the sentence of a notice and of a warning', () => {
   });
 
   test('is Gaia\'s for an Assistant that cannot come up, which the forge sends as a warning and Gaia shows as a notice', () => {
-    expect(ForgeSentenceUtil.noticeSentenceOf('assistant-down', 'no Assistant can come up: open incidents take their defaults'))
+    expect(ForgeSentenceUtil.noticeSentenceOf(FORGE_NOTICE_KINDS.assistantDown, 'no Assistant can come up: open incidents take their defaults'))
       .toBe('This forge\'s Assistant cannot come up, so its open incidents take their defaults.');
   });
 

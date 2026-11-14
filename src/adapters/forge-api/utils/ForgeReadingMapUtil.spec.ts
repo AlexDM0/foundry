@@ -8,10 +8,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { FORGE_NOTICE_KINDS }                              from '../../../shared/constants/ForgeNoticeKinds.ts';
 import type { BoardSummaryDocument, SummaryOverseerState } from '../@types/BoardSummaryDocument.ts';
 import type { ForgeIdentity, ForgeRegistryFacts }          from '../@types/ForgeDocumentReading.ts';
 import type { MonitorSnapshotDocument }                    from '../@types/MonitorSnapshotDocument.ts';
-import { ASSISTANT_DOWN_KIND, ForgeReadingMapUtil }        from './ForgeReadingMapUtil.ts';
+import { ForgeReadingMapUtil }                             from './ForgeReadingMapUtil.ts';
 
 const REGISTRY_FACTS: ForgeRegistryFacts = {
   trackerId:         'example-agency-1a2b',
@@ -95,7 +96,7 @@ function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapsho
 describe('the warnings and notices of a snapshot read in full', () => {
   test('read a warning that an Assistant cannot come up as a notice, after the forge\'s own, and keep every other warning with its kind', () => {
     const newCode = { kind: 'new-code', text: 'new code is on disk: restart the Overseer to run it' };
-    const assistantDown = { kind: ASSISTANT_DOWN_KIND, text: 'no Assistant can come up: open incidents take their defaults' };
+    const assistantDown = { kind: FORGE_NOTICE_KINDS.assistantDown, text: 'no Assistant can come up: open incidents take their defaults' };
     const batonPassFailed = { kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' };
     const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ notices: [newCode], warnings: [assistantDown, batonPassFailed] }), REGISTRY_FACTS, IDENTITY, 'stamp');
     expect([reading.notices, reading.warnings]).toEqual([[newCode, assistantDown], [batonPassFailed]]);

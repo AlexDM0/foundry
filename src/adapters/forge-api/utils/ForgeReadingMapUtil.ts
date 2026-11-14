@@ -13,6 +13,7 @@ import type {
   ForgeNotice,
   ForgeReading,
 } from '../../../shared/@types/ForgeReading.ts';
+import { FORGE_NOTICE_KINDS }                                                  from '../../../shared/constants/ForgeNoticeKinds.ts';
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from '../@types/BoardSummaryDocument.ts';
 import type { ForgeIdentity, ForgeRegistryFacts }                              from '../@types/ForgeDocumentReading.ts';
 import type { IdentityDocument }                                               from '../@types/IdentityDocument.ts';
@@ -24,9 +25,6 @@ import type {
   MonitorNoticeDocument,
   MonitorSnapshotDocument,
 } from '../@types/MonitorSnapshotDocument.ts';
-
-/** The forge's warning that no Assistant can come up: Gaia shows it as a notice, in its own words, and not as a look. */
-export const ASSISTANT_DOWN_KIND = 'assistant-down';
 
 const NO_CONTRACTS: ForgeContracts = {
   summary: null,
@@ -144,7 +142,7 @@ function noticeOf(notice: MonitorNoticeDocument): ForgeNotice {
 }
 
 function warningIsANotice(warning: MonitorNoticeDocument): boolean {
-  return warning.kind === ASSISTANT_DOWN_KIND;
+  return warning.kind === FORGE_NOTICE_KINDS.assistantDown;
 }
 
 const FLINT_BRAIN_ACTIVITY_KIND: ActivityKind = 'flint-brain';

@@ -2,6 +2,7 @@
  * D10 at the page's edge: no forge sentence reaches the page telling User to run a command. A refusal or a notice the forge is known to word
  * with a command leaves in Gaia's words, by its code or kind; any other sentence that still names a command is dropped for a neutral one.
  */
+import { FORGE_NOTICE_KINDS } from '../../shared/constants/ForgeNoticeKinds.ts';
 
 /** Any backticked span counts as a command, since the forge backticks only what is typed. */
 const BACKTICKED_SPAN = /`[^`]+`/;
@@ -28,10 +29,10 @@ const REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
  * forge's warning that Gaia shows as a notice.
  */
 const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
-  'new-code':                  'New code is on disk. The Overseer runs the code it started with until it restarts.',
-  'install-version-changed':   'The install version changed. Nothing launches until this forge is updated.',
-  'claude-md-block-committed': 'Launches wait until the CLAUDE.md change that updating the forge made is committed.',
-  'assistant-down':            'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
+  'new-code':                         'New code is on disk. The Overseer runs the code it started with until it restarts.',
+  'install-version-changed':          'The install version changed. Nothing launches until this forge is updated.',
+  'claude-md-block-committed':        'Launches wait until the CLAUDE.md change that updating the forge made is committed.',
+  [FORGE_NOTICE_KINDS.assistantDown]: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
 };
 
 const NEUTRAL_NOTICE_SENTENCE = 'This forge raised a notice that Gaia does not word yet.';

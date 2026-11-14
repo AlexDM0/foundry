@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
+import { FORGE_NOTICE_KINDS }                  from '../../shared/constants/ForgeNoticeKinds.ts';
 import type { FlintBrainSituation }            from '../../testing/RecordedAnswers.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
@@ -24,7 +25,6 @@ import {
   recordedMonitorOneDocumentOf,
   registryFactsOf,
 } from './testing/ExampleForgeDocuments.ts';
-import { ASSISTANT_DOWN_KIND }        from './utils/ForgeReadingMapUtil.ts';
 import { FORGE_WARNING_WITHOUT_KIND } from './utils/MonitorSnapshotMigrationUtil.ts';
 
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
@@ -553,11 +553,11 @@ describe('a snapshot at monitor version 2, which Gaia still reads', () => {
 
   test('keeps a failed Baton pass as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {
     const snapshot = await storefrontSnapshot();
-    const warnings = [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }, { kind: ASSISTANT_DOWN_KIND, text: ASSISTANT_DOWN_SENTENCE }];
+    const warnings = [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }, { kind: FORGE_NOTICE_KINDS.assistantDown, text: ASSISTANT_DOWN_SENTENCE }];
     const reading = ingestion().readingOf({ ...snapshot, notices: [], warnings }, EXAMPLE_READ_STAMP);
     expect(reading.verdict === 'readable' ? [reading.reading.warnings, reading.reading.notices] : null).toEqual([
       [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }],
-      [{ kind: ASSISTANT_DOWN_KIND, text: ASSISTANT_DOWN_SENTENCE }],
+      [{ kind: FORGE_NOTICE_KINDS.assistantDown, text: ASSISTANT_DOWN_SENTENCE }],
     ]);
   });
 
