@@ -1,16 +1,17 @@
 /**
  * The ingestion of the forges' machine-wide registry `<monitor>/projects.json`: read, check the version, map the entries to
- * `RegisteredForge`s. A file at a version Gaia does not know maps nothing; a malformed entry is left out and named, the rest still map.
+ * `RegisteredForge`s. A file at a version Gaia does not know maps nothing; an entry without its project or root is left out, the rest
+ * still map.
  */
 import { join } from 'node:path';
 
-import { AtomicFile }                                 from '../../lib/atomic-file/AtomicFile.ts';
-import { JsonValueUtil }                              from '../../lib/json-value/JsonValueUtil.ts';
-import type { RegistryRefusal }                       from '../../shared/@types/CommandVerdict.ts';
-import { CONTRACT_VERSIONS }                          from '../../shared/constants/ContractVersions.ts';
-import { FORGE_PLACES }                               from '../../shared/constants/ForgePlaces.ts';
-import type { LeftOutRegistryEntry, RegisteredForge } from './@types/RegisteredForge.ts';
-import { RegistryMapUtil }                            from './utils/RegistryMapUtil.ts';
+import { AtomicFile }           from '../../lib/atomic-file/AtomicFile.ts';
+import { JsonValueUtil }        from '../../lib/json-value/JsonValueUtil.ts';
+import type { RegistryRefusal } from '../../shared/@types/CommandVerdict.ts';
+import { CONTRACT_VERSIONS }    from '../../shared/constants/ContractVersions.ts';
+import { FORGE_PLACES }         from '../../shared/constants/ForgePlaces.ts';
+import type { RegisteredForge } from './@types/RegisteredForge.ts';
+import { RegistryMapUtil }      from './utils/RegistryMapUtil.ts';
 
 export type RegistryUnreadableReason =
   | 'read-failed'
@@ -20,7 +21,7 @@ export type RegistryUnreadableReason =
   | 'projects-not-an-object';
 
 export type RegistryReading =
-  | { readonly verdict: 'readable'; readonly forges: readonly RegisteredForge[]; readonly leftOutEntries: readonly LeftOutRegistryEntry[] }
+  | { readonly verdict: 'readable'; readonly forges: readonly RegisteredForge[] }
   | { readonly verdict: 'absent' }
   /** `failure` is the system's error code of a read that failed, `null` for a file that was read and is not a registry. */
   | { readonly verdict: 'unreadable'; readonly reason: RegistryUnreadableReason; readonly failure: string | null }
@@ -65,10 +66,10 @@ function readingOf(contents: string): RegistryReading {
 
   // The forge writes `projects` from its first registration on; a registry without it holds no forge yet.
   const entriesValue = JsonValueUtil.ownValueOf(document, ENTRIES_KEY);
-  if (entriesValue === undefined) return { verdict: 'readable', forges: [], leftOutEntries: [] };
+  if (entriesValue === undefined) return { verdict: 'readable', forges: [] };
   const entries = JsonValueUtil.jsonObjectOf(entriesValue);
   if (entries === null) return unreadableReadingFor('projects-not-an-object');
-  return { verdict: 'readable', ...RegistryMapUtil.registeredForgesOf(entries) };
+  return { verdict: 'readable', forges: RegistryMapUtil.registeredForgesOf(entries) };
 }
 
 export class RegistryFile {

@@ -1,8 +1,9 @@
 /**
  * The registry's ingestion, over the registry a forge wrote for five boards (recorded) and variants of it written to the scratch root: the
  * recording maps to five forges in its order, an entry from a forge before F4 or F9 maps its token file or program as unknown, a newer
- * version maps nothing, a malformed entry is left out and named while the rest map, every file that is no registry at version 1
- * answers a verdict, never a throw, and a registry Gaia cannot read names no forge but the reason.
+ * version maps nothing, an entry without its root is left out while the rest map, an entry with a broken overseer keeps its forge with no
+ * live Overseer, every file that is no registry at version 1 answers a verdict, never a throw, and a registry Gaia cannot read names no
+ * forge but the reason.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -123,7 +124,7 @@ function fixtureEntry(document: RegistryDocument, trackerId: string): Record<str
 
 describe('the registry a forge wrote', () => {
   test('maps its five entries to five forges, in the registry order, with nothing left out', async () => {
-    expect(await registryWith(JSON.stringify(fixtureDocument(), null, 2)).read()).toEqual({ verdict: 'readable', forges: RECORDED_FORGES, leftOutEntries: [] });
+    expect(await registryWith(JSON.stringify(fixtureDocument(), null, 2)).read()).toEqual({ verdict: 'readable', forges: RECORDED_FORGES });
   });
 });
 
@@ -158,24 +159,21 @@ describe('a registry at a version Gaia does not know', () => {
 });
 
 describe('a malformed entry', () => {
-  test('is left out and named with the missing required key while the other entries map', async () => {
+  test('is left out when it lacks its root, while the other entries map', async () => {
     const document = fixtureDocument();
     delete fixtureEntry(document, DAIRY_TRACKER_ID)['root'];
     expect(await registryWith(JSON.stringify(document)).read()).toEqual({
-      verdict:        'readable',
-      forges:         RECORDED_FORGES.filter((forge) => forge.trackerId !== DAIRY_TRACKER_ID),
-      leftOutEntries: [{ trackerId: DAIRY_TRACKER_ID, problems: [{ key: 'root', reason: 'missing' }] }],
+      verdict: 'readable',
+      forges:  RECORDED_FORGES.filter((forge) => forge.trackerId !== DAIRY_TRACKER_ID),
     });
   });
 
-  test('is left out and named with the overseer key it lacks', async () => {
+  test('keeps its forge with no live Overseer when its overseer lacks a key', async () => {
     const document = fixtureDocument();
     delete (fixtureEntry(document, AGENCY_TRACKER_ID)['overseer'] as Record<string, unknown>)['url'];
-    const reading = await registryWith(JSON.stringify(document)).read();
-    expect(reading).toEqual({
-      verdict:        'readable',
-      forges:         RECORDED_FORGES.filter((forge) => forge.trackerId !== AGENCY_TRACKER_ID),
-      leftOutEntries: [{ trackerId: AGENCY_TRACKER_ID, problems: [{ key: 'overseer.url', reason: 'missing' }] }],
+    expect(await registryWith(JSON.stringify(document)).read()).toEqual({
+      verdict: 'readable',
+      forges:  RECORDED_FORGES.map((forge) => (forge.trackerId === AGENCY_TRACKER_ID ? { ...forge, overseer: null } : forge)),
     });
   });
 });
@@ -208,7 +206,7 @@ describe('a file that is no registry', () => {
 
 describe('a registry with no projects key', () => {
   test('reads as a registry of no forges', async () => {
-    expect(await registryWith('{"version": 1}').read()).toEqual({ verdict: 'readable', forges: [], leftOutEntries: [] });
+    expect(await registryWith('{"version": 1}').read()).toEqual({ verdict: 'readable', forges: [] });
   });
 });
 

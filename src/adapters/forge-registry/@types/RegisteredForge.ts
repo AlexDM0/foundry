@@ -1,4 +1,4 @@
-/** One forge as the machine's registry `projects.json` names it, mapped in; and why an entry the registry holds was left out. */
+/** One forge as the machine's registry `projects.json` names it, mapped in. */
 
 /** The live Overseer the registry names; the forge removes the key at its stop. */
 export interface RegisteredOverseer {
@@ -20,35 +20,4 @@ export interface RegisteredForge {
   readonly lastCommand:   string | null;
   /** When the forge last wrote the entry, as the forge stamped it: shown, never compared. */
   readonly lastChangedAt: string | null;
-}
-
-export type RegistryEntryKey =
-  | 'trackerId'
-  | 'entry'
-  | 'project'
-  | 'root'
-  | 'program'
-  | 'overseer'
-  | 'overseer.url'
-  | 'overseer.processId'
-  | 'overseer.startedAt'
-  | 'overseer.tokenPath';
-
-export type RegistryEntryProblemReason =
-  | 'missing'
-  | 'empty'
-  | 'not-an-object'
-  | 'not-a-string'
-  | 'not-an-absolute-path'
-  | 'not-an-http-address'
-  | 'not-a-process-id';
-
-export interface RegistryEntryProblem {
-  readonly key:    RegistryEntryKey;
-  readonly reason: RegistryEntryProblemReason;
-}
-
-export interface LeftOutRegistryEntry {
-  readonly trackerId: string;
-  readonly problems:  readonly RegistryEntryProblem[];
 }

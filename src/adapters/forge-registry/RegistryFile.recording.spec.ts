@@ -75,7 +75,7 @@ describe('the registry a forge writes', () => {
   test('names five boards in the order they were registered, a live Overseer with its token file, and the program of each', async () => {
     const registryPath = registryFilePathIn(scratchForge.home());
     const reading = await new RegistryFile(registryPath).read();
-    expect(reading).toMatchObject({ verdict: 'readable', leftOutEntries: [] });
+    expect(reading).toMatchObject({ verdict: 'readable' });
     expect(reading.verdict === 'readable' ? reading.forges.map(({ project, overseer }) => [project, overseer !== null]) : []).toEqual([
       ['Example Agency', true],
       ['Example Bookshop', true],

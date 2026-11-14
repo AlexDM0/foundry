@@ -169,7 +169,7 @@ async function settingsStoreNamingTheProgram(): Promise<SettingsStore> {
 
 function controlOver(controlOptions: ControlOptions): ForgeControl {
   const forges = controlOptions.forges ?? [exampleForgeOf()];
-  const registry: RegistryReading = controlOptions.registry ?? { verdict: 'readable', forges: forges.map((forge) => forge.entry), leftOutEntries: [] };
+  const registry: RegistryReading = controlOptions.registry ?? { verdict: 'readable', forges: forges.map((forge) => forge.entry) };
   const settingsStore = controlOptions.settingsStore ?? settingsStoreInScratch();
   return createForgeControl({
     readRegistry: async () => registry,

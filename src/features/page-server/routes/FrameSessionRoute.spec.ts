@@ -96,7 +96,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
 }
 
 function sourcesOver(forge: ExampleForge, overseerFetch: RecordedOverseerFetch, registry?: RegistryReading): FrameSessionSources {
-  const registryReading: RegistryReading = registry ?? { verdict: 'readable', forges: [forge.entry], leftOutEntries: [] };
+  const registryReading: RegistryReading = registry ?? { verdict: 'readable', forges: [forge.entry] };
   return {
     readRegistry: async () => registryReading,
     readings:     () => [forge.reading],
@@ -253,7 +253,7 @@ describe('a forge that gives no code', () => {
 
   test('refuses with forge-not-registered when the registry names no such forge', async () => {
     const forge = exampleForgeOf();
-    const exchange = await exchangeOf(sourcesOver(forge, recordedOverseerFetch([]), { verdict: 'readable', forges: [], leftOutEntries: [] }));
+    const exchange = await exchangeOf(sourcesOver(forge, recordedOverseerFetch([]), { verdict: 'readable', forges: [] }));
     expect(exchange.document.refusal).toBe('forge-not-registered');
   });
 
