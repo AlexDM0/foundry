@@ -4,12 +4,12 @@
  * document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the shell the top bar's status
  * line and buttons with it, so a new fleet document changes all three at once, with no reload.
  */
+import { Button }                              from 'design-system/Button';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import type { CommandBody, ForgeCommandBody }                             from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                             from '../../@types/FleetDocument.ts';
 import { useCommandSender }                                               from '../../api/CommandSender.ts';
-import { Button }                                                         from '../../design-system/Button.tsx';
 import { LookAgainButton }                                                from '../../shared/LookAgainButton.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { HashRouter }                                                     from '../../shell/HashRouter.ts';
@@ -117,7 +117,7 @@ export function forgesViewPartsOf(fleetDocument: FleetDocument, route: ForgesRou
     actions: (
       <>
         <LookAgainButton />
-        <Button label="Add a repository" emphasis="primary" href={ADD_A_REPOSITORY_FRAGMENT} />
+        <Button label="Add a repository" emphasis="primary" compact href={ADD_A_REPOSITORY_FRAGMENT} />
       </>
     ),
     content: <ForgesView fleetDocument={fleetDocument} route={route} clock={clock} goTo={goTo} />,

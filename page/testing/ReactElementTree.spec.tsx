@@ -1,11 +1,17 @@
 /**
  * The element tree that the design-system specs read in place of a document. What matters: nested components and fragments unfold to the
  * host elements React itself renders, empty children leave nothing, a handler is called through `dispatch`, and an element type the tree
- * cannot unfold fails rather than passing as empty.
+ * cannot unfold fails rather than passing as empty; a component that holds hooks fails, unless the spec keeps it folded under its name with
+ * its props.
  */
-import { describe, expect, test } from 'bun:test';
-import { forwardRef }             from 'react';
-import { renderToStaticMarkup }   from 'react-dom/server';
+import {
+  describe,
+  expect,
+  spyOn,
+  test
+} from 'bun:test';
+import { forwardRef, useRef }   from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import { ReactElementTree } from './ReactElementTree.ts';
 
@@ -41,6 +47,23 @@ describe('unfolding', () => {
       return <span ref={reference} />;
     });
     expect(() => ReactElementTree.unfolded(<ExampleForwarded />)).toThrow('cannot unfold');
+  });
+
+  test('a component that holds hooks fails, and a kept one stands folded under its name with its props, its siblings unfolded', () => {
+    function ExampleHooked({ text }: { readonly text: string }) {
+      const reference = useRef<HTMLElement>(null);
+      return <i ref={reference}>{text}</i>;
+    }
+    // React reports the misplaced hook on the console before it throws; the report is the expected failure, so it is held, not printed.
+    const hookReport = spyOn(console, 'error').mockImplementation(() => undefined);
+    expect(() => ReactElementTree.unfolded(<p><ExampleHooked text="Alex Example" /></p>)).toThrow();
+    expect(hookReport).toHaveBeenCalled();
+    hookReport.mockRestore();
+    const unfolded = ReactElementTree.unfoldedKeeping(<p><ExampleHooked text="Alex Example" /><ExampleInner text="Example Agency" /></p>, [ExampleHooked]);
+    expect(ReactElementTree.hostElementsIn(unfolded).map((element) => [element.tag, element.props['text']])).toEqual([
+      ['p', undefined], ['ExampleHooked', 'Alex Example'], ['b', undefined],
+    ]);
+    expect(ReactElementTree.textOf(unfolded)).toBe('Example Agency');
   });
 });
 

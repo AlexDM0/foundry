@@ -5,7 +5,7 @@ import { GaiaStylesheet } from './GaiaStylesheet.ts';
 
 describe('the variant check', () => {
   test('it reads gaia.css, where the design system section stands', () => {
-    expect(GaiaStylesheet.text()).toContain('.gaia-button');
+    expect(GaiaStylesheet.text()).toContain('.gaia-refusal');
   });
 
   test('a variant is found by its exact class and attribute value, and not by another value or class', () => {

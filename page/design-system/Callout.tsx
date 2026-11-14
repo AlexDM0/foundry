@@ -1,7 +1,12 @@
 /**
- * A forge-level condition as a card: a title line with the forge's dot, its name and a micro-caps word, one sentence, one mono line, and
- * its actions at the end. Warn and error take their tones; neutral is a dashed card on the sunken ground, for what is only incomplete.
+ * A forge-level condition, composed from the design-system package: a title line with the forge's dot, its name and its word, one sentence,
+ * one mono line, and the actions at the end. Warn (held) and error (unreachable) are the package's banner in its orange and crimson, with
+ * the 4 px left edge; neutral, for what is only incomplete, is the package's dashed card. The section is named by its title and word.
  */
+
+import { Banner }         from 'design-system/Banner';
+import { Card }           from 'design-system/Card';
+import { Row }            from 'design-system/Row';
 import type { ReactNode } from 'react';
 
 export type CalloutTone = 'warn' | 'error' | 'neutral';
@@ -17,21 +22,41 @@ export interface CalloutProps {
   readonly actions?:     ReactNode;
 }
 
-export function Callout({
-  tone, dot, title, word, sentence, machineLine, actions
-}: CalloutProps) {
+function CalloutBody({
+  tone, dot, title, word, sentence, machineLine
+}: Omit<CalloutProps, 'actions'>) {
   return (
-    <section className="gaia-callout" data-tone={tone} aria-label={`${title}: ${word}`}>
-      <div className="gaia-callout-body">
-        <div className="gaia-callout-title">
-          {dot}
-          <span className="gaia-callout-name">{title}</span>
-          <span className="gaia-callout-word">{word}</span>
-        </div>
-        <p className="gaia-callout-sentence">{sentence}</p>
-        {machineLine === undefined ? null : <p className="gaia-callout-machine-line">{machineLine}</p>}
-      </div>
-      {actions === undefined ? null : <div className="gaia-callout-actions">{actions}</div>}
+    <span className="gaia-callout-body" data-tone={tone}>
+      <span className="gaia-callout-title">
+        {dot}
+        <span className="gaia-callout-name">{title}</span>
+        <span className="gaia-callout-word">{word}</span>
+      </span>
+      <span className="gaia-callout-sentence">{sentence}</span>
+      {machineLine === undefined ? null : <span className="gaia-callout-machine-line">{machineLine}</span>}
+    </span>
+  );
+}
+
+function CalloutFrame({ tone, body, actions }: { readonly tone: CalloutTone; readonly body: ReactNode; readonly actions: ReactNode }) {
+  if (tone === 'neutral') {
+    return (
+      <Card dashed paddingVertical="twelve" paddingHorizontal="sixteen">
+        <Row centerY gap="sixteen">
+          {body}
+          {actions}
+        </Row>
+      </Card>
+    );
+  }
+  return <Banner tone={tone} text={body} {...(actions === null ? {} : { action: actions })} />;
+}
+
+export function Callout({ actions, ...bodyProps }: CalloutProps) {
+  const { tone, title, word } = bodyProps;
+  return (
+    <section className="gaia-callout" aria-label={`${title}: ${word}`}>
+      <CalloutFrame tone={tone} body={<CalloutBody {...bodyProps} />} actions={actions === undefined ? null : <span className="gaia-callout-actions">{actions}</span>} />
     </section>
   );
 }

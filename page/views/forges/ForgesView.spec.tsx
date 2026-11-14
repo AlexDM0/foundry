@@ -42,8 +42,8 @@ describe('the top bar', () => {
     expect(markup).toContain('<h1 class="gaia-top-bar-title">Forges</h1>');
     expect(markup).toContain('6 registered on this machine · 4 running');
     const actions = /<span class="gaia-top-bar-actions">(.*?)<\/span>/.exec(markup)?.[1] ?? '';
-    expect(actions).toMatch(/^<button[^>]*>Look again<\/button><a class="gaia-button" href="#forges\/add" data-emphasis="primary">Add a repository<\/a>$/);
-    expect(markup).not.toContain('role="dialog"');
+    expect(actions).toMatch(/^<button[^>]*>Look again<\/button><a class="design-system-button" href="#forges\/add" data-primary="" data-compact="">Add a repository<\/a>$/);
+    expect(markup).not.toContain('<dialog');
   });
 });
 
@@ -53,7 +53,7 @@ describe('the Gaia panel in the view', () => {
     expect(markup).toMatch(/<section class="gaia-forges-machine".*<\/section><section class="gaia-forges-gaia" aria-labelledby="gaia-forges-gaia-head">/);
     expect(markup).toContain('Start the running forges at login');
     expect(markup).toContain('0.1.0 on 127.0.0.1:4790');
-    expect(markup).not.toContain('role="dialog"');
+    expect(markup).not.toContain('<dialog');
   });
 
   test('a setting changed elsewhere shows in the panel without a reload', () => {
@@ -70,14 +70,16 @@ describe('the Gaia panel in the view', () => {
 describe('the view follows the route and the fleet source', () => {
   test('#forges/add opens the dialog over the table', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges/add'));
-    expect(markup).toContain('role="dialog" aria-modal="true" aria-label="Add a repository"');
+    const dialogTitledByItsHeading = /<dialog class="design-system-dialog" aria-modal="true" aria-labelledby="([^"]+)".*<h2 id="\1" class="design-system-dialog-title">/;
+    expect(markup).toMatch(dialogTitledByItsHeading);
+    expect(markup).toContain('class="design-system-dialog-title">Add a repository</h2>');
     expect(forgeNamesIn(markup)).toContain('Example Storefront');
   });
 
   test('with no forge registered the table says so, and with no forge program the dialog\'s "Add and start" is off', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_EMPTY), '#forges/add'));
     expect(markup).toContain('No forge is registered on this machine yet.');
-    expect(markup).toMatch(/<button type="button" class="gaia-button" disabled="" data-emphasis="primary">Add and start<\/button>/);
+    expect(markup).toMatch(/<button type="button" class="design-system-button" disabled="" data-primary="">Add and start<\/button>/);
     expect(markup).toContain('The forge program was not found.');
   });
 

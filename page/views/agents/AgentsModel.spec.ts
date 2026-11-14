@@ -73,8 +73,8 @@ describe('the rows the filters leave', () => {
   test('"Needs a look" leaves exactly the agent waiting on E2 and the quiet one', () => {
     const { rows } = contentOf(FLEET_FIVE_FORGES, { query: 'condition=needs-a-look' });
     expect(rows.map((row) => [row.project, row.jobId, row.flags])).toEqual([
-      ['Example Storefront', 'J3', [{ text: 'asks you · E2', tone: 'attention' }]],
-      ['Invoice Service', 'J12', [{ text: 'quiet · 4 sweeps', tone: 'warn' }]],
+      ['Example Storefront', 'J3', [{ text: 'asks you · E2', tone: 'warn' }]],
+      ['Invoice Service', 'J12', [{ text: 'quiet · 4 sweeps', tone: 'neutral' }]],
     ]);
   });
 
@@ -113,7 +113,7 @@ describe('one row', () => {
 
   test('a quiet agent whose forge counts no sweeps is flagged quiet alone, never with a guessed count', () => {
     const fleetDocument = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, silentSweeps: null })) };
-    expect(rowOf(contentOf(fleetDocument).rows, 'Invoice Service', 'J12').flags).toEqual([{ text: 'quiet', tone: 'warn' }]);
+    expect(rowOf(contentOf(fleetDocument).rows, 'Invoice Service', 'J12').flags).toEqual([{ text: 'quiet', tone: 'neutral' }]);
   });
 
   test('a counts-only forge\'s row keeps id, role, tickets, state and tokens, and holds nothing for the rest', () => {
@@ -160,7 +160,7 @@ describe('the selected agent', () => {
       kind:          'running',
       jobId:         'J12',
       role:          'builder',
-      flags:         [{ text: 'quiet · 4 sweeps', tone: 'warn' }],
+      flags:         [{ text: 'quiet · 4 sweeps', tone: 'neutral' }],
       project:       'Invoice Service',
       ticketIdsText: '#034',
       ticketTitle:   'Credit note numbering',

@@ -72,7 +72,8 @@ function panelIn(nodes: ReturnType<typeof unfoldedView>): HostElement {
 }
 
 function segmentNamed(nodes: ReturnType<typeof unfoldedView>, groupLabel: string, segmentLabel: string): HostElement {
-  const group = tree.onlyHostElementIn(nodes, (element) => element.props['role'] === 'group' && element.props['aria-label'] === groupLabel);
+  const label = tree.onlyHostElementIn(nodes, (element) => typeof element.props['id'] === 'string' && tree.textOf([element]) === groupLabel);
+  const group = tree.onlyHostElementIn(nodes, (element) => element.props['role'] === 'group' && element.props['aria-labelledby'] === label.props['id']);
   return tree.onlyHostElementIn(group.children, (element) => element.tag === 'button' && tree.textOf([element]).startsWith(segmentLabel));
 }
 
@@ -87,9 +88,9 @@ describe('the table', () => {
 
   test('the filters show A2\'s counts, with All and Every agent pressed', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES);
-    const segments = tree.hostElementsIn(view, tree.withClass('gaia-segment'));
+    const segments = tree.hostElementsIn(tree.hostElementsIn(view, tree.withClass('design-system-segments')), tree.withTag('button'));
     expect(segments.map((segment) => [tree.textOf([segment]), segment.props['aria-pressed']])).toEqual([
-      ['All10', true], ['Builders7', false], ['Reviewers3', false], ['Every agent', true], ['Needs a look2', false],
+      ['All 10', true], ['Builders 7', false], ['Reviewers 3', false], ['Every agent', true], ['Needs a look 2', false],
     ]);
   });
 
@@ -102,10 +103,10 @@ describe('the table', () => {
   test('the Calls cell holds a meter beside a budget, and none at all when the forge reports no budget', () => {
     const withBudget = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[7] as HostElement;
     const callsWithBudget = cellsOf(withBudget)[6] as HostElement;
-    expect(tree.onlyWithClass([callsWithBudget], 'gaia-meter').props['aria-label']).toBe('58 of 120 calls');
+    expect(tree.onlyWithClass([callsWithBudget], 'design-system-fill-meter').props['aria-label']).toBe('58 of 120 calls');
     const withoutBudgets = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, callBudget: null })) };
     const callsWithoutBudget = cellsOf(bodyRowsIn(unfoldedView(withoutBudgets))[7] as HostElement)[6] as HostElement;
-    expect(tree.hostElementsIn([callsWithoutBudget], tree.withClass('gaia-meter'))).toEqual([]);
+    expect(tree.hostElementsIn([callsWithoutBudget], tree.withClass('design-system-fill-meter'))).toEqual([]);
     expect(tree.textOf([callsWithoutBudget])).toBe('58');
   });
 
@@ -153,7 +154,7 @@ describe('the selected agent', () => {
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-last-line')])).toBe(
       'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
     );
-    const openLink = tree.onlyHostElementIn([panel], tree.withClass('gaia-button'));
+    const openLink = tree.onlyHostElementIn([panel], tree.withClass('design-system-button'));
     expect([openLink.tag, tree.textOf([openLink]), openLink.props['href']]).toEqual(['a', 'Open J12 in its forge', `#forge/${TRACKER_IDS.invoiceService}/#agents/J12`]);
   });
 
@@ -197,7 +198,8 @@ describe('Gaia messages and stops no agent', () => {
   test('the view\'s only buttons are the filters; everything else is a link', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { selectedAgent: J12_OF_INVOICE_SERVICE });
     const buttons = tree.hostElementsIn(view, tree.withTag('button'));
-    expect(buttons.every((button) => tree.hasClass(button, 'gaia-segment'))).toBe(true);
+    const segments = tree.hostElementsIn(tree.hostElementsIn(view, tree.withClass('design-system-segments')), tree.withTag('button'));
+    expect(buttons).toEqual(segments);
     expect(buttons).toHaveLength(5);
   });
 });
@@ -207,7 +209,7 @@ describe('no agent', () => {
     const view = unfoldedView(FLEET_EMPTY);
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-empty-sentence')])).toBe('No agents are running.');
     expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-machine')])).toBe('This machine0agentsno limit known · 12 CPUs');
-    expect(tree.hostElementsIn(view, (element) => tree.hasClass(element, 'gaia-table') || tree.hasClass(element, 'gaia-segmented'))).toEqual([]);
+    expect(tree.hostElementsIn(view, (element) => tree.hasClass(element, 'gaia-table') || tree.hasClass(element, 'design-system-segments'))).toEqual([]);
   });
 
   test('with a known limit the machine meter shows beside the sentence', () => {
@@ -217,7 +219,7 @@ describe('no agent', () => {
       figures: { ...FLEET_FIVE_FORGES.figures, agentsInFlight: 0 },
     };
     const machine = tree.onlyWithClass(unfoldedView(idle), 'gaia-agents-machine');
-    expect(tree.onlyWithClass([machine], 'gaia-meter').props['aria-label']).toBe('0 of 12 agents');
+    expect(tree.onlyWithClass([machine], 'design-system-fill-meter').props['aria-label']).toBe('0 of 12 agents');
     expect(tree.textOf([machine])).toBe('This machine0 / 12agentslimit 12 of 12 CPUs');
   });
 

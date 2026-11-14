@@ -2,15 +2,17 @@
  * The Agents view (SCREENS A2): every running agent on the machine in one table, the two filters over it, and the selected agent's panel.
  * It takes no hooks: the shell hands it the content and the way to change the filters, which it writes into the route.
  */
+import { FillMeter }        from 'design-system/FillMeter';
+import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
+import { SegmentedControl } from 'design-system/SegmentedControl';
+import type { StateTone }   from 'design-system/StateTone';
+import { Tag }              from 'design-system/Tag';
+
 import { DataTable, type DataTableColumn, type DataTableRow }       from '../../design-system/DataTable.tsx';
-import { Meter }                                                    from '../../design-system/Meter.tsx';
-import { MicroCapsLabel }                                           from '../../design-system/MicroCapsLabel.tsx';
 import { RoleDot }                                                  from '../../design-system/RoleDot.tsx';
-import { SegmentedControl }                                         from '../../design-system/SegmentedControl.tsx';
-import { Tag }                                                      from '../../design-system/Tag.tsx';
 import type { RailMachine }                                         from '../../shell/RailModel.ts';
 import type { AgentConditionFilter, AgentFilters, AgentRoleFilter } from './AgentsFilters.ts';
-import type { AgentRowContent, AgentsContent }                      from './AgentsModel.ts';
+import type { AgentMeterTone, AgentRowContent, AgentsContent }      from './AgentsModel.ts';
 import { SelectedAgentPanel }                                       from './SelectedAgentPanel.tsx';
 
 export interface AgentsViewProps {
@@ -34,6 +36,17 @@ const AGENT_COLUMNS: readonly DataTableColumn<AgentColumn>[] = [
 
 /** The tracks live in tokens.css with every other size. */
 const AGENT_COLUMN_WIDTHS = 'var(--agents-table-columns)';
+
+/** A calls meter's fill by the agent's role, in the package's tones: orange builds, teal reviews, grey for the rest. */
+const METER_STATE_TONES: Readonly<Record<AgentMeterTone, StateTone>> = {
+  neutral:  'neutral',
+  builder:  'accent',
+  reviewer: 'info',
+  paused:   'neutral',
+};
+
+const ROLE_LABEL_ID = 'gaia-agents-role-label';
+const CONDITION_LABEL_ID = 'gaia-agents-condition-label';
 
 /** What a cell shows for a value the forge did not report. */
 const NOT_REPORTED = '—';
@@ -70,7 +83,7 @@ function CallsCell({ row }: { readonly row: AgentRowContent }) {
     <span className="gaia-agents-calls">
       {meter === null ? null : (
         <span className="gaia-agents-calls-meter">
-          <Meter label={meter.label} used={meter.used} whole={meter.whole} tone={meter.tone} />
+          <FillMeter label={meter.label} used={meter.used} limit={meter.whole} near={meter.used >= meter.whole} tone={METER_STATE_TONES[meter.tone]} />
         </span>
       )}
       <span className="gaia-agents-calls-text">{text}</span>
@@ -111,7 +124,9 @@ function NoAgentRuns({ machine }: { readonly machine: RailMachine }) {
           <span className="gaia-agents-machine-figure">{machine.agentsText}</span>
           <span className="gaia-agents-machine-unit">agents</span>
         </span>
-        {machine.meter === null ? null : <Meter label={machine.meter.label} used={machine.meter.used} whole={machine.meter.whole} thickness="thick" />}
+        {machine.meter === null ? null : (
+          <FillMeter label={machine.meter.label} used={machine.meter.used} limit={machine.meter.whole} near={machine.meter.used >= machine.meter.whole} tone="neutral" />
+        )}
         <span className="gaia-agents-machine-line">{machine.limitLine}</span>
       </div>
     </section>
@@ -122,9 +137,16 @@ function AgentFilterBar({ content, onFiltersChange }: AgentsViewProps) {
   const { filters } = content;
   return (
     <div className="gaia-agents-filters">
-      <SegmentedControl<AgentRoleFilter> label="Role" options={content.roleOptions} selected={filters.role} onSelect={(role) => onFiltersChange({ ...filters, role })} />
+      <span className="gaia-visually-hidden" id={ROLE_LABEL_ID}>Role</span>
+      <SegmentedControl<AgentRoleFilter>
+        labelledBy={ROLE_LABEL_ID}
+        options={content.roleOptions}
+        selected={filters.role}
+        onSelect={(role) => onFiltersChange({ ...filters, role })}
+      />
+      <span className="gaia-visually-hidden" id={CONDITION_LABEL_ID}>Condition</span>
       <SegmentedControl<AgentConditionFilter>
-        label="Condition"
+        labelledBy={CONDITION_LABEL_ID}
         options={content.conditionOptions}
         selected={filters.condition}
         onSelect={(condition) => onFiltersChange({ ...filters, condition })}

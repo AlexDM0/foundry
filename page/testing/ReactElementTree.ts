@@ -1,6 +1,7 @@
 /**
  * Test-only: unfolds what a hook-free component returns into its host elements, the tags and props React would hand the DOM, so a spec can
- * read the markup and call a handler without a document. A component that uses a hook, or an element type it does not know, fails loudly.
+ * read the markup and call a handler without a document. A component that uses a hook, or an element type it does not know, fails loudly,
+ * unless the spec keeps that component folded.
  */
 import {
   Fragment,
@@ -19,19 +20,23 @@ export type RenderedNode = HostElement | string;
 
 type ElementProps = Readonly<Record<string, unknown>> & { readonly children?: ReactNode };
 
-function unfoldElement(element: ReactElement<ElementProps>): RenderedNode[] {
+/** A component the caller keeps folded: it is not called, and stands in the tree under its own name with the props it was given. */
+type KeptComponents = ReadonlySet<unknown>;
+
+function unfoldElement(element: ReactElement<ElementProps>, kept: KeptComponents): RenderedNode[] {
   const { type, props } = element;
-  if (type === Fragment) return unfold(props.children);
-  if (typeof type === 'function') return unfold((type as (componentProps: ElementProps) => ReactNode)(props));
-  if (typeof type === 'string') return [{ tag: type, props, children: unfold(props.children) }];
+  if (type === Fragment) return unfold(props.children, kept);
+  if (typeof type === 'function' && kept.has(type)) return [{ tag: type.name, props, children: [] }];
+  if (typeof type === 'function') return unfold((type as (componentProps: ElementProps) => ReactNode)(props), kept);
+  if (typeof type === 'string') return [{ tag: type, props, children: unfold(props.children, kept) }];
   throw new Error(`The element tree cannot unfold an element of type ${String(type)}.`);
 }
 
-function unfold(node: ReactNode): RenderedNode[] {
+function unfold(node: ReactNode, kept: KeptComponents): RenderedNode[] {
   if (node === null || node === undefined || typeof node === 'boolean') return [];
   if (typeof node === 'string' || typeof node === 'number' || typeof node === 'bigint') return [String(node)];
-  if (Array.isArray(node)) return node.flatMap((child: ReactNode) => unfold(child));
-  if (isValidElement<ElementProps>(node)) return unfoldElement(node);
+  if (Array.isArray(node)) return node.flatMap((child: ReactNode) => unfold(child, kept));
+  if (isValidElement<ElementProps>(node)) return unfoldElement(node, kept);
   throw new Error('The element tree cannot unfold this node.');
 }
 
@@ -42,7 +47,15 @@ function everyHostElementIn(nodes: readonly RenderedNode[]): HostElement[] {
 export const ReactElementTree = {
   /** The host elements and texts a component's output unfolds to, in document order. */
   unfolded(node: ReactNode): RenderedNode[] {
-    return unfold(node);
+    return unfold(node, new Set());
+  },
+
+  /**
+   * The same, but each of the named components is left folded under its own name with its props, so a spec can read and call what a view
+   * hands a component that holds hooks, such as the design-system package's choice option, which only a renderer can run.
+   */
+  unfoldedKeeping(node: ReactNode, keptComponents: readonly unknown[]): RenderedNode[] {
+    return unfold(node, new Set(keptComponents));
   },
 
   /** Every host element, at any depth, that the predicate keeps. */

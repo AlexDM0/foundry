@@ -3,6 +3,8 @@
  * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
  * callout for an Overseer that stopped answering, or the sentence for a forge that cannot be shown inside Gaia. Also where `leave` goes.
  */
+import type { ButtonEmphasis } from 'design-system/Button';
+
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
@@ -11,7 +13,6 @@ import type {
   FleetDocumentForge
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
-import type { ButtonEmphasis }                        from '../../design-system/Button.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
@@ -156,7 +157,7 @@ function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string
 
 function pauseOrResumeOf(forge: FleetDocumentForge): BarCommand | null {
   const { trackerId } = forge;
-  if (PAUSABLE.has(forge.condition)) return { label: 'Pause', emphasis: 'plain', command: { kind: 'forge-pause', trackerId } };
+  if (PAUSABLE.has(forge.condition)) return { label: 'Pause', emphasis: 'quiet', command: { kind: 'forge-pause', trackerId } };
   if (RESUMABLE.has(forge.condition)) return { label: 'Resume', emphasis: 'primary', command: { kind: 'forge-resume', trackerId } };
   return null;
 }

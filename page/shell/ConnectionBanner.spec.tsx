@@ -16,7 +16,7 @@ function bannerOf(streamState: FleetStreamState) {
 
 describe('the connection banner', () => {
   test('a lost stream shows SCREENS\' sentence as an alert in the error tone', () => {
-    const banner = tree.onlyWithClass(bannerOf('lost'), 'gaia-banner');
+    const banner = tree.onlyWithClass(bannerOf('lost'), 'design-system-banner');
     expect([banner.props['role'], banner.props['data-tone']]).toEqual(['alert', 'error']);
     expect(tree.textOf([banner])).toBe('Gaia\'s server could not be reached. Trying again.');
   });

@@ -1,12 +1,12 @@
 /**
  * The top bar. What matters: the view's title is the page's one heading; the status line shows only when the view gives one, led by its
  * dot when it has one and by the condition's word when it names one, so the dot is never the only sign; the mono line keeps to one line,
- * with the whole line as its tooltip; the view's buttons come before the theme switch; the switch shows the choice and hands a new one on;
- * and a bar told to leave the switch out shows none.
+ * with the whole line as its tooltip; the view's buttons come before the theme switch; the switch is the package's segmented control,
+ * named Theme by a label it points at, shows the choice and hands a new one on; and a bar told to leave the switch out shows none.
  */
 import { describe, expect, test } from 'bun:test';
+import { Button }                 from 'design-system/Button';
 
-import { Button }           from '../design-system/Button.tsx';
 import { GaiaStylesheet }   from '../testing/GaiaStylesheet.ts';
 import { ReactElementTree } from '../testing/ReactElementTree.ts';
 import type { ThemeChoice } from './ThemeBootstrap.ts';
@@ -27,7 +27,8 @@ describe('the top bar', () => {
     );
     const status = tree.onlyWithClass(unfolded, 'gaia-top-bar-status');
     expect(tree.textOf([status])).toBe('4 forges running');
-    expect(tree.onlyWithClass([status], 'gaia-condition-dot').props['data-condition']).toBe('live');
+    const dot = tree.onlyWithClass([status], 'design-system-state-dot');
+    expect([dot.props['data-state-tone'], dot.props['data-shape']]).toEqual(['accent', undefined]);
   });
 
   test('a condition\'s word stands between the dot and the mono line, in its own face', () => {
@@ -72,8 +73,10 @@ describe('the top bar', () => {
   test('the theme switch is the group named Theme, shows the choice and hands a new one on', () => {
     const chosen: ThemeChoice[] = [];
     const unfolded = tree.unfolded(<TopBar title="Attention" status={null} actions={null} showsThemeSwitch themeChoice="dark" onThemeChoice={(choice) => chosen.push(choice)} />);
-    expect(tree.onlyWithClass(unfolded, 'gaia-segmented').props['aria-label']).toBe('Theme');
-    const segments = tree.hostElementsIn(unfolded, tree.withClass('gaia-segment'));
+    const group = tree.onlyWithClass(unfolded, 'design-system-segments');
+    const label = tree.onlyHostElementIn(unfolded, (element) => element.props['id'] === group.props['aria-labelledby']);
+    expect([group.props['role'], tree.textOf([label])]).toEqual(['group', 'Theme']);
+    const segments = tree.hostElementsIn([group], tree.withTag('button'));
     expect(segments.map((segment) => [tree.textOf([segment]), segment.props['aria-pressed']])).toEqual([['Auto', false], ['Light', false], ['Dark', true]]);
     const [auto] = segments;
     if (auto === undefined) throw new Error('The Auto segment is missing.');
@@ -85,7 +88,7 @@ describe('the top bar', () => {
     const unfolded = tree.unfolded(
       <TopBar title="Example Storefront" status={null} actions={<Button label="Pause" />} showsThemeSwitch={false} themeChoice="dark" onThemeChoice={() => undefined} />,
     );
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-segmented'))).toEqual([]);
+    expect(tree.hostElementsIn(unfolded, tree.withClass('design-system-segments'))).toEqual([]);
     expect(tree.hostElementsIn(unfolded, tree.withTag('button')).map((button) => tree.textOf([button]))).toEqual(['Pause']);
   });
 });

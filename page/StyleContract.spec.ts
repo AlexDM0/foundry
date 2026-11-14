@@ -547,7 +547,7 @@ describe('the readers, on known and planted values', () => {
 
 describe('the scan itself', () => {
   test('it reads the shipping components and both stylesheets, and finds a floor of each', () => {
-    expect(SOURCES.map(({ path }) => path)).toContain('design-system/Button.tsx');
+    expect(SOURCES.map(({ path }) => path)).toContain('design-system/Refusal.tsx');
     expect(SOURCES.some(({ path }) => path.endsWith('.spec.tsx') || path.startsWith('testing/'))).toBe(false);
     expect(EMITTED.classNames.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(STYLED.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);

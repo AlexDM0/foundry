@@ -1,6 +1,7 @@
 /**
  * The refusal. What matters: it is an alert that says which command the forge refused, with the forge's code in mono and its own sentence
- * unedited; "Try again" shows only when the command can be sent again; the dismiss button is named and calls onDismiss.
+ * unedited; "Try again" shows only when the command can be sent again, as the package's compact secondary button, never a red one; the
+ * dismiss button is the package's icon button, named and titled, and calls onDismiss.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -30,16 +31,19 @@ describe('the refusal', () => {
 
   test('Try again and the named dismiss button call their own handlers', () => {
     const presses: string[] = [];
-    const [tryAgain, dismiss] = ReactElementTree.hostElementsIn(refusalOf(presses, true), ReactElementTree.withClass('gaia-button'));
+    const [tryAgain, dismiss] = ReactElementTree.hostElementsIn(refusalOf(presses, true), ReactElementTree.withTag('button'));
     if (tryAgain === undefined || dismiss === undefined) throw new Error('A refusal button is missing.');
-    expect([ReactElementTree.textOf([tryAgain]), dismiss.props['aria-label']]).toEqual(['Try again', 'Dismiss this refusal']);
+    expect([ReactElementTree.textOf([tryAgain]), tryAgain.props['data-compact'], tryAgain.props['data-primary'], tryAgain.props['data-danger']])
+      .toEqual(['Try again', '', undefined, undefined]);
+    expect([dismiss.props['className'], dismiss.props['aria-label'], dismiss.props['title']])
+      .toEqual(['design-system-icon-button', 'Dismiss this refusal', 'Dismiss this refusal']);
     ReactElementTree.dispatch(tryAgain, 'onClick');
     ReactElementTree.dispatch(dismiss, 'onClick');
     expect(presses).toEqual(['try again', 'dismiss']);
   });
 
   test('without a way to try again only the dismiss button shows', () => {
-    const buttons = ReactElementTree.hostElementsIn(refusalOf([], false), ReactElementTree.withClass('gaia-button'));
+    const buttons = ReactElementTree.hostElementsIn(refusalOf([], false), ReactElementTree.withTag('button'));
     expect(buttons.map((button) => button.props['aria-label'])).toEqual(['Dismiss this refusal']);
   });
 });

@@ -12,12 +12,14 @@
  * would paint for the source's current document; `GaiaShell` takes no hooks and unfolds to its host elements.
  */
 import { describe, expect, test } from 'bun:test';
+import { Button }                 from 'design-system/Button';
+import { IconButton }             from 'design-system/IconButton';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument, FleetDocumentForge }                                   from '../@types/FleetDocument.ts';
 import { CommandSender }                                                            from '../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
-import { Button }                                                                   from '../design-system/Button.tsx';
+import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
 import { TextField }                                                                from '../design-system/TextField.tsx';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
@@ -124,11 +126,12 @@ describe('the route and the theme', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     for (const fragment of ['#attention', '#agents', '#activity', '#forges']) {
-      expect(renderToStaticMarkup(appAt(source, fragment))).toContain('aria-label="Theme"');
+      expect(renderToStaticMarkup(appAt(source, fragment)))
+        .toContain('id="gaia-top-bar-theme-label">Theme</span><div class="design-system-segments" role="group" aria-labelledby="gaia-top-bar-theme-label"');
     }
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
-    expect(inPlace).not.toContain('aria-label="Theme"');
-    expect(inPlace).not.toContain('class="gaia-segmented"');
+    expect(inPlace).not.toContain('gaia-top-bar-theme-label');
+    expect(inPlace).not.toContain('class="design-system-segments"');
   });
 
   test('#activity shows the Activity view under its status line once a document holds, its filters inside the controls\' fieldset', () => {
@@ -145,8 +148,8 @@ describe('the route and the theme', () => {
     expect(markup).toContain(statusLine);
     const fieldsetAt = markup.indexOf('<fieldset class="gaia-shell-controls">');
     expect(fieldsetAt).toBeGreaterThan(-1);
-    expect(markup.indexOf('aria-label="Kind"')).toBeGreaterThan(fieldsetAt);
-    expect(markup.indexOf('aria-label="Kind"')).toBeLessThan(markup.indexOf('</fieldset>'));
+    expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeGreaterThan(fieldsetAt);
+    expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeLessThan(markup.indexOf('</fieldset>'));
   });
 
   test('the switch shows the stored choice before the first document, and the settings\' choice from it on', () => {
@@ -159,7 +162,8 @@ describe('the route and the theme', () => {
 });
 
 describe('Tab and names', () => {
-  const OPEN_IN_NEW_TAB = <Button label="Open Example Storefront in a new tab" icon="open-in-new-tab" iconOnly />;
+  const OPEN_IN_NEW_TAB_LABEL = 'Open Example Storefront in a new tab';
+  const OPEN_IN_NEW_TAB = <IconButton drawing={<OpenInNewTabGlyph />} accessibleName={OPEN_IN_NEW_TAB_LABEL} title={OPEN_IN_NEW_TAB_LABEL} onPress={() => undefined} />;
 
   function unfoldedShell(fleetDocument: FleetDocument) {
     return tree.unfolded(
@@ -208,7 +212,7 @@ describe('Tab and names', () => {
   test('every control has a name, an icon-only one by its label', () => {
     const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), isFocusable);
     expect(focusable.filter((element) => accessibleNameOf(element).trim() === '')).toEqual([]);
-    const iconOnly = focusable.filter((element) => element.props['data-icon-only'] !== undefined);
+    const iconOnly = focusable.filter((element) => tree.hasClass(element, 'design-system-icon-button'));
     expect(iconOnly.map((element) => [element.props['aria-label'], element.props['title']])).toEqual([
       ['Open Example Storefront in a new tab', 'Open Example Storefront in a new tab'],
     ]);
@@ -253,11 +257,11 @@ describe('a lost stream shows the banner and disables every control', () => {
     const stream = streamAt('live');
     const app = appAt(source, '#forges', stream);
     const live = renderToStaticMarkup(app);
-    expect(live).not.toContain('gaia-banner');
+    expect(live).not.toContain('design-system-banner');
     expect(live).toContain('<fieldset class="gaia-shell-controls">');
     stream.change('lost');
     const lost = renderToStaticMarkup(app);
-    const bannerUnderTheTopBar = '</header><div class="gaia-banner" data-tone="error" role="alert"><span class="gaia-banner-text">';
+    const bannerUnderTheTopBar = '</header><div class="design-system-banner" data-tone="error" role="alert"><span>';
     expect(lost).toContain(`${bannerUnderTheTopBar}Gaia&#x27;s server could not be reached. Trying again.</span></div>`);
     expect(lost).toContain('<fieldset class="gaia-shell-controls" disabled="">');
     stream.change('live');
@@ -267,7 +271,7 @@ describe('a lost stream shows the banner and disables every control', () => {
   test('a page out of date with the server disables the controls too', () => {
     const fieldset = tree.onlyWithTag(unfoldedShellAt('page-out-of-date'), 'fieldset');
     expect(fieldset.props['disabled']).toBe(true);
-    expect(tree.hostElementsIn(fieldset.children, tree.withClass('gaia-banner'))).toHaveLength(1);
+    expect(tree.hostElementsIn(fieldset.children, tree.withClass('design-system-banner'))).toHaveLength(1);
   });
 
   test('every control of the shell, the view\'s buttons and fields and the theme switch among them, sits in the disabled fieldset; outside it are only links', () => {
@@ -293,7 +297,7 @@ describe('a lost stream shows the banner and disables every control', () => {
     for (const streamState of ['live', 'connecting'] as const) {
       const shell = unfoldedShellAt(streamState);
       expect(tree.onlyWithTag(shell, 'fieldset').props['disabled']).toBe(false);
-      expect(tree.hostElementsIn(shell, tree.withClass('gaia-banner'))).toEqual([]);
+      expect(tree.hostElementsIn(shell, tree.withClass('design-system-banner'))).toEqual([]);
     }
   });
 });

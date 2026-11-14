@@ -7,11 +7,17 @@
 import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
 import { type CommandResult, CommandSender, type CommandStates }                    from '../../api/CommandSender.ts';
-import type { Fact }                                                                from '../../design-system/FactList.tsx';
 import { CommandFailureTextUtil }                                                   from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgesModel }                                                              from './ForgesModel.ts';
 
 /** Where a settings checkbox sits: the Gaia panel, or the "What notifies" list over the view. */
+
+/** One of Gaia's facts: its value in mono, unless the fact says its value is words. */
+export interface GaiaFact {
+  readonly label:      string;
+  readonly value:      string;
+  readonly valueFace?: 'mono' | 'ui';
+}
 export type SettingsPlace = 'gaia-panel' | 'what-notifies';
 
 /** One settings checkbox: its label, whether it is ticked, and the change it sends when it is clicked. */
@@ -48,7 +54,7 @@ export interface GaiaPanelContent {
   readonly notify:           SettingsCheckbox;
   /** Said when Gaia runs on its defaults because its settings file cannot be used. */
   readonly settingsFileLine: string | null;
-  readonly facts:            readonly Fact[];
+  readonly facts:            readonly GaiaFact[];
   readonly refusal:          SettingsRefusal | null;
 }
 
@@ -115,10 +121,10 @@ function hostOf(address: string): string {
   return address.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
 }
 
-function factsOf(fleetDocument: FleetDocument): Fact[] {
+function factsOf(fleetDocument: FleetDocument): GaiaFact[] {
   const { gaia } = fleetDocument;
   const { knownContracts } = gaia;
-  const forgeProgram: Fact = gaia.forgeProgramInUse === null
+  const forgeProgram: GaiaFact = gaia.forgeProgramInUse === null
     ? { label: 'Forge program', value: 'not found', valueFace: 'ui' }
     : { label: 'Forge program', value: ForgesModel.homeRelativePathOf(gaia.forgeProgramInUse, gaia.homeFolder) };
   return [

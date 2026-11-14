@@ -2,13 +2,20 @@
  * The panel under the Agents table: what the selected agent's forge reports of it, its last line, and the way to the agent in its forge.
  * Gaia sends an agent no message and stops no single job, and the panel says so in every state.
  */
-import { Button }                    from '../../design-system/Button.tsx';
-import { FactList }                  from '../../design-system/FactList.tsx';
-import { MicroCapsLabel }            from '../../design-system/MicroCapsLabel.tsx';
-import { Tag }                       from '../../design-system/Tag.tsx';
-import type { SelectedAgentContent } from './AgentsModel.ts';
+import { Button }         from 'design-system/Button';
+import { FactList }       from 'design-system/FactList';
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { Tag }            from 'design-system/Tag';
+import { Text }           from 'design-system/Text';
+
+import type { AgentFact, SelectedAgentContent } from './AgentsModel.ts';
 
 const FORGE_SENDS_NOTE = 'Gaia shows what the forge reports. Messages and stops are sent from the agent\'s own forge.';
+
+/** Every agent fact is a machine value, so it is set in mono. */
+function shownFactOf(fact: AgentFact) {
+  return { label: fact.label, value: <Text typeRole="small" mono>{fact.value}</Text> };
+}
 
 function TicketLine({ ticketIdsText, ticketTitle }: { readonly ticketIdsText: string | null; readonly ticketTitle: string | null }) {
   return (
@@ -34,9 +41,9 @@ function RunningAgent({ content }: { readonly content: Extract<SelectedAgentCont
           {content.ticketIdsText === null && content.ticketTitle === null ? null : ' · '}
           <TicketLine ticketIdsText={content.ticketIdsText} ticketTitle={content.ticketTitle} />
         </div>
-        <FactList facts={content.facts} />
+        <FactList facts={content.facts.map(shownFactOf)} layout="table" />
         <div className="gaia-agents-panel-actions">
-          <Button label={content.openLabel} href={content.openHref} />
+          <Button label={content.openLabel} href={content.openHref} compact />
         </div>
       </div>
       <div className="gaia-agents-panel-column" data-column="last-line">

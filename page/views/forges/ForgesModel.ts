@@ -4,6 +4,8 @@
  * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
  * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero.
  */
+import type { ButtonEmphasis } from 'design-system/Button';
+
 import type {
   CommandBody,
   CommandKind,
@@ -12,7 +14,6 @@ import type {
 } from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandStates }                              from '../../api/CommandSender.ts';
-import type { ButtonEmphasis }                                            from '../../design-system/Button.tsx';
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { CommandFailureTextUtil }                                         from '../../shared/utils/CommandFailureTextUtil.ts';
@@ -71,6 +72,9 @@ export type ForgeAgentsCell =
   | {
     readonly kind:         'stepper';
     readonly valueText:    string;
+    /** The agents running now, shown before the limit the stepper changes. */
+    readonly inFlight:     number;
+    readonly limit:        number;
     readonly lowerLabel:   string;
     readonly raiseLabel:   string;
     /** `null` at the lowest limit or at the forge's ceiling: that side is off. */
@@ -161,6 +165,8 @@ export interface MachineFact {
 
 export interface MachinePanel {
   readonly limitText:      string;
+  /** `null` while no forge reports a machine limit. */
+  readonly limit:          number | null;
   readonly lowerCommand:   CommandBody | null;
   readonly raiseCommand:   CommandBody | null;
   /** Off when no forge enforces a limit, and while a limit is on its way. */
@@ -277,7 +283,7 @@ function forgeIsBusy(forge: FleetDocumentForge, { surroundings }: RowSurrounding
   return onItsWayFor(surroundings.commandStates, forge.trackerId) !== null || stopDialogIsOpenOn(forge, surroundings.stopDialog);
 }
 
-function commandButton(button: ForgeButtonKind, label: string, command: CommandBody, disabled: boolean, emphasis: ButtonEmphasis = 'plain'): ForgeButton {
+function commandButton(button: ForgeButtonKind, label: string, command: CommandBody, disabled: boolean, emphasis: ButtonEmphasis = 'quiet'): ForgeButton {
   return {
     kind:     'command',
     button,
@@ -383,6 +389,8 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   return {
     kind:         'stepper',
     valueText,
+    inFlight:     concurrency.agentsInFlight,
+    limit,
     lowerLabel:   `Lower ${project}'s agent limit`,
     raiseLabel:   `Raise ${project}'s agent limit`,
     lowerCommand: limit <= AGENT_LIMITS.lowestAgents ? null : { kind: 'forge-concurrency-set', trackerId, limit: limit - 1 },
@@ -577,6 +585,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
   if (machineLimit === null) {
     return {
       limitText:      NO_LIMIT_KNOWN,
+      limit:          null,
       lowerCommand:   null,
       raiseCommand:   null,
       stepperIsOff:   true,
@@ -590,6 +599,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
   const isAtTheLimit = agentsInFlight >= machineLimit;
   return {
     limitText:      String(machineLimit),
+    limit:          machineLimit,
     lowerCommand:   machineLimit <= AGENT_LIMITS.lowestAgents ? null : machineLimitCommand(machineLimit - 1),
     raiseCommand:   machineLimit >= cpuCount ? null : machineLimitCommand(machineLimit + 1),
     stepperIsOff:   CommandSender.stateOf(commandStates, { fleetCommand: 'machine-agent-limit-set' }).onItsWay !== null,

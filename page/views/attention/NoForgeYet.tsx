@@ -3,8 +3,9 @@
  * forge program is known, a line that says so with a way to choose one. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form
  * through the shared add-a-repository form and sends its commands.
  */
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+
 import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
-import { MicroCapsLabel }                                            from '../../design-system/MicroCapsLabel.tsx';
 import { CommandFailureRefusal }                                     from '../../shared/CommandFailureRefusal.tsx';
 import {
   AddRepositoryFields,

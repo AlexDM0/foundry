@@ -4,17 +4,19 @@
  * under them, and beside them what Gaia reads of each forge, the running forges and what just happened. It takes no hooks: the command
  * states and the handlers come in as props, so a spec unfolds it whole.
  */
+import { Banner } from 'design-system/Banner';
+import { Button } from 'design-system/Button';
+import { Tag }    from 'design-system/Tag';
+import { Text }   from 'design-system/Text';
+
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
-import { Banner }                                                 from '../../design-system/Banner.tsx';
-import { Button }                                                 from '../../design-system/Button.tsx';
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
 import { Figure }                                                 from '../../design-system/Figure.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
-import { MicroCapsLabel }                                         from '../../design-system/MicroCapsLabel.tsx';
+import { OpenInNewTabGlyph }                                      from '../../design-system/OpenInNewTabGlyph.tsx';
 import { PendingStep }                                            from '../../design-system/PendingStep.tsx';
-import { Pill }                                                   from '../../design-system/Pill.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
@@ -85,8 +87,9 @@ function UnreachableBannerLine({ banner, commandStates, onCommand }: { readonly 
     );
   return (
     <Banner
+      tone="error"
       text={text}
-      action={<Button label="Look again" disabled={commandIsOnItsWay(commandStates, LOOK_AGAIN)} onPress={() => onCommand(LOOK_AGAIN)} />}
+      action={<Button label="Look again" compact disabled={commandIsOnItsWay(commandStates, LOOK_AGAIN)} onPress={() => onCommand(LOOK_AGAIN)} />}
     />
   );
 }
@@ -101,25 +104,26 @@ function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
           <span className="gaia-attention-row-condition">{row.conditionWord}</span>
         </span>
       </span>
-      <span className="gaia-attention-row-kind"><Pill text={row.kindText} tone={row.kindTone} /></span>
+      <span className="gaia-attention-row-kind"><Tag text={row.kindText} tone={row.kindTone} /></span>
       <span className="gaia-attention-row-id">{row.idText}</span>
       <span className="gaia-attention-row-text">
         <span className="gaia-attention-row-subject">{row.subject}</span>
         <span className="gaia-attention-row-meta">{row.metaText}</span>
       </span>
-      <Button label={row.actionLabel} href={row.href} disabled={row.isStale} emphasis={row.isPrimary ? 'primary' : 'plain'} />
+      <Button label={row.actionLabel} compact disabled={row.isStale} emphasis={row.isPrimary ? 'primary' : 'quiet'} {...(row.isStale ? {} : { href: row.href })} />
     </div>
   );
 }
 
 function LookActionButton({ action, commandStates, onCommand }: { readonly action: LookAction } & CommandHandlers) {
-  if (action.kind === 'link') return <Button label={action.label} href={action.href} emphasis={action.emphasis} />;
+  if (action.kind === 'link') return <Button label={action.label} href={action.href} emphasis={action.emphasis} compact />;
   const { command } = action;
   return (
     <Button
       label={action.label}
       emphasis={action.emphasis}
-      {...(action.icon === null ? {} : { icon: action.icon })}
+      compact
+      {...(action.icon === null ? {} : { leading: <OpenInNewTabGlyph /> })}
       disabled={!action.forgeAcceptsIt || commandIsOnItsWay(commandStates, command)}
       onPress={() => onCommand(command)}
     />
@@ -196,7 +200,7 @@ function Figures({ content }: { readonly content: AttentionContent }) {
 function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
   return (
     <section className="gaia-attention-section" aria-labelledby={READINGS_HEAD_ID}>
-      <MicroCapsLabel element="h2" id={READINGS_HEAD_ID} text="What Gaia reads of each forge" />
+      <Text typeRole="micro" element="h2" id={READINGS_HEAD_ID}>What Gaia reads of each forge</Text>
       <ul className="gaia-attention-readings">
         {readings.map((reading) => (
           <li key={reading.trackerId} className="gaia-attention-reading" data-totals-cannot-vouch={reading.totalsCannotVouchForIt ? '' : undefined}>
@@ -240,7 +244,7 @@ function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
   return (
     <section className="gaia-attention-section" aria-labelledby={RECENT_HEAD_ID}>
       <div className="gaia-attention-recent-top">
-        <MicroCapsLabel element="h2" id={RECENT_HEAD_ID} text="Just happened" />
+        <Text typeRole="micro" element="h2" id={RECENT_HEAD_ID}>Just happened</Text>
         <a className="gaia-attention-link" href={ACTIVITY_HREF}>All activity</a>
       </div>
       {recent.length === 0 ? <p className="gaia-attention-nothing">{NO_ACTIVITY_SENTENCE}</p> : (
@@ -271,14 +275,14 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
         <div className="gaia-attention-main">
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}
           <section className="gaia-attention-section" aria-labelledby={WAITING_HEAD_ID}>
-            <MicroCapsLabel element="h2" id={WAITING_HEAD_ID} text={content.waitingHead} />
+            <Text typeRole="micro" element="h2" id={WAITING_HEAD_ID}>{content.waitingHead}</Text>
             {content.rows.length === 0
               ? <p className="gaia-attention-nothing">{content.nothingText}</p>
               : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} /> }))} />}
           </section>
           {content.looks.length === 0 ? null : (
             <section className="gaia-attention-section" aria-labelledby={LOOKS_HEAD_ID}>
-              <MicroCapsLabel element="h2" id={LOOKS_HEAD_ID} text={content.looksHead} />
+              <Text typeRole="micro" element="h2" id={LOOKS_HEAD_ID}>{content.looksHead}</Text>
               {content.looks.map((look) => <LookBlock key={`${look.trackerId}/${look.lookKind}`} look={look} {...handlers} />)}
             </section>
           )}
@@ -287,7 +291,7 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           {content.readings === null ? null : <ReadingsPanel readings={content.readings} />}
           {content.running.length === 0 ? null : (
             <section className="gaia-attention-section" aria-labelledby={RUNNING_HEAD_ID}>
-              <MicroCapsLabel element="h2" id={RUNNING_HEAD_ID} text={content.runningHead} />
+              <Text typeRole="micro" element="h2" id={RUNNING_HEAD_ID}>{content.runningHead}</Text>
               {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} />)}
             </section>
           )}

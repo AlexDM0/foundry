@@ -105,7 +105,7 @@ describe('the bar\'s controls for each condition', () => {
   };
 
   test('live pauses and stops, paused resumes first and stops, held and unreachable only stop, the others neither', () => {
-    expect(controlsOf('live')).toEqual({ pauseOrResume: 'Pause', emphasis: 'plain', stop: true });
+    expect(controlsOf('live')).toEqual({ pauseOrResume: 'Pause', emphasis: 'quiet', stop: true });
     expect(controlsOf('paused')).toEqual({ pauseOrResume: 'Resume', emphasis: 'primary', stop: true });
     expect(controlsOf('held')).toEqual({ pauseOrResume: null, emphasis: null, stop: true });
     expect(controlsOf('unreachable')).toEqual({ pauseOrResume: null, emphasis: null, stop: true });

@@ -10,6 +10,7 @@ import type { CommandAnswerDocument }         from '../../@types/CommandDocument
 import type { CommandSender, CommandStates }  from '../../api/CommandSender.ts';
 import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
 import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
+import { PackageButtons }                     from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree } from '../../testing/ReactElementTree.ts';
 import { NoForgeYetLayout }                   from './NoForgeYet.tsx';
 
@@ -81,9 +82,9 @@ describe('no forge yet', () => {
     const fields = tree.hostElementsIn(unfolded, tree.withClass('gaia-text-field'));
     expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'gaia-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
     expect(fields.map((field) => tree.onlyWithTag([field], 'input').props['value'])).toEqual(['~/development/example-storefront', 'example-storefront']);
-    const buttons = tree.hostElementsIn(unfolded, tree.withClass('gaia-button'));
-    expect(buttons.map((button) => [tree.textOf([button]), button.props['data-emphasis']])).toEqual([
-      ['Choose a folder', 'plain'],
+    const buttons = tree.hostElementsIn(unfolded, PackageButtons.isButton);
+    expect(buttons.map((button) => [tree.textOf([button]), PackageButtons.emphasisOf(button)])).toEqual([
+      ['Choose a folder', 'quiet'],
       ['Add and start', 'primary'],
     ]);
   });

@@ -2,14 +2,16 @@
  * The 232 px rail on every screen: the brand, the four views with their counts, one row per forge or the line saying there is none, and
  * this machine. Every row is a link to its route; the current one carries `aria-current`.
  */
+import { FillMeter }      from 'design-system/FillMeter';
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+
 import { ConditionDot }                             from '../design-system/ConditionDot.tsx';
 import { GaiaMark }                                 from '../design-system/GaiaMark.tsx';
-import { Meter }                                    from '../design-system/Meter.tsx';
-import { MicroCapsLabel }                           from '../design-system/MicroCapsLabel.tsx';
 import type { RailContent, RailCount, RailMachine } from './RailModel.ts';
 
 const MACHINE_HREF = '#forges';
 const FORGES_HEAD_ID = 'gaia-rail-forges-head';
+const RAIL_MARK_SIZE_PIXELS = 22;
 
 function RailCountText({ count }: { readonly count: RailCount | null }) {
   if (count === null) return null;
@@ -24,7 +26,9 @@ function RailMachineLink({ machine }: { readonly machine: RailMachine }) {
         <span className="gaia-rail-machine-figure">{machine.agentsText}</span>
         <span className="gaia-rail-machine-unit">agents</span>
       </span>
-      {machine.meter === null ? null : <Meter label={machine.meter.label} used={machine.meter.used} whole={machine.meter.whole} />}
+      {machine.meter === null ? null : (
+        <FillMeter label={machine.meter.label} used={machine.meter.used} limit={machine.meter.whole} near={machine.meter.used >= machine.meter.whole} tone="neutral" />
+      )}
       <span className="gaia-rail-machine-line">{machine.limitLine}</span>
     </a>
   );
@@ -34,7 +38,7 @@ export function Rail({ content }: { readonly content: RailContent }) {
   return (
     <nav className="gaia-rail" aria-label="Gaia">
       <div className="gaia-rail-brand">
-        <GaiaMark />
+        <GaiaMark sizePixels={RAIL_MARK_SIZE_PIXELS} />
         <span className="gaia-rail-brand-name">Gaia</span>
       </div>
       <div className="gaia-rail-group">

@@ -64,10 +64,10 @@ describe('what waits on User (A1)', () => {
     expect(waitingHead).toBe('Waiting on you · 5');
     expect(rows.map((row) => [row.project, row.kindText, row.kindTone, row.idText, row.subject, row.metaText, row.actionLabel])).toEqual([
       ['Invoice Service', 'Escalated', 'error', 'E4', 'The VAT gate cannot run in the sandbox. Allow network for it?', 'from incident I2 · opened 21m', 'Answer'],
-      ['Example Storefront', 'Draft', 'attention', '#015', 'Search suggestions', 'filed by intake · filed 2h 04m', 'Ready'],
-      ['Research Wiki', 'Question', 'attention', 'E1', 'Two gates are proposed for this repository. Accept them?', 'pipeline-proposal · opened 26m', 'Answer'],
-      ['Invoice Service', 'Accept', 'attention', '#031', 'Round VAT per line, not per invoice', 'merges clean into main · reviewed 12m', 'Accept'],
-      ['Example Storefront', 'Question', 'attention', 'E2', 'How long should a password reset link stay valid?', 'asked by J3 builder · opened 4m', 'Answer'],
+      ['Example Storefront', 'Draft', 'warn', '#015', 'Search suggestions', 'filed by intake · filed 2h 04m', 'Ready'],
+      ['Research Wiki', 'Question', 'warn', 'E1', 'Two gates are proposed for this repository. Accept them?', 'pipeline-proposal · opened 26m', 'Answer'],
+      ['Invoice Service', 'Accept', 'warn', '#031', 'Round VAT per line, not per invoice', 'merges clean into main · reviewed 12m', 'Accept'],
+      ['Example Storefront', 'Question', 'warn', 'E2', 'How long should a password reset link stay valid?', 'asked by J3 builder · opened 4m', 'Answer'],
     ]);
   });
 
@@ -133,7 +133,7 @@ describe('the forges that need a look', () => {
     ]);
     expect(actionsOf(held)).toEqual([
       ['Update forge', 'primary', { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp }, true],
-      ['Open', 'plain', `#forge/${TRACKER_IDS.exampleMobileApp}`],
+      ['Open', 'quiet', `#forge/${TRACKER_IDS.exampleMobileApp}`],
     ]);
   });
 
@@ -188,7 +188,7 @@ describe('the forges that need a look', () => {
     };
     const look = lookOf(fleetContentOf(fleet), TRACKER_IDS.invoiceService);
     expect([look.tone, look.word, look.sentence]).toEqual(['error', 'Baton pass failed', 'The successor Overseer did not start.']);
-    expect(actionsOf(look)).toEqual([['Open', 'plain', `#forge/${TRACKER_IDS.invoiceService}`]]);
+    expect(actionsOf(look)).toEqual([['Open', 'quiet', `#forge/${TRACKER_IDS.invoiceService}`]]);
   });
 });
 
@@ -252,8 +252,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'error', 'unreachable', 'Unreachable', '127.0.0.1:4957 · process 48211 · last answer 13:14',
     ]);
     expect(actionsOf(unreachable)).toEqual([
-      ['Look again', 'plain', { kind: 'fleet-look-again' }, true],
-      ['Stop', 'plain', `#forges?forge=${TRACKER_IDS.invoiceService}`],
+      ['Look again', 'quiet', { kind: 'fleet-look-again' }, true],
+      ['Stop', 'quiet', `#forges?forge=${TRACKER_IDS.invoiceService}`],
     ]);
   });
 
@@ -267,8 +267,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'summary 1 · no monitor contract',
     ]);
     expect(actionsOf(countsOnly)).toEqual([
-      ['Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.researchWiki }, true],
-      ['Update forge', 'plain', { kind: 'forge-update', trackerId: TRACKER_IDS.researchWiki }, true],
+      ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.researchWiki }, true],
+      ['Update forge', 'quiet', { kind: 'forge-update', trackerId: TRACKER_IDS.researchWiki }, true],
     ]);
     expect(countsOnly.restartAfterUpdate).toMatchObject({ label: 'Restart', forgeAcceptsIt: false });
     const newer = lookOf(content, ANALYTICS_SANDBOX_TRACKER_ID);
@@ -279,7 +279,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing. Update Gaia.',
       'monitor 4 · control 3',
     ]);
-    expect(actionsOf(newer)).toEqual([['Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
+    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
   });
 
   test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {

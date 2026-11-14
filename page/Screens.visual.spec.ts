@@ -149,22 +149,22 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Example Storefront']);
     expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
     expect(textsOfClass(markup, 'gaia-top-bar-status-text')).toEqual(['4 / 5 agents · 2 wait on you · since 09:12']);
-    expect(markup).toContain('>Open in new tab<svg class="gaia-button-icon"');
-    expect(markup).not.toContain('aria-label="Theme"');
+    expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
+    expect(markup).not.toContain('gaia-top-bar-theme-label');
   });
 
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
     expect(textsOfClass(markup, 'gaia-confirm-question')).toEqual(['Stop the Overseer of Example Storefront? 4 agents are running.']);
     expect(textsOfClass(markup, 'gaia-refusal-code')).toEqual([B2_STOP_REFUSAL.refusal ?? '']);
-    expect(markup).toContain(`${B2_STOP_REFUSAL.text ?? ''}</span><button type="button" class="gaia-button" data-emphasis="plain">Try again</button>`);
+    expect(markup).toContain(`${B2_STOP_REFUSAL.text ?? ''}</span><button type="button" class="design-system-button" data-compact="">Try again</button>`);
     expect(textsOfClass(markup, 'gaia-forges-condition-detail')).toContain('forge start · waiting for its API');
   });
 
   test('B3: the unreachable banner under the bar, the head that counts what is known, and the figures folded into one line atop the main column', () => {
     const markup = screenMarkupOf(screenOf('B3'), 'dark');
-    expect(markup).toContain('<span class="gaia-banner-text">Overseer unreachable: Invoice Service.');
-    expect(textsOfClass(markup, 'gaia-micro-caps')).toContain('Waiting on you · 4 known, more possible');
+    expect(markup).toContain('<div class="design-system-banner" data-tone="error"><span>Overseer unreachable: Invoice Service.');
+    expect(markup).toContain('data-type-role="micro">Waiting on you · 4 known, more possible</h2>');
     expect(markup).toContain('<div class="gaia-attention-main"><div class="gaia-attention-figures" data-form="line">');
     expect(markup).not.toContain('data-form="stacked"');
   });
@@ -183,7 +183,7 @@ describe('each screen shows the state its artboard draws', () => {
     expect(markup).toContain('Add and start');
     expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered.']);
     expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
-    expect(markup).not.toContain('class="gaia-meter"');
+    expect(markup).not.toContain('class="design-system-fill-meter"');
   });
 });
 

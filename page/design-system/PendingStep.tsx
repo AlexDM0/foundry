@@ -1,10 +1,11 @@
 /**
- * A step still to take after a command succeeded, beside the control that sent it, in the warn tone: a word for what happened and what
- * waits, one sentence, the control that takes the step, and a dismiss button. It is a status, so it is read out without interrupting.
+ * A step still to take after a command succeeded, beside the control that sent it: a dashed orange card with a solid left edge, its word
+ * for what happened and what waits in orange, one sentence, the control that takes the step, and a named dismiss button. It is a status,
+ * so it is read out without interrupting.
  */
+import { IconButton }     from 'design-system/IconButton';
 import type { ReactNode } from 'react';
 
-import { Button } from './Button.tsx';
 
 export interface PendingStepProps {
   /** What happened and what waits, such as "Updated; restart pending." */
@@ -26,7 +27,7 @@ export function PendingStep({
         {` ${sentence}`}
       </span>
       {action}
-      <Button label={dismissLabel} icon="dismiss" iconOnly onPress={onDismiss} />
+      <IconButton glyph="close" accessibleName={dismissLabel} title={dismissLabel} onPress={onDismiss} />
     </div>
   );
 }

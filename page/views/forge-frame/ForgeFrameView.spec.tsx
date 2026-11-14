@@ -36,7 +36,7 @@ function markupAt(fragment: string, fleetDocument: FleetDocument | null, command
 
 function buttonsIn(markup: string): string[] {
   const topBarActions = /<span class="gaia-top-bar-actions">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
-  return [...topBarActions.matchAll(/<button type="button" class="gaia-button"( disabled="")?[^>]*>([^<]*)(?:<svg.*?<\/svg>)?<\/button>/g)]
+  return [...topBarActions.matchAll(/<button type="button" class="design-system-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
     .map(([, disabled, label = '']) => `${label}${disabled === undefined ? '' : ' (disabled)'}`);
 }
 
@@ -51,8 +51,8 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     const line = '4 / 5 agents · 2 wait on you · since 09:12';
     expect(markup).toContain(`<span class="gaia-top-bar-status-word">Live</span><span class="gaia-top-bar-status-text" title="${line}">${line}</span>`);
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
-    expect(markup).toContain('>Open in new tab<svg class="gaia-button-icon"');
-    expect(markup).not.toContain('aria-label="Theme"');
+    expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph" aria-hidden="true"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
+    expect(markup).not.toContain('gaia-top-bar-theme-label');
     expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);
   });

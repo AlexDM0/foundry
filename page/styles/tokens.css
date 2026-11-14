@@ -5,31 +5,44 @@
 :root {
   --sp-half: 2px;
 
-  --fs-figure: 18px; --fs-splash: 44px;
+  --fs-figure: 17px; --line-height-figure: 22px; --fs-figure-folded: 15px; --line-height-figure-folded: 20px; --fs-splash: 44px;
+  --fs-wordmark: 20px; --line-height-wordmark: 24px;
+  --fs-confirm-question: 14px; --line-height-confirm-question: 20px;
   --weight-figure: 500;
+  --weight-chip: 500;
+  --weight-label: 500;
+  --weight-wordmark: 650;
+  --wordmark-tracking: -0.035em;
   --weight-strong: 600;
   --weight-page-title: 650;
   --weight-brand: 700;
   --page-title-tracking: -0.01em;
   --brand-tracking: -0.02em;
 
-  --control-height:      28px;
-  --field-height:        32px;
-  --segment-height:      24px;
-  --stepper-button-size: 24px;
-  --stepper-value-width: 44px;
-  --pill-height:         20px;
-  --tag-height:          18px;
+  --field-height:        36px;
+  --menu-item-height:    24px;
+  --segment-padding-vertical: 6px;
+  --segment-padding-horizontal: 10px;
   --condition-dot-size:  8px;
-  --role-dot-size:       7px;
   --dot-ring-width:      1.5px;
+  --brain-diamond-size:  7px;
+  --brain-diamond-radius: 1px;
+  --brain-diamond-scale: 0.85;
+  --brain-chip-height:   24px;
+  --brain-chip-refusal-width: 232px;
   --checkbox-size:       16px;
-  --meter-thin:          4px;
-  --meter-thick:         6px;
+  --glyph-stroke-width:  1.5;
+  --theme-glyph-stroke-width: 1.4;
+  --selected-edge-width: 3px;
+  --banner-edge-width:   4px;
   --table-head-height:   34px;
   --table-row-height:    40px;
   --table-tall-row-height: 64px;
-  --dialog-width:        640px;
+  --brand-bar-height:    52px;
+  --brand-bar-start-padding: 22px;
+  --brand-bar-end-padding: 20px;
+  --brand-bar-divider-height: 18px;
+  --wordmark-gap:        9px;
   --rail-width:          232px;
   --rail-section-gap:    20px;
   --rail-inset:          10px;
@@ -48,7 +61,7 @@
      gives way, down to its least width, until a forge's name and root path fit on their lines. */
   --forges-forge-column-width:     216px;
   --forges-condition-column-width: 92px;
-  --forges-agents-column-width:    100px;
+  --forges-agents-column-width:    156px;
   --forges-waiting-column-width:   56px;
   --forges-code-column-width:      52px;
   --forges-controls-column-width:  240px;
@@ -87,6 +100,9 @@
   --mark-core:      rgba(250, 95, 1, 0.5);
   --mark-node-ring: #ee5600;
   --mark-node-core: #ff8d42;
+  /* The mark's mask: what it keeps open and what it shuts, the gap around the node. */
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
 }
 
 :root[data-theme="dark"] {
@@ -99,4 +115,6 @@
   --mark-core:      rgba(255, 148, 80, 0.85);
   --mark-node-ring: #ee5600;
   --mark-node-core: #ff8d42;
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
 }

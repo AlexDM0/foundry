@@ -3,10 +3,11 @@
  * leave in the document's order, and the selected agent. The selection and the filters live in the route, so both survive a new document;
  * a value the forge did not report is `null` here and a dash on screen, never zero.
  */
+import type { SegmentOption } from 'design-system/SegmentedControl';
+import type { TagTone }       from 'design-system/Tag';
+
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
-import type { SegmentOption }                                                 from '../../design-system/SegmentedControl.tsx';
-import type { TagTone }                                                       from '../../design-system/Tag.tsx';
 import { ForgeContractUtil }                                                  from '../../shared/utils/ForgeContractUtil.ts';
 import { HashRouter, type SelectedAgent }                                     from '../../shell/HashRouter.ts';
 import { RailModel, type RailMachine }                                        from '../../shell/RailModel.ts';
@@ -135,10 +136,10 @@ function agentsFragmentOf(selectedAgent: SelectedAgent | null, filters: AgentFil
 
 function flagsOf(row: FleetDocumentFleetAgentRow): AgentFlag[] {
   const flags: AgentFlag[] = [];
-  if (row.waitingOnDecisionId !== null) flags.push({ text: `asks you · ${row.waitingOnDecisionId}`, tone: 'attention' });
+  if (row.waitingOnDecisionId !== null) flags.push({ text: `asks you · ${row.waitingOnDecisionId}`, tone: 'warn' });
   if (row.quiet === true) {
     const sweepsText = row.silentSweeps === null ? '' : ` · ${AgentTextUtil.countedPhrase(row.silentSweeps, 'sweep', 'sweeps')}`;
-    flags.push({ text: `quiet${sweepsText}`, tone: 'warn' });
+    flags.push({ text: `quiet${sweepsText}`, tone: 'neutral' });
   }
   return flags;
 }

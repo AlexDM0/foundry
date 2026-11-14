@@ -1,6 +1,7 @@
 /**
  * The confirm panel. What matters: it is a group named by what it confirms; the question, the choices when given and the line of what
- * follows come in order; Cancel and the confirming button each call their own handler, and the confirming button is the one primary;
+ * follows come in order; Cancel (a ghost) and the confirming button each call their own handler, and the confirming button is the one
+ * primary;
  * while the command is on its way both are disabled.
  */
 import { describe, expect, test } from 'bun:test';
@@ -38,16 +39,16 @@ describe('the confirm panel', () => {
 
   test('Cancel and the confirming button call their own handlers, and only the confirming button is primary', () => {
     const presses: string[] = [];
-    const [cancel, confirm] = ReactElementTree.hostElementsIn(panelOf(presses), ReactElementTree.withClass('gaia-button'));
+    const [cancel, confirm] = ReactElementTree.hostElementsIn(panelOf(presses), ReactElementTree.withTag('button'));
     if (cancel === undefined || confirm === undefined) throw new Error('A panel button is missing.');
     ReactElementTree.dispatch(cancel, 'onClick');
     ReactElementTree.dispatch(confirm, 'onClick');
     expect(presses).toEqual(['cancel', 'confirm']);
-    expect([cancel.props['data-emphasis'], confirm.props['data-emphasis']]).toEqual(['plain', 'primary']);
+    expect([cancel.props['data-ghost'], cancel.props['data-primary'], confirm.props['data-primary']]).toEqual(['', undefined, '']);
   });
 
   test('while the command is on its way both buttons are disabled', () => {
-    const buttons = ReactElementTree.hostElementsIn(panelOf([], { disabled: true }), ReactElementTree.withClass('gaia-button'));
+    const buttons = ReactElementTree.hostElementsIn(panelOf([], { disabled: true }), ReactElementTree.withTag('button'));
     expect(buttons.map((button) => button.props['disabled'])).toEqual([true, true]);
   });
 });

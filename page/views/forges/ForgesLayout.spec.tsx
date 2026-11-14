@@ -7,7 +7,8 @@
  * dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Resume first; a hidden forge folds away with Show again.
  * The command states come from the real sender over Gaia's server stood in for by authored answers.
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test }               from 'bun:test';
+import { ChoiceOption, type ChoiceOptionProps } from 'design-system/ChoiceOption';
 
 import type {
   CommandAnswerDocument,
@@ -18,6 +19,7 @@ import type {
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
 import { answerResponse, senderOver }                                               from '../../testing/CommandServer.ts';
+import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree, type RenderedNode }                    from '../../testing/ReactElementTree.ts';
 import { FLEET_AT_LIMIT }                                                           from '../../testing/fixtures/fleet-at-limit.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
@@ -68,7 +70,8 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
     lastSent:    new Map(),
     ...surroundings,
   });
-  const unfolded = tree.unfolded(
+  // The package's choice option holds hooks, so the Stop dialog's choices stay folded, their props read and called as the view hands them.
+  const unfolded = tree.unfoldedKeeping(
     <ForgesLayout
       content={content}
       gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates, sentSettingsChange: null })}
@@ -85,6 +88,7 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
         onOpenWhatNotifies:      () => undefined,
       }}
     />,
+    [ChoiceOption],
   );
   return { unfolded, handled };
 }
@@ -150,7 +154,10 @@ describe('a row\'s controls', () => {
   test('"Open in new tab" is a button, not a link, that sends forge-open-in-browser and nothing else', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const openInNewTab = controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open Example Storefront in a new tab');
-    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['data-icon-only']]).toEqual(['button', undefined, '']);
+    expect([openInNewTab.tag, openInNewTab.props['href'], tree.textOf([openInNewTab])]).toEqual(['button', undefined, '']);
+    expect(tree.hostElementsIn([openInNewTab], tree.withClass('gaia-open-in-new-tab-glyph'))).toHaveLength(1);
+    const tooltipHolder = tree.onlyHostElementIn([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], tree.withClass('gaia-forges-icon-button'));
+    expect(tooltipHolder.props['title']).toBe('Open Example Storefront in a new tab');
     tree.dispatch(openInNewTab, 'onClick');
     expect(handled).toEqual({
       commands:          [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
@@ -183,7 +190,7 @@ describe('a row\'s controls', () => {
     const sender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
     const row = rowOf(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, TRACKER_IDS.designSystem);
-    const buttons = tree.hostElementsIn([row], tree.withClass('gaia-button'));
+    const buttons = tree.hostElementsIn([row], tree.withClass('design-system-button'));
     expect(buttons.map((button) => [tree.textOf([button]), button.props['disabled']])).toEqual([['Starting', true]]);
   });
 });
@@ -193,11 +200,14 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' } });
     const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
     expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
-    const radios = tree.hostElementsIn([dialog], (element) => element.tag === 'input');
-    expect(radios.map((radio) => radio.props['checked'])).toEqual([true, false]);
-    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'input' && element.props['checked'] === false), 'onChange');
+    const choices = tree.hostElementsIn([dialog], tree.withTag('ChoiceOption')).map((choice) => choice.props as unknown as ChoiceOptionProps);
+    expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.type, choice.input?.checked, choice.input?.name])).toEqual([
+      ['Stop the Overseer only', true, 'radio', true, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
+      ['Stop the agents, then the Overseer', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
+    ]);
+    choices.find((choice) => !choice.chosen)?.input?.onChange();
     tree.dispatch(controlNamed([dialog], 'Cancel'), 'onClick');
-    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && element.props['data-emphasis'] === 'primary'), 'onClick');
+    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary'), 'onClick');
     expect(handled.stopChoices).toEqual(['stop-first']);
     expect(handled.stopsCancelled).toEqual([1]);
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' }]);
@@ -206,7 +216,7 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
   test('with "Stop the agents, then the Overseer" chosen, its Stop sends stop-first', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } });
     const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
-    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && element.props['data-emphasis'] === 'primary'), 'onClick');
+    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary'), 'onClick');
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' }]);
   });
 });
@@ -282,7 +292,7 @@ describe('a paused row and the hidden forges', () => {
   test('a paused forge says what still finishes and offers Resume as its primary button', () => {
     const row = rowOf(layoutOf(FLEET_AT_LIMIT).unfolded, TRACKER_IDS.researchWiki);
     expect(tree.textOf([tree.onlyWithClass([row], 'gaia-forges-condition')])).toBe('Paused1 agent finishing · starts no new job');
-    expect(controlNamed([row], 'Resume').props['data-emphasis']).toBe('primary');
+    expect(PackageButtons.emphasisOf(controlNamed([row], 'Resume'))).toBe('primary');
   });
 
   test('a hidden forge sits in the folded group under its count, and Show again sends forge-unhide', () => {
@@ -315,13 +325,13 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     );
   });
 
-  test('without F6 the panel says no limit is enforced and both sides of its stepper are off', () => {
+  test('without F6 the panel says no limit is enforced, shows no limit and offers no control that sets one', () => {
     const withoutF6 = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
     const panel = tree.onlyWithClass(layoutOf(withoutF6).unfolded, 'gaia-forges-machine');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-sentence')])).toBe('This forge version does not enforce a machine limit.');
-    const steps = tree.hostElementsIn([panel], tree.withClass('gaia-stepper-button'));
-    expect(steps.map((step) => step.props['disabled'])).toEqual([true, true]);
-    expect(tree.hostElementsIn([panel], tree.withClass('gaia-meter'))).toEqual([]);
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-limit')])).toBe('Agent limit—');
+    expect(tree.hostElementsIn([panel], (element) => element.tag === 'button' && /agent limit/.test(String(element.props['aria-label'])))).toEqual([]);
+    expect(tree.hostElementsIn([panel], tree.withClass('design-system-fill-meter'))).toEqual([]);
   });
 
   test('at its limit the panel is marked and names the ready tickets that wait for a slot', () => {

@@ -4,6 +4,7 @@
  * choose one. `AddRepositoryFields` and `ForgeProgramMissingLine` take no hooks; `useAddRepositoryForm` keeps the form and sends its
  * commands: a folder chosen through `path-choose`, `forge-add`, and the program's path chosen and kept through `settings-set`.
  */
+import { Button }   from 'design-system/Button';
 import { useState } from 'react';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
@@ -13,7 +14,6 @@ import {
   type CommandStates,
   type CommandSubject
 } from '../../api/CommandSender.ts';
-import { Button }                from '../../design-system/Button.tsx';
 import { TextField }             from '../../design-system/TextField.tsx';
 import { CommandFailureRefusal } from '../CommandFailureRefusal.tsx';
 import { AddRepositoryForm }     from './AddRepositoryForm.ts';
@@ -104,6 +104,7 @@ export function ForgeProgramMissingLine({
           </span>
           <Button
             label="Choose the forge program"
+            compact
             disabled={isOnItsWay(commandStates, PATH_CHOOSE) || isOnItsWay(commandStates, SETTINGS_SET)}
             onPress={onChooseForgeProgram}
           />

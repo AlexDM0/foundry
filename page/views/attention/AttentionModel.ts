@@ -4,6 +4,9 @@
  * full, its banner and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the
  * document does not hold is absent, never zero.
  */
+import type { ButtonEmphasis } from 'design-system/Button';
+import type { TagTone }        from 'design-system/Tag';
+
 import type { CommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
@@ -15,20 +18,21 @@ import type {
   FleetDocumentLook,
   FleetDocumentLookKind,
 } from '../../@types/FleetDocument.ts';
-import type { ButtonEmphasis, ButtonIcon } from '../../design-system/Button.tsx';
-import type { CalloutTone }                from '../../design-system/Callout.tsx';
-import type { DotCondition }               from '../../design-system/ConditionDot.tsx';
-import type { PillTone }                   from '../../design-system/Pill.tsx';
-import type { DotRole }                    from '../../design-system/RoleDot.tsx';
-import { AddRepositoryForm }               from '../../shared/add-repository/AddRepositoryForm.ts';
-import { ForgeCommandTextUtil }            from '../../shared/utils/ForgeCommandTextUtil.ts';
-import { ForgeContractUtil }               from '../../shared/utils/ForgeContractUtil.ts';
-import { ForgeTextUtil }                   from '../../shared/utils/ForgeTextUtil.ts';
-import { StampTextUtil }                   from '../../shared/utils/StampTextUtil.ts';
-import { HashRouter }                      from '../../shell/HashRouter.ts';
-import type { TopBarStatus }               from '../../shell/TopBar.tsx';
+import type { CalloutTone }     from '../../design-system/Callout.tsx';
+import type { DotCondition }    from '../../design-system/ConditionDot.tsx';
+import type { DotRole }         from '../../design-system/RoleDot.tsx';
+import { AddRepositoryForm }    from '../../shared/add-repository/AddRepositoryForm.ts';
+import { ForgeCommandTextUtil } from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeContractUtil }    from '../../shared/utils/ForgeContractUtil.ts';
+import { ForgeTextUtil }        from '../../shared/utils/ForgeTextUtil.ts';
+import { StampTextUtil }        from '../../shared/utils/StampTextUtil.ts';
+import { HashRouter }           from '../../shell/HashRouter.ts';
+import type { TopBarStatus }    from '../../shell/TopBar.tsx';
 
 /** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
+
+/** The one drawn shape a look's button carries. */
+export type LookActionIcon = 'open-in-new-tab';
 export interface ClockReading {
   readonly nowEpochMilliseconds: number;
   readonly timeZone:             string | undefined;
@@ -47,7 +51,7 @@ export interface AttentionRow {
   readonly condition:     DotCondition;
   readonly conditionWord: string;
   readonly kindText:      string;
-  readonly kindTone:      PillTone;
+  readonly kindTone:      TagTone;
   readonly idText:        string;
   readonly subject:       string;
   readonly metaText:      string;
@@ -63,7 +67,7 @@ export type LookAction =
     readonly kind:           'command';
     readonly label:          string;
     readonly emphasis:       ButtonEmphasis;
-    readonly icon:           ButtonIcon | null;
+    readonly icon:           LookActionIcon | null;
     readonly command:        CommandBody;
     readonly forgeAcceptsIt: boolean;
   }
@@ -274,7 +278,7 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       condition:     ForgeTextUtil.dotConditionOf(forge.condition),
       conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
       kindText:      KIND_TEXTS[item.kind],
-      kindTone:      item.kind === 'escalated-question' ? 'error' : 'attention',
+      kindTone:      item.kind === 'escalated-question' ? 'error' : 'warn',
       idText:        item.idText,
       subject:       item.subject,
       metaText:      metaTextOf(item, forge, isStale, clock),
@@ -286,7 +290,7 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
   });
 }
 
-function commandAction(label: string, emphasis: ButtonEmphasis, command: CommandBody, forgeAcceptsIt = true, icon: ButtonIcon | null = null): LookAction {
+function commandAction(label: string, emphasis: ButtonEmphasis, command: CommandBody, forgeAcceptsIt = true, icon: LookActionIcon | null = null): LookAction {
   return {
     kind: 'command',
     label,
@@ -299,12 +303,12 @@ function commandAction(label: string, emphasis: ButtonEmphasis, command: Command
 
 function linkAction(label: string, href: string): LookAction {
   return {
-    kind: 'link', label, emphasis: 'plain', href
+    kind: 'link', label, emphasis: 'quiet', href
   };
 }
 
 function openInNewTabAction(trackerId: string): LookAction {
-  return commandAction('Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId }, true, 'open-in-new-tab');
+  return commandAction('Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId }, true, 'open-in-new-tab');
 }
 
 const CONTRACT_NAMES: readonly (keyof FleetDocumentContracts)[] = ['monitor', 'control', 'summary', 'embed'];
@@ -326,7 +330,7 @@ function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
     tone:    'error' as const,
     ...ForgeTextUtil.unreachableCalloutTextOf(forge, clockTextOf(forge.lastReportedAt, clock)),
     actions: [
-      commandAction('Look again', 'plain', { kind: 'fleet-look-again' }),
+      commandAction('Look again', 'quiet', { kind: 'fleet-look-again' }),
       linkAction('Stop', HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId })),
     ],
   };
@@ -392,7 +396,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
         word:        'Counts only',
         sentence:    countsOnlySentenceOf(forge),
         machineLine: forge.contracts.summary === null ? 'no monitor contract' : `summary ${forge.contracts.summary}${META_SEPARATOR}no monitor contract`,
-        actions:     [openInNewTabAction(trackerId), commandAction('Update forge', 'plain', { kind: 'forge-update', trackerId })],
+        actions:     [openInNewTabAction(trackerId), commandAction('Update forge', 'quiet', { kind: 'forge-update', trackerId })],
       };
     case 'dormant-with-ready-tickets':
       return {

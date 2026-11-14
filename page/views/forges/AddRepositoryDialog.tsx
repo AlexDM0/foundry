@@ -1,11 +1,13 @@
 /**
  * "Add a repository" over the Forges view (`#forges/add`): B4's form in a dialog, with the line of a missing forge program under it. It
- * closes on Cancel, on Escape, and once the add went through; a refusal of `init` or `start` shows in it. `AddRepositoryDialogLayout`
- * takes no hooks; `AddRepositoryDialog` keeps the form and sends its commands.
+ * closes on Cancel, on its close button, on Escape, and once the add went through, never on a stray click beside it; a refusal of `init`
+ * or `start` shows in it. Its body and foot take no hooks, the package's dialog holds them; `AddRepositoryDialog` keeps the form and sends
+ * its commands.
  */
+import { Button } from 'design-system/Button';
+import { Dialog } from 'design-system/Dialog';
+
 import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
-import { Button }                                                    from '../../design-system/Button.tsx';
-import { Dialog }                                                    from '../../design-system/Dialog.tsx';
 import {
   AddRepositoryFields,
   type AddRepositoryHandlers,
@@ -14,6 +16,7 @@ import {
   useAddRepositoryForm,
 } from '../../shared/add-repository/AddRepositoryFields.tsx';
 import type { AddRepositoryForm } from '../../shared/add-repository/AddRepositoryForm.ts';
+import { FormDialogUtil }         from './utils/FormDialogUtil.ts';
 
 export interface AddRepositoryDialogLayoutProps {
   readonly forgeProgramIsMissing: boolean;
@@ -25,11 +28,12 @@ export interface AddRepositoryDialogLayoutProps {
   readonly onClose:               () => void;
 }
 
-export function AddRepositoryDialogLayout({
-  forgeProgramIsMissing, form, pathChooser, commandStates, handlers, onDismissFailure, onClose
-}: AddRepositoryDialogLayoutProps) {
+/** The form and the line of a missing forge program, without hooks, so a spec unfolds them whole. */
+export function AddRepositoryDialogBody({
+  forgeProgramIsMissing, form, pathChooser, commandStates, handlers, onDismissFailure
+}: Omit<AddRepositoryDialogLayoutProps, 'onClose'>) {
   return (
-    <Dialog title="Add a repository" onClose={onClose} actions={<Button label="Cancel" onPress={onClose} />}>
+    <>
       <AddRepositoryFields
         form={form}
         pathChooser={pathChooser}
@@ -45,6 +49,25 @@ export function AddRepositoryDialogLayout({
         onChooseForgeProgram={handlers.onChooseForgeProgram}
         onDismissFailure={onDismissFailure}
       />
+    </>
+  );
+}
+
+export function AddRepositoryDialogFoot({ onClose }: Pick<AddRepositoryDialogLayoutProps, 'onClose'>) {
+  return <Button label="Cancel" emphasis="ghost" compact onPress={onClose} />;
+}
+
+export function AddRepositoryDialogLayout({ onClose, ...bodyProps }: AddRepositoryDialogLayoutProps) {
+  return (
+    <Dialog
+      title="Add a repository"
+      isOpen
+      onDismiss={FormDialogUtil.dismissalOf(onClose)}
+      closeLabel="Close Add a repository"
+      width={FormDialogUtil.WIDTH}
+      foot={<AddRepositoryDialogFoot onClose={onClose} />}
+    >
+      <AddRepositoryDialogBody {...bodyProps} />
     </Dialog>
   );
 }

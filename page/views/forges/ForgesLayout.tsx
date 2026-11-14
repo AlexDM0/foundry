@@ -3,19 +3,20 @@
  * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside
  * them this machine's panel and Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
+import { Button }        from 'design-system/Button';
+import { ChoiceOption }  from 'design-system/ChoiceOption';
+import { FillMeter }     from 'design-system/FillMeter';
+import { NumberStepper } from 'design-system/NumberStepper';
+import { Text }          from 'design-system/Text';
+
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
-import { Button }                                              from '../../design-system/Button.tsx';
-import { ChoiceOption }                                        from '../../design-system/ChoiceOption.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
 import { DataTable, type DataTableColumn, type DataTableRow }  from '../../design-system/DataTable.tsx';
-import { FactList }                                            from '../../design-system/FactList.tsx';
-import { Meter }                                               from '../../design-system/Meter.tsx';
-import { MicroCapsLabel }                                      from '../../design-system/MicroCapsLabel.tsx';
+import { OpenInNewTabGlyph }                                   from '../../design-system/OpenInNewTabGlyph.tsx';
 import { PendingStep }                                         from '../../design-system/PendingStep.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
-import { Stepper }                                             from '../../design-system/Stepper.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
 import type {
   ForgeAgentsCell,
@@ -66,6 +67,8 @@ const COLUMN_WIDTHS = 'var(--forges-table-columns)';
 const NOT_FOUND_HEAD_ID = 'gaia-forges-not-found-head';
 const MACHINE_HEAD_ID = 'gaia-forges-machine-head';
 
+const FIRST_CHOICE_LETTER_CODE = 'A'.charCodeAt(0);
+
 const LOOK_AGAIN_SUBJECT: CommandSubject = { fleetCommand: 'fleet-look-again' };
 const MACHINE_LIMIT_SUBJECT: CommandSubject = { fleetCommand: 'machine-agent-limit-set' };
 
@@ -78,22 +81,22 @@ function ForgeButtonView({ button, trackerId, handlers }: { readonly button: For
   switch (button.kind) {
     case 'command': {
       const { command } = button;
-      return (
-        <Button
-          label={button.label}
-          emphasis={button.emphasis}
-          disabled={button.disabled}
-          onPress={() => handlers.onCommand(command)}
-          {...(button.iconOnly ? { icon: 'open-in-new-tab', iconOnly: true } as const : {})}
-        />
-      );
+      if (button.iconOnly) {
+        // The package's icon button cannot be disabled, so the arrow rides a label-less button named by its label, its tooltip on the wrapper.
+        return (
+          <span className="gaia-forges-icon-button" title={button.label}>
+            <Button label="" leading={<OpenInNewTabGlyph />} accessibleName={button.label} compact disabled={button.disabled} onPress={() => handlers.onCommand(command)} />
+          </span>
+        );
+      }
+      return <Button label={button.label} emphasis={button.emphasis} compact disabled={button.disabled} onPress={() => handlers.onCommand(command)} />;
     }
     case 'stop':
-      return <Button label={button.label} disabled={button.disabled} onPress={() => handlers.onOpenStopDialog(trackerId)} />;
+      return <Button label={button.label} compact disabled={button.disabled} onPress={() => handlers.onOpenStopDialog(trackerId)} />;
     case 'link':
-      return <Button label={button.label} href={button.href} disabled={button.disabled} />;
+      return <Button label={button.label} compact disabled={button.disabled} {...(button.disabled ? {} : { href: button.href })} />;
     case 'waiting':
-      return <Button label={button.label} disabled />;
+      return <Button label={button.label} compact disabled />;
   }
 }
 
@@ -143,37 +146,82 @@ function ForgeName({ trackerId, project, condition }: Pick<ForgeRow, 'trackerId'
   );
 }
 
-function AgentsCell({ agents, handlers }: { readonly agents: ForgeAgentsCell | null; readonly handlers: ForgesHandlers }) {
-  if (agents === null) return null;
-  if (agents.kind === 'text') return <span className="gaia-forges-agents">{agents.text}</span>;
-  const { lowerCommand, raiseCommand } = agents;
+interface LimitStepperProps {
+  readonly accessibleName: string;
+  readonly limit:          number;
+  readonly lowerLabel:     string;
+  readonly raiseLabel:     string;
+  /** `null` where that side is off: at the lowest limit or at the ceiling. */
+  readonly lowerCommand:   CommandBody | null;
+  readonly raiseCommand:   CommandBody | null;
+  /** Both sides are off while a limit is on its way, or where the forge cannot take it. */
+  readonly isOff:          boolean;
+  readonly onCommand:      (command: CommandBody) => void;
+}
+
+/** A limit as the package's number stepper: a side that may not step is clamped shut, so each side is disabled on its own. */
+function LimitStepper({
+  accessibleName, limit, lowerLabel, raiseLabel, lowerCommand, raiseCommand, isOff, onCommand
+}: LimitStepperProps) {
+  const canLower = !isOff && lowerCommand !== null;
+  const canRaise = !isOff && raiseCommand !== null;
   return (
-    <Stepper
-      value={agents.valueText}
-      lowerLabel={agents.lowerLabel}
-      raiseLabel={agents.raiseLabel}
-      lowerDisabled={agents.disabled || lowerCommand === null}
-      raiseDisabled={agents.disabled || raiseCommand === null}
-      onLower={() => {
-        if (lowerCommand !== null) handlers.onCommand(lowerCommand);
-      }}
-      onRaise={() => {
-        if (raiseCommand !== null) handlers.onCommand(raiseCommand);
+    <NumberStepper
+      accessibleName={accessibleName}
+      value={limit}
+      step={1}
+      minimum={canLower ? limit - 1 : limit}
+      maximum={canRaise ? limit + 1 : limit}
+      unitText="agents"
+      lowerLabel={lowerLabel}
+      raiseLabel={raiseLabel}
+      onChange={(value) => {
+        const command = value < limit ? lowerCommand : raiseCommand;
+        if (command !== null) onCommand(command);
       }}
     />
   );
 }
 
+function AgentsCell({ project, agents, handlers }: { readonly project: string; readonly agents: ForgeAgentsCell | null; readonly handlers: ForgesHandlers }) {
+  if (agents === null) return null;
+  if (agents.kind === 'text') return <span className="gaia-forges-agents">{agents.text}</span>;
+  return (
+    <span className="gaia-forges-agents-stepper">
+      <span className="gaia-forges-agents">{`${agents.inFlight} /`}</span>
+      <LimitStepper
+        accessibleName={`${project}'s agent limit`}
+        limit={agents.limit}
+        lowerLabel={agents.lowerLabel}
+        raiseLabel={agents.raiseLabel}
+        lowerCommand={agents.lowerCommand}
+        raiseCommand={agents.raiseCommand}
+        isOff={agents.disabled}
+        onCommand={handlers.onCommand}
+      />
+    </span>
+  );
+}
+
 function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: StopDialog; readonly trackerId: string; readonly handlers: ForgesHandlers }) {
-  const choices = dialog.choices.map((choice) => (
+  const choices = dialog.choices.map((choice, i) => (
     <ChoiceOption
       key={choice.agents}
-      name={`gaia-forges-stop-${trackerId}`}
-      title={choice.title}
-      consequence={choice.consequence}
+      letter={String.fromCharCode(FIRST_CHOICE_LETTER_CODE + i)}
+      label={choice.title}
+      description={choice.consequence}
       chosen={choice.chosen}
-      disabled={dialog.isOnItsWay}
-      onChoose={() => handlers.onStopChoice(choice.agents)}
+      variant="card"
+      input={{
+        type:           'radio',
+        name:           `gaia-forges-stop-${trackerId}`,
+        checked:        choice.chosen,
+        accessibleName: choice.title,
+        // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
+        onChange:       () => {
+          if (!dialog.isOnItsWay) handlers.onStopChoice(choice.agents);
+        },
+      }}
     />
   ));
   return (
@@ -220,7 +268,7 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
           {row.detailText === null ? null : <span className="gaia-forges-condition-detail">{row.detailText}</span>}
         </span>
       ),
-      agents:   <AgentsCell agents={row.agents} handlers={handlers} />,
+      agents:   <AgentsCell project={row.project} agents={row.agents} handlers={handlers} />,
       waiting:  row.waitingText === null ? null : <span className="gaia-forges-waiting">{row.waitingText}</span>,
       code:     row.codeText === null ? null : <span className="gaia-forges-code">{row.codeText}</span>,
       controls: (
@@ -265,31 +313,37 @@ function ForgeEntryCard({ entry, place, handlers }: { readonly entry: ForgeEntry
 }
 
 function MachinePanelCard({ machine, commandStates, handlers }: { readonly machine: MachinePanel; readonly commandStates: CommandStates; readonly handlers: ForgesHandlers }) {
-  const { lowerCommand, raiseCommand } = machine;
   return (
     <section className="gaia-forges-machine" aria-labelledby={MACHINE_HEAD_ID} data-at-the-limit={machine.isAtTheLimit ? '' : undefined}>
-      <MicroCapsLabel element="h2" id={MACHINE_HEAD_ID} text="This machine" />
+      <Text typeRole="micro" element="h2" id={MACHINE_HEAD_ID}>This machine</Text>
       <div className="gaia-forges-machine-limit">
         <span className="gaia-forges-machine-limit-label">Agent limit</span>
-        <Stepper
-          value={machine.limitText}
-          valueSize="figure"
-          lowerLabel="Lower the machine's agent limit"
-          raiseLabel="Raise the machine's agent limit"
-          lowerDisabled={machine.stepperIsOff || lowerCommand === null}
-          raiseDisabled={machine.stepperIsOff || raiseCommand === null}
-          onLower={() => {
-            if (lowerCommand !== null) handlers.onCommand(lowerCommand);
-          }}
-          onRaise={() => {
-            if (raiseCommand !== null) handlers.onCommand(raiseCommand);
-          }}
-        />
+        {machine.limit === null ? <span className="gaia-forges-machine-limit-value">{machine.limitText}</span> : (
+          <LimitStepper
+            accessibleName="The machine's agent limit"
+            limit={machine.limit}
+            lowerLabel="Lower the machine's agent limit"
+            raiseLabel="Raise the machine's agent limit"
+            lowerCommand={machine.lowerCommand}
+            raiseCommand={machine.raiseCommand}
+            isOff={machine.stepperIsOff}
+            onCommand={handlers.onCommand}
+          />
+        )}
       </div>
       <p className="gaia-forges-machine-sentence">{machine.sentence}</p>
-      {machine.meter === null ? null : <Meter label={machine.meter.label} used={machine.meter.used} whole={machine.meter.whole} thickness="thick" />}
+      {machine.meter === null ? null : (
+        <FillMeter label={machine.meter.label} used={machine.meter.used} limit={machine.meter.whole} near={machine.meter.used >= machine.meter.whole} tone="neutral" />
+      )}
       {machine.atTheLimitText === null ? null : <p className="gaia-forges-machine-at-the-limit">{machine.atTheLimitText}</p>}
-      <FactList facts={machine.facts} layout="values-end" />
+      <dl className="gaia-forges-machine-facts">
+        {machine.facts.map((fact) => (
+          <div key={fact.label} className="gaia-forges-machine-fact">
+            <dt>{fact.label}</dt>
+            <dd>{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
       <CommandFailureRefusal
         commandStates={commandStates}
         subject={MACHINE_LIMIT_SUBJECT}
@@ -328,7 +382,7 @@ export function ForgesLayout({
         {content.heldBanners.map((banner) => <HeldBannerCard key={banner.trackerId} banner={banner} handlers={handlers} />)}
         {content.notFound.length === 0 ? null : (
           <section className="gaia-forges-group" aria-labelledby={NOT_FOUND_HEAD_ID}>
-            <MicroCapsLabel element="h2" id={NOT_FOUND_HEAD_ID} text={content.notFoundHead} />
+            <Text typeRole="micro" element="h2" id={NOT_FOUND_HEAD_ID}>{content.notFoundHead}</Text>
             {content.notFound.map((entry) => <ForgeEntryCard key={entry.trackerId} entry={entry} place="not-found" handlers={handlers} />)}
           </section>
         )}

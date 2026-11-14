@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument }                               from '../../@types/FleetDocument.ts';
+import { DrawnDots }                                        from '../../testing/DrawnDots.ts';
 import { type HostElement, ReactElementTree }               from '../../testing/ReactElementTree.ts';
 import { FLEET_EMPTY }                                      from '../../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../../testing/fixtures/fleet-five-forges.ts';
@@ -50,8 +51,16 @@ function layoutOf(fleetDocument: FleetDocument, filters: ActivityFilters = EVERY
   return { unfolded: tree.unfolded(<ActivityLayout {...props} />), handled };
 }
 
+/** The package's segmented control is a group named by the label element it points at. */
 function groupNamed(unfolded: ReturnType<typeof tree.unfolded>, name: string): HostElement {
-  return tree.onlyHostElementIn(unfolded, (element) => element.props['role'] === 'group' && element.props['aria-label'] === name);
+  const label = tree.onlyHostElementIn(unfolded, (element) => typeof element.props['id'] === 'string' && tree.textOf([element]) === name);
+  return tree.onlyHostElementIn(unfolded, (element) => element.props['role'] === 'group' && element.props['aria-labelledby'] === label.props['id']);
+}
+
+/** The forge filter: its group of segments, then the menu of the forges past the first three beside it. */
+function forgeFilterIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement {
+  groupNamed(unfolded, 'Forge');
+  return tree.onlyWithClass(unfolded, 'gaia-activity-forge-filter');
 }
 
 function bodyRowsIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
@@ -95,11 +104,11 @@ describe('the table', () => {
   test('each row\'s category shows its dot, and an agent whose job ended keeps its place without one', () => {
     const [newest] = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
     if (newest === undefined) throw new Error('The table holds no row.');
-    expect(tree.onlyWithClass([newest], 'gaia-role-dot').props['data-role']).toBe('builder');
+    expect(DrawnDots.roleOf(tree.onlyHostElementIn([newest], DrawnDots.isDot))).toBe('builder');
     const storefront = FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, agents: [] } : forge));
     const [withoutJob] = bodyRowsIn(layoutOf({ ...FLEET_FIVE_FORGES, forges: storefront }).unfolded);
     if (withoutJob === undefined) throw new Error('The table holds no row.');
-    expect(tree.hostElementsIn([withoutJob], tree.withClass('gaia-role-dot'))).toEqual([]);
+    expect(tree.hostElementsIn([withoutJob], DrawnDots.isDot)).toEqual([]);
     expect(tree.onlyWithClass([withoutJob], 'gaia-activity-dot-space').props['aria-hidden']).toBe('true');
   });
 
@@ -127,7 +136,7 @@ describe('the filters', () => {
 
   test('the forge filter offers every forge, then the first three, then a menu of the other two', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    const forges = buttonsIn(groupNamed(unfolded, 'Forge'));
+    const forges = buttonsIn(forgeFilterIn(unfolded));
     expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
       ['All forges', true], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['2 more▾', false],
     ]);
@@ -140,7 +149,7 @@ describe('the filters', () => {
 
   test('the menu opens from its segment and hands the chosen forge on', () => {
     const closed = layoutOf(FLEET_FIVE_FORGES);
-    const toggle = buttonsIn(groupNamed(closed.unfolded, 'Forge')).at(-1);
+    const toggle = buttonsIn(forgeFilterIn(closed.unfolded)).at(-1);
     if (toggle === undefined) throw new Error('The menu segment is missing.');
     expect(toggle.props['aria-expanded']).toBe(false);
     expect(tree.hostElementsIn(closed.unfolded, tree.withClass('gaia-activity-forge-menu'))).toEqual([]);
@@ -160,7 +169,7 @@ describe('the filters', () => {
 
   test('a forge chosen from the menu names the menu\'s segment and presses it, and no other segment', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES, { kind: 'everything', trackerId: TRACKER_IDS.designSystem });
-    const forges = buttonsIn(groupNamed(unfolded, 'Forge'));
+    const forges = buttonsIn(forgeFilterIn(unfolded));
     expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
       ['All forges', false], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['Design System▾', true],
     ]);
@@ -183,7 +192,7 @@ describe('the filters', () => {
     const menuForges = new Set<string>([TRACKER_IDS.exampleMobileApp, TRACKER_IDS.designSystem]);
     const threeForges = { ...FLEET_FIVE_FORGES, activity: FLEET_FIVE_FORGES.activity.filter((entry) => !menuForges.has(entry.trackerId)) };
     const { unfolded } = layoutOf(threeForges);
-    expect(buttonsIn(groupNamed(unfolded, 'Forge')).map((button) => tree.textOf([button]))).toEqual(['All forges', 'Example Storefront', 'Invoice Service', 'Research Wiki']);
+    expect(buttonsIn(forgeFilterIn(unfolded)).map((button) => tree.textOf([button]))).toEqual(['All forges', 'Example Storefront', 'Invoice Service', 'Research Wiki']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-more-forges'))).toEqual([]);
   });
 });
@@ -201,11 +210,12 @@ describe('the side lists', () => {
   });
 
   test('each bar is relative to the largest, in the landed tone for landings, and never warns at the largest', () => {
-    const meters = tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-meter'));
-    expect(meters.slice(0, 4).map((meter) => [meter.props['data-tone'], meter.props['data-full']])).toEqual([
-      ['landed', undefined], ['landed', undefined], ['landed', undefined], ['landed', undefined],
+    const meters = tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('design-system-fill-meter'));
+    expect(meters.slice(0, 4).map((meter) => [meter.props['data-state-tone'], meter.props['data-near']])).toEqual([
+      ['success', undefined], ['success', undefined], ['success', undefined], ['success', undefined],
     ]);
-    const widths = meters.map((meter) => (tree.onlyWithClass([meter], 'gaia-meter-fill').props['style'] as { readonly width?: string }).width);
+    expect(meters.slice(4).map((meter) => [meter.props['data-state-tone'], meter.props['data-near']])).toEqual(Array(4).fill(['neutral', undefined]));
+    const widths = meters.map((meter) => (tree.onlyWithClass([meter], 'design-system-fill-meter-bar').props['style'] as { readonly width?: string }).width);
     expect(widths.slice(4)).toEqual(['100%', `${(418 / 512) * 100}%`, `${(164 / 512) * 100}%`, `${(146 / 512) * 100}%`]);
   });
 

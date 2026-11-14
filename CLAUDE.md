@@ -27,19 +27,23 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    flags.
 10. **Colour lives only in tokens:** the design-system package's `tokens.css` and, for Gaia's own parts only (the marks, a fill the
     package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no package token.
-    `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit, and lets a hover or press change no size
-    or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in both themes, and 3:1 on
-    the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class. Gaia's own `page/design-system/`
-    components take no hooks, so their specs unfold them with `page/testing/ReactElementTree.ts`. The page's specs have no document at all:
-    a Gaia component that needs hooks keeps its layout in a hook-free part, and a spec renders a hooked root, or a package component, which
-    may hold hooks, with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and
-    `page/DesignSystemPackage.spec.tsx` do.
+    `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
+    or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
+    both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
+    `page/design-system/` holds only the parts the package does not have (the marks, the brand bar, the page title, the brain chip, the
+    refusal, the callout, the data table and the like), composed from the package's components; a state reaches a package component as a
+    state tone mapped in one place, `ConditionDot` and `RoleDot`. Gaia's parts take no hooks, so their specs unfold them with
+    `page/testing/ReactElementTree.ts`. The page's specs have no document at all: a component that needs hooks keeps its layout in a
+    hook-free part, and a spec renders a hooked root, or a package component, which may hold hooks, with `react-dom/server`, which runs the
+    hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and `page/DesignSystemPackage.spec.tsx` do, or keeps the hooked package
+    component folded with `ReactElementTree.unfoldedKeeping` to read and call the props a view hands it.
 11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system`, never named in
     `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
     `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
     `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts, which the page build emits and
     Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
-    symlinks and `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run.
+    symlinks, `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run, and the page build's
+    `SingleReactPlugin` (`src/features/page-server/routes/`) resolves every React import to Gaia's own copy.
 
 ## Map
 
@@ -55,6 +59,7 @@ src/lib/           building blocks: forge-client, event-stream, process-run, ato
 src/shared/        the internal model's types, app-wide constants, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
+page/design-system/ Gaia's own parts that the design-system package does not have, composed from the package (rule 10)
 page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `FrameSessionDocument`); the server maps across it in src/adapters/page-api/, and only there
 ```

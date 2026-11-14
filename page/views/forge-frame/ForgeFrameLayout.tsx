@@ -3,14 +3,15 @@
  * and the frame area: "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, or why the forge cannot be shown
  * here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
-import type { Ref } from 'react';
+import { Button }       from 'design-system/Button';
+import { ChoiceOption } from 'design-system/ChoiceOption';
+import type { Ref }     from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents }    from '../../@types/CommandDocument.ts';
-import { Button }                                    from '../../design-system/Button.tsx';
 import { Callout }                                   from '../../design-system/Callout.tsx';
-import { ChoiceOption }                              from '../../design-system/ChoiceOption.tsx';
 import { ConditionDot }                              from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                              from '../../design-system/ConfirmPanel.tsx';
+import { OpenInNewTabGlyph }                         from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                   from '../../design-system/Refusal.tsx';
 import type { RefusalText }                          from '../../shared/utils/CommandFailureTextUtil.ts';
 import type { StopQuestion }                         from '../../shared/utils/ForgeCommandTextUtil.ts';
@@ -30,18 +31,29 @@ export interface ForgeBarControlsProps {
 
 const OPEN_IN_NEW_TAB_LABEL = 'Open in new tab';
 
+const FIRST_CHOICE_LETTER_CODE = 'A'.charCodeAt(0);
+
 function StopPopover({
   bar, question, commandIsOnItsWay, stopAgents, onCommand, onChooseStop, onCancelStop
 }: { readonly question: StopQuestion } & Omit<ForgeBarControlsProps, 'stopIsOpen' | 'onOpenStop'>) {
-  const choices = question.choices.length === 0 ? undefined : question.choices.map((choice) => (
+  const choices = question.choices.length === 0 ? undefined : question.choices.map((choice, i) => (
     <ChoiceOption
       key={choice.agents}
-      name={`gaia-stop-${bar.trackerId}`}
-      title={choice.title}
-      consequence={choice.consequence}
+      letter={String.fromCharCode(FIRST_CHOICE_LETTER_CODE + i)}
+      label={choice.title}
+      description={choice.consequence}
       chosen={choice.agents === stopAgents}
-      onChoose={() => onChooseStop(choice.agents)}
-      disabled={commandIsOnItsWay}
+      variant="card"
+      input={{
+        type:           'radio',
+        name:           `gaia-stop-${bar.trackerId}`,
+        checked:        choice.agents === stopAgents,
+        accessibleName: choice.title,
+        // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
+        onChange:       () => {
+          if (!commandIsOnItsWay) onChooseStop(choice.agents);
+        },
+      }}
     />
   ));
   return (
@@ -70,15 +82,15 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
   return (
     <>
       {pauseOrResume === null ? null : (
-        <Button label={pauseOrResume.label} emphasis={pauseOrResume.emphasis} disabled={!controlsMayAct} onPress={() => onCommand(pauseOrResume.command)} />
+        <Button label={pauseOrResume.label} emphasis={pauseOrResume.emphasis} compact disabled={!controlsMayAct} onPress={() => onCommand(pauseOrResume.command)} />
       )}
       {stop === null ? null : (
         <span className="gaia-forge-frame-stop">
-          <Button label="Stop" disabled={!controlsMayAct} onPress={onOpenStop} />
+          <Button label="Stop" compact disabled={!controlsMayAct} onPress={onOpenStop} />
           {stopIsOpen && controlsMayAct ? <StopPopover question={stop} {...props} /> : null}
         </span>
       )}
-      <Button label={OPEN_IN_NEW_TAB_LABEL} icon="open-in-new-tab" disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
     </>
   );
 }
@@ -139,7 +151,7 @@ function CannotShow({ onOpenInNewTab, commandIsOnItsWay }: Pick<ForgeFrameAreaPr
   return (
     <div className="gaia-forge-frame-notice">
       <p className="gaia-forge-frame-notice-text">This forge cannot be shown inside Gaia yet.</p>
-      <Button label={OPEN_IN_NEW_TAB_LABEL} icon="open-in-new-tab" disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
+      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
     </div>
   );
 }
@@ -155,7 +167,7 @@ function Unreachable({ area, onLookAgain }: { readonly area: Extract<ForgeFrameA
         word={callout.word}
         sentence={callout.sentence}
         {...(callout.machineLine === null ? {} : { machineLine: callout.machineLine })}
-        actions={<Button label="Look again" onPress={onLookAgain} />}
+        actions={<Button label="Look again" compact onPress={onLookAgain} />}
       />
     </div>
   );

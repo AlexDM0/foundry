@@ -14,6 +14,8 @@ import type { CommandAnswerDocument }                                           
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import { type CommandSender, type CommandSubject }                                  from '../../api/CommandSender.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../../testing/CommandServer.ts';
+import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
+import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
@@ -61,11 +63,11 @@ function rowsIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
 }
 
 function rowButtonOf(row: HostElement): HostElement {
-  return tree.onlyWithClass([row], 'gaia-button');
+  return tree.onlyWithClass([row], 'design-system-button');
 }
 
 function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, label: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => tree.hasClass(element, 'gaia-button') && tree.textOf([element]) === label);
+  return tree.onlyHostElementIn(nodes, (element) => tree.hasClass(element, 'design-system-button') && tree.textOf([element]) === label);
 }
 
 function calloutNamed(nodes: ReturnType<typeof tree.unfolded>, project: string): HostElement {
@@ -86,12 +88,12 @@ describe('the list of what waits on User', () => {
     const rows = rowsIn(unfoldedLayout(FLEET_FIVE_FORGES));
     expect(rows.map((row) => tree.textOf([tree.onlyWithClass([row], 'gaia-attention-row-id')]))).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     const buttons = rows.map(rowButtonOf);
-    expect(buttons.map((button) => [button.tag, button.props['data-emphasis'], tree.textOf([button])])).toEqual([
+    expect(buttons.map((button) => [button.tag, PackageButtons.emphasisOf(button), tree.textOf([button])])).toEqual([
       ['a', 'primary', 'Answer'],
-      ['a', 'plain', 'Ready'],
-      ['a', 'plain', 'Answer'],
-      ['a', 'plain', 'Accept'],
-      ['a', 'plain', 'Answer'],
+      ['a', 'quiet', 'Ready'],
+      ['a', 'quiet', 'Answer'],
+      ['a', 'quiet', 'Accept'],
+      ['a', 'quiet', 'Answer'],
     ]);
     expect(buttons[4]?.props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
   });
@@ -99,8 +101,8 @@ describe('the list of what waits on User', () => {
   test('a row shows its forge with the dot and the word, the kind pill in its tone, the subject and the mono meta line', () => {
     const [first] = rowsIn(unfoldedLayout(FLEET_FIVE_FORGES));
     if (first === undefined) throw new Error('Expected a first row.');
-    expect(tree.hostElementsIn([first], tree.withClass('gaia-condition-dot')).map((dot) => dot.props['data-condition'])).toEqual(['live']);
-    expect(tree.onlyWithClass([first], 'gaia-pill').props['data-tone']).toBe('error');
+    expect(tree.hostElementsIn([first], DrawnDots.isDot).map(DrawnDots.conditionOf)).toEqual(['live']);
+    expect(tree.onlyWithClass([first], 'design-system-tag').props['data-tone']).toBe('error');
     expect(tree.textOf([first])).toBe('Invoice ServiceliveEscalatedE4The VAT gate cannot run in the sandbox. Allow network for it?from incident I2 · opened 21mAnswer');
   });
 
@@ -182,12 +184,15 @@ describe('a callout\'s command', () => {
 describe('forges Gaia cannot fully read (B3)', () => {
   test('an unreachable forge has a banner under the top bar with its last stamp in mono and Look again', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
-    const banner = tree.onlyWithClass(unfolded, 'gaia-banner');
-    expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-banner-text')])).toBe(
+    const inCallouts = new Set(tree.hostElementsIn(tree.hostElementsIn(unfolded, tree.withClass('gaia-callout'))));
+    const banner = tree.onlyHostElementIn(unfolded, (element) => tree.hasClass(element, 'design-system-banner') && !inCallouts.has(element));
+    expect(banner.props['data-tone']).toBe('error');
+    const [text] = banner.children;
+    expect(typeof text === 'object' ? tree.textOf([text]) : null).toBe(
       'Overseer unreachable: Invoice Service. Gaia shows what it last reported at 13:14 and tries again.',
     );
     expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-attention-banner-stamp')])).toBe('13:14');
-    expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-button')])).toBe('Look again');
+    expect(tree.textOf([tree.onlyWithClass([banner], 'design-system-banner-action')])).toBe('Look again');
   });
 
   test('its rows can be read, at reduced contrast, and not acted on: the button is disabled and goes nowhere', () => {
@@ -202,7 +207,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['button', true, undefined],
       ['button', true, undefined],
     ]);
-    expect(rows.map(rowButtonOf).map((button) => button.props['data-emphasis'])).toEqual(['plain', 'primary', 'plain', 'plain']);
+    expect(rows.map(rowButtonOf).map(PackageButtons.emphasisOf)).toEqual(['quiet', 'primary', 'quiet', 'quiet']);
   });
 
   test('the side panel names each forge and marks the ones figures.incompleteFor names at the end of what Gaia reads of it', () => {
@@ -239,14 +244,14 @@ describe('forges Gaia cannot fully read (B3)', () => {
 
   test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {
     const callouts = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-callout'));
-    expect(callouts.map((callout) => [callout.props['aria-label'], callout.props['data-tone']])).toEqual([
+    expect(callouts.map((callout) => [callout.props['aria-label'], tree.onlyWithClass([callout], 'gaia-callout-body').props['data-tone']])).toEqual([
       ['Invoice Service: Unreachable', 'error'],
       ['Research Wiki: Counts only', 'neutral'],
       ['Example Mobile App: Launches held', 'warn'],
       ['Analytics Sandbox: Newer than this Gaia', 'warn'],
     ]);
     const newer = callouts[3];
-    expect(newer === undefined ? null : tree.onlyWithClass([newer], 'gaia-condition-dot').props['data-condition']).toBe('unreadable');
+    expect(newer === undefined ? null : DrawnDots.conditionOf(tree.onlyHostElementIn([newer], DrawnDots.isDot))).toBe('unreadable|missing');
   });
 });
 
@@ -260,8 +265,8 @@ describe('the side of the view', () => {
       ['a', `#forge/${TRACKER_IDS.researchWiki}`],
       ['a', `#forge/${TRACKER_IDS.exampleMobileApp}`],
     ]);
-    const firstJobs = cards[0] === undefined ? [] : tree.hostElementsIn([cards[0]], tree.withClass('gaia-role-dot'));
-    expect(firstJobs.map((dot) => dot.props['data-role'])).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
+    const firstJobs = cards[0] === undefined ? [] : tree.hostElementsIn(tree.hostElementsIn([cards[0]], tree.withClass('gaia-attention-running-job')), DrawnDots.isDot);
+    expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
     expect(tree.onlyWithClass(unfolded, 'gaia-attention-link').props['href']).toBe('#activity');
   });
@@ -277,7 +282,7 @@ describe('the side of the view', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
     const controls = tree.hostElementsIn(unfolded, (element) => element.tag === 'button' || element.tag === 'a');
     expect(controls.filter((control) => tree.textOf([control]).trim() === '' && typeof control.props['aria-label'] !== 'string')).toEqual([]);
-    const openInNewTab = tree.hostElementsIn(unfolded, (element) => tree.hasClass(element, 'gaia-button') && tree.textOf([element]) === 'Open in new tab');
+    const openInNewTab = tree.hostElementsIn(unfolded, (element) => tree.hasClass(element, 'design-system-button') && tree.textOf([element]) === 'Open in new tab');
     expect(openInNewTab).toHaveLength(2);
     expect(openInNewTab.map((button) => tree.hostElementsIn([button], (element) => element.tag === 'svg').length)).toEqual([1, 1]);
   });

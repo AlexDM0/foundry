@@ -6,6 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { DrawnDots }                                        from '../testing/DrawnDots.ts';
 import { ReactElementTree }                                 from '../testing/ReactElementTree.ts';
 import { FLEET_AT_LIMIT }                                   from '../testing/fixtures/fleet-at-limit.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
@@ -62,11 +63,11 @@ describe('the rail', () => {
 
   test('a forge row leads with its condition dot, hidden from the accessibility tree, in the forges group', () => {
     const unfolded = unfoldedRail(FLEET_FIVE_FORGES, DEFAULT_ROUTE);
-    const dots = tree.hostElementsIn(unfolded, tree.withClass('gaia-condition-dot'));
-    expect(dots.map((dot) => dot.props['data-condition'])).toEqual(['live', 'live', 'live', 'held', 'dormant', 'missing']);
+    const dots = tree.hostElementsIn(unfolded, DrawnDots.isDot);
+    expect(dots.map(DrawnDots.conditionOf)).toEqual(['live', 'live', 'live', 'held', 'dormant', 'unreadable|missing']);
     expect(dots.every((dot) => dot.props['aria-hidden'] === 'true')).toBe(true);
     const group = tree.onlyHostElementIn(unfolded, (element) => element.props['role'] === 'group');
-    expect(tree.onlyWithClass([group], 'gaia-micro-caps').props['id']).toBe(group.props['aria-labelledby']);
+    expect(tree.onlyWithClass([group], 'design-system-micro-caps').props['id']).toBe(group.props['aria-labelledby']);
   });
 
   test('this machine is one link to the Forges view with its figure, meter and limit line', () => {
@@ -75,23 +76,24 @@ describe('the rail', () => {
     expect(machine.props['href']).toBe('#forges');
     expect(machine.props['data-at-the-limit']).toBeUndefined();
     expect(tree.textOf([tree.onlyWithClass([machine], 'gaia-rail-machine-agents')])).toBe('10 / 12agents');
-    expect(tree.onlyWithClass([machine], 'gaia-meter').props['aria-label']).toBe('10 of 12 agents');
+    const meter = tree.onlyWithClass([machine], 'design-system-fill-meter');
+    expect([meter.props['role'], meter.props['aria-label'], meter.props['data-near']]).toEqual(['img', '10 of 12 agents', undefined]);
     expect(tree.textOf([tree.onlyWithClass([machine], 'gaia-rail-machine-line')])).toBe('limit 12 of 12 CPUs');
   });
 
-  test('at the limit the machine link is marked and its meter is full; with no known limit there is no meter', () => {
+  test('at the limit the machine link is marked and its meter is near its limit; with no known limit there is no meter', () => {
     const atLimit = tree.onlyWithClass(unfoldedRail(FLEET_AT_LIMIT, DEFAULT_ROUTE), 'gaia-rail-machine');
     expect(atLimit.props['data-at-the-limit']).toBe('');
-    expect(tree.onlyWithClass([atLimit], 'gaia-meter').props['data-full']).toBe('');
+    expect(tree.onlyWithClass([atLimit], 'design-system-fill-meter').props['data-near']).toBe('');
     const empty = unfoldedRail(FLEET_EMPTY, DEFAULT_ROUTE);
-    expect(tree.hostElementsIn(empty, tree.withClass('gaia-meter'))).toEqual([]);
+    expect(tree.hostElementsIn(empty, tree.withClass('design-system-fill-meter'))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(empty, 'gaia-rail-machine-line')])).toBe('no limit known · 12 CPUs');
   });
 
   test('with no forge registered (B4) the forges\' group is headed as ever and says so in one line, with no forge row', () => {
     const empty = unfoldedRail(FLEET_EMPTY, DEFAULT_ROUTE);
     const group = tree.onlyHostElementIn(empty, (element) => element.props['role'] === 'group');
-    expect(tree.onlyWithClass([group], 'gaia-micro-caps').props['id']).toBe(group.props['aria-labelledby']);
+    expect(tree.onlyWithClass([group], 'design-system-micro-caps').props['id']).toBe(group.props['aria-labelledby']);
     expect(tree.textOf([tree.onlyWithClass([group], 'gaia-rail-no-forge')])).toBe('No forge is registered.');
     expect(tree.hostElementsIn([group], tree.withClass('gaia-rail-row'))).toEqual([]);
     expect(tree.hostElementsIn(unfoldedRail(FLEET_FIVE_FORGES, DEFAULT_ROUTE), tree.withClass('gaia-rail-no-forge'))).toEqual([]);

@@ -3,6 +3,10 @@
  * tokens per forge and the usage line. `ActivityView` keeps the filters and whether the forge menu is open; `ActivityLayout` takes no hooks
  * and lays the view out from the model's content alone.
  */
+import { FillMeter }        from 'design-system/FillMeter';
+import { SegmentedControl } from 'design-system/SegmentedControl';
+import type { StateTone }   from 'design-system/StateTone';
+import { Text }             from 'design-system/Text';
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -13,10 +17,7 @@ import {
 import { LIMITS }                          from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument }              from '../../@types/FleetDocument.ts';
 import { DataTable, type DataTableColumn } from '../../design-system/DataTable.tsx';
-import { Meter, type MeterTone }           from '../../design-system/Meter.tsx';
-import { MicroCapsLabel }                  from '../../design-system/MicroCapsLabel.tsx';
 import { RoleDot }                         from '../../design-system/RoleDot.tsx';
-import { SegmentedControl }                from '../../design-system/SegmentedControl.tsx';
 import {
   type ActivityContent,
   type ActivityFilters,
@@ -49,6 +50,8 @@ const KIND_OPTIONS = KIND_FILTERS.map((kind) => ({ value: kind, label: KIND_FILT
 const EVERY_FORGE_VALUE = '';
 
 const FORGE_MENU_ID = 'gaia-activity-forge-menu';
+const KIND_LABEL_ID = 'gaia-activity-kind-label';
+const FORGE_LABEL_ID = 'gaia-activity-forge-label';
 
 const FOOTNOTE = 'A dormant forge shows its entries up to its stop. Older entries are in each forge\'s own log.';
 
@@ -115,7 +118,7 @@ function ForgeMenu({
     <span className="gaia-activity-more-forges" onKeyDown={closeOnEscape} onBlur={closeWhenFocusLeaves}>
       <button
         type="button"
-        className="gaia-segment"
+        className="gaia-activity-more-forges-button"
         aria-pressed={chosenInMenu !== null}
         aria-expanded={menuIsOpen}
         aria-controls={menuIsOpen ? FORGE_MENU_ID : undefined}
@@ -146,20 +149,24 @@ function ForgeMenu({
 interface TodaySectionProps {
   readonly head: string;
   readonly list: TodayList;
-  readonly tone: MeterTone;
+  readonly tone: StateTone;
 }
 
 function TodaySection({ head, list, tone }: TodaySectionProps) {
   return (
     <section className="gaia-activity-side-section">
-      <MicroCapsLabel element="h2" text={list.totalText === null ? head : `${head} · ${list.totalText}`} />
+      <Text typeRole="micro" element="h2">{list.totalText === null ? head : `${head} · ${list.totalText}`}</Text>
       {list.rows.length === 0 ? <p className="gaia-activity-side-empty">{NOTHING_REPORTED_SENTENCE}</p> : (
         <ul className="gaia-activity-today-list">
           {list.rows.map((row) => (
             <li key={row.trackerId} className="gaia-activity-today-row">
               <span className="gaia-activity-today-project">{row.project}</span>
               <span className="gaia-activity-today-value">{row.valueText}</span>
-              {row.meter === null ? null : <Meter label={row.meter.label} used={row.meter.used} whole={row.meter.whole} tone={tone} wholeIsALimit={false} />}
+              {row.meter === null ? null : (
+                <span className="gaia-activity-today-meter">
+                  <FillMeter label={row.meter.label} used={row.meter.used} limit={row.meter.whole} near={false} tone={tone} />
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -172,7 +179,7 @@ function UsageSection({ lines }: { readonly lines: readonly string[] }) {
   if (lines.length === 0) return null;
   return (
     <section className="gaia-activity-usage">
-      <MicroCapsLabel element="h2" text="Usage" />
+      <Text typeRole="micro" element="h2">Usage</Text>
       {lines.map((line) => <p key={line} className="gaia-activity-usage-line">{line}</p>)}
     </section>
   );
@@ -190,14 +197,18 @@ export function ActivityLayout({
     <div className="gaia-activity">
       <section className="gaia-activity-entries" aria-label="Entries">
         <div className="gaia-activity-filters">
-          <SegmentedControl<ActivityKindFilter> label="Kind" options={KIND_OPTIONS} selected={kindFilter} onSelect={onKindFilter} />
-          <SegmentedControl
-            label="Forge"
-            options={forgeOptions}
-            selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
-            onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
-            trailing={<ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuToggle={onMenuToggle} onMenuClose={onMenuClose} />}
-          />
+          <span className="gaia-visually-hidden" id={KIND_LABEL_ID}>Kind</span>
+          <SegmentedControl<ActivityKindFilter> labelledBy={KIND_LABEL_ID} options={KIND_OPTIONS} selected={kindFilter} onSelect={onKindFilter} />
+          <span className="gaia-activity-forge-filter">
+            <span className="gaia-visually-hidden" id={FORGE_LABEL_ID}>Forge</span>
+            <SegmentedControl
+              labelledBy={FORGE_LABEL_ID}
+              options={forgeOptions}
+              selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
+              onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
+            />
+            <ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuToggle={onMenuToggle} onMenuClose={onMenuClose} />
+          </span>
         </div>
         {content.emptySentence === null
           ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} />
@@ -205,7 +216,7 @@ export function ActivityLayout({
         <p className="gaia-activity-footnote">{FOOTNOTE}</p>
       </section>
       <aside className="gaia-activity-side" aria-label="Today">
-        <TodaySection head="Landed today" list={content.landedToday} tone="landed" />
+        <TodaySection head="Landed today" list={content.landedToday} tone="success" />
         <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" />
         <UsageSection lines={content.usageLines} />
       </aside>

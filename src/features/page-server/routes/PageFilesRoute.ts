@@ -2,11 +2,13 @@
  * `GET /` and the page's files: the page is built by `Bun.build` on its first request, not at start, so the health route answers at once.
  * Every later request shares that one build; a failed build answers its refusal and the next request builds again. The built files stay
  * in memory, `index.html` at `/` and each chunk at its own name, so nothing generated lands in the repository. The design system's font
- * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again.
+ * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again. React is
+ * bundled once, from Gaia's own copy, though the linked package would reach for its own.
  */
 import { join } from 'node:path';
 
-import { refusalAnswerOf } from '../RefusalAnswer.ts';
+import { refusalAnswerOf }   from '../RefusalAnswer.ts';
+import { singleReactPlugin } from './SingleReactPlugin.ts';
 
 /** Every built file by the path it is served at. */
 export type PageFiles = ReadonlyMap<string, Blob>;
@@ -30,9 +32,13 @@ const FONT_FILE_LIFETIME_SECONDS = 31_536_000;
 
 const FONT_FILE_CACHE_CONTROL = `max-age=${FONT_FILE_LIFETIME_SECONDS}, immutable`;
 
+function repositoryRootFolder(): string {
+  return join(import.meta.dir, '..', '..', '..', '..');
+}
+
 /** The page's HTML entry in this repository. */
 export function pageIndexFilePath(): string {
-  return join(import.meta.dir, '..', '..', '..', '..', 'page', 'index.html');
+  return join(repositoryRootFolder(), 'page', 'index.html');
 }
 
 async function buildPage(indexFilePath: string): Promise<PageBuildVerdict> {
@@ -43,6 +49,7 @@ async function buildPage(indexFilePath: string): Promise<PageBuildVerdict> {
       target:      'browser',
       minify:      true,
       define:      { 'process.env.NODE_ENV': '"production"' },
+      plugins:     [singleReactPlugin(repositoryRootFolder())],
       throw:       false,
     });
   } catch (error) {

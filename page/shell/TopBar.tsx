@@ -3,10 +3,11 @@
  * which a forge in place leaves out. The mono line keeps to one line: what does not fit ends in an ellipsis, with the whole line as its
  * tooltip.
  */
-import type { ReactNode } from 'react';
+import { SegmentedControl } from 'design-system/SegmentedControl';
+import type { ReactNode }   from 'react';
+
 
 import { ConditionDot, type DotCondition } from '../design-system/ConditionDot.tsx';
-import { SegmentedControl }                from '../design-system/SegmentedControl.tsx';
 import type { ThemeChoice }                from './ThemeBootstrap.ts';
 
 export interface TopBarStatus {
@@ -28,6 +29,8 @@ export interface TopBarProps {
   readonly onThemeChoice:    (choice: ThemeChoice) => void;
 }
 
+const THEME_LABEL_ID = 'gaia-top-bar-theme-label';
+
 const THEME_OPTIONS = [
   { value: 'auto', label: 'Auto' },
   { value: 'light', label: 'Light' },
@@ -48,7 +51,12 @@ export function TopBar({
         </span>
       )}
       <span className="gaia-top-bar-actions">{actions}</span>
-      {showsThemeSwitch ? <SegmentedControl<ThemeChoice> label="Theme" options={THEME_OPTIONS} selected={themeChoice} onSelect={onThemeChoice} /> : null}
+      {showsThemeSwitch ? (
+        <span className="gaia-top-bar-theme">
+          <span className="gaia-visually-hidden" id={THEME_LABEL_ID}>Theme</span>
+          <SegmentedControl<ThemeChoice> labelledBy={THEME_LABEL_ID} options={THEME_OPTIONS} selected={themeChoice} onSelect={onThemeChoice} size="standard" />
+        </span>
+      ) : null}
     </header>
   );
 }

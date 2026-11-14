@@ -1,5 +1,5 @@
 /**
- * A 32 px text field inside its label, in the mono face for a path or the UI face for words. A hidden label still names the field for a
+ * A 36 px text field inside its label, in the mono face for a path or the UI face for words. A hidden label still names the field for a
  * screen reader where the layout around it already says what it is.
  */
 export interface TextFieldProps {

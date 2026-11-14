@@ -1,11 +1,12 @@
 /**
  * The pending step. What matters: it is a status, not an alert, that leads with its word and then its sentence; it holds the control that
- * takes the step as given; and its dismiss button is named and calls onDismiss.
+ * takes the step as given; and its dismiss button is the package's icon button, named and titled, and calls onDismiss.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { Button } from 'design-system/Button';
+
 import { ReactElementTree } from '../testing/ReactElementTree.ts';
-import { Button }           from './Button.tsx';
 import { PendingStep }      from './PendingStep.tsx';
 
 function pendingStepOf(presses: string[]) {
@@ -13,7 +14,7 @@ function pendingStepOf(presses: string[]) {
     <PendingStep
       word="Updated; restart pending."
       sentence="Its Overseer runs the old code until it restarts."
-      action={<Button label="Restart" emphasis="primary" onPress={() => presses.push('restart')} />}
+      action={<Button label="Restart" emphasis="quiet" compact onPress={() => presses.push('restart')} />}
       dismissLabel="Dismiss the pending restart"
       onDismiss={() => presses.push('dismiss')}
     />,
@@ -31,9 +32,10 @@ describe('the pending step', () => {
 
   test('the control it holds and the named dismiss button call their own handlers', () => {
     const presses: string[] = [];
-    const [restart, dismiss] = ReactElementTree.hostElementsIn(pendingStepOf(presses), ReactElementTree.withClass('gaia-button'));
+    const [restart, dismiss] = ReactElementTree.hostElementsIn(pendingStepOf(presses), ReactElementTree.withTag('button'));
     if (restart === undefined || dismiss === undefined) throw new Error('A pending step button is missing.');
-    expect([ReactElementTree.textOf([restart]), dismiss.props['aria-label']]).toEqual(['Restart', 'Dismiss the pending restart']);
+    expect([ReactElementTree.textOf([restart]), dismiss.props['className'], dismiss.props['aria-label'], dismiss.props['title']])
+      .toEqual(['Restart', 'design-system-icon-button', 'Dismiss the pending restart', 'Dismiss the pending restart']);
     ReactElementTree.dispatch(restart, 'onClick');
     ReactElementTree.dispatch(dismiss, 'onClick');
     expect(presses).toEqual(['restart', 'dismiss']);

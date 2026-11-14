@@ -206,7 +206,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   test('Resume and Start are the primary buttons of their rows; the others are plain, and Open in new tab shows only its arrow', () => {
     const emphasisIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows
       .flatMap((row) => row.buttons.map((button) => (button.kind === 'command' ? [button.label, button.emphasis, button.iconOnly] : [button.label, button.kind])));
-    expect(emphasisIn('paused')).toEqual([['Resume', 'primary', false], ['Stop', 'stop'], ['Open', 'link'], [OPEN_IN_NEW_TAB, 'plain', true]]);
+    expect(emphasisIn('paused')).toEqual([['Resume', 'primary', false], ['Stop', 'stop'], ['Open', 'link'], [OPEN_IN_NEW_TAB, 'quiet', true]]);
     expect(emphasisIn('dormant')).toEqual([['Start', 'primary', false]]);
   });
 
@@ -274,7 +274,7 @@ describe('the held forge, the forges not found and the hidden ones', () => {
         kind:     'command',
         button:   'hide',
         label:    'Hide in Gaia',
-        emphasis: 'plain',
+        emphasis: 'quiet',
         iconOnly: false,
         command:  { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
         disabled: false,

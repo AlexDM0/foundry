@@ -2,9 +2,11 @@
  * The Gaia panel laid out, and the "What notifies" list. What matters (SCREENS A4 and C2): the panel sits under this machine's in the Forges view; its two
  * checkboxes hand the view the checkbox clicked, "What notifies" opens the list and is a button of its own beside the second checkbox, not inside its
  * label; a refusal offers Try again and its dismissal; the facts and a settings file line show, a path free to break after each slash; the list holds the
- * seven kinds with their lines, hands the view the kind clicked, and closes on Done. Both are unfolded without a document.
+ * seven kinds with their lines, hands the view the kind clicked, and closes on Done; it is the package's modal dialog titled "What notifies". The panel
+ * and the list's body and foot are unfolded without a document; the package's dialog around them is rendered with `react-dom/server`.
  */
 import { describe, expect, test } from 'bun:test';
+import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { CommandAnswerDocument }                            from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                    from '../../@types/FleetDocument.ts';
@@ -21,7 +23,7 @@ import {
   type SentSettingsChange,
   type SettingsCheckbox,
 } from './GaiaPanelModel.ts';
-import { WhatNotifiesDialog } from './WhatNotifiesDialog.tsx';
+import { WhatNotifiesBody, WhatNotifiesDialog, WhatNotifiesFoot } from './WhatNotifiesDialog.tsx';
 
 const tree = ReactElementTree;
 
@@ -61,14 +63,11 @@ function panelOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurroundin
 
 function whatNotifiesOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurroundings = { commandStates: IDLE_STATES, sentSettingsChange: null }) {
   const { handled, handlers } = handledAndHandlers();
-  const unfolded = tree.unfolded(
-    <WhatNotifiesDialog
-      content={GaiaPanelModel.whatNotifiesOf(fleetDocument, surroundings)}
-      handlers={handlers}
-      onClose={() => handled.whatNotifiesClosed.push(1)}
-    />,
-  );
-  return { unfolded, handled };
+  const content = GaiaPanelModel.whatNotifiesOf(fleetDocument, surroundings);
+  const onClose = () => handled.whatNotifiesClosed.push(1);
+  const unfolded = tree.unfolded(<><WhatNotifiesBody content={content} handlers={handlers} /><WhatNotifiesFoot onClose={onClose} /></>);
+  const markup = renderToStaticMarkup(<WhatNotifiesDialog content={content} handlers={handlers} onClose={onClose} />);
+  return { unfolded, handled, markup };
 }
 
 function checkboxLabelled(nodes: readonly RenderedNode[], label: string): HostElement {
@@ -144,7 +143,7 @@ describe('the panel', () => {
   test('shows the facts and, for a settings file newer than this Gaia, its line and both checkboxes off', () => {
     const newer = { ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, settingsFile: 'newer-version' as const } };
     const { unfolded } = panelOf(newer);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-facts')])).toBe(
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-facts')])).toBe(
       'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonGaia readsmonitor 3 · control 2 · embed 1Gaia0.1.0 on 127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
@@ -160,6 +159,13 @@ describe('the panel', () => {
       ['monitor 3 · control 2 · embed 1', 0],
       ['0.1.0 on 127.0.0.1:4790', 0],
     ]);
+  });
+
+  test('each fact\'s value is set in mono, but a value that is words, as a forge program not found, in the interface face', () => {
+    const monoOf = (fleetDocument: FleetDocument) => tree.hostElementsIn(panelOf(fleetDocument).unfolded, tree.withTag('dd'))
+      .map((value) => tree.onlyWithClass([value], 'design-system-text').props['data-mono']);
+    expect(monoOf(FLEET_FIVE_FORGES)).toEqual(['', '', '', '']);
+    expect(monoOf({ ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, forgeProgramInUse: null } })).toEqual([undefined, '', '', '']);
   });
 
   test('a refused change shows its code and sentence under the checkboxes, with Try again and its dismissal', async () => {
@@ -180,8 +186,10 @@ describe('the panel', () => {
 
 describe('"What notifies" (C2)', () => {
   test('is a dialog of the seven kinds, each with its line of explanation', () => {
-    const { unfolded } = whatNotifiesOf(FLEET_FIVE_FORGES);
-    expect(tree.onlyHostElementIn(unfolded, (element) => element.props['role'] === 'dialog').props['aria-label']).toBe('What notifies');
+    const { unfolded, markup } = whatNotifiesOf(FLEET_FIVE_FORGES);
+    const titleId = /<h2 id="([^"]+)" class="design-system-dialog-title">What notifies<\/h2>/.exec(markup)?.[1];
+    expect(markup).toContain(`<dialog class="design-system-dialog" aria-modal="true" aria-labelledby="${titleId ?? 'no title'}"`);
+    expect(markup.match(/class="gaia-checkbox-explanation"/g)).toHaveLength(7);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-checkbox-explanation'))).toHaveLength(7);
     expect(checkboxLabelled(unfolded, 'Draft tickets').props['checked']).toBe(false);
     expect(checkboxLabelled(unfolded, 'Questions').props['checked']).toBe(true);
