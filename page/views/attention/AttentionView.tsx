@@ -47,7 +47,7 @@ export function attentionViewPartsOf(fleetDocument: FleetDocument | null, clock:
     };
   }
   const content = <AttentionView fleetDocument={fleetDocument} clock={clock} />;
-  if (fleetDocument.forges.length === 0) {
+  if (AttentionModel.noForgeIsRegisteredIn(fleetDocument)) {
     return {
       title: null, lead: '', figures: [], actions: null, content
     };

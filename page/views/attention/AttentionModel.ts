@@ -584,14 +584,19 @@ function noForgeContentOf(fleetDocument: FleetDocument): NoForgeContent {
 }
 
 /** The server leaves hidden forges out of the document, so a fleet whose every forge is hidden is still a fleet, not B4. */
+function noForgeIsRegisteredIn(fleetDocument: FleetDocument): boolean {
+  return fleetDocument.forges.length === 0 && fleetDocument.settings.hiddenTrackerIds.length === 0;
+}
+
 function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionScreen {
-  if (fleetDocument.forges.length === 0 && fleetDocument.settings.hiddenTrackerIds.length === 0) {
+  if (noForgeIsRegisteredIn(fleetDocument)) {
     return { kind: 'no-forge', content: noForgeContentOf(fleetDocument) };
   }
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }
 
 export const AttentionModel = {
+  noForgeIsRegisteredIn,
   screenOf,
   titleFiguresOf,
   compactCountOf,
