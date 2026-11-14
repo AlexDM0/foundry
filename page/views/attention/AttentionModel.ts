@@ -5,7 +5,6 @@
  * document does not hold is absent, never zero.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
-import type { TagTone }        from 'design-system/Tag';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
 import type {
@@ -43,6 +42,9 @@ export interface AttentionFigure {
   readonly attention: boolean;
 }
 
+/** A kind pill's tone: orange for what User decides, green for work that waits only on User's accept. */
+export type AttentionKindTone = 'warn' | 'pass';
+
 /** One entry that waits on User. A row of an unreachable forge is stale: it can be read, not acted on. */
 export interface AttentionRow {
   readonly key:           string;
@@ -51,7 +53,7 @@ export interface AttentionRow {
   readonly condition:     DotCondition;
   readonly conditionWord: string;
   readonly kindText:      string;
-  readonly kindTone:      Exclude<TagTone, 'state'>;
+  readonly kindTone:      AttentionKindTone;
   readonly idText:        string;
   readonly subject:       string;
   readonly metaText:      string;
@@ -99,7 +101,7 @@ export interface RunningCard {
   readonly condition:     DotCondition;
   readonly conditionWord: string;
   readonly href:          string;
-  readonly slotsText:     string | null;
+  readonly slotsText:     string;
   readonly jobs:          readonly RunningJob[];
   readonly waitingText:   string | null;
   readonly isStale:       boolean;
@@ -116,6 +118,7 @@ export interface RecentEntry {
 export interface ForgeReadingLine {
   readonly trackerId:              string;
   readonly project:                string;
+  readonly condition:              DotCondition;
   readonly contractText:           string;
   readonly readingText:            string;
   readonly totalsCannotVouchForIt: boolean;
@@ -130,21 +133,27 @@ export interface UnreachableBanner {
 /** A row of stacked figures in the page title; one line atop the main column while a forge is not fully read, so B3 fits the window. */
 export type AttentionFiguresForm = 'row' | 'line';
 
+/** A running card as A1 draws it, or compact, its waiting line in its head, while the side panel shares the column (B3). */
+export type RunningCardForm = 'full' | 'compact';
+
 export interface AttentionContent {
-  readonly banners:     readonly UnreachableBanner[];
-  readonly figures:     readonly AttentionFigure[];
-  readonly figuresForm: AttentionFiguresForm;
-  readonly waitingHead: string;
-  readonly rows:        readonly AttentionRow[];
+  readonly banners:      readonly UnreachableBanner[];
+  readonly figures:      readonly AttentionFigure[];
+  readonly figuresForm:  AttentionFiguresForm;
+  readonly waitingHead:  string;
+  /** The waiting head's count alone, for its pill: `5`, `4 known, more possible`. */
+  readonly waitingCount: string;
+  readonly rows:         readonly AttentionRow[];
   /** What the list's place says when it holds no row. */
-  readonly nothingText: string;
-  readonly looksHead:   string;
-  readonly looks:       readonly LookCallout[];
-  readonly runningHead: string;
-  readonly running:     readonly RunningCard[];
-  readonly recent:      readonly RecentEntry[];
+  readonly nothingText:  string;
+  readonly looksHead:    string;
+  readonly looks:        readonly LookCallout[];
+  readonly runningHead:  string;
+  readonly runningForm:  RunningCardForm;
+  readonly running:      readonly RunningCard[];
+  readonly recent:       readonly RecentEntry[];
   /** `null` while Gaia reads every forge in full. */
-  readonly readings:    readonly ForgeReadingLine[] | null;
+  readonly readings:     readonly ForgeReadingLine[] | null;
 }
 
 /** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
@@ -157,6 +166,7 @@ export type AttentionScreen = { readonly kind: 'fleet'; readonly content: Attent
 const HEAD_SEPARATOR = ' · ';
 const META_SEPARATOR = ' · ';
 const RECENT_ENTRIES_SHOWN = 4;
+const COUNTS_ONLY_WORD = 'counts only';
 const THOUSAND = 1_000;
 const MILLION = 1_000_000;
 const COMPACT_SIGNIFICANT_DIGITS = 3;
@@ -244,7 +254,7 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       condition:     ForgeTextUtil.dotConditionOf(forge.condition),
       conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
       kindText:      KIND_TEXTS[item.kind],
-      kindTone:      item.kind === 'escalated-question' ? 'error' : 'warn',
+      kindTone:      item.kind === 'merge-accept' ? 'pass' : 'warn',
       idText:        item.idText,
       subject:       item.subject,
       metaText:      metaTextOf(item, forge, isStale, clock),
@@ -414,16 +424,33 @@ function jobRoleOf(role: string | null, waitingOnDecisionId: string | null): Dot
   return 'forge';
 }
 
-function runningCardsOf(forges: readonly FleetDocumentForge[]): RunningCard[] {
+/**
+ * A forge Gaia no longer hears from says when it last reported, since its jobs are only what it said then; a forge read by its summary
+ * says that its card holds counts only.
+ */
+function runningConditionWordOf(forge: FleetDocumentForge, clock: ClockReading): string {
+  if (forge.fidelity === 'counts-only') return COUNTS_ONLY_WORD;
+  const lastReported = forge.fidelity === 'unreachable' ? clockTextOf(forge.lastReportedAt, clock) : null;
+  return lastReported === null ? ForgeTextUtil.conditionWordOf(forge.condition) : `as last reported ${lastReported}`;
+}
+
+/** Its slots against its limit, or, for a forge that reports no limit, its agents alone. */
+function slotsTextOf(forge: FleetDocumentForge): string {
+  return forge.concurrency === null
+    ? countedPhrase(forge.agents.length, 'agent', 'agents')
+    : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`;
+}
+
+function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReading): RunningCard[] {
   return forges.filter((forge) => forge.agents.length > 0).map((forge) => {
     const waitingCount = waitingCountOf(forge);
     return {
       trackerId:     forge.trackerId,
       project:       forge.project,
       condition:     ForgeTextUtil.dotConditionOf(forge.condition),
-      conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
+      conditionWord: runningConditionWordOf(forge, clock),
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
-      slotsText:     forge.concurrency === null ? null : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`,
+      slotsText:     slotsTextOf(forge),
       jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), text: `${row.jobId} ${row.role ?? row.kind}` })),
       waitingText:   waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
       isStale:       forge.fidelity === 'unreachable',
@@ -471,6 +498,7 @@ function readingsOf(fleetDocument: FleetDocument, forges: readonly FleetDocument
   return forges.map((forge) => ({
     trackerId:              forge.trackerId,
     project:                forge.project,
+    condition:              ForgeTextUtil.dotConditionOf(forge.condition),
     contractText:           contractTextOf(forge),
     readingText:            readingTextOf(forge, clock),
     totalsCannotVouchForIt: leftOut.has(forge.trackerId),
@@ -481,8 +509,10 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
   const forgesById = new Map(forges.map((forge) => [forge.trackerId, forge]));
   const { waitingOnUser, incompleteFor } = fleetDocument.figures;
   const morePossible = incompleteFor.length > 0;
+  const waitingCount = morePossible ? `${waitingOnUser} known, more possible` : String(waitingOnUser);
   const looks = looksOf(fleetDocument, forgesById, clock);
-  const running = runningCardsOf(forges);
+  const running = runningCardsOf(forges, clock);
+  const readings = readingsOf(fleetDocument, forges, clock);
   return {
     banners: forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => ({
       trackerId:         forge.trackerId,
@@ -491,15 +521,17 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
     })),
     figures:     figuresOf(fleetDocument),
     figuresForm: morePossible ? 'line' : 'row',
-    waitingHead: `Waiting on you${HEAD_SEPARATOR}${morePossible ? `${waitingOnUser} known, more possible` : waitingOnUser}`,
+    waitingHead: `Waiting on you${HEAD_SEPARATOR}${waitingCount}`,
+    waitingCount,
     rows:        rowsOf(fleetDocument, forgesById, clock),
     nothingText: morePossible ? 'Nothing that Gaia can read waits on you.' : 'Nothing waits on you.',
     looksHead:   `Forges that need a look${HEAD_SEPARATOR}${looks.length}`,
     looks,
     runningHead: `Running${HEAD_SEPARATOR}${running.length}`,
+    runningForm: readings === null ? 'full' : 'compact',
     running,
     recent:      recentOf(fleetDocument, forgesById, clock),
-    readings:    readingsOf(fleetDocument, forges, clock),
+    readings,
   };
 }
 

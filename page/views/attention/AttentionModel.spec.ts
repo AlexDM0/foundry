@@ -63,10 +63,10 @@ describe('what waits on User (A1)', () => {
     const { rows, waitingHead } = fleetContentOf(FLEET_FIVE_FORGES);
     expect(waitingHead).toBe('Waiting on you · 5');
     expect(rows.map((row) => [row.project, row.kindText, row.kindTone, row.idText, row.subject, row.metaText, row.actionLabel])).toEqual([
-      ['Invoice Service', 'Escalated', 'error', 'E4', 'The VAT gate cannot run in the sandbox. Allow network for it?', 'from incident I2 · opened 21m', 'Answer'],
+      ['Invoice Service', 'Escalated', 'warn', 'E4', 'The VAT gate cannot run in the sandbox. Allow network for it?', 'from incident I2 · opened 21m', 'Answer'],
       ['Example Storefront', 'Draft', 'warn', '#015', 'Search suggestions', 'filed by intake · filed 2h 04m', 'Ready'],
       ['Research Wiki', 'Question', 'warn', 'E1', 'Two gates are proposed for this repository. Accept them?', 'pipeline-proposal · opened 26m', 'Answer'],
-      ['Invoice Service', 'Accept', 'warn', '#031', 'Round VAT per line, not per invoice', 'merges clean into main · reviewed 12m', 'Accept'],
+      ['Invoice Service', 'Accept', 'pass', '#031', 'Round VAT per line, not per invoice', 'merges clean into main · reviewed 12m', 'Accept'],
       ['Example Storefront', 'Question', 'warn', 'E2', 'How long should a password reset link stay valid?', 'asked by J3 builder · opened 4m', 'Answer'],
     ]);
   });
@@ -243,6 +243,19 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['#031', true, false, 'as last reported 13:14 · reviewed 13:07'],
       ['E2', false, false, 'asked by J3 builder · opened 4m'],
     ]);
+  });
+
+  test('the waiting head\'s pill holds the count alone, and the running cards are compact beside the side panel, each saying how it is read', () => {
+    const content = fleetContentOf(FLEET_DEGRADED);
+    expect([content.waitingCount, fleetContentOf(FLEET_FIVE_FORGES).waitingCount]).toEqual(['4 known, more possible', '5']);
+    expect([content.runningForm, fleetContentOf(FLEET_FIVE_FORGES).runningForm]).toEqual(['compact', 'full']);
+    expect(content.running.map((card) => [card.project, card.conditionWord, card.slotsText, card.isStale])).toEqual([
+      ['Example Storefront', 'live', '4 / 5', false],
+      ['Invoice Service', 'as last reported 13:14', '3 / 5', true],
+      ['Research Wiki', 'counts only', '1 agent', false],
+      ['Example Mobile App', 'launches held', '2 / 2', false],
+    ]);
+    expect(content.readings?.map((reading) => reading.condition)).toEqual(['live', 'unreachable', 'live', 'held', 'unreadable']);
   });
 
   test('the unreachable forge has a banner with its last stamp, and a callout with its address, process and last answer', () => {

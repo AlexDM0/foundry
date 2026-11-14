@@ -184,8 +184,10 @@ describe('each screen shows the state its artboard draws', () => {
 
   test('B3: the unreachable banner under the bar, the head that counts what is known, and the figures folded into one line atop the main column', () => {
     const markup = screenMarkupOf(screenOf('B3'), 'dark');
-    expect(markup).toContain('<div class="design-system-banner" data-tone="error"><span>Overseer unreachable: Invoice Service.');
-    expect(markup).toContain('data-type-role="micro">Waiting on you · 4 known, more possible</h2>');
+    expect(markup).toContain('<div class="design-system-banner" data-tone="error"><span><span class="gaia-attention-banner-lead">Overseer unreachable: Invoice Service.');
+    expect(markup).toContain(
+      'data-type-role="page">Waiting on you<span class="gaia-visually-hidden"> · </span><span class="design-system-tag" data-tone="warn">4 known, more possible</span></h2>',
+    );
     expect(markup).toContain('<div class="gaia-attention-main"><div class="gaia-attention-figures" data-form="line">');
     expect(markup).not.toContain('data-form="stacked"');
   });

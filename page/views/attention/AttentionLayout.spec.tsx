@@ -102,7 +102,7 @@ describe('the list of what waits on User', () => {
     const [first] = rowsIn(unfoldedLayout(FLEET_FIVE_FORGES));
     if (first === undefined) throw new Error('Expected a first row.');
     expect(tree.hostElementsIn([first], DrawnDots.isDot).map(DrawnDots.conditionOf)).toEqual(['live']);
-    expect(tree.onlyWithClass([first], 'design-system-tag').props['data-tone']).toBe('error');
+    expect(tree.onlyWithClass([first], 'design-system-tag').props['data-tone']).toBe('warn');
     expect(tree.textOf([first])).toBe('Invoice ServiceliveEscalatedE4The VAT gate cannot run in the sandbox. Allow network for it?from incident I2 · opened 21mAnswer');
   });
 
@@ -235,6 +235,15 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['inline', '1.08Mtokens today'],
       ['inline', '0open incidents'],
     ]);
+  });
+
+  test('the primary row alone carries the orange edge\'s mark, and a compact running card heads its waiting line unless it is stale', () => {
+    const unfolded = unfoldedLayout(FLEET_DEGRADED);
+    expect(rowsIn(unfolded).map((row) => row.props['data-primary'])).toEqual([undefined, '', undefined, undefined]);
+    const cards = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-running-card'));
+    expect(cards.map((card) => card.props['data-form'])).toEqual(['compact', 'compact', 'compact', 'compact']);
+    expect(cards.map((card) => tree.hostElementsIn([tree.onlyWithClass([card], 'gaia-attention-running-head')], tree.withClass('gaia-attention-running-waiting'))
+      .map((waiting) => tree.textOf([waiting])))).toEqual([['2 wait on you'], [], ['1 waits on you'], []]);
   });
 
   test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {

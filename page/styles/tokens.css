@@ -80,10 +80,11 @@
 
   --attention-figures-gap:        48px;
   --attention-head-gap:           10px;
-  --attention-aside-width:        368px;
-  --attention-forge-column:       168px;
-  --attention-kind-column:        92px;
-  --attention-id-column:          52px;
+  --attention-aside-width:        388px;
+  --attention-forge-column:       176px;
+  --attention-kind-column:        96px;
+  --attention-id-column:          48px;
+  --attention-row-height:         58px;
   --attention-recent-clock-column: 44px;
   --attention-no-forge-width:     640px;
 

@@ -6,6 +6,8 @@
  */
 import { Banner } from 'design-system/Banner';
 import { Button } from 'design-system/Button';
+import { Card }   from 'design-system/Card';
+import { Row }    from 'design-system/Row';
 import { Tag }    from 'design-system/Tag';
 import { Text }   from 'design-system/Text';
 
@@ -23,12 +25,14 @@ import { CommandFailureTextUtil }                                 from '../../sh
 import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
+  type AttentionKindTone,
   type AttentionRow,
   type ForgeReadingLine,
   type LookAction,
   type LookCallout,
   type RecentEntry,
   type RunningCard,
+  type RunningCardForm,
   type UnreachableBanner,
 } from './AttentionModel.ts';
 
@@ -47,7 +51,6 @@ interface CommandHandlers {
   readonly onDismissRestartPending: (subject: CommandSubject) => void;
 }
 
-const WAITING_HEAD_ID = 'gaia-attention-waiting-head';
 const LOOKS_HEAD_ID = 'gaia-attention-looks-head';
 const READINGS_HEAD_ID = 'gaia-attention-readings-head';
 const RUNNING_HEAD_ID = 'gaia-attention-running-head';
@@ -58,6 +61,10 @@ const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 const ACTIVITY_HREF = '#activity';
 
 const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
+
+const WAITING_ORDER_SENTENCE = 'oldest first · escalations on top';
+
+const HEAD_SEPARATOR = ' · ';
 
 function commandIsOnItsWay(commandStates: CommandStates, command: CommandBody): boolean {
   return CommandSender.stateOf(commandStates, CommandSender.subjectOf(command)).onItsWay !== null;
@@ -76,11 +83,13 @@ function LookAgainRefusal({ commandStates, onCommand, onDismissFailure }: Comman
 }
 
 function UnreachableBannerLine({ banner, commandStates, onCommand }: { readonly banner: UnreachableBanner } & CommandHandlers) {
+  const lead = <span className="gaia-attention-banner-lead">{`Overseer unreachable: ${banner.project}.`}</span>;
   const text = banner.lastReportedClock === null
-    ? <>{`Overseer unreachable: ${banner.project}. Gaia shows nothing of it and tries again.`}</>
+    ? <>{lead}{' Gaia shows nothing of it and tries again.'}</>
     : (
       <>
-        {`Overseer unreachable: ${banner.project}. Gaia shows what it last reported at `}
+        {lead}
+        {' Gaia shows what it last reported at '}
         <span className="gaia-attention-banner-stamp">{banner.lastReportedClock}</span>
         {' and tries again.'}
       </>
@@ -94,9 +103,14 @@ function UnreachableBannerLine({ banner, commandStates, onCommand }: { readonly 
   );
 }
 
+/** Accept waits only on User's word for work done, so it reads as the package's success tone; every other kind is a decision, in orange. */
+function KindPill({ text, tone }: { readonly text: string; readonly tone: AttentionKindTone }) {
+  return tone === 'pass' ? <Tag text={text} tone="state" stateTone="success" /> : <Tag text={text} tone="warn" />;
+}
+
 function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
   return (
-    <div className="gaia-attention-row" data-stale={row.isStale ? '' : undefined}>
+    <div className="gaia-attention-row" data-stale={row.isStale ? '' : undefined} data-primary={row.isPrimary ? '' : undefined}>
       <span className="gaia-attention-row-forge">
         <ConditionDot condition={row.condition} />
         <span className="gaia-attention-row-forge-text">
@@ -104,7 +118,7 @@ function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
           <span className="gaia-attention-row-condition">{row.conditionWord}</span>
         </span>
       </span>
-      <span className="gaia-attention-row-kind"><Tag text={row.kindText} tone={row.kindTone} /></span>
+      <span className="gaia-attention-row-kind"><KindPill text={row.kindText} tone={row.kindTone} /></span>
       <span className="gaia-attention-row-id">{row.idText}</span>
       <span className="gaia-attention-row-text">
         <span className="gaia-attention-row-subject">{row.subject}</span>
@@ -116,13 +130,12 @@ function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
 }
 
 function LookActionButton({ action, commandStates, onCommand }: { readonly action: LookAction } & CommandHandlers) {
-  if (action.kind === 'link') return <Button label={action.label} href={action.href} emphasis={action.emphasis} compact />;
+  if (action.kind === 'link') return <Button label={action.label} href={action.href} emphasis={action.emphasis} />;
   const { command } = action;
   return (
     <Button
       label={action.label}
       emphasis={action.emphasis}
-      compact
       {...(action.icon === null ? {} : { leading: <OpenInNewTabGlyph /> })}
       disabled={!action.forgeAcceptsIt || commandIsOnItsWay(commandStates, command)}
       onPress={() => onCommand(command)}
@@ -191,7 +204,13 @@ function Figures({ content }: { readonly content: AttentionContent }) {
   return (
     <div className="gaia-attention-figures" data-form={content.figuresForm}>
       {content.figures.map((figure) => (
-        <Figure key={figure.label} value={figure.value} label={figure.label} form={content.figuresForm === 'line' ? 'inline' : 'stacked'} />
+        <Figure
+          key={figure.label}
+          value={figure.value}
+          label={figure.label}
+          form={content.figuresForm === 'line' ? 'inline' : 'stacked'}
+          attention={figure.attention}
+        />
       ))}
     </div>
   );
@@ -204,7 +223,10 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
       <ul className="gaia-attention-readings">
         {readings.map((reading) => (
           <li key={reading.trackerId} className="gaia-attention-reading" data-totals-cannot-vouch={reading.totalsCannotVouchForIt ? '' : undefined}>
-            <span className="gaia-attention-reading-forge">{reading.project}</span>
+            <span className="gaia-attention-reading-head">
+              <ConditionDot condition={reading.condition} />
+              <span className="gaia-attention-reading-forge">{reading.project}</span>
+            </span>
             <span className="gaia-attention-reading-contract">{reading.contractText}</span>
             <span className="gaia-attention-reading-text">
               {reading.readingText}
@@ -218,25 +240,59 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
   );
 }
 
-function RunningCardLink({ card }: { readonly card: RunningCard }) {
+function RunningWaiting({ card }: { readonly card: RunningCard }) {
+  return card.waitingText === null ? null : <span className="gaia-attention-running-waiting">{card.waitingText}</span>;
+}
+
+/** A job chip: its id, then its role word, which the model writes after the id. */
+function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) {
   return (
-    <a className="gaia-attention-running-card" href={card.href} data-stale={card.isStale ? '' : undefined}>
+    <span className="gaia-attention-running-job" data-role={job.role}>
+      <RoleDot role={job.role} />
+      <span className="gaia-attention-running-job-id">{job.jobId}</span>
+      <span className="gaia-attention-running-job-role">{job.text.slice(job.jobId.length)}</span>
+    </span>
+  );
+}
+
+function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly form: RunningCardForm }) {
+  return (
+    <a className="gaia-attention-running-card" href={card.href} data-stale={card.isStale ? '' : undefined} data-form={form}>
       <span className="gaia-attention-running-head">
         <ConditionDot condition={card.condition} />
         <span className="gaia-attention-running-name">{card.project}</span>
-        <span className="gaia-attention-running-condition">{card.conditionWord}</span>
-        {card.slotsText === null ? null : <span className="gaia-attention-running-slots">{card.slotsText}</span>}
+        <span className="gaia-attention-running-condition" data-condition={card.condition}>{card.conditionWord}</span>
+        {form === 'compact' && !card.isStale ? <RunningWaiting card={card} /> : null}
+        <span className="gaia-attention-running-slots">{card.slotsText}</span>
       </span>
       <span className="gaia-attention-running-jobs">
-        {card.jobs.map((job) => (
-          <span key={job.jobId} className="gaia-attention-running-job">
-            <RoleDot role={job.role} />
-            {job.text}
-          </span>
-        ))}
+        {card.jobs.map((job) => <RunningJobChip key={job.jobId} job={job} />)}
       </span>
-      {card.waitingText === null ? null : <span className="gaia-attention-running-waiting">{card.waitingText}</span>}
+      {form === 'full' ? <RunningWaiting card={card} /> : null}
     </a>
+  );
+}
+
+/** What waits on User in one card: its serif head with the count in an orange pill and the order at the end, then the rows or the place empty. */
+function WaitingCard({ content }: { readonly content: AttentionContent }) {
+  return (
+    <section className="gaia-attention-waiting" aria-label={content.waitingHead}>
+      <Card padding="none" clipped>
+        <div className="gaia-attention-waiting-head">
+          <Row between centerY gap="twelve">
+            <Text typeRole="page" element="h2">
+              Waiting on you
+              <span className="gaia-visually-hidden">{HEAD_SEPARATOR}</span>
+              <Tag text={content.waitingCount} tone="warn" />
+            </Text>
+            <Text typeRole="small" muted>{WAITING_ORDER_SENTENCE}</Text>
+          </Row>
+        </div>
+        {content.rows.length === 0
+          ? <p className="gaia-attention-nothing">{content.nothingText}</p>
+          : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} /> }))} />}
+      </Card>
+    </section>
   );
 }
 
@@ -268,17 +324,16 @@ function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
 export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) {
   return (
     <div className="gaia-attention">
-      {content.banners.map((banner) => <UnreachableBannerLine key={banner.trackerId} banner={banner} {...handlers} />)}
+      {content.banners.length === 0 ? null : (
+        <div className="gaia-attention-banners">
+          {content.banners.map((banner) => <UnreachableBannerLine key={banner.trackerId} banner={banner} {...handlers} />)}
+        </div>
+      )}
       <LookAgainRefusal {...handlers} />
       <div className="gaia-attention-body">
         <div className="gaia-attention-main">
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}
-          <section className="gaia-attention-section" aria-labelledby={WAITING_HEAD_ID}>
-            <Text typeRole="micro" element="h2" id={WAITING_HEAD_ID}>{content.waitingHead}</Text>
-            {content.rows.length === 0
-              ? <p className="gaia-attention-nothing">{content.nothingText}</p>
-              : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} /> }))} />}
-          </section>
+          <WaitingCard content={content} />
           {content.looks.length === 0 ? null : (
             <section className="gaia-attention-section" aria-labelledby={LOOKS_HEAD_ID}>
               <Text typeRole="micro" element="h2" id={LOOKS_HEAD_ID}>{content.looksHead}</Text>
@@ -291,7 +346,7 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           {content.running.length === 0 ? null : (
             <section className="gaia-attention-section" aria-labelledby={RUNNING_HEAD_ID}>
               <Text typeRole="micro" element="h2" id={RUNNING_HEAD_ID}>{content.runningHead}</Text>
-              {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} />)}
+              {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} form={content.runningForm} />)}
             </section>
           )}
           <RecentList recent={content.recent} />
