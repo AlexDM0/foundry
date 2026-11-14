@@ -123,7 +123,7 @@ export function forgesViewPartsOf(fleetDocument: FleetDocument | null, route: Fo
     actions: (
       <>
         <LookAgainButton />
-        <Button label="Add a repository" emphasis="primary" compact href={ADD_A_REPOSITORY_FRAGMENT} />
+        <Button label="Add a repository" emphasis="primary" href={ADD_A_REPOSITORY_FRAGMENT} />
       </>
     ),
     content: <ForgesView fleetDocument={fleetDocument} route={route} clock={clock} goTo={goTo} />,

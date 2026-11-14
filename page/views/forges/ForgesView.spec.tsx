@@ -37,13 +37,15 @@ function forgeNamesIn(markup: string): string[] {
 }
 
 describe('the page title', () => {
-  test('carries the counts, Look again and "Add a repository", the view\'s one primary button, which goes to #forges/add', () => {
+  test('carries the counts, Look again and "Add a repository", the view\'s one primary button, which goes to #forges/add, both at full height', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
     expect(markup).toContain('<h1 class="design-system-text" data-type-role="display">Forges</h1>');
     const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
     expect(figures).toEqual(['6 registered', '4 running']);
     const actions = /<div class="gaia-page-title-actions">(.*?)<\/div><\/header>/.exec(markup)?.[1] ?? '';
-    expect(actions).toMatch(/^<button[^>]*>Look again<\/button><a class="design-system-button" href="#forges\/add" data-primary="" data-compact="">Add a repository<\/a>$/);
+    expect(actions).toBe(
+      '<button type="button" class="design-system-button">Look again</button><a class="design-system-button" href="#forges/add" data-primary="">Add a repository</a>',
+    );
     expect(markup).not.toContain('<dialog');
   });
 });

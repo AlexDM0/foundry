@@ -9,5 +9,5 @@ const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 export function LookAgainButton() {
   const { send, states } = useCommandSender();
   const isOnItsWay = CommandSender.stateOf(states, CommandSender.subjectOf(LOOK_AGAIN)).onItsWay !== null;
-  return <Button label="Look again" compact disabled={isOnItsWay} onPress={() => void send(LOOK_AGAIN)} />;
+  return <Button label="Look again" disabled={isOnItsWay} onPress={() => void send(LOOK_AGAIN)} />;
 }
