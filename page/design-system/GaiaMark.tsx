@@ -6,15 +6,12 @@
  */
 import { Fragment } from 'react';
 
+import { MARK_GEOMETRY } from './constants/MarkGeometry.ts';
+
 const DEFAULT_SIZE_PIXELS = 28;
 
 /** Below this size the large drawing's thin ring and translucent halos blur into the tile, while the small drawing's solid nodes still read. */
 export const SMALL_DRAWING_BELOW_SIZE_PIXELS = 24;
-
-const CONSTELLATION_SCALE_TRANSFORM = 'translate(32 32) scale(1.1) translate(-32 -32)';
-
-const HEXAGON_RING_PATH = 'M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 '
-  + 'L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z';
 
 const LARGE_CORE_PATH = 'M31.50 26.29 A1.0 1.0 0 0 1 32.50 26.29 L36.70 28.71 A1.0 1.0 0 0 1 37.20 29.58 L37.20 34.42 A1.0 1.0 0 0 1 36.70 35.29 '
   + 'L32.50 37.71 A1.0 1.0 0 0 1 31.50 37.71 L27.30 35.29 A1.0 1.0 0 0 1 26.80 34.42 L26.80 29.58 A1.0 1.0 0 0 1 27.30 28.71 Z';
@@ -126,9 +123,9 @@ function LargeConstellation() {
         <NodeGap id={LARGE_IDS.gap} nodes={LARGE_NODES} />
       </defs>
       <rect x="1" y="1" width="62" height="62" rx="13" fill={`url(#${LARGE_IDS.ground})`} />
-      <g transform={CONSTELLATION_SCALE_TRANSFORM}>
+      <g transform={MARK_GEOMETRY.scaleAboutCentreTransform}>
         <g mask={`url(#${LARGE_IDS.gap})`}>
-          <path className="gaia-mark-ring" d={HEXAGON_RING_PATH} fill="none" strokeWidth="3" />
+          <path className="gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="3" />
         </g>
         <path className="gaia-mark-core" d={LARGE_CORE_PATH} />
         <circle className="gaia-mark-glow" cx={GLOW.centreX} cy={GLOW.centreY} r={GLOW.radius} opacity={GLOW_OPACITY} filter={`url(#${LARGE_IDS.glow})`} />
@@ -151,9 +148,9 @@ function SmallConstellation() {
         <NodeGap id={SMALL_IDS.gap} nodes={SMALL_NODES} />
       </defs>
       <rect x="1" y="1" width="62" height="62" rx="13" fill={`url(#${SMALL_IDS.ground})`} />
-      <g transform={CONSTELLATION_SCALE_TRANSFORM}>
+      <g transform={MARK_GEOMETRY.scaleAboutCentreTransform}>
         <g mask={`url(#${SMALL_IDS.gap})`}>
-          <path className="gaia-mark-ring" d={HEXAGON_RING_PATH} fill="none" strokeWidth="5.8" />
+          <path className="gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="5.8" />
         </g>
         <path className="gaia-mark-core" d={SMALL_CORE_PATH} />
         {SMALL_NODES.map((node) => <circle key={node.centreX} className="gaia-mark-node-core" cx={node.centreX} cy={node.centreY} r={node.coreRadius} />)}

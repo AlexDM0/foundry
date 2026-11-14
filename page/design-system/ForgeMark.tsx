@@ -3,12 +3,11 @@
  * where the orange node sits, around a hexagon core. It is an image named "Forge"; a double-click may wake the forge's brain, as SCREENS
  * B1 draws it, and a title may say so.
  */
+import { MARK_GEOMETRY } from './constants/MarkGeometry.ts';
+
 const DEFAULT_SIZE_PIXELS = 22;
 
 const ACCESSIBLE_NAME = 'Forge';
-
-const HEXAGON_RING_PATH = 'M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 '
-  + 'L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z';
 
 const HEXAGON_CORE_PATH = 'M31.5 25.89 A1 1 0 0 1 32.5 25.89 L37.04 28.51 A1 1 0 0 1 37.54 29.38 L37.54 34.62 A1 1 0 0 1 37.04 35.49 '
   + 'L32.5 38.11 A1 1 0 0 1 31.5 38.11 L26.96 35.49 A1 1 0 0 1 26.46 34.62 L26.46 29.38 A1 1 0 0 1 26.96 28.51 Z';
@@ -34,9 +33,9 @@ export function ForgeMark({ sizePixels = DEFAULT_SIZE_PIXELS, title, onDoubleCli
         </mask>
       </defs>
       <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#gaia-forge-mark-ground)" />
-      <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
+      <g transform={MARK_GEOMETRY.scaleAboutCentreTransform}>
         <g mask="url(#gaia-forge-mark-gap)">
-          <path className="gaia-forge-mark-ring" d={HEXAGON_RING_PATH} fill="none" strokeWidth="5" />
+          <path className="gaia-forge-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="5" />
         </g>
         <path className="gaia-forge-mark-core" d={HEXAGON_CORE_PATH} />
         <circle className="gaia-forge-mark-node-ring" cx="48.02" cy="22.75" r="7.4" fill="none" strokeWidth="2.6" />
