@@ -40,9 +40,14 @@ function dotConditionOf(condition: FleetDocumentCondition): DotCondition {
   return condition === 'passing-baton' ? 'starting' : condition;
 }
 
-/** Under the limit, or the window that hit it and when it resets, printed by the caller's own clock. */
+/**
+ * Under the limit, with when the current window resets when the forge reports it; or the window that hit the limit and when it resets.
+ * Each time is printed by the caller's own clock.
+ */
 function usageTextOf(usage: FleetDocumentUsage, clockTextOfStamp: (stamp: string) => string): string {
-  if (usage.resetsAt === null) return 'under its limit';
+  if (usage.resetsAt === null) {
+    return usage.currentWindowResetsAt === null ? 'under its limit' : `under its limit · window resets ${clockTextOfStamp(usage.currentWindowResetsAt)}`;
+  }
   const windowWord = usage.window === null ? '' : `${usage.window} `;
   return `${windowWord}limit hit · resets ${clockTextOfStamp(usage.resetsAt)}`;
 }

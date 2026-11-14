@@ -130,7 +130,12 @@ describe('a summary at the known version', () => {
         warnings: [],
         activity: [],
         today:    null,
-        usage:    { resetsAt: null, window: null },
+        usage:    {
+          resetsAt:              null,
+          window:                null,
+          currentWindow:         null,
+          currentWindowResetsAt: null,
+        },
       },
     });
   });

@@ -92,6 +92,12 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'forge',
   },
   {
+    recordingName:  'overseer-fetch-monitor-1',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.monitorOne.recording.spec.ts',
+    system:         'forge',
+  },
+  {
     recordingName:  'forge-registry',
     boundaryModule: 'src/adapters/forge-registry/RegistryFile.ts',
     recordingSpec:  'src/adapters/forge-registry/RegistryFile.recording.spec.ts',

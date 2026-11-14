@@ -1,17 +1,20 @@
 /**
- * The identity ingestion over the identity recorded from a forge before F1 and from one serving every contract, read through the forge
- * client. What matters: PLAN 7.1's choice of how a forge is read, from no `contracts` key (counts only) to a monitor at the known number
- * (in full) to a newer number (nothing, at fidelity newer-contract, which equals B3's fixture); an identity of another forge at the
- * registry's address; and an identity at a newer `identityVersion` mapped to nothing.
+ * The identity ingestion over the identity recorded from a forge before F1 and from one serving every contract, at monitor contract 2 and
+ * at monitor contract 1, read through the forge client. What matters: PLAN 7.1's choice of how a forge is read, from no `contracts` key
+ * (counts only) to a monitor at the known number or at 1, which Gaia still reads (in full), to a newer number (nothing, at fidelity
+ * newer-contract, which equals B3's fixture); an identity of another forge at the registry's address; and an identity at a newer
+ * `identityVersion` mapped to nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FLEET_SNAPSHOT_DEGRADED }             from '../page-api/testing/fleet-snapshot-degraded.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
-import type { ForgeRegistryFacts }             from './@types/ForgeDocumentReading.ts';
-import { IdentityIngestion }                   from './IdentityIngestion.ts';
-import { recordedDocumentOf, registryFactsOf } from './testing/ExampleForgeDocuments.ts';
+
+import type { ForgeRegistryFacts }                                           from './@types/ForgeDocumentReading.ts';
+import { IdentityIngestion }                                                 from './IdentityIngestion.ts';
+import { recordedDocumentOf, recordedMonitorOneDocumentOf, registryFactsOf } from './testing/ExampleForgeDocuments.ts';
 
 const STOREFRONT_FACTS = registryFactsOf(FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront);
 
@@ -58,6 +61,27 @@ describe('the identity of a forge that serves F1', () => {
       identity: {
         trackerId:      'example-storefront-7c41',
         project:        'Example Storefront',
+        codeVersion:    '2b47322f0984',
+        installVersion: 27,
+        processId:      48_107,
+        contracts:      {
+          summary: 1,
+          monitor: 2,
+          control: 1,
+          embed:   1,
+        },
+      },
+    });
+  });
+
+  test('reads the recorded forge whose monitor contract is 1, which Gaia still reads, in full', async () => {
+    const document = await recordedMonitorOneDocumentOf('serving-every-contract', 'identity', STOREFRONT_FACTS.overseerUrl);
+    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(document)).toEqual({
+      verdict:  'readable',
+      fidelity: 'full',
+      identity: {
+        trackerId:      'example-storefront-7c41',
+        project:        'Example Storefront',
         codeVersion:    '9fc4e996dd57',
         installVersion: 27,
         processId:      48_107,
@@ -88,7 +112,7 @@ describe('the identity of a forge that serves F1', () => {
       processId:   49_012,
       contracts:   {
         summary: 1,
-        monitor: 2,
+        monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
         control: 2,
         embed:   1,
       },
@@ -96,7 +120,7 @@ describe('the identity of a forge that serves F1', () => {
     expect(new IdentityIngestion(registryFactsOf(ANALYTICS_SANDBOX)).readingOf(identity)).toEqual({
       verdict:  'newer-contract',
       contract: 'monitor',
-      version:  2,
+      version:  CONTRACT_VERSIONS.forgeMonitor + 1,
       reading:  ANALYTICS_SANDBOX,
     });
   });

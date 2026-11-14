@@ -43,7 +43,12 @@ const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
   notices:           [{ kind: 'new-code', text: 'New code is on disk.' }],
   warnings:          [{ kind: 'baton-pass-failed', text: 'The Baton pass failed.' }],
   today:             { deliveredTickets: 2, tokens: 88_000 },
-  usage:             { resetsAt: '2026-11-12T17:00:00.000Z', window: 'five-hour' },
+  usage:             {
+    resetsAt:              '2026-11-12T17:00:00.000Z',
+    window:                'five-hour',
+    currentWindow:         'five_hour',
+    currentWindowResetsAt: '2026-11-12T17:00:00.000Z',
+  },
 };
 
 describe('a dormant forge', () => {

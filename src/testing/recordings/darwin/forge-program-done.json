@@ -5,7 +5,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 27, code 9fc4e996dd57"
+    "systemVersion": "install version 27, code 2b47322f0984"
   },
   "answers": [
     {
@@ -58,7 +58,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"9fc4e996dd57\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 1,\n    \"control\": 1,\n    \"embed\": 1\n  }\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"2b47322f0984\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 2,\n    \"control\": 1,\n    \"embed\": 1\n  }\n}\n",
         "standardError": ""
       }
     },
@@ -85,7 +85,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"9fc4e996dd57\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 1,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"2b47322f0984\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 2,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
         "standardError": ""
       }
     },

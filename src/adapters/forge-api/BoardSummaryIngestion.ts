@@ -7,7 +7,7 @@ import type { ForgeReading }                                                    
 import { CONTRACT_VERSIONS }                                                      from '../../shared/constants/ContractVersions.ts';
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from './@types/BoardSummaryDocument.ts';
 import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts }           from './@types/ForgeDocumentReading.ts';
-import type { MonitorUsageDocument }                                              from './@types/MonitorSnapshotDocument.ts';
+import type { UsageLimitDocument }                                                from './@types/MonitorSnapshotDocument.ts';
 import { DocumentShapeUtil, type ShapeOf }                                        from './utils/DocumentShapeUtil.ts';
 import { ForgeReadingMapUtil }                                                    from './utils/ForgeReadingMapUtil.ts';
 
@@ -30,7 +30,7 @@ const JOB_SHAPE = {
   tokens:    'whole-number',
 } as const satisfies ShapeOf<SummaryJobDocument>;
 
-const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const satisfies ShapeOf<MonitorUsageDocument>;
+const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const satisfies ShapeOf<UsageLimitDocument>;
 
 const BOARD_SUMMARY_SHAPE = {
   summaryVersion: 'whole-number',

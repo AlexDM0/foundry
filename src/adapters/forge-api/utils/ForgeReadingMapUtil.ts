@@ -23,8 +23,8 @@ import type {
   MonitorSnapshotDocument,
 } from '../@types/MonitorSnapshotDocument.ts';
 
-/** The kind a warning of monitor contract 1 reads as: the forge sends its sentence and names no kind. */
-export const FORGE_WARNING_WITHOUT_KIND = 'forge-warning';
+/** The forge's warning that no Assistant can come up: Gaia shows it as a notice, in its own words, and not as a look. */
+export const ASSISTANT_DOWN_KIND = 'assistant-down';
 
 const NO_CONTRACTS: ForgeContracts = {
   summary: null,
@@ -141,9 +141,8 @@ function noticeOf(notice: MonitorNoticeDocument): ForgeNotice {
   return { kind: notice.kind, text: notice.text };
 }
 
-/** Monitor contract 1 sends a warning as the forge's sentence alone, so each one reads as the kind the forge gave none. */
-function warningOf(sentence: string): ForgeNotice {
-  return { kind: FORGE_WARNING_WITHOUT_KIND, text: sentence };
+function warningIsANotice(warning: MonitorNoticeDocument): boolean {
+  return warning.kind === ASSISTANT_DOWN_KIND;
 }
 
 function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
@@ -163,7 +162,7 @@ function contractsWith(identity: ForgeIdentity | null, readContracts: Partial<Fo
 
 /** A forge read in full: everything comes from the snapshot but the contracts, the registry's last command and the stamp of the read. */
 function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity, readAt: string): ForgeReading {
-  const { overseer, concurrency } = snapshot;
+  const { overseer, concurrency, usage } = snapshot;
   return {
     trackerId:         snapshot.trackerId,
     project:           snapshot.project,
@@ -190,11 +189,16 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
     attention:        snapshot.attention.map(attentionItemOf),
     attentionCount:   null,
     agents:           snapshot.jobs.map(agentRowOfMonitorJob),
-    notices:          snapshot.notices.map(noticeOf),
-    warnings:         snapshot.warnings.map(warningOf),
+    notices:          [...snapshot.notices, ...snapshot.warnings.filter(warningIsANotice)].map(noticeOf),
+    warnings:         snapshot.warnings.filter((warning) => !warningIsANotice(warning)).map(noticeOf),
     activity:         snapshot.activity.map(activityEntryOf),
     today:            { deliveredTickets: snapshot.today.deliveredTickets, tokens: snapshot.today.tokens },
-    usage:            { resetsAt: snapshot.usage.resetsAt, window: snapshot.usage.window },
+    usage:            {
+      resetsAt:              usage.resetsAt,
+      window:                usage.window,
+      currentWindow:         usage.currentWindow,
+      currentWindowResetsAt: usage.currentWindowResetsAt,
+    },
   };
 }
 
@@ -227,7 +231,12 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
     warnings:          [],
     activity:          [],
     today:             null,
-    usage:             { resetsAt: summary.usage.resetsAt, window: summary.usage.window },
+    usage:             {
+      resetsAt:              summary.usage.resetsAt,
+      window:                summary.usage.window,
+      currentWindow:         null,
+      currentWindowResetsAt: null,
+    },
   };
 }
 

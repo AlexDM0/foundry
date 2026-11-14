@@ -10,9 +10,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import { HashRouter }                                                     from '../../shell/HashRouter.ts';
-import { FLEET_DEGRADED }                                                 from '../../testing/fixtures/fleet-degraded.ts';
+import type {
+  FleetDocument,
+  FleetDocumentCondition,
+  FleetDocumentForge,
+  FleetDocumentUsage,
+} from '../../@types/FleetDocument.ts';
+import { HashRouter }       from '../../shell/HashRouter.ts';
+import { FLEET_DEGRADED }   from '../../testing/fixtures/fleet-degraded.ts';
 import {
   FLEET_FIVE_FORGES,
   FLEET_FIVE_FORGES_READINGS,
@@ -24,6 +29,12 @@ import { type ForgeFrameClock, ForgeFrameModel } from './ForgeFrameModel.ts';
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const READINGS = FLEET_FIVE_FORGES_READINGS;
 
+const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
+  resetsAt:              null,
+  window:                null,
+  currentWindow:         'five_hour',
+  currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
+};
 const CLOCK: ForgeFrameClock = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 function contentOf(trackerId: string, fleetDocument: FleetDocument = FLEET_FIVE_FORGES) {
@@ -73,15 +84,16 @@ describe('the bar', () => {
   });
 
   test('names usage only when its limit was hit, with the clock time it resets and without its window, so the line stays short', () => {
-    const limitHit = barOf({ ...READINGS.exampleStorefront, usage: { window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
+    const limitHit = barOf({ ...READINGS.exampleStorefront, usage: { ...USAGE_UNDER_THE_LIMIT, window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
     expect(limitHit.status.text).toBe('4 / 5 agents · 2 wait on you · usage limit hit · resets 16:00 · since 09:12');
-    expect(barOf({ ...READINGS.exampleStorefront, usage: { window: null, resetsAt: null } }).status.text).not.toContain('usage');
+    expect(barOf({ ...READINGS.exampleStorefront, usage: USAGE_UNDER_THE_LIMIT }).status.text).not.toContain('usage');
+    expect(barOf({ ...READINGS.exampleStorefront, usage: USAGE_UNDER_THE_LIMIT }).status.text).not.toContain('window');
   });
 
   test('of a forge that stopped answering leaves even a usage limit hit out, so its line keeps as last reported and since', () => {
     const invoiceService = FLEET_DEGRADED.forges.find((forge) => forge.trackerId === TRACKER_IDS.invoiceService);
     if (invoiceService === undefined) throw new Error('The degraded fleet has no Invoice Service.');
-    const limitHit = barOf({ ...invoiceService, usage: { window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
+    const limitHit = barOf({ ...invoiceService, usage: { ...USAGE_UNDER_THE_LIMIT, window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
     expect(limitHit.status.text).toBe('as last reported 13:14 · 3 / 5 agents · 2 wait on you · since 08:40');
   });
 });

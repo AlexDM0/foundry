@@ -74,8 +74,17 @@ export interface RecordedOverseerFetch extends OverseerFetch {
   readonly streamsLeftOpen: () => number;
 }
 
-/** The recordings taken from a forge before F1, from a forge that serves every contract, and from programs that are no forge. */
+/**
+ * The recordings taken from a forge before F1, from a forge that serves every contract at the monitor contract this Gaia knows, and from
+ * programs that are no forge. Each situation's call shapes are unique across them.
+ */
 export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-every-contract', 'overseer-fetch-other-programs'] as const;
+
+/**
+ * The recording of a forge that serves every contract at monitor contract 1, which Gaia still reads: the same situations as
+ * `overseer-fetch-every-contract`, so it is read apart from the recordings above.
+ */
+export const MONITOR_ONE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-1';
 
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';
 const BEARER_SUFFIX = ' with bearer';
@@ -138,17 +147,31 @@ function answersOfRecording(recordingName: string, operatingSystem: string): rea
   });
 }
 
-/** Every answer of both recordings for an OS, each call shape still led by its situation. */
+/** Every answer of the recordings `OVERSEER_RECORDING_NAMES` names for an OS, each call shape still led by its situation. */
 export function everyRecordedOverseerAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return OVERSEER_RECORDING_NAMES.flatMap((recordingName) => answersOfRecording(recordingName, operatingSystem));
 }
 
-/** The answers of one situation, from every recording, each call shape without its situation. */
-export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+/** Every answer of the monitor-1 recording for an OS, each call shape still led by its situation. */
+export function everyRecordedMonitorOneAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfRecording(MONITOR_ONE_OVERSEER_RECORDING_NAME, operatingSystem);
+}
+
+function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
   const situationPrefix = situationCallShapeOf(situation, '');
-  return everyRecordedOverseerAnswerOf(operatingSystem)
+  return answers
     .filter(({ callShape }) => callShape.startsWith(situationPrefix))
     .map(({ callShape, answer }) => ({ callShape: callShape.slice(situationPrefix.length), answer }));
+}
+
+/** The answers of one situation, from every recording `OVERSEER_RECORDING_NAMES` names, each call shape without its situation. */
+export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
+}
+
+/** The answers of one situation of the forge at monitor contract 1, each call shape without its situation. */
+export function recordedMonitorOneAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfSituation(everyRecordedMonitorOneAnswerOf(operatingSystem), situation);
 }
 
 function recordedStreamOf(chunks: readonly string[], ending: RecordedStreamEnding): { readonly stream: OverseerStream; readonly isLeftOpen: () => boolean } {

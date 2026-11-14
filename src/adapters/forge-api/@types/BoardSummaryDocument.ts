@@ -2,7 +2,7 @@
  * The forge's open `GET /api/summary` at `summaryVersion: 1`: the keys Gaia reads of a forge without the monitor contract, after their
  * check. `ticketCountByStatus` is passed over.
  */
-import type { MonitorUsageDocument } from './MonitorSnapshotDocument.ts';
+import type { UsageLimitDocument } from './MonitorSnapshotDocument.ts';
 
 /** `down` is the forge's word for an Overseer that serves nothing. */
 export type SummaryOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
@@ -31,5 +31,5 @@ export interface BoardSummaryDocument {
   readonly jobs:           readonly SummaryJobDocument[];
   readonly openDecisions:  number;
   readonly openIncidents:  number;
-  readonly usage:          MonitorUsageDocument;
+  readonly usage:          UsageLimitDocument;
 }

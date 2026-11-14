@@ -1,8 +1,8 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-five-forges.ts` shows: what the page mapper is held against. */
-import type { AgentRow }      from '../../../shared/@types/AgentRow.ts';
-import type { AttentionItem } from '../../../shared/@types/AttentionItem.ts';
-import type { FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeReading }  from '../../../shared/@types/ForgeReading.ts';
+import type { AgentRow }                 from '../../../shared/@types/AgentRow.ts';
+import type { AttentionItem }            from '../../../shared/@types/AttentionItem.ts';
+import type { FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgeReading, ForgeUsage } from '../../../shared/@types/ForgeReading.ts';
 
 export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -15,11 +15,19 @@ export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
 
 const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 
-const EVERY_CONTRACT_AT_ONE = {
+const EVERY_CURRENT_CONTRACT = {
   summary: 1,
-  monitor: 1,
+  monitor: 2,
   control: 1,
   embed:   1,
+};
+
+/** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
+const USAGE_UNDER_THE_LIMIT: ForgeUsage = {
+  resetsAt:              null,
+  window:                null,
+  currentWindow:         'five_hour',
+  currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
 };
 
 const STOREFRONT_DRAFT_015: AttentionItem = {
@@ -357,7 +365,7 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
   condition:         'live',
   url:               'http://127.0.0.1:4951',
   processId:         48_107,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:22.000Z',
   overseerStartedAt: '2026-11-12T09:12:00.000Z',
@@ -422,7 +430,7 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
     },
   ],
   today: { deliveredTickets: 3, tokens: 512_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const INVOICE_SERVICE: ForgeReading = {
@@ -433,7 +441,7 @@ const INVOICE_SERVICE: ForgeReading = {
   condition:         'live',
   url:               'http://127.0.0.1:4957',
   processId:         48_211,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:24.000Z',
   overseerStartedAt: '2026-11-12T08:40:00.000Z',
@@ -491,7 +499,7 @@ const INVOICE_SERVICE: ForgeReading = {
     },
   ],
   today: { deliveredTickets: 2, tokens: 418_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const RESEARCH_WIKI: ForgeReading = {
@@ -502,7 +510,7 @@ const RESEARCH_WIKI: ForgeReading = {
   condition:         'live',
   url:               'http://127.0.0.1:4962',
   processId:         48_390,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:18.000Z',
   overseerStartedAt: '2026-11-12T11:02:00.000Z',
@@ -539,7 +547,7 @@ const RESEARCH_WIKI: ForgeReading = {
     },
   ],
   today: { deliveredTickets: 1, tokens: 164_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const EXAMPLE_MOBILE_APP: ForgeReading = {
@@ -550,7 +558,7 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
   condition:         'held',
   url:               'http://127.0.0.1:4970',
   processId:         48_555,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       'b81e07d',
   lastReportedAt:    '2026-11-12T13:19:20.000Z',
   overseerStartedAt: '2026-11-12T12:40:00.000Z',
@@ -588,7 +596,7 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
     },
   ],
   today: { deliveredTickets: 0, tokens: 146_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -600,7 +608,7 @@ const DESIGN_SYSTEM: ForgeReading = {
   condition:         'dormant',
   url:               null,
   processId:         null,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T12:19:58.000Z',
   overseerStartedAt: null,
@@ -766,7 +774,7 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     settingsFile:      'read',
     knownContracts:    {
       summary: 1,
-      monitor: 1,
+      monitor: 2,
       control: 1,
       embed:   1,
     },

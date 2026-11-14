@@ -25,10 +25,10 @@ import {
 } from './testing/RecordedForgeProgram.ts';
 
 /** The code version of the forge the F8 answers were recorded from; retake it after `bun run record forge-program-done`. */
-const RECORDED_CODE_VERSION = '9fc4e996dd57';
+const RECORDED_CODE_VERSION = '2b47322f0984';
 
 const EXAMPLE_CONTRACTS = {
-  summary: 1, monitor: 1, control: 1, embed: 1
+  summary: 1, monitor: 2, control: 1, embed: 1
 };
 
 let forgeRoot = '';

@@ -3,8 +3,8 @@
  * `ForgeIdentity`, and decide from its `contracts` how Gaia reads the forge (PLAN 7.1): in full through the monitor, as counts through the
  * summary, or not at all when the forge speaks only newer contracts. An identity without `identityVersion` is the forge's from before F1.
  */
-import type { ForgeContracts } from '../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
+import type { ForgeContracts }                             from '../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
 import type {
   ForgeContractName,
   ForgeIdentity,
@@ -69,12 +69,17 @@ export class IdentityIngestion {
     return this.#readingByContracts(identity);
   }
 
-  /** The monitor is read when the forge serves it at the known number; the summary when it does not, or names no contracts at all. */
+  /**
+   * The monitor is read when the forge serves it at the known number or an older one Gaia still reads; the summary when it does not, or
+   * names no contracts at all.
+   */
   #readingByContracts(identity: ForgeIdentity): IdentityReading {
     const { contracts } = identity;
     if (contracts === null) return { verdict: 'readable', identity, fidelity: 'counts-only' };
     const { monitor, summary } = contracts;
-    if (monitor === CONTRACT_VERSIONS.forgeMonitor) return { verdict: 'readable', identity, fidelity: 'full' };
+    if (monitor === CONTRACT_VERSIONS.forgeMonitor || (monitor !== null && OLDER_CONTRACT_VERSIONS_READ.forgeMonitor.includes(monitor))) {
+      return { verdict: 'readable', identity, fidelity: 'full' };
+    }
     if (monitor !== null && monitor > CONTRACT_VERSIONS.forgeMonitor) return this.#newerContract('monitor', monitor, identity, contracts);
     if (summary === CONTRACT_VERSIONS.forgeBoardSummary) return { verdict: 'readable', identity, fidelity: 'counts-only' };
     if (summary !== null && summary > CONTRACT_VERSIONS.forgeBoardSummary) return this.#newerContract('summary', summary, identity, contracts);

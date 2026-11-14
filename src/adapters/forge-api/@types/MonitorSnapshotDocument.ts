@@ -1,6 +1,7 @@
 /**
- * The forge's `MonitorSnapshot` at `monitorVersion: 1` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys Gaia reads,
- * after their check. Keys Gaia does not read, such as `ticketCountByStatus` and the Overseer's `generation`, are passed over.
+ * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys Gaia reads, after their check, at
+ * `monitorVersion: 2`, and the keys of `monitorVersion: 1` that differ, which the ingestion migrates. Keys Gaia does not read, such as
+ * `ticketCountByStatus` and the Overseer's `generation`, are passed over.
  */
 import type { ActivityCategory }                                        from '../../../shared/@types/ActivityEntry.ts';
 import type { JobTurn }                                                 from '../../../shared/@types/AgentRow.ts';
@@ -68,7 +69,7 @@ export interface MonitorJobDocument {
   readonly route:               string;
 }
 
-/** A notice or a warning: the forge's kind and its own sentence. */
+/** A notice or, from monitor contract 2, a warning: the forge's kind and its own sentence. */
 export interface MonitorNoticeDocument {
   readonly kind: string;
   readonly text: string;
@@ -87,9 +88,16 @@ export interface MonitorTodayDocument {
   readonly tokens:           number;
 }
 
-export interface MonitorUsageDocument {
+/** The usage limit hit, both `null` when no limit was hit: the board summary's usage and monitor contract 1's. */
+export interface UsageLimitDocument {
   readonly resetsAt: string | null;
   readonly window:   string | null;
+}
+
+/** Monitor contract 2 adds the newest usage window a session of the board reported, under the limit or not; both `null` when none did. */
+export interface MonitorUsageDocument extends UsageLimitDocument {
+  readonly currentWindow:         string | null;
+  readonly currentWindowResetsAt: string | null;
 }
 
 export interface MonitorSnapshotDocument {
@@ -104,9 +112,15 @@ export interface MonitorSnapshotDocument {
   readonly attention:      readonly MonitorAttentionEntryDocument[];
   readonly jobs:           readonly MonitorJobDocument[];
   readonly notices:        readonly MonitorNoticeDocument[];
-  /** The header's warnings, each the forge's sentence alone: monitor contract 1 gives a warning no kind. */
-  readonly warnings:       readonly string[];
+  /** The header's warnings: `baton-pass-failed` and `assistant-down` in monitor contract 2. */
+  readonly warnings:       readonly MonitorNoticeDocument[];
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
   readonly activity:       readonly MonitorActivityEntryDocument[];
+}
+
+/** Monitor contract 1 sends each header warning as the forge's sentence alone, and a usage without the current window. */
+export interface MonitorSnapshotDocumentOfVersionOne extends Omit<MonitorSnapshotDocument, 'warnings' | 'usage'> {
+  readonly warnings: readonly string[];
+  readonly usage:    UsageLimitDocument;
 }

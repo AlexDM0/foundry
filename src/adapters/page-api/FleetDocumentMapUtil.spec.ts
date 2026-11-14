@@ -31,7 +31,7 @@ describe('the fleet document mapper', () => {
 
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(1);
+    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(2);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {
@@ -65,6 +65,26 @@ describe('the fleet document mapper', () => {
     const [document] = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [forge] }).forges;
     expect(document?.notices).toEqual([{ kind: 'new-code', text: 'New code is on disk. The Overseer runs the code it started with until it restarts.' }, watcherNotice]);
     expect(document?.warnings).toEqual([{ kind: 'forge-warning', text: 'This forge reports a warning that Gaia does not word yet.' }]);
+  });
+
+  test('words an Assistant that cannot come up in Gaia\'s words, and passes a failed Baton pass that names no command through with its kind', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
+    const batonPassFailed = { kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' };
+    const forge = {
+      ...storefront,
+      notices:  [{ kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' }],
+      warnings: [batonPassFailed],
+    };
+    const [document] = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [forge] }).forges;
+    expect(document?.notices).toEqual([{ kind: 'assistant-down', text: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.' }]);
+    expect(document?.warnings).toEqual([batonPassFailed]);
+  });
+
+  test('carries the current usage window and its reset beside the limit hit', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES).forges[0]?.usage).toEqual(storefront?.usage);
+    expect(storefront?.usage?.currentWindowResetsAt).toBe('2026-11-12T16:00:00.000Z');
   });
 
   test('shares no array or object with the snapshot it was built from', () => {

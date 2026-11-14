@@ -62,6 +62,11 @@ describe('the sentence of a notice and of a warning', () => {
       .toBe('Launches wait until the CLAUDE.md change that updating the forge made is committed.');
   });
 
+  test('is Gaia\'s for an Assistant that cannot come up, which the forge sends as a warning and Gaia shows as a notice', () => {
+    expect(ForgeSentenceUtil.noticeSentenceOf('assistant-down', 'no Assistant can come up: open incidents take their defaults'))
+      .toBe('This forge\'s Assistant cannot come up, so its open incidents take their defaults.');
+  });
+
   test('is neutral for a notice of another kind or a warning that names a command', () => {
     expect(ForgeSentenceUtil.noticeSentenceOf('example-kind', 'run `forge oversee restart`')).toBe('This forge raised a notice that Gaia does not word yet.');
     expect(ForgeSentenceUtil.warningSentenceOf('The Baton pass failed: run `forge oversee restart`.')).toBe('This forge reports a warning that Gaia does not word yet.');

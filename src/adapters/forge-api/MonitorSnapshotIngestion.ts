@@ -1,10 +1,10 @@
 /**
- * The ingestion of a forge's monitor snapshot (F2, F3): check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads, map
- * to a `ForgeReading` at fidelity `full`. A snapshot at a newer version maps nothing of itself; nor does a malformed one, or one that
- * names another forge.
+ * The ingestion of a forge's monitor snapshot (F2, F3): check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads at
+ * that number, migrate a snapshot of an older number Gaia still reads (`OLDER_CONTRACT_VERSIONS_READ`), map to a `ForgeReading` at fidelity
+ * `full`. A snapshot at a newer version maps nothing of itself; nor does a malformed one, or one that names another forge.
  */
 import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS }                                            from '../../shared/constants/ContractVersions.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ }              from '../../shared/constants/ContractVersions.ts';
 import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
 import type {
   MonitorActivityEntryDocument,
@@ -14,11 +14,14 @@ import type {
   MonitorNoticeDocument,
   MonitorOverseerDocument,
   MonitorSnapshotDocument,
+  MonitorSnapshotDocumentOfVersionOne,
   MonitorTodayDocument,
   MonitorUsageDocument,
+  UsageLimitDocument,
 } from './@types/MonitorSnapshotDocument.ts';
-import { DocumentShapeUtil, type ShapeOf } from './utils/DocumentShapeUtil.ts';
-import { ForgeReadingMapUtil }             from './utils/ForgeReadingMapUtil.ts';
+import { DocumentShapeUtil, type DocumentShape, type ShapeOf } from './utils/DocumentShapeUtil.ts';
+import { ForgeReadingMapUtil }                                 from './utils/ForgeReadingMapUtil.ts';
+import { MonitorSnapshotMigrationUtil }                        from './utils/MonitorSnapshotMigrationUtil.ts';
 
 const VERSION_KEY = 'monitorVersion';
 
@@ -95,7 +98,16 @@ const ACTIVITY_ENTRY_SHAPE = {
 
 const TODAY_SHAPE = { deliveredTickets: 'whole-number', tokens: 'whole-number' } as const satisfies ShapeOf<MonitorTodayDocument>;
 
-const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const satisfies ShapeOf<MonitorUsageDocument>;
+const USAGE_LIMIT_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const satisfies ShapeOf<UsageLimitDocument>;
+
+const USAGE_SHAPE = {
+  ...USAGE_LIMIT_SHAPE,
+  currentWindow:         NULLABLE_TEXT,
+  currentWindowResetsAt: NULLABLE_TEXT,
+} as const satisfies ShapeOf<MonitorUsageDocument>;
+
+/** A warning's kind is read as text: a kind this Gaia does not know is shown as a warning, under the command guard, as contract 1's are. */
+const WARNING_SHAPE = NOTICE_SHAPE;
 
 const MONITOR_SNAPSHOT_SHAPE = {
   monitorVersion: 'whole-number',
@@ -109,11 +121,39 @@ const MONITOR_SNAPSHOT_SHAPE = {
   attention:      { listOf: ATTENTION_ENTRY_SHAPE },
   jobs:           { listOf: JOB_SHAPE },
   notices:        { listOf: NOTICE_SHAPE },
-  warnings:       'text-list',
+  warnings:       { listOf: WARNING_SHAPE },
   today:          { object: TODAY_SHAPE },
   usage:          { object: USAGE_SHAPE },
   activity:       { listOf: ACTIVITY_ENTRY_SHAPE },
 } as const satisfies ShapeOf<MonitorSnapshotDocument>;
+
+const MONITOR_SNAPSHOT_SHAPE_OF_VERSION_ONE = {
+  ...MONITOR_SNAPSHOT_SHAPE,
+  warnings: 'text-list',
+  usage:    { object: USAGE_LIMIT_SHAPE },
+} as const satisfies ShapeOf<MonitorSnapshotDocumentOfVersionOne>;
+
+type CheckedSnapshot = { readonly verdict: 'checked'; readonly snapshot: MonitorSnapshotDocument } | { readonly verdict: 'malformed'; readonly invalidKeys: readonly string[] };
+
+function invalidKeysOrNull(document: unknown, shape: DocumentShape): readonly string[] | null {
+  const invalidKeys = DocumentShapeUtil.invalidKeysOf(document, shape);
+  return invalidKeys.length === 0 ? null : invalidKeys;
+}
+
+/** The snapshot in the current shape: checked at its own number, and migrated when that number is an older one Gaia still reads. */
+function checkedSnapshotOf(document: unknown, version: number): CheckedSnapshot {
+  if (version === CONTRACT_VERSIONS.forgeMonitor) {
+    const invalidKeys = invalidKeysOrNull(document, MONITOR_SNAPSHOT_SHAPE);
+    return invalidKeys === null ? { verdict: 'checked', snapshot: document as MonitorSnapshotDocument } : { verdict: 'malformed', invalidKeys };
+  }
+  const invalidKeys = invalidKeysOrNull(document, MONITOR_SNAPSHOT_SHAPE_OF_VERSION_ONE);
+  if (invalidKeys !== null) return { verdict: 'malformed', invalidKeys };
+  return { verdict: 'checked', snapshot: MonitorSnapshotMigrationUtil.currentDocumentOf(document as MonitorSnapshotDocumentOfVersionOne) };
+}
+
+function versionIsRead(version: number): boolean {
+  return version === CONTRACT_VERSIONS.forgeMonitor || OLDER_CONTRACT_VERSIONS_READ.forgeMonitor.includes(version);
+}
 
 export class MonitorSnapshotIngestion {
   readonly #registryFacts: ForgeRegistryFacts;
@@ -136,11 +176,11 @@ export class MonitorSnapshotIngestion {
         reading:  this.#newerContractReadingAt(version),
       };
     }
-    if (version < CONTRACT_VERSIONS.forgeMonitor) return { verdict: 'older-contract', contract: 'monitor', version };
+    if (!versionIsRead(version)) return { verdict: 'older-contract', contract: 'monitor', version };
 
-    const invalidKeys = DocumentShapeUtil.invalidKeysOf(document, MONITOR_SNAPSHOT_SHAPE);
-    if (invalidKeys.length > 0) return { verdict: 'malformed', invalidKeys };
-    const snapshot = document as MonitorSnapshotDocument;
+    const checked = checkedSnapshotOf(document, version);
+    if (checked.verdict === 'malformed') return checked;
+    const { snapshot } = checked;
     // A snapshot of another forge must never be shown as this one.
     if (snapshot.trackerId !== this.#registryFacts.trackerId) return { verdict: 'malformed', invalidKeys: ['trackerId'] };
     return { verdict: 'readable', reading: ForgeReadingMapUtil.fullReadingOf(snapshot, this.#registryFacts, this.#identity, readAt) };

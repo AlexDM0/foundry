@@ -12,7 +12,9 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
    without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. The known numbers are
-   `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper.
+   `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper, except at an older
+   number `OLDER_CONTRACT_VERSIONS_READ` names, which its ingestion migrates to the current shape first (monitor 1, for a forge not yet
+   updated).
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself. A forge sentence that names a command
    leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its refusal code or notice kind, and otherwise for
    a neutral sentence.

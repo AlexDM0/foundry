@@ -210,7 +210,7 @@ describe('the side lists', () => {
   });
 
   test('the usage line is the forges\' reading, and with no forge reporting today or usage the lists say so and the usage is absent', () => {
-    expect(tree.textOf([tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-activity-usage-line')])).toBe('under its limit');
+    expect(tree.textOf([tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-activity-usage-line')])).toBe('under its limit · window resets 16:00');
     const empty = layoutOf(FLEET_EMPTY).unfolded;
     const sideSentences = tree.hostElementsIn(empty, tree.withClass('gaia-activity-side-empty')).map((sentence) => tree.textOf([sentence]));
     expect(sideSentences).toEqual(['No forge reports it.', 'No forge reports it.']);

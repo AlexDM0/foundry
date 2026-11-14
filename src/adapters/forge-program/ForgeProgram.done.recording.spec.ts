@@ -15,6 +15,7 @@ import {
   test
 } from 'bun:test';
 
+import { CONTRACT_VERSIONS }                                        from '../../shared/constants/ContractVersions.ts';
 import { recordSystemVersion }                                      from '../../testing/BoundaryRecordings.ts';
 import { createScratchForge, forgeProgramToRun, type ScratchForge } from '../../testing/ScratchForge.ts';
 import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
@@ -83,7 +84,7 @@ describe('a forge that answers F8, every verb done', () => {
       verdict: 'done',
       answer:  {
         contracts: {
-          summary: 1, monitor: 1, control: 1, embed: 1
+          summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: 1, embed: 1
         }
       }
     });

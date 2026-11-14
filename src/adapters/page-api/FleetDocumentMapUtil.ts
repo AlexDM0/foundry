@@ -123,7 +123,12 @@ function forgeOut(reading: ForgeReading): FleetDocumentForge {
     warnings:         reading.warnings.map(warningOut),
     activity:         reading.activity.map(activityEntryOut),
     today:            today === null ? null : { deliveredTickets: today.deliveredTickets, tokens: today.tokens },
-    usage:            usage === null ? null : { resetsAt: usage.resetsAt, window: usage.window },
+    usage:            usage === null ? null : {
+      resetsAt:              usage.resetsAt,
+      window:                usage.window,
+      currentWindow:         usage.currentWindow,
+      currentWindowResetsAt: usage.currentWindowResetsAt,
+    },
   };
 }
 

@@ -68,10 +68,10 @@ interface ReadFacts {
 
 /** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 1, control: 1 },
+  'full':           { condition: 'live', monitor: 2, control: 1 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
-  'newer-contract': { condition: 'unreadable', monitor: 2, control: 2 },
-  'unreachable':    { condition: 'unreachable', monitor: 1, control: 1 },
+  'newer-contract': { condition: 'unreadable', monitor: 3, control: 2 },
+  'unreachable':    { condition: 'unreachable', monitor: 2, control: 1 },
 };
 
 let scratchFolder = '';

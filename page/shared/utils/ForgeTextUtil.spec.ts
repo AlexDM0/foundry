@@ -33,15 +33,22 @@ describe('a forge\'s condition', () => {
 
 describe('the usage line', () => {
   const clockTextOfStamp = (stamp: string): string => `clock of ${stamp}`;
+  const NO_CURRENT_WINDOW = { currentWindow: null, currentWindowResetsAt: null };
+  const CURRENT_WINDOW = { currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T15:00:00.000Z' };
 
-  test('says under its limit while no window is hit', () => {
-    expect(ForgeTextUtil.usageTextOf({ window: null, resetsAt: null }, clockTextOfStamp)).toBe('under its limit');
+  test('says under its limit, and nothing of a window, while no window is hit and none is reported', () => {
+    expect(ForgeTextUtil.usageTextOf({ window: null, resetsAt: null, ...NO_CURRENT_WINDOW }, clockTextOfStamp)).toBe('under its limit');
   });
 
-  test('names the window that hit the limit and when it resets, by the caller\'s clock', () => {
-    expect(ForgeTextUtil.usageTextOf({ window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' }, clockTextOfStamp))
+  test('says under its limit and when the current window resets, by the caller\'s clock, while no window is hit', () => {
+    expect(ForgeTextUtil.usageTextOf({ window: null, resetsAt: null, ...CURRENT_WINDOW }, clockTextOfStamp))
+      .toBe('under its limit · window resets clock of 2026-11-12T15:00:00.000Z');
+  });
+
+  test('names the window that hit the limit and when it resets, by the caller\'s clock, whatever the current window', () => {
+    expect(ForgeTextUtil.usageTextOf({ window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z', ...CURRENT_WINDOW }, clockTextOfStamp))
       .toBe('five-hour limit hit · resets clock of 2026-11-12T16:00:00.000Z');
-    expect(ForgeTextUtil.usageTextOf({ window: null, resetsAt: '2026-11-12T16:00:00.000Z' }, clockTextOfStamp))
+    expect(ForgeTextUtil.usageTextOf({ window: null, resetsAt: '2026-11-12T16:00:00.000Z', ...NO_CURRENT_WINDOW }, clockTextOfStamp))
       .toBe('limit hit · resets clock of 2026-11-12T16:00:00.000Z');
   });
 });

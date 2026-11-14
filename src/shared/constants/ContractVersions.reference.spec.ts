@@ -1,17 +1,19 @@
 /**
- * `docs/contracts.md` names every versioned contract with its number, and `CONTRACT_VERSIONS` holds the numbers. What matters: the
- * reference's table and the constant agree both ways, a key missing from either side, a number that differs and a key listed twice each
- * named. The reading first proves it found the table, and each disagreement is planted to prove the comparison names it.
+ * `docs/contracts.md` names every versioned contract with its number, and the older numbers Gaia still reads, and `CONTRACT_VERSIONS` and
+ * `OLDER_CONTRACT_VERSIONS_READ` hold the numbers. What matters: each of the reference's two tables and its constant agree both ways, a key
+ * or an older number missing from either side, a number that differs and a key listed twice each named. The reading first proves it found
+ * each table, and each disagreement is planted to prove the comparison names it.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { CONTRACT_VERSIONS } from './ContractVersions.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from './ContractVersions.ts';
 
 const CONTRACTS_REFERENCE_PATH = join(import.meta.dir, '..', '..', '..', 'docs', 'contracts.md');
 const VERSIONED_CONTRACTS_HEADING = '## Versioned contracts';
+const OLDER_VERSIONS_HEADING = '## Older versions Gaia still reads';
 const NEXT_SECTION_HEADING = /^## /;
 const CONTRACT_ROW = /^\|\s*`(?<contractKey>[A-Za-z]+)`\s*\|\s*(?<version>\d+)\s*\|/;
 
@@ -22,17 +24,19 @@ interface ReferenceRow {
 
 type KnownVersions = Readonly<Record<string, number>>;
 
-function versionedContractsSectionOf(reference: string): readonly string[] {
+type OlderVersionsRead = Readonly<Record<string, readonly number[]>>;
+
+function sectionOf(reference: string, heading: string): readonly string[] {
   const lines = reference.split('\n');
-  const headingIndex = lines.findIndex((line) => line.trim() === VERSIONED_CONTRACTS_HEADING);
+  const headingIndex = lines.findIndex((line) => line.trim() === heading);
   if (headingIndex === -1) return [];
   const sectionLines = lines.slice(headingIndex + 1);
   const nextHeadingIndex = sectionLines.findIndex((line) => NEXT_SECTION_HEADING.test(line));
   return nextHeadingIndex === -1 ? sectionLines : sectionLines.slice(0, nextHeadingIndex);
 }
 
-function referenceRowsOf(reference: string): readonly ReferenceRow[] {
-  return versionedContractsSectionOf(reference).flatMap((line) => {
+function referenceRowsOf(reference: string, heading: string = VERSIONED_CONTRACTS_HEADING): readonly ReferenceRow[] {
+  return sectionOf(reference, heading).flatMap((line) => {
     const groups = CONTRACT_ROW.exec(line)?.groups;
     const contractKey = groups?.['contractKey'];
     const version = groups?.['version'];
@@ -57,6 +61,17 @@ function disagreementsBetween(rows: readonly ReferenceRow[], knownVersions: Know
     if (!listedKeys.has(contractKey)) disagreements.push(`${contractKey} is missing from the reference`);
   }
   return disagreements;
+}
+
+/** Each older number is named once on each side: `forgeMonitor 1`. */
+function olderVersionDisagreementsBetween(rows: readonly ReferenceRow[], olderVersions: OlderVersionsRead): readonly string[] {
+  const listed = rows.map(({ contractKey, version }) => `${contractKey} ${version}`);
+  const known = Object.entries(olderVersions).flatMap(([contractKey, versions]) => versions.map((version) => `${contractKey} ${version}`));
+  return [
+    ...listed.filter((entry, index) => listed.indexOf(entry) !== index).map((entry) => `${entry} is listed more than once`),
+    ...listed.filter((entry) => !known.includes(entry)).map((entry) => `${entry} is not in OLDER_CONTRACT_VERSIONS_READ`),
+    ...known.filter((entry) => !listed.includes(entry)).map((entry) => `${entry} is missing from the reference`),
+  ];
 }
 
 function referenceWithRows(rowLines: readonly string[]): string {
@@ -129,6 +144,26 @@ describe('the comparison of the reference with the known versions', () => {
   });
 });
 
+describe('the comparison of the older versions the reference lists with those Gaia reads', () => {
+  const PLANTED_OLDER_VERSIONS: OlderVersionsRead = { exampleMonitor: [1] };
+  const olderRowsOf = (rowLines: readonly string[]): readonly ReferenceRow[] => referenceRowsOf(
+    ['# Contracts', '', OLDER_VERSIONS_HEADING, '', '| Key | Older version |', '| --- | --- |', ...rowLines].join('\n'),
+    OLDER_VERSIONS_HEADING,
+  );
+
+  test('finds no disagreement when every older number is listed once', () => {
+    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |']), PLANTED_OLDER_VERSIONS)).toEqual([]);
+  });
+
+  test('names an older number the reference leaves out, one it lists that Gaia does not read, and one it lists twice', () => {
+    expect(olderVersionDisagreementsBetween(olderRowsOf([]), PLANTED_OLDER_VERSIONS)).toEqual(['exampleMonitor 1 is missing from the reference']);
+    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |', '| `exampleMonitor` | 0 |']), PLANTED_OLDER_VERSIONS))
+      .toEqual(['exampleMonitor 0 is not in OLDER_CONTRACT_VERSIONS_READ']);
+    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |', '| `exampleMonitor` | 1 |']), PLANTED_OLDER_VERSIONS))
+      .toEqual(['exampleMonitor 1 is listed more than once']);
+  });
+});
+
 describe('docs/contracts.md', () => {
   const contractsReferenceRows = (): readonly ReferenceRow[] => referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'));
 
@@ -138,5 +173,18 @@ describe('docs/contracts.md', () => {
 
   test('agrees with CONTRACT_VERSIONS on every key and number, both ways', () => {
     expect(disagreementsBetween(contractsReferenceRows(), CONTRACT_VERSIONS)).toEqual([]);
+  });
+
+  test('lists the older numbers Gaia still reads, and agrees with OLDER_CONTRACT_VERSIONS_READ on each, both ways', () => {
+    const olderRows = referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'), OLDER_VERSIONS_HEADING);
+    expect(olderRows.length).toBeGreaterThan(0);
+    expect(olderVersionDisagreementsBetween(olderRows, OLDER_CONTRACT_VERSIONS_READ)).toEqual([]);
+  });
+
+  test('names every older number below its contract\'s current one', () => {
+    for (const [contractKey, versions] of Object.entries(OLDER_CONTRACT_VERSIONS_READ)) {
+      const currentVersion = Object.hasOwn(CONTRACT_VERSIONS, contractKey) ? CONTRACT_VERSIONS[contractKey as keyof typeof CONTRACT_VERSIONS] : 0;
+      for (const version of versions) expect(version).toBeLessThan(currentVersion);
+    }
   });
 });

@@ -19,6 +19,7 @@ import { forgeClientOf }                                                from './
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from './lib/local-http-guards/ContentSecurityPolicy.ts';
 import { environmentCopy }                                              from './services/Environment.ts';
 import { createFleetStore }                                             from './services/FleetStore.ts';
+import { CONTRACT_VERSIONS }                                            from './shared/constants/ContractVersions.ts';
 import { manualTimers }                                                 from './testing/ManualTimers.ts';
 import { recordedOverseerFetch }                                        from './testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from './testing/ScratchRoot.ts';
@@ -107,7 +108,7 @@ describe('gaia serve', () => {
     const cookie = (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
     const fleet = await answerOf(address, '/api/fleet', { headers: { cookie } });
     expect(await fleet.json()).toMatchObject({
-      fleetVersion: 1,
+      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       [],
       gaia:         {
         address:      address.origin,

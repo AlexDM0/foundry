@@ -5,8 +5,9 @@ Every versioned contract Gaia reads, writes, sends or serves. The known number o
 `src/shared/constants/ContractVersions.reference.spec.ts` fails `bun run verify` when the two disagree. A shape is defined once, in the
 module the table names; this file does not repeat its keys.
 
-A reading at another number never reaches a mapper: its ingestion answers a verdict (`newer-contract`, `older-contract`, `newer-version`
-or `other-version`), and Gaia shows the forge or the file as one it cannot read in full. Gaia and its page ship together, so a page that
+A reading at another number never reaches a mapper, except at an older number listed under "Older versions Gaia still reads": its
+ingestion answers a verdict (`newer-contract`, `older-contract`, `newer-version` or `other-version`), and Gaia shows the forge or the
+file as one it cannot read in full. Gaia and its page ship together, so a page that
 reads another `fleetVersion` is a stale page and reloads once.
 
 ## Versioned contracts
@@ -16,14 +17,14 @@ reads another `fleetVersion` is a stale page and reloads once.
 | `forgeRegistry` | 1 | `version` | `~/.forge-monitor/projects.json`, the registry every forge of the account writes itself into | reads | `src/adapters/forge-registry/RegistryFile.ts` | the forge; `program` per entry with F9 |
 | `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/identity`; its `contracts` names the number of each contract below that the forge serves | reads | `src/adapters/forge-api/@types/IdentityDocument.ts`, `IdentityIngestion.ts` | the forge from F1; before it, no version key and no `contracts` |
 | `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/summary`, polled for a forge without the monitor contract | reads | `src/adapters/forge-api/@types/BoardSummaryDocument.ts`, `BoardSummaryIngestion.ts` | the forge |
-| `forgeMonitor` | 1 | `monitorVersion` | an Overseer's `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`, with the bearer token | reads | `src/adapters/forge-api/@types/MonitorSnapshotDocument.ts`, `MonitorSnapshotIngestion.ts` | the forge from F2 and F3 |
+| `forgeMonitor` | 2 | `monitorVersion` | an Overseer's `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`, with the bearer token | reads | `src/adapters/forge-api/@types/MonitorSnapshotDocument.ts`, `MonitorSnapshotIngestion.ts` | the forge from F2 and F3; monitor 2 adds a kind to each warning and the current usage window |
 | `forgeControl` | 1 | `contracts.control` of the identity | an Overseer's `POST /api/commands`, with the bearer token | sends | `src/lib/forge-client/@types/ForgeControlCommand.ts` | the forge from F7 |
 | `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `page/views/forge-frame/EmbedChannel.ts` | the forge from F5 |
 | `forgeProgramAnswer` | 1 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1 | `version` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
 | `gaiaSettings` | 1 | `version` | `~/.gaia/settings.json` | reads and writes | `src/adapters/gaia-files/@types/StoredSettings.ts`, `SettingsFile.ts`, `SettingsWriter.ts` | Gaia |
 | `gaiaServerRecord` | 1 | `version` | `~/.forge-monitor/gaia/server.json`, which a forge reads to let Gaia's origin frame its Bridge | writes | `src/adapters/gaia-files/ServerRecordWriter.ts` | Gaia; the forge reads it from F5 |
-| `gaiaFleetDocument` | 1 | `fleetVersion` | `GET /api/fleet` and the `fleet` event of `GET /api/events` | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia |
+| `gaiaFleetDocument` | 2 | `fleetVersion` | `GET /api/fleet` and the `fleet` event of `GET /api/events` | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia |
 | `gaiaCommand` | 1 | `commandVersion` | the body of `POST /api/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
 | `gaiaCommandAnswer` | 2 | `answerVersion` | the answer of `POST /api/commands` | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/CommandAnswerMapUtil.ts` | Gaia |
 | `gaiaFrameSession` | 1 | `frameSessionVersion` | the answer of `POST /api/forges/<trackerId>/frame-session` | serves; the page reads | `page/@types/FrameSessionDocument.ts`, mapped out by `src/adapters/page-api/FrameSessionAnswerMapUtil.ts` | Gaia |
@@ -33,6 +34,16 @@ reads another `fleetVersion` is a stale page and reloads once.
 
 The forge's requirements F1 to F9 are the owner's to run on the forge's own board. Every fixture of a forge contract is recorded from a
 forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`.
+
+## Older versions Gaia still reads
+
+A forge on older code keeps serving an older contract until it is updated, so Gaia reads these numbers too. Each is migrated on its
+ingestion to the current number's shape, and a mapper only ever sees the current shape. The numbers live once, in
+`OLDER_CONTRACT_VERSIONS_READ` (`src/shared/constants/ContractVersions.ts`), and the same spec holds this table to it, both ways.
+
+| Key in `CONTRACT_VERSIONS` | Older version | What the migration does | Migrated by |
+| --- | --- | --- | --- |
+| `forgeMonitor` | 1 | A warning is the forge's sentence alone, so it reads as a warning of no kind, worded only by the command guard and firing no look; the current usage window is unknown, so `null`. An identity naming monitor 1 or 2 is read in full. | `src/adapters/forge-api/utils/MonitorSnapshotMigrationUtil.ts`, called by `MonitorSnapshotIngestion.ts` |
 
 ## The install version
 

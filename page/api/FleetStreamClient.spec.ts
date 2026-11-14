@@ -113,7 +113,11 @@ function followedAndLive(stage: StreamStage): StreamStage {
 
 const FLEET_DOCUMENT_TEXT = JSON.stringify(FLEET_FIVE_FORGES);
 
-const NEWER_FLEET_DOCUMENT_TEXT = JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: 2 });
+const NEWER_FLEET_VERSION = FLEET_FIVE_FORGES.fleetVersion + 1;
+
+const NEWER_FLEET_VERSION_MARK = String(NEWER_FLEET_VERSION);
+
+const NEWER_FLEET_DOCUMENT_TEXT = JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: NEWER_FLEET_VERSION });
 
 describe('following the event stream', () => {
   test('it opens /api/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
@@ -214,13 +218,13 @@ describe('another fleetVersion', () => {
   test('a document of another fleetVersion marks that version, reloads the page once, closes the stream and publishes nothing', () => {
     const stage = followedAndLive(streamStage());
     stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, NEWER_FLEET_DOCUMENT_TEXT);
-    expect([stage.marks, stage.reloads, stage.published]).toEqual([['2'], ['reloaded'], []]);
+    expect([stage.marks, stage.reloads, stage.published]).toEqual([[NEWER_FLEET_VERSION_MARK], ['reloaded'], []]);
     expect(stage.latest().isClosed()).toBe(true);
     expect(stage.scheduled).toEqual([]);
   });
 
   test('after the reload, the same version again does not reload: the page reads out of date and follows no more', () => {
-    const stage = followedAndLive(streamStage({ storedMark: '2' }));
+    const stage = followedAndLive(streamStage({ storedMark: NEWER_FLEET_VERSION_MARK }));
     stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, NEWER_FLEET_DOCUMENT_TEXT);
     expect([stage.reloads, stage.client.state(), stage.latest().isClosed()]).toEqual([[], 'page-out-of-date', true]);
     stage.client.follow();
@@ -234,7 +238,7 @@ describe('another fleetVersion', () => {
   });
 
   test('a document of the known version clears the mark, so a later mismatch reloads once again', () => {
-    const stage = followedAndLive(streamStage({ storedMark: '2' }));
+    const stage = followedAndLive(streamStage({ storedMark: NEWER_FLEET_VERSION_MARK }));
     stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, FLEET_DOCUMENT_TEXT);
     stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, FLEET_DOCUMENT_TEXT);
     expect([stage.marks, stage.published]).toEqual([[null], [FLEET_FIVE_FORGES, FLEET_FIVE_FORGES]]);

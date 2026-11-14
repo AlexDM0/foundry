@@ -1,13 +1,21 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-degraded.ts` shows: what the page mapper is held against. */
-import type { AgentRow }      from '../../../shared/@types/AgentRow.ts';
-import type { FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeReading }  from '../../../shared/@types/ForgeReading.ts';
+import type { AgentRow }                 from '../../../shared/@types/AgentRow.ts';
+import type { FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgeReading, ForgeUsage } from '../../../shared/@types/ForgeReading.ts';
 
 import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS, FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS } from './fleet-snapshot-five-forges.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
 const TRACKER_IDS = { ...FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS, analyticsSandbox: 'analytics-sandbox-4d18' } as const;
+
+/** A summary reports the usage limit hit and no current window. */
+const USAGE_OF_A_SUMMARY: ForgeUsage = {
+  resetsAt:              null,
+  window:                null,
+  currentWindow:         null,
+  currentWindowResetsAt: null,
+};
 
 const INVOICE_SERVICE: ForgeReading = {
   ...READINGS.invoiceService,
@@ -70,7 +78,7 @@ const RESEARCH_WIKI: ForgeReading = {
   warnings:          [],
   activity:          [],
   today:             null,
-  usage:             { resetsAt: null, window: null },
+  usage:             USAGE_OF_A_SUMMARY,
 };
 
 const ANALYTICS_SANDBOX: ForgeReading = {
@@ -83,7 +91,7 @@ const ANALYTICS_SANDBOX: ForgeReading = {
   processId: 49_012,
   contracts: {
     summary: 1,
-    monitor: 2,
+    monitor: 3,
     control: 2,
     embed:   1,
   },

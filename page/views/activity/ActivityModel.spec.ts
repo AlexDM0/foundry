@@ -170,15 +170,25 @@ describe('landed today and tokens today', () => {
 });
 
 describe('the usage line', () => {
-  test('forges under the limit share one line, since the limit is the machine\'s', () => {
-    expect(contentOf(FLEET_FIVE_FORGES).usageLines).toEqual(['under its limit']);
+  test('forges under the limit share one line, since the limit is the machine\'s, with the clock time their current window resets', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).usageLines).toEqual(['under its limit · window resets 16:00']);
+  });
+
+  test('forges under the limit that report no current window say only that they are under it', () => {
+    const noCurrentWindow = {
+      window: null, resetsAt: null, currentWindow: null, currentWindowResetsAt: null
+    };
+    const underTheLimit = withForges(FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: noCurrentWindow })));
+    expect(contentOf(underTheLimit).usageLines).toEqual(['under its limit']);
   });
 
   test('a forge that hit the limit names its window and the clock time it resets', () => {
-    const hitUsage = { window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' };
+    const hitUsage = {
+      window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z', currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
+    };
     const limitHit = withForges(FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: hitUsage })));
     expect(contentOf(limitHit).usageLines).toEqual(['five-hour limit hit · resets 16:00']);
-    const noWindow = withForges([{ ...READINGS.exampleStorefront, usage: { window: null, resetsAt: '2026-11-12T16:00:00.000Z' } }]);
+    const noWindow = withForges([{ ...READINGS.exampleStorefront, usage: { ...hitUsage, window: null }, }]);
     expect(contentOf(noWindow).usageLines).toEqual(['limit hit · resets 16:00']);
   });
 

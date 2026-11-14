@@ -1,13 +1,16 @@
 /**
  * The reading mapper against its own contract, on documents its ingestions have checked: the Overseer's state and pause to a condition,
  * a held launch outranking a pause; an identity's absent contracts to `null`; the contract just read at the number its document carries;
- * and a newer contract's reading with no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
+ * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a
+ * summary's usage with no current window; and a newer contract's reading with no fact of any document. The whole mappings are held by the
+ * ingestion specs against the fixtures.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardSummaryDocument, SummaryOverseerState } from '../@types/BoardSummaryDocument.ts';
 import type { ForgeIdentity, ForgeRegistryFacts }          from '../@types/ForgeDocumentReading.ts';
-import { ForgeReadingMapUtil }                             from './ForgeReadingMapUtil.ts';
+import type { MonitorSnapshotDocument }                    from '../@types/MonitorSnapshotDocument.ts';
+import { ASSISTANT_DOWN_KIND, ForgeReadingMapUtil }        from './ForgeReadingMapUtil.ts';
 
 const REGISTRY_FACTS: ForgeRegistryFacts = {
   trackerId:         'example-agency-1a2b',
@@ -51,6 +54,70 @@ describe('the condition of a forge', () => {
       ['down', false],
     ] as const).map(([state, paused]) => ForgeReadingMapUtil.countsOnlyReadingOf(summaryAt(state, paused), REGISTRY_FACTS, IDENTITY, 'stamp').condition);
     expect(conditions).toEqual(['live', 'paused', 'held', 'passing-baton', 'dormant']);
+  });
+});
+
+function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapshotDocument {
+  return {
+    monitorVersion: 2,
+    trackerId:      REGISTRY_FACTS.trackerId,
+    project:        'Example Agency',
+    root:           REGISTRY_FACTS.root,
+    overseer:       {
+      state:       'serving',
+      paused:      false,
+      url:         REGISTRY_FACTS.overseerUrl,
+      processId:   4242,
+      startedAt:   '2026-11-12T08:00:00.000Z',
+      codeVersion: '3f9a2c1',
+    },
+    concurrency:    { limit: 2, agentsInFlight: 0 },
+    readyTicketIds: [],
+    openIncidents:  0,
+    attention:      [],
+    jobs:           [],
+    notices:        [],
+    warnings:       [],
+    today:          { deliveredTickets: 0, tokens: 0 },
+    usage:          {
+      resetsAt:              null,
+      window:                null,
+      currentWindow:         null,
+      currentWindowResetsAt: null,
+    },
+    activity: [],
+    ...changes,
+  };
+}
+
+describe('the warnings and notices of a snapshot read in full', () => {
+  test('read a warning that an Assistant cannot come up as a notice, after the forge\'s own, and keep every other warning with its kind', () => {
+    const newCode = { kind: 'new-code', text: 'new code is on disk: restart the Overseer to run it' };
+    const assistantDown = { kind: ASSISTANT_DOWN_KIND, text: 'no Assistant can come up: open incidents take their defaults' };
+    const batonPassFailed = { kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' };
+    const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ notices: [newCode], warnings: [assistantDown, batonPassFailed] }), REGISTRY_FACTS, IDENTITY, 'stamp');
+    expect([reading.notices, reading.warnings]).toEqual([[newCode, assistantDown], [batonPassFailed]]);
+  });
+
+  test('carry the current usage window beside the limit hit', () => {
+    const usage = {
+      resetsAt:              null,
+      window:                null,
+      currentWindow:         'five_hour',
+      currentWindowResetsAt: '2026-11-12T15:00:00.000Z',
+    };
+    expect(ForgeReadingMapUtil.fullReadingOf(snapshotWith({ usage }), REGISTRY_FACTS, IDENTITY, 'stamp').usage).toEqual(usage);
+  });
+});
+
+describe('the usage of a forge read through its summary', () => {
+  test('is the limit hit and no current window, which a summary does not report', () => {
+    expect(ForgeReadingMapUtil.countsOnlyReadingOf(summaryAt('serving', false), REGISTRY_FACTS, IDENTITY, 'stamp').usage).toEqual({
+      resetsAt:              null,
+      window:                null,
+      currentWindow:         null,
+      currentWindowResetsAt: null,
+    });
   });
 });
 

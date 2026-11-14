@@ -2,11 +2,17 @@
  * The forge documents the forge-api specs read, taken through the forge client from the recorded overseer answers, and the
  * registry facts of the forges the fleet fixtures show. Test-only.
  */
-import type { ForgeDocumentAnswer }                                                 from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import { forgeClientOf }                                                            from '../../../lib/forge-client/ForgeClient.ts';
-import type { ForgeReading }                                                        from '../../../shared/@types/ForgeReading.ts';
-import { recordedOverseerAnswersOf, recordedOverseerFetch, type OverseerSituation } from '../../../testing/RecordedAnswers.ts';
-import type { ForgeRegistryFacts }                                                  from '../@types/ForgeDocumentReading.ts';
+import type { ForgeDocumentAnswer } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import { forgeClientOf }            from '../../../lib/forge-client/ForgeClient.ts';
+import type { ForgeReading }        from '../../../shared/@types/ForgeReading.ts';
+import {
+  recordedMonitorOneAnswersOf,
+  recordedOverseerAnswersOf,
+  recordedOverseerFetch,
+  type OverseerSituation,
+  type RecordedOverseerAnswer,
+} from '../../../testing/RecordedAnswers.ts';
+import type { ForgeRegistryFacts } from '../@types/ForgeDocumentReading.ts';
 
 export type ForgeDocumentRoute = 'identity' | 'summary' | 'monitor';
 
@@ -15,14 +21,24 @@ const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 /** The stamp the specs read every document at, standing in for the injected clock. */
 export const EXAMPLE_READ_STAMP = '2026-11-12T13:19:22.000Z';
 
+async function documentAnsweredOf(answers: readonly RecordedOverseerAnswer[], route: ForgeDocumentRoute, overseerUrl: string): Promise<ForgeDocumentAnswer> {
+  const client = forgeClientOf({ overseerFetch: recordedOverseerFetch(answers) });
+  if (route === 'identity') return client.identityOf(overseerUrl);
+  if (route === 'summary') return client.summaryOf(overseerUrl);
+  return client.monitorOf({ overseerUrl, bearerToken: EXAMPLE_TOKEN });
+}
+
 /** The parsed document one route answered in one situation of the forge; a spec fails when the route answered no document. */
 export async function recordedDocumentOf(situation: OverseerSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
-  const client = forgeClientOf({ overseerFetch: recordedOverseerFetch(recordedOverseerAnswersOf(situation)) });
-  let answer: ForgeDocumentAnswer;
-  if (route === 'identity') answer = await client.identityOf(overseerUrl);
-  else if (route === 'summary') answer = await client.summaryOf(overseerUrl);
-  else answer = await client.monitorOf({ overseerUrl, bearerToken: EXAMPLE_TOKEN });
+  const answer = await documentAnsweredOf(recordedOverseerAnswersOf(situation), route, overseerUrl);
   if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no ${route} document: ${answer.verdict}.`);
+  return answer.document;
+}
+
+/** The same, from the forge recorded at monitor contract 1. */
+export async function recordedMonitorOneDocumentOf(situation: OverseerSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
+  const answer = await documentAnsweredOf(recordedMonitorOneAnswersOf(situation), route, overseerUrl);
+  if (answer.verdict !== 'answered') throw new Error(`The monitor-1 ${situation} answers hold no ${route} document: ${answer.verdict}.`);
   return answer.document;
 }
 

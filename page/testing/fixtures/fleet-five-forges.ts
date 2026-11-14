@@ -7,6 +7,7 @@ import type {
   FleetDocumentAgentRow,
   FleetDocumentAttentionItem,
   FleetDocumentForge,
+  FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
 
 /** The page clock the artboards were drawn at. */
@@ -23,11 +24,19 @@ export const FLEET_FIVE_FORGES_TRACKER_IDS = {
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
-const EVERY_CONTRACT_AT_ONE = {
+const EVERY_CURRENT_CONTRACT = {
   summary: 1,
-  monitor: 1,
+  monitor: 2,
   control: 1,
   embed:   1,
+};
+
+/** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
+const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
+  resetsAt:              null,
+  window:                null,
+  currentWindow:         'five_hour',
+  currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
 };
 
 const STOREFRONT_DRAFT_015: FleetDocumentAttentionItem = {
@@ -365,7 +374,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   condition:         'live',
   url:               'http://127.0.0.1:4951',
   processId:         48_107,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:22.000Z',
   overseerStartedAt: '2026-11-12T09:12:00.000Z',
@@ -430,7 +439,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
     },
   ],
   today: { deliveredTickets: 3, tokens: 512_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const INVOICE_SERVICE: FleetDocumentForge = {
@@ -441,7 +450,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
   condition:         'live',
   url:               'http://127.0.0.1:4957',
   processId:         48_211,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:24.000Z',
   overseerStartedAt: '2026-11-12T08:40:00.000Z',
@@ -499,7 +508,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
     },
   ],
   today: { deliveredTickets: 2, tokens: 418_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const RESEARCH_WIKI: FleetDocumentForge = {
@@ -510,7 +519,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   condition:         'live',
   url:               'http://127.0.0.1:4962',
   processId:         48_390,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:18.000Z',
   overseerStartedAt: '2026-11-12T11:02:00.000Z',
@@ -547,7 +556,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
     },
   ],
   today: { deliveredTickets: 1, tokens: 164_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
@@ -558,7 +567,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
   condition:         'held',
   url:               'http://127.0.0.1:4970',
   processId:         48_555,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       'b81e07d',
   lastReportedAt:    '2026-11-12T13:19:20.000Z',
   overseerStartedAt: '2026-11-12T12:40:00.000Z',
@@ -595,7 +604,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
     },
   ],
   today: { deliveredTickets: 0, tokens: 146_000 },
-  usage: { resetsAt: null, window: null },
+  usage: USAGE_UNDER_THE_LIMIT,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -607,7 +616,7 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
   condition:         'dormant',
   url:               null,
   processId:         null,
-  contracts:         EVERY_CONTRACT_AT_ONE,
+  contracts:         EVERY_CURRENT_CONTRACT,
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T12:19:58.000Z',
   overseerStartedAt: null,
@@ -693,7 +702,7 @@ function agentOf(forge: FleetDocumentForge, jobId: string) {
 }
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
-  fleetVersion: 1,
+  fleetVersion: 2,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },
@@ -774,7 +783,7 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     settingsFile:      'read',
     knownContracts:    {
       summary: 1,
-      monitor: 1,
+      monitor: 2,
       control: 1,
       embed:   1,
     },

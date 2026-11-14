@@ -1,50 +1,249 @@
 /**
- * The monitor snapshot ingestion over the snapshot a forge serving every contract answered as Example Storefront (recorded), read through
- * the forge client. What matters: the snapshot maps to the frozen reading below; a job's turn and a lost launch stamp, and a warning, read
- * as monitor contract 1 sends them; a snapshot at a newer `monitorVersion` maps nothing of itself, so no attention entry leaks from it; a
- * malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
+ * The monitor snapshot ingestion over the snapshots a forge serving every contract answered as Example Storefront (recorded at monitor
+ * contract 2, and at monitor contract 1 from the forge at 55beb9cd), read through the forge client. What matters: each recorded snapshot
+ * maps to its frozen reading below, the monitor-1 one migrated; a warning of contract 2 keeps its kind, `assistant-down` becoming a notice,
+ * and a warning of contract 1 reads as the kind that names none; the current usage window is read at 2 and unknown at 1; a job's turn and
+ * a lost launch stamp read as the forge sends them; a snapshot at a newer `monitorVersion` maps nothing of itself, so no attention entry
+ * leaks from it; a malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
-import type { ForgeIdentity }                                      from './@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion }                                from './MonitorSnapshotIngestion.ts';
-import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf } from './testing/ExampleForgeDocuments.ts';
-import { FORGE_WARNING_WITHOUT_KIND }                              from './utils/ForgeReadingMapUtil.ts';
+import type { ForgeIdentity }       from './@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion } from './MonitorSnapshotIngestion.ts';
+import {
+  EXAMPLE_READ_STAMP,
+  recordedDocumentOf,
+  recordedMonitorOneDocumentOf,
+  registryFactsOf,
+} from './testing/ExampleForgeDocuments.ts';
+import { ASSISTANT_DOWN_KIND }        from './utils/ForgeReadingMapUtil.ts';
+import { FORGE_WARNING_WITHOUT_KIND } from './utils/MonitorSnapshotMigrationUtil.ts';
 
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
-/** The code version and the stamps of the recorded run; retake them after `bun run record overseer-fetch-every-contract`. */
-const RECORDED_CODE_VERSION = '9fc4e996dd57';
-const RECORDED_STAMP = '2026-11-13T02:38:47+01:00';
+/** The code versions and stamps of the recorded runs; retake them after `bun run record overseer-fetch-every-contract` or `overseer-fetch-monitor-1`. */
+const RECORDED_CODE_VERSION = '2b47322f0984';
+const RECORDED_STAMP = '2026-11-13T09:57:13+01:00';
+const MONITOR_ONE_CODE_VERSION = '9fc4e996dd57';
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
+const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
+const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
 
-const STOREFRONT_IDENTITY: ForgeIdentity = {
-  trackerId:      STOREFRONT.trackerId,
-  project:        STOREFRONT.project,
-  codeVersion:    RECORDED_CODE_VERSION,
-  installVersion: 27,
-  processId:      48_107,
-  contracts:      {
-    summary: 1,
-    monitor: 1,
-    control: 1,
-    embed:   1,
-  },
-};
+function storefrontIdentityAt(monitorVersion: number, codeVersion: string): ForgeIdentity {
+  return {
+    trackerId:      STOREFRONT.trackerId,
+    project:        STOREFRONT.project,
+    codeVersion,
+    installVersion: 27,
+    processId:      48_107,
+    contracts:      {
+      summary: 1,
+      monitor: monitorVersion,
+      control: 1,
+      embed:   1,
+    },
+  };
+}
 
 function ingestion(): MonitorSnapshotIngestion {
-  return new MonitorSnapshotIngestion(STOREFRONT_FACTS, STOREFRONT_IDENTITY);
+  return new MonitorSnapshotIngestion(STOREFRONT_FACTS, storefrontIdentityAt(2, RECORDED_CODE_VERSION));
+}
+
+function monitorOneIngestion(): MonitorSnapshotIngestion {
+  return new MonitorSnapshotIngestion(STOREFRONT_FACTS, storefrontIdentityAt(1, MONITOR_ONE_CODE_VERSION));
 }
 
 async function storefrontSnapshot(): Promise<Record<string, unknown>> {
   return await recordedDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
 }
 
-/** What the recorded snapshot maps to: a running board with a draft ticket, the question its first pass opened and two jobs launching. */
+async function monitorOneStorefrontSnapshot(): Promise<Record<string, unknown>> {
+  return await recordedMonitorOneDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
+}
+
+/** What the recorded monitor-2 snapshot maps to: a running board with a draft ticket, the question its first pass opened and two jobs launching. */
 const RECORDED_READING: ForgeReading = {
+  trackerId: STOREFRONT.trackerId,
+  project:   'Example Storefront',
+  root:      '/Users/alexexample/development/example-storefront',
+  fidelity:  'full',
+  condition: 'live',
+  url:       'http://127.0.0.1:4951/',
+  processId: 48_107,
+  contracts: {
+    summary: 1,
+    monitor: 2,
+    control: 1,
+    embed:   1,
+  },
+  codeVersion:       RECORDED_CODE_VERSION,
+  lastReportedAt:    EXAMPLE_READ_STAMP,
+  overseerStartedAt: '2026-11-13T09:57:13+01:00',
+  lastCommand:       STOREFRONT.lastCommand,
+  lastChangedAt:     STOREFRONT.lastChangedAt,
+  concurrency:       {
+    limit:                        2,
+    agentsInFlight:               0,
+    machineLimit:                 10,
+    machineAgentsInFlight:        0,
+    ticketsWaitingForMachineSlot: 0,
+  },
+  readyTicketCount: 0,
+  openIncidents:    0,
+  attention:        [
+    {
+      key:                     'decision:E1',
+      kind:                    'question',
+      idText:                  'E1',
+      ticketIds:               [],
+      subject:                 'The Overseer needs a decision (checks-not-set) about the board.',
+      jobId:                   null,
+      askedBy:                 'overseer',
+      decisionKind:            'checks-not-set',
+      escalatedFromIncidentId: null,
+      metaText:                null,
+      stamp:                   '2026-11-13T09:57:13+01:00',
+      stampWord:               'opened',
+      actionLabel:             'Answer',
+      route:                   '#questions/E1',
+    },
+    {
+      key:                     'ticket:001',
+      kind:                    'draft-ticket',
+      idText:                  '#001',
+      ticketIds:               [],
+      subject:                 'Search suggestions',
+      jobId:                   null,
+      askedBy:                 null,
+      decisionKind:            null,
+      escalatedFromIncidentId: null,
+      metaText:                'draft ticket, no row yet',
+      stamp:                   '2026-11-13T09:57:13+01:00',
+      stampWord:               'filed',
+      actionLabel:             'Ready',
+      route:                   '#kanban/ticket/001',
+    },
+  ],
+  attentionCount: null,
+  agents:         [
+    {
+      jobId:               'J1',
+      kind:                'assistant',
+      role:                'assistant',
+      state:               'launching',
+      ticketIds:           [],
+      tokens:              0,
+      ticketTitle:         null,
+      attempt:             1,
+      startedAt:           '2026-11-13T09:57:13+01:00',
+      calls:               0,
+      callBudget:          null,
+      toolCalls:           0,
+      lastToolCall:        null,
+      runningSubagents:    0,
+      silentSweeps:        0,
+      quiet:               false,
+      turn:                null,
+      messagesWaiting:     0,
+      lastLine:            null,
+      waitingOnDecisionId: null,
+      route:               '#agents/J1',
+    },
+    {
+      jobId:               'J2',
+      kind:                'onboarder',
+      role:                'onboarder',
+      state:               'launching',
+      ticketIds:           [],
+      tokens:              0,
+      ticketTitle:         null,
+      attempt:             1,
+      startedAt:           '2026-11-13T09:57:14+01:00',
+      calls:               0,
+      callBudget:          null,
+      toolCalls:           0,
+      lastToolCall:        null,
+      runningSubagents:    0,
+      silentSweeps:        0,
+      quiet:               false,
+      turn:                null,
+      messagesWaiting:     0,
+      lastLine:            null,
+      waitingOnDecisionId: null,
+      route:               '#agents/J2',
+    },
+  ],
+  notices: [
+    {
+      kind: 'watcher-endpoint-does-not-fit',
+      text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock',
+    },
+    {
+      kind: 'watcher-endpoint-does-not-fit',
+      text: 'job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock',
+    },
+  ],
+  warnings: [],
+  activity: [
+    {
+      logPosition: 0,
+      at:          '2026-11-13T09:57:13+01:00',
+      category:    'needs-user',
+      text:        'Ticket #001 filed: Search suggestions',
+      route:       '#kanban/ticket/001',
+    },
+    {
+      logPosition: 1,
+      at:          '2026-11-13T09:57:13+01:00',
+      category:    'forge',
+      text:        'Overseer started on code 2b47322f0984, install version 27',
+      route:       null,
+    },
+    {
+      logPosition: 2,
+      at:          '2026-11-13T09:57:13+01:00',
+      category:    'needs-user',
+      text:        'Decision E1 opened: checks-not-set',
+      route:       '#questions/E1',
+    },
+    {
+      logPosition: 3,
+      at:          '2026-11-13T09:57:13+01:00',
+      category:    'agent',
+      text:        'Job J1 launched: assistant (assistant), attempt 1',
+      route:       '#agents/J1',
+    },
+    {
+      logPosition: 4,
+      at:          '2026-11-13T09:57:14+01:00',
+      category:    'forge',
+      text:        'Overseer set to running',
+      route:       null,
+    },
+    {
+      logPosition: 5,
+      at:          '2026-11-13T09:57:14+01:00',
+      category:    'agent',
+      text:        'Job J2 launched: onboarder (onboarder), attempt 1',
+      route:       '#agents/J2',
+    },
+  ],
+  today: { deliveredTickets: 0, tokens: 0 },
+  usage: {
+    resetsAt:              null,
+    window:                null,
+    currentWindow:         null,
+    currentWindowResetsAt: null,
+  },
+};
+
+
+/** What the recorded monitor-1 snapshot migrates to: the same board, its warnings none and its current usage window unknown. */
+const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
   trackerId: STOREFRONT.trackerId,
   project:   'Example Storefront',
   root:      '/Users/alexexample/development/example-storefront',
@@ -58,7 +257,7 @@ const RECORDED_READING: ForgeReading = {
     control: 1,
     embed:   1,
   },
-  codeVersion:       RECORDED_CODE_VERSION,
+  codeVersion:       MONITOR_ONE_CODE_VERSION,
   lastReportedAt:    EXAMPLE_READ_STAMP,
   overseerStartedAt: '2026-11-13T02:38:47+01:00',
   lastCommand:       STOREFRONT.lastCommand,
@@ -211,12 +410,51 @@ const RECORDED_READING: ForgeReading = {
     },
   ],
   today: { deliveredTickets: 0, tokens: 0 },
-  usage: { resetsAt: null, window: null },
+  usage: {
+    resetsAt:              null,
+    window:                null,
+    currentWindow:         null,
+    currentWindowResetsAt: null,
+  },
 };
+
+
+const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
 describe('a snapshot at the known monitor version', () => {
   test('maps the recorded snapshot of Example Storefront to its reading', async () => {
     expect(ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: RECORDED_READING });
+  });
+
+  test('keeps a failed Baton pass as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {
+    const snapshot = await storefrontSnapshot();
+    const warnings = [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }, { kind: ASSISTANT_DOWN_KIND, text: ASSISTANT_DOWN_SENTENCE }];
+    const reading = ingestion().readingOf({ ...snapshot, notices: [], warnings }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? [reading.reading.warnings, reading.reading.notices] : null).toEqual([
+      [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }],
+      [{ kind: ASSISTANT_DOWN_KIND, text: ASSISTANT_DOWN_SENTENCE }],
+    ]);
+  });
+
+  test('reads a warning of a kind this Gaia does not know as a warning of that kind, and a warning that is a bare sentence as malformed', async () => {
+    const snapshot = await storefrontSnapshot();
+    const unknownKind = ingestion().readingOf({ ...snapshot, warnings: [{ kind: 'example-new-warning', text: 'Example warning' }] }, EXAMPLE_READ_STAMP);
+    expect(unknownKind.verdict === 'readable' ? unknownKind.reading.warnings : null).toEqual([{ kind: 'example-new-warning', text: 'Example warning' }]);
+    expect(ingestion().readingOf({ ...snapshot, warnings: [BATON_PASS_SENTENCE] }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['warnings[0]'] });
+  });
+
+  test('reads the current usage window and its reset beside the limit hit', async () => {
+    const snapshot = await storefrontSnapshot();
+    const usage = {
+      resetsAt:              null,
+      window:                null,
+      currentWindow:         'five_hour',
+      currentWindowResetsAt: '2026-11-12T15:00:00.000Z',
+    };
+    const reading = ingestion().readingOf({ ...snapshot, usage }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? reading.reading.usage : null).toEqual(usage);
+    const { currentWindowResetsAt: _droppedReset, ...withoutReset } = usage;
+    expect(ingestion().readingOf({ ...snapshot, usage: withoutReset }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['usage.currentWindowResetsAt'] });
   });
 
   test('reads a job\'s turn as the forge words where its session stands, and a lost launch stamp as no stamp', async () => {
@@ -255,19 +493,47 @@ describe('a snapshot at the known monitor version', () => {
   });
 });
 
+describe('a snapshot at monitor version 1, which Gaia still reads', () => {
+  test('migrates the recorded monitor-1 snapshot of Example Storefront to its reading, naming the monitor contract the forge serves', async () => {
+    expect(monitorOneIngestion().readingOf(await monitorOneStorefrontSnapshot(), EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: RECORDED_READING_OF_MONITOR_ONE });
+  });
+
+  test('reads a warning as the forge\'s sentence alone, under the kind a warning without one reads as, so a warning that is no sentence is malformed', async () => {
+    const snapshot = await monitorOneStorefrontSnapshot();
+    const reading = monitorOneIngestion().readingOf({ ...snapshot, warnings: [BATON_PASS_SENTENCE, ASSISTANT_DOWN_SENTENCE] }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? reading.reading.warnings : null).toEqual([
+      { kind: FORGE_WARNING_WITHOUT_KIND, text: BATON_PASS_SENTENCE },
+      { kind: FORGE_WARNING_WITHOUT_KIND, text: ASSISTANT_DOWN_SENTENCE },
+    ]);
+    const keyedWarning = { ...snapshot, warnings: [{ kind: 'baton-pass-failed', text: BATON_PASS_SENTENCE }] };
+    expect(monitorOneIngestion().readingOf(keyedWarning, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['warnings'] });
+  });
+
+  test('knows no current usage window, and needs none of its keys', async () => {
+    const snapshot = await monitorOneStorefrontSnapshot();
+    const reading = monitorOneIngestion().readingOf({ ...snapshot, usage: { resetsAt: '2026-11-12T15:00:00.000Z', window: 'five_hour' } }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? reading.reading.usage : null).toEqual({
+      resetsAt:              '2026-11-12T15:00:00.000Z',
+      window:                'five_hour',
+      currentWindow:         null,
+      currentWindowResetsAt: null,
+    });
+  });
+});
+
 describe('a snapshot at a version this Gaia does not know', () => {
-  test('maps a snapshot with monitorVersion 2 to a reading at fidelity newer-contract with no attention entries', async () => {
-    const snapshot = { ...await storefrontSnapshot(), monitorVersion: 2 };
+  test('maps a snapshot with a monitorVersion above the known one to a reading at fidelity newer-contract with no attention entries', async () => {
+    const snapshot = { ...await storefrontSnapshot(), monitorVersion: NEWER_MONITOR_VERSION };
     const reading  = ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP);
     expect(reading.verdict).toBe('newer-contract');
     if (reading.verdict !== 'newer-contract') return;
-    expect([reading.contract, reading.version]).toEqual(['monitor', 2]);
+    expect([reading.contract, reading.version]).toEqual(['monitor', NEWER_MONITOR_VERSION]);
     expect(reading.reading.fidelity).toBe('newer-contract');
     expect(reading.reading.attention).toEqual([]);
   });
 
   test('maps nothing of a newer snapshot: the reading holds the registry, the identity and the numbers, and no fact of the document', async () => {
-    const reading = ingestion().readingOf({ ...await storefrontSnapshot(), monitorVersion: 2 }, EXAMPLE_READ_STAMP);
+    const reading = ingestion().readingOf({ ...await storefrontSnapshot(), monitorVersion: NEWER_MONITOR_VERSION }, EXAMPLE_READ_STAMP);
     expect(reading.verdict === 'newer-contract' ? reading.reading : null).toEqual({
       trackerId: STOREFRONT.trackerId,
       project:   STOREFRONT.project,
@@ -278,7 +544,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       processId: 48_107,
       contracts: {
         summary: 1,
-        monitor: 2,
+        monitor: NEWER_MONITOR_VERSION,
         control: 1,
         embed:   1,
       },
@@ -301,7 +567,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
     });
   });
 
-  test('answers older-contract and maps nothing for a version below the known one', async () => {
+  test('answers older-contract and maps nothing for a version below every one Gaia reads', async () => {
     expect(ingestion().readingOf({ ...await storefrontSnapshot(), monitorVersion: 0 }, EXAMPLE_READ_STAMP))
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: 0 });
   });
@@ -331,14 +597,6 @@ describe('a snapshot that cannot be read', () => {
       verdict:     'malformed',
       invalidKeys: ['root', 'overseer.state', 'attention[0].kind', 'jobs[0].tokens', 'today'],
     });
-  });
-
-  test('reads a warning as the forge\'s sentence alone, under the kind a warning without one reads as, so a warning that is no sentence is malformed', async () => {
-    const sentence = 'the Baton pass to code example-code failed at take-baton: Example error';
-    const reading = ingestion().readingOf({ ...await storefrontSnapshot(), warnings: [sentence] }, EXAMPLE_READ_STAMP);
-    expect(reading.verdict === 'readable' ? reading.reading.warnings : null).toEqual([{ kind: FORGE_WARNING_WITHOUT_KIND, text: sentence }]);
-    const keyedWarning = { ...await storefrontSnapshot(), warnings: [{ kind: 'baton-pass-failed', text: sentence }] };
-    expect(ingestion().readingOf(keyedWarning, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['warnings'] });
   });
 
   test('never shows a snapshot of another forge as this one', async () => {

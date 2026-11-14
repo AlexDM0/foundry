@@ -48,7 +48,7 @@ const PAUSE_COMMAND: ForgeControlCommand = { kind: 'overseer-pause' };
 const READ_FAILED = {
   verdict: 'refused',
   refusal: 'read-failed',
-  text:    'The Overseer could not read the board\'s files. Run `forge status` in the repository to see which file is wrong.',
+  text:    'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
 } as const;
 
 /** The machine limit the recorded forge was lowered to, and its CPU count. */
@@ -81,7 +81,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
       document: expect.objectContaining({
         identityVersion: 1,
         contracts:       {
-          summary: 1, monitor: 1, control: 1, embed: 1
+          summary: 1, monitor: 2, control: 1, embed: 1
         }
       })
     },
@@ -147,7 +147,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'serving-every-contract',
     callShape: 'GET /api/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
-    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' }) },
+    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 2, trackerId: 'example-storefront-7c41' }) },
   },
   {
     call:      'monitorOf',
@@ -319,7 +319,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     situation: 'board-unreadable',
     callShape: 'STREAM /api/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
-    expected:  [expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' })],
+    expected:  [expect.objectContaining({ monitorVersion: 2, trackerId: 'example-storefront-7c41' })],
   },
   {
     call:      'followMonitor',
@@ -348,8 +348,8 @@ describe('following a monitor stream', () => {
   test('hands on each whole snapshot in order, passing over the heartbeat, and closes the stream when stopped', async () => {
     const { snapshots, overseerFetch } = await followedSnapshotsOf(overseerFetchOf('serving-every-contract'), 2);
     expect(snapshots).toEqual([
-      expect.objectContaining({ monitorVersion: 1, concurrency: expect.objectContaining({ limit: 2 }) }),
-      expect.objectContaining({ monitorVersion: 1, concurrency: expect.objectContaining({ limit: 3 }) }),
+      expect.objectContaining({ monitorVersion: 2, concurrency: expect.objectContaining({ limit: 2 }) }),
+      expect.objectContaining({ monitorVersion: 2, concurrency: expect.objectContaining({ limit: 3 }) }),
     ]);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });

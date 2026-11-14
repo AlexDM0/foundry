@@ -23,11 +23,15 @@ const REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
   'read-failed':                     'The Overseer could not read the board\'s files.',
 };
 
-/** The Overseer's notice kinds whose sentence names a command, each in Gaia's words. */
+/**
+ * The Overseer's notice kinds Gaia words itself: those whose sentence names a command in monitor contract 1, and `assistant-down`, the
+ * forge's warning that Gaia shows as a notice.
+ */
 const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
   'new-code':                  'New code is on disk. The Overseer runs the code it started with until it restarts.',
   'install-version-changed':   'The install version changed. Nothing launches until this forge is updated.',
   'claude-md-block-committed': 'Launches wait until the CLAUDE.md change that updating the forge made is committed.',
+  'assistant-down':            'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
 };
 
 const NEUTRAL_NOTICE_SENTENCE = 'This forge raised a notice that Gaia does not word yet.';
@@ -55,7 +59,7 @@ function noticeSentenceOf(kind: string, text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_NOTICE_SENTENCE : text;
 }
 
-/** Monitor contract 1 gives a warning no kind, so only the guard words it. */
+/** Gaia has no words of its own for a warning, of a kind or of none (monitor 1): only the guard words one. */
 function warningSentenceOf(text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_WARNING_SENTENCE : text;
 }

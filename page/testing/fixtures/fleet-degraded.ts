@@ -3,13 +3,26 @@
  * last reading; Research Wiki predates the monitor contract and is read through its summary; Analytics Sandbox publishes a newer monitor
  * contract and is read not at all.
  */
-import type { FleetDocument, FleetDocumentAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type {
+  FleetDocument,
+  FleetDocumentAgentRow,
+  FleetDocumentForge,
+  FleetDocumentUsage,
+} from '../../@types/FleetDocument.ts';
 
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from './fleet-five-forges.ts';
 
 const READINGS = FLEET_FIVE_FORGES_READINGS;
 
 const TRACKER_IDS = { ...FLEET_FIVE_FORGES_TRACKER_IDS, analyticsSandbox: 'analytics-sandbox-4d18' } as const;
+
+/** A summary reports the usage limit hit and no current window. */
+const USAGE_OF_A_SUMMARY: FleetDocumentUsage = {
+  resetsAt:              null,
+  window:                null,
+  currentWindow:         null,
+  currentWindowResetsAt: null,
+};
 
 const INVOICE_SERVICE: FleetDocumentForge = {
   ...READINGS.invoiceService,
@@ -72,7 +85,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   warnings:          [],
   activity:          [],
   today:             null,
-  usage:             { resetsAt: null, window: null },
+  usage:             USAGE_OF_A_SUMMARY,
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -85,7 +98,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   processId: 49_012,
   contracts: {
     summary: 1,
-    monitor: 2,
+    monitor: 3,
     control: 2,
     embed:   1,
   },

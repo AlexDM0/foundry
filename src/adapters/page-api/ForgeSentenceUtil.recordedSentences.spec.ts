@@ -4,18 +4,20 @@
  * refusal reaches the page through the command answer and the frame session answer the page reads; and each recorded monitor snapshot
  * reaches it through the fleet document, its notices and warnings among it. The frozen list of refusal codes whose recorded sentence names
  * a command keeps the spec from passing on nothing; retake it after `bun run record forge-program-refused` or an overseer-fetch recording.
+ * The forge at monitor contract 1 worded its notices and refusals with commands, and Gaia still reads it, so its recording is searched too.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { everyRecordedOverseerAnswerOf, type RecordedStreamAnswer } from '../../testing/RecordedAnswers.ts';
-import { recordedRunsOf }                                           from '../../testing/RecordedRuns.ts';
-import type { ForgeIdentity, ForgeRegistryFacts }                   from '../forge-api/@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion }                                 from '../forge-api/MonitorSnapshotIngestion.ts';
-import { CommandAnswerMapUtil }                                     from './CommandAnswerMapUtil.ts';
-import { FleetDocumentMapUtil }                                     from './FleetDocumentMapUtil.ts';
-import { ForgeSentenceUtil }                                        from './ForgeSentenceUtil.ts';
-import { FrameSessionAnswerMapUtil }                                from './FrameSessionAnswerMapUtil.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                     from './testing/fleet-snapshot-empty.ts';
+import { CONTRACT_VERSIONS }                                                                         from '../../shared/constants/ContractVersions.ts';
+import { everyRecordedMonitorOneAnswerOf, everyRecordedOverseerAnswerOf, type RecordedStreamAnswer } from '../../testing/RecordedAnswers.ts';
+import { recordedRunsOf }                                                                            from '../../testing/RecordedRuns.ts';
+import type { ForgeIdentity, ForgeRegistryFacts }                                                    from '../forge-api/@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion }                                                                  from '../forge-api/MonitorSnapshotIngestion.ts';
+import { CommandAnswerMapUtil }                                                                      from './CommandAnswerMapUtil.ts';
+import { FleetDocumentMapUtil }                                                                      from './FleetDocumentMapUtil.ts';
+import { ForgeSentenceUtil }                                                                         from './ForgeSentenceUtil.ts';
+import { FrameSessionAnswerMapUtil }                                                                 from './FrameSessionAnswerMapUtil.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                                                      from './testing/fleet-snapshot-empty.ts';
 
 const FORGE_PROGRAM_RECORDINGS = ['forge-program', 'forge-program-done', 'forge-program-refused'] as const;
 
@@ -23,8 +25,8 @@ const EVENT_DATA_PREFIX = 'data: ';
 
 const EXAMPLE_READ_STAMP = '2026-11-13T07:00:00.000Z';
 
-/** Taken from the recordings: the refusal codes whose recorded sentence names a command. */
-const REFUSALS_RECORDED_NAMING_A_COMMAND = ['arguments-refused', 'install-version-mismatch', 'no-tracker-at-override', 'read-failed', 'unauthorized'];
+/** Taken from the recordings: the refusal codes whose recorded sentence names a command, from the forge before F1 and at monitor 1. */
+const REFUSALS_RECORDED_NAMING_A_COMMAND = ['arguments-refused', 'read-failed', 'unauthorized'];
 
 interface RecordedRefusal {
   readonly refusal: string | null;
@@ -63,7 +65,7 @@ function isStreamAnswer(answer: unknown): answer is Extract<RecordedStreamAnswer
 
 /** Every JSON document the recorded Overseers answered: whole bodies, and each event of a stream. */
 function recordedOverseerDocuments(): unknown[] {
-  return everyRecordedOverseerAnswerOf().flatMap(({ answer }) => {
+  return [...everyRecordedOverseerAnswerOf(), ...everyRecordedMonitorOneAnswerOf()].flatMap(({ answer }) => {
     if (isStreamAnswer(answer)) {
       return answer.chunks.join('').split('\n')
         .filter((line) => line.startsWith(EVENT_DATA_PREFIX))
@@ -119,7 +121,7 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
       installVersion: 27,
       processId:      48_107,
       contracts:      {
-        summary: 1, monitor: 1, control: 1, embed: 1,
+        summary: 1, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, embed: 1,
       },
     },
   };

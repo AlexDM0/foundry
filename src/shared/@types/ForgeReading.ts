@@ -30,9 +30,12 @@ export interface ForgeNotice {
   text: string;
 }
 
+/** The usage limit hit, both `null` when none was; and the newest usage window the forge's sessions reported, both `null` when none did. */
 export interface ForgeUsage {
-  resetsAt: string | null;
-  window:   string | null;
+  resetsAt:              string | null;
+  window:                string | null;
+  currentWindow:         string | null;
+  currentWindowResetsAt: string | null;
 }
 
 export interface ForgeToday {

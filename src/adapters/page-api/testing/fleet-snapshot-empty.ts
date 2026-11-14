@@ -32,7 +32,7 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     settingsFile:      'absent',
     knownContracts:    {
       summary: 1,
-      monitor: 1,
+      monitor: 2,
       control: 1,
       embed:   1,
     },
