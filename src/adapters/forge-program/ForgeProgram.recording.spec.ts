@@ -3,7 +3,7 @@
  * program of a forge checkout that does not answer F8 yet. It runs that forge through `ScratchForge`, under a scratch home in a scratch
  * repository with `FORGE_ROOT` pinned to it, checks what ForgeProgram makes of each answer, and records each one under the example program
  * path. The cases that matter: `version --json`, `init` and `update`, which this forge refuses with `--json` and so write nothing, and a
- * program that is not there. The forge's install version stamps the recording.
+ * program that is not there. The forge's install and code versions stamp the recording.
  */
 import {
   afterAll,
@@ -51,7 +51,7 @@ describe('the forge program of a forge checkout', () => {
     if (answer?.verdict !== 'finished') throw new Error(`version --json answered ${JSON.stringify(answer)}`);
     const versions = JSON.parse(answer.standardOutput) as Record<string, unknown>;
     expect(versions).toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });
-    recordSystemVersion(RECORDING_NAME, `install version ${String(versions['installVersion'])}`);
+    recordSystemVersion(RECORDING_NAME, `install version ${String(versions['installVersion'])}, code ${String(versions['codeVersion'])}`);
   });
 
   test('refuses init and update with --json at exit 1, with nothing Gaia understands on standard output', async () => {

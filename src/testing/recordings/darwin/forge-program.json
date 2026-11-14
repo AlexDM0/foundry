@@ -5,7 +5,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 27"
+    "systemVersion": "install version 27, code ccae8ee79ba9"
   },
   "answers": [
     {
@@ -31,7 +31,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"codeVersion\": \"3a6e9e6043da\",\n  \"installVersion\": 27\n}\n",
+        "standardOutput": "{\n  \"codeVersion\": \"ccae8ee79ba9\",\n  \"installVersion\": 27\n}\n",
         "standardError": ""
       }
     },
