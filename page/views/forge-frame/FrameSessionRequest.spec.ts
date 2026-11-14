@@ -2,7 +2,7 @@
  * The frame session request. What matters (PLAN 8.3, SCREENS B1 acceptance 4): the page asks at the forge's own path with nothing but its
  * session cookie, no token and no code; every outcome of the answer reaches the view, the forge's refusal unchanged; an answer at another
  * `frameSessionVersion`, of another shape, or whose frame address the page may not frame, is not understood; no answer is the server's.
- * Gaia's server is stood in for by answers authored from PLAN 6.3 and 8.3, since its route is not served to the page yet.
+ * Gaia's server is stood in for by answers authored from PLAN 6.3 and 8.3, since the page's specs run without a server.
  */
 import { describe, expect, test } from 'bun:test';
 

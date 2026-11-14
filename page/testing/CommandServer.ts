@@ -1,6 +1,6 @@
 /**
- * Test-only: Gaia's server as the command sender meets it, standing in with authored answers of PLAN 6.3, since its route does not exist
- * yet. Each request takes the next answer in order, and a request beyond them fails the spec.
+ * Test-only: Gaia's server as the command sender meets it, standing in with authored answers in the shape `CommandsRoute` sends (PLAN 6.3),
+ * since the page's specs run without a server. Each request takes the next answer in order, and a request beyond them fails the spec.
  */
 import { CommandSender, type CommandRequestSender } from '../api/CommandSender.ts';
 

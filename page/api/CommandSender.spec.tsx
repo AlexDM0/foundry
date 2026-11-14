@@ -5,7 +5,7 @@
  * restart, stop or update of it succeeds, since a pause leaves the old code running; while a
  * command to a forge is on its way that forge reads it on its way and takes no second one, and another forge is not held up; nothing is
  * sent while the controls may not act. Gaia's server is stood in for by answers authored
- * from PLAN 6.3, since its route does not exist yet; the HTTP status of a refusal is not part of that contract, so the body alone decides.
+ * from PLAN 6.3, since the page's specs run without a server; the HTTP status of a refusal is not part of that contract, so the body alone decides.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
