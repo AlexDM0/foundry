@@ -5,9 +5,9 @@
  */
 import type { SettingsReading }                      from '../adapters/gaia-files/SettingsFile.ts';
 import type { SettingsWriter, SettingsWriteVerdict } from '../adapters/gaia-files/SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS }                    from '../adapters/gaia-files/constants/GaiaSettingsDefaults.ts';
 import type { SettingsFileState }                    from '../shared/@types/FleetSnapshot.ts';
 import type { GaiaSettings }                         from '../shared/@types/GaiaSettings.ts';
+import { GAIA_SETTINGS_DEFAULTS }                    from '../shared/constants/GaiaSettingsDefaults.ts';
 
 export type SettingsListener = (settings: GaiaSettings) => void;
 

@@ -1,4 +1,4 @@
-import type { GaiaSettings } from '../../../shared/@types/GaiaSettings.ts';
+import type { GaiaSettings } from '../@types/GaiaSettings.ts';
 
 /** What Gaia runs on when its settings file is absent, unreadable or newer than this Gaia (SCREENS A4 and C2). */
 export const GAIA_SETTINGS_DEFAULTS: GaiaSettings = {

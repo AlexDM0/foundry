@@ -3,7 +3,7 @@
  * is stored, so its settings are the defaults Gaia runs on.
  */
 import type { FleetSnapshot }     from '../../../shared/@types/FleetSnapshot.ts';
-import { GAIA_SETTINGS_DEFAULTS } from '../../gaia-files/constants/GaiaSettingsDefaults.ts';
+import { GAIA_SETTINGS_DEFAULTS } from '../../../shared/constants/GaiaSettingsDefaults.ts';
 
 export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
   forges:     [],

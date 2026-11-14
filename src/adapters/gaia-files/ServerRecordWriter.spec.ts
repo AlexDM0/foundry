@@ -19,11 +19,11 @@ import {
   test
 } from 'bun:test';
 
+import { GAIA_SETTINGS_DEFAULTS }                                          from '../../shared/constants/GaiaSettingsDefaults.ts';
 import { createScratchDirectory, removeScratchPath }                       from '../../testing/ScratchRoot.ts';
 import { createServerRecordWriter, serverRecordPathIn, type ServerRecord } from './ServerRecordWriter.ts';
 import { SettingsFile }                                                    from './SettingsFile.ts';
 import { createSettingsWriter }                                            from './SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS }                                          from './constants/GaiaSettingsDefaults.ts';
 
 const SOURCE_FOLDER = join(import.meta.dir, '..', '..');
 

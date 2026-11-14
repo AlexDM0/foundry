@@ -17,10 +17,10 @@ import {
   test
 } from 'bun:test';
 
+import { GAIA_SETTINGS_DEFAULTS }                    from '../../shared/constants/GaiaSettingsDefaults.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 import type { StoredSettingsVersion1 }               from './@types/StoredSettings.ts';
 import { SettingsFile, settingsFilePathIn }          from './SettingsFile.ts';
-import { GAIA_SETTINGS_DEFAULTS }                    from './constants/GaiaSettingsDefaults.ts';
 
 let homeDirectory = '';
 

@@ -21,8 +21,8 @@ import {
 
 import { SettingsFile, settingsFilePathIn }          from '../adapters/gaia-files/SettingsFile.ts';
 import { createSettingsWriter }                      from '../adapters/gaia-files/SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS }                    from '../adapters/gaia-files/constants/GaiaSettingsDefaults.ts';
 import type { GaiaSettings }                         from '../shared/@types/GaiaSettings.ts';
+import { GAIA_SETTINGS_DEFAULTS }                    from '../shared/constants/GaiaSettingsDefaults.ts';
 import { createScratchDirectory, removeScratchPath } from '../testing/ScratchRoot.ts';
 import { createSettingsStore, type SettingsStore }   from './SettingsStore.ts';
 

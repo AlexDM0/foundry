@@ -4,9 +4,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { GAIA_SETTINGS_DEFAULTS }      from '../../../shared/constants/GaiaSettingsDefaults.ts';
 import { SETTINGS_CHOICES }            from '../../../shared/constants/SettingsChoices.ts';
 import type { StoredSettingsVersion1 } from '../@types/StoredSettings.ts';
-import { GAIA_SETTINGS_DEFAULTS }      from '../constants/GaiaSettingsDefaults.ts';
 import { SettingsFormatUtil }          from './SettingsFormatUtil.ts';
 
 const STORED_EXAMPLE: StoredSettingsVersion1 = {

@@ -7,7 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { CommandDocument, SettingsChange } from '../../../page/@types/CommandDocument.ts';
-import { GAIA_SETTINGS_DEFAULTS }               from '../gaia-files/constants/GaiaSettingsDefaults.ts';
+import { GAIA_SETTINGS_DEFAULTS }               from '../../shared/constants/GaiaSettingsDefaults.ts';
 
 import { GaiaCommandIngestion } from './GaiaCommandIngestion.ts';
 

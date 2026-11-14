@@ -18,10 +18,10 @@ import {
 } from 'bun:test';
 
 import type { GaiaSettings }                         from '../../shared/@types/GaiaSettings.ts';
+import { GAIA_SETTINGS_DEFAULTS }                    from '../../shared/constants/GaiaSettingsDefaults.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 import { SettingsFile, settingsFilePathIn }          from './SettingsFile.ts';
 import { createSettingsWriter }                      from './SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS }                    from './constants/GaiaSettingsDefaults.ts';
 
 const PERMISSION_BITS = 0o777;
 const OWNER_ONLY_FOLDER_MODE = 0o700;

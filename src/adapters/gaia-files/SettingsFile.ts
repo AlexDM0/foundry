@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { AtomicFile }             from '../../lib/atomic-file/AtomicFile.ts';
 import type { GaiaSettings }      from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }      from '../../shared/constants/ContractVersions.ts';
+import { GAIA_SETTINGS_DEFAULTS } from '../../shared/constants/GaiaSettingsDefaults.ts';
 import { PRODUCT_NAMES }          from '../../shared/constants/ProductNames.ts';
-import { GAIA_SETTINGS_DEFAULTS } from './constants/GaiaSettingsDefaults.ts';
 import { SettingsFormatUtil }     from './utils/SettingsFormatUtil.ts';
 
 const SETTINGS_FILE_NAME = 'settings.json';

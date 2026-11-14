@@ -25,7 +25,6 @@ import type { RegisteredForge }                                                 
 import type { RegistryReading }                                                                         from '../../adapters/forge-registry/RegistryFile.ts';
 import { SettingsFile, settingsFilePathIn }                                                             from '../../adapters/gaia-files/SettingsFile.ts';
 import { createSettingsWriter }                                                                         from '../../adapters/gaia-files/SettingsWriter.ts';
-import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../adapters/gaia-files/constants/GaiaSettingsDefaults.ts';
 import { createPathChooser }                                                                            from '../../adapters/path-chooser/PathChooser.ts';
 import { RECORDED_CHOSEN_FOLDER, recordedPathChooserRun }                                               from '../../adapters/path-chooser/testing/RecordedPathChooser.ts';
 import { forgeClientOf }                                                                                from '../../lib/forge-client/ForgeClient.ts';
@@ -36,6 +35,7 @@ import { WatchReadingUtil }                                                     
 import type { CommandVerdict }                                                                          from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeReading }                                                                            from '../../shared/@types/ForgeReading.ts';
 import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
+import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
 import {
   recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
