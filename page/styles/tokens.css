@@ -15,8 +15,6 @@
   --weight-wordmark: 650;
   --wordmark-tracking: -0.035em;
   --weight-strong: 600;
-  --weight-page-title: 650;
-  --page-title-tracking: -0.01em;
 
   --field-height:        36px;
   --menu-item-height:    24px;
@@ -49,7 +47,6 @@
   --rail-row-height:     30px;
   --rail-machine-gap:    9px;
   --forge-bar-height:    56px;
-  --view-top-padding:    20px;
   --view-side-width:     320px;
   --activity-at-width:   52px;
   --activity-forge-width: 168px;

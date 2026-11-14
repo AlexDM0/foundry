@@ -9,8 +9,10 @@
 
 /* ── Design system: the parts the package does not have ────────────────────────────────────────────────────────────────────── */
 
-/* A label a screen reader reads where the layout already says what a group is; it takes no room. */
-.gaia-visually-hidden {
+/* A label a screen reader reads where the layout already says what it is: a group's, a text field's, the Forges table's controls head */
+.gaia-visually-hidden,
+.gaia-text-field-label[data-hidden],
+.gaia-forges-main .gaia-table-row[data-head] .gaia-table-cell[data-align="end"] {
   position: absolute;
   overflow: hidden;
   width: var(--hairline);
@@ -259,14 +261,6 @@
 /* Text field: 36 px on the surface, a path in mono; its label in small type over it, or hidden where the layout names it */
 .gaia-text-field { display: flex; flex: 1; flex-direction: column; gap: var(--sp-1); min-width: 0; }
 .gaia-text-field-label { font-size: var(--fs-small); font-weight: var(--weight-label); color: var(--ink-4); }
-.gaia-text-field-label[data-hidden] {
-  position: absolute;
-  overflow: hidden;
-  width: var(--hairline);
-  height: var(--hairline);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 .gaia-text-field-input {
   box-sizing: border-box;
   height: var(--field-height);
@@ -899,14 +893,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 /* The table: rows of the artboard's height, and the controls' head named for a screen reader only */
 .gaia-forges-main .gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--forges-row-height); }
-.gaia-forges-main .gaia-table-row[data-head] .gaia-table-cell[data-align="end"] {
-  position: absolute;
-  overflow: hidden;
-  width: var(--hairline);
-  height: var(--hairline);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
 /* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */
 .gaia-forges-forge,

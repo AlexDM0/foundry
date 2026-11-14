@@ -2,13 +2,14 @@
  * Gaia's style contract, read from the stylesheets and the components themselves. What matters: every text pair of COMPONENT_LIBRARY
  * section 4, in the design-system package's token names, holds 4.5:1 in both themes as a WCAG 2 text pair, a translucent token composited
  * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 (PLAN V9); every colour token of
- * Gaia's own `tokens.css` has a light and a dark value; `gaia.css` holds no colour value and reads only tokens that the package's or Gaia's
- * `tokens.css` defines; a hover or press rule changes no size or place; and every class a shipping component emits is styled, and every
- * styled class emitted. Motion, in `gaia.css` and the splash's own style: every transition and animation times itself with a package motion
- * token and eases with `--ease-out`, animates no size or place, and starts from no size or place; an animation is a live signal that runs
- * only once motion is ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no
- * keyframe and names only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under
- * reduced motion, or is an exception only a gated animation reads. Each guard is first proved on a planted case, in memory.
+ * Gaia's own `tokens.css` has a light and a dark value, and every token of it is read somewhere; `gaia.css` holds no colour value and
+ * reads only tokens that the package's or Gaia's `tokens.css` defines; a hover or press rule changes no size or place; every class a
+ * shipping component emits is styled, and every styled class emitted; and one rule hides a label read only by a screen reader. Motion, in
+ * `gaia.css` and the splash's own style: every transition and animation times itself with a package motion token and eases with
+ * `--ease-out`, animates no size or place, and starts from no size or place; an animation is a live signal that runs only once motion is
+ * ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no keyframe and names
+ * only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under reduced motion, or is an
+ * exception only a gated animation reads. Each guard is first proved on a planted case, in memory.
  */
 import { readFileSync }  from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -372,6 +373,12 @@ function redefinitionSentencesOf(packageTokensText: string, gaiaTokensText: stri
   return [...tokenNamesOf(gaiaTokensText)].filter((tokenName) => packageTokens.has(tokenName)).map((tokenName) => `${tokenName} is the package's token, redefined`);
 }
 
+/** A token of Gaia's own that nothing reads is dead weight that drifts from the design: every one is read through `var()` somewhere. */
+function unreadTokenSentencesOf(gaiaTokensText: string, readerTexts: readonly string[]): string[] {
+  const readTokens = new Set(readerTexts.flatMap((text) => [...text.matchAll(/var\(\s*(--[\w-]+)/g)].map(([, tokenName = '']) => tokenName)));
+  return [...tokenNamesOf(gaiaTokensText)].filter((tokenName) => !readTokens.has(tokenName)).map((tokenName) => `${tokenName} is defined but nothing reads it`);
+}
+
 function colourValueSentencesOf(stylesheetText: string, definedTokens: ReadonlySet<string>): string[] {
   return rulesOf(stylesheetText).flatMap((rule) => rule.declarations.flatMap((declaration) => {
     const site = `${rule.selector} { ${declaration.property} }`;
@@ -728,6 +735,12 @@ describe('the readers, on known and planted values', () => {
     expect(themeGapSentencesOf(planted)).toEqual(['--line has no dark value', '--glow has a dark value but no light colour']);
   });
 
+  test('a token of Gaia\'s own that no reader reads is named, and one read in a stylesheet, a component or another token is not', () => {
+    const planted = ':root { --read-in-css: 1px; --read-in-a-component: 2px; --read-by-a-token: 3px; --reads-a-token: var(--read-by-a-token); --unread: 4px; }';
+    const readers = ['.a { gap: var(--read-in-css); }', '<div style={{ width: \'var(--read-in-a-component)\' }} />', '.b { gap: var(--reads-a-token); }', planted];
+    expect(unreadTokenSentencesOf(planted, readers)).toEqual(['--unread is defined but nothing reads it']);
+  });
+
   test('a colour function, a hex value, a named colour, one in a token\'s fallback and an unknown token are each named, and currentColor is not a colour', () => {
     const planted = [
       '.a { color: oklch(0.5 0 0); } .b { background: #fff; } .c { border: 1px solid red; }',
@@ -887,6 +900,10 @@ describe('the tokens', () => {
   test('every colour token of Gaia\'s own tokens.css has a light value and a dark value', () => {
     expect(themeGapSentencesOf(TOKENS_TEXT)).toEqual([]);
   });
+
+  test('every token of Gaia\'s own tokens.css is read by gaia.css, the splash, a shipping component or another token', () => {
+    expect(unreadTokenSentencesOf(TOKENS_TEXT, [STYLESHEET_TEXT, SPLASH_STYLE_TEXT, TOKENS_TEXT, ...SOURCES.map(({ text }) => text)])).toEqual([]);
+  });
 });
 
 describe('gaia.css', () => {
@@ -900,6 +917,12 @@ describe('gaia.css', () => {
 
   test('every class a shipping component emits is styled, and every styled class is emitted', () => {
     expect(classContractSentencesOf(EMITTED, STYLED)).toEqual([]);
+  });
+
+  test('one rule hides every label read only by a screen reader, so its declarations are written once', () => {
+    const hidesItsBox = (declaration: { readonly property: string; readonly value: string }) => declaration.property === 'clip-path' && declaration.value === 'inset(50%)';
+    const hidingRules = rulesOf(STYLESHEET_TEXT).filter((rule) => rule.declarations.some(hidesItsBox));
+    expect(hidingRules).toHaveLength(1);
   });
 });
 
