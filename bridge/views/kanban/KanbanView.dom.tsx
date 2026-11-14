@@ -9,7 +9,7 @@
  * opens the question panel at its decision; and while a detail or the question panel is open the board carries its panel room. Also: the
  * lanes' priority and state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom
  * lays nothing out), the Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's
- * fold, each choice stored under its key.
+ * fold, each choice stored under its key; the title row, the dashed card of a state that waits for a person, and no state badge.
  */
 import {
   act,
@@ -226,6 +226,21 @@ afterEach(() => {
 });
 
 describe('the lanes and the cards', () => {
+  test('the view opens with its title row: Kanban as the view\'s heading, and the board\'s sentence under it', () => {
+    renderKanban();
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Kanban');
+    expect(screen.getByText('Every ticket by where it stands. Click a card to open it. Hover a card to see what it waits on.').tagName).toBe('P');
+    expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual(['Ready', 'Building', 'In review', 'Merge queue', 'Done']);
+  });
+
+  test('a card is the design system\'s card, dashed while its state waits for a person, with no state badge', () => {
+    renderKanban();
+    const cardBoxOf = (namePrefix: string) => cardNamed(namePrefix).querySelector(':scope > .design-system-card');
+    expect([cardBoxOf('#001'), cardBoxOf('#003')].map((box) => box?.hasAttribute('data-dashed'))).toEqual([true, false]);
+    expect(cardBoxOf('#003')?.hasAttribute('data-interactive')).toBe(true);
+    expect(document.querySelector('.bridge-kanban-card .design-system-state-pill, .bridge-kanban-card .design-system-state-badge')).toBeNull();
+  });
+
   test('the six lanes show in order, each with its count, the drafts under their own head at the top of Ready', () => {
     renderKanban();
     const lanes = screen.getAllByRole('region').filter((region) => region.hasAttribute('data-lane'));
@@ -244,7 +259,7 @@ describe('the lanes and the cards', () => {
   test('a card shows its id, size mark, priority, type, epics, waiting-on and hold, and its tokens', () => {
     renderKanban();
     const card = cardNamed('#003');
-    expect(card.querySelector('.bridge-ticket-id')?.textContent).toBe('#003');
+    expect(card.querySelector('.design-system-mono-id')?.textContent).toBe('#003');
     const size = card.querySelector('.bridge-kanban-size');
     expect([size?.textContent, size?.getAttribute('data-size'), size?.getAttribute('title')]).toEqual(['L', 'L', 'Size L']);
     expect(card.querySelector('.bridge-priority-mark')?.textContent).toBe('high');
@@ -481,7 +496,7 @@ describe('the Ready lane by wave', () => {
     expect(waves.map((wave) => [
       wave.querySelector('.bridge-lane-group')?.textContent,
       wave.hasAttribute('data-narrow'),
-      [...wave.querySelectorAll('.bridge-ticket-id')].map((id) => id.textContent),
+      [...wave.querySelectorAll('.design-system-mono-id')].map((id) => id.textContent),
     ])).toEqual([
       ['Now 1 ready · 2 side by side', false, ['#110']],
       ['Wave 2 one at a time', true, ['#112']],
@@ -551,8 +566,9 @@ describe('opening a card', () => {
 
   test('a filing draft opens the draft form, and the open card is marked selected', () => {
     const kanban = renderKanbanWith({ openItem: { form: 'ticket', ticketId: '003' } });
-    expect(document.querySelectorAll('[data-selected]').length).toBe(1);
+    expect(document.querySelectorAll('.bridge-kanban-card[data-selected]').length).toBe(1);
     expect(cardNamed('#003').hasAttribute('data-selected')).toBe(true);
+    expect(cardNamed('#003').querySelector('.design-system-card')?.hasAttribute('data-selected')).toBe(true);
     fireEvent.click(cardNamed('Draft D7'));
     fireEvent.click(cardNamed('#003'));
     expect(kanban.navigatedRoutes()).toEqual([{ tab: 'kanban', item: 'draft/D7' }, { tab: 'kanban', item: null }]);
@@ -648,7 +664,7 @@ describe('the finished-work window', () => {
   test('a closed lane shows what the window lets through, says how many it hides, and its show all widens the window', async () => {
     const kanban = renderKanbanWith({ initialBoard: CLOSED_BOARD, finishedWork: LAST_DAY });
     const done = laneNamed('Done');
-    expect([...done.querySelectorAll('.bridge-ticket-id')].map((id) => id.textContent)).toEqual(['#800']);
+    expect([...done.querySelectorAll('.design-system-mono-id')].map((id) => id.textContent)).toEqual(['#800']);
     expect(done.querySelector('.bridge-lane-count')?.textContent).toBe('1');
     expect(done.querySelector('.bridge-lane-hidden-line span')?.textContent).toBe('1 earlier hidden');
     await clicked(within(done).getByRole('button', { name: 'show all' }));

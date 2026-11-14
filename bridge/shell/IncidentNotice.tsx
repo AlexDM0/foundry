@@ -4,6 +4,17 @@
  * time, the newest default unfolded first. Esc, which leaves no panel and no embedding page an Esc of its own, or a pointer down outside
  * closes it; Esc hands the focus back to the line's button. "Mark defaults seen" hides the line in this browser until the next default.
  */
+
+import { Banner }         from 'design-system/Banner';
+import { Button }         from 'design-system/Button';
+import { useDismissal }   from 'design-system/Dismissal';
+import { KeyedLineList }  from 'design-system/KeyedLineList';
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { MonoId }         from 'design-system/MonoId';
+import { Pane }           from 'design-system/Pane';
+import { Stamp }          from 'design-system/Stamp';
+import { StateBadge }     from 'design-system/StateBadge';
+import { TextButton }     from 'design-system/TextButton';
 import {
   useId,
   useRef,
@@ -12,15 +23,7 @@ import {
 } from 'react';
 
 import { IncidentStepText, JobLink, TicketLinks } from '../conversation/ConversationParts.tsx';
-import { Banner }                                 from '../design-system/Banner.tsx';
-import { Button, TextButton }                     from '../design-system/Button.tsx';
-import { useDismissal }                           from '../design-system/Dismissal.ts';
-import { KeyedLineList }                          from '../design-system/KeyedLineList.tsx';
-import { MicroCapsLabel }                         from '../design-system/MicroCapsLabel.tsx';
-import { MonoId }                                 from '../design-system/MonoId.tsx';
-import { Pane }                                   from '../design-system/Pane.tsx';
-import { Stamp }                                  from '../design-system/Stamp.tsx';
-import { StateBadge }                             from '../design-system/StateBadge.tsx';
+import { StateToneUtil }                          from '../utils/StateToneUtil.ts';
 import { HashRouter }                             from './HashRouter.ts';
 import type {
   IncidentBannerModel,
@@ -76,7 +79,7 @@ function IncidentRow({ row, isOpen, onToggle }: IncidentRowProps) {
           <MetaParts parts={row.meta} />
         </span>
       </span>
-      <span className="bridge-incident-pill"><StateBadge state={row.pill.state} label={row.pill.label} size="compact" /></span>
+      <span className="bridge-incident-pill"><StateBadge {...StateToneUtil.lookOf(row.pill.state)} label={row.pill.label} size="compact" /></span>
       {isOpen
         ? (
           <div className="bridge-incident-trail" id={trailElementId}>
@@ -109,12 +112,12 @@ function IncidentGroup({
 }: IncidentGroupProps) {
   if (rows.length === 0) return null;
   return (
-    <div className="bridge-incident-group">
-      <MicroCapsLabel element="h3" text={`${title} ${String(rows.length)}`} />
+    <>
+      <div className="bridge-incident-group-title"><MicroCapsLabel element="h3" text={`${title} ${String(rows.length)}`} /></div>
       <ul className="bridge-incident-rows" aria-label={title}>
         {rows.map((row) => <IncidentRow key={row.incidentId} row={row} isOpen={row.incidentId === openIncidentId} onToggle={() => onToggle(row.incidentId)} />)}
       </ul>
-    </div>
+    </>
   );
 }
 

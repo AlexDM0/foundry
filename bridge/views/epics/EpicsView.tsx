@@ -1,9 +1,12 @@
 /**
- * The Epics view: a grid of epic cards, each with its head (title, key, done mark), its summary, roll-up bar, legend and facts, the Waits
- * on, waves and Frees rows, and its tickets newest first. A ticket opens its ticket form in the detail panel over this tab; an epic's link
- * points the tab at that epic's card, which scrolls into view marked. The whole description, agent-written HTML, shows only in its
- * sandboxed frame, behind a disclosure.
+ * The Epics view: its title row over a grid of epic cards, each with its head (title, key, done mark), its summary, roll-up bar, legend
+ * and facts, the Waits on, waves and Frees rows, and its tickets newest first. A ticket opens its ticket form in the detail panel over
+ * this tab; an epic's link points the tab at that epic's card, which scrolls into view marked. The whole description, agent-written
+ * HTML, shows only in its sandboxed frame, behind a disclosure.
  */
+import { SegmentMeter } from 'design-system/SegmentMeter';
+import { StateBadge }   from 'design-system/StateBadge';
+import { StateDot }     from 'design-system/StateDot';
 import {
   useEffect,
   useRef,
@@ -13,14 +16,13 @@ import {
 
 import type { EpicsBoardState }                           from '../../@types/EpicsBoardState.ts';
 import { TicketIdMark }                                   from '../../chips/TicketMarks.tsx';
-import { SegmentMeter }                                   from '../../design-system/Meter.tsx';
-import { StateBadge }                                     from '../../design-system/StateBadge.tsx';
-import { StateDot }                                       from '../../design-system/StateDot.tsx';
 import { SandboxedHtmlFrame }                             from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailRoute }                                    from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                               from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                          from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                                     from '../../shell/HashRouter.ts';
+import { StateToneUtil }                                  from '../../utils/StateToneUtil.ts';
+import { ViewTitle }                                      from '../ViewTitle.tsx';
 import { EpicsModel, type EpicCard, type EpicWaveColumn } from './EpicsModel.ts';
 
 export interface EpicsViewProps {
@@ -60,7 +62,10 @@ function EpicWaves({ waves }: { readonly waves: readonly EpicWaveColumn[] }) {
         ? <span className="bridge-epic-link-empty">No tickets under this epic</span>
         : waves.map((column) => (
           <div key={column.label} className="bridge-epic-wave" data-narrow={column.isNarrow ? '' : undefined} data-done={column.isDone ? '' : undefined}>
-            <span className="bridge-epic-wave-name">{column.label}</span>
+            <span className="bridge-epic-wave-head">
+              <span className="bridge-epic-wave-name">{column.label}</span>
+              {column.isNarrow ? <span className="bridge-epic-wave-note">one at a time</span> : null}
+            </span>
             {column.pills.map((pill) => {
               const item = { form: 'ticket', ticketId: pill.ticketId } as const;
               return (
@@ -69,13 +74,13 @@ function EpicWaves({ waves }: { readonly waves: readonly EpicWaveColumn[] }) {
                   className="bridge-epic-wave-pill"
                   href={routing.openerHrefOf(item)}
                   data-state={pill.displayState}
+                  data-state-tone={StateToneUtil.toneOf(pill.displayState)}
                   data-live={pill.isLive ? '' : undefined}
                   data-done={column.isDone ? '' : undefined}
-                  data-narrow={column.isNarrow ? '' : undefined}
                   data-selected={routing.isOpen(item) ? '' : undefined}
                   title={pill.title}
                 >
-                  <TicketIdMark ticketId={pill.ticketId} />
+                  <TicketIdMark ticketId={pill.ticketId} compact />
                   <span className="bridge-epic-wave-title">{pill.title}</span>
                 </a>
               );
@@ -117,7 +122,7 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
           <ul className="bridge-epic-legend">
             {card.segments.map((segment) => (
               <li key={segment.state}>
-                <StateDot state={segment.state} />
+                <StateDot {...StateToneUtil.dotOf(segment.state)} />
                 {`${segment.label} `}
                 <b>{segment.count}</b>
               </li>
@@ -142,7 +147,7 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
               title={`#${chip.ticketId} ${chip.title}`}
             >
               <span className="bridge-epic-swatch" aria-hidden="true" />
-              <TicketIdMark ticketId={chip.ticketId} />
+              <TicketIdMark ticketId={chip.ticketId} tone="strong" />
               <span className="bridge-epic-link-epic">{chip.epic.title}</span>
             </a>
           ))}
@@ -172,6 +177,8 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
                 <a
                   className="bridge-epic-ticket"
                   href={routing.openerHrefOf(item)}
+                  data-state={ticket.stateToken}
+                  data-state-tone={StateToneUtil.toneOf(ticket.stateToken)}
                   data-live={ticket.isLive ? '' : undefined}
                   data-selected={routing.isOpen(item) ? '' : undefined}
                 >
@@ -187,7 +194,9 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
                         </span>
                       )}
                   </span>
-                  <StateBadge state={ticket.stateToken} label={ticket.stateLabel} />
+                  <span className="bridge-epic-ticket-badge">
+                    <StateBadge {...StateToneUtil.lookOf(ticket.stateToken)} label={ticket.stateLabel} fitted />
+                  </span>
                 </a>
               </li>
             );
@@ -203,9 +212,12 @@ export function EpicsView({ boardState, pointedEpicKey }: EpicsViewProps) {
   const model = EpicsModel.epicsModelOf(boardState, finishedWorkWindow);
   return (
     <section className="bridge-epics" aria-label="Epics">
-      {model.emptyText === null
-        ? model.cards.map((card) => <EpicCardView key={card.key} card={card} isPointed={card.key === pointedEpicKey} />)
-        : <div className="bridge-epics-empty">{model.emptyText}</div>}
+      <ViewTitle title="Epics" lead="Each epic's progress, rolled up from its tickets. A ticket counts under its first epic. Open epics come first." />
+      <div className="bridge-epic-grid">
+        {model.emptyText === null
+          ? model.cards.map((card) => <EpicCardView key={card.key} card={card} isPointed={card.key === pointedEpicKey} />)
+          : <div className="bridge-epics-empty">{model.emptyText}</div>}
+      </div>
     </section>
   );
 }

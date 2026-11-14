@@ -1,16 +1,19 @@
 /**
  * The billing step's model, pure: the billing choice a person makes on the cards and the cap field, the command it sends (the setup's
- * start on the landing, a billing change on a reopened step, and the Continue of a record still at billing), the count of waiting tickets,
- * and the pipeline agent's meter. The cap is sent as typed once it is a number; the Overseer refuses one that is not positive, and the
- * view shows that refusal verbatim.
+ * start on the landing, a billing change on a reopened step, and the Continue of a record still at billing), the footer's words for it,
+ * the count of waiting tickets, the pipeline agent's meter and the panel head's status, and the words of the page's lists. The cap is
+ * sent as typed once it is a number; the Overseer refuses one that is not positive, and the view shows that refusal verbatim.
  */
+import type { JobState }           from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineBilling }    from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChoices }    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetup }      from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { AgentPair }          from '../../../../src/lib/tracker-model/@types/Ticket.ts';
 import { AGENT_EFFORTS }           from '../../../../src/lib/tracker-model/constants/AgentSettings.ts';
 import type { ControlCommandBody } from '../../../api/CommandClient.ts';
+import type { PanelStatus }        from '../PipelinePanel.tsx';
 import { SETUP_STEP_LABELS }       from '../PipelineViewModel.ts';
+import type { PipelinePhase }      from '../flow/PipelinePhaseModel.ts';
 
 export type BillingMode = PipelineBilling['mode'];
 
@@ -44,13 +47,28 @@ export const BILLING_CARDS: readonly { readonly mode: BillingMode; readonly labe
   },
 ];
 
-/** What the pipeline agent does, in order; the third line is Q15's: a gate's profile runs only when User asks for it. */
+/** What the pipeline agent does once started, after "When you start it, Flint:"; the fourth is Q15's: a profile runs only when asked. */
 export const HOW_IT_WORKS_LINES: readonly string[] = [
-  'It reads a snapshot of main: the scripts, the lockfile, the tests.',
-  'It proposes the prepare steps, the build gates, the merge gates, the review and each agent\'s model, effort and brief.',
-  'User can profile each gate in each phase; its time shows on the flow. It only informs.',
-  'User talks it through beside the flow, changes any node, then applies it.',
+  'Reads a snapshot of main: the scripts, the lockfile and the tests.',
+  'Drafts the constitution that every builder and reviewer reads.',
+  'Proposes the prepare steps, the gates, the review, and each agent\'s model, effort and brief.',
+  'Profiles a gate in a phase when you ask, and shows its time. The time only informs.',
+  'Talks it through with you. You change any part, then apply it.',
 ];
+
+/** The four phases every ticket goes through, as "What the pipeline decides" names them. */
+export const PIPELINE_PHASE_SUMMARIES: readonly { readonly phase: PipelinePhase; readonly name: string; readonly line: string }[] = [
+  { phase: 'ticket', name: 'Ticket', line: 'Which agent files a request, and if you ready each draft.' },
+  { phase: 'build', name: 'Build', line: 'Which agent builds it, and the gates it must pass.' },
+  { phase: 'review', name: 'Review', line: 'Which agent reviews it, and if you review the code too.' },
+  { phase: 'merge', name: 'Merge', line: 'The gates that run on the latest main before the merge.' },
+];
+
+/** The footer's words for the chosen billing: its name, and what it means. */
+export interface BillingFooterLines {
+  readonly summary: string;
+  readonly detail:  string;
+}
 
 function billingChoiceOf(billing: PipelineBilling | null): BillingChoice {
   if (billing === null || billing.mode === 'subscription') return SUBSCRIPTION_CHOICE;
@@ -119,6 +137,20 @@ function pipelineAgentMeterOf(record: PipelineSetup | null, facts: PipelineAgent
   };
 }
 
+/** The panel head's dot and word: not started before the setup, then whether the agent's job runs. */
+function panelStatusOf(record: PipelineSetup | null, agentJobState: JobState | null): PanelStatus {
+  if (record === null) return { tone: 'idle', text: 'Not started' };
+  return agentJobState === null ? { tone: 'idle', text: 'Stopped' } : { tone: 'working', text: 'Running' };
+}
+
+/** "Subscription" with the login it runs on, or "API key" with its cap per launch as typed. */
+function footerLinesOf(choice: BillingChoice): BillingFooterLines {
+  if (choice.mode === 'subscription') return { summary: 'Subscription', detail: 'Agents run on this machine\'s Claude login.' };
+  const capText = choice.capText.trim();
+  const capLine = capText === '' ? 'No cap per launch.' : `A cap of US$ ${capText} per launch.`;
+  return { summary: 'API key', detail: `Billed to ANTHROPIC_API_KEY. ${capLine}` };
+}
+
 /** The reopened billing step's way back to where the setup stands, in place of a second start. */
 function backLabelOf(record: PipelineSetup): string {
   return `Back to ${SETUP_STEP_LABELS[record.currentStep].toLowerCase()}`;
@@ -144,4 +176,6 @@ export const BillingStepModel = Object.freeze({
   pipelineAgentMeterOf,
   backLabelOf,
   continueCommandOf,
+  panelStatusOf,
+  footerLinesOf,
 });

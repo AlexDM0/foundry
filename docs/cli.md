@@ -971,7 +971,7 @@ again only when one of them changed.
 #### Gate profiles
 
 A gate profile is informational: it says how long one gate takes in one phase, and how it ended. Only User's press
-starts one: `pipeline profile`, the stopwatch chip of a gate row, Profile again in the Gate dialog or "Benchmark in the
+starts one: `pipeline profile`, the time chip of a gate row, Profile again in the Gate dialog or "Benchmark in the
 merge phase" on a new gate's change card. A proposal, an Apply, a draft edit and an Overseer start queue none, there is
 no "profile all", and the pipeline agent may not relay `gate-profile-start`.
 

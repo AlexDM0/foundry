@@ -1,19 +1,22 @@
 /**
- * The selected session: its head (job, title, turns and calls, state), its chat with User's request first, the agent's turns and each open
- * decision docked where it was asked, the composer sending `job-message`, and beside it the drafts, the pictures and Close intake. It
- * follows the one transcript stream of its job.
+ * The selected session: its head (title, job, turns and calls, state), its chat with User's request first, the agent's turns and each open
+ * decision docked where it was asked, then, while the session is open, the product owner's live turn where Flint works; the composer
+ * sending `job-message`, and beside it the drafts, the pictures and Close intake. It follows the one transcript stream of its job.
  */
+import { StateBadge } from 'design-system/StateBadge';
+
 import type { DecisionDocument, PictureLimitsDocument }             from '../../@types/ConversationDocuments.ts';
 import { ChatThread, type ChatTurn }                                from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }                                      from '../../conversation/ChatThreadModel.ts';
 import { JobLink }                                                  from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                             from '../../conversation/DecisionCard.tsx';
 import { useTranscript, type TranscriptFollower }                   from '../../conversation/TranscriptLog.tsx';
-import { Pane }                                                     from '../../design-system/Pane.tsx';
-import { StateBadge }                                               from '../../design-system/StateBadge.tsx';
+import { StateToneUtil }                                            from '../../utils/StateToneUtil.ts';
 import { IntakeAside }                                              from './IntakeAside.tsx';
 import { IntakeChat }                                               from './IntakeChat.tsx';
 import { IntakeModelUtil, type IntakeChatTurn, type IntakeSession } from './IntakeModel.ts';
+import { IntakePane }                                               from './IntakePane.tsx';
+import { ProductOwnerAtWork }                                       from './ProductOwnerAtWork.tsx';
 import { SentPicture }                                              from './SentPicture.tsx';
 
 export interface IntakeChatPaneProps {
@@ -46,12 +49,12 @@ export function IntakeChatPane({
   const turns = IntakeModelUtil.chatTurnsOf(entries, session.questions, { jobId, requestText: session.requestText, todayCalendarDate });
   const pill = IntakeModelUtil.sessionPillOf(session);
   const composerLabel = `Message ${PRODUCT_OWNER_LABEL} ${jobId}`;
+  const atWork = IntakeModelUtil.productOwnerAtWorkOf(session);
   return (
-    <Pane
+    <IntakePane
       label={`Intake ${jobId}`}
-      title="Intake"
+      title={session.title}
       titleMark={jobId}
-      subtitle={session.title}
       headEnd={(
         <>
           <span className="bridge-intake-meta">
@@ -59,23 +62,25 @@ export function IntakeChatPane({
             <JobLink jobId={jobId} />
             {` · ${IntakeModelUtil.paneMetaOf(ChatThreadModelUtil.turnCountOf(entries), session.calls)}`}
           </span>
-          <StateBadge state={pill.state} label={pill.label} />
+          <StateBadge {...StateToneUtil.lookOf(pill.state)} label={pill.label} />
         </>
       )}
-      body="flush"
     >
       <div className="bridge-intake-detail">
         <IntakeChat
           label={`Chat with ${jobId}`}
           thread={(
-            <ChatThread
-              label={`Conversation of ${jobId}`}
-              turns={turns.map(shownTurnOf)}
-              renderDecision={(decisionId) => {
-                const decision = session.questions.find((candidate) => candidate.id === decisionId);
-                return decision === undefined ? null : <DockedDecision decision={decision} />;
-              }}
-            />
+            <>
+              <ChatThread
+                label={`Conversation of ${jobId}`}
+                turns={turns.map(shownTurnOf)}
+                renderDecision={(decisionId) => {
+                  const decision = session.questions.find((candidate) => candidate.id === decisionId);
+                  return decision === undefined ? null : <DockedDecision decision={decision} />;
+                }}
+              />
+              {atWork === null ? null : <ProductOwnerAtWork atWork={atWork} />}
+            </>
           )}
           composerLabel={composerLabel}
           recipientLabel={PRODUCT_OWNER_LABEL}
@@ -90,6 +95,6 @@ export function IntakeChatPane({
         />
         <IntakeAside session={session} pictures={IntakeModelUtil.picturesInChatOf(entries)} />
       </div>
-    </Pane>
+    </IntakePane>
   );
 }

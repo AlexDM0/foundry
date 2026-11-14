@@ -1,7 +1,9 @@
 /**
- * The Imports rules of the root `CLAUDE.md`, held over every file the root, page and Bridge programs compile. Every violation list is
- * empty in a tree that obeys them, so the scan first proves it saw the tree (all three programs, every file placed in a layer, every
- * allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge.
+ * The Imports rules of the root `CLAUDE.md`, held over every file the root, Bridge and design-system programs compile. Every violation
+ * list is empty in a tree that obeys them, so the scan first proves it saw the tree (all three programs, every file placed in a layer,
+ * every allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge. The
+ * design-system package imports nothing of the forge, and the Bridge reaches it only as the workspace package `design-system`, by a
+ * specifier its `package.json` exports, never by a file path.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -14,7 +16,8 @@ type ImportViolation =
   | 'command-imports-a-sibling-command'
   | 'command-set-imports-another-set'
   | 'bridge-view-imports-a-sibling-view'
-  | 'bridge-design-system-reaches-outside'
+  | 'design-system-reached-by-path'
+  | 'workspace-entry-not-exported'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
   | 'test-helper-imported-outside-its-allowlist'
@@ -41,6 +44,7 @@ type Layer =
   | 'repository-guard'
   | 'cli'
   | 'bridge'
+  | 'design-system'
   | 'unplaced';
 
 interface Finding {
@@ -83,7 +87,9 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   'test-support':      [...SOURCE_LAYERS],
   'repository-guard':  [],
   'cli':               [...SOURCE_LAYERS, 'cli'],
-  'bridge':            [...SOURCE_LAYERS, 'bridge'],
+  'bridge':            [...SOURCE_LAYERS, 'bridge', 'design-system'],
+  // Reached from outside its folder only by a specifier its package.json exports: designSystemPathFinding.
+  'design-system':     ['design-system'],
   'unplaced':          [],
 };
 
@@ -100,6 +106,7 @@ const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
   'src/services/overseer/testing/': ['src/services/overseer/', 'cli/overseer/OverseerCommand.integration.spec.ts'],
   'cli/testing/':                   ['cli/', 'bridge/'],
   'bridge/testing/':                ['bridge/'],
+  'design-system/testing/':         ['design-system/'],
 };
 
 /** One allowed import, as an exact importer and target. */
@@ -135,10 +142,9 @@ const CLI_SET_SHARED_FOLDERS = ['@types', 'constants', 'utils'];
 /** Folders directly under `cli/` that hold what every set shares rather than one set of commands. */
 const CLI_SHARED_FOLDERS = ['@types', 'arguments', 'constants', 'testing', 'utils'];
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
-const BRIDGE_DESIGN_SYSTEM_FOLDER = 'bridge/design-system/';
-/** The one file outside its folder a design-system part may import: the display-state type its marks are coloured by. */
-const DISPLAY_STATE_TYPE_PATH = 'src/lib/tracker-model/@types/Task.ts';
 const LIB_FOLDER = 'src/lib/';
+const DESIGN_SYSTEM_FOLDER = 'design-system/';
+const DESIGN_SYSTEM_PACKAGE_NAME = 'design-system';
 const LIB_DEPENDENCY_SENTENCE = /depends on ([^.]+)/i;
 const LIB_PACKAGE_REFERENCE = /`src\/lib\/([a-z-]+)`/g;
 const HEADER_COMMENT = /^\/\*\*([\s\S]*?)\*\//;
@@ -170,7 +176,7 @@ const layerOf = memoisedPerPath((path: string): Layer => {
   if (path === LAUNCHER_BINARY_PATH) return 'launcher-binary';
   if (path === SETUP_BINARY_PATH) return 'setup-binary';
   const [topFolder, layerFolder, unitFolder] = path.split('/');
-  if (topFolder === 'cli' || topFolder === 'bridge') return topFolder;
+  if (topFolder === 'cli' || topFolder === 'bridge' || topFolder === 'design-system') return topFolder;
   if (topFolder !== 'src' || layerFolder === undefined) return 'unplaced';
   if (unitFolder === undefined) return isSpec(path) ? 'repository-guard' : 'unplaced';
   switch (layerFolder) {
@@ -251,11 +257,11 @@ function declaredLibDependenciesOf(graph: ImportGraph): ReadonlyMap<string, read
 }
 
 function describeTarget(edge: ImportEdge): string {
-  return edge.target.kind === 'package' ? edge.target.specifier : edge.target.path;
+  return edge.target.kind === 'repository-file' ? edge.target.path : edge.target.specifier;
 }
 
 function edgeFinding(edge: ImportEdge, violation: ImportViolation, reason: string): Finding {
-  const involvedPaths = edge.target.kind === 'package' ? [edge.fromPath] : [edge.fromPath, edge.target.path];
+  const involvedPaths = edge.target.kind === 'repository-file' ? [edge.fromPath, edge.target.path] : [edge.fromPath];
   return { violation, sentence: `${edge.fromPath}:${edge.line} imports ${describeTarget(edge)}: ${reason}`, involvedPaths };
 }
 
@@ -315,11 +321,15 @@ function bridgeViewFinding(edge: ImportEdge, targetPath: string): Finding | null
   return edgeFinding(edge, 'bridge-view-imports-a-sibling-view', `the view folder ${fromView} imports another view's folder; hoist what both need above them`);
 }
 
-function bridgeDesignSystemFinding(edge: ImportEdge, targetPath: string): Finding | null {
-  if (!isInside(edge.fromPath, BRIDGE_DESIGN_SYSTEM_FOLDER) || isTestOnly(edge.fromPath)) return null;
-  if (isInside(targetPath, BRIDGE_DESIGN_SYSTEM_FOLDER) || targetPath === DISPLAY_STATE_TYPE_PATH) return null;
-  return edgeFinding(edge, 'bridge-design-system-reaches-outside', `${BRIDGE_DESIGN_SYSTEM_FOLDER} imports only itself and ${DISPLAY_STATE_TYPE_PATH}; `
-    + 'a link arrives as an href, an action as a callback');
+/** Outside its own folder, the design-system package is imported by its name, as it will be once split off: a relative or absolute path is a finding. */
+function designSystemPathFinding(edge: ImportEdge, targetPath: string): Finding | null {
+  const isImportedByName = edge.specifier.startsWith(`${DESIGN_SYSTEM_PACKAGE_NAME}/`);
+  if (isImportedByName || !isInside(targetPath, DESIGN_SYSTEM_FOLDER) || isInside(edge.fromPath, DESIGN_SYSTEM_FOLDER)) return null;
+  return edgeFinding(
+    edge,
+    'design-system-reached-by-path',
+    `outside ${DESIGN_SYSTEM_FOLDER}, the package is imported as ${DESIGN_SYSTEM_PACKAGE_NAME}/<entry>, an entry its package.json exports`,
+  );
 }
 
 function libFinding(edge: ImportEdge, declarations: ReadonlyMap<string, readonly string[]>): Finding | null {
@@ -345,11 +355,14 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
     return [edgeFinding(edge, 'barrel', 'a re-export makes one module stand for others')];
   }
   const libVerdict = libFinding(edge, declarations);
-  if (edge.target.kind === 'package') {
+  if (edge.target.kind !== 'repository-file') {
     const watcherBinaryVerdict = layerOf(edge.fromPath) === 'watcher-binary'
       ? edgeFinding(edge, 'watcher-binary-imports-beyond-its-package', `${WATCHER_BINARY_PATH} imports only ${WATCHER_PACKAGE_FOLDER}`)
       : null;
-    return [libVerdict, watcherBinaryVerdict];
+    const unexportedEntryVerdict = edge.target.kind === 'unexported-workspace-entry'
+      ? edgeFinding(edge, 'workspace-entry-not-exported', 'the package.json of its workspace package exports no such entry')
+      : null;
+    return [libVerdict, watcherBinaryVerdict, unexportedEntryVerdict];
   }
   const targetPath = edge.target.path;
   return [
@@ -357,9 +370,9 @@ function edgeFindingsOf(edge: ImportEdge, declarations: ReadonlyMap<string, read
     commandFinding(edge, targetPath),
     commandSetFinding(edge, targetPath, allowlists),
     bridgeViewFinding(edge, targetPath),
-    bridgeDesignSystemFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
     vendorSeamFinding(edge, targetPath),
+    designSystemPathFinding(edge, targetPath),
     libVerdict,
   ];
 }
@@ -500,7 +513,7 @@ describe('the scan itself', () => {
     expect(GRAPH.scannedPaths).toContain(WATCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(LAUNCHER_BINARY_PATH);
     expect(GRAPH.scannedPaths).toContain(SETUP_BINARY_PATH);
-    for (const topFolder of ['cli/', 'bridge/', 'src/lib/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
+    for (const topFolder of ['cli/', 'bridge/', 'design-system/', 'src/lib/', 'src/shared/', 'src/adapters/', 'src/services/', 'src/testing/']) {
       expect(GRAPH.scannedPaths.filter((path) => isInside(path, topFolder)).length, `files under ${topFolder}`).toBeGreaterThanOrEqual(5);
       expect(repositoryEdges.filter((edge) => isInside(edge.fromPath, topFolder)).length, `imports made under ${topFolder}`).toBeGreaterThanOrEqual(5);
     }
@@ -526,11 +539,19 @@ describe('the scan itself', () => {
     expect(commandFolders.size, 'command folders under cli/').toBeGreaterThanOrEqual(10);
     expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
-    expect(GRAPH.scannedPaths.filter((path) => isInside(path, BRIDGE_DESIGN_SYSTEM_FOLDER)).length, `files under ${BRIDGE_DESIGN_SYSTEM_FOLDER}`)
-      .toBeGreaterThanOrEqual(5);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
     expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'owner-only-files', 'process-identity']);
+  });
+
+  test('it resolves the design-system package\'s specifiers through its package.json exports, each source entry exists and the Bridge uses them', () => {
+    expect(GRAPH.workspaceEntryPathsBySpecifier.get('design-system/Button')).toBe('design-system/atoms/Button.tsx');
+    expect(GRAPH.workspaceEntryPathsBySpecifier.get('design-system/design-system.css')).toBe('design-system/styles/design-system.css');
+    const sourceEntryPaths = [...GRAPH.workspaceEntryPathsBySpecifier.values()].filter((path) => /\.tsx?$/.test(path));
+    expect(sourceEntryPaths.filter((path) => !GRAPH.scannedPaths.includes(path))).toEqual([]);
+    const bridgeEntryImports = GRAPH.edges.filter((edge) => isInside(edge.fromPath, 'bridge/') && edge.specifier.startsWith(`${DESIGN_SYSTEM_PACKAGE_NAME}/`));
+    expect(bridgeEntryImports.length, 'Bridge imports of the package by name').toBeGreaterThanOrEqual(100);
+    expect(bridgeEntryImports.filter((edge) => edge.target.kind !== 'repository-file')).toEqual([]);
   });
 
   test('every allowlist entry and every declared lib dependency is still used, and every testing folder is listed', () => {
@@ -633,16 +654,33 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'bridge/views/progress/PlantedPart.tsx': importingOwnAndHoistedFiles })).toEqual([]);
   });
 
-  test('a Bridge design-system file importing outside its folder, and not a sibling part or the display-state type', () => {
-    const importingShellAndUtil = `${importing('../shell/HashRouter.ts')}${importing('../utils/TimeUtil.ts').replaceAll('planted', 'plantedTime')}`;
-    expect(plantedSentencesOf({ 'bridge/design-system/Planted.tsx': importingShellAndUtil })).toEqual([
-      'bridge-design-system-reaches-outside — bridge/design-system/Planted.tsx:1 imports bridge/shell/HashRouter.ts: '
-        + 'bridge/design-system/ imports only itself and src/lib/tracker-model/@types/Task.ts; a link arrives as an href, an action as a callback',
-      'bridge-design-system-reaches-outside — bridge/design-system/Planted.tsx:3 imports bridge/utils/TimeUtil.ts: '
-        + 'bridge/design-system/ imports only itself and src/lib/tracker-model/@types/Task.ts; a link arrives as an href, an action as a callback',
+  test('the design-system package importing the forge, and the forge reaching it but by a specifier its package.json exports from the Bridge', () => {
+    expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('../../src/lib/tracker-model/@types/Task.ts') })).toEqual([
+      'layer-imports-upward — design-system/atoms/PlantedPart.tsx:1 imports src/lib/tracker-model/@types/Task.ts: design-system reaches only design-system, not lib',
     ]);
-    const importingPartAndType = `${importing('./Button.tsx')}${importing('../../src/lib/tracker-model/@types/Task.ts').replaceAll('planted', 'plantedState')}`;
-    expect(plantedSentencesOf({ 'bridge/design-system/Planted.tsx': importingPartAndType })).toEqual([]);
+    expect(plantedSentencesOf({ 'design-system/molecules/PlantedPart.tsx': importing('../../bridge/shell/HashRouter.ts') })).toEqual([
+      'layer-imports-upward — design-system/molecules/PlantedPart.tsx:1 imports bridge/shell/HashRouter.ts: design-system reaches only design-system, not bridge',
+    ]);
+    expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('design-system/Button') })).toEqual([
+      'layer-imports-upward — cli/PlantedView.ts:1 imports design-system/atoms/Button.tsx: cli reaches only lib, shared, adapters, render-service, '
+        + 'tracker-service, lifecycle-service, control-service, overseer-service, cli, not design-system',
+    ]);
+    const byPathReason = 'outside design-system/, the package is imported as design-system/<entry>, an entry its package.json exports';
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../design-system/atoms/Button.tsx') })).toEqual([
+      `design-system-reached-by-path — bridge/shell/PlantedPart.tsx:1 imports design-system/atoms/Button.tsx: ${byPathReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing(`${repositoryRootOfThisCheckout().replaceAll('\\', '/')}/design-system/utils/MeterUtil.ts`) })).toEqual([
+      `design-system-reached-by-path — bridge/shell/PlantedPart.tsx:1 imports design-system/utils/MeterUtil.ts: ${byPathReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('design-system/MeterUtil') })).toEqual([
+      'workspace-entry-not-exported — bridge/shell/PlantedPart.tsx:1 imports design-system/MeterUtil: the package.json of its workspace package exports no such entry',
+    ]);
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('design-system/atoms/Button.tsx') })).toEqual([
+      'workspace-entry-not-exported — bridge/shell/PlantedPart.tsx:1 imports design-system/atoms/Button.tsx: the package.json of its workspace package exports no such entry',
+    ]);
+    const importingEntries = `${importing('design-system/Button')}${importing('design-system/Dismissal').replaceAll('planted', 'plantedHook')}`;
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importingEntries })).toEqual([]);
+    expect(plantedSentencesOf({ 'design-system/organisms/PlantedPart.tsx': importing('../utils/MeterUtil.ts') })).toEqual([]);
   });
 
   test('the binary importing anything but cli/', () => {
@@ -793,8 +831,12 @@ describe('the imports of the tree', () => {
     expect(sentencesAbout(FINDINGS, 'bridge-view-imports-a-sibling-view')).toEqual([]);
   });
 
-  test('no bridge/design-system/ file imports outside itself but the display-state type', () => {
-    expect(sentencesAbout(FINDINGS, 'bridge-design-system-reaches-outside')).toEqual([]);
+  test('outside design-system/, the design-system package is imported by its name, never by a file path', () => {
+    expect(sentencesAbout(FINDINGS, 'design-system-reached-by-path')).toEqual([]);
+  });
+
+  test('every specifier naming a workspace package is an entry its package.json exports', () => {
+    expect(sentencesAbout(FINDINGS, 'workspace-entry-not-exported')).toEqual([]);
   });
 
   test('agent-progress.ts imports only cli/', () => {

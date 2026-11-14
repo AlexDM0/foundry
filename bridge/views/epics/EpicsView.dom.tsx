@@ -1,7 +1,8 @@
 /**
  * The Epics view in a happy-dom document. What matters: an epic's description reaches the DOM only as the `srcdoc` of a frame whose
  * `sandbox` attribute is exactly the design's, and only once its disclosure opens, so a planted image handler, script or `javascript:` link
- * never becomes an element of the Bridge's own document and runs nothing, while its summary shows as text; the cards carry the epic marks;
+ * never becomes an element of the Bridge's own document and runs nothing, while its summary shows as text; the title row heads the view;
+ * the cards carry the epic marks, a one-at-a-time wave saying so in its head and leaving its ticket cards plain;
  * a ticket line opens its ticket form over the Epics tab and is marked while open; the epic the route points at is marked; and a window
  * that hides every epic says so in one line.
  */
@@ -96,13 +97,23 @@ describe('the epic cards', () => {
     expect([...checkout.querySelectorAll('.bridge-epic-legend li')].map((item) => item.textContent)).toEqual(['Done 1', 'In progress 1', 'To do 1']);
     expect([...checkout.querySelectorAll('.bridge-epic-fact')].map((fact) => fact.textContent)).toEqual(['open2', 'done1', 'tokens12.4k', 'span10-28 08:00 → now · 1d 4h']);
     expect([...checkout.querySelectorAll('.bridge-epic-wave-name')].map((name) => name.textContent)).toEqual(['Done', 'Now', 'Wave 2']);
-    expect([...checkout.querySelectorAll('.bridge-epic-ticket .bridge-ticket-id')].map((id) => id.textContent)).toEqual(['#4', '#3', '#2']);
+    expect([...checkout.querySelectorAll('.bridge-epic-ticket .design-system-mono-id')].map((id) => id.textContent)).toEqual(['#4', '#3', '#2']);
     expect(checkout.querySelector('.bridge-epic-also')?.getAttribute('title')).toBe('Also in Example billing');
     expect(checkout.hasAttribute('data-live')).toBe(true);
     const frees = checkout.querySelector('.bridge-epic-link-chip[data-frees]');
     expect([frees?.textContent, frees?.getAttribute('href')]).toEqual(['Example billingvia #3', '#epics/epic/billing']);
     expect(cardNamed('Example billing').querySelector('.bridge-epic-link-chip')?.getAttribute('href')).toBe('#epics/ticket/3');
     expect(checkout.querySelector('.bridge-epic-link-empty')?.textContent).toBe('Nothing outside this epic');
+  });
+
+  test('the title row heads the view, and a one-at-a-time wave says so in its head while its ticket cards stay plain', () => {
+    renderedEpics();
+    expect(screen.getByRole('heading', { level: 2, name: 'Epics' })).toBeTruthy();
+    const waves = [...cardNamed('Example checkout').querySelectorAll<HTMLElement>('.bridge-epic-wave')];
+    expect(waves.map((wave) => [wave.hasAttribute('data-narrow'), wave.querySelector('.bridge-epic-wave-note')?.textContent ?? null])).toEqual([
+      [false, null], [true, 'one at a time'], [false, null],
+    ]);
+    expect(document.querySelectorAll('.bridge-epic-wave-pill[data-narrow]')).toHaveLength(0);
   });
 
   test('a ticket line opens its ticket form over the Epics tab, and is marked while open', () => {

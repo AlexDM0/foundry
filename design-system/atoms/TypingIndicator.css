@@ -1,0 +1,12 @@
+/* An agent at work: three dots blinking in turn in a bubble on the wash, then the line of what it does now. */
+.design-system-typing { display: flex; align-items: center; gap: var(--space-10); }
+.design-system-typing-dots { display: flex; flex: none; gap: var(--sp-1); padding: var(--space-10) var(--sp-3); background: var(--wash); border-radius: var(--r-3); }
+.design-system-typing-dot { width: 6px; height: 6px; background: var(--ink-muted); border-radius: var(--r-pill); animation: design-system-blink 1.2s infinite; }
+.design-system-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.design-system-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.design-system-typing-text { font-size: var(--fs-small); color: var(--ink-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-typing-dot { animation: none; }
+}
+@keyframes design-system-blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }

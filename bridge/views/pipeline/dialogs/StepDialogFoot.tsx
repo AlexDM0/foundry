@@ -2,9 +2,9 @@
  * The foot every step and gate dialog ends with: its own actions on the start side, then Cancel and the primary Save, and under them the
  * Overseer's refusal of the last Save, verbatim.
  */
+import { Button }         from 'design-system/Button';
 import type { ReactNode } from 'react';
 
-import { Button } from '../../../design-system/Button.tsx';
 
 export interface StepDialogFootProps {
   readonly start?:    ReactNode;

@@ -66,14 +66,16 @@ and chat; the footer counts the sections and rules, with **Back to research** an
 you edit an applied pipeline, the same page at `#pipeline/edit/constitution` edits main's `CONSTITUTION.md`, with only
 **Back to the flow** in its footer.
 
-The pipeline design step (`#pipeline/setup/design`) draws the agent's proposal as the flow, every step and gate dashed
-in amber until you apply it, with the gates area under it. The aside has two tabs: the pipeline agent, with its
-questions, its chat, its newest change (**Show <step> on the flow** selects that step, and **Undo this change** sends
+The pipeline design step (`#pipeline/setup/design`) draws the agent's proposal in the phase layout described below, with
+no step or gate marked as changed. The aside has two tabs: **Conversation**, with the agent's questions, its chat, its
+newest change (**Show <step> on the flow** opens that step's phase and selects it, and **Undo this change** sends
 `pipeline-draft-undo`) and the message box; and **Changes**, one card per change against the smallest pipeline, each
-with **Undo** where an edit made it. A step the agent asks about carries a Question marker, and opening it shows the
-question instead of its settings until you answer. The footer counts the proposed prepare steps and gates.
-**Discard proposal** (`pipeline-draft-discard`) drops the proposal and keeps the agent; **Apply pipeline** stays
-disabled while any question is open. Nothing profiles a gate until you press its stopwatch.
+with **Undo** where an edit made it. A step the agent asks about carries a question pill on its card and on its phase's
+tab, and opening it shows the question instead of its settings until you answer. The strip above the message box says
+the agent is designing, waits for your answer while a question is open, and says "Proposal ready" once the agent says
+so. The footer counts the proposed prepare steps and gates. **Discard proposal** (`pipeline-draft-discard`) drops the
+proposal and keeps the agent; **Apply pipeline** stays disabled while any question is open. Nothing profiles a gate
+until you press its time chip.
 
 **Apply pipeline** asks first: "Resume the board" (on by default) says how many pending tickets start building and
 how many at a time. Apply commits `CONSTITUTION.md` to main first, so the dialog stays open while the commit waits for
@@ -83,41 +85,46 @@ to commit by hand, signed, before you press Apply again. On a running board, **A
 where it is and its kind, the version it makes, and the tickets in flight, which take the new version at their next
 gate run; it never resumes a paused board.
 
-Once a pipeline is applied, or while you edit one, the Pipeline tab draws it as a flow: the steps a ticket takes down the
-left, the review steps on the right, and the merge train in its frame. Double-click a step, or focus it and press Enter,
-to open its settings; the merge of main before review has none, since the builder's settings drive it. An agent step's
-dialog sets its model, effort and instruction files, read top to bottom; the review step's also sets the re-review after
-its fixes, and a merge step's the re-review after a conflict merge. A gate's dialog sets its command, fix command,
-folder, phases and network, and its Profile box runs the gate once when you press it. Nothing changes until you press
-Save, and on a live board the first Save opens an edit. The two switches, Human ticket review and Human code review,
-change the pipeline at once; on a live board the first change opens an edit. A + sits where a step is missing and offers
-what fits there. The zoom and Fit sit in the flow's toolbar, and the zoom is kept per board.
+Once a pipeline is applied, or while you edit one, the Pipeline tab draws it in four phases: Ticket, Build, Review and
+Merge. Under the page title, the phase stepper shows one tab per phase with its step and gate count and a pill for what
+waits there (an open question, the tickets on a live board, the changes of an edit); a press opens that phase, and Build
+opens first. The open phase says what it is for and when a ticket leaves it, with a **Next** button to the next phase
+(Merge ends on main instead), then its steps as cards from left to right, then its gates table; the Ticket phase lists
+what makes a draft ready instead. Double-click a step card, or focus it and press Enter, to open its settings; the merge
+of main before review has none, since the builder's settings drive it. An agent step's dialog sets its model, effort and
+instruction files, read top to bottom; the review step's also sets the re-review after its fixes, and a merge step's the
+re-review after a conflict merge. A gate's dialog sets its command, fix command, folder, phases and network, and its
+Profile box runs the gate once when you press it. Nothing changes until you press Save, and on a live board the first
+Save opens an edit. The two switches, Human ticket review and Human code review, change the pipeline at once; on a live
+board the first change opens an edit. An add card sits where a step is missing and offers what fits there.
 
-On a live board, each step carries a chip for every ticket on it, and for a filing draft being written on Ticket
-creation; a chip opens that ticket's or draft's panel, and the arrows a ticket takes now run. The aside's **On the
-flow** tab lists the same items under "Now", each with its step, its model and effort when an agent runs it, and how
-long it has been there, then the newest pipeline records under "Earlier". **Ask the pipeline agent** starts an advise
-session, which opens as an edit with the agent's tab first. The footer names the applied version, when you applied it,
-the pipeline's content hash and the commit the newest Apply made of `CONSTITUTION.md`; **View pipeline.json** shows the
-stored file, and **Update pipeline** opens an edit. After an Apply from this page, a toast says the pipeline is applied,
-and "Board resumed" only when the Apply resumed the board.
+On a live board, each step card says its state and carries a chip for every ticket on it, and for a filing draft being
+written on Ticket creation; a chip opens that ticket's or draft's panel. The Merge phase's head names the ticket the
+Airlock is letting onto main and the tickets queued for the merge train. The aside's **On the flow** tab lists the same
+items under "Now", each with its step, its model and effort when an agent runs it, and how long it has been there, then
+the newest pipeline records under "Earlier". **Ask the pipeline agent** starts an advise session, which opens as an edit
+with the agent's tab first. The footer names the applied version, when you applied it, the pipeline's content hash and
+the commit the newest Apply made of `CONSTITUTION.md`; **View pipeline.json** shows the stored file, and **Update
+pipeline** opens an edit. After an Apply from this page, a toast says the pipeline is applied, and "Board resumed" only
+when the Apply resumed the board.
 
-While you edit an applied pipeline, the toolbar says how many changes are not applied, and changed, new and removed
-gates carry their colour on the flow and in the gates area; a removed gate stays drawn, struck through, until Apply,
-while a removed agent step leaves its + behind. The aside beside the flow opens on **Changes**: one card per change,
-with Undo, a gate's command before and after, and for a new gate **Benchmark in the <phase> phase**, which profiles it
-once in that phase when you press it. Under the cards, the tickets in flight take the new version at their next gate
-run. The **Pipeline agent** tab holds its chat, and **Ask the pipeline agent to check** (`pipeline-check`) asks it to
-run the touched gates. The footer counts the changes and the version they make; the board keeps running on its version
-until you press **Apply N changes**, and **Discard** drops the edit and returns to the live flow. The smallest pipeline
-keeps its "About this pipeline" note beside the flow instead, and its footer names the steps you removed.
+While you edit an applied pipeline, each phase's tab counts the changes not yet applied in that phase, and changed, new
+and removed steps and gates carry their mark on their card and in the gates table; a removed step or gate stays drawn,
+struck through, until Apply. The aside beside the flow opens on **Changes**: one card per change, with Undo, a gate's
+command before and after, and for a new gate **Benchmark in the <phase> phase**, which profiles it once in that phase
+when you press it. Under the cards, the tickets in flight take the new version at their next gate run. The **Pipeline
+agent** tab holds its chat, and **Ask the pipeline agent to check** (`pipeline-check`) asks it to run the touched gates.
+The footer counts the changes and the version they make; the board keeps running on its version until you press **Apply
+N changes**, and **Discard** drops the edit and returns to the live flow. The smallest pipeline keeps its "About this
+pipeline" note beside the phases instead, and its footer names the steps you removed.
 
-Under the flow, the gates area has a tab for each phase: Build, Review and Merge, each with its gate count. Drag a row by
-its grip, or focus the grip and use Space and the arrow keys, to change the order the gates run in; prepare steps stay
-before the gates. Focus a row and press Delete to take a gate out of that phase, or to remove a prepare step.
-Double-click a row to open its settings. The stopwatch chip of a gate profiles it once in that phase and shows its time;
-nothing profiles a gate until you press it. **Add <phase> gate**, and **Add prepare step** in the Build tab, are there
-while you set up or edit a pipeline.
+Under the steps of the Build, Review and Merge phases, the phase's gates table lists its prepare steps and gates with
+their command, the other phases they run in, their network and their time. Drag a row by its grip, or focus the grip and
+use Space and the arrow keys, to change the order the gates run in; prepare steps stay before the gates. Focus a row and
+press Delete to take a gate out of that phase, or to remove a prepare step. Double-click a row to open its settings. The
+time chip of a gate profiles it once in that phase and shows its time; nothing profiles a gate until you press it. **Add
+gate**, and **Add prepare step** in the Build phase, are there while you set up or edit a pipeline; on a live board the
+table's head names the tickets in that phase's gates instead.
 
 The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, so opening a ticket never changes tab.
 A ticket opens on its Overview; the tabs under its head switch to Timeline, Activity and Description, each with a link of

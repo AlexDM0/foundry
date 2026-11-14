@@ -1,16 +1,25 @@
 /**
- * The ticket form a Kanban card or wave card opens: the head, then the section tabs (Overview, Timeline, Activity, Description), each a link
- * to its own route over the same board tab; only the section shown is mounted, so the body's frame measures itself once it is visible.
+ * The ticket form a Kanban card or wave card opens, as the side panel's head and body: the head (id, type and priority, the title in the
+ * display face beside the state pill) over the section tabs (Overview, Timeline, Activity, Description), each a link to its own route over
+ * the same board tab, stays put; the body scrolls the section shown. Only that section is mounted, so the body's frame measures itself
+ * once it is visible.
  */
-import { useEffect, useRef } from 'react';
+
+import { CountBadge }                   from 'design-system/CountBadge';
+import { Row }                          from 'design-system/Row';
+import { SidePanelBody, SidePanelHead } from 'design-system/SidePanel';
+import { StatePill }                    from 'design-system/StatePill';
+import { Tabs, type LinkTabItem }       from 'design-system/Tabs';
+import { Text }                         from 'design-system/Text';
+import { View }                         from 'design-system/View';
+import { useEffect, useRef }            from 'react';
 
 import { PriorityMark, TypeMark }          from '../../chips/TicketMarks.tsx';
-import { StatePill }                       from '../../design-system/StatePill.tsx';
-import { Tabs, type TabItem }              from '../../design-system/Tabs.tsx';
 import { SandboxedHtmlFrame }              from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailRoute, type TicketSection } from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                from '../../shell/DetailRouting.ts';
 import { HashRouter }                      from '../../shell/HashRouter.ts';
+import { StateToneUtil }                   from '../../utils/StateToneUtil.ts';
 import { LogLines }                        from './DetailParts.tsx';
 import type { TicketDetailModel }          from './TicketDetailModel.ts';
 import { TicketOverview }                  from './TicketOverview.tsx';
@@ -18,19 +27,34 @@ import { TicketTimeline }                  from './TicketTimeline.tsx';
 
 export const NO_TICKET_LOG_LINES_NOTE = 'No log line names this ticket or its row.';
 
-const PANEL_SCROLL_SELECTOR = '.bridge-side-panel-scroll';
-
 function TicketHead({ model }: { readonly model: TicketDetailModel }) {
   return (
-    <div className="bridge-detail-head" data-state={model.stateToken}>
-      <span className="bridge-detail-id">{model.idText}</span>
-      <h2 className="bridge-detail-title">{model.title}</h2>
-      <StatePill label={model.stateLabel} />
-      {model.reviewedTitle === null
-        ? null
-        : <span className="bridge-detail-reviewed-mark" data-state="reviewed" title={model.reviewedTitle} role="img" aria-label="reviewed">✓</span>}
-      <PriorityMark priority={model.priority} />
-      <TypeMark type={model.ticketType} />
+    <div className="bridge-ticket-detail-head" data-state={model.stateToken} data-state-tone={StateToneUtil.toneOf(model.stateToken)}>
+      <Row centerY gap="eight">
+        <span className="bridge-detail-id">{model.idText}</span>
+        <TypeMark type={model.ticketType} />
+        <PriorityMark priority={model.priority} />
+      </Row>
+      <Row between centerY gap="twelve">
+        <View grow><Text typeRole="page" element="h2">{model.title}</Text></View>
+        <Row centerY gap="four">
+          <StatePill label={model.stateLabel} {...StateToneUtil.pillLookOf(model.stateToken)} />
+          {model.reviewedTitle === null
+            ? null
+            : (
+              <span
+                className="bridge-detail-reviewed-mark"
+                data-state="reviewed"
+                data-state-tone={StateToneUtil.toneOf('reviewed')}
+                title={model.reviewedTitle}
+                role="img"
+                aria-label="reviewed"
+              >
+                ✓
+              </span>
+            )}
+        </Row>
+      </Row>
     </div>
   );
 }
@@ -42,13 +66,13 @@ function logLinesText(count: number): string {
 function SectionTabs({ model }: { readonly model: TicketDetailModel }) {
   const { tab } = useDetailRouting();
   const routeOf = (section: TicketSection) => DetailRoute.sectionRouteOf(tab, model.ticketId, section);
-  const items = model.tabs.map((sectionTab): TabItem<TicketSection> => ({
+  const items = model.tabs.map((sectionTab): LinkTabItem<TicketSection> => ({
     key:   sectionTab.section,
     label: sectionTab.label,
     href:  HashRouter.fragmentOf(routeOf(sectionTab.section)),
     ...(sectionTab.count === null
       ? {}
-      : { count: { count: sectionTab.count, tone: 'neutral' }, accessibleName: `${sectionTab.label}, ${logLinesText(sectionTab.count)}` }),
+      : { countBadge: <CountBadge count={sectionTab.count} tone="neutral" />, accessibleName: `${sectionTab.label}, ${logLinesText(sectionTab.count)}` }),
   }));
   return (
     <Tabs
@@ -75,20 +99,33 @@ function ShownSection({ model }: { readonly model: TicketDetailModel }) {
   }
 }
 
-export function TicketDetail({ model }: { readonly model: TicketDetailModel }) {
-  const tabBar = useRef<HTMLDivElement>(null);
-  // A new section starts at the panel's top, so the tabs and the section's start show; the focus stays on the tab that opened it.
+export interface TicketDetailProps {
+  readonly model:      TicketDetailModel;
+  readonly closeLabel: string;
+  readonly onClose:    () => void;
+  /** The body's content key: a new item cross-fades it. */
+  readonly contentKey: string;
+}
+
+export function TicketDetail({
+  model, closeLabel, onClose, contentKey
+}: TicketDetailProps) {
+  const bodyScroll = useRef<HTMLDivElement>(null);
+  // A new section starts at the body's top, so the section's start shows; the focus stays on the tab that opened it.
   useEffect(() => {
-    const scroller = tabBar.current?.closest(PANEL_SCROLL_SELECTOR) ?? null;
-    if (scroller !== null) scroller.scrollTop = 0;
+    if (bodyScroll.current !== null) bodyScroll.current.scrollTop = 0;
   }, [model.section]);
   return (
     <>
-      <TicketHead model={model} />
-      <div ref={tabBar} className="bridge-detail-tab-bar">
-        <SectionTabs model={model} />
-      </div>
-      <ShownSection model={model} />
+      <SidePanelHead closeLabel={closeLabel} onClose={onClose}>
+        <TicketHead model={model} />
+        <div className="bridge-detail-tab-bar">
+          <SectionTabs model={model} />
+        </div>
+      </SidePanelHead>
+      <SidePanelBody contentKey={contentKey} scrollRef={bodyScroll}>
+        <ShownSection model={model} />
+      </SidePanelBody>
     </>
   );
 }

@@ -1,7 +1,11 @@
 /**
- * A job's transcript, replayed then followed. What it received is kept in the view's `TranscriptMemory`, so a panel opened again on the same
- * job shows it at once and asks only after the last cursor it holds. Every entry renders as text: an agent's markup is never markup here.
+ * A job's transcript under its "Transcript" head, replayed then followed. What it received is kept in the view's `TranscriptMemory`, so a
+ * panel opened again on the same job shows it at once and asks only after the last cursor it holds. Every entry renders as text, with its
+ * local time: an agent's markup is never markup here.
  */
+import { EmptyState }          from 'design-system/EmptyState';
+import { Row }                 from 'design-system/Row';
+import { Text }                from 'design-system/Text';
 import { useEffect, useState } from 'react';
 
 import type {
@@ -10,8 +14,11 @@ import type {
   TranscriptStreamHandlers,
   TranscriptStreamOptions
 } from '../../api/TranscriptStreamClient.ts';
-import { TranscriptLog } from '../../conversation/TranscriptLog.tsx';
-import { EmptyState }    from '../../design-system/ListSection.tsx';
+import { ChatTurnWordingUtil } from '../../conversation/ChatTurnWordingUtil.ts';
+import { TranscriptLog }       from '../../conversation/TranscriptLog.tsx';
+import { useBridgeClock }      from '../../shell/BridgeClock.ts';
+import { TimeUtil }            from '../../utils/TimeUtil.ts';
+import { AgentsModel }         from './AgentsModel.ts';
 
 export type FollowTranscript = (jobId: string, handlers: TranscriptStreamHandlers, options?: TranscriptStreamOptions) => TranscriptStream;
 
@@ -39,6 +46,8 @@ function entryTextOf(entry: TranscriptEntryDocument): string {
 
 export function TranscriptPanel({ jobId, memory, followTranscript }: TranscriptPanelProps) {
   const [entries, setEntries] = useState<readonly TranscriptEntryDocument[]>(() => memory.get(jobId)?.entries ?? []);
+  // The viewer's day only picks the form a stamp is shown in.
+  const todayCalendarDate = TimeUtil.calendarDateOf(useBridgeClock().now().getTime());
 
   useEffect(() => {
     const held = memory.get(jobId) ?? { entries: [], cursor: null };
@@ -53,6 +62,23 @@ export function TranscriptPanel({ jobId, memory, followTranscript }: TranscriptP
     return () => stream.close();
   }, [jobId, memory, followTranscript]);
 
-  if (entries.length === 0) return <EmptyState text="No transcript yet." />;
-  return <TranscriptLog label={`Transcript of ${jobId}`} entries={entries} roleTextOf={roleTextOf} textOf={entryTextOf} />;
+  return (
+    <div className="agents-transcript">
+      <Row gap="eight" centerY>
+        <Text bold element="h3">Transcript</Text>
+        <Text typeRole="small" subtle>{AgentsModel.transcriptCountTextOf(entries.length)}</Text>
+      </Row>
+      {entries.length === 0
+        ? <EmptyState text="No transcript yet." />
+        : (
+          <TranscriptLog
+            label={`Transcript of ${jobId}`}
+            entries={entries}
+            roleTextOf={roleTextOf}
+            textOf={entryTextOf}
+            stampOf={(entry) => ChatTurnWordingUtil.stampOf(entry.at, todayCalendarDate)}
+          />
+        )}
+    </div>
+  );
 }

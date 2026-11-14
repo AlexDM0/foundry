@@ -1,11 +1,13 @@
 /**
- * Every import edge of the repository's TypeScript, over the files the root, page and Bridge programs compile, read syntactically with
- * the compiler API so no type checking is paid for. Planted sources add or replace files in memory, so a guard can prove it still fires.
- * The tree is read once per run and shared frozen: `bun test` runs every spec file in one process.
+ * Every import edge of the repository's TypeScript, over the files the root, Bridge and design-system programs compile, read
+ * syntactically with the compiler API so no type checking is paid for. A specifier naming a workspace package of the root `package.json`
+ * resolves through that package's `exports`, as Bun and TypeScript resolve it. Planted sources add or replace files in memory, so a guard
+ * can prove it still fires. The tree is read once per run and shared frozen: `bun test` runs every spec file in one process.
  */
 import { readFileSync } from 'node:fs';
 import {
   dirname,
+  isAbsolute,
   join,
   posix,
   relative,
@@ -16,27 +18,33 @@ import ts from 'typescript';
 
 export type ImportForm = 'import' | 're-export' | 'dynamic-import';
 
+/** A repository file reached by a relative or absolute path or through a workspace package's exports, or a package outside the repository. */
 export type ImportTarget =
   | { readonly kind: 'repository-file'; readonly path: string }
+  | { readonly kind: 'unexported-workspace-entry'; readonly specifier: string }
   | { readonly kind: 'package'; readonly specifier: string };
 
 export interface ImportEdge {
-  readonly fromPath: string;
-  readonly line:     number;
-  readonly form:     ImportForm;
-  readonly target:   ImportTarget;
+  readonly fromPath:  string;
+  readonly line:      number;
+  readonly form:      ImportForm;
+  /** The module specifier as the importing file writes it. */
+  readonly specifier: string;
+  readonly target:    ImportTarget;
 }
 
 export interface ImportGraph {
-  readonly repositoryRoot: string;
+  readonly repositoryRoot:                 string;
   /** Repository-relative, with forward slashes, sorted. */
-  readonly scannedPaths:   readonly string[];
-  readonly edges:          readonly ImportEdge[];
-  readonly sourceTextOf:   (path: string) => string;
+  readonly scannedPaths:                   readonly string[];
+  readonly edges:                          readonly ImportEdge[];
+  readonly sourceTextOf:                   (path: string) => string;
+  /** Each specifier a workspace package's `exports` lists, such as `design-system/Button`, and the repository file it names. */
+  readonly workspaceEntryPathsBySpecifier: ReadonlyMap<string, string>;
 }
 
 /** Each spec project holds its shipping project plus the specs, so these together name every file the type check compiles. */
-const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json'];
+const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json', 'design-system/tsconfig.spec.json'];
 
 function repositoryPathOf(repositoryRoot: string, absolutePath: string): string {
   return relative(repositoryRoot, absolutePath).split('\\').join('/');
@@ -56,14 +64,51 @@ function stringLiteralTextOf(node: ts.Node | undefined): string | null {
   return node !== undefined && ts.isStringLiteralLike(node) ? node.text : null;
 }
 
-function targetOf(fromPath: string, specifier: string): ImportTarget {
-  if (!specifier.startsWith('.')) {
-    return { kind: 'package', specifier };
-  }
-  return { kind: 'repository-file', path: posix.normalize(posix.join(posix.dirname(fromPath), specifier)) };
+interface WorkspacePackageManifest {
+  readonly name?:    string;
+  readonly exports?: Readonly<Record<string, string>>;
 }
 
-function edgesOf(fromPath: string, sourceText: string): readonly ImportEdge[] {
+/** Every entry the workspace packages of the root `package.json` export, keyed by the specifier a host writes: `<name>/<entry>`. */
+function workspaceEntryPathsBySpecifierOf(repositoryRoot: string): ReadonlyMap<string, string> {
+  const readManifest = (path: string): WorkspacePackageManifest & { readonly workspaces?: readonly string[] } => JSON.parse(readFileSync(join(repositoryRoot, path), 'utf8'));
+  const entryPathsBySpecifier = new Map<string, string>();
+  for (const workspaceFolder of readManifest('package.json').workspaces ?? []) {
+    const { name, exports: entries = {} } = readManifest(posix.join(workspaceFolder, 'package.json'));
+    for (const [entryKey, entryTarget] of Object.entries(entries)) {
+      entryPathsBySpecifier.set(posix.join(name ?? workspaceFolder, entryKey), posix.join(workspaceFolder, entryTarget));
+    }
+  }
+  return entryPathsBySpecifier;
+}
+
+interface SpecifierResolution {
+  readonly repositoryRoot:                 string;
+  readonly workspaceEntryPathsBySpecifier: ReadonlyMap<string, string>;
+}
+
+function workspacePackageNameOf(specifier: string): string {
+  const segments = specifier.split('/');
+  return (specifier.startsWith('@') ? segments.slice(0, 2) : segments.slice(0, 1)).join('/');
+}
+
+function targetOf(fromPath: string, specifier: string, resolution: SpecifierResolution): ImportTarget {
+  if (specifier.startsWith('.')) {
+    return { kind: 'repository-file', path: posix.normalize(posix.join(posix.dirname(fromPath), specifier)) };
+  }
+  if (isAbsolute(specifier)) {
+    return { kind: 'repository-file', path: repositoryPathOf(resolution.repositoryRoot, specifier) };
+  }
+  const workspaceEntryPath = resolution.workspaceEntryPathsBySpecifier.get(specifier);
+  if (workspaceEntryPath !== undefined) {
+    return { kind: 'repository-file', path: workspaceEntryPath };
+  }
+  const namesAWorkspacePackage = [...resolution.workspaceEntryPathsBySpecifier.keys()]
+    .some((entrySpecifier) => workspacePackageNameOf(entrySpecifier) === workspacePackageNameOf(specifier));
+  return namesAWorkspacePackage ? { kind: 'unexported-workspace-entry', specifier } : { kind: 'package', specifier };
+}
+
+function edgesOf(fromPath: string, sourceText: string, resolution: SpecifierResolution): readonly ImportEdge[] {
   const sourceFile = ts.createSourceFile(fromPath, sourceText, ts.ScriptTarget.ESNext, true, fromPath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const edges: ImportEdge[] = [];
   const record = (node: ts.Node, form: ImportForm, specifier: string | null): void => {
@@ -72,7 +117,7 @@ function edgesOf(fromPath: string, sourceText: string): readonly ImportEdge[] {
     }
     const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
     edges.push(Object.freeze({
-      fromPath, line, form, target: Object.freeze(targetOf(fromPath, specifier))
+      fromPath, line, form, specifier, target: Object.freeze(targetOf(fromPath, specifier, resolution))
     }));
   };
   const visit = (node: ts.Node): void => {
@@ -110,15 +155,17 @@ export function importGraphScannerOf(repositoryRoot: string): ImportGraphScanner
 }
 
 function scannerOf(repositoryRoot: string): ImportGraphScanner {
+  const resolution: SpecifierResolution = { repositoryRoot, workspaceEntryPathsBySpecifier: workspaceEntryPathsBySpecifierOf(repositoryRoot) };
   const sourceTexts: ReadonlyMap<string, string> = new Map(programFilePathsOf(repositoryRoot)
     .map((path) => [path, readFileSync(join(repositoryRoot, path), 'utf8')]));
   const edgesByPath: ReadonlyMap<string, readonly ImportEdge[]> = new Map([...sourceTexts]
-    .map(([path, sourceText]) => [path, Object.freeze(edgesOf(path, sourceText))]));
+    .map(([path, sourceText]) => [path, Object.freeze(edgesOf(path, sourceText, resolution))]));
   const graphOf = (texts: ReadonlyMap<string, string>, edgesByScannedPath: ReadonlyMap<string, readonly ImportEdge[]>): ImportGraph => Object.freeze({
     repositoryRoot,
-    scannedPaths: Object.freeze([...edgesByScannedPath.keys()].sort()),
-    edges:        Object.freeze([...edgesByScannedPath.values()].flat()),
-    sourceTextOf: (path: string) => texts.get(path) ?? '',
+    scannedPaths:                   Object.freeze([...edgesByScannedPath.keys()].sort()),
+    edges:                          Object.freeze([...edgesByScannedPath.values()].flat()),
+    sourceTextOf:                   (path: string) => texts.get(path) ?? '',
+    workspaceEntryPathsBySpecifier: resolution.workspaceEntryPathsBySpecifier,
   });
   const scanner: ImportGraphScanner = {
     graph:                 graphOf(sourceTexts, edgesByPath),
@@ -127,7 +174,7 @@ function scannerOf(repositoryRoot: string): ImportGraphScanner {
       const plantedEdgesByPath = new Map(edgesByPath);
       for (const [plantedPath, plantedSource] of Object.entries(plantedSources)) {
         plantedTexts.set(plantedPath, plantedSource);
-        plantedEdgesByPath.set(plantedPath, edgesOf(plantedPath, plantedSource));
+        plantedEdgesByPath.set(plantedPath, edgesOf(plantedPath, plantedSource, resolution));
       }
       return graphOf(plantedTexts, plantedEdgesByPath);
     },

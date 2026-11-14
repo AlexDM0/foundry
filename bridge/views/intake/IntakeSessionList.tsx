@@ -1,9 +1,11 @@
 /** The Intake list: every product-owner session, the selected one marked, under a head that counts them and opens a new chat. */
+import { Button } from 'design-system/Button';
+import { Tag }    from 'design-system/Tag';
+
 import { ChatTurnWordingUtil }                      from '../../conversation/ChatTurnWordingUtil.ts';
-import { Button }                                   from '../../design-system/Button.tsx';
-import { Pane }                                     from '../../design-system/Pane.tsx';
 import { HashRouter }                               from '../../shell/HashRouter.ts';
 import { INTAKE_NEW_CHAT_ITEM, type IntakeSession } from './IntakeModel.ts';
+import { IntakePane }                               from './IntakePane.tsx';
 import { IntakeSessionRow, NewChatRow }             from './IntakeSessionRow.tsx';
 
 export interface IntakeSessionListProps {
@@ -20,17 +22,24 @@ const NEW_CHAT_GLYPH = (
 
 export function IntakeSessionList({ sessions, selectedJobId, newChatIsOpen }: IntakeSessionListProps) {
   return (
-    <Pane
+    <IntakePane
       label="Product-owner sessions"
       title="Intake"
-      countText={ChatTurnWordingUtil.countTextOf(sessions.length, 'session', 'sessions')}
-      headEnd={<Button label="New chat" emphasis="primary" leading={NEW_CHAT_GLYPH} href={HashRouter.fragmentOf({ tab: 'intake', item: INTAKE_NEW_CHAT_ITEM })} />}
-      body="flush"
+      besideTitle={<Tag tone="neutral" text={ChatTurnWordingUtil.countTextOf(sessions.length, 'session', 'sessions')} />}
+      headEnd={(
+        <Button
+          label="New chat"
+          emphasis="primary"
+          compact
+          leading={NEW_CHAT_GLYPH}
+          href={HashRouter.fragmentOf({ tab: 'intake', item: INTAKE_NEW_CHAT_ITEM })}
+        />
+      )}
     >
       <ul className="bridge-intake-sessions" aria-label="Sessions">
         {newChatIsOpen ? <NewChatRow /> : null}
         {sessions.map((session) => <IntakeSessionRow key={session.jobId} session={session} selected={session.jobId === selectedJobId} />)}
       </ul>
-    </Pane>
+    </IntakePane>
   );
 }

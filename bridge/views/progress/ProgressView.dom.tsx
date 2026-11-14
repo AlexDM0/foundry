@@ -1,7 +1,8 @@
 /**
  * The Progress tab in a happy-dom document. What matters: each row draws its bars where the model places them, through the style prop; the
- * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under its key; the range menu presses Fit by
- * default and the preset chosen, and the chosen range, a custom one included, survives a reload for the same viewer; the wide-titles
+ * review-rows choice draws a ticket's review rows above it, latest round first, and is stored under its key; the title row names the tab;
+ * the range control above the chart presses Fit by default and the preset chosen, and the chosen range, a custom one included, survives a
+ * reload for the same viewer; the wide-titles
  * choice is stored; on a board with epics the rows are grouped under head rows that fold and stay folded across a reload; a tick label
  * near the right edge sits left of its line; a row opens its row's detail in place while its number links to its ticket and an epic
  * head's name to its epic; a row finished before the finished-work window is not drawn, and a held range marks rows that changed under
@@ -12,7 +13,8 @@ import {
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  within
 } from '@testing-library/react';
 import {
   afterEach,
@@ -82,18 +84,20 @@ function openMenu(name: string): void {
   fireEvent.click(screen.getByRole('button', { name }));
 }
 
-function rangeButton(): HTMLElement {
-  const button = document.querySelector<HTMLElement>('.bridge-menu-button[data-trigger="outlined"]');
-  if (button === null) throw new Error('no range button');
-  return button;
+function rangeControl(): HTMLElement {
+  return screen.getByRole('group', { name: 'Range' });
 }
 
-function rangeMode(): string | null {
-  return rangeButton().querySelector('.bridge-range-mode')?.textContent ?? null;
+function pressedRange(): string | null {
+  return rangeControl().querySelector('[aria-pressed="true"]')?.textContent ?? null;
 }
 
-function openRangeMenu(): void {
-  fireEvent.click(rangeButton());
+function chooseRange(name: string | RegExp): void {
+  fireEvent.click(within(rangeControl()).getByRole('button', { name }));
+}
+
+function rowsChangedMark(): HTMLElement | null {
+  return screen.queryByRole('img', { name: /rows shown changed/ });
 }
 
 afterEach(cleanup);
@@ -173,52 +177,54 @@ describe('the review-rows choice', () => {
   });
 });
 
-describe('the range menu', () => {
-  test('presses Fit by default and the preset chosen, closing the menu and naming the preset on its button', () => {
+test('opens with the title row: the tab name as a heading over its sentence', () => {
+  renderProgress();
+
+  expect(screen.getByRole('heading', { level: 2, name: 'Progress' })).not.toBeNull();
+  expect(screen.getByText(/^Each ticket's builds and reviews over time/)).not.toBeNull();
+});
+
+describe('the range control', () => {
+  test('presses Fit by default and the preset chosen, with the range\'s ends and ticks beside it', () => {
     renderProgress();
-    expect(rangeMode()).toBe('Fit');
-    openRangeMenu();
-    expect(screen.getByRole('button', { name: /rows shown/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(pressedRange()).toBe('Fit');
+    expect(within(rangeControl()).getAllByRole('button').map((segment) => segment.textContent)).toEqual(['Fit', '1h', '4h', '12h', '24h', '7d', 'Custom…']);
 
-    fireEvent.click(screen.getByRole('button', { name: '4h' }));
+    chooseRange('4h');
 
-    expect(rangeMode()).toBe('4h');
-    expect(screen.queryByRole('button', { name: /rows shown/ })).toBeNull();
-    openRangeMenu();
-    expect(screen.getByRole('button', { name: '4h' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: /rows shown/ }).getAttribute('aria-pressed')).toBe('false');
+    expect(pressedRange()).toBe('4h');
+    expect(within(rangeControl()).getByRole('button', { name: /rows shown/ }).getAttribute('aria-pressed')).toBe('false');
+    expect(document.querySelector('.bridge-progress-range-ends')?.textContent).toMatch(/ → .* ticks$/);
   });
 
   test('keeps the chosen range across a reload for the same viewer, under its key', () => {
     const { storage } = renderProgress();
-    openRangeMenu();
-    fireEvent.click(screen.getByRole('button', { name: '4h' }));
+    chooseRange('4h');
     expect(storage.get(BOARD_KEY)).toBe('{"presetKey":"4h","fromText":"-4h","toText":"now","tickMinutes":null}');
     cleanup();
 
     renderProgress(BOARD, storage);
 
-    expect(rangeMode()).toBe('4h');
+    expect(pressedRange()).toBe('4h');
   });
 
-  test('applies a custom range from its popover, which survives a reload as Custom', () => {
+  test('applies a custom range from its popover, handing the focus back to Custom…, and keeps it pressed across a reload', () => {
     const { storage } = renderProgress();
-    openRangeMenu();
-    fireEvent.click(screen.getByRole('button', { name: /^Custom…/ }));
+    chooseRange('Custom…');
     const popover = screen.getByRole('dialog', { name: 'Custom range' });
     fireEvent.change(screen.getByRole('textbox', { name: /From/ }), { target: { value: '-90m' } });
     fireEvent.click(screen.getByRole('button', { name: '15m' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     expect(popover.isConnected).toBe(false);
-    expect(document.activeElement).toBe(rangeButton());
+    expect(document.activeElement).toBe(within(rangeControl()).getByRole('button', { name: 'Custom…' }));
     expect(JSON.parse(storage.get(BOARD_KEY) ?? 'null')).toEqual({
       presetKey: null, fromText: '-90m', toText: 'now', tickMinutes: 15
     });
     cleanup();
 
     renderProgress(BOARD, storage);
-    expect(rangeMode()).toBe('Custom');
+    expect(pressedRange()).toBe('Custom…');
   });
 });
 
@@ -299,7 +305,7 @@ describe('the finished-work window', () => {
   test('marks a held range when the rows drawn change under it, never Fit', () => {
     const heldStore = [[BOARD_KEY, '{"presetKey":"4h","fromText":"-4h","toText":"now","tickMinutes":null}']] as const;
     const { storage } = renderProgress(WINDOW_BOARD, heldStore);
-    expect(rangeButton().hasAttribute('data-marked')).toBe(false);
+    expect(rowsChangedMark()).toBeNull();
     cleanup();
 
     const boardStore = boardPreferenceStoreOf('example-tracker', () => ({
@@ -318,15 +324,14 @@ describe('the finished-work window', () => {
     const { rerender } = render(viewOf(Number.NEGATIVE_INFINITY));
     rerender(viewOf(Date.parse('2026-09-17T13:00:00+02:00')));
 
-    expect(rangeButton().hasAttribute('data-marked')).toBe(true);
-    expect(rangeButton().querySelector('.bridge-range-mode')?.hasAttribute('data-held')).toBe(true);
+    expect(rowsChangedMark()).not.toBeNull();
+    expect(document.querySelector('.bridge-progress-range-ends')?.hasAttribute('data-held')).toBe(true);
 
     rerender(viewOf(Number.NEGATIVE_INFINITY));
-    expect(rangeButton().hasAttribute('data-marked')).toBe(true);
+    expect(rowsChangedMark()).not.toBeNull();
 
-    openRangeMenu();
-    fireEvent.click(screen.getByRole('button', { name: '12h' }));
-    expect(rangeButton().hasAttribute('data-marked')).toBe(false);
+    chooseRange('12h');
+    expect(rowsChangedMark()).toBeNull();
   });
 });
 

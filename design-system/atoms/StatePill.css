@@ -1,0 +1,19 @@
+/* Every pill is the same 20px box: fixed width, centred label, tabular figures, so a state change never shifts the line. The flags draw
+   a dashed edge and a struck label. */
+.design-system-state-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 118px; height: 20px; padding: 0 var(--space-8);
+  font: 600 var(--fs-pill)/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--s-edge);
+  border-radius: var(--r-pill);
+  background: var(--s-tint);
+  color: var(--s-ink);
+  white-space: nowrap;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+/* A pill of its own state, outside a detail head, is as wide as its word. */
+.design-system-state-pill[data-width="fit"] { width: auto; }
+
+.design-system-state-pill[data-dashed] { border-style: dashed; }
+.design-system-state-pill[data-struck] { text-decoration: line-through; }

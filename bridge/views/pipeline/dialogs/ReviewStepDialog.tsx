@@ -1,26 +1,31 @@
 /**
- * The review step dialog (A3cReviewModal): the reviewer's model, effort and instructions, then the conditional re-review after the
- * review's fixes. Save sends the reviewer, the re-reviewer while the re-review is on, and the review with or without its `reReview`. Remove
- * review, after its confirmation, sends the review's removal. Opened from the re-review node, it opens on the re-review switch.
+ * The review step dialog (A3cReviewModal), in two tabs: Review holds the reviewer's model, effort and brief; Re-review the conditional
+ * re-review after the review's fixes. Both tabs edit one form: Save sends the reviewer, the re-reviewer while the re-review is on, and the
+ * review with or without its `reReview`. Remove review, after its confirmation, sends the review's removal. Opened from the re-review
+ * node, it opens on the Re-review tab with its switch focused.
  */
+
+import { Button }           from 'design-system/Button';
+import { ConfirmStrip }     from 'design-system/ConfirmStrip';
+import { Dialog }           from 'design-system/Dialog';
+import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
+import { Tabs }             from 'design-system/Tabs';
+import { Text }             from 'design-system/Text';
+import { View }             from 'design-system/View';
 import { useRef, useState } from 'react';
 
 import type { Pipeline }                          from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChoices, PipelineFlowNode } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { Button }                                 from '../../../design-system/Button.tsx';
-import { ConfirmStrip }                           from '../../../design-system/ConfirmStrip.tsx';
-import { Dialog }                                 from '../../../design-system/Dialog.tsx';
-import { ModelEffortMeter }                       from '../../../design-system/ModelEffortMeter.tsx';
 import type { PipelineFlowEditSender }            from '../flow/PipelineFlowEditSender.ts';
 
-import { AgentStepDialogModel, type AgentStepForm } from './AgentStepDialogModel.ts';
-import { InstructionsEditor }                       from './InstructionsEditor.tsx';
-import type { ConstitutionPlace }                   from './InstructionsEditorModel.ts';
-import { ModelEffortFields }                        from './ModelEffortFields.tsx';
-import { RereviewSettings }                         from './RereviewSettings.tsx';
-import { RereviewSettingsModel, type ReReviewForm } from './RereviewSettingsModel.ts';
-import { ReviewStepDialogModel }                    from './ReviewStepDialogModel.ts';
-import { StepDialogFoot }                           from './StepDialogFoot.tsx';
+import { AgentStepDialogModel, type AgentStepForm }  from './AgentStepDialogModel.ts';
+import { InstructionsEditor }                        from './InstructionsEditor.tsx';
+import type { ConstitutionPlace }                    from './InstructionsEditorModel.ts';
+import { ModelEffortFields }                         from './ModelEffortFields.tsx';
+import { RereviewSettings }                          from './RereviewSettings.tsx';
+import { RereviewSettingsModel, type ReReviewForm }  from './RereviewSettingsModel.ts';
+import { ReviewStepDialogModel, type ReviewStepTab } from './ReviewStepDialogModel.ts';
+import { StepDialogFoot }                            from './StepDialogFoot.tsx';
 
 export interface ReviewStepDialogProps {
   /** The Review node; its settings and instructions are the reviewer's. */
@@ -38,12 +43,12 @@ export interface ReviewStepDialogProps {
 export function ReviewStepDialog({
   reviewNode, reReviewNode, draft, choices, constitution, focusesReReview, editSender, onClose
 }: ReviewStepDialogProps) {
+  const [tab, setTab] = useState<ReviewStepTab>(focusesReReview ? 're-review' : 'review');
   const [reviewerForm, setReviewerForm] = useState<AgentStepForm>(() => AgentStepDialogModel.formOf('reviewer', draft, reviewNode.settings));
   const [reReviewForm, setReReviewForm] = useState<ReReviewForm>(
     () => RereviewSettingsModel.formOf('review', draft?.review?.reReview, draft, reReviewNode?.settings ?? null),
   );
   const [confirmsRemoval, setConfirmsRemoval] = useState(false);
-  const selectedModel = useRef<HTMLButtonElement | null>(null);
   const reReviewSwitch = useRef<HTMLElement | null>(null);
   const words = ReviewStepDialogModel.WORDS;
   const reset = (): void => {
@@ -63,7 +68,7 @@ export function ReviewStepDialog({
         onCancel={() => setConfirmsRemoval(false)}
       />
     )
-    : <Button label={words.removeLabel} emphasis="quiet" onPress={() => setConfirmsRemoval(true)} />;
+    : <Button label={words.removeLabel} onPress={() => setConfirmsRemoval(true)} />;
   return (
     <Dialog
       title={words.title}
@@ -82,14 +87,14 @@ export function ReviewStepDialog({
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="wide"
-      initialFocus={focusesReReview ? reReviewSwitch : selectedModel}
+      width="widest"
+      {...(focusesReReview ? { initialFocus: reReviewSwitch } : {})}
       foot={(
         <StepDialogFoot
           start={(
             <>
               {removal}
-              <Button label="Reset to default" emphasis="quiet" onPress={reset} />
+              <Button label="Reset to default" emphasis="ghost" onPress={reset} />
             </>
           )}
           saveLabel="Save"
@@ -100,38 +105,59 @@ export function ReviewStepDialog({
         />
       )}
     >
-      <div className="bridge-pipeline-dialog-body">
-        <ModelEffortFields
-          models={choices.models}
-          efforts={choices.efforts}
-          model={reviewerForm.model}
-          effort={reviewerForm.effort}
-          modelLabel="Model"
-          effortLabel="Effort"
-          effortHint={AgentStepDialogModel.effortHintOf(reviewerForm.effort)}
-          size="standard"
-          onModel={(model) => setReviewerForm({ ...reviewerForm, model })}
-          onEffort={(effort) => setReviewerForm({ ...reviewerForm, effort })}
-          selectedModelRef={selectedModel}
+      <View gap="eighteen">
+        <Tabs
+          label={words.tabsLabel}
+          items={[{ key: 'review', label: words.reviewTab }, { key: 're-review', label: words.reReviewTab }]}
+          selectedKey={tab}
+          mode="switch"
+          size="section"
+          onSelect={setTab}
         />
-        <InstructionsEditor
-          label="Instructions"
-          role="reviewer"
-          entries={reviewerForm.entries}
-          resolvedEntries={reviewNode.instructionEntries}
-          constitution={constitution}
-          onChange={(entries) => setReviewerForm({ ...reviewerForm, entries })}
-        />
-        <RereviewSettings
-          place="review"
-          form={reReviewForm}
-          choices={choices}
-          resolvedEntries={[...(reReviewNode?.instructionEntries ?? []), ...reviewNode.instructionEntries]}
-          constitution={constitution}
-          onChange={setReReviewForm}
-          switchRef={reReviewSwitch}
-        />
-      </div>
+        {tab === 'review'
+          ? (
+            <div role="tabpanel" aria-label={words.reviewTab}>
+              <View gap="eighteen">
+                <ModelEffortFields
+                  models={choices.models}
+                  efforts={choices.efforts}
+                  model={reviewerForm.model}
+                  effort={reviewerForm.effort}
+                  modelLabel="Model"
+                  effortLabel="Effort"
+                  effortHint={AgentStepDialogModel.effortHintOf(reviewerForm.effort)}
+                  size="standard"
+                  onModel={(model) => setReviewerForm({ ...reviewerForm, model })}
+                  onEffort={(effort) => setReviewerForm({ ...reviewerForm, effort })}
+                />
+                <InstructionsEditor
+                  label="Brief"
+                  role="reviewer"
+                  entries={reviewerForm.entries}
+                  resolvedEntries={reviewNode.instructionEntries}
+                  constitution={constitution}
+                  onChange={(entries) => setReviewerForm({ ...reviewerForm, entries })}
+                />
+              </View>
+            </div>
+          )
+          : (
+            <div role="tabpanel" aria-label={words.reReviewTab}>
+              <View gap="fourteen">
+                <Text typeRole="lead" muted>{words.reReviewLead}</Text>
+                <RereviewSettings
+                  place="review"
+                  form={reReviewForm}
+                  choices={choices}
+                  resolvedEntries={[...(reReviewNode?.instructionEntries ?? []), ...reviewNode.instructionEntries]}
+                  constitution={constitution}
+                  onChange={setReReviewForm}
+                  switchRef={reReviewSwitch}
+                />
+              </View>
+            </div>
+          )}
+      </View>
     </Dialog>
   );
 }

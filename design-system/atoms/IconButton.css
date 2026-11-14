@@ -1,0 +1,16 @@
+/* The icon button: a 30px square with a hairline border on no ground. */
+.design-system-icon-button {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  font: 500 15px/1 var(--font-ui); color: var(--ink);
+  background: transparent; border: 1px solid var(--line); border-radius: var(--r-2);
+  cursor: pointer;
+  transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
+}
+.design-system-icon-button:hover { filter: brightness(0.94); border-color: var(--line-strong); }
+.design-system-icon-button:active { transform: scale(0.98); }
+.design-system-icon-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-icon-button:active { transform: none; }
+}

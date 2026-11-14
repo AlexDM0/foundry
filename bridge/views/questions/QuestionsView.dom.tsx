@@ -2,8 +2,8 @@
  * The Questions inbox against fake controls. What matters: each decision shows its questions and options exactly as asked, an escalated
  * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
  * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
- * a finding is no question; planted markup in a question reaches the DOM only as text; an option shows the consequences its agent noted;
- * and each open card opens the question panel at itself beside the board.
+ * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
+ * the consequences its agent noted; and each open card opens the question panel at itself beside the board.
  */
 import {
   act,
@@ -158,7 +158,16 @@ describe('the Questions inbox', () => {
     const notices = within(screen.getByRole('region', { name: 'Notices' }));
     expect(notices.getByText('dirty-main-checkout')).toBeDefined();
     expect(notices.getByText(/^landings on main wait/u)).toBeDefined();
-    expect(within(screen.getByRole('listitem', { name: 'Answered E1' })).getByText('Which? Disk')).toBeDefined();
+    const answered = screen.getByRole('listitem', { name: 'Answered E1' });
+    expect(answered.textContent).toContain('Which? Disk');
+    expect(answered.querySelector('.design-system-state-badge[data-state-tone="success"]')?.textContent).toBe('Answered');
+  });
+
+  test('opens with its title row: the page title as a heading under the header, and its sentence', () => {
+    fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} />);
+    const title = screen.getByRole('heading', { level: 2, name: 'Questions' });
+    expect(title.getAttribute('data-type-role')).toBe('display');
+    expect(title.nextElementSibling?.textContent).toBe('Agents stop here when they need User\'s answer.');
   });
 });
 
@@ -202,7 +211,7 @@ describe('a finding is no question', () => {
     expect(screen.queryByText('Finding for User')).toBeNull();
     const openQuestions = screen.getByRole('region', { name: 'Open questions' });
     expect(within(openQuestions).getByRole('heading', { name: 'Open questions' })).toBeDefined();
-    expect(openQuestions.querySelector('.bridge-section-count')?.textContent).toBe('2');
+    expect(openQuestions.querySelector('.design-system-section-count')?.textContent).toBe('2');
   });
 });
 

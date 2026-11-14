@@ -2,11 +2,11 @@
  * What every form of the detail panel draws with: the note line, the facts (one wrapping line, or the ticket form's grid with second lines),
  * a link that opens another detail over the tab the panel is on, worded parts, and the log lines.
  */
+import { FactList }                 from 'design-system/FactList';
+import { Stamp }                    from 'design-system/Stamp';
 import { Fragment, type ReactNode } from 'react';
 
 import { EpicChips }        from '../../chips/EpicChips.tsx';
-import { FactList }         from '../../design-system/FactList.tsx';
-import { Stamp }            from '../../design-system/Stamp.tsx';
 import { DetailRoute }      from '../../shell/DetailRoute.ts';
 import { useDetailRouting } from '../../shell/DetailRouting.ts';
 import { HashRouter }       from '../../shell/HashRouter.ts';

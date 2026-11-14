@@ -1,36 +1,30 @@
 /**
- * The pipeline flow's model, pure: which column each node and + slot of the facts stands in, every node's words, meter, chips, switch and
- * what a double-click on it opens, the edge labels, the toolbar note, the + menus and the edits they send, the zoom steps, and the
- * footer's list of removed steps. The facts carry values only; every word here is worded from them.
+ * The pipeline flow's step model, pure: every node's card words (its kind, title, sentence and brief files), its meter, gate pills, switch,
+ * change marker and what a double-click on it opens, the add-step menus and the edits they send, and the footer's list of removed steps.
+ * The facts carry values only; every word here is worded from them.
  */
 import type { GatePhase }                                      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { Pipeline, PipelineApproval, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
-  GateProfileRunFacts,
   PipelineChange,
   PipelineEdgeLabelKind,
-  PipelineFlowEdge,
   PipelineFlowFacts,
   PipelineFlowNode,
-  PipelineFlowStage,
   PipelineInsertSlot,
   PipelineInsertableStep,
   PipelineNodeKind,
   PipelineNodeMark
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { DISPATCH_PROTOCOL }                                  from '../../../../src/shared/constants/DispatchProtocol.ts';
-import type { FlowColumn, FlowLayoutEdge }                    from './PipelineFlowLayoutUtil.ts';
-import { DEFAULT_FLOW_ZOOM_PERCENT, FLOW_ZOOM_PERCENT_STEPS } from './constants/FlowZoomSteps.ts';
+import { DISPATCH_PROTOCOL } from '../../../../src/shared/constants/DispatchProtocol.ts';
 
-export type FlowNodeVariantName = 'step' | 'group' | 'switch' | 'outcome' | 'target';
+/** What a step card names itself as: an agent's step, User's step, a phase's gates or a step that runs by itself. */
+export type StepKind = 'agent' | 'you' | 'gates' | 'automatic';
 
 export type FlowChange = 'changed' | 'new' | 'removed';
 
-export interface FlowGateChipView {
+export interface FlowGatePillView {
   readonly gateName: string;
   readonly change:   FlowChange | null;
-  /** A proposed gate, not stored yet. */
-  readonly proposed: boolean;
 }
 
 export interface FlowMeterView {
@@ -50,45 +44,44 @@ export interface FlowSwitchView {
 
 export type FlowDialog = 'agent-step' | 'review-step' | 'merge-step';
 
-/** What a double-click or Enter on a node opens: a step's dialog, at its re-review section for a re-review node, or a gates tab. */
+/** What a double-click or Enter on a node opens: a step's dialog, at its re-review section for a re-review node, or a phase's gates. */
 export type FlowOpenAction =
   | { readonly kind: 'dialog'; readonly dialog: FlowDialog; readonly focusesReReview: boolean }
   | { readonly kind: 'gates-tab'; readonly phase: GatePhase };
 
+/**
+ * What the flow asks its holder to open: a node's dialog or gates table, the open question a node waits on, or the Gate dialog for a new
+ * gate in a phase.
+ */
+export type FlowOpenRequest =
+  | { readonly kind: 'node'; readonly nodeId: string; readonly action: FlowOpenAction }
+  | { readonly kind: 'question'; readonly nodeId: string }
+  | { readonly kind: 'new-gate'; readonly phase: GatePhase };
+
 export interface FlowNodeView {
   readonly nodeId:      string;
+  /** The node's name in the dialogs and the activity list ("Gates"). */
   readonly title:       string;
-  readonly variant:     FlowNodeVariantName;
+  /** The card's title: a gates step is named for its phase ("Build gates"). */
+  readonly cardTitle:   string;
+  readonly kind:        StepKind;
+  readonly sentence:    string;
   readonly conditional: boolean;
-  /** The inline CONDITIONAL tag's text. */
-  readonly tagText:     string | null;
-  readonly detail:      string | null;
-  /** A muted lead before the gate chips, such as "then the build gates again". */
-  readonly chipsLead:   string | null;
-  readonly gateChips:   readonly FlowGateChipView[];
+  /** The agent's instruction files, " · " between them; null on a step no agent runs. */
+  readonly briefText:   string | null;
+  readonly gatePills:   readonly FlowGatePillView[];
   readonly meter:       FlowMeterView | null;
   readonly switchView:  FlowSwitchView | null;
+  /** Human code review while on: the step that waits on User. */
   readonly highlighted: boolean;
-  readonly mark:        Exclude<PipelineNodeMark, 'unchanged'> | null;
-  /** The "proposed" chip a proposed Review shows, as drawn; null on every other node. */
-  readonly markChip:    string | null;
+  readonly change:      FlowChange | null;
+  /** The editing marker's words ("Changed", "Off → on", "2 changes"); null with no change. */
+  readonly changeText:  string | null;
   readonly openAction:  FlowOpenAction | null;
   readonly openLabel:   string | null;
 }
 
 export type FlowSlotPlace = 'after-builder' | 'after-review' | 'merge-train';
-
-export type FlowColumnItem =
-  | { readonly kind: 'node'; readonly node: PipelineFlowNode }
-  | { readonly kind: 'slot'; readonly slot: PipelineInsertSlot; readonly place: FlowSlotPlace };
-
-export interface FlowColumns {
-  readonly spine:      readonly FlowColumnItem[];
-  readonly branch:     readonly FlowColumnItem[];
-  readonly train:      readonly FlowColumnItem[];
-  /** The merge train's frame, absent from a flow with no Airlock node. */
-  readonly trainLabel: string | null;
-}
 
 /** One draft edit as the `pipeline-draft-edit` command carries it: the field it addresses and its new value, `null` to remove it. */
 export interface FlowDraftEdit {
@@ -113,11 +106,12 @@ export interface FlowInsertChoice {
 }
 
 export interface FlowSlotView {
-  readonly heading:     string;
-  readonly triggerName: string;
-  readonly insertStyle: 'solid' | 'dashed';
-  readonly choices:     readonly FlowInsertChoice[];
+  readonly heading: string;
+  readonly choices: readonly FlowInsertChoice[];
 }
+
+/** Who fixes a red gate of a gates step, read from its way back; `none` for gates that only run again on a merged tree. */
+type GatesFixer = 'the builder' | 'the reviewer' | 'the last worker' | 'none';
 
 const NODE_TITLES: Readonly<Record<PipelineNodeKind, string>> = Object.freeze({
   'ticket-creation':      'Ticket creation',
@@ -133,38 +127,15 @@ const NODE_TITLES: Readonly<Record<PipelineNodeKind, string>> = Object.freeze({
   'fast-forward-main':    'main · fast-forward',
 });
 
-const NODE_VARIANTS: Readonly<Record<PipelineNodeKind, FlowNodeVariantName>> = Object.freeze({
-  'ticket-creation':      'step',
-  'human-ticket-review':  'switch',
-  'builder':              'step',
-  'gates':                'group',
-  'review':               'step',
-  're-review':            'step',
-  'merge-main-into-tree': 'step',
-  'human-code-review':    'switch',
-  'ready-for-airlock':    'outcome',
-  'airlock':              'group',
-  'fast-forward-main':    'target',
+const GATES_TITLES: Readonly<Record<GatePhase, string>> = Object.freeze({ build: 'Build gates', review: 'Review gates', merge: 'Merge gates' });
+
+const FIXER_OF_EDGE_LABEL: Readonly<Partial<Record<PipelineEdgeLabelKind, GatesFixer>>> = Object.freeze({
+  'red-builder-fixes':     'the builder',
+  'red-reviewer-fixes':    'the reviewer',
+  'red-last-worker-fixes': 'the last worker',
 });
 
-const PHASE_MEANINGS: Readonly<Record<GatePhase, string>> = Object.freeze({
-  build:  'build · to be reviewed',
-  review: 'review · after the findings are fixed',
-  merge:  'merge · before the fast-forward',
-});
-
-const EDGE_LABELS: Readonly<Record<PipelineEdgeLabelKind, string>> = Object.freeze({
-  'all-green':                     'all green',
-  'red-builder-fixes':             'red: builder\nfixes it',
-  'conflict-or-red-builder-fixes': 'conflict or red:\nbuilder fixes it',
-  'red-reviewer-fixes':            'red: reviewer\nfixes it',
-  'red-last-worker-fixes':         'red: last worker\nfixes it',
-  'gates-again-after-re-review':   'after a re-review:\ngates again',
-});
-
-const CONDITIONAL_TAG_TEXT = 'conditional';
-
-const PROPOSED_CHIP_TEXT = 'proposed';
+const CHANGE_WORDS: Readonly<Record<FlowChange, string>> = Object.freeze({ changed: 'Changed', new: 'New', removed: 'Removed' });
 
 const DERIVED_FROM_BUILDER_NOTE = Object.freeze({
   title: 'Derived from the builder',
@@ -181,98 +152,43 @@ const DERIVED_WITHOUT_REVIEW_NOTE = Object.freeze({
   text:  'The builder, since no review runs. Change it on the Builder step.',
 });
 
-const SWITCH_HINTS: Readonly<Record<PipelineApproval, Readonly<Record<'on' | 'off', string>>>> = Object.freeze({
-  tickets: { on: 'User readies each draft before it builds', off: 'A complete draft builds at once' },
-  merge:   { on: 'User reviews and presses Merge; press order sets the train', off: 'Green after review goes straight to the train' },
+const SWITCH_SENTENCES: Readonly<Record<PipelineApproval, Readonly<Record<'on' | 'off', string>>>> = Object.freeze({
+  tickets: { on: 'You ready each draft before it builds.', off: 'Off: a complete draft builds at once.' },
+  merge:   { on: 'You review the change and press Merge. Your presses set the order.', off: 'Off: a green review goes straight to the merge train.' },
 });
 
 const INSERT_CHOICE_WORDS: Readonly<Record<PipelineInsertableStep, { readonly label: string; readonly description: string }>> = Object.freeze({
   'build-gates':       { label: 'Build gates', description: 'What the builder must pass to be reviewed' },
   'review':            { label: 'Review', description: 'An agent reviews and fixes before the merge, with its own gates' },
-  'human-code-review': { label: 'Human code review', description: 'User reviews and presses Merge' },
+  'human-code-review': { label: 'Human code review', description: 'You review and press Merge' },
   'review-gates':      { label: 'Review gates', description: 'What the reviewer must keep green after fixing findings' },
   're-review':         { label: 'Conditional re-review', description: 'Reviews again when the review\'s fixes are over the threshold' },
-  'merge-gates':       { label: 'Merge gates', description: 'Run on the merged tree, before the fast-forward' },
-  'airlock-re-review': { label: 'Conditional re-review', description: 'Reviews again when a conflict fix is over the threshold' },
+  'merge-gates':       { label: 'Merge gates', description: 'Run on the latest main merged in' },
+  'airlock-re-review': { label: 'Conditional re-review', description: 'Runs only when a conflict fix is large' },
 });
 
-const SLOT_WORDS: Readonly<Record<FlowSlotPlace, { readonly heading: string; readonly triggerName: string }>> = Object.freeze({
-  'after-builder': { heading: 'Add after the Builder', triggerName: 'Add a step after the Builder' },
-  'after-review':  { heading: 'Add after the review', triggerName: 'Add a step after the review' },
-  'merge-train':   { heading: 'Add in the merge train', triggerName: 'Add a step before the fast-forward' },
+const SLOT_HEADINGS: Readonly<Record<FlowSlotPlace, string>> = Object.freeze({
+  'after-builder': 'Add after the Builder',
+  'after-review':  'Add after the review',
+  'merge-train':   'Add before the fast-forward',
 });
 
-/** The review a + adds: named as the default review step, with no re-review until one is added. */
+/** The review an add card adds: named as the default review step, with no re-review until one is added. */
 const DEFAULT_REVIEW_NAME = 'review';
 
-const ZOOM_PERCENT_STEPS = FLOW_ZOOM_PERCENT_STEPS;
-
-const DEFAULT_ZOOM_PERCENT = DEFAULT_FLOW_ZOOM_PERCENT;
-
-/** The kinds that open the right column: what follows the left spine, after the merge before review. */
-function opensTheBranch(node: PipelineFlowNode): boolean {
-  return node.nodeKind === 'review'
-    || node.nodeKind === 'human-code-review'
-    || node.nodeKind === 'ready-for-airlock'
-    || (node.nodeKind === 'merge-main-into-tree' && node.mergePlacement === 'before-human-code-review');
+function countText(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`;
 }
 
-function columnsOfNodes(nodes: readonly PipelineFlowNode[]): Map<string, FlowColumn> {
-  const columnByNodeId = new Map<string, FlowColumn>();
-  let column: FlowColumn = 'spine';
-  nodes.forEach((node) => {
-    if (node.nodeKind === 'airlock') column = 'train';
-    else if (column === 'spine' && opensTheBranch(node)) column = 'branch';
-    columnByNodeId.set(node.nodeId, column);
-  });
-  return columnByNodeId;
-}
-
-function slotPlaceOf(after: PipelineFlowNode | undefined, column: FlowColumn | undefined): FlowSlotPlace {
-  if (column === 'train') return 'merge-train';
-  if (after?.nodeKind === 'builder' || (after?.nodeKind === 'gates' && after.phase === 'build')) return 'after-builder';
-  return 'after-review';
-}
-
-/** Each node in its column in the facts' order, the Airlock node itself left out as the train's frame, and each + right after its node. */
-function columnsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'insertSlots'>): FlowColumns {
-  const columnByNodeId = columnsOfNodes(flow.nodes);
-  const items: Record<FlowColumn, FlowColumnItem[]> = { spine: [], branch: [], train: [] };
-  flow.nodes.forEach((node) => {
-    const column = columnByNodeId.get(node.nodeId) ?? 'spine';
-    if (node.nodeKind !== 'airlock') items[column].push({ kind: 'node', node });
-    flow.insertSlots
-      .filter((slot) => slot.after === node.nodeId)
-      .forEach((slot) => items[column].push({ kind: 'slot', slot, place: slotPlaceOf(node, column) }));
-  });
-  const airlock = flow.nodes.find((node) => node.nodeKind === 'airlock');
-  return { ...items, trainLabel: airlock === undefined ? null : NODE_TITLES.airlock };
-}
-
-function columnOfNode(flow: Pick<PipelineFlowFacts, 'nodes'>, nodeId: string): FlowColumn {
-  return columnsOfNodes(flow.nodes).get(nodeId) ?? 'spine';
+function kindOf(node: PipelineFlowNode): StepKind {
+  if (node.nodeKind === 'gates') return 'gates';
+  if (node.nodeKind === 'human-ticket-review' || node.nodeKind === 'human-code-review') return 'you';
+  return node.role === null ? 'automatic' : 'agent';
 }
 
 function instructionFilesTextOf(node: PipelineFlowNode): string {
   const fileNames = node.instructionEntries.map((entry) => entry.fileName);
   return fileNames.length === 0 ? 'built-in brief' : fileNames.join(' · ');
-}
-
-function mergeDetailOf(node: PipelineFlowNode): string {
-  if (node.mergePlacement === 'before-review') return 'conflicts and red gates: the builder fixes them';
-  if (node.derivedFrom === 'builder') return 'conflicts: the builder fixes them';
-  return node.mergePlacement === 'before-human-code-review' ? 'conflicts: the reviewer fixes them' : 'conflicts: the last worker fixes them';
-}
-
-function reReviewDetailOf(node: PipelineFlowNode): string {
-  const subject = node.role === 'reReviewer' ? 'the review\'s fixes are' : 'the conflict fix is';
-  return `only when ${subject} over ${node.thresholdLines ?? DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES} lines`;
-}
-
-/** A gates node right after the merge before User's code review runs its phase again on the merged tree. */
-function gatesDetailOf(node: PipelineFlowNode, runsAgain: boolean): string {
-  if (node.phase === null) return '';
-  return runsAgain ? `${node.phase}, again · must be green` : PHASE_MEANINGS[node.phase];
 }
 
 function switchApprovalOf(node: PipelineFlowNode): PipelineApproval | null {
@@ -281,25 +197,43 @@ function switchApprovalOf(node: PipelineFlowNode): PipelineApproval | null {
   return null;
 }
 
-function detailOf(node: PipelineFlowNode, gatesRunAgain: boolean): string | null {
+function mergeSentenceOf(node: PipelineFlowNode): string {
+  if (node.mergePlacement === 'before-review') return 'Brings the branch up to date before review. The builder fixes a conflict or a red gate.';
+  const fixer = node.derivedFrom === 'builder' ? 'The builder fixes any conflict, since no review runs.' : 'The last worker fixes any conflict.';
+  if (node.mergePlacement === 'before-human-code-review') return `Comes with human code review. ${fixer}`;
+  return `Brings the branch up to date. ${fixer}`;
+}
+
+function reReviewSentenceOf(node: PipelineFlowNode): string {
+  const subject = node.role === 'reReviewer' ? 'the review\'s fixes are' : 'the conflict fix is';
+  return `Runs only when ${subject} over ${node.thresholdLines ?? DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES} lines. Then the gates run again.`;
+}
+
+function gatesSentenceOf(node: PipelineFlowNode, fixer: GatesFixer): string {
+  if (fixer !== 'none') return `If one fails, ${fixer} fixes it and the gates run again.`;
+  return `The ${node.phase ?? ''} gates run again on the merged tree.`;
+}
+
+function sentenceOf(node: PipelineFlowNode, fixer: GatesFixer): string {
   const approval = switchApprovalOf(node);
-  if (approval !== null) return SWITCH_HINTS[approval][node.switchState ?? 'off'];
+  if (approval !== null) return SWITCH_SENTENCES[approval][node.switchState ?? 'off'];
   switch (node.nodeKind) {
     case 'ticket-creation':
-      return `${instructionFilesTextOf(node)} · drafts with a Brief`;
+      return 'Turns a request into a draft ticket with a numbered Acceptance and a Brief.';
     case 'builder':
+      return 'Makes the change in a worktree of its own and commits on its branch.';
     case 'review':
-      return instructionFilesTextOf(node);
+      return 'A clean agent reads the change and fixes what it finds.';
     case 're-review':
-      return reReviewDetailOf(node);
+      return reReviewSentenceOf(node);
     case 'merge-main-into-tree':
-      return mergeDetailOf(node);
+      return mergeSentenceOf(node);
     case 'gates':
-      return gatesDetailOf(node, gatesRunAgain);
+      return gatesSentenceOf(node, fixer);
     case 'ready-for-airlock':
-      return 'joins the Airlock queue by priority';
+      return 'Joins the Airlock queue by priority.';
     default:
-      return null;
+      return '';
   }
 }
 
@@ -352,76 +286,70 @@ function nodeAsksQuestion(node: Pick<PipelineFlowNode, 'questionIds'>, openQuest
   return node.questionIds.some((questionId) => openQuestionIds.includes(questionId));
 }
 
+/** How many of the node's questions are still open. */
+function openQuestionCountOf(node: Pick<PipelineFlowNode, 'questionIds'>, openQuestionIds: readonly string[]): number {
+  return node.questionIds.filter((questionId) => openQuestionIds.includes(questionId)).length;
+}
+
 function questionOpenLabelOf(title: string): string {
   return `Answer the question on the ${title} step`;
+}
+
+/** "1 question", "2 questions". */
+function questionCountTextOf(count: number): string {
+  return countText(count, 'question');
 }
 
 function changeOfMark(mark: PipelineNodeMark): FlowChange | null {
   return mark === 'changed' || mark === 'new' || mark === 'removed' ? mark : null;
 }
 
-function chipsLeadOf(node: PipelineFlowNode): string | null {
-  if (node.mergePlacement !== 'before-review') return null;
-  return node.gateChips.length === 0 ? 'no gates run after it' : 'then the build gates again';
+/** A switch that changed says which way it turned; a changed gates step counts its changed gates; any other change says its word. */
+function changeTextOf(node: PipelineFlowNode, change: FlowChange | null): string | null {
+  if (change === null) return null;
+  if (change === 'changed' && switchApprovalOf(node) !== null) return node.switchState === 'on' ? 'Off → on' : 'On → off';
+  const changedGateCount = node.gateChips.filter((chip) => changeOfMark(chip.mark) !== null).length;
+  if (change === 'changed' && node.nodeKind === 'gates' && changedGateCount > 0) return countText(changedGateCount, 'change');
+  return CHANGE_WORDS[change];
 }
 
-/** `gatesRunAgain` marks the gates node that follows the merge before User's code review. */
-function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], gatesRunAgain = false): FlowNodeView {
+/** `fixer` names who fixes a red gate of a gates node; every other node ignores it. */
+function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: GatesFixer = 'none'): FlowNodeView {
   const openAction = openActionOf(node);
   const approval = switchApprovalOf(node);
   const title = NODE_TITLES[node.nodeKind];
+  const kind = kindOf(node);
+  const change = changeOfMark(node.mark);
   return {
     nodeId:      node.nodeId,
     title,
-    variant:     NODE_VARIANTS[node.nodeKind],
+    cardTitle:   node.nodeKind === 'gates' && node.phase !== null ? GATES_TITLES[node.phase] : title,
+    kind,
+    sentence:    sentenceOf(node, fixer),
     conditional: node.conditional,
-    tagText:     node.conditional ? CONDITIONAL_TAG_TEXT : null,
-    detail:      detailOf(node, gatesRunAgain),
-    chipsLead:   chipsLeadOf(node),
-    gateChips:   node.gateChips.map((chip) => ({ gateName: chip.gateName, change: changeOfMark(chip.mark), proposed: chip.mark === 'proposed' })),
+    briefText:   kind === 'agent' ? instructionFilesTextOf(node) : null,
+    gatePills:   node.gateChips.map((chip) => ({ gateName: chip.gateName, change: changeOfMark(chip.mark) })),
     meter:       meterOf(node, efforts),
     switchView:  approval === null ? null : { accessibleName: title, checked: node.switchState === 'on', approval },
     highlighted: node.nodeKind === 'human-code-review' && node.switchState === 'on',
-    mark:        node.mark === 'unchanged' ? null : node.mark,
-    markChip:    node.nodeKind === 'review' && node.mark === 'proposed' ? PROPOSED_CHIP_TEXT : null,
+    change,
+    changeText:  changeTextOf(node, change),
     openAction,
     openLabel:   openLabelOf(node, openAction),
   };
 }
 
-/** Every node's view in the facts' order; the gates node after the merge before User's code review is worded as its phase again. */
-function nodeViewsOf(nodes: readonly PipelineFlowNode[], efforts: readonly string[]): FlowNodeView[] {
-  let afterHumanCodeReviewMerge = false;
-  return nodes.map((node) => {
-    if (node.nodeKind === 'merge-main-into-tree') afterHumanCodeReviewMerge = node.mergePlacement === 'before-human-code-review';
-    const view = nodeViewOf(node, efforts, node.nodeKind === 'gates' && afterHumanCodeReviewMerge);
-    if (node.nodeKind === 'gates' || node.nodeKind === 'human-code-review') afterHumanCodeReviewMerge = false;
-    return view;
-  });
+/** Who fixes the gates node's red gate: the target of its way back, read from the edge's label. */
+function gatesFixerOf(flow: Pick<PipelineFlowFacts, 'edges'>, node: PipelineFlowNode): GatesFixer {
+  const wayBack = flow.edges.find((edge) => edge.from === node.nodeId && edge.tone === 'rollback' && edge.labelKind !== null);
+  const labelKind = wayBack?.labelKind ?? null;
+  if (labelKind === null || !Object.hasOwn(FIXER_OF_EDGE_LABEL, labelKind)) return 'none';
+  return FIXER_OF_EDGE_LABEL[labelKind] ?? 'none';
 }
 
-function layoutEdgesOf(edges: readonly PipelineFlowEdge[]): FlowLayoutEdge[] {
-  return edges.map((edge) => ({
-    edgeId:    edge.edgeId,
-    from:      edge.from,
-    to:        edge.to,
-    tone:      edge.tone,
-    active:    edge.active,
-    labelText: edge.labelKind === null ? null : EDGE_LABELS[edge.labelKind],
-  }));
-}
-
-function countText(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? '' : 's'}`;
-}
-
-/** Proposal: "Proposed, not stored", and each profile User started while it runs; live: "Applied pipeline · live"; editing: the change count. */
-function toolbarNoteOf(stage: PipelineFlowStage, changeCount: number, profileRuns: readonly GateProfileRunFacts[]): string {
-  if (stage === 'live') return 'Applied pipeline · live';
-  if (stage === 'editing') return `Editing · ${countText(changeCount, 'change')}, not applied`;
-  const running = profileRuns.filter((run) => run.state === 'queued' || run.state === 'running');
-  const profiling = running.map((run) => `${run.gateName} · ${run.phase}`).join(', ');
-  return running.length === 0 ? 'Proposed, not stored' : `Proposed, not stored · profiling ${profiling}`;
+/** Every node's view in the facts' order, each gates node worded with who fixes its red gates. */
+function nodeViewsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'edges'>, efforts: readonly string[]): FlowNodeView[] {
+  return flow.nodes.map((node) => nodeViewOf(node, efforts, node.nodeKind === 'gates' ? gatesFixerOf(flow, node) : 'none'));
 }
 
 function insertActionOf(step: PipelineInsertableStep, draft: Pipeline | null): FlowInsertAction {
@@ -446,9 +374,8 @@ function insertActionOf(step: PipelineInsertableStep, draft: Pipeline | null): F
 
 function slotViewOf(slot: PipelineInsertSlot, place: FlowSlotPlace, draft: Pipeline | null): FlowSlotView {
   return {
-    ...SLOT_WORDS[place],
-    insertStyle: place === 'merge-train' ? 'dashed' : 'solid',
-    choices:     slot.offeredSteps.map((step) => ({ step, ...INSERT_CHOICE_WORDS[step], action: insertActionOf(step, draft) })),
+    heading: SLOT_HEADINGS[place],
+    choices: slot.offeredSteps.map((step) => ({ step, ...INSERT_CHOICE_WORDS[step], action: insertActionOf(step, draft) })),
   };
 }
 
@@ -484,51 +411,17 @@ function removedStepsTextOf(changeList: readonly PipelineChange[]): string | nul
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
-function zoomTextOf(zoomPercent: number): string {
-  return `${zoomPercent}%`;
-}
-
-/** The next step in or out from the current zoom; a zoom between steps moves to the nearest step beyond it. */
-function zoomedPercentOf(zoomPercent: number, direction: 'in' | 'out'): number {
-  if (direction === 'in') return ZOOM_PERCENT_STEPS.find((step) => step > zoomPercent) ?? zoomPercent;
-  return [...ZOOM_PERCENT_STEPS].reverse().find((step) => step < zoomPercent) ?? zoomPercent;
-}
-
-/** The largest step at which the content fits the viewport both ways; an unmeasured viewport or content keeps 100%. */
-function fitPercentOf(viewport: { readonly width: number; readonly height: number }, content: { readonly width: number; readonly height: number }): number {
-  if (viewport.width <= 0 || viewport.height <= 0 || content.width <= 0 || content.height <= 0) return DEFAULT_ZOOM_PERCENT;
-  const fitting = Math.min(viewport.width / content.width, viewport.height / content.height) * 100;
-  return [...ZOOM_PERCENT_STEPS].reverse().find((step) => step <= fitting) ?? ZOOM_PERCENT_STEPS[0] ?? DEFAULT_ZOOM_PERCENT;
-}
-
-/** A stored zoom that is no step reads as 100%. */
-function storedZoomPercentOf(storedText: string | null): number {
-  const stored = Number(storedText);
-  return ZOOM_PERCENT_STEPS.includes(stored) ? stored : DEFAULT_ZOOM_PERCENT;
-}
-
-function canZoom(zoomPercent: number, direction: 'in' | 'out'): boolean {
-  return zoomedPercentOf(zoomPercent, direction) !== zoomPercent;
-}
-
 export const PipelineFlowModel = Object.freeze({
-  DEFAULT_ZOOM_PERCENT,
-  canZoom,
-  columnOfNode,
-  columnsOf,
+  changeOfMark,
   draftEditCommandOf,
-  fitPercentOf,
-  layoutEdgesOf,
   nodeAsksQuestion,
   nodeViewOf,
   nodeViewsOf,
   openActionOf,
+  openQuestionCountOf,
+  questionCountTextOf,
   questionOpenLabelOf,
   removedStepsTextOf,
   slotViewOf,
-  storedZoomPercentOf,
   switchEditOf,
-  toolbarNoteOf,
-  zoomTextOf,
-  zoomedPercentOf,
 });

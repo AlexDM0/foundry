@@ -4,9 +4,11 @@
  * `pipeline-apply` without resuming the board, and a refusal shows verbatim with nothing else offered. While Apply commits
  * `CONSTITUTION.md` first, the pending, held and refused states show as in the first Apply, with Cancel apply.
  */
+import { ChangeRow } from 'design-system/ChangeRow';
+import { Dialog }    from 'design-system/Dialog';
+import { View }      from 'design-system/View';
+
 import type { AppliedPipelineFacts, PipelineFlowFacts, PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { ChangeRow }                                                        from '../../../design-system/ChangeRow.tsx';
-import { Dialog }                                                           from '../../../design-system/Dialog.tsx';
 import { ApplyChangesDialogModel }                                          from './ApplyChangesDialogModel.ts';
 import { ApplyFoot, ApplyPendingState }                                     from './ApplyPendingState.tsx';
 import { InFlightNote }                                                     from './InFlightNote.tsx';
@@ -46,7 +48,7 @@ export function ApplyChangesDialog({
         />
       )}
     >
-      <div className="bridge-pipeline-apply" data-kind="changes">
+      <View gap="eighteen">
         <ul className="bridge-pipeline-apply-changes-rows" aria-label="Changes to apply">
           {rows.map((row) => (
             <li key={row.field} className="bridge-pipeline-apply-changes-row">
@@ -60,7 +62,7 @@ export function ApplyChangesDialog({
           text={ApplyChangesDialogModel.inFlightTextOf(appliedRevision)}
         />
         {applyState === null ? null : <ApplyPendingState applyState={applyState} constitutionMarkdown={record.constitution?.markdown ?? null} />}
-      </div>
+      </View>
     </Dialog>
   );
 }

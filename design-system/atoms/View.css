@@ -1,0 +1,10 @@
+/* The layout primitive: a flex column, or a row; its spacing arrives as inline style, its alignment as data attributes. */
+.design-system-view { display: flex; flex-direction: column; min-width: 0; }
+.design-system-view[data-row] { flex-direction: row; }
+.design-system-view[data-wrap] { flex-wrap: wrap; }
+.design-system-view[data-grow] { flex: 1 1 0%; }
+.design-system-view[data-justify="center"] { justify-content: center; }
+.design-system-view[data-justify="between"] { justify-content: space-between; }
+.design-system-view[data-align="center"] { align-items: center; }
+.design-system-view-divider { flex: none; align-self: stretch; height: 1px; background: var(--line); }
+.design-system-view[data-row] > .design-system-view-divider { width: 1px; height: auto; }

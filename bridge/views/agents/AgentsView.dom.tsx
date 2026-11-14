@@ -9,7 +9,11 @@
  * "running" while the call has no result, and is tinted only while silent sweeps are above zero; the transcript replays then follows,
  * resumes after its last cursor when reopened, and renders an agent's markup as text; each control posts its ControlCommand and shows a
  * refusal verbatim, a message or answer only when written, clearing its field once applied; a watch-only Watcher offers only Stop; and
- * the project row offers the concurrency limit, Set only once the number differs, and no limit control on a board that states none.
+ * the project row offers the concurrency limit, Set only once the number differs, and no limit control on a board that states none. The
+ * view opens with its title row; the selected job's side panel names the job and its state, holds one Flint slot (112, lane, posed from
+ * the job's role) unless the question panel covers it and holds the page's one slot, its facts, its controls and its transcript, takes a
+ * message in its foot only where the job takes one, drops a half-typed message once another job is selected, and × routes the panel
+ * closed.
  */
 import {
   act,
@@ -39,6 +43,7 @@ import type { TranscriptEntryDocument, TranscriptStreamHandlers, TranscriptStrea
 import { BridgeApp }                                                                       from '../../shell/BridgeApp.tsx';
 import type { BridgeClock }                                                                from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
+import { QuestionPanelShownContext }                                                       from '../../shell/CoveringPanel.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                                        from '../../testing/TimestampSlicesFixture.ts';
@@ -145,14 +150,16 @@ interface Rendered {
 }
 
 interface RenderOptions {
-  readonly selectedJobId?: string | null;
-  readonly clock?:         BridgeClock;
-  readonly transcripts?:   FakeTranscripts;
-  readonly outcome?:       CommandOutcome;
-  readonly decisions?:     readonly IdentifiedRecord[];
-  readonly incidents?:     readonly IdentifiedRecord[];
-  readonly launchSlots?:   LaunchSlotsDocument | null;
-  readonly concurrency?:   ConcurrencyDocument | null;
+  readonly selectedJobId?:        string | null;
+  readonly clock?:                BridgeClock;
+  readonly transcripts?:          FakeTranscripts;
+  readonly outcome?:              CommandOutcome;
+  readonly decisions?:            readonly IdentifiedRecord[];
+  readonly incidents?:            readonly IdentifiedRecord[];
+  readonly launchSlots?:          LaunchSlotsDocument | null;
+  readonly concurrency?:          ConcurrencyDocument | null;
+  /** The question panel shows over the view, holding the page's one Flint slot. */
+  readonly questionPanelIsShown?: boolean;
 }
 
 function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions = {}): Rendered {
@@ -171,19 +178,21 @@ function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions 
   const transcripts = options.transcripts ?? fakeTranscripts();
   const view = (shownJobs: readonly AgentJobDocument[], selectedJobId: string | null) => (
     <ControlSurroundingsContext.Provider value={surroundings}>
-      <AgentsView
-        project="Example Storefront"
-        jobs={shownJobs}
-        decisions={options.decisions ?? []}
-        incidents={options.incidents ?? []}
-        launchSlots={options.launchSlots === undefined ? LAUNCH_SLOTS : options.launchSlots}
-        concurrency={options.concurrency ?? null}
-        tickets={TICKETS}
-        selectedJobId={selectedJobId}
-        clock={clock}
-        timestampSlices={EXAMPLE_TIMESTAMP_SLICES}
-        followTranscript={transcripts.follow}
-      />
+      <QuestionPanelShownContext.Provider value={options.questionPanelIsShown ?? false}>
+        <AgentsView
+          project="Example Storefront"
+          jobs={shownJobs}
+          decisions={options.decisions ?? []}
+          incidents={options.incidents ?? []}
+          launchSlots={options.launchSlots === undefined ? LAUNCH_SLOTS : options.launchSlots}
+          concurrency={options.concurrency ?? null}
+          tickets={TICKETS}
+          selectedJobId={selectedJobId}
+          clock={clock}
+          timestampSlices={EXAMPLE_TIMESTAMP_SLICES}
+          followTranscript={transcripts.follow}
+        />
+      </QuestionPanelShownContext.Provider>
     </ControlSurroundingsContext.Provider>
   );
   const { rerender } = render(view(jobs, options.selectedJobId ?? null));
@@ -282,7 +291,7 @@ describe('a job that asks User', () => {
     const strip = jobRow('J14').nextElementSibling;
     if (!(strip instanceof HTMLElement)) throw new Error('no Asks User strip');
     expect(strip.className).toBe('agents-ask-row');
-    expect(within(strip).getByText('Asks User')).toBeDefined();
+    expect(within(strip).getByText('Your decision')).toBeDefined();
     expect(within(strip).getByText('E8')).toBeDefined();
     expect(within(strip).getByText('Should the example gift card skip payment?')).toBeDefined();
     expect(within(strip).getByText('blocks J14')).toBeDefined();
@@ -313,19 +322,19 @@ describe('a job that asks User', () => {
 describe('a row\'s live facts', () => {
   test('the State cell shows the raw job state on its palette row, the quiet tag while silent sweeps are above zero, and the watch-only tag', () => {
     const { rerender } = renderAgents([BUILD_JOB, { ...REVIEW_JOB, state: 'in-customs' }]);
-    expect(jobRow('J12').querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('in-progress');
-    expect(jobRow('J14').querySelector('.bridge-state-badge')?.getAttribute('data-state')).toBe('in-review');
+    expect(jobRow('J12').querySelector('.design-system-state-badge')?.getAttribute('data-state-tone')).toBe('accent');
+    expect(jobRow('J14').querySelector('.design-system-state-badge')?.getAttribute('data-state-tone')).toBe('info-outline');
     expect(cellOf(jobRow('J12'), 'state').textContent).toBe('running');
     rerender([{ ...BUILD_JOB, live: { ...LIVE, silentSweeps: 2, watchOnly: true } }]);
     expect(cellOf(jobRow('J12'), 'state').textContent).toBe('runningquiet 2 sweepswatch only');
-    expect([...jobRow('J12').querySelectorAll('.bridge-tag')].map((tag) => tag.getAttribute('data-tone'))).toEqual(['warn', 'warn']);
+    expect([...jobRow('J12').querySelectorAll('.design-system-tag')].map((tag) => tag.getAttribute('data-tone'))).toEqual(['warn', 'warn']);
     expect(within(card('Agents')).getByText('1 job · 1 quiet')).toBeDefined();
   });
 
   test('a worker the Overseer did not count, such as a roleless merge, is tagged not counted, and a session never is', () => {
     renderAgents([BUILD_JOB, exampleAgentJob({ id: 'J20', kind: 'merge', role: null }), ASSISTANT_JOB]);
     expect(cellOf(jobRow('J20'), 'state').textContent).toBe('runningnot counted');
-    expect(jobRow('J20').querySelector('.bridge-tag')?.hasAttribute('data-dashed')).toBe(true);
+    expect(jobRow('J20').querySelector('.design-system-tag')?.hasAttribute('data-dashed')).toBe(true);
     expect(cellOf(jobRow('J12'), 'state').textContent).toBe('running');
     expect(cellOf(jobRow('J1'), 'state').textContent).toBe('running');
   });
@@ -445,7 +454,7 @@ describe('the foot and the project row', () => {
     expect(card('Agents').querySelector('.agents-slot-figure')?.hasAttribute('data-over')).toBe(true);
     cleanup();
     renderAgents([exampleAgentJob({ id: 'J20', kind: 'merge', role: null })], { launchSlots: null });
-    expect(card('Agents').querySelector('.bridge-slot-meter')).toBeNull();
+    expect(card('Agents').querySelector('.design-system-slot-meter')).toBeNull();
     expect(cellOf(jobRow('J20'), 'state').textContent).toBe('running');
     expect(card('Agents').querySelector('.agents-reconciliation')?.textContent).toBe('Subagents, intake and the Assistant never take a place.');
   });
@@ -544,8 +553,9 @@ describe('the controls', () => {
     renderAgents([{ ...BUILD_JOB, live: { ...LIVE, watcherProtocol: 0, watchOnly: true } }], { selectedJobId: 'J12' });
     await clicked('Show diagnostics');
     expect(cellOf(jobRow('J12'), 'watcher').textContent).toBe('running on Watcher protocol 0: watch only');
-    const controls = screen.getByRole('region', { name: 'Job J12' });
-    expect(within(controls).getAllByRole('button').map((button) => button.textContent)).toEqual(['Stop']);
+    const panel = screen.getByRole('complementary', { name: 'Job J12' });
+    expect(within(panel).getByRole('group', { name: 'Job controls' }).textContent).toBe('Stop');
+    expect(within(panel).queryByRole('textbox', { name: 'Message' })).toBeNull();
   });
 });
 
@@ -575,5 +585,72 @@ describe('the concurrency limit', () => {
   test('a board that states no limit offers no concurrency control', () => {
     renderAgents([BUILD_JOB]);
     expect(screen.queryByLabelText('Concurrency limit')).toBeNull();
+  });
+});
+
+describe('the title row and the job panel', () => {
+  test('the view opens with its title and lead sentence, and shows no panel while no job is selected', () => {
+    renderAgents([BUILD_JOB]);
+    expect(screen.getAllByRole('heading', { level: 2, name: 'Agents' })[0]?.dataset['typeRole']).toBe('display');
+    expect(screen.getByText('The agents at work on this board. Select a job to read its transcript and steer it.')).toBeDefined();
+    expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  test('the panel names the job and its state, and holds one Flint slot posed from the job\'s role', () => {
+    renderAgents([BUILD_JOB, REVIEW_JOB], { selectedJobId: 'J14' });
+    const panel = screen.getByRole('complementary', { name: 'Job J14' });
+    const flint = within(panel).getByRole('img', { name: 'Flint, the selected job\'s agent' });
+    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['112', 'lane', 'reviewing']);
+    expect(panel.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+    expect(within(panel).getByRole('heading', { level: 2, name: 'Job' })).toBeDefined();
+    expect(within(panel).getByText('attempt 1')).toBeDefined();
+  });
+
+  test('under the question panel, which holds the page\'s one Flint slot, the job panel shows none', () => {
+    renderAgents([BUILD_JOB], { selectedJobId: 'J12', questionPanelIsShown: true });
+    const panel = screen.getByRole('complementary', { name: 'Job J12' });
+    expect(panel.querySelectorAll('.design-system-flint-slot')).toHaveLength(0);
+    expect(within(panel).getByText('attempt 1')).toBeDefined();
+  });
+
+  test('a builder\'s panel poses Flint typing, says how long ago the job launched, and links the job\'s tickets', () => {
+    renderAgents([BUILD_JOB], { selectedJobId: 'J12' });
+    const panel = screen.getByRole('complementary', { name: 'Job J12' });
+    expect(within(panel).getByRole('img', { name: 'Flint, the selected job\'s agent' }).dataset['flintPose']).toBe('typing');
+    expect(within(panel).getByText('running · 5s')).toBeDefined();
+    expect(within(panel).getByRole('link', { name: /#042/ }).getAttribute('href')).toBe('#tickets/ticket-row/042');
+    expect(within(panel).getByText('calls · 48,000 tokens')).toBeDefined();
+  });
+
+  test('the foot sends a message with the paper-plane Send, and a job without a role takes none', async () => {
+    const { sent } = renderAgents([BUILD_JOB], { selectedJobId: 'J12' });
+    const panel = screen.getByRole('complementary', { name: 'Job J12' });
+    const field = within(panel).getByRole<HTMLTextAreaElement>('textbox', { name: 'Message' });
+    expect(field.getAttribute('placeholder')).toBe('Message J12. It reads it after its next call.');
+    fireEvent.change(field, { target: { value: 'Rebase first.' } });
+    await clicked('Send message');
+    expect(sent).toEqual([{ kind: 'job-message', jobId: 'J12', text: 'Rebase first.' }]);
+    cleanup();
+    renderAgents([exampleAgentJob({ id: 'J20', kind: 'merge', role: null })], { selectedJobId: 'J20' });
+    expect(screen.queryByRole('textbox', { name: 'Message' })).toBeNull();
+  });
+
+  test('a message half typed to one job is dropped once another job is selected, so Send never posts it to that job', () => {
+    const { sent, rerender } = renderAgents([BUILD_JOB, REVIEW_JOB], { selectedJobId: 'J12' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Message' }), { target: { value: 'Rebase first.' } });
+    rerender([BUILD_JOB, REVIEW_JOB], 'J14');
+    const panel = screen.getByRole('complementary', { name: 'Job J14' });
+    expect(within(panel).getByRole<HTMLTextAreaElement>('textbox', { name: 'Message' }).value).toBe('');
+    expect(within(panel).getByRole<HTMLButtonElement>('button', { name: 'Send message' }).disabled).toBe(true);
+    expect(sent).toEqual([]);
+  });
+
+  test('× routes the panel closed, and the panel slides out once the route drops the job', () => {
+    window.location.hash = '#agents/J12';
+    const { rerender } = renderAgents([BUILD_JOB], { selectedJobId: 'J12' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close the job panel' }));
+    expect(window.location.hash).toBe('#agents');
+    rerender([BUILD_JOB], null);
+    expect(screen.queryByRole('complementary', { name: 'Job J12' })).toBeNull();
   });
 });

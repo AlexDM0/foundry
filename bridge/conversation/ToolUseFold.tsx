@@ -3,11 +3,12 @@
  * its result. A running call ticks its elapsed time on the Bridge clock. User's open or close outlasts every later entry of the turn and
  * its end; until User chooses, the fold follows the caller.
  */
+import { StateDot }            from 'design-system/StateDot';
 import { useEffect, useState } from 'react';
 
-import { StateDot }        from '../design-system/StateDot.tsx';
 import { useBridgeClock }  from '../shell/BridgeClock.ts';
 import { ElapsedTimeUtil } from '../utils/ElapsedTimeUtil.ts';
+import { StateToneUtil }   from '../utils/StateToneUtil.ts';
 
 export type ToolCallOutcome = 'ok' | 'error' | 'running';
 
@@ -42,8 +43,8 @@ function RunningCallResult({ startedAt }: { readonly startedAt: string | null })
   useEffect(() => clock.everySecond(() => setNow(clock.now())), [clock]);
   const elapsedText = ElapsedTimeUtil.elapsedSinceText(startedAt, now);
   return (
-    <span className="bridge-tool-call-result" data-state={RUNNING_CALL_STATE}>
-      <StateDot state={RUNNING_CALL_STATE} />
+    <span className="bridge-tool-call-result" data-state={RUNNING_CALL_STATE} data-state-tone={StateToneUtil.toneOf(RUNNING_CALL_STATE)}>
+      <StateDot {...StateToneUtil.dotOf(RUNNING_CALL_STATE)} tiny />
       {elapsedText === null ? 'running' : `running ${elapsedText}`}
     </span>
   );

@@ -1,10 +1,20 @@
 /**
- * The Kanban: the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card with its marks and
- * no controls but its links and its asks pill: its moves are the ticket panel's. A card opens the ticket or draft form of the detail
- * panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains scroll room
- * the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header figure
- * points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per board.
+ * The Kanban: its title row over the eight lanes of `KanbanModel`, narrowed and ordered by the filter menu's Kanban sections, each card
+ * with its marks and no controls but its links and its asks pill: its moves are the ticket panel's. A card opens the ticket or draft form
+ * of the detail panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains
+ * scroll room the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header
+ * figure points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per
+ * board.
  */
+
+import { Button }                                        from 'design-system/Button';
+import { Card }                                          from 'design-system/Card';
+import { MonoId }                                        from 'design-system/MonoId';
+import { Row }                                           from 'design-system/Row';
+import { StateDot }                                      from 'design-system/StateDot';
+import { Tag }                                           from 'design-system/Tag';
+import { TextButton }                                    from 'design-system/TextButton';
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import {
   Fragment,
   useEffect,
@@ -12,15 +22,11 @@ import {
   useRef,
   useState
 } from 'react';
-import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 
 import type { KanbanBoardState }                                          from '../../@types/KanbanBoardState.ts';
 import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                                                      from '../../chips/EpicChips.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark }                          from '../../chips/TicketMarks.tsx';
-import { TextButton }                                                     from '../../design-system/Button.tsx';
-import { MonoId }                                                         from '../../design-system/MonoId.tsx';
-import { Tag }                                                            from '../../design-system/Tag.tsx';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
 import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
@@ -28,7 +34,9 @@ import { DetailRoute, type DetailItem }                                   from '
 import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                                          from '../../shell/FinishedWorkWindow.ts';
 import { useQuestionPanelOpener }                                         from '../../shell/QuestionPanelOpener.ts';
+import { StateToneUtil }                                                  from '../../utils/StateToneUtil.ts';
 import { TimeUtil }                                                       from '../../utils/TimeUtil.ts';
+import { ViewTitle }                                                      from '../ViewTitle.tsx';
 import { KanbanChangeHighlightModel }                                     from './KanbanChangeHighlightModel.ts';
 import { KanbanDependencyArrowUtil }                                      from './KanbanDependencyArrowUtil.ts';
 import type { ArrowCardBox, DependencyArrow }                             from './KanbanDependencyArrowUtil.ts';
@@ -94,6 +102,8 @@ const PANEL_ROOM_RELEASE_MILLISECONDS = 1000;
 
 const LANE_HEAD_EDGE_PROPERTY = '--s-edge';
 
+const KANBAN_LEAD = 'Every ticket by where it stands. Click a card to open it. Hover a card to see what it waits on.';
+
 function detailItemOf(card: KanbanCardModel): DetailItem | null {
   if (card.ticketId !== null) return { form: 'ticket', ticketId: card.ticketId };
   return card.filingDraftId === null ? null : { form: 'draft', draftId: card.filingDraftId };
@@ -117,6 +127,8 @@ function KanbanCard({
   const openQuestionPanel = useQuestionPanelOpener();
   const { asksDecisionId } = card;
   const hasMarks = card.waitingOnTicketIds.length > 0 || card.heldTitle !== null || card.noRowTitle !== null || asksDecisionId !== null;
+  const isSelected = item !== null && routing.isOpen(item);
+  const isAbandoned = card.stateToken === 'abandoned';
   const open = (): void => {
     if (item !== null) routing.toggle(item);
   };
@@ -137,61 +149,85 @@ function KanbanCard({
       data-card={card.key}
       data-ticket-id={card.ticketId ?? undefined}
       data-state={card.stateToken}
+      data-state-tone={StateToneUtil.toneOf(card.stateToken)}
       data-row={card.hasRow ? undefined : 'none'}
       data-live={card.isLive ? '' : undefined}
       data-changed={isChanged ? '' : undefined}
       data-needed-first={isNeededFirst ? '' : undefined}
-      data-selected={item !== null && routing.isOpen(item) ? '' : undefined}
+      data-selected={isSelected ? '' : undefined}
       tabIndex={0}
       aria-label={card.ariaLabel}
       onClick={openOnClick}
       onKeyDown={openOnKey}
     >
-      <div className="bridge-kanban-card-head">
-        <MonoId text={card.idText} />
-        {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
-        {card.priority === null ? null : <PriorityMark priority={card.priority} />}
-        {card.ticketType === null ? null : <TypeMark type={card.ticketType} />}
-        {card.hasNeededFirst ? <span className="bridge-kanban-needed-first" aria-hidden="true">needed first</span> : null}
-        {heldCount === null && card.tokensText === null
-          ? null
-          : (
-            <span className="bridge-kanban-head-end">
-              {heldCount === null
+      <Card
+        interactive
+        dashed={card.isDashed}
+        selected={isSelected}
+        radius="step"
+        washes={isChanged}
+        gap="eight"
+        paddingVertical="ten"
+        paddingLeft="fourteen"
+        paddingRight="twelve"
+      >
+        <div className="bridge-kanban-card-head">
+          <MonoId text={card.idText} />
+          {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
+          {card.priority === null ? null : <PriorityMark priority={card.priority} />}
+          {card.ticketType === null ? null : <TypeMark type={card.ticketType} />}
+          {card.hasNeededFirst ? <span className="bridge-kanban-needed-first" aria-hidden="true">needed first</span> : null}
+          {heldCount === null && card.tokensText === null
+            ? null
+            : (
+              <span className="bridge-kanban-head-end">
+                {heldCount === null
+                  ? null
+                  : <span className="bridge-kanban-held-count" data-heavy={heldCount.isHeavy ? '' : undefined} title={heldCount.title}>{`↦ ${heldCount.count}`}</span>}
+                {card.tokensText === null ? null : <span className="bridge-kanban-tokens">{card.tokensText}</span>}
+              </span>
+            )}
+        </div>
+        <p className="bridge-kanban-title" title={card.title} data-abandoned={isAbandoned ? '' : undefined}>{card.title}</p>
+        {card.epics.length === 0 ? null : <EpicChips epics={card.epics} limit={CARD_EPIC_CHIP_LIMIT} />}
+        {hasMarks
+          ? (
+            <Row wrap centerY gap="six">
+              <WaitingOnMark ticketIds={card.waitingOnTicketIds} hrefOf={(ticketId) => routing.openerHrefOf({ form: 'ticket', ticketId })} onFollow={onFollow} />
+              {card.heldTitle === null ? null : <span className="bridge-kanban-held" title={card.heldTitle}>held</span>}
+              {card.noRowTitle === null ? null : <span className="bridge-kanban-no-row" title={card.noRowTitle}>no row yet</span>}
+              {asksDecisionId === null
                 ? null
-                : <span className="bridge-kanban-held-count" data-heavy={heldCount.isHeavy ? '' : undefined} title={heldCount.title}>{`↦ ${heldCount.count}`}</span>}
-              {card.tokensText === null ? null : <span className="bridge-kanban-tokens">{card.tokensText}</span>}
-            </span>
-          )}
-      </div>
-      <p className="bridge-kanban-title" title={card.title}>{card.title}</p>
-      {card.epics.length === 0 ? null : <EpicChips epics={card.epics} limit={CARD_EPIC_CHIP_LIMIT} />}
-      {hasMarks
-        ? (
-          <div className="bridge-kanban-marks">
-            <WaitingOnMark ticketIds={card.waitingOnTicketIds} hrefOf={(ticketId) => routing.openerHrefOf({ form: 'ticket', ticketId })} onFollow={onFollow} />
-            {card.heldTitle === null ? null : <span className="bridge-kanban-held" title={card.heldTitle}>held</span>}
-            {card.noRowTitle === null ? null : <span className="bridge-kanban-no-row" title={card.noRowTitle}>no row yet</span>}
-            {asksDecisionId === null
+                : <Tag text={`asks ${asksDecisionId}`} tone="warn" title={`Open ${asksDecisionId} in the question panel`} onPress={() => openQuestionPanel(asksDecisionId)} />}
+            </Row>
+          )
+          : null}
+        {card.note === null ? null : <p className="bridge-kanban-note">{card.note}</p>}
+        <Row between centerY gap="eight">
+          <div className="bridge-kanban-state">
+            {card.reviewedTitle === null
               ? null
-              : <Tag text={`asks ${asksDecisionId}`} tone="warn" title={`Open ${asksDecisionId} in the question panel`} onPress={() => openQuestionPanel(asksDecisionId)} />}
+              : (
+                <>
+                  <span
+                    className="bridge-kanban-reviewed-mark"
+                    data-state="reviewed"
+                    data-state-tone={StateToneUtil.toneOf('reviewed')}
+                    title={card.reviewedTitle}
+                    role="img"
+                    aria-label="reviewed"
+                  >
+                    ✓
+                  </span>
+                  <span>reviewed</span>
+                </>
+              )}
           </div>
-        )
-        : null}
-      {card.note === null ? null : <p className="bridge-kanban-note">{card.note}</p>}
-      <div className="bridge-kanban-state">
-        {card.reviewedTitle === null
-          ? null
-          : (
-            <>
-              <span className="bridge-kanban-reviewed-mark" data-state="reviewed" title={card.reviewedTitle} role="img" aria-label="reviewed">✓</span>
-              <span>reviewed</span>
-            </>
-          )}
-      </div>
-      {stamp === null
-        ? null
-        : <span className="bridge-kanban-stamp" title={stamp.fullText === stamp.shortText ? undefined : stamp.fullText}>{stamp.shortText}</span>}
+          {stamp === null
+            ? null
+            : <span className="bridge-kanban-stamp" title={stamp.fullText === stamp.shortText ? undefined : stamp.fullText}>{stamp.shortText}</span>}
+        </Row>
+      </Card>
     </article>
   );
 }
@@ -225,18 +261,20 @@ function KanbanLaneFooterView({
         : (
           <>
             <span>{`${paging.shownCount} of ${paging.laneCount} shown`}</span>
-            <div className="bridge-segments">
+            <Row gap="four">
               {paging.nextPageSize > 0
                 ? (
-                  <button type="button" onClick={() => onShowCount(lane, KanbanModel.shownCountAfterMore(paging.shownCount, paging.laneCount))}>
-                    {`Show ${paging.nextPageSize} more`}
-                  </button>
+                  <Button
+                    dense
+                    label={`Show ${paging.nextPageSize} more`}
+                    onPress={() => onShowCount(lane, KanbanModel.shownCountAfterMore(paging.shownCount, paging.laneCount))}
+                  />
                 )
                 : null}
               {paging.firstPageSize === null
                 ? null
-                : <button type="button" onClick={() => onShowCount(lane, paging.firstPageSize ?? CLOSED_LANE_FIRST_PAGE_CARDS)}>{`Latest ${paging.firstPageSize}`}</button>}
-            </div>
+                : <Button dense label={`Latest ${paging.firstPageSize}`} onPress={() => onShowCount(lane, paging.firstPageSize ?? CLOSED_LANE_FIRST_PAGE_CARDS)} />}
+            </Row>
           </>
         )}
       {hiddenCount > 0
@@ -289,11 +327,12 @@ function KanbanLane({
       style={highlightEdge === null ? undefined : { '--lane-highlight-edge': highlightEdge } as CSSProperties}
       aria-label={lane.title}
     >
-      <div className="bridge-lane-head" data-state={lane.dotState} title={lane.subtitle ?? undefined}>
+      <div className="bridge-lane-head" data-state={lane.dotState} data-state-tone={StateToneUtil.toneOf(lane.dotState)} title={lane.subtitle ?? undefined}>
         {lane.collapse === null
           ? (
             <>
-              <h2 className="bridge-lane-title">{lane.title}</h2>
+              <StateDot {...StateToneUtil.dotOf(lane.dotState)} />
+              <h3 className="bridge-lane-title">{lane.title}</h3>
               <span className="bridge-lane-count">{lane.count}</span>
             </>
           )
@@ -307,6 +346,7 @@ function KanbanLane({
               title={lane.collapse.toggleTitle}
               onClick={onToggleCollapse}
             >
+              <StateDot {...StateToneUtil.dotOf(lane.dotState)} />
               <span className="bridge-lane-title">{lane.title}</span>
               <span className="bridge-lane-count">{lane.count}</span>
             </button>
@@ -601,6 +641,7 @@ export function KanbanView({
 
   return (
     <section className="bridge-kanban" aria-label="Kanban">
+      <ViewTitle title="Kanban" lead={KANBAN_LEAD} />
       <div
         className="bridge-kanban-frame"
         ref={frameReference}

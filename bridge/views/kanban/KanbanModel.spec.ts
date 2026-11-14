@@ -5,8 +5,8 @@
  * marks (size, priority, type, tokens, epics, waiting-on, hold), a draft's priority mark too; filing drafts keep their own card; and the
  * filter menu's epic rows filter, count, name the line's epic part and drop a stored row whose epic went. Also: "needed first" and `↦ N`
  * (closed lanes none, heavy from five), the hover arrows' links (skipping a card not shown), the Ready lane by wave (filed on a board
- * without dependencies), a closed lane's pages with their clamping, the Abandoned lane folded by default, and the asks pill naming the
- * first open decision on the ticket in the order User answers them.
+ * without dependencies), a closed lane's pages with their clamping, the Abandoned lane folded by default, the asks pill naming the
+ * first open decision on the ticket in the order User answers them, and the dashed card of a state that waits for a person.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -155,6 +155,7 @@ describe('the card', () => {
       stateToken:         'pending',
       hasRow:             true,
       isLive:             false,
+      isDashed:           false,
       size:               'L',
       priority:           'high',
       ticketType:         'bug',
@@ -507,6 +508,22 @@ describe('the card\'s marks and state', () => {
   test('a card has a row\'s bar only with a row, and only a card an agent works on is live', () => {
     expect(['#430', '#431', '#432'].map((idText) => [cardOf(idText)?.hasRow, cardOf(idText)?.isLive])).toEqual([[false, false], [true, true], [true, false]]);
     expect(model.hasTickingStamp).toBe(true);
+  });
+
+  test('a card is dashed while it waits for a person or never started: a draft, a filing draft, paused, awaiting review and abandoned, never a working or finished one', () => {
+    const dashedOf = (idText: string) => cardOf(idText)?.isDashed;
+    expect(['#430', '#431', '#432', '#433', '#434'].map(dashedOf)).toEqual([false, false, false, false, true]);
+    const waiting = modelOf(exampleBoard({
+      tickets: [
+        exampleTicket('440', { status: 'draft' }),
+        exampleTicket('441', { status: 'in-progress' }),
+        exampleTicket('442', { status: 'in-review' }),
+      ],
+      displayStateById: { 441: 'paused' },
+    }), []);
+    expect(waiting.lanes.flatMap((lane) => lane.cards).map((card) => [card.idText, card.isDashed])).toEqual([
+      ['#440', true], ['D7', true], ['#441', true], ['#442', true],
+    ]);
   });
 
   test('a Ready ticket without a row says so, a reviewed one when it was reviewed and built, an abandoned one why, and a reviewed delivery its ✓', () => {

@@ -4,10 +4,10 @@
  * where the questions may stand side by side; the first answer wins, and a later one shows the Overseer's refusal beside the control. An
  * option shows what it touches, trades off and does to the Acceptance once the asking agent noted it.
  */
-import { useState, type ReactNode } from 'react';
+import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
+import { useState, type ReactNode }  from 'react';
 
 import type { DecisionDocument } from '../@types/ConversationDocuments.ts';
-import { ChoiceOption }          from '../design-system/ChoiceOption.tsx';
 import { CommandButton }         from '../shell/CommandButton.tsx';
 import {
   CardHead,
@@ -68,13 +68,15 @@ export function DecisionCard({
               chosen={chosen}
               {...(consequences === null ? {} : { facts: <OptionConsequenceFacts consequences={consequences} /> })}
               variant="row"
-              input={{
-                type:           question.multiSelect ? 'checkbox' : 'radio',
-                name:           `${decision.id}-${questionIndex}`,
-                checked:        chosen,
-                accessibleName: `${letter}. ${option.label}`,
-                onChange:       () => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect)),
-              }}
+              input={(
+                <ChoiceInput
+                  type={question.multiSelect ? 'checkbox' : 'radio'}
+                  name={`${decision.id}-${questionIndex}`}
+                  checked={chosen}
+                  accessibleName={`${letter}. ${option.label}`}
+                  onChange={() => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect))}
+                />
+              )}
             />
           );
         })}

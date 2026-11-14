@@ -3,9 +3,11 @@
  * Pause, Resume and Restart the Overseer offers, the new-code notice, the header statistics, the activity strip's facts, the open notices
  * and the warnings (owner answer Q34): a failed Baton pass with its step and error, and an Assistant that cannot come up. The incident
  * defaults are the incident line's (`IncidentNoticeModel.ts`), one line however many. Warnings are derived from the notices and the
- * Overseer's facts, never stored. While the board has no readable pipeline the header is in setup: it holds the setup steps with the
- * record's statuses, and no usage.
+ * Overseer's facts, never stored. While the board has no readable pipeline the header is in setup: its state pill reads Setting up, and it
+ * holds the setup steps with the record's statuses, and no usage.
  */
+import type { StepperStep } from 'design-system/Stepper';
+
 import { TokenCountUtil }     from '../../src/lib/token-count/TokenCountUtil.ts';
 import type { PipelineSetup } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { PRODUCT_NAMES }      from '../../src/shared/constants/ProductNames.ts';
@@ -16,7 +18,6 @@ import type {
   UsageDocument
 } from '../@types/BoardStateDocument.ts';
 import type { ConnectionState }                                       from '../api/EventStreamClient.ts';
-import type { StepperStep }                                           from '../design-system/Stepper.tsx';
 import { IncidentTrailUtil }                                          from '../utils/IncidentTrailUtil.ts';
 import { TimeUtil }                                                   from '../utils/TimeUtil.ts';
 import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../views/pipeline/PipelineViewModel.ts';
@@ -25,7 +26,7 @@ import type { BridgeTab }                                             from './Ha
 
 export type PauseControl = 'pause' | 'resume' | null;
 
-/** The status line's state: `live` only while serving, unpaused, with the event stream up; the dot pulses only then. */
+/** The state pill's state: `live` only while serving, unpaused, with the event stream up; the pill is orange and its dot pulses only then. */
 export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-baton' | 'down';
 
 /** The Kanban lanes a header figure points at. */
@@ -59,8 +60,11 @@ export interface SummaryLine {
 
 export interface HeaderModel {
   readonly statusToken:    StatusToken;
+  /** The state pill's word: the status token's, or Setting up while the board is in setup. */
   readonly statusLabel:    string;
-  /** The status line's mono details after the label: each usage window the facts carry, then a usage limit hit; none in setup. */
+  /** The orange state pill with its dot: live and out of setup; every other state is the quiet pill. */
+  readonly isRunning:      boolean;
+  /** The quiet details after the state pill: each usage window the facts carry, then a usage limit hit; none in setup. */
   readonly statusDetails:  readonly string[];
   /** The setup steps with the record's statuses while the board has no readable pipeline; `null` once it has one, or says nothing of one. */
   readonly setupSteps:     readonly StepperStep[] | null;
@@ -79,13 +83,15 @@ export interface HeaderModel {
 }
 
 const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
-  'live':          'Live',
+  'live':          'Running',
   'paused':        'Paused',
   'connecting':    'Connecting',
   'held':          'Held',
   'passing-baton': 'Handing over',
   'down':          'Down',
 };
+
+const SETUP_STATUS_LABEL = 'Setting up';
 
 const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<OverseerFactsDocument['state'], 'serving'>, StatusToken>> = {
   'held-by-install-change': 'held',
@@ -277,7 +283,8 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
   const figures = state === null ? null : boardFiguresOf(state, activity, TimeUtil.calendarDateOf(now.getTime()));
   return {
     statusToken,
-    statusLabel:    STATUS_LABEL[statusToken],
+    statusLabel:    setupSteps === null ? STATUS_LABEL[statusToken] : SETUP_STATUS_LABEL,
+    isRunning:      statusToken === 'live' && setupSteps === null,
     statusDetails:  state === null || setupSteps !== null ? [] : usageTextsOf(state.usage),
     setupSteps,
     pauseControl:   answers ? (overseer.paused ? 'resume' : 'pause') : null,

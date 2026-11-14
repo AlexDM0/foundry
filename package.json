@@ -7,32 +7,42 @@
     "forge": "agent-progress.ts"
   },
   "scripts": {
-    "typecheck": "bun run --parallel typecheck:root typecheck:bridge typecheck:bridge-specs",
+    "typecheck": "bun run --parallel typecheck:root typecheck:bridge typecheck:bridge-specs typecheck:design-system typecheck:design-system-specs",
     "typecheck:root": "tsc -p tsconfig.json",
     "typecheck:bridge": "tsc -p bridge/tsconfig.json",
     "typecheck:bridge-specs": "tsc -p bridge/tsconfig.spec.json",
+    "typecheck:design-system": "tsc -p design-system/tsconfig.json",
+    "typecheck:design-system-specs": "tsc -p design-system/tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "setup": "bun setup.ts",
     "test": "bun test",
     "verify": "bun run --parallel typecheck lint && bun test && bun src/testing/CheckRecordingStamps.ts && bun bridge/testing/RunDomSpecs.ts",
     "record": "bun src/testing/RecordBoundary.ts",
-    "verify:integration": "bun test --path-ignore-patterns='.claude/**' .integration.spec.ts"
+    "verify:integration": "bun test --path-ignore-patterns='.claude/**' .integration.spec.ts",
+    "storybook": "storybook dev --port 6006 --config-dir design-system/.storybook",
+    "storybook:build": "storybook build --config-dir design-system/.storybook --output-dir storybook-static"
   },
   "private": true,
+  "workspaces": ["design-system"],
   "devDependencies": {
     "@happy-dom/global-registrator": "21.0.4",
     "@reliquary/eslint-config": "^1.0.1",
+    "@storybook/react-vite": "10.6.7",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@types/bun": "^1.3.14",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
     "eslint": "^9",
     "eslint-plugin-react-hooks": "7.1.1",
-    "typescript": "6.0.3"
+    "storybook": "10.6.7",
+    "typescript": "6.0.3",
+    "vite": "8.3.8"
   },
   "dependencies": {
+    "design-system": "workspace:*",
     "marked": "17.0.6",
     "react": "19.3.1",
     "react-dom": "19.3.1"

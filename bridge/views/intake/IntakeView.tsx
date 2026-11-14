@@ -3,16 +3,18 @@
  * (`#intake/new`), which opens too while there is no session at all. A session the new chat just started shows as starting until a board
  * names it. Only the selected session's transcript is followed.
  */
-import { useState } from 'react';
+import { EmptyState } from 'design-system/EmptyState';
+import { Tag }        from 'design-system/Tag';
+import { Text }       from 'design-system/Text';
+import { useState }   from 'react';
 
 import type { ConversationBoardDocument } from '../../@types/ConversationDocuments.ts';
 import type { TranscriptFollower }        from '../../conversation/TranscriptLog.tsx';
-import { Pane }                           from '../../design-system/Pane.tsx';
-import { Tag }                            from '../../design-system/Tag.tsx';
 import { useBridgeClock }                 from '../../shell/BridgeClock.ts';
 import { TimeUtil }                       from '../../utils/TimeUtil.ts';
 import { IntakeChatPane }                 from './IntakeChatPane.tsx';
 import { IntakeModelUtil }                from './IntakeModel.ts';
+import { IntakePane }                     from './IntakePane.tsx';
 import { IntakeSessionList }              from './IntakeSessionList.tsx';
 import { NewChatPane }                    from './NewChatPane.tsx';
 
@@ -52,16 +54,19 @@ export function IntakeView({ board, followTranscript, selectedItem }: IntakeView
           : null}
         {selection.form === 'starting'
           ? (
-            <Pane
+            <IntakePane
               label={`Chat with ${selection.jobId}`}
               title="Starting"
               titleMark={selection.jobId}
-              subtitle="product-owner"
-              headEnd={<Tag text="starting" tone="neutral" />}
-              body="padded"
+              headEnd={(
+                <>
+                  <Text typeRole="tab" muted>product-owner</Text>
+                  <Tag text="starting" tone="neutral" />
+                </>
+              )}
             >
-              <p className="bridge-empty">{`Starting ${selection.jobId}…`}</p>
-            </Pane>
+              <EmptyState text={`Starting ${selection.jobId}…`} />
+            </IntakePane>
           )
           : null}
         {selection.form === 'new-chat' ? <NewChatPane pictureLimits={pictureLimits} onStarted={setStartedJobId} /> : null}

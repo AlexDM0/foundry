@@ -1,0 +1,4 @@
+/* A block under its micro-caps title; its rule parts it from the block above, or only from a neighbour in a row. */
+.design-system-block[data-rule="above"] { border-top: 1px solid var(--line); padding-top: var(--sp-3); margin-top: var(--sp-3); }
+.design-system-block[data-rule="between"] + .design-system-block[data-rule="between"] { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.design-system-block > .design-system-empty { padding: var(--sp-2) 0; }

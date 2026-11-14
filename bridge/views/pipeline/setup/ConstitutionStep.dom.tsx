@@ -58,7 +58,7 @@ function mirrorLines(): HTMLElement[] {
 
 function taggedLines(): string[][] {
   return mirrorLines().flatMap((line) => {
-    const tag = line.querySelector('.bridge-tag');
+    const tag = line.querySelector('.design-system-tag');
     const text = line.querySelector('.bridge-pipeline-constitution-mirror-text')?.textContent ?? '';
     return tag === null ? [] : [[text, tag.textContent ?? '']];
   });
@@ -231,7 +231,7 @@ describe('the aside and the footer', () => {
     renderConstitution();
     const footer = screen.getByRole('region', { name: 'Constitution actions' });
     expect(within(footer).getByText('4 sections · 6 rules')).toBeDefined();
-    expect(within(footer).getByText('Draft').getAttribute('data-tone')).toBe('warn');
+    expect(within(footer).getByText('Draft').getAttribute('data-tone')).toBe('neutral');
   });
 
   test('a SOURCES tick sends the choices with that one flipped', async () => {
@@ -254,6 +254,16 @@ describe('the aside and the footer', () => {
     renderConstitution({ ...board, pipelineSetup: { ...setup, agentJobState: null } });
     expect(document.querySelector('.bridge-pipeline-constitution-caret')).toBeNull();
     expect(document.querySelector('.bridge-pipeline-constitution-status')?.textContent).toBe('Pipeline agent · not running');
+  });
+
+  test('the panel head says the agent drafts, and Flint drafts the constitution in the one slot of the page', () => {
+    renderConstitution();
+    const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
+    expect(within(panel).getByText('Drafting')).toBeDefined();
+    const flint = within(panel).getByRole('img', { name: 'Flint, the pipeline agent' });
+    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['76', 'page', 'thinking']);
+    expect(within(panel).getByText('Drafting the constitution')).toBeDefined();
+    expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
   });
 
   test('the subtitle says that Apply commits it to main as CONSTITUTION.md', () => {

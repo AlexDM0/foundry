@@ -1,10 +1,11 @@
 /**
  * The Pipeline view in a happy-dom document. What matters: it names the screen the facts and the route pick, and the setup landing of an
- * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the flow;
- * the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed steps beside Discard and
- * Apply changes, while a live flow has no footer. The gates area stands under the flow, and Enter on a Gates node selects that phase's
- * tab. A double-click on a node opens its dialog with the node selected, and closing it clears the selection. A gate dialog opened on any
- * screen shows a running profile's output from the follower the view was given, the one the shell builds over the stream route.
+ * unreadable `pipeline.json` shows the warn banner with the reason, which a readable board never shows. The flow screen draws the Focus
+ * layout under its title row; the smallest pipeline has its "About this pipeline" aside and, while editing, the footer naming the removed
+ * steps beside Discard and Apply changes, while a live flow has the applied footer and no changes footer. The Build phase opens first;
+ * a phase tab opens its phase with its gates table, and Enter on a Gates step opens that phase's table. A double-click on a step opens
+ * its dialog with the step selected, and closing it clears the selection. A gate dialog opened on any screen shows a running
+ * profile's output from the follower the view was given, the one the shell builds over the stream route.
  */
 import {
   act,
@@ -39,7 +40,7 @@ describe('the Pipeline view', () => {
   test('a board with no pipeline shows the setup landing and no banner', () => {
     render(<PipelineView facts={pipelineBoardStateOf('A0')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
     expect(screen.getByRole('region', { name: 'Set up the pipeline' }).getAttribute('data-screen')).toBe('setup-landing');
-    expect(document.querySelector('.bridge-banner')).toBeNull();
+    expect(document.querySelector('.design-system-banner')).toBeNull();
   });
 
   test('an unreadable pipeline.json lands on setup with a banner naming the reason', () => {
@@ -58,7 +59,8 @@ describe('the Pipeline view', () => {
   test('the smallest pipeline being edited shows its aside and a footer naming the removed steps, Discard and Apply changes', async () => {
     const controls = fakeControls();
     controls.render(<PipelineView facts={pipelineBoardStateOf('A7')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
-    expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('editing');
+    expect(screen.getByRole('heading', { level: 2, name: 'Update your pipeline' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'Phase 2: Build' }).getAttribute('data-stage')).toBe('editing');
     expect(screen.getByRole('complementary', { name: 'About this pipeline' })).toBeDefined();
     const footer = screen.getByRole('region', { name: 'Pipeline changes' });
     expect(within(footer).getByText('Review and the merge train re-review removed')).toBeDefined();
@@ -69,7 +71,8 @@ describe('the Pipeline view', () => {
 
   test('a live flow with a review step has the activity aside and the applied footer, and no note and no changes footer', () => {
     render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
-    expect(screen.getByRole('region', { name: 'Pipeline flow' }).getAttribute('data-stage')).toBe('live');
+    expect(screen.getByRole('heading', { level: 2, name: 'Your pipeline' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'Phase 2: Build' }).getAttribute('data-stage')).toBe('live');
     expect(screen.getByRole('complementary', { name: 'Activity' })).toBeDefined();
     expect(screen.getByRole('region', { name: 'Applied pipeline' })).toBeDefined();
     expect(screen.queryByRole('complementary', { name: 'About this pipeline' })).toBeNull();
@@ -99,27 +102,32 @@ describe('the Pipeline view', () => {
     expect(within(adviseTabs).getByRole('tab', { selected: true }).textContent).toBe('Pipeline agent');
   });
 
-  test('the gates area stands under the flow, and Enter on a Gates node selects its phase\'s tab', () => {
+  test('the Build phase opens first; a phase tab opens its phase, and Enter on a Gates step opens that phase\'s gates', async () => {
     render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
-    const gates = screen.getByRole('region', { name: 'Gates' });
-    expect(within(gates).getByRole('tab', { selected: true }).getAttribute('aria-label')).toBe('Build, 3 gates');
-    const mergeGatesNode = document.querySelector<HTMLElement>('[data-flow-node-id="gates-merge"] .bridge-flow-node');
-    if (mergeGatesNode === null) throw new Error('no merge gates node');
-    fireEvent.keyDown(mergeGatesNode, { key: 'Enter' });
-    expect(within(gates).getByRole('tab', { selected: true }).getAttribute('aria-label')).toBe('Merge, 3 gates');
-    expect(within(gates).getByRole('tabpanel', { name: 'Merge gates' })).toBeDefined();
+    const phases = screen.getByRole('group', { name: 'Pipeline phases' });
+    expect(within(phases).getAllByRole('button').map((tab) => [tab.getAttribute('data-phase'), tab.getAttribute('aria-pressed')])).toEqual([
+      ['ticket', 'false'], ['build', 'true'], ['review', 'false'], ['merge', 'false'],
+    ]);
+    expect(screen.getByRole('region', { name: 'Build gates' })).toBeDefined();
+    await clickSettled(within(phases).getByRole('button', { name: /^Merge/ }));
+    const mergeGatesStep = document.querySelector<HTMLElement>('[data-step-node-id="gates-merge"]');
+    if (mergeGatesStep === null) throw new Error('no merge gates step');
+    fireEvent.keyDown(mergeGatesStep, { key: 'Enter' });
+    expect(screen.getByRole('region', { name: 'Phase 4: Merge' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'Merge gates' })).toBeDefined();
   });
 
-  test('a double-click on a node opens its dialog with the node selected, and Esc closes it', () => {
+  test('a double-click on a step opens its dialog with the step selected, and Esc closes it', () => {
     fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A6')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
-    const builderNode = document.querySelector<HTMLElement>('[data-flow-node-id="builder"] .bridge-flow-node');
-    if (builderNode === null) throw new Error('no Builder node');
-    fireEvent.doubleClick(builderNode);
+    const builderStep = document.querySelector<HTMLElement>('[data-step-node-id="builder"]');
+    const builderCard = builderStep?.querySelector('.design-system-card') ?? null;
+    if (builderStep === null || builderCard === null) throw new Error('no Builder step');
+    fireEvent.doubleClick(builderStep);
     expect(screen.getByRole('dialog', { name: 'Builder' })).toBeDefined();
-    expect(builderNode.hasAttribute('data-selected')).toBe(true);
+    expect(builderCard.hasAttribute('data-selected')).toBe(true);
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'Builder' }), { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Builder' })).toBeNull();
-    expect(builderNode.hasAttribute('data-selected')).toBe(false);
+    expect(builderCard.hasAttribute('data-selected')).toBe(false);
   });
 
   test('Enter on a gate row opens the Gate dialog of that row: a prepare row its prepare variant, a gate its place in the tab\'s phase', () => {
@@ -128,7 +136,7 @@ describe('the Pipeline view', () => {
     const kickerAfterEnterOn = (row: HTMLElement | undefined): string | null => {
       if (row === undefined) throw new Error('no gate row that opens a dialog');
       fireEvent.keyDown(row, { key: 'Enter' });
-      const kicker = screen.getByRole('dialog').querySelector('.bridge-dialog-kicker')?.textContent ?? null;
+      const kicker = screen.getByRole('dialog').querySelector('.design-system-dialog-kicker')?.textContent ?? null;
       fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
       return kicker;
     };
@@ -168,21 +176,21 @@ describe('the toast after an Apply', () => {
 
   test('says "Board resumed" when the first Apply resumed the board, once the facts show it applied', async () => {
     const { show } = await applyFirstPipeline(true);
-    expect(document.querySelector('.bridge-toast')).toBeNull();
+    expect(document.querySelector('.design-system-toast')).toBeNull();
     show(pipelineBoardStateOf('A5'));
-    expect(document.querySelector('.bridge-toast')?.textContent).toBe('Pipeline appliedBoard resumed · Version 2 is live.');
+    expect(document.querySelector('.design-system-toast')?.textContent).toBe('Pipeline appliedBoard resumed · Version 2 is live.');
   });
 
   test('says nothing of the board when the Apply left it as it was, and leaves when its bar ran down', async () => {
     const { show } = await applyFirstPipeline(false);
     show(pipelineBoardStateOf('A5'));
-    expect(document.querySelector('.bridge-toast')?.textContent).toBe('Pipeline appliedVersion 2 is live.');
-    const timer = document.querySelector('.bridge-toast-timer');
+    expect(document.querySelector('.design-system-toast')?.textContent).toBe('Pipeline appliedVersion 2 is live.');
+    const timer = document.querySelector('.design-system-toast-timer');
     if (timer === null) throw new Error('no toast timer');
     act(() => {
       timer.dispatchEvent(new Event('animationend', { bubbles: true }));
     });
-    expect(document.querySelector('.bridge-toast')).toBeNull();
+    expect(document.querySelector('.design-system-toast')).toBeNull();
   });
 
   test('Apply N changes never resumes the board: its toast names the new version only', async () => {
@@ -190,20 +198,20 @@ describe('the toast after an Apply', () => {
     await clickSettled(within(screen.getByRole('region', { name: 'Pipeline changes' })).getByRole('button', { name: 'Apply 4 changes' }));
     await clickSettled(within(screen.getByRole('dialog', { name: 'Apply 4 changes?' })).getByRole('button', { name: 'Apply 4 changes' }));
     show(appliedAt(2));
-    expect(document.querySelector('.bridge-toast')).toBeNull();
+    expect(document.querySelector('.design-system-toast')).toBeNull();
     show(appliedAt(3));
-    expect(document.querySelector('.bridge-toast')?.textContent).toBe('Pipeline appliedVersion 3 is live.');
+    expect(document.querySelector('.design-system-toast')?.textContent).toBe('Pipeline appliedVersion 3 is live.');
   });
 
   test('a live board that no Apply of this view reached shows no toast', () => {
     const { show } = renderHost(pipelineBoardStateOf('A5'), { tab: 'pipeline', item: null });
     show(appliedAt(3));
-    expect(document.querySelector('.bridge-toast')).toBeNull();
+    expect(document.querySelector('.design-system-toast')).toBeNull();
   });
 });
 
 describe('the profile log', () => {
-  test('a gate dialog opened from the gates area follows the running profile through the view\'s follower and shows its lines', async () => {
+  test('a gate dialog opened from a gates table follows the running profile through the view\'s follower and shows its lines', async () => {
     const followed: string[] = [];
     let deliver: (lines: readonly ProfileOutputLine[]) => void = () => undefined;
     const services = {
@@ -215,7 +223,7 @@ describe('the profile log', () => {
       },
     };
     fakeControls().render(<PipelineView facts={pipelineBoardStateOf('profile-running')} route={{ tab: 'pipeline', item: 'setup/design' }} {...services} />);
-    await clickSettled(screen.getByRole('tab', { name: /^Merge/ }));
+    await clickSettled(within(screen.getByRole('group', { name: 'Pipeline phases' })).getByRole('button', { name: /^Merge/ }));
     fireEvent.doubleClick(screen.getByRole('group', { name: /^Open the browser-tests / }));
     expect(followed).toEqual(['P1']);
     act(() => deliver([{ lineNumber: 1, text: 'Running 12 tests' }]));

@@ -1,0 +1,12 @@
+/* The keyframes that more than one component names; a keyframe that one component names alone is in its own stylesheet.
+   The design system's shared motion. A part names a keyframe with its motion token and ease, and under reduced motion sets
+   `animation: none` and the end state itself; zeroed tokens alone do not stop a keyframe. A live dot pulses only its opacity, so
+   it never changes size. --glow-ring, set by the part, colours the glow; it falls back to the question accent. */
+@keyframes design-system-pulse { 50% { opacity: 0.45; } }
+@keyframes design-system-pop { 0% { opacity: 0; transform: scale(0.6); } 70% { opacity: 1; transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes design-system-glow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--glow-ring, color-mix(in oklch, var(--decision-accent) 14%, transparent)); }
+}
+@keyframes design-system-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes design-system-spin { to { transform: rotate(360deg); } }

@@ -124,7 +124,7 @@ describe('the drawer', () => {
   test('sums up and lists the open incidents, then the defaults newest first', () => {
     renderNotice();
     fireEvent.click(toggle());
-    expect(drawer()?.querySelector('.bridge-pane-count')?.textContent).toBe('2 open · 4 defaults applied');
+    expect(drawer()?.querySelector('.design-system-pane-count')?.textContent).toBe('2 open · 4 defaults applied');
     expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual(['Open 2', 'Defaults applied 4']);
     expect(within(screen.getByRole('list', { name: 'Defaults applied' })).getAllByRole('button').map((row) => row.textContent)).toEqual([
       'I4resume-failed', 'I3gate-cannot-run', 'I2setup-failed', 'I1gate-cannot-run',
@@ -152,7 +152,7 @@ describe('the drawer', () => {
     fireEvent.click(toggle());
     const waiting = rowToggle('I6').closest('li') as HTMLElement;
     expect(waiting.querySelector('.bridge-incident-meta')?.textContent).toBe(' · opened 22:42 · default gate-retry · waits for J1\'s next turn');
-    expect(waiting.querySelector('.bridge-state-badge')?.textContent).toBe('waiting for the Assistant');
+    expect(waiting.querySelector('.design-system-state-badge')?.textContent).toBe('waiting for the Assistant');
     fireEvent.click(rowToggle('I5'));
     const trail = screen.getByRole('list', { name: 'Trail of I5' });
     expect(within(trail).getByRole('link', { name: 'J1' }).getAttribute('href')).toBe('#agents/J1');

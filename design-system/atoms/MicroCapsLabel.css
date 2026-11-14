@@ -1,0 +1,7 @@
+/* Micro caps: 11px on a 16px line, weight 600, spaced and upper case, in the tertiary ink. */
+.design-system-micro-caps {
+  margin: 0; font-size: var(--fs-micro); font-weight: 600; line-height: var(--line-height-micro);
+  text-transform: uppercase; letter-spacing: var(--letter-spacing-micro); color: var(--ink-4);
+}
+.design-system-micro-caps[data-tone="state"] { color: var(--s-ink); }
+.design-system-micro-caps[data-tone="error"] { color: var(--err-ink); }

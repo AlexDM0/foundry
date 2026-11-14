@@ -1,14 +1,14 @@
 /**
  * The ticket form's Overview. What matters: the live job is joined by its `ticketIds`, and only a build, review or merge-agent job: a
  * session naming the ticket and a partial record are passed over; the state card says what that job does (calls against budget, the last
- * tool call, since when, the elapsed time left off for a stamp later than now), or with no job why nothing works on the ticket; the lead
- * is Watch for a live job, else Accept, Ready or Unhold by state, Accept never sendable on a prediction that is not clean; the other moves
- * keep their order without the lead, Park names the running job only while one runs, and Priority… opens the other priorities only for a
- * pending ticket; Next words each forecast step, marks exactly the current one (none while nothing runs), links the tickets the landing
- * lets start and says what still holds the others, and is absent without a forecast; the facts carry their second lines; the live job's
- * controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (Stop alone while only watched, nothing
- * while stopping), each worded with the ticket, its branch and the Board's own hold phrase, a ticket already held keeping its hold; and
- * the newest open incident listing the ticket heads the Overview.
+ * tool call, since when, the elapsed time left off for a stamp later than now) and the pose of its Flint, or with no job why nothing works
+ * on the ticket; the lead is Watch for a live job, else Accept, Ready or Unhold by state, Accept never sendable on a prediction that is
+ * not clean; the other moves keep their order without the lead, Park names the running job only while one runs, and Priority… opens the
+ * other priorities only for a pending ticket; Next words each forecast step, marks exactly the current one (none while nothing runs),
+ * links the tickets the landing lets start and says what still holds the others, and is absent without a forecast; the facts carry their
+ * second lines; the live job's controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (Stop alone
+ * while only watched, nothing while stopping), each worded with the ticket, its branch and the Board's own hold phrase, a ticket already
+ * held keeping its hold; and the newest open incident listing the ticket heads the Overview.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -96,6 +96,12 @@ describe('the live job', () => {
     expect([overviewOf(reviewing, '004').now.heading, overviewOf(reviewing, '004').now.job?.since?.shortText]).toEqual(['Reviewing', '13:00']);
     const headingIn = (state: string) => overviewOf(exampleDetailBoard({ tickets: [BUILDING], jobs: [exampleDetailJob('J4', '004', { state })] }), '004').now.heading;
     expect(['in-customs', 'gating', 'merging-main', 'landing'].map(headingIn)).toEqual(['In Customs', 'Gating', 'Merging main', 'Landing']);
+  });
+
+  test('the state card\'s Flint types for a build, reviews for a review, and idles with no job', () => {
+    const reviewing = exampleDetailBoard({ tickets: [BUILDING], rows: [BUILDING_ROW], jobs: [exampleDetailJob('J9', '004', { kind: 'review', role: 'reviewer' })] });
+    const idle = exampleDetailBoard({ tickets: [BUILDING], rows: [BUILDING_ROW] });
+    expect([board, reviewing, idle].map((state) => overviewOf(state, '004').now.flintPose)).toEqual(['typing', 'reviewing', 'idle']);
   });
 
   test('a session naming the ticket and a partial job record are never joined', () => {

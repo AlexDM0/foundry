@@ -4,6 +4,9 @@
  * annotation anchors; the mirror follows the textarea's scroll. A blur or Cmd/Ctrl+S saves the whole text with the revision User saw, only
  * when it changed. A refused save keeps User's text until User saves again or discards it.
  */
+
+import { Tag }         from 'design-system/Tag';
+import { TextButton }  from 'design-system/TextButton';
 import {
   useId,
   useMemo,
@@ -13,8 +16,6 @@ import {
 } from 'react';
 
 import type { SourceAnnotation }                                              from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { TextButton }                                                         from '../../../design-system/Button.tsx';
-import { Tag }                                                                from '../../../design-system/Tag.tsx';
 import { useChangedKeys }                                                     from '../../../shell/ChangeHighlight.ts';
 import { useControlCommand }                                                  from '../../../shell/ControlCommandSender.ts';
 import { ConstitutionEditorModel, type ConstitutionVersion, type EditorText } from './ConstitutionEditorModel.ts';

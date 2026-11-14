@@ -1,12 +1,19 @@
 /**
- * The conditional re-review's box, shared by the review and merge step dialogs: its switch, and while on the threshold stepper, the
- * re-reviewer's compact model and effort rows and its instruction list; while off, the note on what leaves the flow.
+ * The conditional re-review's card, shared by the review step dialog's Re-review tab and the merge step dialog: its title with the
+ * Conditional pill and its switch, and under a rule while on the threshold stepper, the re-reviewer's compact model and effort and its
+ * brief; while off, the note on what leaves the flow.
  */
-import { useId, type RefObject } from 'react';
+
+import { Card }           from 'design-system/Card';
+import { NumberStepper }  from 'design-system/NumberStepper';
+import { Row }            from 'design-system/Row';
+import { Switch }         from 'design-system/Switch';
+import { Tag }            from 'design-system/Tag';
+import { Text }           from 'design-system/Text';
+import { View }           from 'design-system/View';
+import type { RefObject } from 'react';
 
 import type { PipelineChoices, ResolvedInstructionEntry } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { NumberStepper }                                  from '../../../design-system/NumberStepper.tsx';
-import { Switch }                                         from '../../../design-system/Switch.tsx';
 
 import { InstructionsEditor }                                           from './InstructionsEditor.tsx';
 import type { ConstitutionPlace }                                       from './InstructionsEditorModel.ts';
@@ -24,6 +31,8 @@ export interface RereviewSettingsProps {
   readonly switchRef?:      RefObject<HTMLElement | null>;
 }
 
+const CONDITIONAL_WORD = 'Conditional';
+
 /** The `Switch` part takes no ref, so the switch is found inside the span that holds it. */
 function switchHeldBy(holder: HTMLSpanElement | null): HTMLElement | null {
   return holder?.querySelector<HTMLElement>('[role="switch"]') ?? null;
@@ -32,28 +41,30 @@ function switchHeldBy(holder: HTMLSpanElement | null): HTMLElement | null {
 export function RereviewSettings({
   place, form, choices, resolvedEntries, constitution, onChange, switchRef
 }: RereviewSettingsProps) {
-  const titleId = useId();
   const words = RereviewSettingsModel.wordsOf(place);
   const role = RereviewSettingsModel.roleOf(place);
   return (
-    <section className="bridge-pipeline-dialog-rereview" aria-labelledby={titleId} data-on={form.isOn ? '' : undefined}>
-      <div className="bridge-pipeline-dialog-rereview-head">
-        <span className="bridge-pipeline-dialog-rereview-heading">
-          <strong id={titleId}>{words.title}</strong>
-          <span className="bridge-pipeline-dialog-hint">{words.subtitle}</span>
-        </span>
+    <Card padding="none" divider>
+      <Row between centerY gap="twelve" paddingVertical="twelve" paddingHorizontal="fourteen">
+        <View>
+          <Row centerY gap="eight">
+            <Text typeRole="title">{words.title}</Text>
+            <Tag text={CONDITIONAL_WORD} tone="neutral" />
+          </Row>
+          <Text typeRole="tab" muted>{words.subtitle}</Text>
+        </View>
         <span className="bridge-pipeline-dialog-switch" ref={(holder) => {
           if (switchRef !== undefined) switchRef.current = switchHeldBy(holder);
         }}
         >
           <Switch accessibleName={words.title} checked={form.isOn} onToggle={() => onChange({ ...form, isOn: !form.isOn })} />
         </span>
-      </div>
+      </Row>
       {form.isOn
         ? (
-          <>
-            <div className="bridge-pipeline-dialog-threshold">
-              <span>{words.thresholdLead}</span>
+          <View gap="fourteen" padding="fourteen">
+            <Row centerY gap="ten" wrap>
+              <Text typeRole="lead">{words.thresholdLead}</Text>
               <NumberStepper
                 accessibleName="Threshold in lines"
                 value={form.thresholdLines}
@@ -64,8 +75,8 @@ export function RereviewSettings({
                 raiseLabel="Raise the threshold"
                 onChange={(thresholdLines) => onChange({ ...form, thresholdLines })}
               />
-              <span>lines</span>
-            </div>
+              <Text typeRole="lead">lines</Text>
+            </Row>
             <ModelEffortFields
               models={choices.models}
               efforts={choices.efforts}
@@ -86,10 +97,14 @@ export function RereviewSettings({
               constitution={constitution}
               onChange={(entries) => onChange({ ...form, settings: { ...form.settings, entries } })}
             />
-            {words.scopeNote === null ? null : <p className="bridge-pipeline-dialog-note">{words.scopeNote}</p>}
-          </>
+            {words.scopeNote === null ? null : <Text typeRole="tab" subtle>{words.scopeNote}</Text>}
+          </View>
         )
-        : <p className="bridge-pipeline-dialog-hint">{words.offNote}</p>}
-    </section>
+        : (
+          <View paddingVertical="twelve" paddingHorizontal="fourteen">
+            <Text muted>{words.offNote}</Text>
+          </View>
+        )}
+    </Card>
   );
 }

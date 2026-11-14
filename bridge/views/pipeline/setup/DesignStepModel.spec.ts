@@ -1,9 +1,9 @@
 /**
  * The design step's model against the proposal fixtures. What matters: the footer counts the prepare steps and each phase's gates from
  * the facts' summary; Apply is disabled exactly while a question is open, with its reason and the amber hint, and enabled with "All
- * questions answered" at zero; the Changes tab's name says what its count counts; the agent's state and status line come from its job,
- * its ready mark and the snapshot; the newest change is the agent's newest edit that is not undone; each field shows on the flow at its
- * node, a gate or prepare step in the first phase whose tab lists it.
+ * questions answered" at zero; the Changes tab's name says what its count counts; the panel head's dot and word come from the agent's
+ * job and its ready mark; the newest change is the agent's newest edit that is not undone; each field shows on the flow in the
+ * phase that holds it: a step as its card, a gate or prepare step as its row in the first phase that lists it, an order as the gates.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -51,10 +51,10 @@ describe('the aside', () => {
 
   test('the agent designs while it runs, is ready once it says so, and is not running with no job', () => {
     const { setup } = proposal();
-    expect(DesignStepModel.statusLineOf(setup)).toBe('J4 · designing · snapshot 1111111');
+    expect(DesignStepModel.panelStatusOf(setup)).toEqual({ tone: 'working', text: 'Designing' });
     const ready = { ...setup, record: { ...setup.record, readyToContinue: ['design' as const] } };
-    expect(DesignStepModel.statusLineOf(ready)).toBe('J4 · proposal ready · snapshot 1111111');
-    expect(DesignStepModel.agentStateOf({ ...ready, agentJobState: null })).toBe('not-running');
+    expect(DesignStepModel.panelStatusOf(ready)).toEqual({ tone: 'ready', text: 'Proposal ready' });
+    expect(DesignStepModel.panelStatusOf({ ...ready, agentJobState: null })).toEqual({ tone: 'idle', text: 'Not running' });
   });
 
   test('the newest change is the agent\'s newest edit that is not undone', () => {
@@ -66,16 +66,16 @@ describe('the aside', () => {
 });
 
 describe('show on the flow', () => {
-  test('a gate or prepare step shows at the first phase whose tab lists it; a step at its node', () => {
+  test('a gate or prepare step shows as its row in the first phase that lists it, an order as the gates table, a step as its card', () => {
     const { flow } = proposal();
-    expect(DesignStepModel.flowTargetOf('gate:typecheck', flow)).toEqual({ nodeId: 'gates-build', phase: 'build' });
-    expect(DesignStepModel.flowTargetOf('gate:browser-tests', flow)).toEqual({ nodeId: 'gates-merge', phase: 'merge' });
-    expect(DesignStepModel.flowTargetOf('prepare:install', flow)).toEqual({ nodeId: 'gates-build', phase: 'build' });
-    expect(DesignStepModel.flowTargetOf('phase-order:review', flow)).toEqual({ nodeId: 'gates-review', phase: 'review' });
-    expect(DesignStepModel.flowTargetOf('role:builder', flow)).toEqual({ nodeId: 'builder', phase: null });
-    expect(DesignStepModel.flowTargetOf('review', flow)).toEqual({ nodeId: 'review', phase: null });
-    expect(DesignStepModel.flowTargetOf('airlock', flow)).toEqual({ nodeId: 'merge-in-airlock', phase: null });
-    expect(DesignStepModel.flowTargetOf('approval:merge', flow)).toEqual({ nodeId: 'human-code-review', phase: null });
+    expect(DesignStepModel.flowTargetOf('gate:typecheck', flow)).toEqual({ phase: 'build', item: { kind: 'gate-row', rowKey: 'gate:typecheck' } });
+    expect(DesignStepModel.flowTargetOf('gate:browser-tests', flow)).toEqual({ phase: 'merge', item: { kind: 'gate-row', rowKey: 'gate:browser-tests' } });
+    expect(DesignStepModel.flowTargetOf('prepare:install', flow)).toEqual({ phase: 'build', item: { kind: 'gate-row', rowKey: 'prepare:install' } });
+    expect(DesignStepModel.flowTargetOf('phase-order:review', flow)).toEqual({ phase: 'review', item: { kind: 'gates' } });
+    expect(DesignStepModel.flowTargetOf('role:builder', flow)).toEqual({ phase: 'build', item: { kind: 'step', nodeId: 'builder' } });
+    expect(DesignStepModel.flowTargetOf('review', flow)).toEqual({ phase: 'review', item: { kind: 'step', nodeId: 'review' } });
+    expect(DesignStepModel.flowTargetOf('airlock', flow)).toEqual({ phase: 'merge', item: { kind: 'step', nodeId: 'merge-in-airlock' } });
+    expect(DesignStepModel.flowTargetOf('approval:merge', flow)).toEqual({ phase: 'review', item: { kind: 'step', nodeId: 'human-code-review' } });
     expect(DesignStepModel.flowTargetOf('constitution', flow)).toBeNull();
     expect(DesignStepModel.flowTargetOf('gate:no-such-gate', flow)).toBeNull();
     expect(DesignStepModel.showLinkTextOf('gate:typecheck')).toBe('Show typecheck on the flow');

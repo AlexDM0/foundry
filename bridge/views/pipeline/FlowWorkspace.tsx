@@ -1,147 +1,89 @@
 /**
- * The pipeline flow with what it opens: the flow beside an optional aside, the gates area under them, and the dialog a node, a gate row
- * or a + asks for. Its selection is a hook, so the screen holding it can also show a step on the flow: select the node, and for a gate
- * select its phase's tab and scroll to the gates area.
+ * The page of every pipeline stage that draws the flow (the proposal, live, editing and the smallest pipeline), in the Focus layout of
+ * `PipelinePage`: the page's title row over the phase stepper and the one open phase, the stage's panel in the right column, the stage's
+ * footer bar under both; and the dialog a step, a gate row or an add choice opens. With no flow yet, the title row, the panel and the footer still stand.
  */
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode
-} from 'react';
 
-import type { GatePhase } from '../../../src/lib/tracker-model/@types/GatePhase.ts';
+import { useEffect, useRef, type ReactNode } from 'react';
 
-import type { PreferenceStore }               from '../../preferences/PreferenceStore.ts';
-import type { PipelineViewFacts }             from './PipelineViewModel.ts';
-import { useProfileLogFollower }              from './ProfileLogFollowerContext.ts';
-import { PipelineAgentPanelModel }            from './agent-panel/PipelineAgentPanelModel.ts';
-import { PipelineDialogs }                    from './dialogs/PipelineDialogs.tsx';
-import { PipelineFlow, type FlowOpenRequest } from './flow/PipelineFlow.tsx';
-import { GatesArea }                          from './gates/GatesArea.tsx';
-import type { GatesOpenRequest }              from './gates/GatesAreaModel.ts';
-
-const NODE_CELL_SELECTOR = '[data-flow-node-id]';
-
-/** A step to show on the flow: its node, and for a gate or a prepare step the phase whose tab lists it. */
-export interface FlowShowTarget {
-  readonly nodeId: string;
-  readonly phase:  GatePhase | null;
-}
-
-/** What the workspace scrolls into view next: the gates area, or a node's cell; `serial` makes a repeated ask scroll again. */
-type FlowScrollRequest =
-  | { readonly target: 'gates'; readonly serial: number }
-  | { readonly target: 'node'; readonly nodeId: string; readonly serial: number };
-
-export interface FlowSelection {
-  readonly openRequest:   FlowOpenRequest | GatesOpenRequest | null;
-  readonly shownNodeId:   string | null;
-  readonly gatesPhase:    GatePhase;
-  readonly scrollRequest: FlowScrollRequest | null;
-  readonly open:          (request: FlowOpenRequest | GatesOpenRequest) => void;
-  readonly close:         () => void;
-  readonly selectPhase:   (phase: GatePhase) => void;
-  readonly showOnFlow:    (target: FlowShowTarget) => void;
-}
-
-function nodeCellIn(workspace: HTMLElement | null, nodeId: string): HTMLElement | null {
-  return [...workspace?.querySelectorAll<HTMLElement>(NODE_CELL_SELECTOR) ?? []].find((cell) => cell.dataset['flowNodeId'] === nodeId) ?? null;
-}
-
-export function useFlowSelection(): FlowSelection {
-  const [openRequest, setOpenRequest] = useState<FlowOpenRequest | GatesOpenRequest | null>(null);
-  const [shownNodeId, setShownNodeId] = useState<string | null>(null);
-  const [gatesPhase, setGatesPhase] = useState<GatePhase>('build');
-  const [scrollRequest, setScrollRequest] = useState<FlowScrollRequest | null>(null);
-  const nextSerial = (): number => (scrollRequest?.serial ?? 0) + 1;
-  const showPhase = (phase: GatePhase): void => {
-    setGatesPhase(phase);
-    setScrollRequest({ target: 'gates', serial: nextSerial() });
-  };
-  return {
-    openRequest,
-    shownNodeId,
-    gatesPhase,
-    scrollRequest,
-    open: (request) => {
-      setOpenRequest(request);
-      setShownNodeId(null);
-      if (request.kind === 'node' && request.action.kind === 'gates-tab') showPhase(request.action.phase);
-    },
-    close:       () => setOpenRequest(null),
-    selectPhase: setGatesPhase,
-    showOnFlow:  (target) => {
-      setShownNodeId(target.nodeId);
-      if (target.phase === null) setScrollRequest({ target: 'node', nodeId: target.nodeId, serial: nextSerial() });
-      else showPhase(target.phase);
-    },
-  };
-}
-
-function selectedNodeIdOf(selection: FlowSelection): string | null {
-  const request = selection.openRequest;
-  if (request?.kind === 'node' || request?.kind === 'question') return request.nodeId;
-  return selection.shownNodeId;
-}
+import { ViewTitle }                         from '../ViewTitle.tsx';
+import { PipelinePage }                      from './PipelinePage.tsx';
+import type { PipelineViewFacts }            from './PipelineViewModel.ts';
+import { useProfileLogFollower }             from './ProfileLogFollowerContext.ts';
+import { PipelineAgentPanelModel }           from './agent-panel/PipelineAgentPanelModel.ts';
+import { PipelineDialogs }                   from './dialogs/PipelineDialogs.tsx';
+import type { FlowSelection, FlowShownItem } from './flow/FlowSelection.ts';
+import { OpenPhase }                         from './flow/OpenPhase.tsx';
+import { PhaseStepper }                      from './flow/PhaseStepper.tsx';
+import { PipelinePhaseModel }                from './flow/PipelinePhaseModel.ts';
+import { MinimalPipelineNoteModel }          from './live/MinimalPipelineNoteModel.ts';
 
 export interface FlowWorkspaceProps {
-  readonly facts:      PipelineViewFacts;
-  readonly boardStore: PreferenceStore | null;
-  readonly selection:  FlowSelection;
-  /** What stands beside the flow, such as the smallest pipeline's note. */
-  readonly flowAside?: ReactNode;
+  readonly facts:     PipelineViewFacts;
+  readonly selection: FlowSelection;
+  readonly title:     string;
+  readonly lead:      string;
+  /** A line over the phases, such as the agent still designing. */
+  readonly notice?:   ReactNode;
+  /** The right column: the stage's panel. */
+  readonly aside:     ReactNode;
+  /** The full-width bar under the phase and the panel. */
+  readonly footer:    ReactNode;
+}
+
+/** The element that stands for a shown item: a step card, a gate row or the open phase's gates table. */
+function elementOf(layout: HTMLElement | null, item: FlowShownItem): HTMLElement | null {
+  if (layout === null) return null;
+  if (item.kind === 'gates') return layout.querySelector<HTMLElement>('[data-gates-table]');
+  const [selector, matches] = item.kind === 'step'
+    ? ['[data-step-node-id]', (element: HTMLElement) => element.dataset['stepNodeId'] === item.nodeId] as const
+    : ['[data-gate-row-key]', (element: HTMLElement) => element.dataset['gateRowKey'] === item.rowKey] as const;
+  return [...layout.querySelectorAll<HTMLElement>(selector)].find(matches) ?? null;
 }
 
 export function FlowWorkspace({
-  facts, boardStore, selection, flowAside = null
+  facts, selection, title, lead, notice = null, aside, footer
 }: FlowWorkspaceProps) {
   const followProfileLog = useProfileLogFollower();
-  const gatesAreaRef = useRef<HTMLElement | null>(null);
-  const workspaceRef = useRef<HTMLDivElement | null>(null);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
   const { scrollRequest } = selection;
   useEffect(() => {
     if (scrollRequest === null) return;
-    const element = scrollRequest.target === 'gates' ? gatesAreaRef.current : nodeCellIn(workspaceRef.current, scrollRequest.nodeId);
-    element?.scrollIntoView({ block: 'nearest' });
+    elementOf(layoutRef.current, scrollRequest.item)?.scrollIntoView({ block: 'nearest' });
   }, [scrollRequest]);
   const flow = facts.pipelineFlow ?? null;
-  if (flow === null) return null;
   const record = facts.pipelineSetup?.record ?? null;
-  const editTarget = record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision };
-  const livePipeline = facts.pipeline?.readingVerdict === 'readable' ? facts.pipeline.pipeline : null;
+  const main = (
+    <>
+      <ViewTitle title={title} lead={lead} />
+      {notice}
+      {flow === null
+        ? null
+        : (
+          <>
+            <PhaseStepper
+              tabs={PipelinePhaseModel.tabViewsOf(flow, {
+                stage:           flow.toolbarStage,
+                minimal:         MinimalPipelineNoteModel.noteIsShownFor(flow),
+                openQuestionIds: PipelineAgentPanelModel.openQuestionIdsOf(record?.questions ?? []),
+              })}
+              openPhase={selection.openPhase}
+              onOpen={selection.openPhaseOf}
+            />
+            <OpenPhase facts={facts} flow={flow} selection={selection} />
+          </>
+        )}
+    </>
+  );
   return (
-    <div className="bridge-pipeline-flow-workspace" ref={workspaceRef}>
-      <div className="bridge-pipeline-flow-screen">
-        <PipelineFlow
-          flow={flow}
-          draft={record?.draft ?? livePipeline}
-          editTarget={editTarget}
-          efforts={facts.pipelineChoices?.efforts ?? []}
-          profileRuns={facts.profileRuns ?? []}
-          boardStore={boardStore}
-          selectedNodeId={selectedNodeIdOf(selection)}
-          openQuestionIds={PipelineAgentPanelModel.openQuestionIdsOf(record?.questions ?? [])}
-          onOpen={selection.open}
-        />
-        {flowAside}
-      </div>
-      <GatesArea
-        gateRows={flow.gateRows}
-        stage={flow.toolbarStage}
-        editTarget={editTarget}
-        profileRuns={facts.profileRuns ?? []}
-        phase={selection.gatesPhase}
-        onSelectPhase={selection.selectPhase}
-        onOpen={selection.open}
-        areaRef={gatesAreaRef}
-      />
+    <>
+      <PipelinePage ref={layoutRef} main={main} panel={aside} footer={footer} />
       <PipelineDialogs
         facts={facts}
         request={selection.openRequest}
         onClose={selection.close}
         {...(followProfileLog === null ? {} : { followLog: followProfileLog })}
       />
-    </div>
+    </>
   );
 }

@@ -1,9 +1,12 @@
 /**
  * The detail panel: the side panel docked under the tab bar, showing the ticket, row or draft form the routed item opens, or the line
- * naming what the board lacks; switching items cross-fades its contents.
+ * naming what the board lacks; switching items cross-fades its contents. The ticket form brings its own head; every other form scrolls
+ * whole under the lone ×.
  */
+import { SidePanel, SidePanelBody, SidePanelHead } from 'design-system/SidePanel';
+import type { RefObject }                          from 'react';
+
 import type { DetailBoardState }                       from '../../@types/DetailBoardState.ts';
-import { SidePanel }                                   from '../../design-system/SidePanel.tsx';
 import { DetailRoute, type DetailItem }                from '../../shell/DetailRoute.ts';
 import type { DetailFormat }                           from './DetailFactsModel.ts';
 import { DetailPanelModel, type DetailPanelViewModel } from './DetailPanelModel.ts';
@@ -13,6 +16,8 @@ import { RowDetail }                                   from './RowDetail.tsx';
 import { TicketDetail }                                from './TicketDetail.tsx';
 
 const TAB_BAR_SELECTOR = '.bridge-tab-bar';
+
+const CLOSE_LABEL = 'Close';
 
 export interface DetailPanelProps {
   readonly boardState:         DetailBoardState;
@@ -24,6 +29,8 @@ export interface DetailPanelProps {
   readonly onClose:            () => void;
   /** Asked once, as the panel first shows: true moves the focus to × so the next Tab walks the panel, as after Enter on a card. */
   readonly focusesCloseOnOpen: () => boolean;
+  /** The panel's element, so the host can tell the focus inside it from the opener's. */
+  readonly panelRef?:          RefObject<HTMLElement | null>;
 }
 
 function accessibleNameOf(model: DetailPanelViewModel): string {
@@ -39,10 +46,9 @@ function accessibleNameOf(model: DetailPanelViewModel): string {
   }
 }
 
-function FormOf({ model }: { readonly model: DetailPanelViewModel }) {
+/** The row and draft forms, and the note, under the lone ×. */
+function FormOf({ model }: { readonly model: Exclude<DetailPanelViewModel, { readonly form: 'ticket' }> }) {
   switch (model.form) {
-    case 'ticket':
-      return <TicketDetail model={model} />;
     case 'row':
       return <RowDetail model={model} />;
     case 'draft':
@@ -58,9 +64,10 @@ function tabBarOf(): Element | null {
 }
 
 export function DetailPanel({
-  boardState, item, format, isClosing, onClosed, onClose, focusesCloseOnOpen
+  boardState, item, format, isClosing, onClosed, onClose, focusesCloseOnOpen, panelRef
 }: DetailPanelProps) {
   const model = DetailPanelModel.detailPanelModelOf(boardState, item, format);
+  const contentKey = DetailRoute.itemTextOf(item);
   return (
     <SidePanel
       label={accessibleNameOf(model)}
@@ -68,12 +75,19 @@ export function DetailPanel({
       dockBelow={tabBarOf}
       isClosing={isClosing}
       onClosed={onClosed}
-      onClose={onClose}
-      closeLabel="Close"
       focusesCloseOnOpen={focusesCloseOnOpen}
-      contentKey={DetailRoute.itemTextOf(item)}
+      {...(panelRef === undefined ? {} : { panelRef })}
     >
-      <FormOf model={model} />
+      {model.form === 'ticket'
+        ? <TicketDetail model={model} closeLabel={CLOSE_LABEL} onClose={onClose} contentKey={contentKey} />
+        : (
+          <>
+            <SidePanelHead closeLabel={CLOSE_LABEL} onClose={onClose} />
+            <SidePanelBody contentKey={contentKey}>
+              <FormOf model={model} />
+            </SidePanelBody>
+          </>
+        )}
     </SidePanel>
   );
 }

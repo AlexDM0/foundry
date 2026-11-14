@@ -3,6 +3,12 @@
  * thing that waits with its age and the one action that opens its place; a foot linking to Questions and to the drafts on the Kanban,
  * with the notification allowance while it is unasked. The ages tick each second from the injected clock while the stream is live.
  */
+
+import { Button }         from 'design-system/Button';
+import { IdLink }         from 'design-system/IdLink';
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { SectionHead }    from 'design-system/SectionHead';
+import { Stamp }          from 'design-system/Stamp';
 import {
   useEffect,
   useRef,
@@ -12,11 +18,6 @@ import {
 
 import { AskItem, type AskAge }                                           from '../conversation/AskItem.tsx';
 import { JobLink }                                                        from '../conversation/ConversationParts.tsx';
-import { Button }                                                         from '../design-system/Button.tsx';
-import { SectionHead }                                                    from '../design-system/ListSection.tsx';
-import { MicroCapsLabel }                                                 from '../design-system/MicroCapsLabel.tsx';
-import { IdLink }                                                         from '../design-system/MonoId.tsx';
-import { Stamp }                                                          from '../design-system/Stamp.tsx';
 import { ElapsedTimeUtil }                                                from '../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                                 from '../utils/TimeUtil.ts';
 import { NotificationAllowanceControl }                                   from '../views/questions/NotificationAllowanceControl.tsx';
@@ -132,7 +133,7 @@ function AttentionGroup({
   if (items.length === 0) return null;
   return (
     <>
-      <MicroCapsLabel text={title} element="h3" />
+      <div className="bridge-attention-group-title"><MicroCapsLabel text={title} element="h3" /></div>
       <ul className="bridge-attention-list" aria-label={title}>
         {items.map((item) => <AttentionRow key={item.key} item={item} now={now} slices={slices} />)}
       </ul>
@@ -155,9 +156,11 @@ export function WaitingOnUserInbox({
   };
   return (
     <div ref={inboxRef} className="bridge-attention-inbox" onClick={navigateOnLink}>
-      <SectionHead title="Waiting on User" count={waiting.total}>
-        <span className="bridge-attention-inbox-order">{ORDER_TEXT}</span>
-      </SectionHead>
+      <div className="bridge-attention-inbox-head">
+        <SectionHead title="Waiting on User" count={waiting.total} inline>
+          <span className="bridge-attention-inbox-order">{ORDER_TEXT}</span>
+        </SectionHead>
+      </div>
       {waiting.total === 0
         ? <p className="bridge-attention-empty">{EMPTY_TEXT}</p>
         : (
@@ -169,7 +172,7 @@ export function WaitingOnUserInbox({
       <div className="bridge-attention-foot">
         <a href={HashRouter.fragmentOf({ tab: 'questions', item: null })}>All questions</a>
         <a href={HashRouter.fragmentOf({ tab: 'kanban', item: null })} onClick={() => onShowLane?.('ready')}>Drafts on Kanban</a>
-        <NotificationAllowanceControl notifier={notifier} />
+        <span className="bridge-attention-foot-end"><NotificationAllowanceControl notifier={notifier} dense /></span>
       </div>
     </div>
   );

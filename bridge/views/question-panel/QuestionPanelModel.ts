@@ -95,12 +95,14 @@ export interface QuestionPanelHead {
 }
 
 export interface QuestionOptionModel {
-  readonly letter:       string;
-  readonly label:        string;
+  readonly letter:        string;
+  /** The label as asked, without the agent's trailing `(Recommended)`, which `isRecommended` carries as a mark beside it. */
+  readonly label:         string;
+  readonly isRecommended: boolean;
   /** `null` for an option asked with an empty description. */
-  readonly description:  string | null;
+  readonly description:   string | null;
   /** `null` when the agent noted no consequence for the option. */
-  readonly consequences: OptionConsequences | null;
+  readonly consequences:  OptionConsequences | null;
 }
 
 export interface QuestionModel {
@@ -218,16 +220,20 @@ function stampTextOf(stamp: string, format: QuestionPanelFormat): string | null 
   return format.slices === null ? null : TimeUtil.shortStampText(stamp, format.todayCalendarDate, format.slices);
 }
 
+/** The label's trailing mark an asking agent writes on the option it recommends. */
+const RECOMMENDED_LABEL_SUFFIX_PATTERN = /\s*\(Recommended\)\s*$/u;
+
 function questionModelOf(question: DecisionDocument['questions'][number]): QuestionModel {
   return {
     text:        question.question,
     header:      question.header,
     multiSelect: question.multiSelect,
     options:     question.options.map((option, optionIndex) => ({
-      letter:       DecisionAnswerUtil.optionLetterOf(optionIndex),
-      label:        option.label,
-      description:  option.description === '' ? null : option.description,
-      consequences: OptionConsequencesUtil.consequencesOf(option),
+      letter:        DecisionAnswerUtil.optionLetterOf(optionIndex),
+      label:         option.label.replace(RECOMMENDED_LABEL_SUFFIX_PATTERN, ''),
+      isRecommended: RECOMMENDED_LABEL_SUFFIX_PATTERN.test(option.label),
+      description:   option.description === '' ? null : option.description,
+      consequences:  OptionConsequencesUtil.consequencesOf(option),
     })),
   };
 }

@@ -1,15 +1,17 @@
 /**
- * The live flow's footer (A5Live): the Applied mark, the applied version with its time and who applied it, the content hash and the
- * constitution commit the newest Apply made; View pipeline.json opens the stored text, and Update pipeline opens an update of it with
- * `pipeline-update-start` and moves to `#pipeline/edit`.
+ * The live flow's footer bar (A5Live), as FlowLive draws it: the green Applied pill, the applied version with its time and who applied
+ * it, the content hash and the constitution commit the newest Apply made; View pipeline.json opens the stored text, and Update pipeline
+ * opens an update of it with `pipeline-update-start` and moves to `#pipeline/edit`.
  */
-import { useState } from 'react';
+import { ActionBar } from 'design-system/ActionBar';
+import { Button }    from 'design-system/Button';
+import { Tag }       from 'design-system/Tag';
+import { Text }      from 'design-system/Text';
+import { useState }  from 'react';
 
-import { ActionBar }            from '../../../design-system/ActionBar.tsx';
-import { Button }               from '../../../design-system/Button.tsx';
-import { Tag }                  from '../../../design-system/Tag.tsx';
 import { CommandButton }        from '../../../shell/CommandButton.tsx';
 import { HashRouter }           from '../../../shell/HashRouter.ts';
+import { StateToneUtil }        from '../../../utils/StateToneUtil.ts';
 import { UPDATE_START_COMMAND } from '../flow/PipelineFlowEditSender.ts';
 import type { LiveFooterView }  from './LivePipelineModel.ts';
 import { PipelineFileDialog }   from './PipelineFileDialog.tsx';
@@ -28,10 +30,10 @@ export function LiveFooter({ footer }: LiveFooterProps) {
         label="Applied pipeline"
         start={(
           <>
-            <Tag text="Applied" tone="state" state="delivered" />
-            <span className="bridge-pipeline-live-version">{footer.versionText}</span>
-            <span className="bridge-pipeline-live-hash">{footer.hashText}</span>
-            {footer.commitText === null ? null : <span className="bridge-pipeline-live-hash">{footer.commitText}</span>}
+            <Tag text="Applied" {...StateToneUtil.tagLookOf('reviewed')} />
+            <Text bold>{footer.versionText}</Text>
+            <Text typeRole="small" mono subtle>{footer.hashText}</Text>
+            {footer.commitText === null ? null : <Text typeRole="small" mono subtle>{footer.commitText}</Text>}
           </>
         )}
         end={(

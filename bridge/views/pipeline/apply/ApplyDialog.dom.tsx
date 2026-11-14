@@ -3,8 +3,8 @@
  * `pipeline-apply` with `resumesBoard` exactly as the checkbox shows, on by default; the checkbox counts the pending tickets and the
  * concurrency limit; a refusal shows verbatim and the dialog stays open; with the facts' `applyState` committing, held or refused, the
  * dialog opens on that state's text from the facts, its Cancel is Cancel apply, which sends `pipeline-apply-cancel`, and a signing
- * failure offers the exact text of CONSTITUTION.md; Cancel closes the dialog; once the facts show the pipeline applied, the view leaves
- * the setup route for the live flow.
+ * failure offers the exact text of CONSTITUTION.md; Cancel, on the foot's start side, closes the dialog; once the facts show the
+ * pipeline applied, the view leaves the setup route for the live flow.
  */
 import {
   act,
@@ -67,6 +67,12 @@ describe('Resume the board', () => {
     expect(checkbox.checked).toBe(true);
     expect(within(applyDialog()).getByText('The 4 pending tickets start building, 2 at a time.')).toBeDefined();
     expect(within(applyDialog()).getByText('Apply commits CONSTITUTION.md to main, then stores the pipeline.')).toBeDefined();
+  });
+
+  test('the foot puts Cancel on the start side, before Apply', async () => {
+    await openApply();
+    const footButtons = [...applyDialog().querySelectorAll('.design-system-dialog-foot button')].map((element) => element.textContent);
+    expect(footButtons).toEqual(['Cancel', 'Apply']);
   });
 
   test('Apply carries resumesBoard exactly as the checkbox shows', async () => {

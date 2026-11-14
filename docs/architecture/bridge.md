@@ -43,13 +43,13 @@ Bridge reaches and the whole tracker model, which proves that model DOM-safe.
 | `bridge/shell/` | The shell, the frame around every view: `BridgeApp`, hash router, header, banners, the incident line and its drawer, `CommandButton` and the `useControlCommand` sender behind it, error boundary, theme bootstrap, embedded channel, and `WaitingOnUserModel` with the Waiting on User pill and its inbox |
 | `bridge/api/` | The clients of the Overseer's API: commands, picture upload, the session token both carry, event stream, identity, transcript stream |
 | `bridge/views/<view>/` | One view: its component and, where it has logic of its own, a pure `<View>Model.ts` beside it |
-| `bridge/design-system/` | The reusable components, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators, an open state its caller may hold, an Esc caught before a side panel's), tabs and count badge, banner, confirm strip, side panel, modal dialog (a native `<dialog>` shown with `showModal()`: Esc, × and a backdrop click ask the caller to dismiss it with the reason, the focus goes to the element the caller names or the first field, and back to the opener, Tab cycles inside), choice option, tag, icon, callout, keyed line list, stepper, action bar, toast (its expiry on the end of its timer bar, or on an injected timer under reduced motion), log tail, listed file, change row, activity row, typing indicator, switch, tooltip, model and effort meter, number stepper, busy indicator, skeleton, reorderable list, multiple-choice question (radios, or checkboxes on a question that takes several letters), flow node, frame and arrows, zoom control, and `utils/RovingFocusUtil.ts` and `utils/MeterUtil.ts`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. `src/ImportDirection.spec.ts` holds that it imports only itself and the display-state type |
+| `design-system/` | A package at the root of the repository, not a folder of the Bridge (see `design-system/README.md`): the reusable components, sorted into `atoms/`, `molecules/` and `organisms/`, each beside its own stylesheet, which know nothing about the board, the routes, the API or the shell: buttons, state badge, pill and dot, mono ids and id links, stamp, small-capitals label, list section and empty state, segmented control, segment, fill and slot meters, pane, titled block, fact list, the `useDismissal` hook, popover, menu (items with a description line, separators, an open state its caller may hold, an Esc caught before a side panel's), tabs and count badge, banner, confirm strip, side panel, modal dialog (a native `<dialog>` shown with `showModal()`: Esc, × and a backdrop click ask the caller to dismiss it with the reason, the focus goes to the element the caller names or the first field, and back to the opener, Tab cycles inside), choice option, tag, icon, callout, keyed line list, stepper, action bar, toast (its expiry on the end of its timer bar, or on an injected timer under reduced motion), log tail, listed file, change row, activity row, typing indicator, switch, tooltip, model and effort meter, number stepper, busy indicator, skeleton, reorderable list, multiple-choice question (radios, or checkboxes on a question that takes several letters), and `utils/RovingFocusUtil.ts`, `utils/ReorderIndexUtil.ts` and `utils/MeterUtil.ts`, with the theme tokens in `styles/tokens.css` and the fonts in `fonts/`. The tag, the fill and slot meters, the callout, the keyed line list and the menu's description line and separator were built before the views that use them, on the owner's order, from the picked board designs. A link arrives as an `href`, an action as a callback, every word as a prop; a variant is a `data-*` attribute, never a `className` prop. It imports nothing outside its folder, and the Bridge imports it as a workspace package, by name, only the entries its `package.json` exports (`design-system/Button`): `src/ImportDirection.spec.ts` holds both. A component imports only components of a lower layer: `design-system/CompositionLayers.spec.ts` holds it |
 | `bridge/conversation/` | Parts several conversation views share that build ids or post commands: decision card (its options drawn as design-system choice options, as a card in a list or docked in a chat with its questions side by side), transcript log, card heads, ticket and job links, and the chat parts: the ask item (one thing that waits on User, as an inbox row or a strip under a job), the chat card and thread (system lines, agent turns, User's bubbles, decisions), the tool use fold (a turn's tool calls, a running one ticking on the Bridge clock) and the composer (recipient, status tag, Enter sends through `useControlCommand`). `ChatThreadModel.ts` reads a transcript as a chat: turns closed by `turn-end`, calls paired with their results by `toolUseId`, a subagent's entries left out; `ChatTurnWordingUtil.ts` words its stamps, system lines and tool folds the same for the Assistant and Intake chats. The chat parts and the ask item were built before the views that use them, on the owner's order, from the picked board designs. `OpenDecisionsUtil.ts` holds the open decisions in the order User answers them, which ones an Assistant escalated and from which incident |
 | `bridge/chips/` | Parts that carry ticket vocabulary or link to the Epics tab: filter chips, epic chips, ticket marks |
 | `bridge/preferences/` | `PreferenceStore.ts`, the one module that touches browser storage |
 | `bridge/utils/` | Pure utils several views use: geometry, waves, forecast, time, wording, job states and the fresh-agent kinds (`JobStateUtil`), a job's calls against its budget and its last tool call (`JobLiveFactsUtil`), the incident trail, pills and default causes (`IncidentTrailUtil`), and the `↦ N` held count (`HeldCountUtil`) |
 | `bridge/@types/` | Structural documents of exactly the fields a view reads |
-| `bridge/styles/` | `tokens.css` and `board.css`, the design contract |
+| `bridge/styles/` | `tokens.css` (the tokens only the Bridge's classes read) and `board.css` (the Bridge's classes), the Bridge's half of the design contract |
 
 A view's logic sits in its `<View>Model.ts`, specced as a plain `.spec.ts`; the component is held by a `.dom.tsx` spec. See
 [Guards and tests](../development/guards-and-testing.md).
@@ -269,25 +269,25 @@ depends on another and Epics only on one with epics. Pipeline shows only once th
 tab's screen from the facts and the route: `#pipeline/setup/<step>`, `#pipeline/edit` and
 `#pipeline/edit/constitution`.
 
-The flow screen draws `pipelineFlow` (`bridge/views/pipeline/flow/`). `PipelineFlowModel` words every node, edge label
-and + menu from the facts' values and places each node in the left spine, the right column or the merge train's frame.
-The nodes are DOM boxes; `PipelineFlow` measures them and `PipelineFlowLayoutUtil` (DOM-free, like the Kanban's arrow
-util) turns the boxes into arrow paths. A switch or a + choice sends `pipeline-draft-edit` to the open record; on a live
-board it sends `pipeline-update-start` first and the edit once the update record shows. The zoom is a board preference.
+The flow screen draws `pipelineFlow` (`bridge/views/pipeline/flow/`) in the Focus layout (`FlowWorkspace`): a phase
+stepper of Ticket, Build, Review and Merge over the one open phase, the stage's panel in a right column and its footer
+under both. `PipelinePhaseModel` puts each node and add slot into its phase in the facts' order (the Merge header stands
+for the queue, the Airlock and main), and words the tabs, their pills and the open phase's header. `PipelineFlowModel`
+words every step card and add card from the facts' values. A switch or an add choice sends `pipeline-draft-edit` to the
+open record; on a live board it sends `pipeline-update-start` first and the edit once the update record shows.
 
-The gates area (`bridge/views/pipeline/gates/`) stands under the flow: a tab per phase with its gate count, then the
-tab's rows in a `ReorderableList`, the prepare steps first and in a band of their own, so a gate never moves above one.
-`GatesAreaModel` words the rows and builds the edits: a reorder sends `phase-order:<phase>` (a prepare row
-`prepare-order`), Delete on a focused row sends the phase's order without the gate, or `prepare:<name>` as `null`, through
-the same sender as the flow. The stopwatch chip sends `gate-profile-start` for that gate in that tab's phase. A Gates
-node's Enter selects its phase's tab and scrolls to the area.
+Under its steps, a phase has its gates table (`bridge/views/pipeline/gates/`): its rows in a `ReorderableList`, the
+prepare steps first and in a band of their own, so a gate never moves above one. `GatesAreaModel` words the rows and
+builds the edits: a reorder sends `phase-order:<phase>` (a prepare row `prepare-order`), Delete on a focused row sends
+the phase's order without the gate, or `prepare:<name>` as `null`, through the same sender as the steps. The time chip
+sends `gate-profile-start` for that gate in that phase. A Gates step's Enter opens its phase's table.
 
 The design step (`bridge/views/pipeline/setup/DesignStep.tsx`) holds the same `FlowWorkspace` as the flow screen (the
-flow, the gates area and the dialogs, with a selection hook its holder can drive) beside the pipeline agent's aside:
+phases and the dialogs, with a selection hook its holder can drive) with the pipeline agent's aside in its panel column:
 the agent panel, and the change list (`bridge/views/pipeline/apply/ChangeList.tsx`), which words the facts'
 `changeList` and undoes a row's edit with `pipeline-draft-undo`. `DesignStepModel` counts the footer from the setup's
 summary and keeps Apply disabled while `openQuestionCount` is above zero; the Overseer's refusal stays the authority. A
-node whose `questionIds` name an open question shows a marker and opens on the question (`NodeQuestionDialog`) in place
+step whose `questionIds` name an open question shows a question pill and opens on the question (`NodeQuestionDialog`) in place
 of its own dialog.
 
 Apply opens one of two dialogs in `bridge/views/pipeline/apply/`: `ApplyDialog` for the first Apply (the "Resume the
@@ -379,7 +379,7 @@ ticket form, a filing draft's card the draft form; while the panel is open the K
 what the panel covers. The Kanban ticks its working cards' stamps only while `BridgeApp` says the event stream is live.
 `BridgeApp` also sets `data-freshness` on the root, `live` or `snapshot`, from the stream, and every live animation,
 wherever it is drawn, plays only under `:root[data-freshness="live"]`. Until the first board has painted the root
-carries no `data-motion="ready"`, and `tokens.css` holds every motion token at 0ms (the toast's reading time
+carries no `data-motion="ready"`, and `design-system/styles/tokens.css` holds every motion token at 0ms (the toast's reading time
 excepted), so that board shows at once.
 
 The filter line holds the menu every board tab shares: the finished-work window, then on the Kanban its Epic rows (with
@@ -409,7 +409,7 @@ selected job's card, its controls and transcript, follows the two.
 
 The question panel puts one open [decision](../glossary.md#decision) beside the board on every tab, so User answers it
 without leaving the view that raised it. `BridgeApp` mounts it after `<main>`, outside the routed views, as a `SidePanel`
-of the `question` width (`--question-panel-w`). Its left column holds the questions and options exactly as asked, the
+of the `question` width (`--side-panel-wide-width`). Its left column holds the questions and options exactly as asked, the
 consequences the asking agent noted for each option (what it touches, trades off and does to the Acceptance; see
 [Questions and incidents](questions-and-incidents.md)), User's own words on a decision of one question, and Answer, which
 posts `decision-answer` like the inbox card. Its right column has reading tabs: Background (why the agent stopped, the
@@ -498,11 +498,16 @@ land in markup. Anywhere else a hand escape would show its entities.
 
 ## The design contract
 
-Two stylesheets are the contract with the designer, and both are designer-owned. `bridge/styles/tokens.css` holds every
-colour, state token and theme value. `bridge/styles/board.css` holds every class, and its header comment is the
-catalogue of containers and marks. `bridge/StyleContract.spec.ts` holds `board.css` and the components' classes equal
-both ways: an emitted class with no rule fails, a rule nothing emits fails, and a `className` the scan cannot read as a
-literal fails. It does not read `tokens.css`.
+The stylesheets are the contract with the designer, and all are designer-owned. `bridge/index.html` links three:
+`design-system/design-system.css`, the entry stylesheet that the design-system package exports
+(`styles/design-system.css`), which imports its theme tokens (`styles/tokens.css`, every colour, state token and theme
+value its components read), its element defaults, its shared keyframes and the stylesheet beside each component; then
+`bridge/styles/tokens.css`, the few tokens only the Bridge's classes read; then `bridge/styles/board.css`, every class
+of the Bridge, whose header comment is the catalogue of containers and marks. `Bun.build` bundles the three into one
+stylesheet. `bridge/StyleContract.spec.ts` holds `board.css` and the Bridge components' classes equal both ways: an
+emitted class with no rule fails, a rule nothing emits fails, and a `className` the scan cannot read as a literal fails;
+a `design-system-…` class counts as styled and emitted by the package, whose `design-system/StyleContract.spec.ts` holds
+each component's class against its own stylesheet.
 
 ## Theme and embedded mode
 
@@ -621,7 +626,7 @@ Once a page holds a board, the board stays through every failure but a render er
 | Preferences | `bridge/preferences/PreferenceStore.ts` | `createPreferenceStore` | `bridge/preferences/PreferenceStore.spec.ts` |
 | Forecast | `bridge/views/waves/WaveForecastUtil.ts` | `ticketFinishForecastsOf` | `bridge/views/waves/WaveForecastUtil.spec.ts` |
 | Frames | `bridge/sandboxed-html/SandboxedHtmlFrame.tsx` | `SANDBOX_PERMISSIONS` | `bridge/views/detail-panel/DetailPanel.dom.tsx` |
-| Style contract | `bridge/styles/board.css` | classes | `bridge/StyleContract.spec.ts` |
+| Style contract | `bridge/styles/board.css`, `design-system/**/*.css` | classes | `bridge/StyleContract.spec.ts`, `design-system/StyleContract.spec.ts` |
 | Whole page in Chrome | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Embedded channel | `bridge/shell/EmbeddedChannel.ts` | `EmbeddedChannel.followParentTheme`, `EmbeddedChannel.forwardEscape` | `bridge/shell/EmbeddedChannel.dom.tsx` |
 | First paint | `bridge/shell/FirstPaint.ts` | `FirstPaint.prepare` | `bridge/shell/FirstPaint.dom.tsx` |

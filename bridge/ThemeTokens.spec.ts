@@ -1,15 +1,17 @@
 /**
- * The pipeline views' tokens in `bridge/styles/tokens.css`: each exists in both themes (a literal value is set for light and again for
- * dark, an alias of a themed token follows both), each motion token is zeroed under reduced motion and before the first paint, and the
- * three design colours with no name of their own each read a named token. The toast's duration is the time to read it, so it stays.
- * The scan first proves it found the theme blocks, and a missing dark value and a missing zero are each planted in memory.
+ * The tokens in `design-system/styles/tokens.css` and `bridge/styles/tokens.css`, read as the page loads them, the package's first: each
+ * pipeline and theme colour token exists in both themes (a literal value is set for light and again for dark, an alias of a themed token
+ * follows both), each alias is one `var()` line that no theme block repeats, a colour the same in both themes is set once, the type scale
+ * and corners hold the handoff's sizes, and each motion token is zeroed under reduced motion and before the first paint. The toast's
+ * duration is the time to read it, so it stays. The scan first proves it found the theme blocks, and a missing dark value, a missing zero,
+ * an alias a theme repeats and a literal alias are each planted in memory.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-const TOKENS_STYLESHEET_PATH = join(import.meta.dir, 'styles', 'tokens.css');
+const TOKENS_STYLESHEET_PATHS = [join(import.meta.dir, '..', 'design-system', 'styles', 'tokens.css'), join(import.meta.dir, 'styles', 'tokens.css')];
 const LIGHT_SELECTOR = ':root';
 const DARK_SELECTOR = ':root[data-theme="dark"]';
 const REDUCED_MOTION_CONDITION = '@media (prefers-reduced-motion: reduce)';
@@ -29,28 +31,24 @@ const PIPELINE_TOKENS = [
   '--ink-2',
   '--ink-3',
   '--ink-4',
-  '--accent-ink-on',
   '--accent-hover',
   '--accent-ring',
   '--accent-outline',
   '--ticket-chip-tint',
   '--ticket-chip-ink',
-  '--human-review-fill',
-  '--human-review-edge',
-  '--human-review-ink',
   '--primary-disabled-fill',
   '--primary-disabled-ink',
   '--done-fill',
   '--done-ink',
   '--done-edge',
   '--live-dot',
-  '--question-fill',
-  '--question-ink',
-  '--question-edge',
-  '--question-accent',
-  '--question-option-fill',
-  '--question-input-fill',
-  '--question-option-ink',
+  '--decision-fill',
+  '--decision-ink',
+  '--decision-edge',
+  '--decision-accent',
+  '--decision-option-fill',
+  '--decision-input-fill',
+  '--decision-option-ink',
   '--change-changed-fill',
   '--change-changed-ink',
   '--change-changed-edge',
@@ -62,13 +60,8 @@ const PIPELINE_TOKENS = [
   '--change-removed-ink',
   '--change-removed-edge',
   '--change-removed-row-edge',
-  '--flow-rollback',
-  '--flow-rollback-label',
   '--info-fill',
   '--info-ink',
-  '--flow-canvas',
-  '--flow-grid-dot',
-  '--flow-group-fill',
   '--log-surface',
   '--tooltip-surface',
   '--toast-fill',
@@ -82,21 +75,146 @@ const PIPELINE_TOKENS = [
   '--shadow-tooltip',
   '--r-group',
   '--r-dialog',
-  '--flow-node-width',
 ] as const;
 
-const MOTION_TOKENS_ZEROED = ['--motion-rise', '--motion-pop', '--motion-modal', '--rise-step', '--glow-period', '--flow-dash-period'] as const;
+const MOTION_TOKENS_ZEROED = ['--motion-rise', '--motion-pop', '--motion-modal', '--rise-step', '--glow-period'] as const;
 const READING_TIME_TOKEN = '--toast-duration';
 
-/** The design colours that had no token, each with the token that now holds it. */
-const UNTOKENISED_DESIGN_COLOURS: Readonly<Record<string, string>> = {
-  '#383c46': '--skeleton-sheen',
-  '#dce6f8': '--ticket-chip-ink',
-  '#dfe2e8': '--ink-1',
+/** The graphite-and-orange colours with a literal value in each theme. */
+const THEMED_COLOUR_TOKENS = [
+  '--bg',
+  '--lane-bg',
+  '--surface',
+  '--ink',
+  '--ink-muted',
+  '--ink-disabled',
+  '--line',
+  '--line-strong',
+  '--wash',
+  '--button',
+  '--link',
+  '--link-tint',
+  '--accent-edge',
+  '--phase-ticket',
+  '--tone-info',
+  '--tone-success',
+  '--pass-tint',
+  '--pass-ink',
+  '--err-fill',
+  '--err-tint',
+  '--err-edge',
+  '--err-ink',
+  '--skeleton-sheen',
+  '--bar-building',
+  '--hatch-building',
+  '--hatch-live',
+  '--shadow-card-lift',
+  '--badge-info-tint',
+  '--badge-info-ink',
+  '--badge-info-edge',
+  '--badge-success-tint',
+  '--badge-success-ink',
+  '--badge-success-edge',
+  ...[1, 2, 3, 4, 5, 6].flatMap((slot) => [`--epic-${slot}-fill`, `--epic-${slot}-tint`, `--epic-${slot}-ink`]),
+  '--forge-mark-ground-start',
+  '--forge-mark-ground-end',
+  '--forge-mark-frame',
+  '--forge-mark-core',
+  '--forge-mark-rim',
+] as const;
+
+/** The colours the same in both themes, set once in the light block. */
+const SAME_IN_BOTH_THEMES_TOKENS = [
+  '--signal',
+  '--accent-ink-on',
+  '--switch-knob',
+  '--flint-eye',
+  '--now-soft',
+  '--forge-mark-ring',
+  '--forge-mark-spark',
+] as const;
+
+/** The tokens that name a colour another token holds: one `var()` line in the alias block, never a literal in a theme block. */
+const ALIASED_TOKENS = [
+  '--surface-2',
+  '--surface-selected',
+  '--surface-info',
+  '--log-surface',
+  '--tooltip-surface',
+  '--ink-2',
+  '--line-arrow',
+  '--line-conditional',
+  '--status-live',
+  '--accent-hover',
+  '--now',
+  '--warn-tint',
+  '--warn-edge',
+  '--warn-ink',
+  '--primary-disabled-fill',
+  '--primary-disabled-ink',
+  '--toast-fill',
+  '--toast-track',
+  '--toast-check',
+  '--decision-fill',
+  '--decision-ink',
+  '--decision-edge',
+  '--decision-accent',
+  '--decision-option-fill',
+  '--decision-input-fill',
+  '--decision-option-ink',
+  '--change-changed-fill',
+  '--change-changed-ink',
+  '--change-changed-dot',
+  '--change-new-fill',
+  '--change-new-ink',
+  '--change-removed-fill',
+  '--change-removed-ink',
+  '--change-removed-row-edge',
+  '--ticket-chip-tint',
+  '--ticket-chip-ink',
+  '--new-text-tint',
+  '--wave-bottleneck-tint',
+  '--badge-accent-tint',
+  '--badge-accent-ink',
+  '--badge-accent-edge',
+  '--badge-ink-tint',
+  '--badge-ink-ink',
+  '--badge-ink-edge',
+  '--badge-muted-tint',
+  '--badge-muted-ink',
+  '--badge-muted-edge',
+] as const;
+
+/** The type scale and the corners of the handoff, each a size no theme changes. */
+const TYPE_AND_CORNER_SIZES: Readonly<Record<string, string>> = {
+  '--fs-display':             '34px',
+  '--fs-phase':               '28px',
+  '--fs-page':                '22px',
+  '--fs-title':               '15px',
+  '--fs-lead':                '13.5px',
+  '--fs-body':                '13px',
+  '--fs-tab':                 '12.5px',
+  '--fs-small':               '12px',
+  '--fs-pill':                '11.5px',
+  '--fs-micro':               '11px',
+  '--line-height-display':    '40px',
+  '--line-height-phase':      '34px',
+  '--line-height-page':       '28px',
+  '--line-height-lead':       '20px',
+  '--line-height-body':       '19px',
+  '--line-height-micro':      '16px',
+  '--letter-spacing-display': '-0.02em',
+  '--letter-spacing-micro':   '0.07em',
+  '--r-1':                    '4px',
+  '--r-2':                    '6px',
+  '--r-3':                    '8px',
+  '--r-group':                '8px',
+  '--r-dialog':               '8px',
+  '--r-pill':                 '999px',
 };
 
-/** Values a theme does not change: a size, a radius or a time. */
-const THEMELESS_VALUE_PATTERN = /^-?[\d.]+(?:px|ms|s)?$/;
+/** Values a theme does not change: a size, a radius, a time or no colour at all. */
+const THEMELESS_VALUE_PATTERN = /^(?:-?[\d.]+(?:px|ms|s|em)?|transparent)$/;
 
 interface TokenBlock {
   readonly condition: string;
@@ -161,9 +279,23 @@ function zeroSentencesOf(blocks: readonly TokenBlock[], tokens: readonly string[
   ]);
 }
 
-const realBlocks = tokenBlocksOf(readFileSync(TOKENS_STYLESHEET_PATH, 'utf8'));
+function aliasSentencesOf(blocks: readonly TokenBlock[], tokens: readonly string[]): string[] {
+  return tokens.flatMap((token) => [
+    ...valueIn(blocks, '', LIGHT_SELECTOR, token)?.startsWith('var(') === true ? [] : [`${token} is not an alias in ${LIGHT_SELECTOR}`],
+    ...valueIn(blocks, '', DARK_SELECTOR, token) === undefined ? [] : [`${token} is an alias and also has a value in ${DARK_SELECTOR}`],
+  ]);
+}
 
-describe('tokens.css', () => {
+function sameInBothThemesSentencesOf(blocks: readonly TokenBlock[], tokens: readonly string[]): string[] {
+  return tokens.flatMap((token) => [
+    ...valueIn(blocks, '', LIGHT_SELECTOR, token) === undefined ? [`${token} has no value in ${LIGHT_SELECTOR}`] : [],
+    ...valueIn(blocks, '', DARK_SELECTOR, token) === undefined ? [] : [`${token} is the same in both themes and has a value in ${DARK_SELECTOR}`],
+  ]);
+}
+
+const realBlocks = TOKENS_STYLESHEET_PATHS.flatMap((path) => tokenBlocksOf(readFileSync(path, 'utf8')));
+
+describe('the tokens of the design system and of the Bridge', () => {
   test('the scan found the light, dark, reduced-motion and first-paint blocks', () => {
     const darkDeclarationCount = realBlocks.filter((block) => block.selector === DARK_SELECTOR).reduce((count, block) => count + block.values.size, 0);
     expect(darkDeclarationCount).toBeGreaterThan(SMALLEST_DARK_DECLARATION_COUNT);
@@ -185,8 +317,22 @@ describe('tokens.css', () => {
     expect(valueIn(realBlocks, REDUCED_MOTION_CONDITION, LIGHT_SELECTOR, READING_TIME_TOKEN)).toBeUndefined();
   });
 
-  test('each design colour with no name of its own reads a named token in both themes', () => {
-    expect(themeSentencesOf(realBlocks, Object.values(UNTOKENISED_DESIGN_COLOURS))).toEqual([]);
+  test('every themed colour token has a value in the light and the dark theme', () => {
+    expect(themeSentencesOf(realBlocks, THEMED_COLOUR_TOKENS)).toEqual([]);
+  });
+
+  test('every alias is one var() line that no dark block repeats', () => {
+    expect(aliasSentencesOf(realBlocks, ALIASED_TOKENS)).toEqual([]);
+  });
+
+  test('a colour the same in both themes is set once, in the light block', () => {
+    expect(sameInBothThemesSentencesOf(realBlocks, SAME_IN_BOTH_THEMES_TOKENS)).toEqual([]);
+  });
+
+  test('the type scale and the corners hold the handoff\'s sizes', () => {
+    const sizes = Object.fromEntries(Object.keys(TYPE_AND_CORNER_SIZES).map((token) => [token, valueIn(realBlocks, '', LIGHT_SELECTOR, token)]));
+    expect(sizes).toEqual(TYPE_AND_CORNER_SIZES);
+    expect(themeSentencesOf(realBlocks, Object.keys(TYPE_AND_CORNER_SIZES))).toEqual([]);
   });
 });
 
@@ -201,6 +347,25 @@ describe('the guard, planted in memory', () => {
   test('a token missing from the light theme fails', () => {
     expect(themeSentencesOf(tokenBlocksOf(`${DARK_SELECTOR} { --planted-fill: oklch(0.2 0 0); }`), ['--planted-fill'])).toEqual([
       `--planted-fill has no value in ${LIGHT_SELECTOR}`,
+    ]);
+  });
+
+  test('an alias written as a literal, or repeated in the dark block, fails', () => {
+    const planted = tokenBlocksOf(
+      `:root { --planted-alias: var(--bg); --planted-literal: #ffffff; --planted-repeated: var(--bg); } ${DARK_SELECTOR} { --planted-repeated: #000000; }`,
+    );
+    expect(aliasSentencesOf(planted, ['--planted-alias', '--planted-literal', '--planted-repeated'])).toEqual([
+      `--planted-literal is not an alias in ${LIGHT_SELECTOR}`,
+      `--planted-repeated is an alias and also has a value in ${DARK_SELECTOR}`,
+    ]);
+  });
+
+  test('a colour the same in both themes that the dark block repeats, or the light block lacks, fails', () => {
+    const planted = tokenBlocksOf(`:root { --planted-once: #ffffff; --planted-twice: #ffffff; } ${DARK_SELECTOR} { --planted-twice: #ffffff; --planted-dark: #000000; }`);
+    expect(sameInBothThemesSentencesOf(planted, ['--planted-once', '--planted-twice', '--planted-dark'])).toEqual([
+      `--planted-twice is the same in both themes and has a value in ${DARK_SELECTOR}`,
+      `--planted-dark has no value in ${LIGHT_SELECTOR}`,
+      `--planted-dark is the same in both themes and has a value in ${DARK_SELECTOR}`,
     ]);
   });
 

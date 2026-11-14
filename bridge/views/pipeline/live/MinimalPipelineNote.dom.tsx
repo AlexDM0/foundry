@@ -1,6 +1,6 @@
 /**
- * The smallest pipeline's aside in a happy-dom document. What matters: it is the "About this pipeline" region with its title; the warning
- * shows while no phase has a gate; the "WHERE STEPS GO" list has one line per + slot in the facts.
+ * The smallest pipeline's panel in a happy-dom document. What matters: it is the "About this pipeline" panel with its one About tab and
+ * its title; the warning shows while no phase has a gate; the "Where steps go" list has one line per add slot in the facts.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import { render }                  from '@testing-library/react';
@@ -22,8 +22,9 @@ describe('the smallest pipeline note', () => {
     if (flow === null || flow === undefined) throw new Error('no flow');
     render(<MinimalPipelineNote flow={flow} />);
     const aside = screen.getByRole('complementary', { name: 'About this pipeline' });
+    expect(within(aside).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['About']);
     expect(within(aside).getByText('The smallest pipeline')).toBeDefined();
-    expect(within(aside).getByRole('note').textContent).toContain('Nothing checks a commit before it reaches main.');
+    expect(within(aside).getByRole('note').textContent).toContain('Nothing checks a commit before main');
     expect(within(within(aside).getByRole('region', { name: 'Where steps go' })).getAllByRole('listitem')).toHaveLength(2);
   });
 

@@ -1,0 +1,33 @@
+/* Every badge is the same 20px pill, led by its dot in its shape, so badges line up down a column and a state change never shifts the
+   line. The flags draw a dashed edge, a struck label, a pulsing dot and a green check at the end. */
+.design-system-state-badge {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; gap: var(--space-6);
+  min-width: 86px; height: 20px; padding: 0 var(--space-8);
+  font: 600 var(--fs-pill)/1 var(--font-ui);
+  border: 1px solid var(--s-edge, var(--line-strong));
+  border-radius: var(--r-pill);
+  background: var(--s-tint, var(--wash));
+  color: var(--s-ink, var(--ink-muted));
+  white-space: nowrap;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+/* A row's badge: shorter, and only as wide as its word. */
+.design-system-state-badge[data-size="compact"] { height: 18px; min-width: 0; padding: 0 var(--space-7); }
+/* A fitted badge is only as wide as its word; a shrinkable one narrows in a full row, its word ending in an ellipsis. */
+.design-system-state-badge[data-fitted] { min-width: 0; }
+.design-system-state-badge[data-shrinkable] { flex: 0 1 auto; overflow: hidden; }
+.design-system-state-badge[data-dashed] { border-style: dashed; }
+
+.design-system-state-badge-dot { flex: none; box-sizing: border-box; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--s-fill, var(--line-strong)); }
+.design-system-state-badge[data-dot-shape="dashed-ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px dashed var(--s-fill); }
+.design-system-state-badge[data-dot-shape="ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px solid var(--s-fill); }
+.design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
+.design-system-state-badge-label { overflow: hidden; text-overflow: ellipsis; }
+.design-system-state-badge[data-struck] .design-system-state-badge-label { text-decoration: line-through; }
+.design-system-state-badge-check {
+  flex: none; width: 12px; height: 12px; fill: none; stroke: var(--tone-success); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: none; }
+}

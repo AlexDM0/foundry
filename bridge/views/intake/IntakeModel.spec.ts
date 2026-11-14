@@ -4,8 +4,8 @@
  * the live ones and the closed ones, each newest first by the log's order; a title falls back from the product owner's to the request's
  * first line to the job id, the request read from the launch record, since a reopening message replaces the job's text; a session names
  * each open decision by id, never a count; the route picks the session or the new chat; the composer's tag follows the session's turn and
- * closed state; the chat places User's request after the line that started the session and each open decision where it was asked; and
- * the start command's job id is read structurally.
+ * closed state; an open session's live turn, where Flint works, carries its pill and calls; the chat places User's request after the line
+ * that started the session and each open decision where it was asked; and the start command's job id is read structurally.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -178,6 +178,15 @@ describe('IntakeModelUtil.closeIntakeCaptionOf and paneMetaOf', () => {
   test('the head counts turns and, on a live session, calls', () => {
     expect(IntakeModelUtil.paneMetaOf(2, 7)).toBe('2 turns · 7 calls');
     expect(IntakeModelUtil.paneMetaOf(1, null)).toBe('1 turn');
+  });
+});
+
+describe('IntakeModelUtil.productOwnerAtWorkOf', () => {
+  test('an open session has a live turn with its pill and calls so far; a closed one has none', () => {
+    const runningPill = { state: 'in-progress', label: 'running' } as const;
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', closed: false, calls: 2 })).toEqual({ pill: runningPill, callsText: '2 calls so far' });
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', closed: false, calls: null })?.callsText).toBeNull();
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'closed', closed: true, calls: null })).toBeNull();
   });
 });
 

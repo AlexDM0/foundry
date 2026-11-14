@@ -1,13 +1,15 @@
 /**
- * The constitution step's model, pure: the agent's state over the page, who reads the constitution, the outline the footer counts, the
- * SOURCES ticks that steer the agent's next draft, and the commands of Continue and of a tick. The same step edits an applied pipeline's
- * constitution at `#pipeline/edit/constitution`, with no stepper and the way back to the flow in place of Back and Continue.
+ * The constitution step's model, pure: the agent's state over the page and in the panel head, who reads the constitution, the outline the
+ * footer counts, the SOURCES ticks that steer the agent's next draft, and the commands of Continue and of a tick. The same step edits an
+ * applied pipeline's constitution at `#pipeline/edit/constitution`, with no stepper and the way back to the flow in place of Back and
+ * Continue.
  */
 import type { PipelineAgentRole }                                         from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { ConstitutionOutline, PipelineSetupFacts }                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ConstitutionDraft, ConstitutionSources, PipelineSetupMode } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                                        from '../../../api/CommandClient.ts';
 import { ChatTurnWordingUtil }                                            from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }                                               from '../PipelinePanel.tsx';
 
 export type ConstitutionStepMode = 'setup' | 'update';
 
@@ -70,6 +72,17 @@ function statusLineOf(setup: PipelineSetupFacts): string {
   return STATUS_LINES[agentStateOf(setup)];
 }
 
+const PANEL_STATUSES: Readonly<Record<ConstitutionAgentState, PanelStatus>> = {
+  'drafting':    { tone: 'working', text: 'Drafting' },
+  'ready':       { tone: 'ready', text: 'Draft ready' },
+  'not-running': { tone: 'idle', text: 'Not running' },
+};
+
+/** The panel head's dot and word: "Drafting". */
+function panelStatusOf(setup: PipelineSetupFacts): PanelStatus {
+  return PANEL_STATUSES[agentStateOf(setup)];
+}
+
 /** Builder, Review, Re-review: each word once, in the order the facts list the roles. */
 function readerLabelsOf(roles: readonly PipelineAgentRole[]): string[] {
   return [...new Set(roles.map((role) => READER_LABELS[role]))];
@@ -124,6 +137,7 @@ export const ConstitutionStepModel = Object.freeze({
   stepModeOf,
   agentStateOf,
   statusLineOf,
+  panelStatusOf,
   readerLabelsOf,
   outlineTextOf,
   footerNoteOf,

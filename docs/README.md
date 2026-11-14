@@ -184,6 +184,7 @@ and carry the code into a separate product.
 | [End-to-end smoke with real Claude sessions](development/cutover-smoke.md) | How do I prove the whole lifecycle on real sessions, and read the result? | 10 min |
 | [Porting to the new product](development/porting.md) | What do I take, what do I leave, and what must I know first? | 20 min |
 | [Platform status: what has never run](development/platform-status.md) | Which behaviour has never run on which OS, per port? | 10 min, then lookup |
+| [The design system](../design-system/README.md) | How are the Bridge's reusable components composed, themed and styled, and how does the package split off? | 10 min |
 
 ### Operate track
 

@@ -2,7 +2,9 @@
  * The Assistant view's model. What matters: no live Assistant reads as booting, and a live one carries its live facts; an incident on the
  * board is open and never also settled, though the log opened it; the queued messages are the newest the session has not taken, counted
  * and never matched by text; the composer's tag follows the session's turn; the head names no call budget, since the Assistant has none;
- * and the thread's items are worded as the chat shows them, a stamp in local time with seconds and never invented. How each incident
+ * the thread's items are worded as the chat shows them, a stamp in local time with seconds and never invented; the decisions the Assistant
+ * put to User are the ones its job asks and the ones it escalated, never another agent's, and Flint waits only while one does; and an
+ * incident step's stamp is never invented. How each incident
  * reads is `IncidentTrailUtil`'s, held by its own spec; how the thread is read is `ChatThreadModelUtil`'s.
  */
 import { describe, expect, test } from 'bun:test';
@@ -111,12 +113,12 @@ describe('AssistantModelUtil.queuedMessagesOf', () => {
 
 describe('AssistantModelUtil.composerTagOf', () => {
   test('mid-turn says the next message queues, between turns that it sends now', () => {
-    expect(AssistantModelUtil.composerTagOf(RUNNING_ASSISTANT)).toMatchObject({ text: 'Busy: the next message queues', state: 'in-progress' });
-    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: 'between-turns' })).toMatchObject({ text: 'Idle: a message sends now', state: 'reviewed' });
+    expect(AssistantModelUtil.composerTagOf(RUNNING_ASSISTANT)).toMatchObject({ text: 'Busy: the next message queues', stateTone: 'accent' });
+    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: 'between-turns' })).toMatchObject({ text: 'Idle: a message sends now', stateTone: 'success' });
   });
 
   test('no session says a fresh one is booting, and a session with no reading yet shows no tag', () => {
-    expect(AssistantModelUtil.composerTagOf(null)).toMatchObject({ text: 'No session: a fresh one is booting', state: 'pending' });
+    expect(AssistantModelUtil.composerTagOf(null)).toMatchObject({ text: 'No session: a fresh one is booting', stateTone: 'neutral' });
     expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: null })).toBeNull();
   });
 });
@@ -230,5 +232,37 @@ describe('AssistantModelUtil.chatTurnsOf', () => {
       ['User', 'Why?', null],
       ['User', 'Hold #008.', 'Queued until the Assistant is idle'],
     ]);
+  });
+});
+
+describe('what the Assistant asks User', () => {
+  const decision = (id: string, jobId: string | null) => ({
+    id, kind: 'system-question', ticketIds: [], jobId, askedBy: 'assistant', questions: [], context: '', openedAt: AT
+  });
+  const escalation: HistoryRecordDocument = {
+    kind: 'incident-escalated', at: AT, incidentId: 'I2', fields: { decisionId: 'E5' }
+  };
+
+  test('counts the decisions its job asks and the ones it escalated, never another agent\'s', () => {
+    const board: ConversationBoardDocument = {
+      ...BOARD,
+      jobs: [{
+        id: 'J9', kind: 'assistant', ticketIds: [], state: 'running'
+      }],
+      decisions:       [decision('E4', 'J9'), decision('E5', 'J12'), decision('E6', 'J12')],
+      questionHistory: [escalation],
+    };
+    expect(AssistantModelUtil.assistantModelOf(board).askingDecisionCount).toBe(2);
+    expect(AssistantModelUtil.assistantModelOf({ ...board, jobs: [], questionHistory: [] }).askingDecisionCount).toBe(0);
+  });
+
+  test('Flint waits only while one of its asks waits, and the count is worded in the singular for one', () => {
+    expect([AssistantModelUtil.flintPoseOf({ askingDecisionCount: 0 }), AssistantModelUtil.flintPoseOf({ askingDecisionCount: 2 })]).toEqual(['idle', 'waiting']);
+    expect([0, 1, 3].map(AssistantModelUtil.askingDecisionsTextOf)).toEqual([null, '1 decision waits on User', '3 decisions wait on User']);
+  });
+
+  test('an incident step with no stamp shows no time', () => {
+    expect(AssistantModelUtil.stepStampOf(null, '2026-10-29')).toBeNull();
+    expect(AssistantModelUtil.stepStampOf(AT, TimeUtil.calendarDateOf(new Date(AT).getTime()))?.element).toBe('time');
   });
 });

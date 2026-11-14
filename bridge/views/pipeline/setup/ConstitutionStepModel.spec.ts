@@ -41,6 +41,13 @@ describe('the agent state', () => {
     expect(ConstitutionStepModel.agentStateOf({ ...setup, record: { ...setup.record, readyToContinue: ['constitution'] } })).toBe('ready');
     expect(ConstitutionStepModel.agentStateOf({ ...setup, agentJobState: null })).toBe('not-running');
   });
+
+  test('the panel head says it drafts, is ready or does not run', () => {
+    const setup = constitutionSetup();
+    expect(ConstitutionStepModel.panelStatusOf(setup)).toEqual({ tone: 'working', text: 'Drafting' });
+    expect(ConstitutionStepModel.panelStatusOf({ ...setup, record: { ...setup.record, readyToContinue: ['constitution'] } })).toEqual({ tone: 'ready', text: 'Draft ready' });
+    expect(ConstitutionStepModel.panelStatusOf({ ...setup, agentJobState: null })).toEqual({ tone: 'idle', text: 'Not running' });
+  });
 });
 
 describe('the commands', () => {

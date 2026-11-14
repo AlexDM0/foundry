@@ -3,7 +3,8 @@
  * asks and drafts, the ones that wait on User first; the route selects one session, whose transcript is the only one followed, so moving
  * to another closes the first stream; the chat shows User's request as a bubble, the agent's turns with their tool folds and the open
  * decision as a turn whose Answer posts `decision-answer`; the composer posts `job-message`, on Enter too, and clears; Close intake posts
- * `intake-close` and names the drafts it offers; a closed session has no Close intake, says a message resumes it and takes a message; the
+ * `intake-close` and names the drafts it offers; an open session's chat ends with the product owner's live turn, holding the one Flint
+ * slot; each pane is headed in the page face; a closed session has no Close intake, says a message resumes it and takes a message; the
  * new chat opens on `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job,
  * shown as starting until a board names it.
  */
@@ -214,10 +215,30 @@ describe('the selected chat', () => {
     const pane = screen.getByRole('region', { name: 'Intake J2' });
     expect(within(pane).queryByRole('button', { name: 'Close intake' })).toBeNull();
     expect(within(pane).getByText('Closed: a message resumes it')).toBeDefined();
-    expect(pane.querySelector('.bridge-refusal, .bridge-banner[data-tone="error"], [role="alert"]')).toBeNull();
+    expect(pane.querySelector('.bridge-refusal, .design-system-banner[data-tone="error"], [role="alert"]')).toBeNull();
     fireEvent.change(within(pane).getByLabelText('Message Product owner J2'), { target: { value: 'One more thing' } });
     await clickSettled(within(pane).getByRole('button', { name: 'Send' }));
     expect(controls.sent).toEqual([{ kind: 'job-message', jobId: 'J2', text: 'One more thing' }]);
+  });
+
+  test('an open session ends its chat with the product owner\'s live turn, holding the one Flint slot; a closed one has none', () => {
+    const view = fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J6" />);
+    const chat = screen.getByRole('region', { name: 'Chat with J6' });
+    const flint = within(chat).getByRole('img', { name: 'Flint, the product owner' });
+    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground'), flint.getAttribute('data-flint-pose')]).toEqual(['100', 'page', 'typing']);
+    expect(flint.parentElement?.textContent).toContain('Product owner');
+    expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+    view.unmount();
+    fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J2" />);
+    expect(document.querySelector('.design-system-flint-slot')).toBeNull();
+  });
+
+  test('each pane is headed in the page face: Intake with its count, and the session by its title and job', () => {
+    fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J6" />);
+    const intakeTitle = within(screen.getByRole('region', { name: 'Product-owner sessions' })).getByRole('heading', { level: 2, name: 'Intake' });
+    expect(intakeTitle.getAttribute('data-type-role')).toBe('page');
+    const sessionTitle = within(screen.getByRole('region', { name: 'Intake J6' })).getByRole('heading', { level: 2 });
+    expect([sessionTitle.textContent, sessionTitle.nextElementSibling?.textContent]).toEqual(['Orders CSV dates in UTC', 'J6']);
   });
 });
 

@@ -1,15 +1,13 @@
 /**
- * The gates area's model, pure: the Build, Review and Merge tabs with their counts and meanings, each row's words, its band and its
- * profile chip, what a double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates
- * of its tab and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere.
+ * The gates table's model, pure: each phase's title, line and empty sentence, each row's words, its band and its time chip, what a
+ * double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates of its phase and
+ * reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere.
  */
-import type { GatePhase }                                               from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfileRunFacts, PipelineFlowFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { DisplayState }                                            from '../../../../src/lib/tracker-model/@types/Task.ts';
-import type { TabItem }                                                 from '../../../design-system/Tabs.tsx';
-import type { TagTone }                                                 from '../../../design-system/Tag.tsx';
-import { ReorderIndexUtil }                                             from '../../../design-system/utils/ReorderIndexUtil.ts';
-import type { FlowChange, FlowDraftEdit }                               from '../flow/PipelineFlowModel.ts';
+import { ReorderIndexUtil } from 'design-system/ReorderIndexUtil';
+
+import type { GatePhase }                            from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { FlowChange, FlowDraftEdit }            from '../flow/PipelineFlowModel.ts';
 
 /** What the gates area asks its holder to open: the Gate dialog of a gate in a phase or of a prepare step, or an empty one to add either. */
 export type GatesOpenRequest =
@@ -18,10 +16,12 @@ export type GatesOpenRequest =
   | { readonly kind: 'new-gate'; readonly phase: GatePhase }
   | { readonly kind: 'new-prepare-step' };
 
+/** The time chip's tone: passed, failed (red, timed out or unable to run), or waiting for a measure. */
+export type ProfileChipTone = 'pass' | 'fail' | 'waiting';
+
 export interface ProfileChipView {
   readonly text:      string;
-  readonly tone:      TagTone;
-  readonly state:     DisplayState | null;
+  readonly tone:      ProfileChipTone;
   readonly busy:      boolean;
   /** A press starts a profile of the gate in the tab's phase; a measuring or removed gate's chip takes no press. */
   readonly pressable: boolean;
@@ -34,12 +34,12 @@ export interface GateRowView {
   readonly name:         string;
   /** "P" for a prepare step, then the gates' run positions from 1. */
   readonly positionText: string;
-  readonly kindText:     string | null;
+  /** The quiet tag after the name: "prepare" or "has a fix". */
+  readonly tagText:      string | null;
   readonly command:      string;
   readonly alsoInText:   string;
   readonly networkText:  string;
   readonly change:       FlowChange | null;
-  readonly proposed:     boolean;
   readonly removed:      boolean;
   /** The run of rows this row reorders among. */
   readonly band:         string;
@@ -48,25 +48,27 @@ export interface GateRowView {
   readonly profileChip:  ProfileChipView | null;
 }
 
-const GATE_PHASES: readonly GatePhase[] = Object.freeze(['build', 'review', 'merge']);
-
 const PHASE_NAMES: Readonly<Record<GatePhase, string>> = Object.freeze({ build: 'Build', review: 'Review', merge: 'Merge' });
 
-const PHASE_MEANINGS: Readonly<Record<GatePhase, string>> = Object.freeze({
-  build:  'what the builder must pass before review',
-  review: 'what the reviewer must keep green, findings fixed',
-  merge:  'run on the latest main merged in, before the fast-forward',
+const PHASE_LINES: Readonly<Record<GatePhase, string>> = Object.freeze({
+  build:  'What the builder must pass before review',
+  review: 'What the reviewer must keep green, findings fixed',
+  merge:  'Run on the latest main merged in, before the fast-forward',
 });
 
-const NO_GATES_TEXT = 'No gates: no command judges a ticket before it lands.';
+const EMPTY_TEXTS: Readonly<Record<GatePhase, string>> = Object.freeze({
+  build:  'No build gates. No command checks a ticket after its build.',
+  review: 'No review gates. No command checks the reviewer\'s fixes.',
+  merge:  'No merge gates. Nothing runs on the merged tree before the fast-forward.',
+});
+
+const NO_REVIEW_GATES_TEXT = 'No review gates, since no review runs.';
 
 const PREPARE_POSITION_TEXT = 'P';
 
 const SECONDS_PER_MINUTE = 60;
 
 const MILLISECONDS_PER_SECOND = 1000;
-
-const PROFILED_STATE: DisplayState = 'delivered';
 
 const DELETE_KEYS: readonly string[] = Object.freeze(['Delete', 'Backspace']);
 
@@ -79,43 +81,26 @@ function bandOf(row: PipelineGateRow): string {
   return rowIsRemoved(row) ? `removed:${row.rowKind}:${row.name}` : row.rowKind;
 }
 
-/** The phase's gates that run, so a removed gate counts no more. */
-function gateCountOf(rows: readonly PipelineGateRow[]): number {
-  return rows.filter((row) => row.rowKind === 'gate' && !rowIsRemoved(row)).length;
-}
-
-function countText(count: number, singular: string): string {
-  return `${count} ${singular}${count === 1 ? '' : 's'}`;
-}
-
-function tabItemsOf(gateRows: PipelineFlowFacts['gateRows']): TabItem<GatePhase>[] {
-  return GATE_PHASES.map((phase) => {
-    const count = gateCountOf(gateRows[phase]);
-    return {
-      key:            phase,
-      label:          PHASE_NAMES[phase],
-      count:          { count, tone: 'neutral' },
-      accessibleName: `${PHASE_NAMES[phase]}, ${countText(count, 'gate')}`,
-    };
-  });
-}
-
-function meaningOf(phase: GatePhase): string {
-  return PHASE_MEANINGS[phase];
-}
-
-function tabPanelNameOf(phase: GatePhase): string {
+function titleOf(phase: GatePhase): string {
   return `${PHASE_NAMES[phase]} gates`;
+}
+
+function lineOf(phase: GatePhase): string {
+  return PHASE_LINES[phase];
 }
 
 function addGateLabelOf(phase: GatePhase): string {
   return `Add ${phase} gate`;
 }
 
-/** The smallest pipeline's sentence while no phase has a gate; a tab of its own with none names its phase. */
-function emptyTextOf(gateRows: PipelineFlowFacts['gateRows'], phase: GatePhase): string {
-  const anyPhaseHasGates = GATE_PHASES.some((each) => gateRows[each].length > 0);
-  return anyPhaseHasGates ? `No ${phase} gates.` : NO_GATES_TEXT;
+/** The sentence of a phase with no gate; with no review step, the review phase says why it has none. */
+function emptyTextOf(phase: GatePhase, reviewRuns: boolean): string {
+  return phase === 'review' && !reviewRuns ? NO_REVIEW_GATES_TEXT : EMPTY_TEXTS[phase];
+}
+
+/** The gates that run, so a removed gate counts no more. */
+function gateCountOf(rows: readonly PipelineGateRow[]): number {
+  return rows.filter((row) => row.rowKind === 'gate' && !rowIsRemoved(row)).length;
 }
 
 /** "41 s" under a minute, "3 m 40 s" from one. */
@@ -130,34 +115,39 @@ function profileRunOf(profileRuns: readonly GateProfileRunFacts[], gateName: str
   return profileRuns.find((run) => run.gateName === gateName && run.phase === phase) ?? null;
 }
 
+/** A gate never measured says "not measured", or "measure" once an edit changed or added it. */
+function unmeasuredTextOf(row: PipelineGateRow): string {
+  return row.mark === 'changed' || row.mark === 'new' ? 'measure' : 'not measured';
+}
+
 function profileChipOf(row: PipelineGateRow, phase: GatePhase, profileRuns: readonly GateProfileRunFacts[]): ProfileChipView | null {
   if (row.rowKind === 'prepare') return null;
   const run = profileRunOf(profileRuns, row.name, phase);
   const pressable = !rowIsRemoved(row);
   const title = run === null ? `Profile ${row.name} in the ${phase} phase` : `Profile ${row.name} again in the ${phase} phase`;
-  const chip = (text: string, tone: TagTone, state: DisplayState | null = null): ProfileChipView => ({
-    text, tone, state, busy: false, pressable, title,
+  const chip = (text: string, tone: ProfileChipTone): ProfileChipView => ({
+    text, tone, busy: false, pressable, title,
   });
-  if (run === null) return chip('not profiled', 'neutral');
+  if (run === null) return chip(unmeasuredTextOf(row), 'waiting');
   const timeText = run.elapsedMilliseconds === null ? null : profileTimeTextOf(run.elapsedMilliseconds);
   switch (run.state) {
     case 'queued':
     case 'running':
-      return { ...chip('measuring', 'neutral'), busy: true, pressable: false };
+      return { ...chip('measuring', 'waiting'), busy: true, pressable: false };
     case 'passed':
-      return chip(timeText ?? 'passed', 'state', PROFILED_STATE);
+      return chip(timeText ?? 'passed', 'pass');
     case 'red':
-      return chip(timeText === null ? 'red' : `red · ${timeText}`, 'error');
+      return chip(timeText === null ? 'red' : `red · ${timeText}`, 'fail');
     case 'timed-out':
-      return chip('timed out', 'warn');
+      return chip('timed out', 'fail');
     case 'cannot-run':
-      return chip('cannot run', 'warn');
+      return chip('cannot run', 'fail');
     case 'stopped':
-      return chip('stopped', 'neutral');
+      return chip('stopped', 'waiting');
   }
 }
 
-function kindTextOf(row: PipelineGateRow): string | null {
+function tagTextOf(row: PipelineGateRow): string | null {
   if (row.rowKind === 'prepare') return 'prepare';
   return row.fix === null ? null : 'has a fix';
 }
@@ -189,12 +179,11 @@ function rowViewsOf(rows: readonly PipelineGateRow[], phase: GatePhase, profileR
       rowKind:      row.rowKind,
       name:         row.name,
       positionText: row.rowKind === 'prepare' ? PREPARE_POSITION_TEXT : String(gatePosition),
-      kindText:     kindTextOf(row),
+      tagText:      tagTextOf(row),
       command:      row.run,
       alsoInText:   row.alsoInPhases.join(', '),
       networkText:  networkTextOf(row),
       change:       changeOf(row),
-      proposed:     row.mark === 'proposed',
       removed,
       band:         bands[index] ?? row.rowKind,
       grabLabel:    `Move ${row.name}, position ${place} of ${size}`,
@@ -257,18 +246,17 @@ function profileStartCommandOf(setupId: string | null, gateName: string, phase: 
 }
 
 export const GatesAreaModel = Object.freeze({
-  GATE_PHASES,
   addGateLabelOf,
   announcementOf,
   deleteEditsOf,
   emptyTextOf,
+  gateCountOf,
   keyDeletesRow,
-  meaningOf,
+  lineOf,
   openRequestOf,
   profileStartCommandOf,
   profileTimeTextOf,
   reorderEditsOf,
   rowViewsOf,
-  tabItemsOf,
-  tabPanelNameOf,
+  titleOf,
 });

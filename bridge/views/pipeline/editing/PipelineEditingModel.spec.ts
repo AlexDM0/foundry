@@ -1,8 +1,8 @@
 /**
  * The editing model against the A6 fixture. What matters: the footer counts the changes with the version they make, and only the count
- * for a pipeline that no Apply numbered; the board note names the version that runs until Apply; the change cards read the applied
- * pipeline and the draft of the facts, and nothing without a flow; Ask the pipeline agent to check and Discard send their commands with
- * the setup.
+ * for a pipeline that no Apply numbered, and the panel head the version step; the agent tab's status follows its job; the board note
+ * names the version that runs until Apply; the change cards read the applied pipeline and the draft of the facts, and nothing without a
+ * flow; Ask the pipeline agent to check and Discard send their commands with the setup.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -18,6 +18,18 @@ describe('the footer', () => {
   test('names the version the board keeps until Apply', () => {
     expect(PipelineEditingModel.boardNoteOf(1)).toBe('The board keeps running on version 1 until Apply.');
     expect(PipelineEditingModel.boardNoteOf(null)).toBe('The board keeps running on the applied pipeline until Apply.');
+  });
+});
+
+describe('the panel head', () => {
+  test('names the version step, and none for a pipeline that no Apply numbered', () => {
+    expect(PipelineEditingModel.versionStepTextOf(2)).toBe('Version 2 → 3');
+    expect(PipelineEditingModel.versionStepTextOf(null)).toBeNull();
+  });
+
+  test('says whether the agent runs', () => {
+    expect(PipelineEditingModel.agentStatusOf(null)).toEqual({ tone: 'idle', text: 'Not running' });
+    expect(PipelineEditingModel.agentStatusOf('running')).toEqual({ tone: 'working', text: 'Running' });
   });
 });
 

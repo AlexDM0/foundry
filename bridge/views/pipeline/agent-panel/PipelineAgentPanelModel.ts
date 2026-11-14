@@ -1,18 +1,26 @@
 /**
  * The pipeline agent panel's model, pure: the chat the agent's transcript reads as, the line of what the agent does while a turn runs, the
  * setup questions of one step worded as question cards, and the commands an answer and a message send. Questions are setup questions in
- * the record, never decisions: an answer is `pipeline-setup-answer`, a message `job-message` to the agent's job.
+ * the record, never decisions: an answer is `pipeline-setup-answer`, a message `job-message` to the agent's job. The agent strip above
+ * the composer says what Flint does on each step, in the pose the later Flint reads.
  */
-import type { JobState }                                          from '../../../../src/lib/tracker-model/@types/Job.ts';
-import type { ResearchFinding, SetupQuestion, SetupQuestionStep } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DisplayState }                                      from '../../../../src/lib/tracker-model/@types/Task.ts';
-import type { ControlCommandBody }                                from '../../../api/CommandClient.ts';
-import type { TranscriptEntryDocument }                           from '../../../api/TranscriptStreamClient.ts';
-import type { ChatTurn }                                          from '../../../conversation/ChatThread.tsx';
-import { ChatThreadModelUtil }                                    from '../../../conversation/ChatThreadModel.ts';
-import { ChatTurnWordingUtil }                                    from '../../../conversation/ChatTurnWordingUtil.ts';
-import type { QuestionOption }                                    from '../../../design-system/MultipleChoiceQuestion.tsx';
-import type { TagProps }                                          from '../../../design-system/Tag.tsx';
+import type { FlintPose } from 'design-system/FlintSlot';
+import type { TagProps }  from 'design-system/Tag';
+
+import type { JobState } from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type {
+  PipelineSetup,
+  ResearchFinding,
+  SetupQuestion,
+  SetupQuestionStep
+} from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { DisplayState }            from '../../../../src/lib/tracker-model/@types/Task.ts';
+import type { ControlCommandBody }      from '../../../api/CommandClient.ts';
+import type { TranscriptEntryDocument } from '../../../api/TranscriptStreamClient.ts';
+import type { ChatTurn }                from '../../../conversation/ChatThread.tsx';
+import { ChatThreadModelUtil }          from '../../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }          from '../../../conversation/ChatTurnWordingUtil.ts';
+import { StateToneUtil }                from '../../../utils/StateToneUtil.ts';
 
 export const PIPELINE_AGENT_SPEAKER = 'Pipeline agent';
 
@@ -28,20 +36,22 @@ export const OTHER_OPTION_LABEL = 'Other';
 
 const LETTER_CODE_OF_A = 'a'.charCodeAt(0);
 
-const STOPPED_TAG: TagProps = {
-  text: 'Stopped: a message resumes it', tone: 'state', state: 'abandoned', dot: true
-};
+const STOPPED_TAG: TagProps = { text: 'Stopped: a message resumes it', ...StateToneUtil.tagLookOf('abandoned'), dot: true };
 
-const RUNNING_TAG: TagProps = {
-  text: 'Running', tone: 'state', state: 'in-progress', dot: true
-};
+const RUNNING_TAG: TagProps = { text: 'Running', ...StateToneUtil.tagLookOf('in-progress'), dot: true };
+
+/** One lettered option of a setup question card. */
+interface SetupQuestionOption {
+  readonly letter: string;
+  readonly text:   string;
+}
 
 export interface SetupQuestionCard {
   readonly questionId:         string;
   readonly eyebrow:            string;
   readonly question:           string;
   readonly context:            string;
-  readonly options:            readonly QuestionOption[];
+  readonly options:            readonly SetupQuestionOption[];
   readonly recommendedLetters: readonly string[];
   /** Several options may be chosen together; the Other text is still an answer of its own. */
   readonly isMultiple:         boolean;
@@ -50,6 +60,22 @@ export interface SetupQuestionCard {
   /** The confirmation of a stored answer; `null` while the question is open. */
   readonly answeredText:       string | null;
 }
+
+/** The agent strip's words and Flint's pose. */
+export interface AgentStripView {
+  readonly text: string;
+  readonly pose: FlintPose;
+}
+
+const RESEARCH_STRIP: AgentStripView = { text: 'Reading the repository', pose: 'typing' };
+
+const CONSTITUTION_STRIP: AgentStripView = { text: 'Drafting the constitution', pose: 'thinking' };
+
+const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', pose: 'thinking' };
+
+const QUESTION_OPEN_STRIP: AgentStripView = { text: 'Waiting for your answer', pose: 'waiting' };
+
+const PROPOSAL_READY_STRIP: AgentStripView = { text: 'Proposal ready', pose: 'happy' };
 
 /** The chat of the agent's session: the Overseer's lines as system lines, User's messages as bubbles, the agent's turns with their tools. */
 function chatTurnsOf(entries: readonly TranscriptEntryDocument[], agentJobId: string, todayCalendarDate: string): ChatTurn[] {
@@ -203,6 +229,18 @@ function messageCommandOf(agentJobId: string | null, text: string): ControlComma
   return { kind: 'job-message', jobId: agentJobId, text: message };
 }
 
+/**
+ * Research reads, the constitution drafts; the design waits while one of its questions is open, says its proposal is ready once the agent
+ * suggests to continue past the design, as the panel head does, and designs until then.
+ */
+function agentStripOf(step: SetupQuestionStep, record: Pick<PipelineSetup, 'questions' | 'readyToContinue'>): AgentStripView {
+  if (step === 'research') return RESEARCH_STRIP;
+  if (step === 'constitution') return CONSTITUTION_STRIP;
+  const designQuestionIsOpen = record.questions.some((question) => question.step === 'design' && question.answer === null);
+  if (designQuestionIsOpen) return QUESTION_OPEN_STRIP;
+  return record.readyToContinue.includes('design') ? PROPOSAL_READY_STRIP : DESIGNING_STRIP;
+}
+
 function composerTagOf(agentJobState: JobState | null): TagProps {
   return agentJobState === null ? STOPPED_TAG : RUNNING_TAG;
 }
@@ -219,4 +257,5 @@ export const PipelineAgentPanelModel = Object.freeze({
   answeredTextAfterSending,
   messageCommandOf,
   composerTagOf,
+  agentStripOf,
 });

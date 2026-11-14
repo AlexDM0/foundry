@@ -1,0 +1,14 @@
+/* A count after a label, in a small mono pill: quiet on the wash, a state's colours, orange for a warning or the failure colours; marked
+   leads with a dot. It is never filled orange. */
+.design-system-count-badge {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  margin-left: var(--space-6); padding: var(--space-1) var(--space-6);
+  font: 500 var(--fs-micro)/1.3 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted); background: var(--wash);
+  border: 1px solid transparent; border-radius: var(--r-pill);
+}
+.design-system-count-badge[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
+.design-system-count-badge[data-tone="warn"] { font-weight: 600; color: var(--link); background: var(--link-tint); }
+.design-system-count-badge[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); }
+.design-system-count-badge-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor; }

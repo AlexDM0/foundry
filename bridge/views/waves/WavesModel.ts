@@ -12,23 +12,28 @@ import { TimeUtil }                                        from '../../utils/Tim
 import type { ForecastRow, ForecastTicket }                from './WaveForecastUtil.ts';
 import { WaveForecastUtil }                                from './WaveForecastUtil.ts';
 
-export const NODE_WIDTH_PIXELS = 192;
-export const NODE_HEIGHT_PIXELS = 80;
-const NODE_GAP_PIXELS = 12;
-const COLUMN_GAP_PIXELS = 40;
+export const NODE_WIDTH_PIXELS = 214;
+export const NODE_HEIGHT_PIXELS = 116;
+const NODE_GAP_PIXELS = 18;
+const COLUMN_GAP_PIXELS = 44;
 const CANVAS_PADDING_PIXELS = 10;
-const COLUMN_HEAD_HEIGHT_PIXELS = 56;
-/** A head that also carries a wave's forecast line. */
-const FORECAST_HEAD_HEIGHT_PIXELS = 72;
+/** Every open wave's head carries its count, its forecast or "No forecast", and its slot meter. */
+const COLUMN_HEAD_HEIGHT_PIXELS = 84;
 const BAND_OUTSET_PIXELS = 8;
-/** The node's left and right padding together with its stripe, which the weight bar stays inside. */
-const WEIGHT_BAR_INSET_PIXELS = 26;
 const MINIMUM_EDGE_BEND_PIXELS = 24;
 /** From this many waiting nodes on, a node's "N wait" is set in the ink colour. */
 const HEAVY_WAIT_COUNT = 5;
 const DONE_COLUMN_LABEL = 'Done';
 
 export const EMPTY_WAVES_TEXT = 'No open ticket waits on another.';
+/** An open wave's head line where `forecastText` is null. */
+export const NO_FORECAST_TEXT = 'No forecast';
+
+/** The ticket's first epic, whose swatch and title end its node. */
+export interface DependencyNodeEpic {
+  readonly title: string;
+  readonly slot:  number;
+}
 
 /** A chip in a node's head: Ready only as the Board lists it, Held for a held pending ticket, the state while it is built or reviewed. */
 export type DependencyNodeChip =
@@ -65,7 +70,8 @@ export interface DependencyNodeModel {
   /** Zero draws no "N wait". */
   readonly heldCount:    number;
   readonly heldIsHeavy:  boolean;
-  readonly weightWidth:  number;
+  /** Null for a ticket in no epic. */
+  readonly primaryEpic:  DependencyNodeEpic | null;
   readonly left:         number;
   readonly top:          number;
 }
@@ -99,8 +105,8 @@ function columnLeftOf(columnIndex: number): number {
   return CANVAS_PADDING_PIXELS + columnIndex * (NODE_WIDTH_PIXELS + COLUMN_GAP_PIXELS);
 }
 
-function nodeTopOf(rowIndex: number, headHeight: number): number {
-  return headHeight + rowIndex * (NODE_HEIGHT_PIXELS + NODE_GAP_PIXELS);
+function nodeTopOf(rowIndex: number): number {
+  return COLUMN_HEAD_HEIGHT_PIXELS + rowIndex * (NODE_HEIGHT_PIXELS + NODE_GAP_PIXELS);
 }
 
 function boardHasDependencies(state: ProgressBoardState): boolean {
@@ -205,8 +211,12 @@ function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): 
   const forecastOf = payload.progress.overseerState === 'running' ? waveForecastTextOf(state, graph, nowEpochMilliseconds) : null;
   const placedColumns = columnsInRowOrder(graph, ticketById);
   const forecastTexts = placedColumns.map((column) => (column.isDone || forecastOf === null ? null : forecastOf(column.nodeIds)));
-  const headHeight = forecastTexts.some((text) => text !== null) ? FORECAST_HEAD_HEIGHT_PIXELS : COLUMN_HEAD_HEIGHT_PIXELS;
-  const largestHeldCount = graph.openNodeIds.reduce((largest, nodeId) => Math.max(largest, graph.heldOfNode.get(nodeId)?.size ?? 0), 0);
+  const epicByKey = new Map((payload.boardFacts.epics ?? []).map((epic) => [epic.key, epic]));
+  const primaryEpicOf = (ticket: ProgressTicketDocument): DependencyNodeEpic | null => {
+    const primaryEpicKey = ticket.epics?.[0];
+    const epic = primaryEpicKey === undefined ? undefined : epicByKey.get(primaryEpicKey);
+    return epic === undefined ? null : { title: epic.title, slot: epic.slot };
+  };
 
   const columns = placedColumns.map((column, columnIndex): DependencyColumnModel => {
     const usedSlots = Math.min(column.nodeIds.length, graph.boardSlots);
@@ -222,7 +232,7 @@ function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): 
       left:         columnLeftOf(columnIndex),
       bandLeft:     columnLeftOf(columnIndex) - BAND_OUTSET_PIXELS,
       bandWidth:    NODE_WIDTH_PIXELS + BAND_OUTSET_PIXELS * 2,
-      bandTop:      headHeight - BAND_OUTSET_PIXELS,
+      bandTop:      COLUMN_HEAD_HEIGHT_PIXELS - BAND_OUTSET_PIXELS,
       bandHeight:   column.nodeIds.length * (NODE_HEIGHT_PIXELS + NODE_GAP_PIXELS) - NODE_GAP_PIXELS + BAND_OUTSET_PIXELS * 2,
     };
   });
@@ -231,7 +241,7 @@ function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): 
   const nodes = placedColumns.flatMap((column, columnIndex) => column.nodeIds.flatMap((nodeId, rowIndex): DependencyNodeModel[] => {
     const ticket = ticketById.get(nodeId);
     if (ticket === undefined) return [];
-    const place = { columnIndex, left: columnLeftOf(columnIndex), top: nodeTopOf(rowIndex, headHeight) };
+    const place = { columnIndex, left: columnLeftOf(columnIndex), top: nodeTopOf(rowIndex) };
     placeOfNode.set(nodeId, place);
     const displayState = displayStateById.get(nodeId) ?? ticket.status;
     const heldCount = column.isDone ? 0 : graph.heldOfNode.get(nodeId)?.size ?? 0;
@@ -246,7 +256,7 @@ function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): 
       chips:       column.isDone ? [] : chipsOf(ticket, displayState, readyTicketIds),
       heldCount,
       heldIsHeavy: heldCount >= HEAVY_WAIT_COUNT,
-      weightWidth: largestHeldCount === 0 ? 0 : (NODE_WIDTH_PIXELS - WEIGHT_BAR_INSET_PIXELS) * heldCount / largestHeldCount,
+      primaryEpic: primaryEpicOf(ticket),
       left:        place.left,
       top:         place.top,
     }];
@@ -272,7 +282,7 @@ function wavesModelOf(state: ProgressBoardState, nowEpochMilliseconds: number): 
   return {
     graph,
     width:      placedColumns.length * NODE_WIDTH_PIXELS + Math.max(0, placedColumns.length - 1) * COLUMN_GAP_PIXELS + CANVAS_PADDING_PIXELS * 2,
-    height:     nodeTopOf(tallestColumnLength, headHeight) - NODE_GAP_PIXELS + CANVAS_PADDING_PIXELS,
+    height:     nodeTopOf(tallestColumnLength) - NODE_GAP_PIXELS + CANVAS_PADDING_PIXELS,
     columns,
     nodes,
     edges,

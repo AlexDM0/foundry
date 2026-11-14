@@ -1,27 +1,23 @@
 /**
- * Reduced motion stops every animation in the Bridge: each rule that sets an `animation` (or `animation-name`) other than `none`
- * outside `@media (prefers-reduced-motion: no-preference)` is matched, for each selector of its list, by a rule inside
+ * Reduced motion stops every animation in the Bridge and its design system: each rule that sets an `animation` (or `animation-name`)
+ * other than `none` outside `@media (prefers-reduced-motion: no-preference)` is matched, for each selector of its list, by a rule inside
  * `@media (prefers-reduced-motion: reduce)` that sets an animation on the same subject and wins the cascade: a higher specificity,
  * or the same one later in the same stylesheet. A reduce rule of lower specificity loses to the rule it means to stop, which is
  * the case this guard was written for. The scan proves it found a floor of animated rules, and each form is planted in memory.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
-
 import { describe, expect, test } from 'bun:test';
 
+import { pageStylesheets }                         from './testing/PageStylesheets.ts';
 import { rulesOf, selectorLineOf, type StyleRule } from './testing/StyleRuleReader.ts';
 
-const STYLES_FOLDER = join(import.meta.dir, 'styles');
-const SCANNED_STYLESHEETS = ['board.css', 'tokens.css'] as const;
+const SMALLEST_STYLESHEET_COUNT = 40;
 const SMALLEST_ANIMATED_RULE_COUNT = 37;
 
 /**
  * An ancestor compound a reduce selector may name though the animated selector does not, because the markup always puts it around
- * that subject; it is there to win the specificity. Exact both ways. `bridge/design-system/FlowArrows.tsx` draws every flow arrow
- * inside the `.bridge-flow-arrows` layer, as a group with a required `data-tone` around its line and its head.
+ * that subject; it is there to win the specificity. Exact both ways: no rule needs one now.
  */
-const ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = ['.bridge-flow-arrows', '.bridge-flow-arrow[data-tone]'];
+const ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = [];
 const ANIMATION_PROPERTIES: ReadonlySet<string> = new Set(['animation', 'animation-name']);
 const REDUCE_CONDITION_PATTERN = /prefers-reduced-motion:\s*reduce/;
 const NO_PREFERENCE_CONDITION_PATTERN = /prefers-reduced-motion:\s*no-preference/;
@@ -216,19 +212,23 @@ function unstoppedAnimationSentencesOf(rules: readonly StyleRule[], guaranteedAn
     .map(({ rule, selector }) => `${rule.stylesheet}: ${selector} sets an animation that no winning prefers-reduced-motion: reduce rule stops`);
 }
 
-const RULES = SCANNED_STYLESHEETS.flatMap((stylesheet) => rulesOf(stylesheet, readFileSync(join(STYLES_FOLDER, stylesheet), 'utf8')));
+const RULES = pageStylesheets().flatMap(({ path, text }) => rulesOf(path, text));
 
 describe('the scan itself', () => {
-  test('it reads both stylesheets and finds a floor of animated rules outside the motion queries', () => {
+  test('it reads the stylesheets of the package and of the Bridge, and finds a floor of animated rules outside the motion queries', () => {
     expect(RULES.filter(isAnimatedOutsideTheMotionQueries).length).toBeGreaterThanOrEqual(SMALLEST_ANIMATED_RULE_COUNT);
-    expect(new Set(RULES.map(({ stylesheet }) => stylesheet))).toEqual(new Set(SCANNED_STYLESHEETS));
+    const scannedStylesheets = new Set(RULES.map(({ stylesheet }) => stylesheet));
+    for (const path of ['bridge/styles/board.css', 'bridge/styles/tokens.css', 'design-system/styles/tokens.css', 'design-system/atoms/Button.css']) {
+      expect(scannedStylesheets).toContain(path);
+    }
+    expect(scannedStylesheets.size).toBeGreaterThanOrEqual(SMALLEST_STYLESHEET_COUNT);
   });
 
   test('specificity counts identifiers, classes and types, takes the most specific argument of :is and :not, and nothing of :where', () => {
-    expect(specificityOf('.bridge-activity-row-mark')).toEqual([0, 1, 0]);
-    expect(specificityOf('.bridge-activity-row[data-status="step"] .bridge-activity-row-mark')).toEqual([0, 3, 0]);
-    expect(specificityOf(':root[data-freshness="live"] .bridge-flow-arrow[data-active] .bridge-flow-arrow-line')).toEqual([0, 5, 0]);
-    expect(specificityOf('.bridge-dialog[data-motion]::backdrop')).toEqual([0, 2, 1]);
+    expect(specificityOf('.design-system-activity-row-mark')).toEqual([0, 1, 0]);
+    expect(specificityOf('.design-system-activity-row[data-status="step"] .design-system-activity-row-mark')).toEqual([0, 3, 0]);
+    expect(specificityOf(':root[data-freshness="live"] .design-system-flow-arrow[data-active] .design-system-flow-arrow-line')).toEqual([0, 5, 0]);
+    expect(specificityOf('.design-system-dialog[data-motion]::backdrop')).toEqual([0, 2, 1]);
     expect(specificityOf('#planted > li:is(.first, .second[data-x]):where(.ignored)')).toEqual([1, 2, 1]);
   });
 });

@@ -1,0 +1,44 @@
+/* Rows reordered by the grip at their start, ruled as a table's rows. A row a pointer drags follows it (--reorder-offset) above the
+   others on a card ground; the rows it passes slide by its span (--reorder-slot-span) toward its old place, and the drop line marks where
+   it lands. A keyboard grab rings its row, which moves in the page. Hover never moves a row: only a drag does. */
+.design-system-reorder-list { position: relative; }
+.design-system-reorder-list > ol { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+/* A row is a table row: 36px, ruled above, its grip in a 14px column. */
+.design-system-reorder-row {
+  position: relative;
+  display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: var(--sp-4); align-items: center;
+  min-height: 36px; padding: 0;
+  border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  background: transparent;
+  transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
+}
+.design-system-reorder-row[data-dragging] {
+  z-index: 1; background: var(--surface); border-radius: var(--r-2);
+  box-shadow: 0 0 0 1px var(--accent-edge), 0 0 0 3px var(--accent-ring), var(--shadow-menu);
+}
+.design-system-reorder-row[data-dragging="pointer"] { transform: translateY(var(--reorder-offset, 0px)); transition: box-shadow var(--motion-fast) var(--ease-out); }
+.design-system-reorder-row[data-shifted="up"] { transform: translateY(calc(-1 * var(--reorder-slot-span, 0px))); }
+.design-system-reorder-row[data-shifted="down"] { transform: translateY(var(--reorder-slot-span, 0px)); }
+/* A faded row, such as one marked for removal, stays drawn, grip and all. */
+.design-system-reorder-row[data-faded] { opacity: 0.55; }
+.design-system-reorder-grip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 20px; padding: 0;
+  border: 0; border-radius: var(--r-1);
+  background: transparent; color: var(--line-strong);
+  cursor: grab; touch-action: none; user-select: none;
+}
+.design-system-reorder-grip:hover { color: var(--ink-muted); }
+.design-system-reorder-grip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.design-system-reorder-row[data-dragging] .design-system-reorder-grip { color: var(--link); cursor: grabbing; }
+.design-system-reorder-grip > svg { width: 8px; height: 12px; fill: currentColor; }
+.design-system-reorder-drop-line {
+  position: absolute; left: 0; right: 0; z-index: 2;
+  height: 2px; transform: translateY(-50%);
+  border-radius: 1px; background: var(--link);
+  pointer-events: none;
+}
+.design-system-reorder-announcer { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .design-system-reorder-row { transition: none; }
+}

@@ -1,0 +1,62 @@
+/* The steps of a process: a circle each (a number, a check once done), its label and detail, a line to the next. Current is the orange
+   tint and edge, done green, recheck the changed marker's orange, upcoming outlined in the tertiary ink. In a column the circles grow to
+   28 px, the line runs down to the next circle, and the current step stands in a card. Compact, a done step's circle is a bare green
+   check and the current step's a 7 px signal dot. */
+.design-system-stepper { display: flex; margin: 0; padding: 0; list-style: none; font-size: var(--fs-tab); }
+.design-system-stepper[data-orientation="horizontal"] { align-items: center; gap: var(--sp-2); }
+.design-system-stepper[data-orientation="vertical"] { flex-direction: column; gap: var(--sp-1); font-size: var(--fs-body); }
+.design-system-stepper-step { position: relative; display: flex; align-items: center; gap: var(--sp-2); color: var(--ink-4); }
+.design-system-stepper-step[data-status="current"] { font-weight: 600; color: var(--ink); }
+.design-system-stepper-step[data-status="done"] { color: var(--ink-muted); }
+.design-system-stepper-step[data-status="recheck"] { color: var(--change-changed-ink); }
+.design-system-stepper-circle {
+  display: inline-flex; flex: none; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  font: 400 var(--fs-micro)/1 var(--font-ui);
+  color: var(--ink-4); background: transparent;
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+  transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out), color 240ms var(--ease-out);
+}
+.design-system-stepper-step[data-status="current"] .design-system-stepper-circle { font-weight: 700; color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+.design-system-stepper-step[data-status="done"] .design-system-stepper-circle { color: var(--done-ink); background: var(--done-fill); border-color: var(--done-edge); }
+.design-system-stepper-step[data-status="recheck"] .design-system-stepper-circle { color: var(--change-changed-ink); background: var(--change-changed-fill); border-color: var(--accent-edge); }
+.design-system-stepper-check { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; animation: design-system-pop var(--motion-pop) var(--ease-out) both; }
+.design-system-stepper-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+a.design-system-stepper-label { color: inherit; }
+a.design-system-stepper-label:hover { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.design-system-stepper-label:focus-visible,
+.design-system-stepper-action:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.design-system-stepper-detail { font-weight: 400; color: var(--ink-muted); }
+.design-system-stepper-action { flex: none; margin-left: auto; font-size: var(--fs-small); font-weight: 400; }
+.design-system-stepper-line { flex: none; width: 20px; height: 1px; background: var(--line-strong); }
+.design-system-stepper-line[data-status="done"] { background: var(--done-edge); }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-step { align-items: flex-start; gap: var(--sp-4); padding: var(--space-10) 0; }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-step[data-status="current"] {
+  margin-left: calc(-1 * var(--space-12)); padding: var(--space-14) var(--sp-4) var(--space-14) var(--space-12);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-circle { width: 28px; height: 28px; font-size: var(--fs-body); }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-check { width: 12px; height: 12px; }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-body { flex: 1 1 auto; padding-top: var(--space-4); }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-action { padding-top: var(--space-6); }
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-line {
+  position: absolute; top: 38px; bottom: -14px; left: 13px;
+  width: 2px; height: auto; margin: 0;
+  transform-origin: top;
+  animation: design-system-grow 700ms var(--ease-out) 200ms both;
+}
+.design-system-stepper[data-orientation="vertical"] .design-system-stepper-step[data-status="current"] .design-system-stepper-line { top: 42px; left: 25px; }
+.design-system-stepper[data-compact] .design-system-stepper-circle { width: auto; height: auto; background: transparent; border: 0; }
+.design-system-stepper[data-compact] .design-system-stepper-step[data-status="done"] .design-system-stepper-circle { color: var(--tone-success); }
+.design-system-stepper[data-compact] .design-system-stepper-check { width: 12px; height: 12px; stroke-width: 1.5; }
+.design-system-stepper[data-compact] .design-system-stepper-line { background: var(--line-strong); }
+.design-system-stepper[data-compact] .design-system-stepper-step[data-status="current"] .design-system-stepper-circle {
+  width: 7px; height: 7px; background: var(--signal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-stepper-circle { transition: none; }
+  .design-system-stepper-check,
+  .design-system-stepper[data-orientation="vertical"] .design-system-stepper-line { animation: none; }
+}
+@keyframes design-system-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }

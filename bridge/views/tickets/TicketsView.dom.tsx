@@ -1,5 +1,6 @@
 /**
- * The Tickets view in a happy-dom document: the table newest first, each id linking to its detail panel and a click, Enter or Space on a
+ * The Tickets view in a happy-dom document: the title row's heading and its lead, which names what the finished-work window hides; the
+ * table newest first, each id linking to its detail panel and a click, Enter or Space on a
  * row opening its row form while a link inside it stays its own; the open row marked; the finished-work window hiding old closed tickets
  * until something narrows; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status
  * chips narrow as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every
@@ -110,7 +111,7 @@ describe('the table', () => {
   test('a row shows its state badge, priority, type, epics, waiting-on links and its task by the ticket\'s own id', () => {
     renderTickets();
     const row = document.querySelector('tr[data-ticket-id="002"]');
-    expect(row?.querySelector('.bridge-state-badge')?.textContent).toBe('To do');
+    expect(row?.querySelector('.design-system-state-badge')?.textContent).toBe('To do');
     expect(row?.querySelector('.bridge-priority-mark')?.textContent).toBe('high');
     expect(row?.querySelector('.bridge-type-mark')?.textContent).toBe('bug');
     expect(document.querySelector('tr[data-ticket-id="004"] .bridge-type-mark')?.textContent).toBe('ticket');
@@ -156,6 +157,15 @@ describe('the finished-work window', () => {
     expect(screen.getByText('3 of 4 tickets · 1 in progress')).toBeTruthy();
     typed('dark');
     expect(shownIds()).toEqual(['001']);
+  });
+
+  test('the title row heads the view and its lead names what the window hides, until a search looks through every ticket', () => {
+    renderTickets([], null, true);
+    expect(screen.getByRole('heading', { level: 2, name: 'Tickets' })).toBeTruthy();
+    const lead = screen.getByText('3 of 4 tickets · 1 in progress').parentElement;
+    expect(lead?.textContent).toBe('3 of 4 tickets · 1 in progress. Closed tickets not finished in the last day are hidden. Search to see every ticket.');
+    typed('dark');
+    expect(lead?.textContent).toBe('1 of 4 tickets · 1 in progress.');
   });
 });
 

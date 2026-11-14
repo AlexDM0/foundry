@@ -1,14 +1,11 @@
 /**
- * The flow model over the designed fixtures. What matters: the node-to-dialog table of PLAN 9.1 (the merge before review opens nothing);
- * every merge step carries a derived meter whose tooltip follows where it is derived from; a re-review is conditional with its inline tag,
- * sharing the dashed `--line-conditional` edge with the node's border; nodes fall into the spine, the right column and the train in the
- * facts' order with each + after its node; each + choice sends its edit or asks for the Gate dialog; the toolbar note and the footer's
- * removed steps are worded from the facts; the zoom moves by steps and a fit never overflows; a proposed Review shows its "proposed" chip,
- * and a node asks while a question it names is open.
+ * The flow's step model over the designed fixtures. What matters: the node-to-dialog table of PLAN 9.1 (the merge before review opens
+ * nothing); every merge step carries a derived meter whose tooltip follows where it is derived from; each step card names its kind, and a
+ * Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their
+ * state; an editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal
+ * carries none; each add choice sends its edit or asks for the Gate dialog; the footer's removed steps are worded from the facts; and a
+ * node asks while a question it names is open.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
-
 import { describe, expect, test } from 'bun:test';
 
 import type { PipelineFlowFacts, PipelineFlowNode }       from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
@@ -30,8 +27,7 @@ function nodeOf(flow: PipelineFlowFacts, nodeId: string): PipelineFlowNode {
 }
 
 function viewOf(name: PipelineFixtureName, nodeId: string) {
-  const flow = flowOf(name);
-  const view = PipelineFlowModel.nodeViewsOf(flow.nodes, EFFORTS).find((each) => each.nodeId === nodeId);
+  const view = PipelineFlowModel.nodeViewsOf(flowOf(name), EFFORTS).find((each) => each.nodeId === nodeId);
   if (view === undefined) throw new Error(`no view ${nodeId}`);
   return view;
 }
@@ -42,6 +38,7 @@ describe('the node-to-dialog table', () => {
   test('ticket creation and the builder open the agent step dialog', () => {
     expect(openActionOfNode('A2', 'ticket-creation')).toEqual({ kind: 'dialog', dialog: 'agent-step', focusesReReview: false });
     expect(openActionOfNode('A2', 'builder')).toEqual({ kind: 'dialog', dialog: 'agent-step', focusesReReview: false });
+    expect(viewOf('A2', 'ticket-creation').openLabel).toBe('Open the Ticket creation step');
   });
 
   test('the merge before review opens nothing: nothing on it is set', () => {
@@ -62,7 +59,7 @@ describe('the node-to-dialog table', () => {
     expect(openActionOfNode(name, 're-review-in-airlock')).toEqual({ kind: 'dialog', dialog: 'merge-step', focusesReReview: true });
   });
 
-  test('a Gates node selects its phase tab', () => {
+  test('a Gates step shows its phase\'s gates', () => {
     expect(openActionOfNode('A2', 'gates-build')).toEqual({ kind: 'gates-tab', phase: 'build' });
     expect(openActionOfNode('A2', 'gates-merge')).toEqual({ kind: 'gates-tab', phase: 'merge' });
     expect(viewOf('A2', 'gates-merge').openLabel).toBe('Show the merge gates');
@@ -77,14 +74,14 @@ describe('the node-to-dialog table', () => {
 
 describe('merge steps and their derived meters', () => {
   test('every merge step has a derived meter: three with Human code review on and a review step', () => {
-    const flow = flowOf('flow-human-code-review-proposal');
-    const mergeViews = PipelineFlowModel.nodeViewsOf(flow.nodes, EFFORTS).filter((view) => view.title === 'Merge main into the tree');
+    const mergeViews = PipelineFlowModel.nodeViewsOf(flowOf('flow-human-code-review-proposal'), EFFORTS).filter((view) => view.title === 'Merge main into the tree');
     expect(mergeViews).toHaveLength(3);
     mergeViews.forEach((view) => expect(view.meter?.derivedNote).not.toBeNull());
   });
 
-  test('the merge before review shows the builder\'s pair, its own tooltip and the build gate chips under their lead', () => {
+  test('the merge before review is an Automatic step with the builder\'s pair, its own tooltip and the build gates it runs again', () => {
     const view = viewOf('flow-merge-before-review', 'merge-before-review');
+    expect(view.kind).toBe('automatic');
     expect(view.meter).toMatchObject({
       model: 'opus', effort: 'medium', level: 2, levelCount: 5
     });
@@ -92,14 +89,8 @@ describe('merge steps and their derived meters', () => {
       title: 'Derived from the builder',
       text:  'The builder fixes this merge\'s conflicts and red gates. Change it on the Builder step.',
     });
-    expect(view.detail).toBe('conflicts and red gates: the builder fixes them');
-    expect(view.chipsLead).toBe('then the build gates again');
-    expect(view.gateChips.map((chip) => chip.gateName)).toEqual(['typecheck', 'lint', 'unit-tests']);
-  });
-
-  test('with no build gates the merge before review says no gates run after it', () => {
-    const node = { ...nodeOf(flowOf('A2'), 'merge-before-review'), gateChips: [] };
-    expect(PipelineFlowModel.nodeViewOf(node, EFFORTS).chipsLead).toBe('no gates run after it');
+    expect(view.sentence).toBe('Brings the branch up to date before review. The builder fixes a conflict or a red gate.');
+    expect(view.gatePills.map((pill) => pill.gateName)).toEqual(['typecheck', 'lint', 'unit-tests']);
   });
 
   test('a merge after review is derived from the last worker; with no review step, from the builder as the last worker', () => {
@@ -107,42 +98,44 @@ describe('merge steps and their derived meters', () => {
       title: 'Derived from the last worker',
       text:  'This ticket\'s reviewer, or its builder when no review ran. Change it on that step.',
     });
-    expect(viewOf('A2', 'merge-in-airlock').detail).toBe('conflicts: the last worker fixes them');
+    expect(viewOf('A2', 'merge-in-airlock').sentence).toBe('Brings the branch up to date. The last worker fixes any conflict.');
     expect(viewOf('A7', 'merge-in-airlock').meter?.derivedNote).toEqual({
       title: 'Derived from the last worker',
       text:  'The builder, since no review runs. Change it on the Builder step.',
     });
-    expect(viewOf('A7', 'merge-in-airlock').detail).toBe('conflicts: the builder fixes them');
-    expect(viewOf('flow-human-code-review-proposal', 'merge-before-human-code-review').detail).toBe('conflicts: the reviewer fixes them');
+    expect(viewOf('A7', 'merge-in-airlock').sentence).toBe('Brings the branch up to date. The builder fixes any conflict, since no review runs.');
+    expect(viewOf('flow-human-code-review-proposal', 'merge-before-human-code-review').sentence)
+      .toBe('Comes with human code review. The last worker fixes any conflict.');
   });
 });
 
-describe('node words', () => {
-  test('a re-review is conditional with its inline tag and its threshold', () => {
-    const view = viewOf('A2', 're-review');
-    expect(view).toMatchObject({
-      title: 'Re-review', conditional: true, tagText: 'conditional', detail: 'only when the review\'s fixes are over 750 lines'
-    });
-    expect(viewOf('A2', 're-review-in-airlock').detail).toBe('only when the conflict fix is over 750 lines');
+describe('step cards', () => {
+  test('each step names its kind: agents, User\'s switches, gates, and the merges that run by themselves', () => {
+    expect(['ticket-creation', 'human-ticket-review', 'builder', 'gates-build', 'merge-in-airlock', 're-review'].map((nodeId) => viewOf('A2', nodeId).kind))
+      .toEqual(['agent', 'you', 'agent', 'gates', 'automatic', 'agent']);
   });
 
-  test('the CONDITIONAL tag and the conditional node border share the dashed 1px --line-conditional edge', () => {
-    const stylesheet = readFileSync(join(import.meta.dir, '..', '..', '..', 'styles', 'board.css'), 'utf8');
-    const ruleOf = (selector: string): string => stylesheet.slice(stylesheet.indexOf(`${selector} {`)).split('}')[0] ?? '';
-    expect(ruleOf('.bridge-flow-node-tag')).toContain('border: 1px dashed var(--line-conditional)');
-    expect(ruleOf('.bridge-flow-node[data-conditional]')).toContain('border-style: dashed; border-color: var(--line-conditional)');
-    expect(ruleOf('.bridge-flow-node')).toContain('border: 1px solid');
+  test('a Gates card is named for its phase and says who fixes a red gate, read from its way back', () => {
+    expect(viewOf('A2', 'gates-build')).toMatchObject({ title: 'Gates', cardTitle: 'Build gates', sentence: 'If one fails, the builder fixes it and the gates run again.' });
+    expect(viewOf('A2', 'gates-review').sentence).toBe('If one fails, the reviewer fixes it and the gates run again.');
+    expect(viewOf('A2', 'gates-merge').sentence).toBe('If one fails, the last worker fixes it and the gates run again.');
+    expect(viewOf('flow-human-code-review-proposal', 'gates-review-again').sentence).toBe('The review gates run again on the merged tree.');
   });
 
-  test('the switches word their state, and Human code review on is the highlighted box', () => {
+  test('a re-review is conditional and says its threshold', () => {
+    expect(viewOf('A2', 're-review')).toMatchObject({ title: 'Re-review', conditional: true });
+    expect(viewOf('A2', 're-review').sentence).toBe('Runs only when the review\'s fixes are over 750 lines. Then the gates run again.');
+    expect(viewOf('A2', 're-review-in-airlock').sentence).toBe('Runs only when the conflict fix is over 750 lines. Then the gates run again.');
+  });
+
+  test('the switches word their state, and Human code review on is the highlighted step', () => {
     expect(viewOf('A2', 'human-ticket-review')).toMatchObject({
-      variant:    'switch',
-      detail:     'User readies each draft before it builds',
+      sentence:   'You ready each draft before it builds.',
       switchView: { checked: true, approval: 'tickets' },
     });
-    expect(viewOf('A2', 'human-code-review')).toMatchObject({ detail: 'Green after review goes straight to the train', highlighted: false });
+    expect(viewOf('A2', 'human-code-review')).toMatchObject({ sentence: 'Off: a green review goes straight to the merge train.', highlighted: false });
     expect(viewOf('flow-human-code-review-proposal', 'human-code-review')).toMatchObject({
-      detail:      'User reviews and presses Merge; press order sets the train',
+      sentence:    'You review the change and press Merge. Your presses set the order.',
       highlighted: true,
       switchView:  { checked: true },
     });
@@ -154,65 +147,48 @@ describe('node words', () => {
     expect(PipelineFlowModel.switchEditOf(switchView)).toEqual({ field: 'approval:merge', value: true });
   });
 
-  test('agent steps list their instruction files; the gates after the merge before code review are their phase again', () => {
-    expect(viewOf('A2', 'builder').detail).toBe('constitution.md · builder.md');
-    expect(viewOf('A2', 'ticket-creation').detail).toBe('productOwner.md · drafts with a Brief');
-    expect(viewOf('A2', 'gates-build').detail).toBe('build · to be reviewed');
-    expect(viewOf('flow-human-code-review-proposal', 'gates-review-again').detail).toBe('review, again · must be green');
-  });
-
-  test('marks pass through: proposed chips are dashed, editing chips carry their change, unchanged nodes no mark', () => {
-    expect(viewOf('A2', 'builder').mark).toBe('proposed');
-    expect(viewOf('A2', 'gates-build').gateChips[0]).toEqual({ gateName: 'typecheck', change: null, proposed: true });
-    expect(viewOf('A5', 'builder').mark).toBeNull();
-    const node = { ...nodeOf(flowOf('A6'), 'gates-build'), mark: 'changed' as const, gateChips: [{ gateName: 'lint', mark: 'removed' as const }] };
-    expect(PipelineFlowModel.nodeViewOf(node, EFFORTS)).toMatchObject({ mark: 'changed', gateChips: [{ gateName: 'lint', change: 'removed', proposed: false }] });
-  });
-
-  test('edge labels are worded from their kind', () => {
-    const labels = PipelineFlowModel.layoutEdgesOf(flowOf('A2').edges).flatMap((edge) => (edge.labelText === null ? [] : [edge.labelText]));
-    expect(labels).toEqual([
-      'all green',
-      'red: builder\nfixes it',
-      'conflict or red:\nbuilder fixes it',
-      'red: reviewer\nfixes it',
-      'after a re-review:\ngates again',
-      'red: last worker\nfixes it',
-    ]);
+  test('an agent step lists its instruction files; a step no agent runs has none', () => {
+    expect(viewOf('A2', 'builder').briefText).toBe('constitution.md · builder.md');
+    expect(viewOf('A2', 'ticket-creation').briefText).toBe('productOwner.md');
+    expect(viewOf('A2', 'merge-in-airlock').briefText).toBeNull();
   });
 });
 
-describe('columns', () => {
-  const idsOf = (items: ReturnType<typeof PipelineFlowModel.columnsOf>['spine']) => items.map((item) => (item.kind === 'node' ? item.node.nodeId : `+${item.place}`));
-
-  test('the spine ends at the merge before review, the right column runs to the train, and the train is framed', () => {
-    const columns = PipelineFlowModel.columnsOf(flowOf('A2'));
-    expect(idsOf(columns.spine)).toEqual(['ticket-creation', 'human-ticket-review', 'builder', 'gates-build', 'merge-before-review']);
-    expect(idsOf(columns.branch)).toEqual(['review', 'gates-review', 're-review', 'human-code-review', 'ready-for-airlock']);
-    expect(idsOf(columns.train)).toEqual(['merge-in-airlock', 're-review-in-airlock', 'gates-merge', 'fast-forward-main']);
-    expect(columns.trainLabel).toBe('Merge train · Airlock, one at a time');
+describe('change markers', () => {
+  test('a proposal and a live flow carry no change; proposed gates are plain pills', () => {
+    expect(viewOf('A2', 'builder')).toMatchObject({ change: null, changeText: null });
+    expect(viewOf('A2', 'gates-build').gatePills[0]).toEqual({ gateName: 'typecheck', change: null });
+    expect(viewOf('A5', 'builder').change).toBeNull();
   });
 
-  test('the smallest pipeline has no merge before review, and a + after the Builder and in the train', () => {
-    const columns = PipelineFlowModel.columnsOf(flowOf('A7'));
-    expect(idsOf(columns.spine)).toEqual(['ticket-creation', 'human-ticket-review', 'builder', '+after-builder']);
-    expect(idsOf(columns.branch)).toEqual([]);
-    expect(idsOf(columns.train)).toEqual(['merge-in-airlock', '+merge-train', 'fast-forward-main']);
+  test('an editing gates step counts its changed gates, and a removed gate stays a pill with its change', () => {
+    const node = {
+      ...nodeOf(flowOf('A6'), 'gates-build'),
+      mark:      'changed' as const,
+      gateChips: [{ gateName: 'tests', mark: 'changed' as const }, { gateName: 'lint', mark: 'removed' as const }],
+    };
+    expect(PipelineFlowModel.nodeViewOf(node, EFFORTS)).toMatchObject({
+      change:     'changed',
+      changeText: '2 changes',
+      gatePills:  [{ gateName: 'tests', change: 'changed' }, { gateName: 'lint', change: 'removed' }],
+    });
   });
 
-  test('Human code review with no review step opens the right column at its merge', () => {
-    const columns = PipelineFlowModel.columnsOf(flowOf('A7-human-code-review-without-review'));
-    expect(idsOf(columns.branch)[0]).toBe('merge-before-human-code-review');
-    expect(PipelineFlowModel.columnOfNode(flowOf('A7-human-code-review-without-review'), 'builder')).toBe('spine');
+  test('a changed switch says the way it turned; a new or removed step says its word', () => {
+    const humanCodeReview = nodeOf(flowOf('flow-human-code-review-proposal'), 'human-code-review');
+    expect(PipelineFlowModel.nodeViewOf({ ...humanCodeReview, mark: 'changed' }, EFFORTS).changeText).toBe('Off → on');
+    expect(PipelineFlowModel.nodeViewOf({ ...humanCodeReview, mark: 'changed', switchState: 'off' }, EFFORTS).changeText).toBe('On → off');
+    expect(PipelineFlowModel.nodeViewOf({ ...nodeOf(flowOf('A2'), 'review'), mark: 'removed' }, EFFORTS).changeText).toBe('Removed');
+    expect(PipelineFlowModel.nodeViewOf({ ...nodeOf(flowOf('A2'), 'review'), mark: 'new' }, EFFORTS).changeText).toBe('New');
   });
 });
 
-describe('insert slots', () => {
-  test('the + after the Builder offers build gates, review and human code review, each with its action', () => {
+describe('add cards', () => {
+  test('the slot after the Builder offers build gates, review and human code review, each with its action', () => {
     const [slot] = flowOf('A7').insertSlots;
     if (slot === undefined) throw new Error('no slot');
     const view = PipelineFlowModel.slotViewOf(slot, 'after-builder', null);
-    expect(view).toMatchObject({ heading: 'Add after the Builder', triggerName: 'Add a step after the Builder', insertStyle: 'solid' });
+    expect(view.heading).toBe('Add after the Builder');
     expect(view.choices.map((choice) => [choice.label, choice.action])).toEqual([
       ['Build gates', { kind: 'new-gate', phase: 'build' }],
       ['Review', { kind: 'edit', edits: [{ field: 'review', value: { name: 'review' } }] }],
@@ -220,11 +196,11 @@ describe('insert slots', () => {
     ]);
   });
 
-  test('the + in the train is dashed and adds merge gates or the train re-review at the default threshold', () => {
+  test('the slot in the merge train adds merge gates or the train re-review at the default threshold', () => {
     const slot = flowOf('A7').insertSlots[1];
     if (slot === undefined) throw new Error('no slot');
     const view = PipelineFlowModel.slotViewOf(slot, 'merge-train', null);
-    expect(view.insertStyle).toBe('dashed');
+    expect(view.heading).toBe('Add before the fast-forward');
     expect(view.choices.map((choice) => choice.action)).toEqual([
       { kind: 'new-gate', phase: 'merge' },
       { kind: 'edit', edits: [{ field: 'airlock', value: { reReview: { thresholdLines: 750 } } }] },
@@ -249,16 +225,7 @@ describe('insert slots', () => {
   });
 });
 
-describe('toolbar and footer words', () => {
-  test('each stage has its note; a proposal names only the profiles User started that still run', () => {
-    expect(PipelineFlowModel.toolbarNoteOf('live', 0, [])).toBe('Applied pipeline · live');
-    expect(PipelineFlowModel.toolbarNoteOf('editing', 3, [])).toBe('Editing · 3 changes, not applied');
-    expect(PipelineFlowModel.toolbarNoteOf('editing', 1, [])).toBe('Editing · 1 change, not applied');
-    expect(PipelineFlowModel.toolbarNoteOf('proposal', 0, pipelineBoardStateOf('profile-passed').profileRuns ?? [])).toBe('Proposed, not stored');
-    expect(PipelineFlowModel.toolbarNoteOf('proposal', 0, pipelineBoardStateOf('profile-running').profileRuns ?? []))
-      .toBe('Proposed, not stored · profiling browser-tests · merge');
-  });
-
+describe('footer words', () => {
   test('the footer lists the removed steps from the change list, or nothing when none is removed', () => {
     expect(PipelineFlowModel.removedStepsTextOf(flowOf('A7').changeList)).toBe('Review and the merge train re-review removed');
     expect(PipelineFlowModel.removedStepsTextOf([
@@ -270,41 +237,14 @@ describe('toolbar and footer words', () => {
   });
 });
 
-describe('zoom', () => {
-  test('moves by steps and stops at the ends', () => {
-    expect(PipelineFlowModel.zoomedPercentOf(100, 'in')).toBe(110);
-    expect(PipelineFlowModel.zoomedPercentOf(100, 'out')).toBe(90);
-    expect(PipelineFlowModel.zoomedPercentOf(150, 'in')).toBe(150);
-    expect(PipelineFlowModel.canZoom(50, 'out')).toBe(false);
-    expect(PipelineFlowModel.zoomTextOf(125)).toBe('125%');
-  });
-
-  test('fit takes the largest step that fits both ways, and keeps 100% with nothing measured', () => {
-    expect(PipelineFlowModel.fitPercentOf({ width: 800, height: 900 }, { width: 1000, height: 600 })).toBe(80);
-    expect(PipelineFlowModel.fitPercentOf({ width: 2000, height: 2000 }, { width: 1000, height: 600 })).toBe(150);
-    expect(PipelineFlowModel.fitPercentOf({ width: 0, height: 0 }, { width: 1000, height: 600 })).toBe(100);
-  });
-
-  test('a stored zoom that is no step reads as 100%', () => {
-    expect(PipelineFlowModel.storedZoomPercentOf('125')).toBe(125);
-    expect(PipelineFlowModel.storedZoomPercentOf('133')).toBe(100);
-    expect(PipelineFlowModel.storedZoomPercentOf(null)).toBe(100);
-  });
-});
-
-describe('the proposal marks', () => {
-  test('a proposed Review shows the "proposed" chip, as drawn, and no other node does', () => {
-    const views = PipelineFlowModel.nodeViewsOf(flowOf('A2').nodes, EFFORTS);
-    expect(views.filter((view) => view.markChip !== null).map((view) => [view.nodeId, view.markChip])).toEqual([['review', 'proposed']]);
-    expect(views.every((view) => view.mark === 'proposed')).toBe(true);
-    expect(viewOf('A5', 'review').markChip).toBeNull();
-  });
-
-  test('a node asks while one of its questions is open, and opens on it', () => {
+describe('questions', () => {
+  test('a node asks while one of its questions is open, and counts the open ones', () => {
     const asking = nodeOf(flowOf('A2-question-open'), 'gates-merge');
     expect(PipelineFlowModel.nodeAsksQuestion(asking, ['Q3'])).toBe(true);
     expect(PipelineFlowModel.nodeAsksQuestion(asking, [])).toBe(false);
     expect(PipelineFlowModel.nodeAsksQuestion(nodeOf(flowOf('A2-question-open'), 'builder'), ['Q3'])).toBe(false);
+    expect(PipelineFlowModel.openQuestionCountOf({ questionIds: ['Q3', 'Q4'] }, ['Q3', 'Q4', 'Q9'])).toBe(2);
+    expect([1, 2].map(PipelineFlowModel.questionCountTextOf)).toEqual(['1 question', '2 questions']);
     expect(PipelineFlowModel.questionOpenLabelOf('Gates')).toBe('Answer the question on the Gates step');
   });
 });

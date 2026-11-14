@@ -1,0 +1,5 @@
+/* A card that stands out: tinted in a state's colours, or a surface with a warn rule down its left edge. */
+.design-system-callout { padding: var(--sp-3) var(--space-14); font-size: var(--fs-small); line-height: 1.5; border-radius: var(--r-2); }
+.design-system-callout p { margin: 0; }
+.design-system-callout[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); }
+.design-system-callout[data-tone="warn"] { padding: var(--sp-2) var(--sp-3); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent-edge); }

@@ -1,13 +1,13 @@
 /**
  * The question panel's model against synthetic boards. What matters: which decision shows (the pointed one while open, else the first one
  * opened since the fold, else the first) and whether the panel shows against the fold (it shows again once a decision opens that was not
- * open at the fold, and whenever User opened it); options stay exactly as asked, `(Recommended)` and all, with consequences only when the
- * agent noted them; own words only on a decision of one question; a code-opened decision has no conversation, no steps and is asked by the
- * Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a wrapped line joined to its paragraph as
- * Markdown reads it, and omits them when the board serves none; the earlier answers join the openings by decision id, on that ticket
- * only, newest first; the steps are the last top-level tool calls with the asking call current; the queue foot names the later
- * decisions, wrapping round; `open since` is the sliced stamp, never the clock; and the board's "no pipeline" question never opens the
- * panel by itself while no pipeline can be read, since the setup the Pipeline view then shows answers it.
+ * open at the fold, and whenever User opened it); options stay as asked, an agent's trailing `(Recommended)` read off the label into a
+ * mark, with consequences only when the agent noted them; own words only on a decision of one question; a code-opened decision has no
+ * conversation, no steps and is asked by the Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a
+ * wrapped line joined to its paragraph as Markdown reads it, and omits them when the board serves none; the earlier answers join the
+ * openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the asking call current; the
+ * queue foot names the later decisions, wrapping round; `open since` is the sliced stamp, never the clock; and the board's "no pipeline"
+ * question never opens the panel by itself while no pipeline can be read, since the setup the Pipeline view then shows answers it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -114,25 +114,48 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     expect(QuestionPanelModel.questionPanelModelOf(board, queue, shown, { todayCalendarDate: '2026-10-29', slices: null }).head.openSinceText).toBeNull();
   });
 
-  test('keeps every option exactly as asked, (Recommended) included, with consequences only where the agent noted them', () => {
+  test('keeps every option as asked, the trailing (Recommended) a mark beside the label, with consequences only where the agent noted them', () => {
     const [question] = modelOf(exampleQuestionPanelBoard(), 'E7').questions;
     expect(question?.options).toEqual([
       {
-        letter:       'a',
-        label:        'Extend the shared theme tokens (Recommended)',
-        description:  'Add account entries to the token file every page reads.',
-        consequences: {
+        letter:        'a',
+        label:         'Extend the shared theme tokens',
+        isRecommended: true,
+        description:   'Add account entries to the token file every page reads.',
+        consequences:  {
           touches:          ['src/theme/tokens.css', 'src/account/Layout.tsx'],
           tradeOff:         'One place to change; the storefront reads the same file.',
           acceptanceEffect: 'meets A1 to A3 as written',
         },
       },
       {
-        letter: 'b', label: 'A scoped stylesheet for the account pages', description: 'A new stylesheet only the account pages load.', consequences: null
+        letter: 'b', label: 'A scoped stylesheet for the account pages', isRecommended: false, description: 'A new stylesheet only the account pages load.', consequences: null
       },
       {
-        letter: 'c', label: 'Follow the system setting only', description: null, consequences: { acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' }
+        letter:        'c',
+        label:         'Follow the system setting only',
+        isRecommended: false,
+        description:   null,
+        consequences:  { acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' },
       },
+    ]);
+  });
+
+  test('reads (Recommended) as a mark only at the end of a label', () => {
+    const board = exampleQuestionPanelBoard({
+      decisions: [{
+        ...DARK_MODE_QUESTION,
+        questions: [{
+          question:    'Where?',
+          header:      'Tokens',
+          multiSelect: false,
+          options:     [{ label: 'Keep (Recommended) tokens', description: '' }, { label: 'Split them  (Recommended) ', description: '' }],
+        }],
+      }],
+    });
+    expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.isRecommended])).toEqual([
+      ['Keep (Recommended) tokens', false],
+      ['Split them', true],
     ]);
   });
 

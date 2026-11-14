@@ -1,8 +1,8 @@
 /**
  * The live flow's activity model. What matters: a node's chips are exactly the occupants the facts place on it, each linking to its
  * ticket or draft detail, a draft read as drafting and a ticket on the merge before review as catching up; the "Now" rows equal the
- * occupants in the facts' order, with a meter only on a step an agent runs; the "Earlier" lines keep the facts' order, cut the stamp only
- * when the page carries the slices, and leave out a record kind they have no line for.
+ * occupants in the facts' order, with a meter only on a step an agent runs; the panel head counts the working rows; the "Earlier" lines
+ * keep the facts' order, cut the stamp only when the page carries the slices, and leave out a record kind they have no line for.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -65,6 +65,13 @@ describe('activityRowsOf', () => {
   test('the heading counts the rows', () => {
     expect(FlowActivityPanelModel.nowHeadingOf(1)).toBe('Now · 1 item');
     expect(FlowActivityPanelModel.nowHeadingOf(4)).toBe('Now · 4 items');
+  });
+
+  test('the panel head says how many work, quietly when none does, and how many builds run at a time', () => {
+    expect(FlowActivityPanelModel.flowStatusOf(4)).toEqual({ tone: 'working', text: '4 working' });
+    expect(FlowActivityPanelModel.flowStatusOf(0)).toEqual({ tone: 'idle', text: 'Nothing running' });
+    expect(FlowActivityPanelModel.buildsAtATimeTextOf(1)).toBe('1 build at a time');
+    expect(FlowActivityPanelModel.buildsAtATimeTextOf(2)).toBe('2 builds at a time');
   });
 });
 

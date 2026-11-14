@@ -3,21 +3,21 @@
  * limit; a foot that says what the figure counts and names the tickets in progress that no job works on. The Overseer says which jobs
  * hold a slot (`launchSlots`); a job in this list that holds none is marked not counted.
  */
+
+import { Button }                   from 'design-system/Button';
+import { Pane }                     from 'design-system/Pane';
+import { SlotMeter }                from 'design-system/SlotMeter';
 import { Fragment, type ReactNode } from 'react';
 
 import type { ConcurrencyDocument, IdentifiedRecord, LaunchSlotsDocument } from '../../@types/BoardStateDocument.ts';
 import { JobLink, TicketLinks }                                            from '../../conversation/ConversationParts.tsx';
-import { Button }                                                          from '../../design-system/Button.tsx';
-import { SlotMeter }                                                       from '../../design-system/Meter.tsx';
-import { Pane }                                                            from '../../design-system/Pane.tsx';
-import { DetailRoute }                                                     from '../../shell/DetailRoute.ts';
-import { HashRouter }                                                      from '../../shell/HashRouter.ts';
+import { StateToneUtil }                                                   from '../../utils/StateToneUtil.ts';
 import type { TimestampSlices }                                            from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }                                           from './AgentJobDocument.ts';
 import { AgentsModel, type SlotMeterFacts }                                from './AgentsModel.ts';
 import { ConcurrencyLimitControl }                                         from './ConcurrencyLimitControl.tsx';
 import { JobTable }                                                        from './JobTable.tsx';
-import { SubjectChip }                                                     from './SubjectChip.tsx';
+import { TicketChips }                                                     from './TicketChips.tsx';
 
 export interface WorkerCardProps {
   readonly project:             string;
@@ -34,26 +34,10 @@ export interface WorkerCardProps {
   readonly onToggleDiagnostics: () => void;
 }
 
-function TicketChips({ job, ticketTitleOf }: { readonly job: AgentJobDocument; readonly ticketTitleOf: (ticketId: string) => string | null }) {
-  if (job.ticketIds.length === 0) return <span className="agents-muted">-</span>;
-  return (
-    <div className="agents-subjects">
-      {job.ticketIds.map((ticketId) => (
-        <SubjectChip
-          key={ticketId}
-          href={HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId }) })}
-          idText={`#${ticketId}`}
-          text={ticketTitleOf(ticketId)}
-        />
-      ))}
-    </div>
-  );
-}
-
 function SlotFigure({ slotMeter }: { readonly slotMeter: SlotMeterFacts }) {
   return (
     <span className="agents-slots">
-      <SlotMeter label={slotMeter.label} filled={slotMeter.counted} limit={slotMeter.limit} state="in-progress" />
+      <SlotMeter label={slotMeter.label} filled={slotMeter.counted} limit={slotMeter.limit} tone={StateToneUtil.toneOf('in-progress')} />
       <span className="agents-slot-figure" data-over={slotMeter.overLimit ? '' : undefined}>{`${slotMeter.counted} / ${slotMeter.limit}`}</span>
       <span className="agents-muted">workers</span>
     </span>
@@ -120,7 +104,7 @@ export function WorkerCard({
       title="Agents"
       subtitle="builders and reviewers · each holds one of the agents at most"
       countText={AgentsModel.cardCountTextOf(jobs.length, askingCount, quietCount)}
-      headEnd={<Button label="Show diagnostics" pressed={showDiagnostics} onPress={onToggleDiagnostics} />}
+      headEnd={<Button label="Show diagnostics" compact pressed={showDiagnostics} onPress={onToggleDiagnostics} />}
       foot={<Reconciliation slotMeter={slotMeter} joblessTicketIds={joblessTicketIds} />}
       body="flush"
     >

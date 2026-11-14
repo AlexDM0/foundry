@@ -1,17 +1,16 @@
 /**
- * The Bridge's stylesheets close every brace they open: in `bridge/styles/board.css` and `tokens.css` each `{` has its `}` and no `}`
- * comes before its `{`. A lost brace nests every rule after it in the block above, such as a `@media` query, and the browser reports
- * nothing. Braces inside comments and quoted strings are text and are left out. The scan first proves it found a floor of blocks in each
- * stylesheet, and each form is planted in memory.
+ * The stylesheets of the Bridge and of its design system close every brace they open: in `bridge/styles/` and in every stylesheet of
+ * `design-system/` each `{` has its `}` and no `}` comes before its `{`. A lost brace nests every rule after it in the block above, such
+ * as a `@media` query, and the browser reports nothing. Braces inside comments and quoted strings are text and are left out. The scan first
+ * proves it found a floor of blocks in each of the Bridge's stylesheets and in all of them together, and each form is planted in memory.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
-
 import { describe, expect, test } from 'bun:test';
 
-const STYLES_FOLDER = join(import.meta.dir, 'styles');
-const SCANNED_STYLESHEETS: readonly string[] = ['board.css', 'tokens.css'];
+import { pageStylesheets } from './testing/PageStylesheets.ts';
+
 const SMALLEST_BLOCK_COUNT = 3;
+const SMALLEST_BLOCK_COUNT_OF_ALL = 500;
+const STYLESHEETS = pageStylesheets();
 
 interface BraceScan {
   readonly blockCount: number;
@@ -41,10 +40,17 @@ function braceScanOf(path: string, stylesheetText: string): BraceScan {
 }
 
 describe('the stylesheets close every brace they open', () => {
-  test.each([...SCANNED_STYLESHEETS])('%s', (stylesheet: string) => {
-    const scan = braceScanOf(stylesheet, readFileSync(join(STYLES_FOLDER, stylesheet), 'utf8'));
-    expect(scan.blockCount).toBeGreaterThanOrEqual(SMALLEST_BLOCK_COUNT);
-    expect(scan.sentences).toEqual([]);
+  test('the scan finds a floor of blocks in each of the Bridge\'s stylesheets and in all of them', () => {
+    const blockCountOf = (path: string): number => STYLESHEETS.filter((stylesheet) => stylesheet.path === path)
+      .reduce((count, stylesheet) => count + braceScanOf(stylesheet.path, stylesheet.text).blockCount, 0);
+    expect(blockCountOf('bridge/styles/board.css')).toBeGreaterThanOrEqual(SMALLEST_BLOCK_COUNT);
+    expect(blockCountOf('bridge/styles/tokens.css')).toBeGreaterThanOrEqual(SMALLEST_BLOCK_COUNT);
+    expect(STYLESHEETS.reduce((count, stylesheet) => count + braceScanOf(stylesheet.path, stylesheet.text).blockCount, 0))
+      .toBeGreaterThanOrEqual(SMALLEST_BLOCK_COUNT_OF_ALL);
+  });
+
+  test.each(STYLESHEETS.map((stylesheet) => [stylesheet.path, stylesheet] as const))('%s', (_path, stylesheet) => {
+    expect(braceScanOf(stylesheet.path, stylesheet.text).sentences).toEqual([]);
   });
 });
 

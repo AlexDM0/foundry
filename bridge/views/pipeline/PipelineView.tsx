@@ -3,29 +3,29 @@
  * reopened billing step show the billing step, the research and constitution steps their pages (the constitution also at
  * `#pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow beside the pipeline agent, the
  * bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other screen shows its title. The
- * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the flow workspace (the flow, the smallest
- * pipeline's note beside it, the gates area under them and the dialog a node, a gate row or a + opens). While an applied pipeline is
- * edited, the editing aside stands beside it (the smallest pipeline keeps its note instead), and the footer counts the changes, or names
- * the smallest pipeline's removed steps, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply dialog. Once a
- * setup is applied, the live flow takes back the bare `#pipeline` route; it stands beside the activity aside over the applied footer, and
- * an Apply sent from this view shows its toast once the facts carry the version it made. A gate dialog on any screen reads a profile's
- * output through the follower the view provides.
+ * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the Focus layout (the phase stepper, the open
+ * phase, the stage's panel in its right column and its footer under both). While an applied pipeline is edited, the panel is the editing
+ * panel (the smallest pipeline's About panel instead), and the footer counts the changes, or names the smallest pipeline's removed
+ * steps, and the version the board runs on until Apply, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply
+ * dialog. Once a setup is applied, the live flow takes back the bare `#pipeline` route, with the activity panel (About first on the
+ * smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast once the facts carry the version it made. A
+ * gate dialog on any screen reads a profile's output through the follower the view provides.
  */
+import { ActionBar }           from 'design-system/ActionBar';
+import { Banner }              from 'design-system/Banner';
+import { Button }              from 'design-system/Button';
+import { Tag }                 from 'design-system/Tag';
+import { Text }                from 'design-system/Text';
+import { Toast }               from 'design-system/Toast';
 import { useEffect, useState } from 'react';
 
 import type { TranscriptFollower }         from '../../conversation/TranscriptLog.tsx';
-import { ActionBar }                       from '../../design-system/ActionBar.tsx';
-import { Banner }                          from '../../design-system/Banner.tsx';
-import { Button }                          from '../../design-system/Button.tsx';
-import { Tag }                             from '../../design-system/Tag.tsx';
-import { Toast }                           from '../../design-system/Toast.tsx';
-import type { PreferenceStore }            from '../../preferences/PreferenceStore.ts';
 import { useTickingNow, type BridgeClock } from '../../shell/BridgeClock.ts';
 import { CommandButton }                   from '../../shell/CommandButton.tsx';
 import { HashRouter, type BridgeRoute }    from '../../shell/HashRouter.ts';
 import { TimeUtil }                        from '../../utils/TimeUtil.ts';
 
-import { FlowWorkspace, useFlowSelection }                                from './FlowWorkspace.tsx';
+import { FlowWorkspace }                                                  from './FlowWorkspace.tsx';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';
 import { ProfileLogFollowerContext }                                      from './ProfileLogFollowerContext.ts';
 import { ApplyChangesDialog }                                             from './apply/ApplyChangesDialog.tsx';
@@ -33,6 +33,7 @@ import { ApplyChangesDialogModel }                                        from '
 import type { ProfileLogFollower }                                        from './dialogs/ProfileBox.tsx';
 import { EditingAside }                                                   from './editing/EditingAside.tsx';
 import { PipelineEditingModel }                                           from './editing/PipelineEditingModel.ts';
+import { useFlowSelection }                                               from './flow/FlowSelection.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
 import { FlowActivityPanel }                                              from './live/FlowActivityPanel.tsx';
 import type { StampFormat }                                               from './live/FlowActivityPanelModel.ts';
@@ -49,7 +50,6 @@ import { ResumeSummary }                                                  from '
 export interface PipelineViewProps {
   readonly facts:            PipelineViewFacts;
   readonly route:            BridgeRoute;
-  readonly boardStore?:      PreferenceStore | null;
   /** Follows the pipeline agent's transcript for its chat. */
   readonly followTranscript: TranscriptFollower;
   /** Follows a gate profile's output on its stream route for the gate dialog's log. */
@@ -59,7 +59,6 @@ export interface PipelineViewProps {
 
 interface FlowScreenProps {
   readonly facts:            PipelineViewFacts;
-  readonly boardStore:       PreferenceStore | null;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
   readonly onApplySent:      (resumesBoard: boolean) => void;
@@ -80,21 +79,15 @@ function EditingFooter({
   const changeList = facts.pipelineFlow?.changeList ?? [];
   const appliedRevision = ApplyChangesDialogModel.appliedRevisionOf(facts.pipeline);
   const removedStepsText = PipelineFlowModel.removedStepsTextOf(changeList);
-  const notes = minimal
-    ? (removedStepsText === null ? null : <span className="bridge-pipeline-footer-note">{removedStepsText}</span>)
-    : (
-      <>
-        <span className="bridge-pipeline-editing-summary">{PipelineEditingModel.footerSummaryOf(changeList.length, appliedRevision)}</span>
-        <span className="bridge-pipeline-footer-note">{PipelineEditingModel.boardNoteOf(appliedRevision)}</span>
-      </>
-    );
+  const summaryText = minimal ? removedStepsText : PipelineEditingModel.footerSummaryOf(changeList.length, appliedRevision);
   return (
     <ActionBar
       label="Pipeline changes"
       start={(
         <>
-          <Tag text="Editing" tone="warn" pops />
-          {notes}
+          <Tag text="Editing" tone="warn" />
+          {summaryText === null ? null : <Text bold>{summaryText}</Text>}
+          <Text muted>{PipelineEditingModel.boardNoteOf(appliedRevision)}</Text>
         </>
       )}
       end={(
@@ -123,7 +116,7 @@ function stampFormatOf(facts: PipelineViewFacts, now: Date): StampFormat | null 
 }
 
 function FlowScreen({
-  facts, boardStore, followTranscript, clock, onApplySent
+  facts, followTranscript, clock, onApplySent
 }: FlowScreenProps) {
   const now = useTickingNow(clock, false);
   const selection = useFlowSelection();
@@ -132,43 +125,42 @@ function FlowScreen({
   const flow = facts.pipelineFlow ?? null;
   if (flow === null) return null;
   const minimal = MinimalPipelineNoteModel.noteIsShownFor(flow);
-  const workspace = (
-    <FlowWorkspace
-      facts={facts}
-      boardStore={boardStore}
-      selection={selection}
-      flowAside={minimal ? <MinimalPipelineNote flow={flow} /> : null}
-    />
-  );
+  const words = PipelineViewModel.flowPageWordsOf(flow.toolbarStage, flow, ApplyChangesDialogModel.appliedRevisionOf(facts.pipeline));
+  const minimalNote = minimal ? <MinimalPipelineNote flow={flow} /> : null;
   if (flow.toolbarStage === 'live') {
-    const footer = LivePipelineModel.footerOf(facts.pipeline, stampFormatOf(facts, now));
+    const stampFormat = stampFormatOf(facts, now);
+    const footer = LivePipelineModel.footerOf(facts.pipeline, stampFormat);
     return (
-      <>
-        <div className="bridge-pipeline-live-body">
-          <div className="bridge-pipeline-live-main">{workspace}</div>
-          <FlowActivityPanel facts={facts} stampFormat={stampFormatOf(facts, now)} clock={clock} />
-        </div>
-        {footer === null ? null : <LiveFooter footer={footer} />}
-      </>
+      <FlowWorkspace
+        facts={facts}
+        selection={selection}
+        title={words.title}
+        lead={words.lead}
+        aside={<FlowActivityPanel facts={facts} stampFormat={stampFormat} clock={clock} />}
+        footer={footer === null ? null : <LiveFooter footer={footer} />}
+      />
     );
   }
-  if (flow.toolbarStage !== 'editing' || setup === null) return workspace;
+  if (flow.toolbarStage !== 'editing' || setup === null) {
+    return <FlowWorkspace facts={facts} selection={selection} title={words.title} lead={words.lead} aside={minimalNote} footer={null} />;
+  }
   return (
     <>
-      {minimal
-        ? workspace
-        : (
-          <div className="bridge-pipeline-editing-body">
-            <div className="bridge-pipeline-editing-main">{workspace}</div>
-            <EditingAside facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />
-          </div>
-        )}
-      <EditingFooter
+      <FlowWorkspace
         facts={facts}
-        setupId={setup.record.setupId}
-        minimal={minimal}
-        applyIsAsked={applyChangesIsAsked}
-        onApplyAsked={() => setApplyChangesIsAsked(true)}
+        selection={selection}
+        title={words.title}
+        lead={words.lead}
+        aside={minimalNote ?? <EditingAside facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />}
+        footer={(
+          <EditingFooter
+            facts={facts}
+            setupId={setup.record.setupId}
+            minimal={minimal}
+            applyIsAsked={applyChangesIsAsked}
+            onApplyAsked={() => setApplyChangesIsAsked(true)}
+          />
+        )}
       />
       {applyChangesIsAsked
         ? (
@@ -188,20 +180,21 @@ function FlowScreen({
 interface ScreenContentProps {
   readonly facts:            PipelineViewFacts;
   readonly screen:           PipelineScreen;
-  readonly boardStore:       PreferenceStore | null;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
   readonly onApplySent:      (resumesBoard: boolean) => void;
 }
 
 function ScreenContent({
-  facts, screen, boardStore, followTranscript, clock, onApplySent
+  facts, screen, followTranscript, clock, onApplySent
 }: ScreenContentProps) {
   const setup = facts.pipelineSetup ?? null;
   if (screen.screen === 'setup-landing') {
     return (
       <>
-        {screen.unreadable === null ? null : <Banner tone="warn" role="status" text={PipelineViewModel.unreadableTextOf(screen.unreadable)} />}
+        {screen.unreadable === null
+          ? null
+          : <div className="bridge-pipeline-unreadable-notice"><Banner tone="warn" role="status" text={PipelineViewModel.unreadableTextOf(screen.unreadable)} /></div>}
         <BillingStep facts={facts} replacesUnreadablePipeline={screen.unreadable !== null} />
       </>
     );
@@ -215,17 +208,11 @@ function ScreenContent({
   if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
   if (screen.screen === 'setup-step' && screen.step === 'design' && setup !== null) {
     return (
-      <DesignStep facts={facts} setup={setup} boardStore={boardStore} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
+      <DesignStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
     );
   }
-  const title = <h2 className="bridge-pipeline-title">{PipelineViewModel.screenTitleOf(screen)}</h2>;
-  if (screen.screen !== 'flow') return title;
-  return (
-    <>
-      {title}
-      <FlowScreen facts={facts} boardStore={boardStore} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
-    </>
-  );
+  if (screen.screen !== 'flow') return <h2 className="bridge-pipeline-title">{PipelineViewModel.screenTitleOf(screen)}</h2>;
+  return <FlowScreen facts={facts} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />;
 }
 
 /** An Apply this view sent: the applied version before it, and whether it resumes the board. */
@@ -253,7 +240,7 @@ function useAppliedToast(facts: PipelineViewFacts): { toast: LiveToastView | nul
 }
 
 export function PipelineView({
-  facts, route, boardStore = null, followTranscript, followProfileLog, clock
+  facts, route, followTranscript, followProfileLog, clock
 }: PipelineViewProps) {
   const screen = PipelineViewModel.screenOf(facts, route);
   const setupRouteIsLeft = PipelineViewModel.setupRouteIsLeftOf(screen, route);
@@ -267,7 +254,6 @@ export function PipelineView({
         <ScreenContent
           facts={facts}
           screen={screen}
-          boardStore={boardStore}
           followTranscript={followTranscript}
           clock={clock}
           onApplySent={appliedToast.awaitApply}

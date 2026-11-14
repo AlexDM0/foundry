@@ -1,20 +1,27 @@
 /**
- * The ticket form's Overview: the state card, the newest open incident on the ticket, the one likely action with its effect, the live job's
- * message box and More menu, Next as numbered steps (the current one marked), Other moves, and the Facts grid. Watch is a link, so a stream
- * that is down never disables it; every move posts a `ControlCommand`.
+ * The ticket form's Overview: the state card with its Flint slot, the newest open incident on the ticket, the one likely action with its
+ * effect, the live job's message box and More menu, Next as numbered steps (the current one marked), Other moves, and the Facts grid.
+ * Watch is a link, so a stream that is down never disables it; every move posts a `ControlCommand`.
  */
-import { useState } from 'react';
 
-import { Button }                  from '../../design-system/Button.tsx';
-import { Callout }                 from '../../design-system/Callout.tsx';
-import { MonoId }                  from '../../design-system/MonoId.tsx';
-import { Stamp }                   from '../../design-system/Stamp.tsx';
-import { TitledBlock }             from '../../design-system/TitledBlock.tsx';
-import { CommandButton }           from '../../shell/CommandButton.tsx';
-import { HashRouter }              from '../../shell/HashRouter.ts';
-import { DetailFacts, TextParts }  from './DetailParts.tsx';
-import { JobStopMenu }             from './JobStopMenu.tsx';
-import { TicketMoves, MoveButton } from './TicketMoves.tsx';
+import { Button }      from 'design-system/Button';
+import { FlintSlot }   from 'design-system/FlintSlot';
+import { MonoId }      from 'design-system/MonoId';
+import { Row }         from 'design-system/Row';
+import { Stamp }       from 'design-system/Stamp';
+import { StateDot }    from 'design-system/StateDot';
+import { Text }        from 'design-system/Text';
+import { TitledBlock } from 'design-system/TitledBlock';
+import { View }        from 'design-system/View';
+import { useState }    from 'react';
+
+import { CommandButton }                     from '../../shell/CommandButton.tsx';
+import { useQuestionPanelHoldsTheFlintSlot } from '../../shell/CoveringPanel.ts';
+import { HashRouter }                        from '../../shell/HashRouter.ts';
+import { StateToneUtil }                     from '../../utils/StateToneUtil.ts';
+import { DetailFacts, TextParts }            from './DetailParts.tsx';
+import { JobStopMenu }                       from './JobStopMenu.tsx';
+import { TicketMoves, MoveButton }           from './TicketMoves.tsx';
 import type {
   LeadActionModel,
   NextStepModel,
@@ -24,31 +31,40 @@ import type {
   TicketOverviewModel
 } from './TicketOverviewModel.ts';
 
+/** The state card: Flint's slot on the strip ground beside what the ticket's job does now, or why nothing works on it. */
 function NowCard({ now }: { readonly now: NowCardModel }) {
   const { job } = now;
+  const flintSlotIsCovered = useQuestionPanelHoldsTheFlintSlot();
   return (
-    <Callout tone="state" state={now.stateToken} title={now.heading}>
-      {job === null ? null : (
-        <>
-          <p>
-            {`${job.jobId}, ${job.roleText}, attempt `}
-            <span className="bridge-detail-figure">{job.attempt}</span>
-            {job.since === null ? null : (
-              <>
-                {', since '}
-                <Stamp shortText={job.since.shortText} fullText={job.since.fullText} />
-                {job.elapsedText === null ? null : <>{' ('}<span className="bridge-detail-figure">{job.elapsedText}</span>)</>}
-              </>
-            )}
-          </p>
-          <p>
-            <span className="bridge-detail-figure">{job.callsText}</span>
-            {` calls · ${job.lastToolText}`}
-          </p>
-        </>
-      )}
-      {job === null && now.note !== null ? <p>{now.note}</p> : null}
-    </Callout>
+    <section className="bridge-detail-state-card" data-state={now.stateToken} data-state-tone={StateToneUtil.toneOf(now.stateToken)}>
+      {flintSlotIsCovered ? null : <FlintSlot label={null} size="100" ground="strip" pose={now.flintPose} />}
+      <View grow centerY gap="four" paddingVertical="ten" paddingHorizontal="fourteen">
+        <Row centerY gap="eight">
+          <StateDot {...StateToneUtil.dotOf(now.stateToken)} />
+          <Text typeRole="lead" bold element="h3">{now.heading}</Text>
+        </Row>
+        {job === null ? null : (
+          <>
+            <Text element="p" muted>
+              {`${job.jobId}, ${job.roleText}, attempt `}
+              <span className="bridge-detail-figure">{job.attempt}</span>
+              {job.since === null ? null : (
+                <>
+                  {', since '}
+                  <Stamp shortText={job.since.shortText} fullText={job.since.fullText} />
+                  {job.elapsedText === null ? null : <>{' ('}<span className="bridge-detail-figure">{job.elapsedText}</span>)</>}
+                </>
+              )}
+            </Text>
+            <Text element="p" muted>
+              <span className="bridge-detail-figure">{job.callsText}</span>
+              {` calls · ${job.lastToolText}`}
+            </Text>
+          </>
+        )}
+        {job === null && now.note !== null ? <Text element="p" muted>{now.note}</Text> : null}
+      </View>
+    </section>
   );
 }
 

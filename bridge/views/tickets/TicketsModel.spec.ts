@@ -155,7 +155,7 @@ describe('the empty table and the count', () => {
 
   test('a board without tickets says so in the count and shows no empty row', () => {
     const model = TicketsModel.ticketsModelOf(exampleTicketsBoard({ tickets: [] }), DEFAULT_TICKET_VIEW, false, EVERY_TICKET);
-    expect([model.countText, model.emptyText]).toEqual(['no tickets', null]);
+    expect([model.countText, model.emptyText]).toEqual(['No tickets', null]);
   });
 
   test('counts the shown against all, and the tickets in progress', () => {
@@ -263,5 +263,14 @@ describe('changedTicketIdsBetween', () => {
 
     expect([...TicketsModel.changedTicketIdsBetween(null, after)]).toEqual([]);
     expect([...TicketsModel.changedTicketIdsBetween(before, after)]).toEqual(['002', '003']);
+  });
+});
+
+describe('hiddenWorkTextOf', () => {
+  test('names the finished-work window the lead hides, and nothing while every ticket shows', () => {
+    expect(TicketsModel.hiddenWorkTextOf('1d', false)).toBe('Closed tickets not finished in the last day are hidden. Search to see every ticket.');
+    expect(TicketsModel.hiddenWorkTextOf('since-2026-09-24', false)).toBe('Closed tickets not finished since 09-24 are hidden. Search to see every ticket.');
+    expect(TicketsModel.hiddenWorkTextOf('all', false)).toBeNull();
+    expect(TicketsModel.hiddenWorkTextOf('1d', true)).toBeNull();
   });
 });

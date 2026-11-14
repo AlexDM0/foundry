@@ -55,8 +55,8 @@ describe('merge approval on', () => {
     expect(waiting.getByRole('link', { name: '#12' }).getAttribute('href')).toBe('#tickets/ticket-row/12');
     const queuedLines = [...document.querySelectorAll<HTMLElement>('ol.bridge-merge-lines > li')].map(linePartsOf);
     expect(queuedLines).toEqual([['#8', 'high', 'clean', 'would conflict with 1 clean candidate'], ['#9', 'conflicting', 'src/Example.ts']]);
-    const forecastStates = [...document.querySelectorAll('ol.bridge-merge-lines .bridge-state-badge')].map((badge) => badge.getAttribute('data-state'));
-    expect(forecastStates).toEqual(['reviewed', 'draft']);
+    const forecastTones = [...document.querySelectorAll('ol.bridge-merge-lines .design-system-state-badge')].map((badge) => badge.getAttribute('data-state-tone'));
+    expect(forecastTones).toEqual(['success', 'accent-outline']);
   });
 });
 

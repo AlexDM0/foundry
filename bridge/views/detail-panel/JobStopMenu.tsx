@@ -3,11 +3,12 @@
  * confirmation in its place, naming the ticket, the branch and the hold it leaves, so no stop is one click; the confirm posts the
  * `ControlCommand` and closes the menu once applied, a refusal showing verbatim beside it; Cancel puts the item back and the focus on it.
  */
+
+import { ConfirmStrip }                from 'design-system/ConfirmStrip';
+import { Menu, MenuItem }              from 'design-system/Menu';
 import { useEffect, useRef, useState } from 'react';
 
 import type { ControlCommandBody }                                    from '../../api/CommandClient.ts';
-import { ConfirmStrip }                                               from '../../design-system/ConfirmStrip.tsx';
-import { Menu, MenuItem }                                             from '../../design-system/Menu.tsx';
 import { CommandButton }                                              from '../../shell/CommandButton.tsx';
 import { TextParts }                                                  from './DetailParts.tsx';
 import type { JobStopItemModel, JobStopMove, TicketJobControlsModel } from './TicketOverviewModel.ts';
@@ -86,6 +87,7 @@ export function JobStopMenu({ ticketId, controls }: JobStopMenuProps) {
       label="Controls that stop work"
       trigger="button"
       align="end"
+      wide
       triggerContent={<>More <span aria-hidden="true">···</span></>}
       triggerName={`More controls for ${controls.jobId} and #${ticketId}`}
       isOpen={menuIsOpen}

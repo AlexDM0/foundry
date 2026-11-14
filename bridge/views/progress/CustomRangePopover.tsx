@@ -3,6 +3,11 @@
  * opens on the applied range's texts with From focused; Enter or Apply applies a readable draft, Esc or Cancel discards it and hands the
  * focus back, and a click or focus outside discards it.
  */
+
+import { Button }           from 'design-system/Button';
+import { useDismissal }     from 'design-system/Dismissal';
+import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
+import { SegmentedControl } from 'design-system/SegmentedControl';
 import {
   useEffect,
   useId,
@@ -12,10 +17,6 @@ import {
   type RefObject
 } from 'react';
 
-import { Button }           from '../../design-system/Button.tsx';
-import { useDismissal }     from '../../design-system/Dismissal.ts';
-import { MicroCapsLabel }   from '../../design-system/MicroCapsLabel.tsx';
-import { SegmentedControl } from '../../design-system/SegmentedControl.tsx';
 import {
   customRangeDraftVerdict,
   customRangeOverride,
@@ -143,6 +144,7 @@ export function CustomRangePopover({
         <MicroCapsLabel text="Ticks" id={ticksLabelElementId} />
         <SegmentedControl
           labelledBy={ticksLabelElementId}
+          mono
           options={TICK_CHOICES.map((choice) => ({ value: tickChoiceValueOf(choice), label: tickLabelOf(choice) }))}
           selected={tickChoiceValueOf(tickMinutes)}
           onSelect={(value) => setTickMinutes(TICK_CHOICES.find((choice) => tickChoiceValueOf(choice) === value) ?? null)}

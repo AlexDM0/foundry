@@ -3,10 +3,13 @@
  * segments in settled-first order, its facts line and the order epics are shown in. The span's duration measures against the moment
  * handed in, a stated clock exception that decides only the text printed.
  */
+import type { StateTone } from 'design-system/StateTone';
+
 import { TokenCountUtil }                                     from '../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                                  from '../../src/lib/tracker-model/@types/Task.ts';
 import type { EpicRollupDocument }                            from '../@types/BoardStateDocument.ts';
 import { DisplayStateWordingUtil }                            from './DisplayStateWordingUtil.ts';
+import { StateToneUtil }                                      from './StateToneUtil.ts';
 import { TimeUtil, type DurationUnits, type TimestampSlices } from './TimeUtil.ts';
 
 /** The roll-up bar's segments, settled work first. */
@@ -14,6 +17,8 @@ const ROLLUP_STATUS_ORDER: readonly DisplayState[] = ['delivered', 'reviewed', '
 
 export interface EpicRollupSegment {
   readonly state: DisplayState;
+  /** The state's tone, which the roll-up bar's part takes. */
+  readonly tone:  StateTone;
   readonly count: number;
   /** "Done: 2", the segment's hover text and its legend's words. */
   readonly label: string;
@@ -54,7 +59,9 @@ function settledDoneTextOf(epic: EpicRollupDocument): string {
 function rollupSegmentsOf(epic: EpicRollupDocument): EpicRollupSegment[] {
   return ROLLUP_STATUS_ORDER
     .filter((state) => countOf(epic, state) > 0)
-    .map((state) => ({ state, count: countOf(epic, state), label: DisplayStateWordingUtil.labelOf(state) }));
+    .map((state) => ({
+      state, tone: StateToneUtil.toneOf(state), count: countOf(epic, state), label: DisplayStateWordingUtil.labelOf(state)
+    }));
 }
 
 function rollupAriaLabelOf(epic: EpicRollupDocument): string {

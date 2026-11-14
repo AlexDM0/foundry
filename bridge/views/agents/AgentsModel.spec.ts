@@ -7,8 +7,9 @@
  * against the budget, warn near it and unbounded without one; subagents are squares worded in every plural form, an older board's subagent
  * without a state reading ended; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every
  * count leaves out its zero parts and names one in the singular; a session says what it is about; a watch-only Watcher is worded as such; a
- * job is stopping by its state or by a stop request alone; and a concurrency limit is sendable only as a changed whole number the Overseer
- * would take.
+ * job is stopping by its state or by a stop request alone, and takes a message only with a role, a Watcher that does more than watch and no
+ * stop under way; the job panel's head and transcript head are worded from the job's facts alone; and a concurrency limit is sendable only
+ * as a changed whole number the Overseer would take.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -247,6 +248,26 @@ describe('the controls a job takes', () => {
     expect(AgentsModel.isStopping(BUILD_JOB)).toBe(false);
     expect(AgentsModel.isStopping({ state: 'stopping' })).toBe(true);
     expect(AgentsModel.isStopping({ state: 'running', stopRequest: 'stop' })).toBe(true);
+  });
+
+  test('a job takes a message only with a role, a Watcher that does more than watch, and no stop under way', () => {
+    expect(AgentsModel.takesMessages(BUILD_JOB)).toBe(true);
+    expect(AgentsModel.takesMessages({ ...BUILD_JOB, role: null })).toBe(false);
+    expect(AgentsModel.takesMessages({ ...BUILD_JOB, live: { ...BUILD_JOB.live, watchOnly: true } })).toBe(false);
+    expect(AgentsModel.takesMessages({ ...BUILD_JOB, stopRequest: 'wind-down' })).toBe(false);
+  });
+});
+
+describe('the job panel\'s words', () => {
+  test('the head says the job\'s state, then how long ago it launched only where the log holds its launch', () => {
+    expect(AgentsModel.panelStateTextOf({ state: 'running' }, '12m 04s')).toBe('running · 12m 04s');
+    expect(AgentsModel.panelStateTextOf({ state: 'launching' }, null)).toBe('launching');
+  });
+
+  test('the transcript head counts its entries, one in the singular', () => {
+    expect(AgentsModel.transcriptCountTextOf(11)).toBe('followed live · 11 entries');
+    expect(AgentsModel.transcriptCountTextOf(1)).toBe('followed live · 1 entry');
+    expect(AgentsModel.transcriptCountTextOf(0)).toBe('followed live · 0 entries');
   });
 });
 

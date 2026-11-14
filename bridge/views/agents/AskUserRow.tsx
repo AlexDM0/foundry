@@ -1,12 +1,15 @@
 /**
- * The Asks User strip under a job that waits on User's answer: the decision's id, its first question, the job it blocks, how long it has
- * been open, and Answer, a link to the Questions tab, which holds the answer form. The selected job's controls keep the text answer.
+ * The Asks User strip under a job that waits on User's answer, drawn as the orange "Your decision" card: the decision's id, its first
+ * question, the job it blocks, how long it has been open, and Answer, a link to the Questions tab, which holds the answer form. The
+ * selected job's controls keep the text answer.
  */
+import { Button } from 'design-system/Button';
+
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 import { AskItem }           from '../../conversation/AskItem.tsx';
-import { Button }            from '../../design-system/Button.tsx';
 import { HashRouter }        from '../../shell/HashRouter.ts';
 import { ElapsedTimeUtil }   from '../../utils/ElapsedTimeUtil.ts';
+import { StateToneUtil }     from '../../utils/StateToneUtil.ts';
 import type { JobAsk }       from './AgentsModel.ts';
 
 /** The lane colours of a job that waits on User, on its row, its strip and the Sessions tally. */
@@ -24,11 +27,11 @@ export function AskUserRow({
 }: AskUserRowProps) {
   const elapsed = ask.openedAt === null ? null : ElapsedTimeUtil.elapsedSinceText(ask.openedAt, now);
   return (
-    <tr className="agents-ask-row" data-state={ASKING_STATE}>
+    <tr className="agents-ask-row" data-state={ASKING_STATE} data-state-tone={StateToneUtil.toneOf(ASKING_STATE)}>
       <td colSpan={columnCount}>
         <AskItem
           layout="strip"
-          kind={{ text: 'Asks User', tone: 'state', state: ASKING_STATE }}
+          kind={{ text: 'Your decision', tone: 'state', state: ASKING_STATE }}
           decisionId={ask.decisionId}
           questionText={ask.questionText}
           meta={[`blocks ${jobId}`]}

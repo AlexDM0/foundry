@@ -3,6 +3,10 @@
  * messages it has not taken yet as queued bubbles; the composer's status; its open incidents; and the handled ones read back from the log
  * through `IncidentTrailUtil`, each with the moves, notes and escalations made under it.
  */
+import type { FlintPose }  from 'design-system/FlintSlot';
+import type { StampProps } from 'design-system/Stamp';
+import type { TagProps }   from 'design-system/Tag';
+
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 import type {
   ConversationBoardDocument,
@@ -13,9 +17,11 @@ import type {
 import type { ChatTurn }                         from '../../conversation/ChatThread.tsx';
 import type { ChatThreadItem, QueuedMessage }    from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                   from '../../conversation/ChatTurnWordingUtil.ts';
-import type { TagProps }                         from '../../design-system/Tag.tsx';
+import { OpenDecisionsUtil }                     from '../../conversation/OpenDecisionsUtil.ts';
 import { IncidentTrailUtil, type IncidentEntry } from '../../utils/IncidentTrailUtil.ts';
 import { JobStateUtil }                          from '../../utils/JobStateUtil.ts';
+import { StateToneUtil }                         from '../../utils/StateToneUtil.ts';
+import { TimeUtil }                              from '../../utils/TimeUtil.ts';
 
 /** The live Assistant job: its state, its API turns so far, its turn, and how many of User's messages it has not taken yet. */
 export interface AssistantJob {
@@ -29,9 +35,11 @@ export interface AssistantJob {
 
 export interface AssistantModel {
   /** `null` while no Assistant session is up: a fresh one is booting. */
-  readonly assistantJob:     AssistantJob | null;
-  readonly openIncidents:    readonly IncidentEntry[];
-  readonly settledIncidents: readonly IncidentEntry[];
+  readonly assistantJob:        AssistantJob | null;
+  readonly openIncidents:       readonly IncidentEntry[];
+  readonly settledIncidents:    readonly IncidentEntry[];
+  /** The open decisions the Assistant put to User: the ones its job asks, and the ones it escalated from an incident. */
+  readonly askingDecisionCount: number;
 }
 
 /** What a thread is worded against: the session's job, which a boot line names, and the viewer's day, which its stamps are shown against. */
@@ -50,21 +58,13 @@ const USER_SPEAKER = 'User';
 /** The palette row an Assistant turn's dot takes. */
 const ASSISTANT_TURN_STATE: DisplayState = 'reviewed';
 
-const QUEUED_TAG: TagProps = {
-  text: 'Queued until the Assistant is idle', tone: 'state', state: 'pending', dot: true
-};
+const QUEUED_TAG: TagProps = { text: 'Queued until the Assistant is idle', ...StateToneUtil.tagLookOf('pending'), dot: true };
 
-const BOOTING_TAG: TagProps = {
-  text: 'No session: a fresh one is booting', tone: 'state', state: 'pending', dot: true
-};
+const BOOTING_TAG: TagProps = { text: 'No session: a fresh one is booting', ...StateToneUtil.tagLookOf('pending'), dot: true };
 
 const TAG_OF_TURN: Readonly<Record<SessionTurnDocument, TagProps>> = {
-  'mid-turn': {
-    text: 'Busy: the next message queues', tone: 'state', state: 'in-progress', dot: true
-  },
-  'between-turns': {
-    text: 'Idle: a message sends now', tone: 'state', state: 'reviewed', dot: true
-  },
+  'mid-turn':      { text: 'Busy: the next message queues', ...StateToneUtil.tagLookOf('in-progress'), dot: true },
+  'between-turns': { text: 'Idle: a message sends now', ...StateToneUtil.tagLookOf('reviewed'), dot: true },
 };
 
 function assistantJobOf(job: SessionJobDocument): AssistantJob {
@@ -77,15 +77,39 @@ function liveAssistantOf(jobs: readonly SessionJobDocument[]): SessionJobDocumen
   return jobs.find((job) => job.kind === ASSISTANT_JOB_KIND && JobStateUtil.isUp(job.state)) ?? null;
 }
 
+function askingDecisionCountOf(board: ConversationBoardDocument, assistantJobId: string | null): number {
+  const escalatedIds = OpenDecisionsUtil.escalatedDecisionIdsOf(board.questionHistory ?? []);
+  return board.decisions.filter((decision) => escalatedIds.has(decision.id) || (assistantJobId !== null && decision.jobId === assistantJobId)).length;
+}
+
 function assistantModelOf(board: ConversationBoardDocument): AssistantModel {
   const history = board.questionHistory ?? [];
   const openIds = new Set(board.incidents.map((incident) => incident.id));
   const liveAssistant = liveAssistantOf(board.jobs);
   return {
-    assistantJob:     liveAssistant === null ? null : assistantJobOf(liveAssistant),
-    openIncidents:    IncidentTrailUtil.openIncidentEntriesOf(board.incidents, history),
-    settledIncidents: IncidentTrailUtil.settledIncidentEntriesOf(history, openIds),
+    assistantJob:        liveAssistant === null ? null : assistantJobOf(liveAssistant),
+    openIncidents:       IncidentTrailUtil.openIncidentEntriesOf(board.incidents, history),
+    settledIncidents:    IncidentTrailUtil.settledIncidentEntriesOf(history, openIds),
+    askingDecisionCount: askingDecisionCountOf(board, liveAssistant?.id ?? null),
   };
+}
+
+/** Flint waits while one of the Assistant's asks waits on User, and idles otherwise. */
+function flintPoseOf(model: Pick<AssistantModel, 'askingDecisionCount'>): FlintPose {
+  return model.askingDecisionCount > 0 ? 'waiting' : 'idle';
+}
+
+/** "1 decision waits on User", "2 decisions wait on User"; nothing while none waits. */
+function askingDecisionsTextOf(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1 ? '1 decision waits on User' : `${count} decisions wait on User`;
+}
+
+/** An incident step's stamp: the clock time on the viewer's day, the date before it on another, the full stamp on hover. */
+function stepStampOf(at: string | null, todayCalendarDate: string): StampProps | null {
+  const epochMilliseconds = TimeUtil.epochMillisecondsOf(at);
+  if (epochMilliseconds === null) return null;
+  return { shortText: TimeUtil.shortInstantText(epochMilliseconds, todayCalendarDate), fullText: TimeUtil.fullInstantText(epochMilliseconds), element: 'time' };
 }
 
 /**
@@ -142,5 +166,5 @@ function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts):
 }
 
 export const AssistantModelUtil = Object.freeze({
-  assistantModelOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
+  assistantModelOf, flintPoseOf, askingDecisionsTextOf, stepStampOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
 });

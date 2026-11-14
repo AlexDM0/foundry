@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import { GeometryUtil }                                                 from '../../utils/GeometryUtil.ts';
+import { StateToneUtil }                                                from '../../utils/StateToneUtil.ts';
 import type { TicketTimelineModel, TimelineBarModel, TimelineRowModel } from './TicketTimelineModel.ts';
 
 function percentText(percent: number): string {
@@ -19,15 +20,16 @@ function percentText(percent: number): string {
 function TimelineBar({ bar }: { readonly bar: TimelineBarModel }) {
   const placement = { left: percentText(bar.leftPercent), width: percentText(bar.widthPercent) };
   const live = bar.isLive ? '' : undefined;
+  const barStateAttributes = { 'data-state': bar.state ?? undefined, 'data-state-tone': StateToneUtil.optionalToneOf(bar.state) };
   switch (bar.kind) {
     case 'filed':
       return <div className="bridge-ticket-gantt-bar bridge-ticket-gantt-filed" style={placement} title={bar.title} />;
     case 'build':
-      return <div className="bridge-ticket-gantt-bar bridge-ticket-gantt-segment" data-state={bar.state ?? undefined} data-live={live} style={placement} title={bar.title} />;
+      return <div className="bridge-ticket-gantt-bar bridge-ticket-gantt-segment" {...barStateAttributes} data-live={live} style={placement} title={bar.title} />;
     case 'lifecycle':
-      return <div className="bridge-ticket-gantt-bar bridge-ticket-gantt-lifecycle" data-state={bar.state ?? undefined} style={placement} title={bar.title}>{bar.label}</div>;
+      return <div className="bridge-ticket-gantt-bar bridge-ticket-gantt-lifecycle" {...barStateAttributes} style={placement} title={bar.title}>{bar.label}</div>;
     default:
-      return <div className="bridge-ticket-gantt-bar" data-state={bar.state ?? undefined} data-live={live} style={placement} title={bar.title} />;
+      return <div className="bridge-ticket-gantt-bar" {...barStateAttributes} data-live={live} style={placement} title={bar.title} />;
   }
 }
 
@@ -66,7 +68,7 @@ function useCoveredTickLabels(model: TicketTimelineModel): { ticks: RefObject<HT
 export function TicketTimeline({ model }: { readonly model: TicketTimelineModel }) {
   const { ticks, covered } = useCoveredTickLabels(model);
   const { end } = model;
-  const endState = end.closedState ?? undefined;
+  const endStateAttributes = { 'data-state': end.closedState ?? undefined, 'data-state-tone': StateToneUtil.optionalToneOf(end.closedState) };
   return (
     <>
       <div className="bridge-ticket-gantt">
@@ -84,7 +86,7 @@ export function TicketTimeline({ model }: { readonly model: TicketTimelineModel 
                 <span>{tick.label}</span>
               </div>
             ))}
-            <span className="bridge-ticket-gantt-end-label" data-state={endState} style={{ left: percentText(end.leftPercent) }}>{end.label}</span>
+            <span className="bridge-ticket-gantt-end-label" {...endStateAttributes} style={{ left: percentText(end.leftPercent) }}>{end.label}</span>
           </div>
         </div>
         <div className="bridge-ticket-gantt-body">
@@ -92,7 +94,7 @@ export function TicketTimeline({ model }: { readonly model: TicketTimelineModel 
             {model.ticks.map((tick) => (
               <div key={`${tick.label}:${String(tick.leftPercent)}`} className="bridge-ticket-gantt-grid-line" style={{ left: percentText(tick.leftPercent) }} />
             ))}
-            <div className="bridge-ticket-gantt-end" data-state={endState} style={{ left: percentText(end.leftPercent) }} />
+            <div className="bridge-ticket-gantt-end" {...endStateAttributes} style={{ left: percentText(end.leftPercent) }} />
           </div>
           {model.rows.map((row) => <TimelineRow key={row.key} row={row} />)}
         </div>
@@ -100,7 +102,7 @@ export function TicketTimeline({ model }: { readonly model: TicketTimelineModel 
       <ul className="bridge-ticket-gantt-legend" aria-label="Time spent in each state">
         {model.legend.map((entry) => (
           <li key={entry.label}>
-            <span className="bridge-ticket-gantt-swatch" data-state={entry.state} />
+            <span className="bridge-ticket-gantt-swatch" data-state={entry.state} data-state-tone={StateToneUtil.toneOf(entry.state)} />
             <b>{entry.label}</b>
             <time>{entry.durationText}</time>
           </li>

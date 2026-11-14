@@ -4,6 +4,7 @@
  */
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 
+import { StateToneUtil }                                from '../../utils/StateToneUtil.ts';
 import type { SubagentSquares as SubagentSquaresFacts } from './AgentsModel.ts';
 
 export interface SubagentSquaresProps extends SubagentSquaresFacts {
@@ -16,7 +17,7 @@ export function SubagentSquares({
 }: SubagentSquaresProps) {
   if (squares.length === 0) return <span className="agents-subagents-figure">{figureText}</span>;
   return (
-    <div className="agents-subagents" data-state={state}>
+    <div className="agents-subagents" data-state={state} data-state-tone={StateToneUtil.toneOf(state)}>
       <span className="agents-subagent-squares" role="img" aria-label={ariaLabel}>
         {squares.map((square) => (
           <span key={square.key} className="agents-subagent-square" data-running={square.running ? '' : undefined} title={square.titleText} />

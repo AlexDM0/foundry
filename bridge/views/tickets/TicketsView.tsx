@@ -1,8 +1,13 @@
 /**
- * The Tickets view: its head (title, count, Group by epic), the toolbar (search, the type, epic and status chips), and the sortable table
- * of `TicketsModel`, a click, Enter or Space on a row opening its row form in the detail panel. The search and the chips live in the view;
- * the grouping by epic is kept per board.
+ * The Tickets view: its title row (the count and what the finished-work choice hides), the toolbar card (search, the type, epic and status
+ * chips, Group by epic), and the table card of `TicketsModel`, a click, Enter or Space on a row opening its row form in the detail panel.
+ * The search and the chips live in the view; the grouping by epic is kept per board.
  */
+
+import { Button }       from 'design-system/Button';
+import { SegmentMeter } from 'design-system/SegmentMeter';
+import { StateBadge }   from 'design-system/StateBadge';
+import { TextButton }   from 'design-system/TextButton';
 import {
   useRef,
   useState,
@@ -17,9 +22,6 @@ import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.
 import { EpicChips }                             from '../../chips/EpicChips.tsx';
 import { FilterChipGroup }                       from '../../chips/FilterChipGroup.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
-import { TextButton }                            from '../../design-system/Button.tsx';
-import { SegmentMeter }                          from '../../design-system/Meter.tsx';
-import { StateBadge }                            from '../../design-system/StateBadge.tsx';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                        from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                           from '../../shell/DetailRoute.ts';
@@ -27,6 +29,8 @@ import { useDetailRouting }                      from '../../shell/DetailRouting
 import { useFinishedWorkWindow }                 from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                            from '../../shell/HashRouter.ts';
 import type { MatchPiece }                       from '../../utils/SearchMatchUtil.ts';
+import { StateToneUtil }                         from '../../utils/StateToneUtil.ts';
+import { ViewTitle }                             from '../ViewTitle.tsx';
 import {
   DEFAULT_TICKET_VIEW,
   TICKET_GROUPING_CHOICE_NAME,
@@ -75,6 +79,14 @@ function BranchIcon() {
   );
 }
 
+function GroupIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <path d="M2.5 4h11M5 8h8.5M5 12h8.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SearchIcon() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -111,6 +123,7 @@ function TicketRow({
       className="bridge-ticket-row"
       data-ticket-id={row.ticketId}
       data-state={row.stateToken}
+      data-state-tone={StateToneUtil.toneOf(row.stateToken)}
       data-selected={routing.isOpen(detailItem) ? '' : undefined}
       data-changed={isChanged ? '' : undefined}
       tabIndex={0}
@@ -123,7 +136,7 @@ function TicketRow({
       <td className="bridge-ticket-mono">
         <a href={routing.openerHrefOf(detailItem)}>{row.idText}</a>
       </td>
-      <td>
+      <td className="bridge-ticket-title">
         <MatchedText pieces={row.titlePieces} />
         {row.priority === 'low' ? ' ' : null}
         {row.priority === null ? null : <PriorityMark priority={row.priority} />}
@@ -146,7 +159,7 @@ function TicketRow({
         : null}
       <td><TypeMark type={row.ticketType} /></td>
       <td>
-        <StateBadge state={row.stateToken} label={row.stateLabel} />
+        <StateBadge {...StateToneUtil.lookOf(row.stateToken)} label={row.stateLabel} palette="quiet" fitted />
         {row.pauseText === null ? null : <span className="bridge-ticket-pause" title={row.pauseTitle ?? undefined}>{row.pauseText}</span>}
       </td>
       <td className="bridge-ticket-mono"><MatchedText pieces={row.branchPieces} /></td>
@@ -172,7 +185,7 @@ function EpicHeadRow({ head, columnCount }: { readonly head: TicketEpicHeadModel
                   <span className="bridge-epic-swatch" aria-hidden="true" />
                   {head.epic.title}
                 </a>
-                <SegmentMeter label={head.rollupLabel} segments={head.segments} />
+                <div className="bridge-ticket-epic-meter"><SegmentMeter label={head.rollupLabel} segments={head.segments} /></div>
                 <span className="bridge-ticket-epic-done">{head.doneText}</span>
                 <span className="bridge-ticket-epic-facts">
                   {head.facts.map((fact) => (
@@ -223,48 +236,58 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
     searchInput.current?.focus();
   };
 
+  const hiddenWorkText = TicketsModel.hiddenWorkTextOf(finishedWorkWindow.choice, model.narrows);
+
   return (
     <section className="bridge-tickets" aria-label="Tickets">
-      <div className="bridge-tickets-head">
-        <span className="bridge-tickets-title">Tickets</span>
-        <span className="bridge-tickets-count" aria-live="polite">{model.countText}</span>
-        {model.showsEpics
-          ? (
-            <div className="bridge-segments bridge-tickets-grouping">
-              <button type="button" aria-pressed={groupedByEpic} title="Group the table by epic, each with its roll-up" onClick={toggleGrouping}>Group by epic</button>
-            </div>
-          )
-          : null}
-      </div>
+      <ViewTitle
+        title="Tickets"
+        lead={(
+          <>
+            <span aria-live="polite">{model.countText}</span>
+            {hiddenWorkText === null ? '.' : `. ${hiddenWorkText}`}
+          </>
+        )}
+      />
       <div className="bridge-tickets-toolbar" role="search">
-        <div className="bridge-search">
-          <SearchIcon />
-          <input
-            ref={searchInput}
-            type="search"
-            className="bridge-search-input"
-            aria-label="Search tickets"
-            placeholder="Search id, title, epic, branch, group, text"
-            spellCheck={false}
-            autoComplete="off"
-            value={shownView.searchText}
-            onChange={(event) => setView({ ...shownView, searchText: event.target.value })}
-          />
+        <div className="bridge-tickets-toolbar-line">
+          <label className="bridge-search">
+            <SearchIcon />
+            <input
+              ref={searchInput}
+              type="search"
+              className="bridge-search-input"
+              aria-label="Search tickets"
+              placeholder="Search id, title, epic, branch, group, text"
+              spellCheck={false}
+              autoComplete="off"
+              value={shownView.searchText}
+              onChange={(event) => setView({ ...shownView, searchText: event.target.value })}
+            />
+          </label>
+          <FilterChipGroup label="Type" labelIsShown chips={model.typeChips} pressed={shownView.typeChips} countByChip={model.countByChip.type} onToggle={toggleType} />
+          {model.showsEpics
+            ? <FilterChipGroup label="Epic" labelIsShown chips={model.epicChips} pressed={shownView.epicChips} countByChip={model.countByChip.epic} onToggle={toggleEpic} />
+            : null}
+          {model.narrows ? <TextButton label="Clear search and filters" onPress={clear} /> : null}
         </div>
-        <FilterChipGroup label="Type" labelIsShown chips={model.typeChips} pressed={shownView.typeChips} countByChip={model.countByChip.type} onToggle={toggleType} />
-        {model.showsEpics
-          ? <FilterChipGroup label="Epic" labelIsShown chips={model.epicChips} pressed={shownView.epicChips} countByChip={model.countByChip.epic} onToggle={toggleEpic} />
-          : null}
-        {model.narrows ? <TextButton label="Clear search and filters" onPress={clear} /> : null}
-        <FilterChipGroup
-          label="Status"
-          labelIsShown
-          startsOwnLine
-          chips={model.statusChips}
-          pressed={shownView.statusChips}
-          countByChip={model.countByChip.status}
-          onToggle={toggleStatus}
-        />
+        <div className="bridge-tickets-toolbar-line">
+          <FilterChipGroup
+            label="Status"
+            labelIsShown
+            chips={model.statusChips}
+            pressed={shownView.statusChips}
+            countByChip={model.countByChip.status}
+            onToggle={toggleStatus}
+          />
+          {model.showsEpics
+            ? (
+              <span className="bridge-tickets-grouping">
+                <Button compact label="Group by epic" leading={<GroupIcon />} pressed={groupedByEpic} onPress={toggleGrouping} />
+              </span>
+            )
+            : null}
+        </div>
       </div>
       <div className="bridge-tickets-scroll">
         <table className="bridge-tickets-table">

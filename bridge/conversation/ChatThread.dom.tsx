@@ -66,7 +66,7 @@ describe('the chat thread', () => {
 
   test('a system line reveals the text it stands for only on User\'s ask, and hides it again', () => {
     const { container } = renderedThread([BOOT_LINE]);
-    expect([container.querySelector('.bridge-chat-system-text'), container.querySelector('.bridge-chat-system .bridge-stamp')?.textContent]).toEqual([null, '14:02:08']);
+    expect([container.querySelector('.bridge-chat-system-text'), container.querySelector('.bridge-chat-system .design-system-stamp')?.textContent]).toEqual([null, '14:02:08']);
     fireEvent.click(screen.getByRole('button', { name: 'Show prompt' }));
     expect(container.querySelector('.bridge-chat-system-text')?.textContent).toBe('You are the Assistant of Example Storefront.');
     fireEvent.click(screen.getByRole('button', { name: 'Hide prompt' }));
@@ -83,9 +83,9 @@ describe('the chat thread', () => {
     const who = container.querySelector('.bridge-chat-who');
     expect([
       who?.getAttribute('data-state'),
-      who?.querySelector('.bridge-lane-dot')?.getAttribute('aria-hidden'),
+      who?.querySelector('.design-system-state-dot')?.getAttribute('aria-hidden'),
       who?.textContent,
-      who?.querySelector('.bridge-stamp')?.getAttribute('title'),
+      who?.querySelector('.design-system-stamp')?.getAttribute('title'),
       container.querySelector('.bridge-tool-fold-names')?.textContent,
       container.querySelector('.bridge-chat-prose')?.textContent,
     ]).toEqual(['reviewed', 'true', 'Assistant14:05:31', '2026-11-09 14:05:31', 'Bash', 'J4 is not hung.\nIt runs the snapshot suite.']);
@@ -96,7 +96,7 @@ describe('the chat thread', () => {
       ...CLOSED_AGENT_TURN, stamp: null, workingText: 'working', toolUse: null, prose: '',
     }]);
     expect([
-      container.querySelector('.bridge-chat-who .bridge-stamp'),
+      container.querySelector('.bridge-chat-who .design-system-stamp'),
       container.querySelector('.bridge-chat-working')?.textContent,
       container.querySelector('.bridge-tool-fold'),
       container.querySelector('.bridge-chat-prose'),
@@ -110,7 +110,7 @@ describe('the chat thread', () => {
       container.querySelector('.bridge-chat-pictures')?.textContent,
       container.querySelector('.bridge-chat-bubble')?.textContent,
       container.querySelector('.bridge-chat-bubble')?.hasAttribute('data-queued'),
-      container.querySelector('.bridge-tag'),
+      container.querySelector('.design-system-tag'),
     ]).toEqual(['User·14:06:40·1 picture', 'Example picture', 'Why did #001 restart twice?', false, null]);
   });
 
@@ -119,12 +119,12 @@ describe('the chat thread', () => {
       ...USER_TURN,
       text:   'Hold #008 until #007 lands.',
       queued: {
-        text: 'Queued until the Assistant is idle', tone: 'state', state: 'pending', dot: true
+        text: 'Queued until the Assistant is idle', tone: 'state', stateTone: 'neutral', dot: true
       },
     }]);
-    const tag = container.querySelector('.bridge-tag');
-    expect([container.querySelector('.bridge-chat-bubble')?.hasAttribute('data-queued'), tag?.textContent, tag?.getAttribute('data-state')])
-      .toEqual([true, 'Queued until the Assistant is idle', 'pending']);
+    const tag = container.querySelector('.design-system-tag');
+    expect([container.querySelector('.bridge-chat-bubble')?.hasAttribute('data-queued'), tag?.textContent, tag?.getAttribute('data-state-tone')])
+      .toEqual([true, 'Queued until the Assistant is idle', 'neutral']);
   });
 
   test('agent prose, User\'s text and a revealed prompt are text, never markup', () => {

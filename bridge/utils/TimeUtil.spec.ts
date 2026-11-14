@@ -17,7 +17,6 @@ const {
   fullStampText,
   monthAndDayOf,
   monthDayAndClockText,
-  rangeEndsText,
   secondsClockText,
   shortInstantText,
   shortStampText,
@@ -132,16 +131,6 @@ describe('the local clock and month-day of a moment', () => {
   });
 });
 
-describe('rangeEndsText', () => {
-  test('a range within one local day shows only its two clock times', () => {
-    expect(rangeEndsText(new Date(2026, 9, 25, 0, 0).getTime(), new Date(2026, 9, 25, 23, 59).getTime())).toBe('00:00 → 23:59');
-  });
-
-  test('a range whose ends fall on different local days dates both ends, even one minute across midnight', () => {
-    expect(rangeEndsText(new Date(2026, 9, 24, 23, 59).getTime(), new Date(2026, 9, 25, 0, 0).getTime())).toBe('10-24 23:59 → 10-25 00:00');
-    expect(rangeEndsText(new Date(2026, 9, 23, 16, 42).getTime(), new Date(2026, 9, 25, 0, 20).getTime())).toBe('10-23 16:42 → 10-25 00:20');
-  });
-});
 
 describe('formatDuration', () => {
   test.each<[number, string]>([

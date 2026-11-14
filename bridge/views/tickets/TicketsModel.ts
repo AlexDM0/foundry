@@ -20,7 +20,7 @@ import type { FilterChip }                                             from '../
 import { ChangeHighlightUtil }                                         from '../../utils/ChangeHighlightUtil.ts';
 import { DisplayStateWordingUtil }                                     from '../../utils/DisplayStateWordingUtil.ts';
 import { EpicRollupUtil, type EpicRollupFact, type EpicRollupSegment } from '../../utils/EpicRollupUtil.ts';
-import { FinishedWorkUtil }                                            from '../../utils/FinishedWorkUtil.ts';
+import { FinishedWorkUtil, type FinishedWorkChoice }                   from '../../utils/FinishedWorkUtil.ts';
 import { HtmlTextUtil }                                                from '../../utils/HtmlTextUtil.ts';
 import { SearchMatchUtil, type MatchPiece }                            from '../../utils/SearchMatchUtil.ts';
 import { TimeUtil }                                                    from '../../utils/TimeUtil.ts';
@@ -323,7 +323,7 @@ function activeFiltersPhrase(view: TicketView, epicLabelOf: (chip: string) => st
 }
 
 function countTextOf(shownCount: number, tickets: readonly TicketsTicketDocument[]): string {
-  if (tickets.length === 0) return 'no tickets';
+  if (tickets.length === 0) return 'No tickets';
   const inProgressCount = tickets.filter((ticket) => ticket.status === 'in-progress').length;
   const total = `${shownCount} of ${tickets.length} ticket${tickets.length === 1 ? '' : 's'}`;
   return inProgressCount === 0 ? total : `${total} · ${inProgressCount} in progress`;
@@ -401,6 +401,12 @@ function ticketsModelOf(state: TicketsBoardState, requestedView: TicketView, gro
   };
 }
 
+/** The lead's second sentence: which closed tickets the finished-work choice hides; `null` while nothing is hidden, as a search shows every ticket. */
+function hiddenWorkTextOf(choice: FinishedWorkChoice, narrows: boolean): string | null {
+  if (narrows || choice === 'all') return null;
+  return `Closed tickets not finished ${FinishedWorkUtil.windowPhraseOf(choice)} are hidden. Search to see every ticket.`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -434,6 +440,7 @@ function ticketsBoardStateOf(document: unknown): TicketsBoardState | null {
 export const TicketsModel = Object.freeze({
   boardTicketsOf,
   ticketsModelOf,
+  hiddenWorkTextOf,
   ticketsBoardStateOf,
   viewSortedBy,
   viewCleared,

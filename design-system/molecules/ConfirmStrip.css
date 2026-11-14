@@ -1,0 +1,15 @@
+.design-system-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+/* The danger strip is a card in the error colours: its question, the consequence under it, then its actions. */
+.design-system-confirm[data-tone="danger"] {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--err-ink); background: var(--err-tint);
+  border: 1px solid var(--err-edge); border-radius: var(--r-2);
+  font-size: var(--fs-tab);
+}
+
+/* An action confirmed in place: the neutral strip reads as one line of text before its actions. */
+.design-system-confirm-text { min-width: 0; }
+.design-system-confirm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.design-system-confirm[data-tone="danger"] .design-system-confirm-question { font-weight: 600; }
+.design-system-confirm[data-tone="danger"] .design-system-confirm-consequence { display: block; margin: var(--space-2) 0 var(--sp-2); }

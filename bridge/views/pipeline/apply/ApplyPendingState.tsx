@@ -1,16 +1,18 @@
 /**
  * A pending Apply inside the apply dialogs (A4, A6b): the commit of `CONSTITUTION.md` under way with a busy ring, or the reason it holds
  * or was refused with what User can do next. After a signing failure, "View CONSTITUTION.md" opens the exact text User may commit by hand.
- * The foot under it is the dialogs' shared one: Cancel and Apply with no pending request, Cancel apply while one is pending, and Apply
- * again beside it once the request was refused; each command's refusal shows verbatim beside its button.
+ * The foot under it is the dialogs' shared one: Cancel (or Back) on the start side and Apply on the end with no pending request, Cancel
+ * apply while one is pending, and Apply again beside it once the request was refused; each command's refusal shows verbatim beside its
+ * button.
  */
-import { useState } from 'react';
+
+import { BusyIndicator } from 'design-system/BusyIndicator';
+import { Button }        from 'design-system/Button';
+import { Dialog }        from 'design-system/Dialog';
+import { useState }      from 'react';
 
 import type { ApplyStateFacts }    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ControlCommandBody } from '../../../api/CommandClient.ts';
-import { BusyIndicator }           from '../../../design-system/BusyIndicator.tsx';
-import { Button }                  from '../../../design-system/Button.tsx';
-import { Dialog }                  from '../../../design-system/Dialog.tsx';
 import { CommandButton }           from '../../../shell/CommandButton.tsx';
 import { ApplyPendingStateModel }  from './ApplyPendingStateModel.ts';
 
@@ -74,10 +76,10 @@ export function ApplyFoot({
   const offersApply = applyState === null || ApplyPendingStateModel.pendingViewOf(applyState).offersApplyAgain;
   return (
     <div className="bridge-pipeline-dialog-foot-row">
-      <span className="bridge-pipeline-dialog-foot-gap" />
       {applyState === null
         ? <Button label={closeLabel} onPress={onClose} />
         : <CommandButton label="Cancel apply" command={ApplyPendingStateModel.cancelCommandOf(setupId)} />}
+      <span className="bridge-pipeline-dialog-foot-gap" />
       {offersApply
         ? (
           <CommandButton

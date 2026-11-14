@@ -5,6 +5,11 @@
  * line and Enter in the since field close it and hand the focus back to the line, a click or focus outside only closes it. Its Esc is
  * caught before the detail panel's, which then stays open: one Esc closes one thing.
  */
+
+import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
+import { Popover }          from 'design-system/Popover';
+import { SegmentedControl } from 'design-system/SegmentedControl';
+import { TextButton }       from 'design-system/TextButton';
 import {
   useCallback,
   useEffect,
@@ -15,10 +20,6 @@ import {
 } from 'react';
 
 import type { EpicRollupDocument, PageTicketDocument } from '../@types/BoardStateDocument.ts';
-import { TextButton }                                  from '../design-system/Button.tsx';
-import { MicroCapsLabel }                              from '../design-system/MicroCapsLabel.tsx';
-import { Popover }                                     from '../design-system/Popover.tsx';
-import { SegmentedControl }                            from '../design-system/SegmentedControl.tsx';
 import type { PreferenceStore }                        from '../preferences/PreferenceStore.ts';
 import {
   DEFAULT_FINISHED_WORK_CHOICE,
@@ -28,7 +29,8 @@ import {
   type FinishedWorkChoice,
   type FinishedWorkSpan
 } from '../utils/FinishedWorkUtil.ts';
-import { TimeUtil, type DurationUnits } from '../utils/TimeUtil.ts';
+import { TimeUtil, type DurationUnits }     from '../utils/TimeUtil.ts';
+import { useEndPlacementOrStartWhenNarrow } from './NarrowWindowPlacement.ts';
 
 /** The board's stored choice, written back on every change; with no store yet, the default, kept in memory. */
 export function useFinishedWorkChoice(boardStore: PreferenceStore | null): [FinishedWorkChoice, (choice: FinishedWorkChoice) => void] {
@@ -92,6 +94,7 @@ export function FinishedWorkFilter({
   choice, onChoice, tickets, epics, counted, nowEpochMilliseconds, durationUnits, tabSections = null, lineEpic = null, onResetTabFilters
 }: FinishedWorkFilterProps) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const menuPlacement = useEndPlacementOrStartWhenNarrow();
   const [typedSince, setTypedSince] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const sinceFieldId = useId();
@@ -184,7 +187,7 @@ export function FinishedWorkFilter({
         isOpen={menuIsOpen}
         onDismiss={(reason) => closeMenu(reason === 'escape')}
         anchorRef={filter}
-        placement="below-end"
+        placement={menuPlacement}
         width="menu"
       >
         <section className="bridge-filter-section">

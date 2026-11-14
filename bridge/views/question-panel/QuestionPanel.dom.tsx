@@ -1,9 +1,10 @@
 /**
  * The question panel against fake controls, a fake transcript follower and an in-memory board store, driven through the shell's own state
- * hook. What matters: an open agent question shows the panel headed by its asker, id and open-since clock; options show exactly as asked
- * with their consequences only when noted; Answer posts `decision-answer` with the chosen letter, or User's own words on a decision of one
- * question, and shows a refusal verbatim, disabled while the stream is down; Fold and × hide the panel until a decision opens that was not
- * open at the fold, the fold outlives a reload, and a panel User opened hands the focus back to its opener as it closes; Next question
+ * hook. What matters: an open agent question shows the panel headed by its asker, id and open-since clock; the question waits in the
+ * orange decision card with the one Flint slot; options show as asked, the agent's recommendation a pill beside the label, with their
+ * consequences only when noted; Answer posts `decision-answer` with the chosen letter, or User's own words on a decision of one question,
+ * and shows a refusal verbatim, disabled while the stream is down; Fold and × hide the panel until a decision opens that was not open at
+ * the fold, the fold outlives a reload, and a panel User opened hands the focus back to its opener as it closes; Next question
  * moves along the queue and starts with nothing chosen, and the queue line keeps its whole text on hover; a code-opened decision has no
  * conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form, and one a later board drops
  * falls back to the background; the steps are the followed transcript's last top-level calls with the question current; earlier answers
@@ -174,10 +175,31 @@ describe('the head', () => {
 });
 
 describe('the options and the answer', () => {
-  test('options show label and description exactly as asked, and Touches, Trade-off and Acceptance only where noted', () => {
+  test('the decision card holds Flint, "Your decision" with the header, and the question that labels the options', () => {
+    renderPanel();
+    const flint = within(panel()).getByRole('img', { name: 'Flint, the agent that asks' });
+    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground'), flint.getAttribute('data-flint-pose')]).toEqual(['84', 'decision', 'waiting']);
+    const decisionCard = flint.closest('.design-system-card');
+    expect(decisionCard?.getAttribute('data-ground')).toBe('decision');
+    expect(decisionCard?.textContent).toBe('Your decision · TokensWhere should the account pages\' dark-mode colours live?');
+    expect(within(panel()).getByRole('group', { name: 'Where should the account pages\' dark-mode colours live?' })).toBeDefined();
+    expect(panel().querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+  });
+
+  test('a decision of several questions counts them in the decision card and heads each question with its own text', () => {
+    renderPanel({ board: exampleQuestionPanelBoard({ decisions: [TWO_QUESTION_DECISION] }) });
+    const decisionCard = within(panel()).getByRole('img', { name: 'Flint, the agent that asks' }).closest('.design-system-card');
+    expect(decisionCard?.textContent).toBe('Your decision2 questions from J2');
+    expect(within(panel()).getByRole('group', { name: /Which store\?$/u })).toBeDefined();
+  });
+
+  test('options show label and description as asked, the recommendation a pill beside the label, and consequences only where noted', () => {
     renderPanel();
     const [recommended, scoped, system] = within(panel()).getAllByRole('radio').map((radio) => radio.closest('label') as HTMLElement);
-    expect(recommended?.textContent).toContain('Extend the shared theme tokens (Recommended)');
+    expect(within(panel()).getByRole('radio', { name: 'a. Extend the shared theme tokens' })).toBeDefined();
+    expect(recommended?.textContent).not.toContain('(Recommended)');
+    expect(recommended?.querySelector('.design-system-choice-mark[data-mark="recommended"]')?.textContent).toBe('Recommended');
+    expect(scoped?.querySelector('.design-system-choice-mark')).toBeNull();
     expect(within(recommended as HTMLElement).getByText('src/theme/tokens.css').className).toBe('bridge-path');
     expect([...(recommended as HTMLElement).querySelectorAll('dt')].map((term) => term.textContent)).toEqual(['Touches', 'Trade-off', 'Acceptance']);
     expect(scoped?.querySelector('dl')).toBeNull();
@@ -322,7 +344,7 @@ describe('the background', () => {
     rendered.feed('J4', ASKING_TRANSCRIPT);
     const steps = within(panel()).getByRole('list', { name: 'The last tool calls of J4' });
     const lines = [...steps.querySelectorAll('li')];
-    expect(lines.map((line) => line.querySelector('.bridge-keyed-line-key')?.textContent)).toEqual(['Read', 'Grep', 'Read', 'Bash', 'Glob', 'AskUserQuestion']);
+    expect(lines.map((line) => line.querySelector('.design-system-keyed-line-key')?.textContent)).toEqual(['Read', 'Grep', 'Read', 'Bash', 'Glob', 'AskUserQuestion']);
     expect(lines.at(-1)?.getAttribute('data-mark')).toBe('current');
     expect(lines.at(-1)?.textContent).toContain('E7, waiting on User');
     expect(within(panel()).getByRole('button', { name: 'All 38 calls in the J4 conversation' })).toBeDefined();
@@ -379,9 +401,9 @@ describe('beside the detail panel', () => {
     const rendered = renderPanel();
     rendered.rerender(exampleQuestionPanelBoard(), true);
     expect(panelIsShown()).toBe(false);
-    expect(document.querySelector('.bridge-question-panel[hidden] .bridge-side-panel')).not.toBeNull();
+    expect(document.querySelector('.bridge-question-panel[hidden] .design-system-side-panel')).not.toBeNull();
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(document.querySelector('.bridge-question-panel[hidden] .bridge-side-panel')).not.toBeNull();
+    expect(document.querySelector('.bridge-question-panel[hidden] .design-system-side-panel')).not.toBeNull();
     rendered.rerender(exampleQuestionPanelBoard(), false);
     expect(panel().closest('.bridge-question-panel')?.hasAttribute('hidden')).toBe(false);
     fireEvent.keyDown(document, { key: 'Escape' });

@@ -1,0 +1,8 @@
+/* The head of a section: a micro-caps title, a count apart at its end, then the caller's parts; inline, one baseline, the count after the title. */
+.design-system-section-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); min-height: 26px; }
+.design-system-section-count {
+  margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4);
+}
+.design-system-section-head[data-inline] { align-items: baseline; }
+.design-system-section-head[data-inline] > .design-system-section-count { margin-left: 0; }
+.design-system-section-head .design-system-id-link { font-size: var(--fs-small); }

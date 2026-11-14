@@ -1,0 +1,16 @@
+/* A state's dot in its shape: a solid dot, a ring or a dashed ring; 8px, small 7px, tiny 6px. */
+.design-system-state-dot {
+  flex: none;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+.design-system-state-dot[data-size="small"] { width: 7px; height: 7px; }
+.design-system-state-dot[data-size="tiny"] { width: 6px; height: 6px; }
+
+.design-system-state-dot[data-state-tone] { background: var(--s-fill); }
+.design-system-state-dot[data-shape="dashed-ring"] { background: transparent; border: 1.5px dashed var(--s-fill); }
+.design-system-state-dot[data-shape="ring"] { background: transparent; border: 1.5px solid var(--s-fill); }

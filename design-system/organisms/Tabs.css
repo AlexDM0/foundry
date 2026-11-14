@@ -1,0 +1,44 @@
+/* A row of tabs: the selected one in ink at weight 600 over a 2px ink underline, the others ink-muted. The underline overlaps the 1px rule
+   a holder draws under the row. Page tabs are the tab bar's 40px row of tab-size words; section tabs sit in a panel, 38px as links and
+   30px as a switch. */
+.design-system-tabs { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-20); }
+.design-system-tab {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--space-6); box-sizing: border-box;
+  height: 38px; margin-bottom: -1px; padding: 0;
+  font: 500 var(--fs-body)/1 var(--font-ui);
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: var(--feedback-transition);
+}
+.design-system-tab:hover { color: var(--ink); text-decoration: none; }
+.design-system-tab[aria-current="page"], .design-system-tab[aria-selected="true"] { font-weight: 600; color: var(--ink); }
+.design-system-tab:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* Drawn over the tab's transparent bottom border, so the underline and the border take the same 2px. */
+.design-system-tab::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-base) var(--ease-out);
+}
+.design-system-tab[aria-current="page"]::after, .design-system-tab[aria-selected="true"]::after { transform: scaleX(1); }
+/* A switch's tabs are buttons drawn as the links are. */
+button.design-system-tab { background: transparent; border-width: 0 0 2px; border-style: solid; border-color: transparent; cursor: pointer; }
+.design-system-tabs[data-mode="switch"] { gap: var(--space-18); }
+.design-system-tabs[data-mode="switch"] .design-system-tab { height: 30px; font-weight: 400; }
+.design-system-tabs[data-mode="switch"] .design-system-tab[aria-selected="true"] { font-weight: 600; }
+/* The tab bar's view tabs: a 40px row of tab-size words. */
+.design-system-tabs[data-size="page"] { gap: var(--space-22); }
+.design-system-tabs[data-size="page"] .design-system-tab { gap: var(--space-7); height: 40px; font-size: var(--fs-tab); font-weight: 400; }
+.design-system-tabs[data-size="page"] .design-system-tab[aria-current="page"],
+.design-system-tabs[data-size="page"] .design-system-tab[aria-selected="true"] { font-weight: 600; }
+@media (max-width: 480px) {
+  .design-system-tabs, .design-system-tabs[data-size="page"] { gap: var(--sp-3); }
+}

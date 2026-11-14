@@ -24,7 +24,7 @@ import type { BoardStateDocument }                        from '../../../@types/
 import type { ProfileOutputLine }                         from '../../../api/ProfileStreamClient.ts';
 import { clickSettled, fakeControls }                     from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import type { FlowOpenRequest }                           from '../flow/PipelineFlow.tsx';
+import type { FlowOpenRequest }                           from '../flow/PipelineFlowModel.ts';
 import type { GatesOpenRequest }                          from '../gates/GatesAreaModel.ts';
 import { PipelineDialogs }                                from './PipelineDialogs.tsx';
 import type { ProfileLogFollower }                        from './ProfileBox.tsx';
@@ -100,7 +100,7 @@ describe('the form', () => {
 
   test('the kicker names the phase, the place and the mark; the command is focused', () => {
     renderDialog('A2', TYPECHECK_REQUEST);
-    expect(dialog().querySelector('.bridge-dialog-kicker')?.textContent).toBe('Build gate 1 · proposed');
+    expect(dialog().querySelector('.design-system-dialog-kicker')?.textContent).toBe('Build gate 1 · proposed');
     expect(document.activeElement).toBe(within(dialog()).getByRole('textbox', { name: 'Command' }));
   });
 
@@ -114,6 +114,15 @@ describe('the form', () => {
     });
   });
 
+  test('the fix command says the builder runs it, and the network line follows the switch', () => {
+    renderDialog('A2', TYPECHECK_REQUEST);
+    expect(within(dialog()).getByRole('textbox', { name: 'Fix command · the builder runs it first' })).toBeDefined();
+    const network = within(dialog()).getByRole('switch', { name: 'Network' });
+    const wasOn = network.getAttribute('aria-checked') === 'true';
+    act(() => network.click());
+    expect(within(dialog()).getByText(wasOn ? 'Off · no network' : 'On · only the domains below')).toBeDefined();
+  });
+
   test('Remove gate sends value null', async () => {
     const { controls } = renderDialog('A2', TYPECHECK_REQUEST);
     await clickSettled(button('Remove gate'));
@@ -122,9 +131,9 @@ describe('the form', () => {
 
   test('the prepare variant has no phases and no fix command, and removes the step', async () => {
     const { controls } = renderDialog('A2', { kind: 'prepare-step', name: 'install' });
-    expect(dialog().querySelector('.bridge-dialog-kicker')?.textContent).toBe('Prepare step · proposed');
+    expect(dialog().querySelector('.design-system-dialog-kicker')?.textContent).toBe('Prepare step · proposed');
     expect(within(dialog()).queryByRole('group', { name: 'Phases' })).toBeNull();
-    expect(within(dialog()).queryByRole('textbox', { name: 'Fix command, for the builder' })).toBeNull();
+    expect(within(dialog()).queryByRole('textbox', { name: 'Fix command · the builder runs it first' })).toBeNull();
     expect(within(dialog()).queryByRole('region', { name: 'Profile' })).toBeNull();
     await clickSettled(button('Remove prepare step'));
     expect(controls.sent[0]).toMatchObject({ edits: [{ field: 'prepare:install', value: null }] });

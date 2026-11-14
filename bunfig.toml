@@ -1,3 +1,7 @@
 [test]
 preload = ["./src/testing/ProgramTrapGuard.ts", "./src/testing/TestRunReport.ts", "./src/testing/SharedCaseDeadlinePreload.ts"]
 pathIgnorePatterns = ["**/*.integration.spec.ts"]
+
+[install]
+# The workspace keeps the one hoisted node_modules the tools resolve from; a lockfile of configVersion 1 would otherwise isolate it.
+linker = "hoisted"

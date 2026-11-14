@@ -21,7 +21,7 @@ import { useState } from 'react';
 import type { BoardStateDocument }                        from '../../../@types/BoardStateDocument.ts';
 import { clickSettled, fakeControls }                     from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import type { FlowOpenRequest }                           from '../flow/PipelineFlow.tsx';
+import type { FlowOpenRequest }                           from '../flow/PipelineFlowModel.ts';
 import { PipelineDialogs }                                from './PipelineDialogs.tsx';
 
 afterEach(cleanup);
@@ -44,7 +44,7 @@ function dialog(): HTMLElement {
 }
 
 function derivedMeter(): HTMLElement {
-  const meter = dialog().querySelector<HTMLElement>('.bridge-effort-meter[data-derived]');
+  const meter = dialog().querySelector<HTMLElement>('.design-system-effort-meter[data-derived]');
   if (meter === null) throw new Error('no derived meter');
   return meter;
 }
@@ -65,7 +65,8 @@ describe('the derived meter', () => {
     renderDialog();
     expect(within(dialog()).queryByRole('group', { name: 'Model' })).toBeNull();
     expect(within(dialog()).queryByRole('group', { name: 'Effort' })).toBeNull();
-    expect(within(dialog()).getByRole('group', { name: 'Re-review model' })).toBeDefined();
+    expect(within(dialog()).queryByRole('combobox', { name: 'Model' })).toBeNull();
+    expect(within(dialog()).getByRole('combobox', { name: 'Re-review model' })).toBeDefined();
   });
 
   test('the tooltip body follows derivedFrom: the last worker, or the builder when no review runs', () => {

@@ -4,9 +4,9 @@
  * once, and the text clears once the Overseer applied it, keeps what User typed while it was on its way, and stays on a refusal, shown
  * verbatim; Shift + Enter, Enter during an input
  * method's composition, Enter while the caller makes no command (its empty-text rule) and Enter while controls are unavailable all send
- * nothing; the caller's attachments and foot controls take their places; the text box and Send share one row (SCREENS A1 6: one height,
- * held in the browser by `board.css`); pasted files reach the caller and a text paste does not; and the
- * recipient and the status are text, never markup.
+ * nothing; the head carries the key hints, the caller's attachments sit above the text box and its foot controls under it, with no foot
+ * without them; the text box and the paper-plane Send share one row (one height, held in the browser by `board.css`), Send named by its
+ * label alone; pasted files reach the caller and a text paste does not; and the recipient and the status are text, never markup.
  */
 import {
   act,
@@ -43,7 +43,7 @@ const ASSISTANT_COMPOSER: ComposerProps = {
   recipientLabel: 'Assistant',
   recipientJobId: 'J1',
   status:         {
-    text: 'Busy: the next message queues', tone: 'state', state: 'in-progress', dot: true
+    text: 'Busy: the next message queues', tone: 'state', stateTone: 'accent', dot: true
   },
   placeholder: MESSAGE_LABEL,
   sendLabel:   'Send',
@@ -84,14 +84,14 @@ describe('the composer\'s head', () => {
     expect([
       head?.querySelector('.bridge-composer-recipient')?.textContent,
       screen.getByRole('link', { name: 'J1' }).getAttribute('href'),
-      head?.querySelector('.bridge-tag')?.textContent,
+      head?.querySelector('.design-system-tag')?.textContent,
       textBox.getAttribute('placeholder'),
     ]).toEqual(['Assistant J1', '#agents/J1', 'Busy: the next message queues', MESSAGE_LABEL]);
   });
 
   test('with no job and no status it links nothing and shows no tag', () => {
     renderedComposer({ recipientLabel: 'New product-owner session', recipientJobId: null, status: null });
-    expect([screen.queryByRole('link'), document.querySelector('.bridge-tag'), document.querySelector('.bridge-composer-recipient')?.textContent])
+    expect([screen.queryByRole('link'), document.querySelector('.design-system-tag'), document.querySelector('.bridge-composer-recipient')?.textContent])
       .toEqual([null, null, 'New product-owner session']);
   });
 });
@@ -144,7 +144,7 @@ describe('the composer\'s send', () => {
     expect([sent.length, textBox.value]).toEqual([1, 'And tell me when it lands.']);
   });
 
-  test('a refusal shows verbatim beside Send and the text stays', async () => {
+  test('a refusal shows verbatim under the text box and the text stays', async () => {
     const { answerWith, textBox } = renderedComposer();
     answerWith({ verdict: 'refused', refusal: 'J1 is not a live job.' });
     typed(textBox, 'Why did #001 restart twice?');
@@ -183,25 +183,32 @@ describe('the composer\'s send', () => {
 });
 
 describe('the composer\'s slots and pastes', () => {
-  test('the attachments sit above the text box and the foot starts with the caller\'s controls', () => {
+  test('the head gives the keys, the attachments sit above the text box and the foot holds the caller\'s controls', () => {
     renderedComposer({ attachments: <p>Example picture tray</p>, footStart: <button type="button">Attach pictures</button> });
     const composer = document.querySelector('.bridge-composer');
     expect([
       composer?.children[1]?.textContent,
       composer?.querySelector('.bridge-composer-foot')?.firstElementChild?.textContent,
-      [...(composer?.querySelectorAll('.bridge-key-hint') ?? [])].map((hint) => hint.textContent),
+      [...(composer?.querySelectorAll('.bridge-composer-head .bridge-key-hint') ?? [])].map((hint) => hint.textContent),
     ]).toEqual(['Example picture tray', 'Attach pictures', ['Enter sends', 'Shift + Enter new line']]);
   });
 
-  test('the text box and Send share one row, where the row stretches Send to the text box\'s height, and the foot holds no Send', () => {
+  test('without foot controls the composer has no foot', () => {
+    renderedComposer();
+    expect(document.querySelector('.bridge-composer-foot')).toBeNull();
+  });
+
+  test('the text box and the paper-plane Send share one row, Send named by its label and drawing no words', () => {
     renderedComposer();
     const entryRow = document.querySelector('.bridge-composer-entry');
+    const send = screen.getByRole('button', { name: 'Send' });
     expect([
       [...(entryRow?.children ?? [])].map((part) => part.className),
       entryRow?.querySelector('textarea')?.getAttribute('aria-label'),
-      entryRow?.querySelector('button')?.textContent,
-      document.querySelector('.bridge-composer-foot button'),
-    ]).toEqual([['bridge-textarea bridge-composer-input', 'bridge-control'], MESSAGE_LABEL, 'Send', null]);
+      send.parentElement === entryRow,
+      send.textContent,
+      send.querySelector('svg')?.getAttribute('data-icon'),
+    ]).toEqual([['bridge-textarea bridge-composer-input', 'bridge-send-button'], MESSAGE_LABEL, true, '', 'paper-plane']);
   });
 
   test('pasted files reach the caller, and a paste without files does not', () => {
@@ -215,6 +222,6 @@ describe('the composer\'s slots and pastes', () => {
 
   test('the recipient and the status are text, never markup', () => {
     renderedComposer({ recipientLabel: '<b>planted</b>', status: { text: '<b>planted</b>', tone: 'neutral' } });
-    expect([document.querySelector('b'), document.querySelector('.bridge-tag')?.textContent]).toEqual([null, '<b>planted</b>']);
+    expect([document.querySelector('b'), document.querySelector('.design-system-tag')?.textContent]).toEqual([null, '<b>planted</b>']);
   });
 });

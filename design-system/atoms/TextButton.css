@@ -1,0 +1,4 @@
+/* The text button: the link colour, ink on hover. */
+.design-system-link-button { padding: 0; font: var(--fs-small)/1.5 var(--font-ui); color: var(--link); background: none; border: 0; cursor: pointer; }
+.design-system-link-button:hover { color: var(--ink); }
+.design-system-link-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }

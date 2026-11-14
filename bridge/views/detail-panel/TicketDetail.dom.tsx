@@ -2,10 +2,11 @@
  * The tabbed ticket form in a happy-dom document, against a fake command client. What matters: the four section tabs come in their order,
  * each a link to its own route over the same board tab, Overview the current one without a section, and only the routed section is in the
  * DOM; the arrow keys, Home and End open a section; Activity counts and lists the lines naming the ticket or its row, or says none does;
- * the Overview's state card names the live job and its calls, and leads with Watch, a link no stream outage disables, else with Ready,
- * Unhold or Accept by state, Accept disabled unless the prediction is clean; Park… and Hold… open their reason row before anything is sent,
- * Cancel sending nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once
- * applied and showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
+ * the Overview's state card names the live job and its calls beside Flint's slot in the job's pose (no slot while the question panel shows
+ * over the panel's slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept
+ * by state, Accept disabled unless the prediction is clean; Park… and Hold… open their reason row before anything is sent, Cancel sending
+ * nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once applied and
+ * showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
  * forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live job's controls
  * sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind down, Stop and
  * Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until confirmed, Cancel and Esc
@@ -29,6 +30,7 @@ import {
 import type { DetailBoardState }      from '../../@types/DetailBoardState.ts';
 import { ControlSurroundingsContext } from '../../shell/ControlAvailability.ts';
 import type { ControlAvailability }   from '../../shell/ControlAvailability.ts';
+import { QuestionPanelShownContext }  from '../../shell/CoveringPanel.ts';
 import type { DetailItem }            from '../../shell/DetailRoute.ts';
 import {
   EXAMPLE_DETAIL_FORMAT,
@@ -101,31 +103,40 @@ const BUILDING: DetailItem = { form: 'ticket', ticketId: '004' };
 interface RenderedTicket {
   readonly sent:       ReturnType<typeof fakeControlSurroundingsOf>['sent'];
   readonly answerWith: ReturnType<typeof fakeControlSurroundingsOf>['answerWith'];
+  readonly showItem:   (item: DetailItem) => void;
 }
 
 interface TicketSetting {
-  readonly availability?: ControlAvailability;
-  readonly boardState?:   DetailBoardState;
+  readonly availability?:         ControlAvailability;
+  readonly boardState?:           DetailBoardState;
+  /** False renders the panel sliding out after its item closed. */
+  readonly itemIsRouted?:         boolean;
+  readonly questionPanelIsShown?: boolean;
 }
 
-function renderTicket(item: DetailItem, { availability = 'enabled', boardState = BOARD }: TicketSetting = {}): RenderedTicket {
+function renderTicket(item: DetailItem, {
+  availability = 'enabled', boardState = BOARD, itemIsRouted = true, questionPanelIsShown = false
+}: TicketSetting = {}): RenderedTicket {
   const fake = fakeControlSurroundingsOf(availability);
-  render(
+  const panelOf = (shownItem: DetailItem) => (
     <ControlSurroundingsContext.Provider value={fake.surroundings}>
-      {routedOnTab('progress', (
-        <DetailPanel
-          boardState={boardState}
-          item={item}
-          format={EXAMPLE_DETAIL_FORMAT}
-          isClosing={false}
-          onClosed={() => undefined}
-          onClose={() => undefined}
-          focusesCloseOnOpen={() => false}
-        />
-      ), item).element}
-    </ControlSurroundingsContext.Provider>,
+      <QuestionPanelShownContext.Provider value={questionPanelIsShown}>
+        {routedOnTab('progress', (
+          <DetailPanel
+            boardState={boardState}
+            item={shownItem}
+            format={EXAMPLE_DETAIL_FORMAT}
+            isClosing={!itemIsRouted}
+            onClosed={() => undefined}
+            onClose={() => undefined}
+            focusesCloseOnOpen={() => false}
+          />
+        ), itemIsRouted ? shownItem : null).element}
+      </QuestionPanelShownContext.Provider>
+    </ControlSurroundingsContext.Provider>
   );
-  return { sent: fake.sent, answerWith: fake.answerWith };
+  const rendered = render(panelOf(item));
+  return { sent: fake.sent, answerWith: fake.answerWith, showItem: (shownItem) => rendered.rerender(panelOf(shownItem)) };
 }
 
 async function clicked(element: HTMLElement): Promise<void> {
@@ -140,7 +151,7 @@ function sectionTabs(): HTMLElement[] {
 }
 
 function blockTitles(): string[] {
-  return [...document.querySelectorAll('.bridge-block-title')].map((title) => title.textContent ?? '');
+  return [...document.querySelectorAll('.design-system-block > [data-type-role="micro"]')].map((title) => title.textContent ?? '');
 }
 
 function region(name: string) {
@@ -192,6 +203,15 @@ describe('the section tabs', () => {
     expect(window.location.hash).toBe('#progress/ticket/004');
   });
 
+  test('a new section starts the body at its top', () => {
+    const { showItem } = renderTicket(BUILDING);
+    const body = document.querySelector('.design-system-side-panel-scroll') as HTMLElement;
+    body.scrollTop = 120;
+    expect(body.scrollTop).toBe(120);
+    showItem({ form: 'ticket', ticketId: '004', section: 'timeline' });
+    expect([body.isConnected, body.scrollTop]).toEqual([true, 0]);
+  });
+
   test('Description holds the body in its sandboxed frame', () => {
     renderTicket({ form: 'ticket', ticketId: '004', section: 'description' });
     expect(document.querySelector('iframe')?.getAttribute('title')).toBe('Description of Example account pages');
@@ -213,11 +233,13 @@ describe('Activity', () => {
 });
 
 describe('the Overview', () => {
-  test('a running build shows its state card and leads with the link Watch J4 to its transcript on Agents', () => {
+  test('a running build shows its state card, Flint typing in its slot, and leads with the link Watch J4 to its transcript on Agents', () => {
     renderTicket(BUILDING);
-    const card = document.querySelector('.bridge-callout');
+    const card = document.querySelector('.bridge-detail-state-card');
     expect(card?.getAttribute('data-state')).toBe('in-progress');
-    expect([...(card?.children ?? [])].map((part) => part.textContent)).toEqual([
+    const flint = card?.querySelector('.design-system-flint-slot');
+    expect(['data-size', 'data-ground', 'data-flint-pose', 'aria-hidden'].map((name) => flint?.getAttribute(name))).toEqual(['100', 'strip', 'typing', 'true']);
+    expect([...(card?.querySelectorAll('h3, p') ?? [])].map((part) => part.textContent)).toEqual([
       'Building',
       'J4, builder, attempt 1, since 12:41 (55m)',
       '0 / 150 calls · no tool call yet',
@@ -225,6 +247,18 @@ describe('the Overview', () => {
     const watch = screen.getByRole('link', { name: 'Watch J4' });
     expect(watch.getAttribute('href')).toBe('#agents/J4');
     expect(screen.getByText('Opens J4\'s transcript on Agents.')).toBeTruthy();
+  });
+
+  test('the state card holds the page\'s one Flint slot while its item is routed, a question open or not, and none once the question panel shows over its slide out', () => {
+    const flintSlots = (): number => document.querySelectorAll('.design-system-flint-slot').length;
+    renderTicket(BUILDING, { questionPanelIsShown: true });
+    expect(flintSlots()).toBe(1);
+    cleanup();
+    renderTicket(BUILDING, { itemIsRouted: false, questionPanelIsShown: true });
+    expect([document.querySelector('.bridge-detail-state-card') === null, flintSlots()]).toEqual([false, 0]);
+    cleanup();
+    renderTicket(BUILDING, { itemIsRouted: false });
+    expect(flintSlots()).toBe(1);
   });
 
   test('a draft leads with Ready, which posts ticket-ready; a held ticket leads with Unhold', async () => {
@@ -338,7 +372,7 @@ describe('the Overview', () => {
   test('Facts is a grid, the branch as Integration\'s value with where it lands under it, and the attempt under Started', () => {
     renderTicket(BUILDING);
     const facts = region('Facts');
-    expect(document.querySelector('.bridge-facts')?.getAttribute('data-layout')).toBe('grid');
+    expect(document.querySelector('.design-system-facts')?.getAttribute('data-layout')).toBe('grid');
     const valueOf = (label: string) => facts.getByText(label).nextElementSibling?.textContent;
     expect(valueOf('integration')).toBe('group-accountlands together, no release ticket yet');
     expect(valueOf('started')).toBe('12:41attempt 1');

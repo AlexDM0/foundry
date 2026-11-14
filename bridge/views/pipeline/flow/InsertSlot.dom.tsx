@@ -1,9 +1,9 @@
 /**
- * The + of a missing step in a happy-dom document. What matters: the trigger is named for where it adds; its menu opens under its heading
- * with one item per offered step; an edit choice hands its edits on, a gate choice asks for the Gate dialog, and a disabled slot hands
- * nothing on.
+ * The add card of a missing step in a happy-dom document. What matters: the card is named for where it adds and holds one choice per
+ * offered step, each with its description; an edit choice hands its edits on, a gate choice asks for the Gate dialog, and a disabled
+ * card's choices are disabled and hand nothing on.
  */
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, screen, within } from '@testing-library/react';
 import {
   afterEach,
   describe,
@@ -28,32 +28,29 @@ function renderSlot(disabled = false) {
   return { edits, phases };
 }
 
-describe('an insert slot', () => {
-  test('opens its menu under its heading, one item per offered step', async () => {
+describe('an add card', () => {
+  test('is named for where it adds, with one described choice per offered step', () => {
     renderSlot();
-    const trigger = screen.getByRole('button', { name: 'Add a step before the fast-forward' });
-    expect(trigger.getAttribute('aria-expanded')).toBe('false');
-    await clickSettled(trigger);
-    expect(trigger.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText('Add in the merge train')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Merge gates' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Conditional re-review' })).toBeDefined();
+    const card = screen.getByRole('region', { name: 'Add before the fast-forward' });
+    expect(within(card).getByText('Add a step')).toBeDefined();
+    const choices = within(card).getAllByRole('button');
+    expect(choices.map((choice) => choice.getAttribute('aria-label'))).toEqual(['Merge gates', 'Conditional re-review']);
+    expect(document.getElementById(choices[1]?.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Runs only when a conflict fix is large');
   });
 
   test('a gate choice asks for the Gate dialog, an edit choice hands on its edits', async () => {
     const { edits, phases } = renderSlot();
-    await clickSettled(screen.getByRole('button', { name: 'Add a step before the fast-forward' }));
     await clickSettled(screen.getByRole('button', { name: 'Merge gates' }));
-    await clickSettled(screen.getByRole('button', { name: 'Add a step before the fast-forward' }));
     await clickSettled(screen.getByRole('button', { name: 'Conditional re-review' }));
     expect(phases).toEqual(['merge']);
     expect(edits).toEqual([[{ field: 'airlock', value: { reReview: { thresholdLines: 750 } } }]]);
   });
 
-  test('a disabled slot hands nothing on', async () => {
+  test('a disabled card\'s choices are disabled and hand nothing on', async () => {
     const { edits, phases } = renderSlot(true);
-    await clickSettled(screen.getByRole('button', { name: 'Add a step before the fast-forward' }));
-    await clickSettled(screen.getByRole('button', { name: 'Conditional re-review' }));
+    const choice = screen.getByRole('button', { name: 'Conditional re-review' });
+    expect(choice.hasAttribute('disabled')).toBe(true);
+    await clickSettled(choice);
     expect(edits).toEqual([]);
     expect(phases).toEqual([]);
   });

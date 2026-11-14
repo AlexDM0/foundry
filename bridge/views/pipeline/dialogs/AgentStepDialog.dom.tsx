@@ -1,10 +1,11 @@
 /**
  * The agent step dialog (A3Inspector) in a happy-dom document, opened through the dialog host as the flow opens it. What matters: it opens
- * on the selected model and closes on Esc and × without sending; Model and Effort offer every value of the board's choices in order and
- * stack as two full rows; the head meter's bars equal the effort's level; Save sends one edit with model, effort and the ordered entries
- * and the dialog closes once it is applied; a removed constitution leaves the Add constitution switch, which puts it back at the top; with
- * every row removed the built-in brief caption shows and Save sends an empty list; on a live board Save opens the update first and its
- * edit goes once the record shows; and Ask the pipeline agent messages the agent's job, or opens an advise session first.
+ * on the model select and closes on Esc and × without sending; the Ticket creation node opens it too, under its own phase; the model
+ * select and the effort choices offer every value of the board's choices in order; the head meter's bars equal the effort's level; Save
+ * sends one edit with model, effort and the ordered entries and the dialog closes once it is applied; a removed constitution leaves the
+ * Include the constitution switch, which puts it back at the top; with every row removed the built-in brief line shows and Save sends an
+ * empty list; on a live board Save opens the update first and its edit goes once the record shows; and Ask the pipeline agent messages
+ * the agent's job, or opens an advise session first.
  */
 import {
   act,
@@ -24,7 +25,7 @@ import { useEffect, useState } from 'react';
 import type { BoardStateDocument }                        from '../../../@types/BoardStateDocument.ts';
 import { clickSettled, fakeControls }                     from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import type { FlowOpenRequest }                           from '../flow/PipelineFlow.tsx';
+import type { FlowOpenRequest }                           from '../flow/PipelineFlowModel.ts';
 import { PipelineDialogs }                                from './PipelineDialogs.tsx';
 
 afterEach(cleanup);
@@ -62,8 +63,16 @@ function pressedText(name: string): string | null {
   return groupButtons(name).find((button) => button.getAttribute('aria-pressed') === 'true')?.textContent ?? null;
 }
 
+function modelSelect(): HTMLSelectElement {
+  return within(dialog()).getByRole('combobox', { name: 'Model' }) as HTMLSelectElement;
+}
+
+function pickModel(model: string): void {
+  fireEvent.change(modelSelect(), { target: { value: model } });
+}
+
 function fileNames(): string[] {
-  return [...dialog().querySelectorAll('.bridge-listed-file-name')].map((element) => element.textContent ?? '');
+  return [...dialog().querySelectorAll('.design-system-listed-file-name')].map((element) => element.textContent ?? '');
 }
 
 async function save(): Promise<void> {
@@ -71,9 +80,19 @@ async function save(): Promise<void> {
 }
 
 describe('opening and closing', () => {
-  test('opening focuses the selected model in the Model group', () => {
+  test('opening focuses the model select, showing the selected model', () => {
     renderDialog('A2');
-    expect(document.activeElement).toBe(within(screen.getByRole('group', { name: 'Model' })).getByRole('button', { name: 'opus' }));
+    expect(document.activeElement).toBe(modelSelect());
+    expect(modelSelect().value).toBe('opus');
+  });
+
+  test('the Ticket creation node opens the agent step dialog under the Ticket phase', () => {
+    const controls = fakeControls();
+    const request: FlowOpenRequest = { kind: 'node', nodeId: 'ticket-creation', action: { kind: 'dialog', dialog: 'agent-step', focusesReReview: false } };
+    controls.render(<PipelineDialogs facts={pipelineBoardStateOf('A2')} request={request} onClose={() => undefined} />);
+    const ticketCreation = screen.getByRole('dialog', { name: 'Ticket creation' });
+    expect(ticketCreation.querySelector('.design-system-dialog-kicker')?.textContent).toBe('Ticket · Agent step');
+    expect(within(ticketCreation).getByRole('group', { name: 'Brief' })).toBeDefined();
   });
 
   test('Esc and × close without sending', () => {
@@ -89,14 +108,15 @@ describe('opening and closing', () => {
 
   test('the step says when it runs and that the builder fixes the merge before review\'s conflicts and red gates', () => {
     renderDialog('A2');
-    expect(dialog().querySelector('.bridge-pipeline-dialog-info')?.textContent).toContain('the conflicts and red build gates of the merge before review');
+    expect(within(dialog()).getByText('Once per attempt, after Human ticket review.')).toBeDefined();
+    expect(dialog().textContent).toContain('the conflicts and red build gates of the merge before review');
   });
 });
 
 describe('model and effort', () => {
-  test('every value of the board\'s choices is a segment, in order, in two stacked full-width rows', () => {
+  test('every value of the board\'s choices is offered, in order: models in the select, efforts as full-width choices', () => {
     renderDialog('A2');
-    expect(groupButtons('Model').map((button) => button.textContent)).toEqual(['haiku', 'sonnet', 'opus', 'fable']);
+    expect([...modelSelect().options].map((option) => option.value)).toEqual(['haiku', 'sonnet', 'opus', 'fable']);
     expect(groupButtons('Effort').map((button) => button.textContent)).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
     expect(screen.getByRole('group', { name: 'Effort' }).hasAttribute('data-fill')).toBe(true);
     expect(screen.getByText('The usual depth for most tickets.')).toBeDefined();
@@ -104,7 +124,7 @@ describe('model and effort', () => {
 
   test('the head meter\'s filled bars equal the effort level, low 1 to max 5', () => {
     renderDialog('A2');
-    const filledBars = () => dialog().querySelectorAll('.bridge-dialog-head .bridge-effort-meter-bar[data-filled]').length;
+    const filledBars = () => dialog().querySelectorAll('.design-system-dialog-head .design-system-effort-meter-bar[data-filled]').length;
     groupButtons('Effort').forEach((button, i) => {
       act(() => button.click());
       expect(filledBars()).toBe(i + 1);
@@ -113,14 +133,14 @@ describe('model and effort', () => {
 
   test('fable and xhigh select and save like the others, and a stored fable xhigh opens selected', async () => {
     const { controls } = renderDialog('A2');
-    act(() => within(screen.getByRole('group', { name: 'Model' })).getByRole('button', { name: 'fable' }).click());
+    pickModel('fable');
     act(() => within(screen.getByRole('group', { name: 'Effort' })).getByRole('button', { name: 'xhigh' }).click());
     expect(screen.getByText('Deeper than high, for large or subtle tickets.')).toBeDefined();
     await save();
     expect(controls.sent[0]).toMatchObject({ edits: [{ field: 'role:builder', value: { model: 'fable', effort: 'xhigh' } }] });
     cleanup();
     renderDialog('A3-fable-xhigh');
-    expect([pressedText('Model'), pressedText('Effort')]).toEqual(['fable', 'xhigh']);
+    expect([modelSelect().value, pressedText('Effort')]).toEqual(['fable', 'xhigh']);
   });
 });
 
@@ -160,21 +180,21 @@ describe('a Save', () => {
 });
 
 describe('the instructions', () => {
-  test('a removed constitution leaves the Add constitution switch, which puts it back at the top', () => {
+  test('a removed constitution leaves the Include the constitution switch, which puts it back at the top', () => {
     renderDialog('A2');
     expect(fileNames()).toEqual(['constitution.md', 'builder.md']);
     act(() => within(dialog()).getByRole('button', { name: 'Remove constitution.md' }).click());
     expect(fileNames()).toEqual(['builder.md']);
-    act(() => within(dialog()).getByRole('switch', { name: 'Add constitution' }).click());
+    act(() => within(dialog()).getByRole('switch', { name: 'Include the constitution' }).click());
     expect(fileNames()).toEqual(['constitution.md', 'builder.md']);
     expect(within(dialog()).getByRole('link', { name: 'Edit' }).getAttribute('href')).toBe('#pipeline/setup/constitution');
   });
 
-  test('with every row removed the built-in brief caption shows and Save sends an empty list', async () => {
+  test('with every row removed the built-in brief line shows and Save sends an empty list', async () => {
     const { controls } = renderDialog('A2');
     act(() => within(dialog()).getByRole('button', { name: 'Remove constitution.md' }).click());
     act(() => within(dialog()).getByRole('button', { name: 'Remove builder.md' }).click());
-    expect(screen.getByText('No file left: the agent reads its basic built-in brief.')).toBeDefined();
+    expect(screen.getByText('No file. The agent uses the basic built-in brief.')).toBeDefined();
     await save();
     expect(controls.sent[0]).toMatchObject({ edits: [{ value: { instructions: [] } }] });
   });
@@ -197,7 +217,7 @@ describe('the instructions', () => {
     expect(fileNames()).toEqual(['builder.md']);
     act(() => within(dialog()).getByRole('button', { name: 'Reset to default' }).click());
     expect(fileNames()).toEqual(['constitution.md', 'builder.md']);
-    expect([pressedText('Model'), pressedText('Effort')]).toEqual(['opus', 'medium']);
+    expect([modelSelect().value, pressedText('Effort')]).toEqual(['opus', 'medium']);
   });
 });
 

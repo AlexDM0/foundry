@@ -1,0 +1,22 @@
+/*
+ * The element defaults that the components expect: the border box, the page's ink, ground and type from the tokens, the link colours,
+ * the focus ring, the placeholder ink and the eased feedback of a button. A press darkens a control; a button of the package also scales.
+ */
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--fs-body)/var(--line-height-body) var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--ink); }
+
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+::placeholder { color: var(--ink-4); opacity: 1; }
+
+button, [role="button"] { transition: var(--feedback-transition); }
+button:not(:disabled):active, [role="button"]:active { filter: brightness(0.94); }

@@ -4,6 +4,18 @@
  * last one shown while it slides, handing the focus it held back to what held it as it appeared; it stays mounted but hidden while the
  * detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first.
  */
+
+import { Button } from 'design-system/Button';
+import { MonoId } from 'design-system/MonoId';
+import {
+  SidePanel,
+  SidePanelBody,
+  SidePanelFoot,
+  SidePanelHead
+} from 'design-system/SidePanel';
+import { Stamp }    from 'design-system/Stamp';
+import { StateDot } from 'design-system/StateDot';
+import { Tag }      from 'design-system/Tag';
 import {
   useEffect,
   useLayoutEffect,
@@ -14,12 +26,7 @@ import {
 import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';
 import type { OpenDecision }                                                    from '../../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                              from '../../conversation/TranscriptLog.tsx';
-import { Button }                                                               from '../../design-system/Button.tsx';
-import { MonoId }                                                               from '../../design-system/MonoId.tsx';
-import { SidePanel }                                                            from '../../design-system/SidePanel.tsx';
-import { Stamp }                                                                from '../../design-system/Stamp.tsx';
-import { StateDot }                                                             from '../../design-system/StateDot.tsx';
-import { Tag }                                                                  from '../../design-system/Tag.tsx';
+import { StateToneUtil }                                                        from '../../utils/StateToneUtil.ts';
 import { QuestionAskColumn }                                                    from './QuestionAskColumn.tsx';
 import { QuestionBackgroundColumn }                                             from './QuestionBackgroundColumn.tsx';
 import type { QuestionPanelBoard, QuestionPanelFormat, QuestionPanelViewModel } from './QuestionPanelModel.ts';
@@ -52,9 +59,9 @@ function PanelHead({ model, onFold }: { readonly model: QuestionPanelViewModel; 
   const { head } = model;
   return (
     <div className="bridge-question-panel-head">
-      <StateDot state="paused" />
+      <StateDot {...StateToneUtil.dotOf('paused')} />
       <strong className="bridge-question-panel-asker">{`${head.askerText} asks User`}</strong>
-      {head.headerMark === null || head.headerMark === '' ? null : <span className="bridge-question-header">{head.headerMark}</span>}
+      {head.headerMark === null || head.headerMark === '' ? null : <Tag tone="neutral" text={head.headerMark} />}
       <MonoId text={model.decisionId} />
       {head.ticketIds.length === 0
         ? null
@@ -163,17 +170,20 @@ export function QuestionPanel({
           returnFocusToOpener();
           forget();
         }}
-        onClose={onClose}
-        closeLabel="Close the question panel"
         focusesCloseOnOpen={focusesCloseOnOpen}
-        contentKey={model.decisionId}
-        head={<PanelHead model={model} onFold={onFold} />}
-        foot={<PanelFoot model={model} onNext={onNext} />}
       >
-        <div className="bridge-question-panel-columns">
-          <QuestionAskColumn key={model.decisionId} decision={displayed.decision} model={model} />
-          <QuestionBackgroundColumn key={`${model.decisionId}-background`} model={model} followTranscript={followTranscript} todayCalendarDate={format.todayCalendarDate} />
-        </div>
+        <SidePanelHead closeLabel="Close the question panel" onClose={onClose}>
+          <PanelHead model={model} onFold={onFold} />
+        </SidePanelHead>
+        <SidePanelBody contentKey={model.decisionId}>
+          <div className="bridge-question-panel-columns">
+            <QuestionAskColumn key={model.decisionId} decision={displayed.decision} model={model} />
+            <QuestionBackgroundColumn key={`${model.decisionId}-background`} model={model} followTranscript={followTranscript} todayCalendarDate={format.todayCalendarDate} />
+          </div>
+        </SidePanelBody>
+        <SidePanelFoot>
+          <PanelFoot model={model} onNext={onNext} />
+        </SidePanelFoot>
       </SidePanel>
     </div>
   );

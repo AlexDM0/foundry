@@ -1,14 +1,15 @@
 /**
  * The resume summary's model, pure: each setup step with its status and the summary the facts give it, the current step's chips (open
- * questions, the pipeline agent's job), the commands of Resume and Start over, and the note that main moved since the research. Every
- * word comes from the facts' counts and values; the record's statuses decide, a time never does.
+ * questions, the pipeline agent's job), the footer's count of the done steps, the commands of Resume and Start over, and the note that
+ * main moved since the research. Every word comes from the facts' counts and values; the record's statuses decide, a time never does.
  */
+import type { StepperStatus } from 'design-system/Stepper';
+
 import type { JobState }                                              from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineBilling }                                       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetupFacts }                                    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetupStep }                                     from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                                    from '../../../api/CommandClient.ts';
-import type { StepperStatus }                                         from '../../../design-system/Stepper.tsx';
 import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../PipelineViewModel.ts';
 import { ApplyPendingStateModel }                                     from '../apply/ApplyPendingStateModel.ts';
 
@@ -141,6 +142,13 @@ function startOverCommandOf(facts: PipelineSetupFacts): ControlCommandBody {
   return { kind: 'pipeline-setup-start-over', setupId: facts.record.setupId };
 }
 
+/** "3 of 5 steps done", for the footer; a step to recheck was done. */
+function doneStepsTextOf(facts: PipelineSetupFacts): string {
+  const steps = resumeStepsOf(facts);
+  const doneCount = steps.filter((step) => step.status === 'done' || step.status === 'recheck').length;
+  return `${doneCount} of ${steps.length} steps done`;
+}
+
 /** Shown only while main moved since the snapshot, which the facts count before Resume moves it. */
 function mainMovedTextOf(facts: PipelineSetupFacts): string | null {
   if (facts.mainMovedByCommits <= 0) return null;
@@ -154,4 +162,5 @@ export const ResumeSummaryModel = Object.freeze({
   resumeCommandOf,
   startOverCommandOf,
   mainMovedTextOf,
+  doneStepsTextOf,
 });

@@ -233,10 +233,10 @@ Files are shipping modules at commit `70ce56de`.
 
 `bridge/` is the browser client, one React root and its own TypeScript program. `bridge/Main.tsx` mounts it.
 `bridge/api/` talks to the Overseer, `bridge/shell/` is the frame and router, and `bridge/views/` holds one folder per
-view. `bridge/@types/`, `bridge/utils/`, `bridge/design-system/`, `bridge/chips/`, `bridge/conversation/` and
-`bridge/preferences/` hold what views share. A view folder may not import another view folder, and
-`bridge/design-system/` imports nothing outside itself but the display-state type. [The Bridge](bridge.md) explains
-the client.
+view. `bridge/@types/`, `bridge/utils/`, `bridge/chips/`, `bridge/conversation/` and `bridge/preferences/` hold what
+views share. A view folder may not import another view folder. The reusable components are the `design-system/`
+package at the root of the repository, which imports nothing outside itself and which the Bridge imports as a
+workspace package, only by the entries its `package.json` exports. [The Bridge](bridge.md) explains the client.
 
 ## Two binaries
 

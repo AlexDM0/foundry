@@ -1,0 +1,43 @@
+/* A modal over the page. The <dialog> is the panel's box, so a click on the element itself fell on the backdrop. The panel is ruled in
+   three: the head (kicker, title in the phase size, description, ×), the body that scrolls, and the foot. It rises in over the fading
+   scrim and sinks out the same way. */
+.design-system-dialog {
+  width: min(560px, calc(100vw - 2 * var(--sp-4))); max-width: none; max-height: calc(100dvh - 2 * var(--sp-5));
+  padding: 0; overflow: visible; color: var(--ink);
+  background: transparent; border: 0;
+}
+.design-system-dialog[data-width="narrow"] { width: min(460px, calc(100vw - 2 * var(--sp-4))); }
+.design-system-dialog[data-width="wide"] { width: min(600px, calc(100vw - 2 * var(--sp-4))); }
+.design-system-dialog[data-width="widest"] { width: min(640px, calc(100vw - 2 * var(--sp-4))); }
+.design-system-dialog::backdrop { background: var(--overlay); }
+.design-system-dialog-panel {
+  display: flex; flex-direction: column; box-sizing: border-box;
+  max-height: calc(100dvh - 2 * var(--sp-5)); overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-dialog);
+  box-shadow: var(--shadow-modal);
+}
+.design-system-dialog-head {
+  display: flex; flex: none; align-items: flex-start; gap: var(--sp-4);
+  padding: var(--space-20) var(--sp-5) var(--sp-4); border-bottom: 1px solid var(--line);
+}
+.design-system-dialog-heading { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.design-system-dialog-kicker { font-size: var(--fs-small); font-weight: 500; color: var(--ink-muted); }
+.design-system-dialog-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.design-system-dialog-title {
+  margin: 0; font-family: var(--font-display); font-size: var(--fs-phase); font-weight: 500; line-height: 34px; letter-spacing: -0.015em;
+}
+.design-system-dialog-description { margin: 0; font-size: var(--fs-lead); line-height: 20px; color: var(--ink-muted); }
+.design-system-dialog-head > .design-system-icon-button { flex: none; width: 30px; height: 30px; }
+.design-system-dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--space-20) var(--sp-5); }
+.design-system-dialog-foot {
+  display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  padding: var(--space-14) var(--sp-5); border-top: 1px solid var(--line);
+}
+.design-system-dialog[data-motion="in"] { animation: design-system-modal var(--motion-modal) var(--ease-out) 60ms both; }
+.design-system-dialog[data-motion="in"]::backdrop { animation: design-system-fade 260ms var(--ease-out) both; }
+.design-system-dialog[data-motion="out"] { animation: design-system-modal var(--motion-modal) var(--ease-out) reverse both; }
+.design-system-dialog[data-motion="out"]::backdrop { animation: design-system-fade 260ms var(--ease-out) reverse both; }
+@media (prefers-reduced-motion: reduce) {
+  .design-system-dialog[data-motion], .design-system-dialog[data-motion]::backdrop { animation: none; }
+}
+@keyframes design-system-modal { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }

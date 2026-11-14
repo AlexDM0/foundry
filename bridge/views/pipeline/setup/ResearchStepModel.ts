@@ -1,13 +1,15 @@
 /**
  * The research step's model, pure: the findings by topic with their source paths, the scripts as rows (a script that needs a network or a
- * service carries that note), the status line over the page and the one in the footer, and the commands of Continue and Stop. The research
- * runs nothing: no finding offers to run a script. Continue is always offered; the agent's `readyToContinue` only draws attention to it.
+ * service carries that note), the status line over the page, the panel head's status, the footer's counts, and the commands of Continue
+ * and Stop. The research runs nothing: no finding offers to run a script. Continue is always offered; the agent's `readyToContinue` only
+ * draws attention to it.
  */
 import type { PipelineSetupFacts }                                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ResearchFinding, ResearchFindingTopic, SetupQuestion } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                                   from '../../../api/CommandClient.ts';
 import { ChatTurnWordingUtil }                                       from '../../../conversation/ChatTurnWordingUtil.ts';
 import { ElapsedTimeUtil }                                           from '../../../utils/ElapsedTimeUtil.ts';
+import type { PanelStatus }                                          from '../PipelinePanel.tsx';
 
 export type CardTopic = Exclude<ResearchFindingTopic, 'scripts'>;
 
@@ -138,19 +140,24 @@ function statusLineOf(facts: ResearchFacts, now: Date): string {
   return [agent, STATE_WORDS[state], ...snapshot, ...(elapsed === null ? [] : [elapsed])].join(' · ');
 }
 
-const FOOTER_STATE_WORDS: Readonly<Record<ResearchState, string>> = {
-  researching: 'Researching',
-  ready:       'Research done',
-  stopped:     'Pipeline agent stopped',
+const PANEL_STATUSES: Readonly<Record<ResearchState, PanelStatus>> = {
+  researching: { tone: 'working', text: 'Researching' },
+  ready:       { tone: 'ready', text: 'Research done' },
+  stopped:     { tone: 'idle', text: 'Stopped' },
 };
 
-/** "Researching · 6 scripts found · 1 open question". */
-function footerStatusOf(setup: PipelineSetupFacts): string {
+/** The panel head's dot and word, and the footer's pill: "Researching". */
+function panelStatusOf(setup: PipelineSetupFacts): PanelStatus {
+  return PANEL_STATUSES[researchStateOf(setup)];
+}
+
+/** "6 scripts found · 1 open question", after the footer's pill. */
+function footerCountsOf(setup: PipelineSetupFacts): string {
   const { record } = setup;
   const scriptCount = scriptFindingsOf(record.findings).length;
   const openQuestionCount = openResearchQuestionsOf(record.questions).length;
   const questions = openQuestionCount === 0 ? [] : [ChatTurnWordingUtil.countTextOf(openQuestionCount, 'open question', 'open questions')];
-  return [FOOTER_STATE_WORDS[researchStateOf(setup)], `${ChatTurnWordingUtil.countTextOf(scriptCount, 'script', 'scripts')} found`, ...questions].join(' · ');
+  return [`${ChatTurnWordingUtil.countTextOf(scriptCount, 'script', 'scripts')} found`, ...questions].join(' · ');
 }
 
 function headingOf(project: string): string {
@@ -182,7 +189,8 @@ export const ResearchStepModel = Object.freeze({
   scriptCountTextOf,
   researchStateOf,
   statusLineOf,
-  footerStatusOf,
+  panelStatusOf,
+  footerCountsOf,
   headingOf,
   continueCommandOf,
   continueHasAttention,

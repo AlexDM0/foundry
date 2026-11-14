@@ -130,14 +130,14 @@ describe('bar placement', () => {
   });
 });
 
-describe('the range button', () => {
+describe('the range control', () => {
   test('Fit follows the rows and names its ends; a preset holds the range in the held title', () => {
     const board = exampleProgressBoard({ view: ABSOLUTE_VIEW, tasks: [BUILD_ROW] });
     const fitted = ProgressModel.progressChartOf(board, CHOICES);
     const held = ProgressModel.progressChartOf(board, { ...CHOICES, override: RangePresetUtil.overrideOfPreset('4h', EMPTY_VIEW_OVERRIDE) });
 
     expect([fitted.modeLabel, fitted.modeIsHeld]).toEqual(['Fit', false]);
-    expect(fitted.rangeEndsText).toMatch(/^\d\d:\d\d → \d\d:\d\d$/);
+    expect(fitted.rangeNoteText).toMatch(/^\d\d:\d\d → \d\d:\d\d · /);
     expect(fitted.modeTitle).toStartWith('Fitted to the rows shown');
     expect([held.modeLabel, held.modeIsHeld]).toEqual(['4h', true]);
     expect(held.modeTitle).toStartWith('Held: ');

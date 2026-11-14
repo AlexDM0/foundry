@@ -1,0 +1,8 @@
+/* What a place shows while it holds nothing: small muted text, padded like a card; compact, only above and below. */
+.design-system-empty {
+  margin: 0;
+  padding: var(--sp-5) var(--sp-4);
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+}
+.design-system-empty[data-compact] { padding: var(--sp-2) 0; }

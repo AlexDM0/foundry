@@ -1,7 +1,7 @@
 /**
  * "View pipeline.json": the stored file's text, read-only, in the mono face, byte for byte as the facts carry it.
  */
-import { Dialog } from '../../../design-system/Dialog.tsx';
+import { Dialog } from 'design-system/Dialog';
 
 export interface PipelineFileDialogProps {
   readonly fileText: string;

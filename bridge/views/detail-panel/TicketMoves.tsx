@@ -3,10 +3,10 @@
  * network…) or a choice (Priority…) only opens its row under itself, one row at a time; the row's button posts the `ControlCommand`, and
  * Cancel closes it with nothing sent. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
  */
+import { Button }             from 'design-system/Button';
 import { Fragment, useState } from 'react';
 
 import type { ControlCommandBody }    from '../../api/CommandClient.ts';
-import { Button }                     from '../../design-system/Button.tsx';
 import { CommandButton }              from '../../shell/CommandButton.tsx';
 import { DetailControlsModelUtil }    from './DetailControlsModel.ts';
 import { TextParts }                  from './DetailParts.tsx';

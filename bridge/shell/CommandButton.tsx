@@ -2,8 +2,9 @@
  * The one control that posts a `ControlCommand`: disabled whenever the shell says controls may not act, and showing the Overseer's
  * refusal verbatim beside itself, or that the Overseer could not be reached.
  */
+import { Button } from 'design-system/Button';
+
 import type { ControlCommandBody } from '../api/CommandClient.ts';
-import { Button }                  from '../design-system/Button.tsx';
 import { useControlCommand }       from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {
@@ -24,11 +25,13 @@ export interface CommandButtonProps {
   readonly danger?:                   boolean;
   /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
   readonly accessibleName?:           string;
+  /** The 30px compact button of a row of small controls, such as the header's Overseer controls. */
+  readonly compact?:                  boolean;
 }
 
 export function CommandButton({
   label, command, answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied, primary = false, attention = false, danger = false,
-  accessibleName
+  accessibleName, compact = false
 }: CommandButtonProps) {
   const sender = useControlCommand(command, { answeredWhileInstallHeld, hasNothingToSend, ...(onApplied === undefined ? {} : { onApplied }) });
   return (
@@ -37,6 +40,7 @@ export function CommandButton({
         label={label}
         emphasis={danger ? 'danger' : (primary ? 'primary' : 'quiet')}
         attention={attention}
+        compact={compact}
         disabled={!sender.enabled}
         onPress={() => void sender.send()}
         {...(accessibleName === undefined ? {} : { accessibleName })}

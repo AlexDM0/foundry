@@ -1,0 +1,60 @@
+/* A lettered option: a label led by its input chooses on a click anywhere; chosen reads bold; a card is an option row with a strong line. */
+.design-system-choice { display: flex; align-items: baseline; gap: var(--sp-2); }
+label.design-system-choice { cursor: pointer; }
+.design-system-choice-input { flex: none; margin: 0; accent-color: var(--signal); }
+.design-system-choice-letter { flex: none; width: 1.2em; font-family: var(--font-mono); font-weight: 700; color: var(--ink-muted); }
+.design-system-choice-text { display: flex; flex-direction: column; min-width: 0; }
+.design-system-choice[data-chosen] .design-system-choice-text { font-weight: 600; }
+.design-system-choice-description { color: var(--ink-muted); }
+.design-system-choice-facts { margin-top: var(--space-6); font-weight: 400; }
+.design-system-choice[data-variant="card"] {
+  padding: var(--space-9) var(--space-12); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  transition: var(--feedback-transition);
+}
+.design-system-choice[data-variant="card"]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+
+/* The recommended mark of an option: an orange pill, never filled orange. */
+.design-system-choice-mark {
+  flex: none; align-self: flex-start; padding: 0 var(--space-6); font-size: var(--fs-micro); font-weight: 600; line-height: 16px; white-space: nowrap;
+  border-radius: var(--r-pill);
+}
+.design-system-choice-mark[data-mark="recommended"] { color: var(--link); background: var(--link-tint); }
+
+/* An option of a question waiting on User: the surface, a strong line and ink text; once chosen, the orange tint and edge, its radio in
+   the signal colour. Other's text field sits under its label. */
+.design-system-choice[data-tone="question"] { align-items: flex-start; gap: var(--space-10); color: var(--decision-option-ink); }
+.design-system-choice[data-tone="question"][data-variant="card"] { background: var(--decision-option-fill); border-color: var(--line-strong); }
+.design-system-choice[data-tone="question"][data-variant="card"][data-chosen] { background: var(--decision-fill); border-color: var(--decision-edge); }
+.design-system-choice[data-tone="question"] .design-system-choice-input { margin-top: var(--space-3); accent-color: var(--decision-accent); }
+.design-system-choice[data-tone="question"] .design-system-choice-text { flex: 1 1 auto; gap: var(--space-2); }
+.design-system-choice[data-tone="question"] .design-system-choice-description { font-size: var(--fs-tab); line-height: 17px; color: var(--ink-muted); }
+.design-system-choice-free-text {
+  box-sizing: border-box; width: 100%; height: 28px; margin-top: var(--space-2); padding: 0 var(--sp-2);
+  color: var(--ink); font: 400 var(--fs-small) var(--font-ui);
+  background: var(--decision-input-fill); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.design-system-choice-free-text::placeholder { color: var(--ink-4); }
+.design-system-choice-free-text:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+/* The sizes, after the tone so they win its gap: a compact row centred on its 36px line; a large option, its label in the lead size, its
+   letter quiet and its facts ruled off; a roomy card with more room round a larger label. A mono label is set as machine text. */
+.design-system-choice[data-size="compact"] { align-items: center; gap: var(--space-10); min-height: 36px; }
+.design-system-choice[data-size="compact"][data-variant="card"] { padding: 0 var(--space-11); }
+.design-system-choice[data-size="compact"] .design-system-choice-text { flex: 1 1 auto; }
+.design-system-choice[data-size="large"][data-variant="card"] { padding: var(--space-11) var(--space-12); }
+.design-system-choice[data-size="large"] .design-system-choice-letter { font-size: var(--fs-small); font-weight: 400; color: var(--ink-4); }
+.design-system-choice[data-size="large"] .design-system-choice-text { flex: 1 1 auto; font-size: var(--fs-lead); font-weight: 600; }
+.design-system-choice[data-size="large"] .design-system-choice-description { font-weight: 400; }
+.design-system-choice[data-size="large"] .design-system-choice-facts {
+  margin-top: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--line);
+  font-size: var(--fs-body); font-weight: 400; color: var(--ink-muted);
+}
+.design-system-choice[data-size="roomy"] { gap: var(--space-12); }
+.design-system-choice[data-size="roomy"][data-variant="card"] { padding: var(--space-14) var(--space-16); }
+.design-system-choice[data-size="roomy"] .design-system-choice-text { font-size: 14px; line-height: var(--line-height-lead); font-weight: 600; }
+.design-system-choice[data-size="roomy"] .design-system-choice-description { font-weight: 400; }
+.design-system-choice[data-mono] .design-system-choice-text { font: var(--fs-small)/1.4 var(--font-mono); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-choice[data-variant="card"] { transition: none; }
+}

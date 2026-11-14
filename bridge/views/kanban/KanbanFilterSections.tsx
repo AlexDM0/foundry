@@ -2,14 +2,15 @@
  * The filter menu's two Kanban sections: Epic, one checkable row per epic holding open work (each pressed epic's roll-up under its row),
  * and Order Ready, filed or by wave, shown only on a board with dependencies.
  */
-import { Fragment, useId } from 'react';
+
+import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
+import { SegmentMeter }     from 'design-system/SegmentMeter';
+import { SegmentedControl } from 'design-system/SegmentedControl';
+import { TextButton }       from 'design-system/TextButton';
+import { Fragment, useId }  from 'react';
 
 import { TokenCountUtil }                                                     from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { EpicRollupDocument }                                            from '../../@types/BoardStateDocument.ts';
-import { TextButton }                                                         from '../../design-system/Button.tsx';
-import { SegmentMeter }                                                       from '../../design-system/Meter.tsx';
-import { MicroCapsLabel }                                                     from '../../design-system/MicroCapsLabel.tsx';
-import { SegmentedControl }                                                   from '../../design-system/SegmentedControl.tsx';
 import { DetailRoute }                                                        from '../../shell/DetailRoute.ts';
 import { HashRouter }                                                         from '../../shell/HashRouter.ts';
 import { EpicRollupUtil }                                                     from '../../utils/EpicRollupUtil.ts';
@@ -30,7 +31,7 @@ const HELD_COUNT_HINT = '↦ N on a card: tickets that wait on it, directly or f
 function EpicStripRollup({ epic }: { readonly epic: EpicRollupDocument }) {
   return (
     <div className="bridge-epic-strip-rollup" data-epic-slot={String(epic.slot)}>
-      <SegmentMeter label={EpicRollupUtil.rollupAriaLabelOf(epic)} segments={EpicRollupUtil.rollupSegmentsOf(epic)} />
+      <span className="bridge-epic-strip-meter"><SegmentMeter label={EpicRollupUtil.rollupAriaLabelOf(epic)} segments={EpicRollupUtil.rollupSegmentsOf(epic)} /></span>
       <span>{`${EpicRollupUtil.doneTextOf(epic)} · ${TokenCountUtil.formatTokenCount(epic.tokens)} tokens`}</span>
       <TextButton label={`${epic.title} details`} href={HashRouter.fragmentOf({ tab: 'epics', item: DetailRoute.epicItemTextOf(epic.key) })} />
     </div>

@@ -1,17 +1,20 @@
 /**
- * The header against a fake command client. What matters: Pause, Resume and Restart post the ControlCommands they name, Restart only
- * with new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads
- * Handing over and withdraws the controls; the header offers no concurrency field, which lives on the Agents tab; the theme switch sits
- * in the tab bar after the tabs, moves with the arrow keys, Home and End and keeps one tab stop; the status details read as one line; the
- * figures link to their tabs, a lane's figure asks for its lane and the agents figure says what it counts; the arrow keys, Home and End
- * move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none for a session job, the
- * counts before the chips, and one flag for tickets in progress with no job, and ticks from the injected clock only while it is live; the
- * summary line counts the states and today's figures; the stale notice shows only while the stream is down; the Waiting on User pill
- * names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a pointer outside or a
- * followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no badge at zero. In setup
- * (no readable pipeline) the header holds only the status line, the title, the setup chip, the theme switch and the setup stepper, whose
- * done steps show a check and link to their route and whose current step is `aria-current="step"`; with a pipeline set the Pipeline tab
- * is last and the status details hold only the usage windows the facts carry, and never the confinement.
+ * The header against a fake command client. What matters: the title row carries the wordmark and the project as the one `h1`, and the
+ * state pill reads Running with its dot only while live; Pause, Resume and Restart post the ControlCommands they name, Restart only with
+ * new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads Handing
+ * over and withdraws the controls; the header offers no concurrency field, which lives on the Agents tab; the one theme button ends the
+ * title row, says the choice and the next one, and a press moves auto to light, light to dark and dark back to auto; the status details
+ * read as one line; the figures link to their tabs, a lane's figure asks for its lane and the agents figure says what it counts; the
+ * arrow keys, Home and End move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none
+ * for a session job, the counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds
+ * Flint's slot only on the Kanban tab with no side panel open, posed for the first running job, and ticks from the injected clock only
+ * while it is live; the summary line counts the states and today's figures; the stale notice shows only while the stream is down; the
+ * Waiting on User pill names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a
+ * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no
+ * badge at zero. In setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice,
+ * the theme button and the setup step bar, whose done steps show a check and link to their route, whose current step is
+ * `aria-current="step"` and which says which step this is; with a pipeline set the Pipeline tab is last and the status details hold only
+ * the usage windows the facts carry, and never the confinement.
  */
 import {
   act,
@@ -86,17 +89,20 @@ function tickingClock(startsAt: Date = FIXTURE_NOW): { clock: BridgeClock; advan
 }
 
 interface HeaderSurroundings {
-  readonly themeChoice?:    ThemeChoice;
-  readonly onThemeChoice?:  (choice: ThemeChoice) => void;
-  readonly activityIsLive?: boolean;
-  readonly clock?:          BridgeClock;
-  readonly connection?:     ConnectionState;
-  readonly onShowLane?:     (lane: HeaderFigureLane) => void;
-  readonly notifier?:       QuestionNotifier;
+  readonly themeChoice?:     ThemeChoice;
+  readonly onThemeChoice?:   (choice: ThemeChoice) => void;
+  readonly activityIsLive?:  boolean;
+  readonly clock?:           BridgeClock;
+  readonly connection?:      ConnectionState;
+  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
+  readonly notifier?:        QuestionNotifier;
   /** The board the pill and the tab counts read; without it the header shows no pill and no count. */
-  readonly waitingBoard?:   WaitingOnUserFixtureBoard;
+  readonly waitingBoard?:    WaitingOnUserFixtureBoard;
   /** Every tab but Pipeline unless given: the board says nothing of a pipeline. */
-  readonly shownTabs?:      readonly BridgeTab[];
+  readonly shownTabs?:       readonly BridgeTab[];
+  /** The Kanban unless given. */
+  readonly selectedTab?:     BridgeTab;
+  readonly sidePanelIsOpen?: boolean;
 }
 
 function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
@@ -118,11 +124,12 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
       <Header
         project="Example Agency"
         model={HeaderModelUtil.headerModelOf(state, FIXTURE_NOW, surroundings.connection ?? 'live')}
-        selectedTab="kanban"
+        selectedTab={surroundings.selectedTab ?? 'kanban'}
         shownTabs={surroundings.shownTabs ?? HashRouter.shownTabsOf(null, null, null)}
         themeChoice={surroundings.themeChoice ?? 'auto'}
         onThemeChoice={surroundings.onThemeChoice ?? (() => undefined)}
         activityIsLive={surroundings.activityIsLive ?? true}
+        sidePanelIsOpen={surroundings.sidePanelIsOpen ?? false}
         clock={surroundings.clock ?? STILL_CLOCK}
         {...(surroundings.onShowLane === undefined ? {} : { onShowLane: surroundings.onShowLane })}
         waitingOnUser={waitingOnUser}
@@ -148,6 +155,29 @@ async function clicked(name: string): Promise<void> {
 
 afterEach(() => {
   cleanup();
+});
+
+describe('the title row', () => {
+  test('the wordmark, then the project as the page\'s one heading, then the state pill', () => {
+    renderedHeader(boardStateFixture());
+    const titleRow = document.querySelector('.bridge-head-title-row');
+    expect(titleRow?.querySelector('.bridge-wordmark')?.textContent).toBe('forge');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Example Agency');
+    expect(document.querySelectorAll('h1').length).toBe(1);
+    expect(titleRow?.querySelector('.bridge-forge-mark')?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  test('the pill reads Running with its dot while live, and a quiet word without a dot otherwise', () => {
+    renderedHeader(boardStateFixture());
+    const runningPill = document.querySelector('.bridge-status-pill');
+    expect([runningPill?.textContent, runningPill?.hasAttribute('data-running'), runningPill?.querySelector('.bridge-status-dot') === null]).toEqual([
+      'Running', true, false,
+    ]);
+    cleanup();
+    renderedHeader(boardStateFixture({ overseer: { state: 'serving', paused: true, codeVersion: 'code-1' } }));
+    const pausedPill = document.querySelector('.bridge-status-pill');
+    expect([pausedPill?.textContent, pausedPill?.hasAttribute('data-running'), pausedPill?.querySelector('.bridge-status-dot')]).toEqual(['Paused', false, null]);
+  });
 });
 
 describe('the Overseer controls', () => {
@@ -189,13 +219,13 @@ describe('the Overseer controls', () => {
 
   test('shows the usage windows the facts carry as one line with one separator, and never the confinement', () => {
     renderedHeader({ ...pipelineBoardStateOf('header-both-usage-windows'), confinement: 'unconfined-by-design' });
-    expect([...document.querySelectorAll('.bridge-status-detail')].map((detail) => detail.textContent)).toEqual(['5-hour window 14% · week 18%']);
+    expect(document.querySelector('.bridge-status-details')?.textContent).toBe('5-hour window 14% · week 18%');
     expect(document.querySelector('.bridge-header')?.textContent).not.toContain('confinement');
   });
 
   test('no observed usage window shows no usage segment and no placeholder', () => {
     renderedHeader(pipelineBoardStateOf('header-no-usage-windows'));
-    expect(document.querySelector('.bridge-status-detail')).toBeNull();
+    expect(document.querySelector('.bridge-status-details')).toBeNull();
   });
 
   test('the header offers no concurrency field: the limit is set on the Agents tab', () => {
@@ -204,34 +234,27 @@ describe('the Overseer controls', () => {
   });
 });
 
-describe('the theme switch', () => {
-  test('sits in the tab bar, after the tabs', () => {
+describe('the theme button', () => {
+  test('ends the title row, after the Overseer controls, and the tab bar holds no theme control', () => {
     renderedHeader(boardStateFixture());
-    const theme = screen.getByRole('radiogroup', { name: 'Theme' });
-    expect(theme.parentElement?.classList.contains('bridge-tab-bar')).toBe(true);
-    expect(theme.previousElementSibling?.getAttribute('aria-label')).toBe('Views');
-    expect(document.querySelector('.bridge-head-title-row [role="radiogroup"]')).toBeNull();
+    const themeButton = screen.getByRole('button', { name: 'Theme: auto. Click for light.' });
+    expect(themeButton.closest('.bridge-head-title-row')).not.toBeNull();
+    expect(themeButton.nextElementSibling).toBeNull();
+    expect(themeButton.previousElementSibling?.getAttribute('aria-label')).toBe('Overseer controls');
+    expect(document.querySelector('.bridge-tab-bar [role="radiogroup"], .bridge-tab-bar .design-system-icon-button')).toBeNull();
   });
 
-  test('only the checked choice takes the tab stop, and the arrow keys move the choice and wrap', () => {
+  test.each([
+    ['auto', 'Theme: auto. Click for light.', 'light'],
+    ['light', 'Theme: light. Click for dark.', 'dark'],
+    ['dark', 'Theme: dark. Click for auto.', 'auto'],
+  ] as const)('on %s it is named and titled for the choice and the next one, and a press chooses the next', (themeChoice, name, next) => {
     const chosen: ThemeChoice[] = [];
-    renderedHeader(boardStateFixture(), { themeChoice: 'auto', onThemeChoice: (choice) => chosen.push(choice) });
-    expect(screen.getAllByRole('radio').map((radio) => [radio.textContent, radio.getAttribute('tabindex')])).toEqual([['Auto', '0'], ['Light', '-1'], ['Dark', '-1']]);
-    act(() => {
-      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'ArrowLeft' });
-      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'ArrowRight' });
-    });
-    expect(chosen).toEqual(['dark', 'light']);
-  });
-
-  test('Home and End choose the first and the last choice', () => {
-    const chosen: ThemeChoice[] = [];
-    renderedHeader(boardStateFixture(), { themeChoice: 'light', onThemeChoice: (choice) => chosen.push(choice) });
-    act(() => {
-      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'End' });
-      fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Theme' }), { key: 'Home' });
-    });
-    expect(chosen).toEqual(['dark', 'auto']);
+    renderedHeader(boardStateFixture(), { themeChoice, onThemeChoice: (choice) => chosen.push(choice) });
+    const themeButton = screen.getByRole('button', { name });
+    expect(themeButton.getAttribute('title')).toBe(name);
+    fireEvent.click(themeButton);
+    expect(chosen).toEqual([next]);
   });
 });
 
@@ -261,7 +284,7 @@ describe('the figures and the tabs', () => {
 
   test('the arrow keys, Home and End move to a tab, wrapping at the ends, and open it', () => {
     renderedHeader(boardStateFixture());
-    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('bridge-tab'));
+    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
     const pressed = (key: string): void => {
       fireEvent.keyDown(document.activeElement ?? document.body, { key });
     };
@@ -280,7 +303,7 @@ describe('the figures and the tabs', () => {
 
   test('the tabs follow the order given and mark the selected one', () => {
     renderedHeader(boardStateFixture());
-    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('bridge-tab'));
+    const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
     expect(tabs.map((tab) => tab.textContent)).toEqual(['Kanban', 'Waves', 'Progress', 'Epics', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
     expect(tabs[0]?.getAttribute('aria-current')).toBe('page');
   });
@@ -318,11 +341,12 @@ describe('the activity strip', () => {
     expect([...document.querySelectorAll('.bridge-activity-job-id')].map((jobId) => jobId.textContent)).toEqual(['J12']);
   });
 
-  test('the counts read building and reviewing before the chips', () => {
+  test('the head reads the label, building and reviewing and the slots in use, over the chips', () => {
     renderedHeader(stripBoard([FIXTURE_BUILDER_JOB, REVIEWER_JOB], ['J12', 'J14']));
-    const counts = strip().querySelector('.bridge-activity-counts');
-    expect(counts?.textContent).toBe('1building·1reviewing');
-    expect(counts?.nextElementSibling?.getAttribute('aria-label')).toBe('Worker jobs');
+    const head = strip().querySelector('.bridge-activity-head');
+    expect(head?.querySelector('.bridge-activity-counts')?.textContent).toBe('1building·1reviewing');
+    expect(head?.textContent).toBe('Agents at work1building·1reviewing2 of 4 launch slots in use');
+    expect(head?.nextElementSibling?.getAttribute('aria-label')).toBe('Worker jobs');
   });
 
   test('tickets in progress with no Overseer job show as one flag linking to the Agents tab, and no flag shows without them', () => {
@@ -338,8 +362,30 @@ describe('the activity strip', () => {
 
   test('with no slot job it says no agent is working, and still flags tickets with no job', () => {
     renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB], [], ['3']));
-    expect(strip().textContent).toBe('No agent is working right now.1 in progress with no Overseer job');
-    expect(strip().querySelector('.bridge-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Overseer job behind it');
+    expect(strip().textContent).toBe('Agents at work0 of 4 launch slots in use1 in progress with no Overseer jobNo agent is working right now.');
+    expect(strip().querySelector('.design-system-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Overseer job behind it');
+  });
+
+  test('on the Kanban tab the strip opens with Flint\'s hidden 100px slot on the strip ground, posed for the first running job', () => {
+    renderedHeader(stripBoard([REVIEWER_JOB, FIXTURE_BUILDER_JOB], ['J12', 'J14']));
+    const flintSlot = strip().querySelector('.design-system-flint-slot');
+    expect(strip().firstElementChild).toBe(flintSlot);
+    expect(['aria-hidden', 'data-size', 'data-ground', 'data-flint-pose'].map((name) => flintSlot?.getAttribute(name))).toEqual([
+      'true', '100', 'strip', 'typing',
+    ]);
+    cleanup();
+    renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB], []));
+    expect(strip().querySelector('.design-system-flint-slot')?.getAttribute('data-flint-pose')).toBe('idle');
+  });
+
+  test('with a ticket detail or the question panel open over the Kanban the strip holds no Flint slot: the panel holds the page\'s one', () => {
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']), { sidePanelIsOpen: true });
+    expect(strip().querySelector('.design-system-flint-slot')).toBeNull();
+  });
+
+  test('on any other tab the strip holds no Flint slot', () => {
+    renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']), { selectedTab: 'agents' });
+    expect(strip().querySelector('.design-system-flint-slot')).toBeNull();
   });
 
   test('a live strip ticks each second from the injected clock', () => {
@@ -414,7 +460,7 @@ describe('waiting on User', () => {
     opened();
     expect(pill().getAttribute('aria-expanded')).toBe('true');
     const rows = within(inbox()).getAllByRole('listitem');
-    expect(rows.map((row) => [row.querySelector('.bridge-ask-line .bridge-ticket-id')?.textContent,
+    expect(rows.map((row) => [row.querySelector('.bridge-ask-line .design-system-mono-id')?.textContent,
       row.querySelector('.bridge-ask-side a')?.textContent,
       row.querySelector('.bridge-ask-side a')?.getAttribute('href')])).toEqual([
       ['E3', 'Answer', '#questions'],
@@ -431,7 +477,7 @@ describe('waiting on User', () => {
       .toEqual([true, true, false]);
     expect(document.activeElement).toBe(escalatedAction ?? null);
     expect(rows[0]?.querySelector('.bridge-card-meta')?.textContent).toBe('asked by builder · job J3 · escalated by the Assistant from I2');
-    expect(rows[0]?.querySelector('.bridge-stamp')?.textContent).toBe('40s');
+    expect(rows[0]?.querySelector('.design-system-stamp')?.textContent).toBe('40s');
   });
 
   test('Esc closes the inbox, is marked handled and hands the focus back to the pill', () => {
@@ -501,41 +547,41 @@ describe('waiting on User', () => {
     renderedWaitingHeader(waitingOnUserBoard(), { clock: live.clock });
     opened();
     act(() => live.advance(2000));
-    expect(inbox().querySelector('.bridge-stamp')?.textContent).toBe('42s');
+    expect(inbox().querySelector('.design-system-stamp')?.textContent).toBe('42s');
     cleanup();
     const down = tickingClock(WAITING_FIXTURE_NOW);
     renderedWaitingHeader(waitingOnUserBoard(), { clock: down.clock, activityIsLive: false });
     opened();
     act(() => down.advance(2000));
-    expect(inbox().querySelector('.bridge-stamp')?.textContent).toBe('40s');
+    expect(inbox().querySelector('.design-system-stamp')?.textContent).toBe('40s');
   });
 });
 
 describe('the tab counts', () => {
   function tab(name: RegExp): HTMLElement {
-    return screen.getAllByRole('link').find((link) => link.classList.contains('bridge-tab') && name.test(link.textContent ?? '')) ?? document.body;
+    return screen.getAllByRole('link').find((link) => link.classList.contains('design-system-tab') && name.test(link.textContent ?? '')) ?? document.body;
   }
 
   test('Questions shows the escalated count with its dot, Kanban the rose count and the Assistant the grey one, each naming what it counts', () => {
     renderedWaitingHeader(waitingOnUserBoard());
     const badges = [/^Questions/u, /^Kanban/u, /^Assistant/u].map((name) => {
-      const badge = tab(name).querySelector('.bridge-count-badge');
+      const badge = tab(name).querySelector('.design-system-count-badge');
       return [tab(name).getAttribute('aria-label'),
         badge?.textContent,
         badge?.getAttribute('data-tone'),
-        badge?.getAttribute('data-state') ?? null,
-        badge?.querySelector('.bridge-count-badge-dot') !== null];
+        badge?.getAttribute('data-state-tone') ?? null,
+        badge?.querySelector('.design-system-count-badge-dot') !== null];
     });
     expect(badges).toEqual([
       ['Questions, 3 questions wait on User, 1 escalated', '3', 'error', null, true],
-      ['Kanban, 5 wait on User', '5', 'state', 'ready-for-review', false],
+      ['Kanban, 5 wait on User', '5', 'state', 'accent-outline', false],
       ['Assistant, 1 incident the Assistant is settling', '1', 'neutral', null, false],
     ]);
   });
 
   test('a tab with nothing to count shows no badge and keeps its label as its name', () => {
     renderedWaitingHeader(nothingWaitingBoard());
-    expect(document.querySelectorAll('.bridge-tab .bridge-count-badge')).toHaveLength(0);
+    expect(document.querySelectorAll('.design-system-tab .design-system-count-badge')).toHaveLength(0);
     expect(tab(/^Questions/u).hasAttribute('aria-label')).toBe(false);
   });
 });
@@ -551,6 +597,7 @@ describe('the header in setup', () => {
         themeChoice="auto"
         onThemeChoice={() => undefined}
         activityIsLive
+        sidePanelIsOpen={false}
         clock={STILL_CLOCK}
         waitingOnUser={WaitingOnUserModel.waitingOnUserOf(waitingOnUserBoard())}
         tabCounts={{}}
@@ -563,23 +610,27 @@ describe('the header in setup', () => {
   test('with no readable pipeline the tabs, statistics, pill, activity strip and Overseer controls are absent', () => {
     renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
     expect(screen.queryByRole('navigation', { name: 'Views' })).toBeNull();
-    expect(document.querySelector('.bridge-tabs')).toBeNull();
+    expect(document.querySelector('.design-system-tabs')).toBeNull();
     expect(screen.queryByLabelText('Statistics')).toBeNull();
     expect(document.querySelector('.bridge-attention')).toBeNull();
     expect(document.querySelector('.bridge-activity')).toBeNull();
     expect(document.querySelector('.bridge-summary-line')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Overseer controls' })).toBeNull();
-    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeDefined();
-    expect(document.querySelector('.bridge-head-setup-chip')?.textContent).toBe('setup');
+    expect(screen.getByRole('button', { name: 'Theme: auto. Click for light.' })).toBeDefined();
+    const pill = document.querySelector('.bridge-status-pill');
+    expect([pill?.textContent, pill?.querySelector('.bridge-status-dot')]).toEqual(['Setting up', null]);
   });
 
-  test('the stepper shows the record\'s statuses, the current step is aria-current, and done and recheck steps link to their route', () => {
+  test('the step bar shows the record\'s statuses, the current step is aria-current, and done and recheck steps link to their route', () => {
     renderedSetupHeader(pipelineBoardStateOf('A0b-recheck'));
     const stepper = screen.getByRole('list', { name: 'Setup steps' });
-    const steps = [...stepper.querySelectorAll('.bridge-stepper-step')];
+    expect(stepper.hasAttribute('data-compact')).toBe(true);
+    const steps = [...stepper.querySelectorAll('.design-system-stepper-step')];
     expect(steps.map((step) => step.getAttribute('data-status'))).toEqual(['done', 'current', 'recheck', 'recheck', 'upcoming']);
-    expect(steps[0]?.querySelector('.bridge-stepper-check')).not.toBeNull();
+    expect(steps.map((step) => step.querySelector('.design-system-stepper-check') !== null)).toEqual([true, false, false, false, false]);
+    expect(steps.map((step) => step.querySelector('.design-system-stepper-circle') !== null)).toEqual([true, true, false, false, false]);
     expect(steps[1]?.getAttribute('aria-current')).toBe('step');
+    expect(screen.getByText('Step 2 of 5 · saved as you go')).toBeDefined();
     expect(within(stepper).getByRole('link', { name: 'Billing' }).getAttribute('href')).toBe('#pipeline/setup/billing');
     expect(within(stepper).getByRole('link', { name: 'Constitution' }).getAttribute('href')).toBe('#pipeline/setup/constitution');
     expect(within(stepper).queryByRole('link', { name: 'Research' })).toBeNull();
@@ -589,7 +640,13 @@ describe('the header in setup', () => {
   test('a board without a record starts on Billing, and shows no usage', () => {
     renderedSetupHeader({ ...pipelineBoardStateOf('A0'), usage: pipelineBoardStateOf('header-both-usage-windows').usage });
     expect(screen.getByRole('list', { name: 'Setup steps' }).querySelector('[aria-current="step"]')?.textContent).toContain('Billing');
-    expect(document.querySelector('.bridge-status-detail')).toBeNull();
+    expect(document.querySelector('.bridge-status-details')).toBeNull();
+  });
+
+  test('with new code on disk it shows the notice pointing at update, though it offers no Restart', () => {
+    renderedSetupHeader({ ...pipelineBoardStateOf('A0'), notices: [{ kind: 'new-code' }] });
+    expect(document.querySelector('.bridge-status-notice')?.textContent).toMatch(/^new code: run `.* update`$/u);
+    expect(screen.queryByRole('button', { name: 'Restart' })).toBeNull();
   });
 });
 

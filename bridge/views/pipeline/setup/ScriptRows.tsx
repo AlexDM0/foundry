@@ -1,9 +1,11 @@
 /**
- * The scripts the research found, as rows of name, command and meaning, under a head that says where they were found and that none runs
- * here. A script that needs a network or a service shows an amber dot and its note in place of its meaning; one that is no gate says so.
+ * The scripts the research found, as a table of name, command and meaning under its column names and a head that says where they were
+ * found and that none runs here. A script that needs a network or a service shows its dot and its note in place of its meaning; one that
+ * is no gate says so.
  */
-import { Tag } from '../../../design-system/Tag.tsx';
+import { Tag } from 'design-system/Tag';
 
+import { FlowGlyph }      from '../flow/FlowGlyph.tsx';
 import type { ScriptRow } from './ResearchStepModel.ts';
 
 export interface ScriptRowsProps {
@@ -32,13 +34,16 @@ export function ScriptRows({ rows, sourceText, countText }: ScriptRowsProps) {
   return (
     <section className="bridge-pipeline-research-card" aria-label="Scripts" data-topic="scripts">
       <h3 className="bridge-pipeline-research-card-head">
-        <svg className="bridge-pipeline-research-check" viewBox="0 0 12 12" aria-hidden="true">
-          <path d="M2 6.5L5 9l5-6" />
-        </svg>
+        <span className="bridge-pipeline-research-check"><FlowGlyph glyph="check" /></span>
         <span className="bridge-pipeline-research-card-title">Scripts</span>
-        <span className="bridge-pipeline-research-source">{sourceText}</span>
         <span className="bridge-pipeline-research-count">{countText}</span>
+        <span className="bridge-pipeline-research-source">{sourceText}</span>
       </h3>
+      <div className="bridge-pipeline-script" data-head="" aria-hidden="true">
+        <span>Script</span>
+        <span>Command</span>
+        <span>What it is</span>
+      </div>
       <ul className="bridge-pipeline-scripts">
         {rows.map((row) => (
           <li key={row.findingId} className="bridge-pipeline-script">

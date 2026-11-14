@@ -48,7 +48,7 @@ export interface IncidentPill {
   readonly label: string;
 }
 
-const PALETTE_STATE_OF_SETTLEMENT: Readonly<Record<Exclude<IncidentSettlement, 'open'>, DisplayState>> = {
+const DISPLAY_STATE_OF_SETTLEMENT: Readonly<Record<Exclude<IncidentSettlement, 'open'>, DisplayState>> = {
   handled:   'reviewed',
   escalated: 're-review',
   defaulted: 'draft',
@@ -187,7 +187,7 @@ function settledIncidentEntriesOf(history: readonly HistoryRecordDocument[], ope
 
 function incidentPillOf(incident: Pick<IncidentEntry, 'settlement' | 'delivered'>): IncidentPill {
   if (incident.settlement === 'open') return incident.delivered ? { state: 'in-review', label: 'delivered' } : { state: 'in-progress', label: 'waiting for the Assistant' };
-  return { state: PALETTE_STATE_OF_SETTLEMENT[incident.settlement], label: incident.settlement };
+  return { state: DISPLAY_STATE_OF_SETTLEMENT[incident.settlement], label: incident.settlement };
 }
 
 export const IncidentTrailUtil = Object.freeze({

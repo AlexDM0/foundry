@@ -1,0 +1,43 @@
+/* A 20px pill of text, never filled orange: quiet on the wash, a state's colours, orange (the link tint) for a warning, or the failure
+   colours; its edge dashed for a fact that is not counted. */
+.design-system-tag {
+  display: inline-flex; flex: none; align-items: center; gap: var(--space-6);
+  height: 20px; padding: 0 var(--space-8);
+  font: 500 var(--fs-pill)/1 var(--font-ui);
+  white-space: nowrap; text-decoration: none;
+  color: var(--ink-muted); background: var(--wash);
+  border: 1px solid transparent; border-radius: var(--r-pill);
+}
+.design-system-tag[data-tone="warn"] { font-weight: 600; color: var(--link); background: var(--link-tint); }
+.design-system-tag[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); }
+.design-system-tag[data-dashed] { border-style: dashed; border-color: var(--line-strong); }
+.design-system-tag[data-tone="state"] { font-weight: 600; color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
+button.design-system-tag { cursor: pointer; }
+a.design-system-tag:hover,
+button.design-system-tag:hover { color: var(--ink); text-decoration: none; filter: brightness(0.94); }
+.design-system-tag[data-tone="warn"]:is(a, button):hover { color: var(--link); }
+.design-system-tag[data-tone="error"]:is(a, button):hover { color: var(--err-ink); }
+.design-system-tag[data-tone="state"]:is(a, button):hover { color: var(--s-ink); }
+.design-system-tag:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.design-system-tag .design-system-state-dot { width: 6px; height: 6px; }
+.design-system-tag-glyph { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+
+/* The tag's later forms: a turning ring while busy, the change markers with no border (removed struck through) and the pop of a tag that
+   just came. */
+.design-system-tag-spinner {
+  flex: none; box-sizing: border-box; width: 10px; height: 10px;
+  border: 1.5px solid currentColor; border-left-color: transparent; border-radius: 50%;
+  animation: design-system-spin 0.9s linear infinite;
+}
+.design-system-tag[data-change="changed"] { color: var(--change-changed-ink); background: var(--change-changed-fill); border-color: var(--change-changed-edge); }
+.design-system-tag[data-change="new"] { color: var(--change-new-ink); background: var(--change-new-fill); border-color: var(--change-new-edge); }
+.design-system-tag[data-change="removed"] {
+  color: var(--change-removed-ink); background: var(--change-removed-fill); border-color: var(--change-removed-edge);
+  text-decoration: line-through;
+}
+.design-system-tag[data-pops] { animation: design-system-pop var(--motion-pop) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-tag-spinner { animation: none; }
+  .design-system-tag[data-pops] { animation: none; }
+}

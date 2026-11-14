@@ -1,0 +1,19 @@
+/* An on and off switch: the knob slides by a transform, so the track keeps its size; the track is the signal colour when on and a strong
+   line when off. */
+.design-system-switch {
+  position: relative; flex: none; display: inline-block; box-sizing: border-box; width: 32px; height: 18px; padding: 0;
+  background: var(--line-strong); border: 0; border-radius: var(--r-pill); cursor: pointer;
+}
+.design-system-switch-knob {
+  position: absolute; top: var(--space-2); left: var(--space-2); width: 14px; height: 14px; background: var(--switch-knob); border-radius: var(--r-pill);
+  transition: transform var(--motion-base) var(--ease-out);
+}
+.design-system-switch[aria-checked="true"] { background: var(--signal); }
+.design-system-switch[aria-checked="true"] .design-system-switch-knob { transform: translateX(14px); }
+.design-system-switch:not(:disabled):hover { filter: brightness(0.94); }
+.design-system-switch:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.design-system-switch:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-switch-knob { transition: none; }
+}

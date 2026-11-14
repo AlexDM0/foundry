@@ -1,16 +1,21 @@
 /**
- * A role's instruction list, read top to bottom: a row per file with its note, Edit on the constitution, Open on a file whose text the
- * facts carry (a read-only dialog of it), and × to remove it. A removed constitution leaves a dashed row whose switch puts it back at the
- * top; "Add a file" opens a path field. The list is the form's: nothing is sent until the dialog's Save.
+ * A role's brief, the instruction files read top to bottom, in one ruled box: a row per file with its note, Edit on the constitution, Open
+ * on a file whose text the facts carry (a read-only dialog of it), and × to remove it. A removed constitution leaves a quiet row whose
+ * switch puts it back at the top; "Add a file" at the box's foot opens a path field. The list is the form's: nothing is sent until the
+ * dialog's Save.
  */
+
+import { Button }          from 'design-system/Button';
+import { Dialog }          from 'design-system/Dialog';
+import { ListedFile }      from 'design-system/ListedFile';
+import { Row }             from 'design-system/Row';
+import { Switch }          from 'design-system/Switch';
+import { Text }            from 'design-system/Text';
+import { TextButton }      from 'design-system/TextButton';
 import { useId, useState } from 'react';
 
 import type { InstructionEntry }         from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { ResolvedInstructionEntry } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { Button, TextButton }            from '../../../design-system/Button.tsx';
-import { Dialog }                        from '../../../design-system/Dialog.tsx';
-import { ListedFile }                    from '../../../design-system/ListedFile.tsx';
-import { Switch }                        from '../../../design-system/Switch.tsx';
 
 import type { StepDialogRole }                                                      from './AgentStepDialogModel.ts';
 import { InstructionsEditorModel, type ConstitutionPlace, type InstructionRowView } from './InstructionsEditorModel.ts';
@@ -24,9 +29,11 @@ export interface InstructionsEditorProps {
   readonly onChange:        (entries: InstructionEntry[]) => void;
 }
 
-const READING_ORDER_NOTE = 'Read top to bottom. Every item can be removed; with none left, a basic built-in brief stays, so the agent still knows its job.';
+const READING_ORDER_LEAD = 'The agent reads these files top to bottom';
 
-const EMPTY_LIST_NOTE = 'No file left: the agent reads its basic built-in brief.';
+const BUILT_IN_BRIEF_NOTE = 'You can remove every file. Then a basic built-in brief stays, so the agent still knows its job.';
+
+const EMPTY_LIST_NOTE = 'No file. The agent uses the basic built-in brief.';
 
 const CUT_TEXT_NOTE = 'The preview stops here; the file goes on.';
 
@@ -39,7 +46,7 @@ function FileTextDialog({ row, onClose }: FileTextDialogProps) {
   return (
     <Dialog title={row.fileName} kicker="Instruction file" isOpen onDismiss={onClose} closeLabel="Close" width="wide">
       <pre className="bridge-pipeline-dialog-file-text">{row.text}</pre>
-      {row.textIsCut ? <p className="bridge-pipeline-dialog-note">{CUT_TEXT_NOTE}</p> : null}
+      {row.textIsCut ? <Text typeRole="tab" subtle element="p" marginTop="eight">{CUT_TEXT_NOTE}</Text> : null}
     </Dialog>
   );
 }
@@ -66,8 +73,8 @@ function AddFileField({ onAdd, onCancel }: AddFileFieldProps) {
           if (event.key === 'Enter' && path.trim() !== '') onAdd(path);
         }}
       />
-      <Button label="Add" disabled={path.trim() === ''} onPress={() => onAdd(path)} />
-      <Button label="Cancel" emphasis="quiet" onPress={onCancel} />
+      <Button label="Add" compact disabled={path.trim() === ''} onPress={() => onAdd(path)} />
+      <Button label="Cancel" compact emphasis="ghost" onPress={onCancel} />
     </div>
   );
 }
@@ -79,51 +86,60 @@ export function InstructionsEditor({
   const [addsFile, setAddsFile] = useState(false);
   const labelId = useId();
   const rows = InstructionsEditorModel.rowsOf(entries, role, constitution, resolvedEntries);
-  const showsAddConstitution = InstructionsEditorModel.offersConstitution(role) && !InstructionsEditorModel.includesConstitution(entries);
+  const showsIncludeConstitution = InstructionsEditorModel.offersConstitution(role) && !InstructionsEditorModel.includesConstitution(entries);
   return (
     <div className="bridge-pipeline-dialog-instructions" role="group" aria-labelledby={labelId}>
-      <div className="bridge-pipeline-dialog-instructions-head">
-        <span className="bridge-pipeline-dialog-label" id={labelId}>{label}</span>
-        <TextButton label="Add a file" onPress={() => setAddsFile(true)} />
-      </div>
-      <div className="bridge-pipeline-dialog-instruction-rows">
-        {showsAddConstitution
+      <Row gap="ten" centerY wrap>
+        <Text typeRole="title" id={labelId}>{label}</Text>
+        <Text muted>{READING_ORDER_LEAD}</Text>
+      </Row>
+      <div className="bridge-pipeline-dialog-brief">
+        {showsIncludeConstitution
           ? (
-            <div className="bridge-pipeline-dialog-constitution-off">
-              <span className="bridge-pipeline-dialog-constitution-off-text">Constitution not included</span>
-              <span className="bridge-pipeline-dialog-constitution-off-label">Add constitution</span>
-              <Switch accessibleName="Add constitution" checked={false} onToggle={() => onChange(InstructionsEditorModel.withConstitution(entries))} />
+            <div className="bridge-pipeline-dialog-brief-row" data-quiet="">
+              <span className="bridge-pipeline-dialog-brief-row-text"><Text muted>Constitution not included</Text></span>
+              <Text typeRole="tab" muted>Include it</Text>
+              <Switch accessibleName="Include the constitution" checked={false} onToggle={() => onChange(InstructionsEditorModel.withConstitution(entries))} />
             </div>
           )
           : null}
         {rows.map((row, i) => {
           const openAction = row.editHref === null
-            ? (row.text === null ? undefined : { label: 'Open', onPress: () => setOpenedRow(row) })
-            : { label: 'Edit', href: row.editHref };
+            ? (row.text === null ? null : <TextButton label="Open" onPress={() => setOpenedRow(row)} />)
+            : <TextButton label="Edit" href={row.editHref} />;
           return (
             <ListedFile
               key={row.key}
               name={row.fileName}
               roleText={row.roleText}
+              action={openAction}
               removeLabel={row.removeLabel}
               onRemove={() => onChange(InstructionsEditorModel.withoutEntryAt(entries, i))}
-              {...(openAction === undefined ? {} : { openAction })}
+              ruled
             />
           );
         })}
+        {entries.length === 0 ? <div className="bridge-pipeline-dialog-brief-row"><Text muted>{EMPTY_LIST_NOTE}</Text></div> : null}
+        <div className="bridge-pipeline-dialog-brief-row" data-foot="">
+          {addsFile
+            ? (
+              <AddFileField
+                onAdd={(path) => {
+                  onChange(InstructionsEditorModel.withFile(entries, path));
+                  setAddsFile(false);
+                }}
+                onCancel={() => setAddsFile(false)}
+              />
+            )
+            : (
+              <>
+                <span className="bridge-pipeline-dialog-brief-add"><TextButton label="Add a file" onPress={() => setAddsFile(true)} /></span>
+                <Text typeRole="tab" subtle>The file must exist on main.</Text>
+              </>
+            )}
+        </div>
       </div>
-      {addsFile
-        ? (
-          <AddFileField
-            onAdd={(path) => {
-              onChange(InstructionsEditorModel.withFile(entries, path));
-              setAddsFile(false);
-            }}
-            onCancel={() => setAddsFile(false)}
-          />
-        )
-        : null}
-      <p className="bridge-pipeline-dialog-note">{entries.length === 0 ? EMPTY_LIST_NOTE : READING_ORDER_NOTE}</p>
+      <Text typeRole="tab" subtle>{BUILT_IN_BRIEF_NOTE}</Text>
       {openedRow === null ? null : <FileTextDialog row={openedRow} onClose={() => setOpenedRow(null)} />}
     </div>
   );

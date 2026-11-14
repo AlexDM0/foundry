@@ -1,0 +1,37 @@
+/* One change, a step card on the page ground: an edge that grows down in its kind's colour, the title and where it is, the old value struck over the new, a note. A row
+   sets the values on one line, the old one leading to the new by an arrow, and strikes the title of a removal. */
+.design-system-change-row {
+  position: relative;
+  display: flex; flex-direction: column; gap: var(--space-6);
+  padding: var(--space-10) var(--sp-3) var(--space-10) var(--sp-4);
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.design-system-change-row[data-density="row"] { gap: var(--sp-1); }
+.design-system-change-row[data-density="card"] { transition: var(--feedback-transition); }
+.design-system-change-row[data-density="card"]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-change-row-edge { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; transform-origin: top; animation: design-system-edge 420ms var(--ease-out) 200ms both; }
+.design-system-change-row[data-change="changed"] .design-system-change-row-edge { background: var(--change-changed-dot); }
+.design-system-change-row[data-change="new"] .design-system-change-row-edge { background: var(--tone-success); }
+.design-system-change-row[data-change="removed"] .design-system-change-row-edge { background: var(--change-removed-row-edge); }
+.design-system-change-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.design-system-change-row-title { font-weight: 600; }
+.design-system-change-row-location { color: var(--ink-muted); }
+.design-system-change-row-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); }
+.design-system-change-row-values { display: flex; flex-direction: column; gap: var(--space-6); font: 11.5px/1.45 var(--font-mono); }
+.design-system-change-row-before { color: var(--ink-muted); text-decoration: line-through; }
+.design-system-change-row[data-change="changed"] .design-system-change-row-after { color: var(--change-changed-ink); }
+.design-system-change-row[data-change="new"] .design-system-change-row-after { color: var(--change-new-ink); }
+.design-system-change-row[data-change="removed"] .design-system-change-row-after { color: var(--change-removed-ink); }
+.design-system-change-row[data-density="row"] .design-system-change-row-values { flex-flow: row wrap; gap: 0 var(--space-6); }
+.design-system-change-row[data-density="row"] .design-system-change-row-before { color: var(--change-changed-ink); text-decoration: none; }
+.design-system-change-row[data-density="row"][data-change="removed"] .design-system-change-row-title { text-decoration: line-through; }
+.design-system-change-row[data-density="row"] .design-system-change-row-before + .design-system-change-row-after::before { content: "→"; margin-right: var(--space-6); color: var(--ink-4); }
+.design-system-change-row-note { margin: 0; line-height: 18px; color: var(--ink-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-change-row-edge { animation: none; }
+  .design-system-change-row[data-density="card"] { transition: none; }
+}
+@keyframes design-system-edge { from { transform: scaleY(0); } to { transform: scaleY(1); } }

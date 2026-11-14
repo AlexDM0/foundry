@@ -1,10 +1,11 @@
 /**
- * The Bridge's entry point: sets the theme and the embedded mark before the first paint and follows an embedding parent's theme from
- * then on, exchanges the session code `open` put in the fragment, then mounts the one React root inside the error boundary, over the
- * browser's own fetch, EventSource, storage and location.
+ * The Bridge's entry point: registers the design system's fonts, sets the theme and the embedded mark before the first paint and follows
+ * an embedding parent's theme from then on, exchanges the session code `open` put in the fragment, then mounts the one React root inside
+ * the error boundary, over the browser's own fetch, EventSource, storage and location.
  */
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { loadDesignSystemFonts } from 'design-system/FontLoader';
+import { StrictMode }            from 'react';
+import { createRoot }            from 'react-dom/client';
 
 import { CommandClient }                                  from './api/CommandClient.ts';
 import { EventStreamClient }                              from './api/EventStreamClient.ts';
@@ -22,6 +23,8 @@ import { FirstPaint }                                     from './shell/FirstPai
 import { QuestionAlerts }                                 from './views/questions/QuestionAlerts.ts';
 
 const ROOT_ELEMENT_ID = 'bridge-root';
+
+loadDesignSystemFonts();
 
 const { embedded } = FirstPaint.prepare(sharedPreferenceStoreOf());
 

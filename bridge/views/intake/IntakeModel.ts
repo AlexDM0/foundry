@@ -4,6 +4,8 @@
  * chat worded as turns, User's request after the line that started it and each open decision placed where it was asked. A closed session
  * keeps its transcript and chat: a message resumes it by id.
  */
+import type { TagProps } from 'design-system/Tag';
+
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
 import type {
   ConversationBoardDocument,
@@ -17,9 +19,9 @@ import type { TranscriptEntryDocument, TranscriptPictureDocument } from '../../a
 import type { ChatTurn, UserChatTurn }                             from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil, type ChatThreadItem }                from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                     from '../../conversation/ChatTurnWordingUtil.ts';
-import type { TagProps }                                           from '../../design-system/Tag.tsx';
 import { DisplayStateWordingUtil }                                 from '../../utils/DisplayStateWordingUtil.ts';
 import { JobStateUtil }                                            from '../../utils/JobStateUtil.ts';
+import { StateToneUtil }                                           from '../../utils/StateToneUtil.ts';
 import { TimeUtil }                                                from '../../utils/TimeUtil.ts';
 
 export interface IntakeSession {
@@ -54,6 +56,13 @@ export interface IntakeSessionFacts {
   readonly resumeText:  string | null;
 }
 
+/** The product owner's live turn at the chat's end, where Flint works: the session's pill and its calls so far. */
+export interface ProductOwnerAtWorkFacts {
+  readonly pill:      IntakePill;
+  /** `null` while the board sends no live facts. */
+  readonly callsText: string | null;
+}
+
 export type IntakeSelection =
   | { readonly form: 'new-chat' }
   | { readonly form: 'starting'; readonly jobId: string }
@@ -84,31 +93,19 @@ const USER_SPEAKER = 'User';
 /** The palette row a product-owner turn's dot takes. */
 const PRODUCT_OWNER_TURN_STATE: DisplayState = 'reviewed';
 
-const NEW_CHAT_TAG: TagProps = {
-  text: 'No message yet: sending starts the session', tone: 'state', state: 'pending', dot: true
-};
+const NEW_CHAT_TAG: TagProps = { text: 'No message yet: sending starts the session', ...StateToneUtil.tagLookOf('pending'), dot: true };
 
-const CLOSED_TAG: TagProps = {
-  text: 'Closed: a message resumes it', tone: 'state', state: 'abandoned', dot: true
-};
+const CLOSED_TAG: TagProps = { text: 'Closed: a message resumes it', ...StateToneUtil.tagLookOf('abandoned'), dot: true };
 
 const TAG_OF_TURN: Readonly<Record<SessionTurnDocument, TagProps>> = {
-  'mid-turn': {
-    text: 'Busy: the next message queues', tone: 'state', state: 'in-progress', dot: true
-  },
-  'between-turns': {
-    text: 'Idle: a message sends now', tone: 'state', state: 'reviewed', dot: true
-  },
+  'mid-turn':      { text: 'Busy: the next message queues', ...StateToneUtil.tagLookOf('in-progress'), dot: true },
+  'between-turns': { text: 'Idle: a message sends now', ...StateToneUtil.tagLookOf('reviewed'), dot: true },
 };
 
 /** While the session waits on User's answer; its turn says whether a message sends now or waits for the answer. */
 const WAITING_TAG_OF_TURN: Readonly<Record<SessionTurnDocument, TagProps>> = {
-  'mid-turn': {
-    text: 'Waiting on User: the next message queues', tone: 'state', state: 'paused', dot: true
-  },
-  'between-turns': {
-    text: 'Waiting on User: a message sends now', tone: 'state', state: 'paused', dot: true
-  },
+  'mid-turn':      { text: 'Waiting on User: the next message queues', ...StateToneUtil.tagLookOf('paused'), dot: true },
+  'between-turns': { text: 'Waiting on User: a message sends now', ...StateToneUtil.tagLookOf('paused'), dot: true },
 };
 
 const WAITING_FOR_ANSWER_STATE = 'waiting-for-answer';
@@ -194,7 +191,7 @@ function intakeSessionsOf(board: ConversationBoardDocument): IntakeSession[] {
 
 /** A closed session reads as ended; a live one by its job's state. */
 function sessionPillOf(session: Pick<IntakeSession, 'state' | 'closed'>): IntakePill {
-  return session.closed ? { state: 'abandoned', label: CLOSED_OUTCOME } : { state: JobStateUtil.paletteStateOf(session.state), label: session.state };
+  return session.closed ? { state: 'abandoned', label: CLOSED_OUTCOME } : { state: JobStateUtil.displayStateOf(session.state), label: session.state };
 }
 
 /** A filed ticket's badge by its status; a status that is no display state shows as its word on the waiting row. */
@@ -253,6 +250,15 @@ function closeIntakeCaptionOf(tickets: readonly TicketDocument[]): string | null
 function paneMetaOf(turnCount: number, calls: number | null): string {
   const { countTextOf } = ChatTurnWordingUtil;
   return [countTextOf(turnCount, 'turn', 'turns'), ...calls === null ? [] : [countTextOf(calls, 'call', 'calls')]].join(' · ');
+}
+
+/** The product owner at work while the session is open; a closed session has no live turn. */
+function productOwnerAtWorkOf(session: Pick<IntakeSession, 'state' | 'closed' | 'calls'>): ProductOwnerAtWorkFacts | null {
+  if (session.closed) return null;
+  return {
+    pill:      sessionPillOf(session),
+    callsText: session.calls === null ? null : `${ChatTurnWordingUtil.countTextOf(session.calls, 'call', 'calls')} so far`,
+  };
 }
 
 /** The job id of an applied `intake-start`, read from its result; `null` from any other shape. */
@@ -367,6 +373,7 @@ export const IntakeModelUtil = Object.freeze({
   composerTagOf,
   closeIntakeCaptionOf,
   paneMetaOf,
+  productOwnerAtWorkOf,
   newJobIdOf,
   chatTurnsOf,
   picturesInChatOf,

@@ -1,9 +1,11 @@
 /**
- * One topic of the research as a card: its title after a done check, the source paths its findings came from, and its findings: the stack
- * as chips that pop in as they come, every other topic as lines with their own source paths. A finding to recheck carries an amber tag.
+ * One topic of the research as a card: its title after a done check, how many it found and the source paths its findings came from, and
+ * its findings: the stack as chips that pop in as they come, every other topic as lines with their own source paths. A finding to recheck
+ * carries its tag.
  */
-import { Tag } from '../../../design-system/Tag.tsx';
+import { Tag } from 'design-system/Tag';
 
+import { FlowGlyph }                        from '../flow/FlowGlyph.tsx';
 import type { FindingItem, FindingSection } from './ResearchStepModel.ts';
 
 const RECHECK_TEXT = 'recheck';
@@ -44,11 +46,10 @@ export function FindingCard({ section }: { readonly section: FindingSection }) {
   return (
     <section className="bridge-pipeline-research-card" aria-label={section.title} data-topic={section.topic}>
       <h3 className="bridge-pipeline-research-card-head">
-        <svg className="bridge-pipeline-research-check" viewBox="0 0 12 12" aria-hidden="true">
-          <path d="M2 6.5L5 9l5-6" />
-        </svg>
+        <span className="bridge-pipeline-research-check"><FlowGlyph glyph="check" /></span>
         <span className="bridge-pipeline-research-card-title">{section.title}</span>
-        {section.sourcePaths.length === 0 ? null : <span className="bridge-pipeline-research-source">{section.sourcePaths.join(', ')}</span>}
+        <span className="bridge-pipeline-research-count">{`${section.items.length} found`}</span>
+        {section.sourcePaths.length === 0 ? null : <span className="bridge-pipeline-research-source">{section.sourcePaths.join(' · ')}</span>}
       </h3>
       {section.topic === 'stack' ? <StackChips items={section.items} /> : <FindingLines items={section.items} />}
     </section>

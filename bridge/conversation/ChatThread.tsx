@@ -3,13 +3,15 @@
  * A system line sits between two rules and can reveal the text it stands for; an agent turn leads with its speaker, folds its tool calls
  * and then speaks; User's message is a bubble, dashed while it waits in a queue; a decision is placed by the caller.
  */
+
+import { Stamp, type StampProps }   from 'design-system/Stamp';
+import { StateDot }                 from 'design-system/StateDot';
+import { Tag, type TagProps }       from 'design-system/Tag';
+import { TextButton }               from 'design-system/TextButton';
 import { useState, type ReactNode } from 'react';
 
 import type { DisplayState }         from '../../src/lib/tracker-model/@types/Task.ts';
-import { TextButton }                from '../design-system/Button.tsx';
-import { Stamp, type StampProps }    from '../design-system/Stamp.tsx';
-import { StateDot }                  from '../design-system/StateDot.tsx';
-import { Tag, type TagProps }        from '../design-system/Tag.tsx';
+import { StateToneUtil }             from '../utils/StateToneUtil.ts';
 import { ToolUseFold, type ToolUse } from './ToolUseFold.tsx';
 
 export interface ChatCardProps {
@@ -76,7 +78,7 @@ function SystemLine({ turn }: { readonly turn: SystemChatTurn }) {
     <li className="bridge-chat-system">
       <span>{turn.text}</span>
       {turn.revealText === null ? null : <TextButton label={isRevealed ? 'Hide prompt' : 'Show prompt'} onPress={() => setIsRevealed(!isRevealed)} />}
-      {turn.stamp === null ? null : <Stamp {...turn.stamp} />}
+      {turn.stamp === null ? null : <span className="bridge-chat-stamp"><Stamp {...turn.stamp} /></span>}
       {turn.revealText !== null && isRevealed ? <p className="bridge-chat-system-text">{turn.revealText}</p> : null}
     </li>
   );
@@ -85,10 +87,10 @@ function SystemLine({ turn }: { readonly turn: SystemChatTurn }) {
 function AgentTurn({ turn }: { readonly turn: AgentChatTurn }) {
   return (
     <li className="bridge-chat-turn" data-speaker="agent">
-      <div className="bridge-chat-who" data-state={turn.state}>
-        <StateDot state={turn.state} />
+      <div className="bridge-chat-who" data-state={turn.state} data-state-tone={StateToneUtil.toneOf(turn.state)}>
+        <StateDot {...StateToneUtil.dotOf(turn.state)} small />
         <span>{turn.speaker}</span>
-        {turn.stamp === null ? null : <Stamp {...turn.stamp} />}
+        {turn.stamp === null ? null : <span className="bridge-chat-stamp"><Stamp {...turn.stamp} /></span>}
         {turn.workingText === null ? null : <span className="bridge-chat-working">{turn.workingText}</span>}
       </div>
       {turn.toolUse === null ? null : <ToolUseFold toolUse={turn.toolUse} />}
@@ -107,7 +109,7 @@ function UserTurn({ turn }: { readonly turn: UserChatTurn }) {
           : (
             <>
               <span aria-hidden="true">·</span>
-              <Stamp {...turn.stamp} />
+              <span className="bridge-chat-stamp"><Stamp {...turn.stamp} /></span>
             </>
           )}
         {turn.stampSuffix === null

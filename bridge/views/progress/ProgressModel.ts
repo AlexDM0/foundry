@@ -79,17 +79,16 @@ export interface ProgressRowModel {
 export interface ProgressChartModel {
   readonly fromEpochMilliseconds: number;
   readonly toEpochMilliseconds:   number;
-  /** The range preset the override presses, and the range button's word for it. */
+  /** The range preset the override presses, and its word in the note's title. */
   readonly pressedPreset:         string;
   readonly modeLabel:             string;
   /** A preset or typed bounds hold the range; Fit follows the rows. */
   readonly modeIsHeld:            boolean;
   readonly modeTitle:             string;
-  /** The range's two ends on the range button, dated when they fall on different days. */
-  readonly rangeEndsText:         string;
   readonly ticks:                 readonly TimelineTick[];
   readonly nowPercent:            number | null;
   readonly rows:                  readonly ProgressRowModel[];
+  /** The range's two ends and its tick size, beside the range control. */
   readonly rangeNoteText:         string;
   /** The mode, then the note's ends in full. */
   readonly rangeNoteTitle:        string;
@@ -363,7 +362,6 @@ function progressChartOf(state: ProgressBoardState, choices: ProgressChartChoice
     modeLabel,
     modeIsHeld,
     modeTitle:         modeIsHeld ? HELD_RANGE_TITLE : FITTED_RANGE_TITLE,
-    rangeEndsText:     TimeUtil.rangeEndsText(fromEpochMilliseconds, toEpochMilliseconds),
     ticks:             timeline.ticks,
     nowPercent:        timeline.nowPercent,
     rows:              rows.map((placed) => rowModelOf(placed, state, choices.todayCalendarDate)),

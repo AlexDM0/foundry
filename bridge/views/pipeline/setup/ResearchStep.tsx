@@ -1,19 +1,27 @@
 /**
- * A1Reading, the research step: the pipeline agent's status line and its meter, what it found by topic and the scripts, grey lines until
- * the first finding comes, then the agent panel with the research questions side by side and the composer. The footer says how far the
- * research is, and offers Stop the pipeline agent and Continue to constitution, which is offered at every moment of the research.
+ * A1Reading, the research step, as FlowResearch draws it: the agent's status line over the page's title row, what it found by topic in
+ * cards two by two and the scripts as a table, grey lines until the first finding comes; beside it the pipeline agent's panel with the
+ * research questions as decision cards, Flint reading the repository and the composer. The footer says how far the research is, and
+ * offers Stop the pipeline agent and Continue to constitution, which is offered at every moment of the research.
  */
+import { ActionBar } from 'design-system/ActionBar';
+import { Skeleton }  from 'design-system/Skeleton';
+import { Tag }       from 'design-system/Tag';
+import { Text }      from 'design-system/Text';
+import { View }      from 'design-system/View';
+
 import type { PipelineSetupFacts }                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { TranscriptFollower }                   from '../../../conversation/TranscriptLog.tsx';
-import { ActionBar }                                 from '../../../design-system/ActionBar.tsx';
-import { BusyIndicator }                             from '../../../design-system/BusyIndicator.tsx';
-import { ModelEffortMeter }                          from '../../../design-system/ModelEffortMeter.tsx';
-import { Skeleton }                                  from '../../../design-system/Skeleton.tsx';
 import { useTickingNow, type BridgeClock }           from '../../../shell/BridgeClock.ts';
 import { CommandButton }                             from '../../../shell/CommandButton.tsx';
 import { HashRouter }                                from '../../../shell/HashRouter.ts';
+import { StateToneUtil }                             from '../../../utils/StateToneUtil.ts';
 import { TimeUtil }                                  from '../../../utils/TimeUtil.ts';
+import { ViewTitle }                                 from '../../ViewTitle.tsx';
+import { PipelinePage }                              from '../PipelinePage.tsx';
+import { PipelinePanel }                             from '../PipelinePanel.tsx';
 import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
+import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
 import { PipelineAgentPanel }                        from '../agent-panel/PipelineAgentPanel.tsx';
 import { BillingStepModel }                          from './BillingStepModel.ts';
 import { FindingCard }                               from './FindingCard.tsx';
@@ -40,38 +48,23 @@ export function ResearchStep({
   const { record } = setup;
   const state = ResearchStepModel.researchStateOf(setup);
   const now = useTickingNow(clock, state !== 'stopped');
-  const meter = BillingStepModel.pipelineAgentMeterOf(record, facts);
+  const status = ResearchStepModel.panelStatusOf(setup);
   const sections = ResearchStepModel.findingSectionsOf(record.findings);
   const scriptRows = ResearchStepModel.scriptRowsOf(record.findings);
   const statusLine = ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: launchStampOf(facts, record.agentJobId) }, now);
-  return (
-    <div className="bridge-pipeline-research" data-state={state}>
-      <section className="bridge-pipeline-research-hero">
-        <div className="bridge-pipeline-research-hero-text">
-          <span className="bridge-pipeline-research-status" data-state={state}>
-            <span className="bridge-pipeline-research-status-dot" aria-hidden="true" />
-            {statusLine}
-          </span>
-          <h2 className="bridge-pipeline-setup-heading">{ResearchStepModel.headingOf(facts.project ?? '')}</h2>
-          <p className="bridge-pipeline-setup-lead">
-            The agent finds the stack and the scripts. It runs nothing and proposes nothing yet. Tell it below what it got wrong or missed, so
-            the design starts from the right facts.
-          </p>
-        </div>
-        {meter === null
-          ? null
-          : (
-            <ModelEffortMeter
-              model={meter.model}
-              effort={meter.effort}
-              level={meter.level}
-              levelCount={meter.levelCount}
-              accessibleName={meter.accessibleName}
-              size="hero"
-            />
-          )}
-      </section>
-
+  const main = (
+    <>
+      <View gap="two">
+        <span className="bridge-pipeline-research-status" data-state={state}>
+          <span className="bridge-pipeline-research-status-dot" aria-hidden="true" />
+          {statusLine}
+        </span>
+        <ViewTitle
+          title={ResearchStepModel.headingOf(facts.project ?? '')}
+          lead={'The agent finds the stack, the conventions and the scripts. It runs nothing and proposes nothing yet. Tell it what it got '
+            + 'wrong or missed, so the design starts from the right facts.'}
+        />
+      </View>
       {record.findings.length === 0
         ? <Skeleton lines={SKELETON_LINES} accessibleName="Waiting for the first findings" />
         : (
@@ -90,42 +83,56 @@ export function ResearchStep({
               )}
           </>
         )}
-
+    </>
+  );
+  const panel = (
+    <PipelinePanel
+      label="Pipeline agent"
+      title="Pipeline agent"
+      status={status}
+      headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
+    >
       <PipelineAgentPanel
         setup={setup}
         step="research"
-        variant="inline"
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
-        composerPlaceholder="Correct a finding, for example: the tests also need Redis, and dev is not used"
+        composerPlaceholder="Correct a finding, for example: the tests also need Redis"
+        showsAgentStrip
       />
-
-      <ActionBar
-        label="Research actions"
-        start={(
-          <>
-            {state === 'researching' ? <BusyIndicator shape="spinner" accessibleName="Researching" /> : null}
-            <span className="bridge-pipeline-research-footer-status" aria-live="polite">{ResearchStepModel.footerStatusOf(setup)}</span>
-            <span className="bridge-pipeline-research-footer-hint">User moves on when ready; the agent keeps the findings for the design.</span>
-          </>
-        )}
-        end={(
-          <>
-            <CommandButton
-              label="Stop the pipeline agent"
-              command={ResearchStepModel.stopCommandOf(setup)}
-              onApplied={() => HashRouter.navigateTo({ tab: 'pipeline', item: null })}
-            />
-            <CommandButton
-              label="Continue to constitution"
-              command={ResearchStepModel.continueCommandOf(setup)}
-              primary
-              attention={ResearchStepModel.continueHasAttention(setup)}
-              onApplied={() => HashRouter.navigateTo(PipelineViewModel.setupStepRouteOf('constitution'))}
-            />
-          </>
-        )}
-      />
+    </PipelinePanel>
+  );
+  const footer = (
+    <ActionBar
+      label="Research actions"
+      start={(
+        <>
+          <Tag text={status.text} tone="neutral" stateTone={StateToneUtil.toneOf('in-progress')} dot={status.tone === 'working'} />
+          <span className="bridge-pipeline-research-footer-status" aria-live="polite">{ResearchStepModel.footerCountsOf(setup)}</span>
+          <Text muted>Continue at any time. The agent keeps its findings for the design.</Text>
+        </>
+      )}
+      end={(
+        <>
+          <CommandButton
+            label="Stop the pipeline agent"
+            command={ResearchStepModel.stopCommandOf(setup)}
+            onApplied={() => HashRouter.navigateTo({ tab: 'pipeline', item: null })}
+          />
+          <CommandButton
+            label="Continue to constitution"
+            command={ResearchStepModel.continueCommandOf(setup)}
+            primary
+            attention={ResearchStepModel.continueHasAttention(setup)}
+            onApplied={() => HashRouter.navigateTo(PipelineViewModel.setupStepRouteOf('constitution'))}
+          />
+        </>
+      )}
+    />
+  );
+  return (
+    <div className="bridge-pipeline-research" data-state={state}>
+      <PipelinePage main={main} panel={panel} footer={footer} />
     </div>
   );
 }

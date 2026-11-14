@@ -77,8 +77,14 @@ describe('the status lines', () => {
   });
 
   test('the footer counts the scripts and the open research questions', () => {
-    expect(ResearchStepModel.footerStatusOf(withRecord(researchSetup(), { readyToContinue: [] }))).toBe('Researching · 2 scripts found · 1 open question');
-    expect(ResearchStepModel.footerStatusOf(withRecord(researchSetup(), { questions: [] }))).toBe('Research done · 2 scripts found');
+    expect(ResearchStepModel.footerCountsOf(withRecord(researchSetup(), { readyToContinue: [] }))).toBe('2 scripts found · 1 open question');
+    expect(ResearchStepModel.footerCountsOf(withRecord(researchSetup(), { questions: [] }))).toBe('2 scripts found');
+  });
+
+  test('the panel head and the footer pill say whether the agent researches, is done or stopped', () => {
+    expect(ResearchStepModel.panelStatusOf(withRecord(researchSetup(), { readyToContinue: [] }))).toEqual({ tone: 'working', text: 'Researching' });
+    expect(ResearchStepModel.panelStatusOf(researchSetup())).toEqual({ tone: 'ready', text: 'Research done' });
+    expect(ResearchStepModel.panelStatusOf({ ...researchSetup(), agentJobState: null })).toEqual({ tone: 'idle', text: 'Stopped' });
   });
 
   test('the heading names the project', () => {

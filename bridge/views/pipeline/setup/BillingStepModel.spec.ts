@@ -2,7 +2,8 @@
  * The billing step's model. What matters: the start carries the chosen billing, with the cap as typed once it is a number (the Overseer,
  * not the Bridge, refuses a cap that is not positive) and the unreadable file's replacement; a reopened step sends a billing change only
  * when the choice differs from the record's, and a record still at billing continues from here, never loops back to it; the waiting
- * tickets are the pending ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one.
+ * tickets are the pending ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the
+ * panel head says the agent is not started before a setup, then whether its job runs; the footer words the chosen billing and its cap.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -10,7 +11,8 @@ import { PIPELINE_CHOICES_FIXTURE, pipelineBoardStateOf } from '../../../testing
 import { BillingStepModel }                               from './BillingStepModel.ts';
 
 const {
-  billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf, continueCommandOf
+  billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf, continueCommandOf,
+  panelStatusOf, footerLinesOf
 } = BillingStepModel;
 
 function setupRecordOf(name: 'A0b-running' | 'A0b-at-billing' | 'A1') {
@@ -103,5 +105,21 @@ describe('the pipeline agent\'s meter', () => {
     const record = setupRecordOf('A0b-running');
     const draft = record.draft === null ? null : { ...record.draft, agents: { pipelineAgent: { model: 'fable', effort: 'max' } } } as const;
     expect(pipelineAgentMeterOf({ ...record, draft }, {})).toMatchObject({ model: 'fable', effort: 'max', level: 5 });
+  });
+});
+
+describe('the panel head', () => {
+  test('is not started before a setup, then says whether the agent\'s job runs', () => {
+    expect(panelStatusOf(null, null)).toEqual({ tone: 'idle', text: 'Not started' });
+    expect(panelStatusOf(setupRecordOf('A1'), null)).toEqual({ tone: 'idle', text: 'Stopped' });
+    expect(panelStatusOf(setupRecordOf('A1'), 'running')).toEqual({ tone: 'working', text: 'Running' });
+  });
+});
+
+describe('the footer', () => {
+  test('words the chosen billing, and the API key with its cap as typed', () => {
+    expect(footerLinesOf({ mode: 'subscription', capText: '' })).toEqual({ summary: 'Subscription', detail: 'Agents run on this machine\'s Claude login.' });
+    expect(footerLinesOf({ mode: 'api', capText: ' ' })).toEqual({ summary: 'API key', detail: 'Billed to ANTHROPIC_API_KEY. No cap per launch.' });
+    expect(footerLinesOf({ mode: 'api', capText: '12.5' })).toEqual({ summary: 'API key', detail: 'Billed to ANTHROPIC_API_KEY. A cap of US$ 12.5 per launch.' });
   });
 });

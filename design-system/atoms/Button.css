@@ -1,0 +1,49 @@
+/* A button is 36px tall, the outlined secondary by default; a hover darkens it and a press scales it, which moves nothing else. */
+.design-system-button {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; gap: var(--space-7);
+  height: 36px; padding: 0 var(--space-16);
+  font: 500 var(--fs-body)/1 var(--font-ui);
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
+}
+.design-system-button:not(:disabled):hover { filter: brightness(0.94); }
+.design-system-button:not(:disabled):active { transform: scale(0.98); }
+.design-system-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.design-system-button[data-compact] { height: 30px; padding: 0 var(--space-11); font-size: var(--fs-tab); }
+.design-system-button[data-dense] { height: 26px; padding: 0 var(--space-9); font-size: var(--fs-tab); }
+
+/* A filled orange shape is always a primary button; danger is the one filled shape in the failure colour. */
+.design-system-button[data-primary] { font-weight: 600; color: var(--accent-ink-on); background: var(--button); border-color: var(--button); }
+.design-system-button[data-danger] { font-weight: 600; color: var(--accent-ink-on); background: var(--err-fill); border-color: var(--err-fill); }
+/* A compact or dense button is weight 500, primary or secondary. */
+.design-system-button:is([data-compact], [data-dense]) { font-weight: 500; }
+.design-system-button[data-ghost] { color: var(--ink-muted); background: transparent; border-color: transparent; }
+.design-system-button[data-tint="link"] { color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+.design-system-button[aria-pressed="true"] { background: var(--wash); border-color: var(--line-strong); }
+
+.design-system-button:disabled { color: var(--ink-disabled); border-color: var(--line); cursor: not-allowed; }
+.design-system-button:is([data-primary], [data-danger]):disabled { color: var(--ink-4); background: var(--wash); border-color: var(--line); }
+.design-system-button[data-ghost]:disabled { border-color: transparent; }
+
+/* A link drawn as a button keeps the button's ink and never underlines. */
+a.design-system-button { text-decoration: none; }
+a.design-system-button:hover { color: var(--ink); text-decoration: none; }
+a.design-system-button[data-ghost]:hover { color: var(--ink-muted); }
+a.design-system-button[data-tint="link"]:hover { color: var(--link); }
+a.design-system-button:is([data-primary], [data-danger]):hover { color: var(--accent-ink-on); }
+
+/* A primary button that waits on User rings itself now and then in the link colour. */
+.design-system-button[data-primary][data-attention] {
+  --glow-ring: var(--accent-outline);
+  animation: design-system-glow var(--glow-period) var(--ease-out) 1s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-button[data-primary][data-attention] { animation: none; }
+  .design-system-button:not(:disabled):active { transform: none; }
+}

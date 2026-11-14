@@ -16,11 +16,11 @@ import { routedOnTab }                  from '../../testing/DetailRoutingFixture
 import { FinishedWorkView }             from './FinishedWorkView.tsx';
 
 function shownTicketIds(): (string | null)[] {
-  return [...document.querySelectorAll('.bridge-finished-list .bridge-ticket-id')].map((mark) => mark.textContent);
+  return [...document.querySelectorAll('.bridge-finished-list .design-system-mono-id')].map((mark) => mark.textContent);
 }
 
 function linkOf(ticketId: string): HTMLAnchorElement | null {
-  const line = [...document.querySelectorAll('.bridge-finished-ticket')].find((candidate) => candidate.querySelector('.bridge-ticket-id')?.textContent === `#${ticketId}`);
+  const line = [...document.querySelectorAll('.bridge-finished-ticket')].find((candidate) => candidate.querySelector('.design-system-mono-id')?.textContent === `#${ticketId}`);
   return line?.querySelector('a') ?? null;
 }
 
@@ -45,8 +45,9 @@ describe('the finished-work list', () => {
 
     expect(openLine?.hasAttribute('data-selected')).toBe(true);
     expect(linkOf('2')?.getAttribute('href')).toBe('#progress');
-    expect([...document.querySelectorAll('.bridge-finished-ticket .bridge-state-badge')].map((badge) => badge.getAttribute('data-state')))
-      .toEqual(['delivered', 'abandoned', 'delivered']);
+    const badges = [...document.querySelectorAll('.bridge-finished-ticket .design-system-state-badge')];
+    expect(badges.map((badge) => [badge.getAttribute('data-state-tone'), badge.querySelector('svg') !== null, badge.hasAttribute('data-struck')]))
+      .toEqual([['ink', true, false], ['muted', false, true], ['ink', true, false]]);
   });
 
   test('a window holding nothing says so in the window\'s words', () => {

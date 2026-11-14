@@ -4,10 +4,12 @@
  * dialog stays open. While Apply commits `CONSTITUTION.md` first, the dialog shows the pending state from the facts, and Cancel becomes
  * Cancel apply. Once the pipeline is applied, the setup record closes and the view shows the live flow.
  */
+import { Dialog }   from 'design-system/Dialog';
+import { Text }     from 'design-system/Text';
+import { View }     from 'design-system/View';
 import { useState } from 'react';
 
 import type { PipelineSetupFacts }      from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { Dialog }                       from '../../../design-system/Dialog.tsx';
 import { ApplyDialogModel }             from './ApplyDialogModel.ts';
 import { ApplyFoot, ApplyPendingState } from './ApplyPendingState.tsx';
 
@@ -35,7 +37,7 @@ export function ApplyDialog({
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="narrow"
+      width="standard"
       foot={(
         <ApplyFoot
           setupId={record.setupId}
@@ -48,21 +50,24 @@ export function ApplyDialog({
         />
       )}
     >
-      <div className="bridge-pipeline-apply">
-        {constitutionNote === null ? null : <p className="bridge-pipeline-apply-note">{constitutionNote}</p>}
+      <View gap="eighteen">
+        {constitutionNote === null ? null : <Text element="p" muted>{constitutionNote}</Text>}
         {choosesResume
           ? (
-            <label className="bridge-pipeline-apply-resume">
-              <input type="checkbox" checked={resumesBoard} onChange={(event) => setResumesBoard(event.currentTarget.checked)} />
-              <span className="bridge-pipeline-apply-resume-text">
-                <strong>Resume the board</strong>
-                <span className="bridge-pipeline-apply-resume-detail">{ApplyDialogModel.resumeTextOf(pendingTicketCount, concurrencyLimit)}</span>
-              </span>
-            </label>
+            <View gap="eight">
+              <Text typeRole="small" subtle>What starts</Text>
+              <label className="bridge-pipeline-apply-resume">
+                <input type="checkbox" checked={resumesBoard} onChange={(event) => setResumesBoard(event.currentTarget.checked)} />
+                <View>
+                  <Text bold>Resume the board</Text>
+                  <Text muted>{ApplyDialogModel.resumeTextOf(pendingTicketCount, concurrencyLimit)}</Text>
+                </View>
+              </label>
+            </View>
           )
           : null}
         {applyState === null ? null : <ApplyPendingState applyState={applyState} constitutionMarkdown={record.constitution?.markdown ?? null} />}
-      </div>
+      </View>
     </Dialog>
   );
 }

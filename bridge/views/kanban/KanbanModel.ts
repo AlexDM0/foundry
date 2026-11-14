@@ -72,10 +72,13 @@ const WAITING_STATE_GROUPS: ReadonlySet<KanbanStateGroup> = new Set(['paused', '
 /** An agent is at work on a card in these states, so it pulses while the board is live. */
 const LIVE_DISPLAY_STATES: ReadonlySet<DisplayState> = new Set(['in-progress', 'reviewing', 're-review']);
 
+/** A card in these states waits for a person or never started, so it is drawn dashed: the state shapes of the design. */
+const DASHED_CARD_STATES: ReadonlySet<DisplayState> = new Set(['draft', 'ready-for-review', 'paused', 'in-review', 'abandoned']);
+
 interface LaneDesign {
   readonly title:     string;
   /** The state token its head's colours come from. */
-  readonly dotState:  string;
+  readonly dotState:  DisplayState;
   readonly emptyText: string;
   /** The head hover's words before its counts. */
   readonly leading:   string | null;
@@ -133,6 +136,8 @@ export interface KanbanCardModel {
   readonly hasRow:             boolean;
   /** An agent is at work on it. */
   readonly isLive:             boolean;
+  /** Its state waits for a person or never started (a draft, paused, awaiting review, abandoned), so the card is drawn dashed. */
+  readonly isDashed:           boolean;
   readonly size:               TicketSize | null;
   /** A priority other than `normal`, which is the unmarked priority. */
   readonly priority:           Exclude<TicketPriority, 'normal'> | null;
@@ -222,7 +227,7 @@ export interface KanbanLaneCollapse {
 export interface KanbanLaneModel {
   readonly key:       KanbanLaneKey;
   readonly title:     string;
-  readonly dotState:  string;
+  readonly dotState:  DisplayState;
   /** Every card in the lane the finished-work window lets through, paged or not. */
   readonly count:     number;
   /** The head's hover: the lane's own counts and order, `null` when it has none to tell. */
@@ -418,6 +423,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
     stateToken:    readinessState ?? displayState,
     hasRow:        ownRow !== null,
     isLive:        LIVE_DISPLAY_STATES.has(displayState),
+    isDashed:      DASHED_CARD_STATES.has(readinessState ?? displayState),
     size:          ticket.size ?? null,
     priority:      priority === 'normal' ? null : priority,
     ticketType:    ticket.type === 'ticket' ? null : ticket.type,
@@ -455,6 +461,7 @@ function filingDraftCardOf(draft: KanbanFilingDraft): KanbanCardModel {
     stateToken:         'draft',
     hasRow:             false,
     isLive:             false,
+    isDashed:           true,
     size:               null,
     priority:           null,
     ticketType:         null,

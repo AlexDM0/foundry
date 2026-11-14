@@ -2,13 +2,18 @@
  * The dependencies view's model, laid out in waves. The cases that matter: a diamond lays out a Done column of what the open tickets build
  * on and one column per wave, the pace path first; Ready comes only from the Board's ready list and a held ticket wears Held; edges mark
  * the pace path and a settled dependency; nodes and heads are placed in pixels on one canvas; a ticket's lineage is itself, everything
- * upstream and everything waiting on it; a forecast is asked only while the Overseer is running; and a board where nothing depends on
- * anything draws no view.
+ * upstream and everything waiting on it; a forecast is asked only while the Overseer is running; a node names its ticket's first epic;
+ * and a board where nothing depends on anything draws no view.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { exampleProgressBoard, exampleProgressTask, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
-import { WavesModel, NODE_WIDTH_PIXELS }                                    from './WavesModel.ts';
+import {
+  exampleProgressBoard,
+  exampleProgressEpic,
+  exampleProgressTask,
+  exampleProgressTicket
+} from '../../testing/ProgressBoardFixture.ts';
+import { WavesModel, NODE_HEIGHT_PIXELS, NODE_WIDTH_PIXELS } from './WavesModel.ts';
 
 const NOW_EPOCH_MILLISECONDS = Date.parse('2026-09-18T13:00:00+02:00');
 
@@ -50,6 +55,34 @@ describe('the waves', () => {
     expect(placeOf('2')?.top).toBeLessThan(placeOf('3')?.top ?? 0);
     expect((placeOf('4')?.left ?? 0) - (placeOf('2')?.left ?? 0)).toBeGreaterThan(NODE_WIDTH_PIXELS);
     expect(canvas.width).toBeGreaterThan(3 * NODE_WIDTH_PIXELS);
+  });
+
+  test('draws each edge from the right middle of a ticket to the left middle of the one waiting on it, bent at least 24px', () => {
+    const canvas = diamondCanvas();
+    const placeOf = (ticketId: string) => canvas.nodes.find((node) => node.ticketId === ticketId) ?? { left: 0, top: 0 };
+    const { left: fromLeft, top: fromTop } = placeOf('2');
+    const { left: toLeft, top: toTop } = placeOf('4');
+    const startX = fromLeft + NODE_WIDTH_PIXELS;
+    const startY = fromTop + NODE_HEIGHT_PIXELS / 2;
+    const endY = toTop + NODE_HEIGHT_PIXELS / 2;
+    const bend = Math.max(24, (toLeft - startX) / 2);
+
+    expect(canvas.edges.find((edge) => edge.fromTicketId === '2' && edge.toTicketId === '4')?.path)
+      .toBe(`M${startX} ${startY} C${startX + bend} ${startY} ${toLeft - bend} ${endY} ${toLeft} ${endY}`);
+  });
+
+  test('ends each node with its ticket’s first epic, and with none for a ticket in no epic', () => {
+    const board = exampleProgressBoard({
+      tickets: [
+        exampleProgressTicket('1', { epics: ['checkout', 'payments'] }),
+        exampleProgressTicket('2', { dependsOn: ['1'] }),
+      ],
+      epics: [exampleProgressEpic('payments', { slot: 1 }), exampleProgressEpic('checkout', { title: 'Checkout', slot: 3 })],
+    });
+    const primaryEpicOf = (ticketId: string) => WavesModel.wavesModelOf(board, NOW_EPOCH_MILLISECONDS)?.nodes.find((node) => node.ticketId === ticketId)?.primaryEpic;
+
+    expect(primaryEpicOf('1')).toEqual({ title: 'Checkout', slot: 3 });
+    expect(primaryEpicOf('2')).toBeNull();
   });
 
   test('says Ready only for a ticket the Board lists, Held for a held one, and the state while it is built', () => {

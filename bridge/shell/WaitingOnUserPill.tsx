@@ -3,14 +3,16 @@
  * while anything is escalated. A click toggles the inbox popover under it; Esc closes it and hands the focus back to the pill, a pointer
  * or focus outside closes it, and so does following any link in it.
  */
-import { useRef, useState } from 'react';
+import type { DismissalReason } from 'design-system/Dismissal';
+import { Popover }              from 'design-system/Popover';
+import { useRef, useState }     from 'react';
 
-import type { DismissalReason }                   from '../design-system/Dismissal.ts';
-import { Popover }                                from '../design-system/Popover.tsx';
+import { StateToneUtil }                          from '../utils/StateToneUtil.ts';
 import type { TimestampSlices }                   from '../utils/TimeUtil.ts';
 import type { QuestionNotifier }                  from '../views/questions/QuestionAlerts.ts';
 import type { BridgeClock }                       from './BridgeClock.ts';
 import type { HeaderFigureLane }                  from './HeaderModel.ts';
+import { useEndPlacementOrStartWhenNarrow }       from './NarrowWindowPlacement.ts';
 import { WaitingOnUserInbox }                     from './WaitingOnUserInbox.tsx';
 import { WaitingOnUserModel, type WaitingOnUser } from './WaitingOnUserModel.ts';
 
@@ -31,6 +33,7 @@ export function WaitingOnUserPill({
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLSpanElement | null>(null);
   const pillRef = useRef<HTMLButtonElement | null>(null);
+  const inboxPlacement = useEndPlacementOrStartWhenNarrow();
   const dismiss = (reason: DismissalReason): void => {
     setIsOpen(false);
     if (reason === 'escape') pillRef.current?.focus();
@@ -42,6 +45,7 @@ export function WaitingOnUserPill({
         type="button"
         className="bridge-attention-pill"
         data-state={waiting.total > 0 ? 'ready-for-review' : undefined}
+        data-state-tone={waiting.total > 0 ? StateToneUtil.toneOf('ready-for-review') : undefined}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-label={WaitingOnUserModel.pillAriaLabelOf(waiting)}
@@ -53,17 +57,19 @@ export function WaitingOnUserPill({
         <span className="bridge-attention-pill-figure">{waiting.total}</span>
         <span className="bridge-attention-pill-caret" aria-hidden="true" />
       </button>
-      <Popover label={INBOX_LABEL} role="dialog" isOpen={isOpen} onDismiss={dismiss} anchorRef={anchorRef} placement="below-end" width="inbox">
-        <WaitingOnUserInbox
-          waiting={waiting}
-          clock={clock}
-          isLive={isLive}
-          timestampSlices={timestampSlices}
-          notifier={notifier}
-          onShowLane={onShowLane}
-          onNavigate={() => setIsOpen(false)}
-        />
-      </Popover>
+      <span className="bridge-attention-drop">
+        <Popover label={INBOX_LABEL} role="dialog" isOpen={isOpen} onDismiss={dismiss} anchorRef={anchorRef} placement={inboxPlacement} width="inbox">
+          <WaitingOnUserInbox
+            waiting={waiting}
+            clock={clock}
+            isLive={isLive}
+            timestampSlices={timestampSlices}
+            notifier={notifier}
+            onShowLane={onShowLane}
+            onNavigate={() => setIsOpen(false)}
+          />
+        </Popover>
+      </span>
     </span>
   );
 }

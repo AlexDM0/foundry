@@ -108,6 +108,11 @@ describe('the words', () => {
     expect(GateDialogModel.kickerOf(NEW_REVIEW_GATE, DRAFT, 'unchanged')).toBe('New review gate');
     expect(GateDialogModel.titleOf(NEW_REVIEW_GATE)).toBe('Add review gate');
   });
+
+  test('the network line says what the switch allows', () => {
+    expect(GateDialogModel.networkHintOf(false)).toBe('Off · no network');
+    expect(GateDialogModel.networkHintOf(true)).toBe('On · only the domains below');
+  });
 });
 
 describe('the profile box', () => {

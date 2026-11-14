@@ -4,19 +4,22 @@
  * step, or the resume summary on the bare `#pipeline`; a record in `update` or `advise` mode is the flow being edited; a readable pipeline
  * is the live flow; anything else is the setup landing, which names an unreadable file's reason.
  */
+import type { StepperStatus } from 'design-system/Stepper';
+
 import type { LogRecord } from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
   AppliedPipelineFacts,
   GateProfileRunFacts,
   PipelineChoices,
   PipelineFlowFacts,
+  PipelineFlowStage,
   PipelineSetupFacts
 } from '../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetup, PipelineSetupMode, PipelineSetupStep } from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { AgentPair }                                           from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import type { StepperStatus }                                       from '../../design-system/Stepper.tsx';
 import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
 import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
+import { MinimalPipelineNoteModel }                                 from './live/MinimalPipelineNoteModel.ts';
 
 /** The setup steps in their order. */
 export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
@@ -59,6 +62,12 @@ export interface PipelineViewFacts {
   };
   /** The first Apply says how many tickets start building at a time. */
   readonly concurrency?: { readonly limit: number };
+}
+
+/** The Focus layout's title row: the page title and the sentence under it. */
+export interface FlowPageWords {
+  readonly title: string;
+  readonly lead:  string;
 }
 
 export type UnreadablePipeline =
@@ -145,6 +154,35 @@ function screenTitleOf(screen: PipelineScreen): string {
   }
 }
 
+/** "Version 2 is live." while an Apply stored a version; nothing before one did. */
+function liveVersionTextOf(appliedRevision: number | null): string {
+  return appliedRevision === null ? '' : `Version ${appliedRevision} is live. `;
+}
+
+/**
+ * The title row of a stage that draws the flow, worded as its board: the proposal designs, the live flow shows the tickets on its steps,
+ * and an edit updates, the smallest pipeline saying what it lacks.
+ */
+function flowPageWordsOf(
+  stage: PipelineFlowStage,
+  flow: Pick<PipelineFlowFacts, 'nodes' | 'gateRows'> | null,
+  appliedRevision: number | null
+): FlowPageWords {
+  if (stage === 'proposal') {
+    return { title: 'Design your pipeline', lead: 'Every ticket goes through four phases. Open a phase to see who does what, and change it.' };
+  }
+  if (stage === 'live') {
+    return { title: 'Your pipeline', lead: `${liveVersionTextOf(appliedRevision)}Each step shows the tickets at it now. Click a ticket to open it.` };
+  }
+  if (flow !== null && MinimalPipelineNoteModel.noteIsShownFor(flow)) {
+    const gateCount = flow.gateRows.build.length + flow.gateRows.review.length + flow.gateRows.merge.length;
+    const lacks = gateCount === 0 ? 'no gates and no review' : 'no review';
+    return { title: 'Update your pipeline', lead: `A minimal pipeline: ${lacks}. Each phase shows where a step can go.` };
+  }
+  const runsOn = appliedRevision === null ? 'the applied pipeline' : `version ${appliedRevision}`;
+  return { title: 'Update your pipeline', lead: `Changes show on the steps and gates. The board runs on ${runsOn} until you apply.` };
+}
+
 /** The landing's banner for a `pipeline.json` that cannot be read: its reason, and that setting up replaces the file. */
 function unreadableTextOf(unreadable: UnreadablePipeline): string {
   const reason = unreadable.readingVerdict === 'older' ? 'it is in an older format' : unreadable.reason;
@@ -166,6 +204,7 @@ export const PipelineViewModel = Object.freeze({
   setupStepRouteOf,
   setupStepFragmentOf,
   constitutionFragmentOf,
+  flowPageWordsOf,
   screenTitleOf,
   unreadableTextOf,
 });

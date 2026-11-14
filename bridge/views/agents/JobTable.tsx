@@ -2,10 +2,10 @@
  * The table both cards of the Agents tab share: a fixed set of columns (four more with diagnostics), a project row whose line each card
  * fills, then each job's row and, under a job that asks User, its strip. A card with no job keeps its project row over its empty line.
  */
+import { EmptyState }     from 'design-system/EmptyState';
 import type { ReactNode } from 'react';
 
 import type { IdentifiedRecord }                            from '../../@types/BoardStateDocument.ts';
-import { EmptyState }                                       from '../../design-system/ListSection.tsx';
 import type { TimestampSlices }                             from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }                            from './AgentJobDocument.ts';
 import { AgentsModel, type AgentsGroup, type ProjectGroup } from './AgentsModel.ts';

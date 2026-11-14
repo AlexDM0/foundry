@@ -1,14 +1,14 @@
 /**
- * The header's model. What matters: the status line reads Live only while serving unpaused with the stream up, and otherwise the state the
- * Bridge knows; Restart is offered only with new code on disk and never during a Baton pass, which also withdraws Pause and Stop; the
- * new-code notice points at `update`; a failed Baton pass with its step and error and an Assistant that cannot come up are warnings, kept
- * apart from the other notices, and an incident default is neither (the incident line holds it); any notice also reads as one sentence;
- * the statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
- * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building and
- * reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree. The status details are the usage
- * windows the facts carry and never a placeholder or the confinement; while the board has no readable pipeline the header is in setup,
- * with the record's step statuses (done and recheck steps linking to their route) and no usage, and a board that says nothing of a
- * pipeline is never in setup.
+ * The header's model. What matters: the state pill reads Running, orange, only while serving unpaused with the stream up, and otherwise
+ * the state the Bridge knows on the quiet pill; Restart is offered only with new code on disk and never during a Baton pass, which also
+ * withdraws Pause and Stop; the new-code notice points at `update`; a failed Baton pass with its step and error and an Assistant that
+ * cannot come up are warnings, kept apart from the other notices, and an incident default is neither (the incident line holds it); any
+ * notice also reads as one sentence; the statistics read concurrency and today's work, and say which tab and which Kanban lane they open;
+ * the agents figure counts the jobs holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the
+ * embedded summary line counts building and reviewing from the same slot jobs as the activity strip, so the line, the figure and the
+ * strip agree. The status details are the usage windows the facts carry and never a placeholder or the confinement; while the board has
+ * no readable pipeline the header is in setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps
+ * linking to their route) and no usage, and a board that says nothing of a pipeline is never in setup.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -28,14 +28,13 @@ const { headerModelOf } = HeaderModelUtil;
 describe('the Overseer state and its controls', () => {
   test('serving offers Pause and Stop, and no Restart without new code', () => {
     const model = headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live');
-    expect([model.statusToken, model.statusLabel, model.pauseControl, model.restartOffered, model.stopOffered, model.newCodeNotice]).toEqual([
-      'live', 'Live', 'pause', false, true, null,
-    ]);
+    expect([model.statusToken, model.statusLabel, model.isRunning, model.pauseControl, model.restartOffered, model.stopOffered, model.newCodeNotice])
+      .toEqual(['live', 'Running', true, 'pause', false, true, null]);
   });
 
   test('paused offers Resume', () => {
     const model = headerModelOf(boardStateFixture({ overseer: { state: 'serving', paused: true, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
-    expect([model.statusLabel, model.pauseControl]).toEqual(['Paused', 'resume']);
+    expect([model.statusLabel, model.isRunning, model.pauseControl]).toEqual(['Paused', false, 'resume']);
   });
 
   test('new code on disk offers Restart and the notice pointing at update, and is not listed again among the notices', () => {
@@ -96,6 +95,11 @@ describe('the header in setup', () => {
       ['Billing', 'current'], ['Research', 'upcoming'], ['Constitution', 'upcoming'], ['Pipeline design', 'upcoming'], ['Apply', 'upcoming'],
     ]);
     expect(model.statusDetails).toEqual([]);
+  });
+
+  test('a live board in setup reads Setting up on the quiet pill', () => {
+    const model = headerModelOf(pipelineBoardStateOf('A0'), FIXTURE_NOW, 'live');
+    expect([model.statusToken, model.statusLabel, model.isRunning]).toEqual(['live', 'Setting up', false]);
   });
 
   test('the stepper shows the record\'s statuses, and only a done or recheck step links to its route', () => {

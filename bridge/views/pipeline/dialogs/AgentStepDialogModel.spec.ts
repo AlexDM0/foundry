@@ -57,9 +57,14 @@ describe('the words', () => {
 
   test('the builder fixes red build gates, the merge before review\'s conflicts and red gates, and the train\'s without a review', () => {
     expect(AgentStepDialogModel.wordsOf('builder').fixes).toBe(
-      'red build gates, the conflicts and red build gates of the merge before review, and conflicts and red merge gates when no review ran after it.',
+      'Red build gates, the conflicts and red build gates of the merge before review, and conflicts and red merge gates when no review ran after it.',
     );
     expect(AgentStepDialogModel.wordsOf('productOwner').fixes).toBeNull();
+  });
+
+  test('the kicker names the phase the step stands in, then the kind of step', () => {
+    expect(AgentStepDialogModel.kickerOf('productOwner')).toBe('Ticket · Agent step');
+    expect(AgentStepDialogModel.kickerOf('builder')).toBe('Build · Agent step');
   });
 
   test('only Ticket creation and the Builder are agent steps', () => {

@@ -3,17 +3,17 @@
  * against its budget as a meter; its subagents as squares; its last tool call; its tokens. Diagnostics add its phase, tool calls, silent
  * sweeps and Watcher. A job that asks User is marked and followed by its Asks User strip.
  */
+
+import { StateBadge }     from 'design-system/StateBadge';
+import { Tag }            from 'design-system/Tag';
 import type { ReactNode } from 'react';
 
-import type { DisplayState }        from '../../../src/lib/tracker-model/@types/Task.ts';
-import { FillMeter }                from '../../design-system/Meter.tsx';
-import { StateBadge }               from '../../design-system/StateBadge.tsx';
-import { Tag }                      from '../../design-system/Tag.tsx';
 import { HashRouter }               from '../../shell/HashRouter.ts';
-import { JobStateUtil }             from '../../utils/JobStateUtil.ts';
+import { StateToneUtil }            from '../../utils/StateToneUtil.ts';
 import type { AgentJobDocument }    from './AgentJobDocument.ts';
 import { AgentsModel, type JobAsk } from './AgentsModel.ts';
 import { ASKING_STATE, AskUserRow } from './AskUserRow.tsx';
+import { CallBudgetMeter }          from './CallBudgetMeter.tsx';
 import { LastToolCallCell }         from './LastToolCallCell.tsx';
 import { RoleGlyph }                from './RoleGlyph.tsx';
 import { SubagentSquares }          from './SubagentSquares.tsx';
@@ -31,25 +31,6 @@ export interface JobRowProps {
   readonly columnCount:     number;
 }
 
-function BudgetCell({ job, laneState }: { readonly job: AgentJobDocument; readonly laneState: DisplayState }) {
-  const meter = AgentsModel.budgetMeterOf(job);
-  return (
-    <div className="agents-budget">
-      <FillMeter label={meter.label} used={meter.used} limit={meter.limit} near={meter.near} state={laneState} />
-      <span className="agents-budget-figure" data-near={meter.near ? '' : undefined}>
-        {meter.limit === null
-          ? (
-            <>
-              {meter.used}
-              <span className="agents-muted"> · none</span>
-            </>
-          )
-          : `${meter.used} / ${meter.limit}`}
-      </span>
-    </div>
-  );
-}
-
 export function JobRow({
   job, ask, counted, subject, selected, now, showDiagnostics, columnCount
 }: JobRowProps) {
@@ -64,6 +45,7 @@ export function JobRow({
         data-job-id={job.id}
         data-asking={ask === null ? undefined : ''}
         data-state={ask === null ? undefined : ASKING_STATE}
+        data-state-tone={ask === null ? undefined : StateToneUtil.toneOf(ASKING_STATE)}
       >
         <td data-column="job">
           <div className="agents-job-cell">
@@ -75,13 +57,13 @@ export function JobRow({
         <td data-column="subject">{subject}</td>
         <td data-column="state">
           <div className="agents-state-cell">
-            <StateBadge state={JobStateUtil.paletteStateOf(job.state)} label={job.state} />
+            <StateBadge {...StateToneUtil.lookOfJobState(job.state)} label={job.state} />
             {quietText === null ? null : <Tag text={quietText} tone="warn" />}
             {live.watchOnly ? <Tag text="watch only" tone="warn" /> : null}
             {counted === false ? <Tag text="not counted" tone="neutral" dashed /> : null}
           </div>
         </td>
-        <td data-column="calls"><BudgetCell job={job} laneState={roleMark.state} /></td>
+        <td data-column="calls"><CallBudgetMeter job={job} laneState={roleMark.state} /></td>
         <td data-column="subagents"><SubagentSquares {...AgentsModel.subagentSquaresOf(job)} state={roleMark.state} /></td>
         <td data-column="last-tool"><LastToolCallCell lastToolCall={live.lastToolCall} silentSweeps={live.silentSweeps} now={now} /></td>
         <td data-column="tokens">{live.tokens.toLocaleString('en-US')}</td>

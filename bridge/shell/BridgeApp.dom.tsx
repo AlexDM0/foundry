@@ -3,12 +3,13 @@
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
  * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
  * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
- * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that tab,
- * the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides behind a
- * routed detail and closes on Esc only after it, an embedded page's Esc leaves the board on any route no panel takes it on, and a view
- * that throws leaves the error banner, not a blank page. The board's no-pipeline question never covers the setup by itself. A board with
- * no readable pipeline shows the Pipeline tab alone, routes there even from a stored Kanban, and its header is in setup; a board with one
- * shows Pipeline last and routes `#pipeline` to the view.
+ * board is live so every live animation follows the stream, the theme button stores and applies each choice in turn, a header chip links
+ * to its job on the Agents tab and its flag opens that tab, the Waiting on User pill and the tab counts read the board the stream sends,
+ * the question panel shows over every tab, hides behind a routed detail and closes on Esc only after it, holds the page's one Flint slot
+ * over the Assistant, whose chat head gets its own back once it folds, an embedded page's Esc leaves
+ * the board on any route no panel takes it on, and a view that throws leaves the error banner, not a blank page. The board's no-pipeline
+ * question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even from a
+ * stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
  */
 import {
   act,
@@ -236,6 +237,20 @@ describe('the root\'s freshness', () => {
   });
 });
 
+describe('the theme button', () => {
+  test('a press stores the next choice and puts its theme on the root, and a press on dark goes back to auto, stored as nothing', async () => {
+    const bridge = fakeBridge();
+    const themeKey = `${PRODUCT_NAMES.STORAGE_PREFIX}:theme`;
+    await renderedLive(bridge);
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Theme: auto. Click for light.' })));
+    expect([bridge.storage.get(themeKey), document.documentElement.getAttribute('data-theme')]).toEqual(['light', 'light']);
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Theme: light. Click for dark.' })));
+    expect([bridge.storage.get(themeKey), document.documentElement.getAttribute('data-theme')]).toEqual(['dark', 'dark']);
+    act(() => fireEvent.click(screen.getByRole('button', { name: 'Theme: dark. Click for auto.' })));
+    expect([bridge.storage.has(themeKey), document.documentElement.getAttribute('data-theme-choice')]).toEqual([false, 'auto']);
+  });
+});
+
 describe('waiting on User', () => {
   test('a board with one escalated decision and one draft ticket shows Waiting on User · 2, the Questions badge escalated and the Kanban badge', async () => {
     const board = waitingOnUserBoard({ decisions: [ESCALATED_DECISION], incidents: [], mergeQueue: { targets: [] } });
@@ -250,8 +265,9 @@ describe('waiting on User', () => {
       },
     });
     expect(screen.getByRole('button', { name: 'Waiting on User: 2, 1 escalated' }).textContent).toBe('Waiting on User·2');
-    expect(screen.getByRole('link', { name: 'Questions, 1 question waits on User, 1 escalated' }).querySelector('.bridge-count-badge')?.getAttribute('data-tone')).toBe('error');
-    expect(screen.getByRole('link', { name: 'Kanban, 1 waits on User' }).querySelector('.bridge-count-badge')?.textContent).toBe('1');
+    const questionsLink = screen.getByRole('link', { name: 'Questions, 1 question waits on User, 1 escalated' });
+    expect(questionsLink.querySelector('.design-system-count-badge')?.getAttribute('data-tone')).toBe('error');
+    expect(screen.getByRole('link', { name: 'Kanban, 1 waits on User' }).querySelector('.design-system-count-badge')?.textContent).toBe('1');
   });
 });
 
@@ -265,7 +281,7 @@ describe('the session banner', () => {
     expect(banner).toContain('already used or expired');
     expect(banner).toContain('another process may have used it');
     expect(banner).toEndWith(OPEN_AGAIN);
-    expect(document.querySelector('.bridge-empty')).toBeNull();
+    expect(document.querySelector('.design-system-empty')).toBeNull();
   });
 
   test('A4: a stream with no session after a restart raises the banner over the shown board, disables controls, and a live stream clears it', async () => {
@@ -296,7 +312,7 @@ describe('the session banner', () => {
     render(<BridgeApp services={bridge.services} />);
     act(() => bridge.stream().onConnection('no-session'));
     expect(screen.getByRole('alert').textContent).toEndWith(OPEN_AGAIN);
-    expect(document.querySelector('.bridge-empty')).toBeNull();
+    expect(document.querySelector('.design-system-empty')).toBeNull();
   });
 
   test('A3: a refused code stays shown when an older session cookie still opens a live stream, with the controls enabled', async () => {
@@ -444,10 +460,12 @@ describe('the shell\'s routing', () => {
     expect(screen.queryByRole('complementary', { name: 'Row #002' })).toBeNull();
   });
 
-  test('the detail panel opens in place over the Kanban too, and Esc closes it', async () => {
+  test('the detail panel opens in place over the Kanban too, holding the page\'s one Flint slot, and Esc closes it', async () => {
     window.location.hash = '#kanban/ticket/002';
     await renderedLive(fakeBridge(), { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
     expect(screen.getByRole('complementary', { name: 'Ticket #002' })).toBeDefined();
+    expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+    expect(document.querySelector('.bridge-activity .design-system-flint-slot')).toBeNull();
     await act(async () => {
       fireEvent.keyDown(document, { key: 'Escape' });
       window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -482,7 +500,7 @@ describe('the shell\'s routing', () => {
     window.location.hash = '#waves';
     const board = { ...BOARD, ...exampleTicketsBoard({ tickets: [exampleTicketsTicket('002')], withoutEpics: true }) };
     await renderedLive(fakeBridge(), board);
-    const tabs = [...document.querySelectorAll('.bridge-tab')].map((tab) => tab.textContent);
+    const tabs = [...document.querySelectorAll('.design-system-tab')].map((tab) => tab.textContent);
     expect(tabs).toEqual(['Kanban', 'Progress', 'Tickets', 'Agents', 'Questions', 'Assistant', 'Intake']);
     expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('kanban');
   });
@@ -498,13 +516,13 @@ describe('the shell\'s routing', () => {
     expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('pipeline');
     expect(screen.getByRole('region', { name: 'Set up the pipeline' })).toBeDefined();
     expect(screen.getByRole('list', { name: 'Setup steps' })).toBeDefined();
-    expect(document.querySelector('.bridge-tabs')).toBeNull();
+    expect(document.querySelector('.design-system-tabs')).toBeNull();
   });
 
   test('a board with a readable pipeline shows the Pipeline tab last, and #pipeline opens the view', async () => {
     window.location.hash = '#pipeline';
     await renderedLive(fakeBridge(), { ...BOARD, pipeline: pipelineBoardStateOf('A5').pipeline, pipelineSetup: null });
-    const tabs = [...document.querySelectorAll('.bridge-tab')].map((tab) => tab.textContent);
+    const tabs = [...document.querySelectorAll('.design-system-tab')].map((tab) => tab.textContent);
     expect(tabs.at(-1)).toBe('Pipeline');
     expect(document.querySelector('.bridge-panel')?.getAttribute('data-tab')).toBe('pipeline');
     expect(screen.getByRole('region', { name: 'Pipeline' })).toBeDefined();
@@ -530,7 +548,7 @@ describe('the shell\'s routing', () => {
     });
     expect(screen.getByRole('region', { name: 'Intake J7' })).toBeDefined();
     expect(screen.getByRole('link', { name: 'Intake J7' }).getAttribute('aria-current')).toBe('true');
-    expect(document.querySelector('.bridge-side-panel')).toBeNull();
+    expect(document.querySelector('.design-system-side-panel')).toBeNull();
   });
 });
 
@@ -618,8 +636,33 @@ describe('the question panel', () => {
       fireEvent.click(within(questionPanel() as HTMLElement).getByRole('button', { name: 'Fold to the tab' }));
     });
     expect(questionPanel()).toBeNull();
-    expect(screen.getByRole('link', { name: /^Questions, 1 question waits on User/u }).querySelector('.bridge-count-badge')?.textContent).toBe('1');
+    expect(screen.getByRole('link', { name: /^Questions, 1 question waits on User/u }).querySelector('.design-system-count-badge')?.textContent).toBe('1');
     expect(bridge.storage.get(`${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:question-panel`)).toBe('["E7"]');
+  });
+
+  const shownFlintSlots = (): Element[] => [...document.querySelectorAll('.design-system-flint-slot')].filter((slot) => slot.closest('[hidden]') === null);
+
+  test('over the Assistant the panel holds the page\'s one Flint slot, and a fold gives the chat head its own back', async () => {
+    window.location.hash = '#assistant';
+    await renderedWithIdentity(fakeBridge());
+    expect(questionPanel()).not.toBeNull();
+    expect(shownFlintSlots()).toHaveLength(1);
+    expect(shownFlintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
+    act(() => {
+      fireEvent.click(within(questionPanel() as HTMLElement).getByRole('button', { name: 'Fold to the tab' }));
+    });
+    expect(shownFlintSlots()).toHaveLength(1);
+    expect(shownFlintSlots()[0]?.closest('.bridge-assistant-chat-head')).not.toBeNull();
+  });
+
+  test('on a routed ticket of the Kanban the detail\'s state card holds the page\'s one Flint slot, and the question panel holds it once the detail closes', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    await renderedWithIdentity(fakeBridge());
+    expect(shownFlintSlots()).toHaveLength(1);
+    expect(shownFlintSlots()[0]?.closest('.bridge-detail-state-card')).not.toBeNull();
+    await routeTo('#kanban');
+    expect(shownFlintSlots()).toHaveLength(1);
+    expect(shownFlintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
   });
 });
 

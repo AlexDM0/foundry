@@ -1,0 +1,101 @@
+/* A menu: its trigger, outlined, an icon or a button, over a popover of 32px items on the surface; a signal dot on the trigger or an
+   item marks it. */
+.design-system-menu { position: relative; display: flex; min-width: 0; }
+.design-system-menu-button[data-trigger="outlined"] {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  min-width: 0; height: 30px; padding: 0 var(--space-11);
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  cursor: pointer;
+}
+.design-system-menu-button[data-trigger="icon"] {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line); border-radius: var(--r-2);
+  cursor: pointer;
+}
+.design-system-menu-button[data-trigger="button"] { position: relative; }
+.design-system-menu-button .design-system-icon { width: 16px; height: 16px; }
+.design-system-menu-button[data-trigger="outlined"]:hover,
+.design-system-menu-button[data-trigger="icon"]:hover { filter: brightness(0.94); }
+.design-system-menu-button[data-trigger="icon"][aria-expanded="true"] { border-color: var(--line-strong); }
+.design-system-menu-button:focus-visible,
+.design-system-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.design-system-menu-button[data-marked]::after,
+.design-system-menu-item[data-marked]::after {
+  content: ""; position: absolute; top: var(--space-3); right: var(--space-3);
+  width: 6px; height: 6px; border-radius: var(--r-pill);
+  background: var(--signal);
+}
+.design-system-menu-popover {
+  position: absolute; top: calc(100% + var(--space-6)); left: 0; z-index: 10;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  width: max-content; min-width: 232px;
+  padding: var(--space-6);
+  font-size: var(--fs-small);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-menu);
+}
+.design-system-menu-popover[data-align="end"] { right: 0; left: auto; }
+.design-system-menu-popover[data-wide] { width: min(356px, calc(100vw - 2 * var(--sp-4))); }
+.design-system-menu-popover[hidden] { display: none; }
+.design-system-menu-item {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-10);
+  width: 100%; min-height: 32px; padding: var(--space-6) var(--space-10);
+  font: 500 var(--fs-small)/1 var(--font-mono);
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.design-system-menu-popover[data-trigger="icon"] .design-system-menu-item,
+.design-system-menu-popover[data-trigger="button"] .design-system-menu-item { font-family: var(--font-ui); }
+.design-system-menu-item:hover { background: var(--wash); }
+.design-system-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
+.design-system-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
+.design-system-menu-check { visibility: hidden; color: var(--ink); }
+.design-system-menu-item[aria-pressed="true"] > .design-system-menu-check { visibility: visible; }
+/* An item's description wraps onto a line of its own under the label. */
+.design-system-menu-item:has(> .design-system-menu-item-description) { flex-wrap: wrap; row-gap: var(--space-2); }
+.design-system-menu-item-description { flex: 1 0 100%; max-width: 320px; font: 400 var(--fs-small)/1.35 var(--font-ui); color: var(--ink-muted); }
+.design-system-menu-separator { height: 1px; margin: var(--space-4) 0; background: var(--line); }
+
+/* The insert trigger: a 28px round plus on a flow line, solid in the link colour or dashed grey, pulsing a ring while closed; its menu
+   slides in beside it under a micro-caps heading. */
+.design-system-menu-button[data-trigger="insert"] {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted); background: var(--surface); border: 1.5px dashed var(--line-strong); border-radius: var(--r-pill); cursor: pointer;
+}
+.design-system-menu-button[data-trigger="insert"][data-insert="solid"] { color: var(--link); border-style: solid; border-color: var(--link); }
+.design-system-menu-button[data-trigger="insert"][aria-expanded="false"] { animation: design-system-ring 2.4s ease-in-out infinite; }
+.design-system-menu-button[data-trigger="insert"]:hover { filter: brightness(0.94); }
+.design-system-menu-insert-glyph { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.design-system-menu-popover[data-trigger="insert"] {
+  top: calc(-1 * var(--space-6)); left: calc(100% + var(--space-8)); width: 268px; box-sizing: border-box;
+  animation: design-system-menu 260ms var(--ease-out) both;
+}
+.design-system-menu-heading {
+  padding: var(--space-4) var(--space-10) var(--space-6); font-size: var(--fs-micro); font-weight: 600; line-height: var(--line-height-micro); letter-spacing: var(--letter-spacing-micro);
+  text-transform: uppercase; color: var(--ink-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-menu-button[data-trigger="insert"][aria-expanded="false"],
+  .design-system-menu-popover[data-trigger="insert"] { animation: none; }
+}
+@keyframes design-system-menu { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes design-system-ring {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 5px var(--accent-ring); }
+}

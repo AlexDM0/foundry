@@ -2,10 +2,12 @@
  * The Sessions card: intake and Assistant jobs, which never take a launch slot, in the same rows as the worker list. Its head tallies the
  * live sessions of each kind, linked to their tabs, with how many wait on User; a session's About cell says what it is about.
  */
+import { Pane } from 'design-system/Pane';
+import { Tag }  from 'design-system/Tag';
+
 import type { IdentifiedRecord }          from '../../@types/BoardStateDocument.ts';
-import { Pane }                           from '../../design-system/Pane.tsx';
-import { Tag }                            from '../../design-system/Tag.tsx';
 import { HashRouter }                     from '../../shell/HashRouter.ts';
+import { StateToneUtil }                  from '../../utils/StateToneUtil.ts';
 import type { TimestampSlices }           from '../../utils/TimeUtil.ts';
 import type { AgentJobDocument }          from './AgentJobDocument.ts';
 import { AgentsModel, type SessionTally } from './AgentsModel.ts';
@@ -43,7 +45,7 @@ function TallyPill({ tally, openIncidentCount }: { readonly tally: SessionTally;
         ? <span className="agents-muted">{AgentsModel.incidentsOpenTextOf(openIncidentCount)}</span>
         : null}
       {tally.waitingOnUserCount > 0
-        ? <Tag text={AgentsModel.waitsOnUserTextOf(tally.waitingOnUserCount)} tone="state" state={ASKING_STATE} />
+        ? <Tag text={AgentsModel.waitsOnUserTextOf(tally.waitingOnUserCount)} {...StateToneUtil.tagLookOf(ASKING_STATE)} />
         : null}
     </a>
   );

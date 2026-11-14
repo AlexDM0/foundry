@@ -1,0 +1,19 @@
+/* A banner: 9 by 14px, a 6px corner, a 1px edge that is 4px on the left, 12.5px text. Held is the orange tint, error the failure colours,
+   quiet (a snapshot) the wash with ink text. It keeps no margin: its holder spaces it. */
+.design-system-banner {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--space-9) var(--space-14);
+  border: 1px solid var(--warn-edge);
+  border-left-width: 4px;
+  border-radius: var(--r-2);
+  background: var(--warn-tint);
+  color: var(--warn-ink);
+  font-size: var(--fs-tab);
+  overflow-wrap: anywhere;
+}
+.design-system-banner strong { flex: none; font-weight: 600; }
+.design-system-banner[data-tone="error"] { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
+.design-system-banner[data-tone="quiet"] { border-color: var(--line-strong); background: var(--wash); color: var(--ink); }
+
+/* A banner's action sits at its line's end. */
+.design-system-banner-action { margin-left: auto; }

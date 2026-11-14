@@ -1,7 +1,8 @@
 /**
  * The live flow's activity aside in a happy-dom document, over the A5 fixture. What matters: the "Now" rows equal the occupants on the
  * flow, each a link to its ticket or draft, with a meter only on a step an agent runs; the "Earlier" list shows the worded records with
- * their clocks; Ask the pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab, and a refusal leaves the tab as it was.
+ * their clocks; Ask the pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab, and a refusal leaves the tab as it was;
+ * the head counts the working rows; on the smallest pipeline the About tab comes first.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {
@@ -31,14 +32,14 @@ describe('the activity aside', () => {
     renderPanel();
     const panel = screen.getByRole('tabpanel', { name: 'On the flow' });
     expect(within(panel).getByRole('heading', { name: 'Now · 4 items' })).toBeDefined();
-    const rows = [...panel.querySelectorAll<HTMLAnchorElement>('.bridge-activity-row')];
-    expect(rows.map((row) => [row.querySelector('.bridge-activity-row-id')?.textContent, row.getAttribute('href')])).toEqual([
+    const rows = [...panel.querySelectorAll<HTMLAnchorElement>('.design-system-activity-row')];
+    expect(rows.map((row) => [row.querySelector('.design-system-activity-row-id')?.textContent, row.getAttribute('href')])).toEqual([
       ['D3', '#kanban/draft/D3'],
       ['14', '#kanban/ticket/14'],
       ['15', '#kanban/ticket/15'],
       ['12', '#kanban/ticket/12'],
     ]);
-    expect(rows.map((row) => [row.dataset['status'], row.querySelector('.bridge-effort-meter') !== null])).toEqual([
+    expect(rows.map((row) => [row.dataset['status'], row.querySelector('.design-system-effort-meter') !== null])).toEqual([
       ['step', true],
       ['step', true],
       ['check', false],
@@ -66,6 +67,23 @@ describe('the activity aside', () => {
     await clickSettled(screen.getByRole('button', { name: 'Ask the pipeline agent' }));
     expect(controls.sent).toEqual([{ kind: 'pipeline-agent-advise' }]);
     expect(screen.getByRole('tab', { name: 'Pipeline agent' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  test('the head names the flow tab with how many work', () => {
+    renderPanel();
+    const panel = screen.getByRole('complementary', { name: 'Activity' });
+    expect(within(panel).getByRole('heading', { name: 'On the flow' })).toBeDefined();
+    expect(within(panel).getByText('4 working')).toBeDefined();
+  });
+
+  test('on the smallest pipeline, About comes first and opens first', () => {
+    const board = pipelineBoardStateOf('A5');
+    const flow = board.pipelineFlow;
+    if (flow === null || flow === undefined) throw new Error('the fixture A5 has no flow');
+    renderPanel({ ...board, pipelineFlow: { ...flow, nodes: flow.nodes.filter((node) => node.nodeKind !== 'review') } });
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['About', 'On the flow', 'Pipeline agent']);
+    expect(screen.getByRole('tab', { name: 'About' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('The smallest pipeline')).toBeDefined();
   });
 
   test('a refused advise shows its refusal and stays on the flow tab', async () => {

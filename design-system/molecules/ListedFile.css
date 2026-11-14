@@ -1,0 +1,32 @@
+/* One instruction file, an option row on the page ground: its mono name, what it is, an action and a remove ×; a change tints its ground
+   in the change marker's colour, and a removed name is struck. */
+.design-system-listed-file {
+  display: flex; align-items: center; gap: var(--space-10);
+  height: 32px; padding: 0 var(--space-10);
+  font-size: var(--fs-small);
+  background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--r-2);
+  transition: var(--feedback-transition);
+}
+.design-system-listed-file:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-listed-file-name { flex: 1 1 auto; min-width: 0; overflow: hidden; font-family: var(--font-mono); white-space: nowrap; text-overflow: ellipsis; }
+.design-system-listed-file-role { flex: none; font-size: var(--fs-micro); color: var(--ink-4); }
+.design-system-listed-file > .design-system-icon-button { width: 18px; height: 18px; font-size: 14px; color: var(--ink-4); background: transparent; border: 0; border-radius: var(--r-1); }
+.design-system-listed-file > .design-system-icon-button:hover { color: var(--ink); }
+/* A ruled file is a row of a ruled box: flat, a hairline under it, what it is in a quiet pill; a change still tints it. */
+.design-system-listed-file[data-ruled] {
+  height: 40px; padding: 0 var(--sp-2) 0 var(--space-12); font-size: var(--fs-tab);
+  background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+}
+.design-system-listed-file[data-ruled] .design-system-listed-file-role {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2); font-size: var(--fs-pill); font-weight: 500;
+  color: var(--ink-muted); background: var(--wash); border-radius: var(--r-pill);
+}
+.design-system-listed-file[data-change="changed"] { background: var(--change-changed-fill); }
+.design-system-listed-file[data-change="new"] { background: var(--change-new-fill); }
+.design-system-listed-file[data-change="removed"] { background: var(--change-removed-fill); }
+.design-system-listed-file[data-change="removed"] .design-system-listed-file-name { text-decoration: line-through; color: var(--change-removed-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-listed-file { transition: none; }
+}

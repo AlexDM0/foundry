@@ -4,11 +4,12 @@
  * kicker over the title; the profile box's state, result and words from the newest profile run of the gate in the dialog's phase; and
  * the log lines its output stream gives.
  */
+import type { LogTailLine } from 'design-system/LogTail';
+
 import { GATE_PHASES, type GatePhase }                                     from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { Pipeline, PipelineGate }                                     from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineGateRowKind, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ProfileOutputLine }                                          from '../../../api/ProfileStreamClient.ts';
-import type { LogTailLine }                                                from '../../../design-system/LogTail.tsx';
 import type { FlowDraftEdit }                                              from '../flow/PipelineFlowModel.ts';
 
 /** Which gate the dialog shows: a stored one, or a new one, of either kind; `phase` is the tab or + it was opened from. */
@@ -52,6 +53,8 @@ const MARK_WORDS: Readonly<Record<Exclude<PipelineNodeMark, 'unchanged'>, string
 });
 
 const MILLISECONDS_PER_SECOND = 1000;
+
+const NETWORK_HINTS = Object.freeze({ on: 'On · only the domains below', off: 'Off · no network' });
 
 const PROFILING_TEXT = 'Profiling · preparing a fresh worktree, then running the command';
 
@@ -186,7 +189,13 @@ function logTailLinesOf(lines: readonly ProfileOutputLine[]): LogTailLine[] {
   return lines.map((line) => ({ key: String(line.lineNumber), text: line.text, kind: 'output' }));
 }
 
+/** The line beside the network switch, saying what the switch's state allows. */
+function networkHintOf(networkIsOn: boolean): string {
+  return networkIsOn ? NETWORK_HINTS.on : NETWORK_HINTS.off;
+}
+
 export const GateDialogModel = Object.freeze({
+  networkHintOf,
   PHASE_WORDS,
   PROFILING_TEXT,
   canSave,

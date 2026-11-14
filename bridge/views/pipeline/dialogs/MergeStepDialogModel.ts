@@ -19,23 +19,23 @@ const TITLE = 'Merge main into the tree';
 
 const HEADS: Readonly<Record<Exclude<MergePlacement, 'before-review'>, MergeStepHead>> = Object.freeze({
   'airlock': {
-    kicker:      'Merge train step',
+    kicker:      'Merge · Merge train step',
     title:       TITLE,
     description: 'The Airlock merges the latest main into the ticket\'s tree, one ticket at a time, before the merge gates.',
   },
   'before-human-code-review': {
-    kicker:      'Merge step',
+    kicker:      'Review · Merge step',
     title:       TITLE,
     description: 'Merges the latest main into the reviewed tree before User\'s code review; then its gates run again.',
   },
 });
 
 const CONFLICT_TEXTS: Readonly<Record<DerivedSettingsSource, string>> = Object.freeze({
-  'last-worker': 'go to the last worker on the code, resumed in the Airlock with its own model and effort.',
-  'builder':     'go to the builder, since no review runs, resumed with its own model and effort.',
+  'last-worker': 'Conflicts go to the last worker on the code, resumed in the Airlock with its own model and effort. Change them on that step.',
+  'builder':     'Conflicts go to the builder, since no review runs, resumed with its own model and effort. Change them on the Builder step.',
 });
 
-const CONFLICTS_LEAD = 'Conflicts';
+const CONFLICT_FIXER_TITLE = 'Conflict fixer';
 
 /** The merge before review has no dialog; any other placement, or none, reads as the merge train's. */
 function headOf(placement: MergePlacement | null): MergeStepHead {
@@ -58,7 +58,7 @@ function saveEditsOf(airlock: PipelineAirlock | undefined, reReviewForm: ReRevie
 }
 
 export const MergeStepDialogModel = Object.freeze({
-  CONFLICTS_LEAD,
+  CONFLICT_FIXER_TITLE,
   conflictTextOf,
   headOf,
   saveEditsOf,

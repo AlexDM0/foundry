@@ -12,8 +12,8 @@ const RE_REVIEW_ON = RereviewSettingsModel.resetFormOf('merge');
 
 describe('the words', () => {
   test('the head follows the placement', () => {
-    expect(MergeStepDialogModel.headOf('airlock').kicker).toBe('Merge train step');
-    expect(MergeStepDialogModel.headOf('before-human-code-review').kicker).toBe('Merge step');
+    expect(MergeStepDialogModel.headOf('airlock').kicker).toBe('Merge · Merge train step');
+    expect(MergeStepDialogModel.headOf('before-human-code-review').kicker).toBe('Review · Merge step');
     expect(MergeStepDialogModel.headOf('airlock').title).toBe('Merge main into the tree');
   });
 

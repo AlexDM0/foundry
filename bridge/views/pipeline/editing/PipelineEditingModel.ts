@@ -1,10 +1,12 @@
 /**
- * The model of editing an applied pipeline (A6Editing), pure: the footer's count of the changes with the version they make, the note
- * that the board keeps its version until Apply, what a change card reads from the applied and the draft pipeline, and the commands of
- * Ask the pipeline agent to check and Discard.
+ * The model of editing an applied pipeline (A6Editing), pure: the footer's count of the changes with the version they make, the panel
+ * head's version step and the agent's status, the note that the board keeps its version until Apply, what a change card reads from the
+ * applied and the draft pipeline, and the commands of Ask the pipeline agent to check and Discard.
  */
+import type { JobState }           from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type { ControlCommandBody } from '../../../api/CommandClient.ts';
 import { ChatTurnWordingUtil }     from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }        from '../PipelinePanel.tsx';
 import type { PipelineViewFacts }  from '../PipelineViewModel.ts';
 import type { ChangeListEditing }  from '../apply/ChangeListModel.ts';
 
@@ -12,6 +14,16 @@ import type { ChangeListEditing }  from '../apply/ChangeListModel.ts';
 function footerSummaryOf(changeCount: number, appliedRevision: number | null): string {
   const countText = ChatTurnWordingUtil.countTextOf(changeCount, 'change', 'changes');
   return appliedRevision === null ? countText : `${countText} · version ${appliedRevision} → ${appliedRevision + 1}`;
+}
+
+/** "Version 2 → 3" beside the Changes panel's name; null for a pipeline that no Apply numbered. */
+function versionStepTextOf(appliedRevision: number | null): string | null {
+  return appliedRevision === null ? null : `Version ${appliedRevision} → ${appliedRevision + 1}`;
+}
+
+/** The Pipeline agent tab's dot and word: whether the agent's job runs. */
+function agentStatusOf(agentJobState: JobState | null): PanelStatus {
+  return agentJobState === null ? { tone: 'idle', text: 'Not running' } : { tone: 'working', text: 'Running' };
 }
 
 /** "The board keeps running on version 2 until Apply." */
@@ -42,6 +54,8 @@ function discardCommandOf(setupId: string): ControlCommandBody {
 
 export const PipelineEditingModel = Object.freeze({
   footerSummaryOf,
+  versionStepTextOf,
+  agentStatusOf,
   boardNoteOf,
   changeListEditingOf,
   checkCommandOf,

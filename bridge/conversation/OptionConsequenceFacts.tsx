@@ -1,5 +1,6 @@
 /** What an option touches, trades off and does to the Acceptance, under the option: one row a fact, each path a mono chip. */
-import { FactList }                                                         from '../design-system/FactList.tsx';
+import { FactList } from 'design-system/FactList';
+
 import { OptionConsequencesUtil, type OptionConsequences, type OptionFact } from './OptionConsequencesUtil.ts';
 
 const FACT_LABEL: Readonly<Record<OptionFact, string>> = { touches: 'Touches', tradeOff: 'Trade-off', acceptanceEffect: 'Acceptance' };

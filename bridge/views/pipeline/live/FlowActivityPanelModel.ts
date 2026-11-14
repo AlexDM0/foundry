@@ -1,7 +1,8 @@
 /**
  * The live flow's activity, pure: what stands on each node now (a ticket, or a filing draft being written) as a chip linking to its
- * detail, the "Now" rows of the activity aside in the facts' order, each with a meter only on a step an agent runs, and the "Earlier"
- * lines worded from the newest pipeline records. A record kind with no line here is left out of the list.
+ * detail, the panel head's status and the board's builds at a time, the "Now" rows of the activity panel in the facts' order, each with
+ * a meter only on a step an agent runs, and the "Earlier" lines worded from the newest pipeline records. A record kind with no line here
+ * is left out of the list.
  */
 import type { LogRecord }                                             from '../../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type { PipelineFlowFacts, PipelineFlowNode, PipelineOccupant } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
@@ -10,6 +11,7 @@ import { DetailRoute, type DetailItem }                               from '../.
 import { HashRouter }                                                 from '../../../shell/HashRouter.ts';
 import { ElapsedTimeUtil }                                            from '../../../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                             from '../../../utils/TimeUtil.ts';
+import type { PanelStatus }                                           from '../PipelinePanel.tsx';
 import { PipelineFlowModel, type FlowMeterView }                      from '../flow/PipelineFlowModel.ts';
 
 /** The board tab a chip or a row opens the detail panel over. */
@@ -119,6 +121,16 @@ function nowHeadingOf(rowCount: number): string {
   return `Now · ${rowCount} ${rowCount === 1 ? 'item' : 'items'}`;
 }
 
+/** The panel head's dot and word on the On the flow tab: "4 working", or quiet while nothing is on the flow. */
+function flowStatusOf(rowCount: number): PanelStatus {
+  return rowCount === 0 ? { tone: 'idle', text: 'Nothing running' } : { tone: 'working', text: `${rowCount} working` };
+}
+
+/** "2 builds at a time", from the board's concurrency limit. */
+function buildsAtATimeTextOf(concurrencyLimit: number): string {
+  return `${concurrencyLimit} ${concurrencyLimit === 1 ? 'build' : 'builds'} at a time`;
+}
+
 function historyTextOf(record: LogRecord): string | null {
   switch (record.kind) {
     case 'pipeline-gate-added':
@@ -162,5 +174,7 @@ export const FlowActivityPanelModel = Object.freeze({
   occupantChipsOf,
   activityRowsOf,
   nowHeadingOf,
+  flowStatusOf,
+  buildsAtATimeTextOf,
   historyLinesOf,
 });

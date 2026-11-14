@@ -4,13 +4,17 @@
  * A profile starts only on that press. The output comes only from the profile's own stream route, which the holder follows by its run id;
  * the board's facts and event stream carry none.
  */
-import { useEffect, useState } from 'react';
 
-import type { ControlCommandBody }   from '../../../api/CommandClient.ts';
-import type { ProfileOutputLine }    from '../../../api/ProfileStreamClient.ts';
-import { BusyIndicator }             from '../../../design-system/BusyIndicator.tsx';
-import { LogTail, type LogTailLine } from '../../../design-system/LogTail.tsx';
-import { CommandButton }             from '../../../shell/CommandButton.tsx';
+import { BusyIndicator }             from 'design-system/BusyIndicator';
+import { LogTail, type LogTailLine } from 'design-system/LogTail';
+import { Row }                       from 'design-system/Row';
+import { Text }                      from 'design-system/Text';
+import { View }                      from 'design-system/View';
+import { useEffect, useState }       from 'react';
+
+import type { ControlCommandBody } from '../../../api/CommandClient.ts';
+import type { ProfileOutputLine }  from '../../../api/ProfileStreamClient.ts';
+import { CommandButton }           from '../../../shell/CommandButton.tsx';
 
 import { GateDialogModel, type ProfileBoxView } from './GateDialogModel.ts';
 
@@ -44,14 +48,15 @@ export function ProfileBox({
   const lines = useProfileLog(followedRunId, followLog);
   return (
     <section className="bridge-pipeline-profile" aria-label="Profile" data-state={view.state}>
-      <div className="bridge-pipeline-profile-head">
-        <strong>Profile</strong>
-        <span className="bridge-pipeline-dialog-hint">{lead}</span>
-        <span className="bridge-pipeline-dialog-foot-gap" />
+      <Row between centerY gap="ten">
+        <View>
+          <Text typeRole="title">Profile</Text>
+          <Text typeRole="tab" muted>{lead}</Text>
+        </View>
         {view.state === 'profiling'
           ? <CommandButton label="Stop" command={{ kind: 'gate-profile-stop', profileRunId: view.profileRunId }} />
           : <CommandButton label={view.startLabel} command={startCommand} />}
-      </div>
+      </Row>
       {view.state === 'profiling'
         ? (
           <>

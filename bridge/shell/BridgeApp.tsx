@@ -4,6 +4,7 @@
  * the bundle it holds may no longer match the API. A refused session code, or a session the Overseer no longer knows, raises the session
  * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it.
  */
+import { EmptyState } from 'design-system/EmptyState';
 import {
   useCallback,
   useEffect,
@@ -21,7 +22,6 @@ import type { PictureUploadClient }                                             
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import { OpenDecisionsUtil }                                                             from '../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
-import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
@@ -399,6 +399,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             themeChoice={themeChoice}
             onThemeChoice={chooseTheme}
             activityIsLive={connection === 'live'}
+            sidePanelIsOpen={panelIsOpen}
             clock={bridgeClock}
             tabBarEnd={filter}
             onShowLane={showLane}
@@ -415,56 +416,55 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
               if (event.target === event.currentTarget && event.animationName === PANEL_ENTER_ANIMATION) setEnteringTab(null);
             }}
           >
-            {boardState === null && sessionLoss === null
-              ? <EmptyState text="Waiting for the Overseer's first board." />
-              : null}
-            {boardState !== null && route.tab === 'agents'
-              ? (
-                <AgentsView
-                  project={boardState.project}
-                  jobs={boardState.jobs}
-                  decisions={boardState.decisions}
-                  incidents={boardState.incidents}
-                  launchSlots={boardState.launchSlots ?? null}
-                  concurrency={boardState.concurrency ?? null}
-                  tickets={boardState.page?.tickets ?? []}
-                  selectedJobId={route.item}
-                  clock={bridgeClock}
-                  timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
-                />
-              )
-              : null}
-            {conversationBoard !== null && route.tab === 'questions'
-              ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
-              : null}
-            {conversationBoard !== null && route.tab === 'assistant'
-              ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
-              : null}
-            {conversationBoard !== null && route.tab === 'intake'
-              ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
-              : null}
-            {boardState !== null && route.tab === 'pipeline'
-              ? (
-                <PipelineView
-                  facts={boardState}
-                  route={route}
-                  boardStore={boardStore}
-                  followTranscript={services.followTranscript}
-                  followProfileLog={services.followProfileLog}
-                  clock={bridgeClock}
-                />
-              )
-              : null}
-            <BridgeClockContext.Provider value={bridgeClock}>
-              <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
-                <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>
+            <QuestionPanelShownContext.Provider value={questionPanel.shownDecision !== null}>
+              {boardState === null && sessionLoss === null
+                ? <EmptyState text="Waiting for the Overseer's first board." />
+                : null}
+              {boardState !== null && route.tab === 'agents'
+                ? (
+                  <AgentsView
+                    project={boardState.project}
+                    jobs={boardState.jobs}
+                    decisions={boardState.decisions}
+                    incidents={boardState.incidents}
+                    launchSlots={boardState.launchSlots ?? null}
+                    concurrency={boardState.concurrency ?? null}
+                    tickets={boardState.page?.tickets ?? []}
+                    selectedJobId={route.item}
+                    clock={bridgeClock}
+                    timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
+                  />
+                )
+                : null}
+              {conversationBoard !== null && route.tab === 'questions'
+                ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
+                : null}
+              {conversationBoard !== null && route.tab === 'assistant'
+                ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />
+                : null}
+              {conversationBoard !== null && route.tab === 'intake'
+                ? <IntakeView board={conversationBoard} followTranscript={services.followTranscript} selectedItem={route.item} />
+                : null}
+              {boardState !== null && route.tab === 'pipeline'
+                ? (
+                  <PipelineView
+                    facts={boardState}
+                    route={route}
+                    followTranscript={services.followTranscript}
+                    followProfileLog={services.followProfileLog}
+                    clock={bridgeClock}
+                  />
+                )
+                : null}
+              <BridgeClockContext.Provider value={bridgeClock}>
+                <FinishedWorkWindowContext.Provider value={finishedWorkWindow}>
                   {detailRouting === null ? boardViews : <DetailRoutingContext.Provider value={detailRouting}>{boardViews}</DetailRoutingContext.Provider>}
-                </QuestionPanelShownContext.Provider>
-              </FinishedWorkWindowContext.Provider>
-            </BridgeClockContext.Provider>
-            {boardState !== null && !boardViewIsShown
-              ? <BoardCounts boardState={boardState} tab={route.tab} />
-              : null}
+                </FinishedWorkWindowContext.Provider>
+              </BridgeClockContext.Provider>
+              {boardState !== null && !boardViewIsShown
+                ? <BoardCounts boardState={boardState} tab={route.tab} />
+                : null}
+            </QuestionPanelShownContext.Provider>
           </main>
           {boardState === null
             ? null

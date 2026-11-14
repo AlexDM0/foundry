@@ -32,23 +32,23 @@ export interface ReReviewWords {
 const REVIEW_PLACE_WORDS: ReReviewWords = Object.freeze({
   title:             'Re-review',
   subtitle:          'A fresh reviewer checks large fixes, then the gates run again.',
-  thresholdLead:     'When a fix changes more than',
+  thresholdLead:     'Runs when the fixes change more than',
   offNote:           'Off: the Re-review steps leave the flow, and a large fix goes straight to the gates.',
   scopeNote:         'Applies to the review\'s fixes; the re-review after a conflict merge is set on the merge step.',
   modelLabel:        'Re-review model',
   effortLabel:       'Re-review effort',
-  instructionsLabel: 'Re-review instructions',
+  instructionsLabel: 'Re-review brief',
 });
 
 const MERGE_PLACE_WORDS: ReReviewWords = Object.freeze({
   title:             'Re-review after a conflict merge',
   subtitle:          'A fresh reviewer checks a large conflict fix before the merge gates.',
-  thresholdLead:     'When the conflict fix changes more than',
+  thresholdLead:     'Runs when the conflict fix changes more than',
   offNote:           'Off: the Re-review step leaves the merge train, and a conflict fix goes straight to the merge gates.',
   scopeNote:         null,
   modelLabel:        'Re-review model',
   effortLabel:       'Re-review effort',
-  instructionsLabel: 'Re-review instructions',
+  instructionsLabel: 'Re-review brief',
 });
 
 /** The re-reviewer of each place. */

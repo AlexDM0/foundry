@@ -1,0 +1,251 @@
+/*
+ * The design tokens of the design system: every colour, spacing, radius, type, motion and theme value that its components read. Light is
+ * the default and the light theme. Dark sits under :root[data-theme="dark"], which the host sets before the first paint. Every motion
+ * token is 0ms until the host sets data-motion="ready" on the root, and under reduced motion.
+ *
+ * [data-state-tone] rows: every element carrying a state tone (`@types/StateTone.ts`) reads --s-fill (bars, dots), --s-tint (pill
+ * ground), --s-ink (pill text), --s-edge (pill border) and --s-head (a column head's text, set only where the fill does not read as text).
+ * [data-palette="quiet"] gives a badge the quieter colours of a table row (--badge-*).
+ *
+ * "Ink at N%" is the ink with that alpha, never a solid grey. A colour that is the same in both themes is set once, in the light block.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* The spacing scale: one token per step of SPACING (`constants/Spacing.ts`), named by its size; --sp-1 to --sp-6 are its short names. */
+  --space-0: 0px;   --space-1: 1px;   --space-2: 2px;   --space-3: 3px;   --space-4: 4px;   --space-5: 5px;   --space-6: 6px;
+  --space-7: 7px;   --space-8: 8px;   --space-9: 9px;   --space-10: 10px; --space-11: 11px; --space-12: 12px; --space-13: 13px;
+  --space-14: 14px; --space-16: 16px; --space-18: 18px; --space-20: 20px; --space-22: 22px; --space-24: 24px; --space-28: 28px;
+  --space-32: 32px;
+  --sp-1: var(--space-4);  --sp-2: var(--space-8);  --sp-3: var(--space-12);
+  --sp-4: var(--space-16); --sp-5: var(--space-24); --sp-6: var(--space-32);
+
+  --r-1: 4px; --r-2: 6px; --r-3: 8px; --r-pill: 999px;
+  --r-group: 8px; --r-dialog: 8px;
+
+  --fs-micro: 11px; --fs-pill: 11.5px; --fs-small: 12px; --fs-tab: 12.5px; --fs-body: 13px; --fs-lead: 13.5px;
+  --fs-title: 15px; --fs-page: 22px; --fs-phase: 28px; --fs-display: 34px;
+  --line-height-pill: 15px; --line-height-micro: 16px; --line-height-small: 16px; --line-height-tab: 18px;
+  --line-height-body: 19px; --line-height-lead: 20px; --line-height-title: 21px;
+  --line-height-page: 28px; --line-height-phase: 34px; --line-height-display: 40px;
+  --letter-spacing-micro: 0.07em; --letter-spacing-display: -0.02em;
+
+  /* Inter and Newsreader are registered by `fonts/FontLoader.ts`, not by @font-face: see that file for why. */
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 220ms;
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --pulse-status:   1.6s;
+  --motion-rise:      420ms;
+  --motion-pop:       380ms;
+  --motion-modal:     360ms;
+  --motion-wash:      1200ms;
+  --rise-step:        80ms;
+  --glow-period:      2.6s;
+  --toast-duration:   5s;
+
+  /* The graphite light theme: pure neutral greys with no tint, and one orange family. */
+  --bg:           #f6f6f6;
+  --lane-bg:      #efefef;
+  --surface:      #fefefe;
+  --ink:          #181818;
+  --ink-muted:    rgba(24, 24, 24, 0.72);
+  --ink-disabled: rgba(24, 24, 24, 0.45);
+  --line:         rgba(24, 24, 24, 0.11);
+  --line-strong:  rgba(24, 24, 24, 0.2);
+  --wash:         rgba(24, 24, 24, 0.05);
+
+  --signal:       #fa5f01;
+  --button:       #f55a00;
+  --link:         #c43300;
+  --link-tint:    #ffece2;
+  --accent-edge:  #ff814c;
+  --switch-knob:  #ffffff;
+  --flint-eye:    #0d0d0d;
+
+  --tone-info:    #2196a7;
+  --tone-success: #19a24e;
+
+  --pass-tint:    rgba(204, 251, 189, 0.4);
+  --pass-ink:     #266f20;
+  --err-fill:     #c00910;
+  --err-tint:     rgba(255, 194, 183, 0.5);
+  --err-edge:     #f19a90;
+  --err-ink:      #c00910;
+
+  --shadow-control: oklch(0 0 0 / 0.08);
+  --shadow-popover: oklch(0 0 0 / 0.14);
+  --shadow-panel:   oklch(0 0 0 / 0.08);
+  /* A card's hover ring, ink at 14%. */
+  --shadow-card-lift: rgba(24, 24, 24, 0.14);
+  --flare-light:    oklch(1 0 0);
+
+  --badge-info-tint:    #e0f2f5; --badge-info-ink:    #0e6672; --badge-info-edge:    #7cc3cd;
+  --badge-success-tint: #e3f5e9; --badge-success-ink: #156b37; --badge-success-edge: #86cf9f;
+}
+
+/* The larger views' colours: literal values per theme here and in the dark block; the names that match a token above are aliases
+   further down. */
+:root {
+  --ink-4:         rgba(24, 24, 24, 0.68);
+  --accent-ink-on: #ffffff;
+
+  --done-fill: #e3f5e9; --done-ink: #156b37; --done-edge: #86cf9f;
+
+  --info-fill: #e0f2f5; --info-ink: #0e6672;
+  --skeleton-sheen: #fefefe;
+
+  --overlay:        rgba(24, 24, 24, 0.32);
+  --shadow-modal:   0 24px 64px rgba(24, 24, 24, 0.18);
+  --shadow-menu:    0 12px 32px oklch(0 0 0 / 0.14);
+  --shadow-toast:   0 16px 40px oklch(0 0 0 / 0.14);
+  --shadow-tooltip: 0 8px 20px oklch(0 0 0 / 0.12);
+}
+
+/* Outline is left out on purpose: a focus ring appears and leaves at once. */
+:root {
+  --feedback-transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out),
+                         color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out),
+                         filter var(--motion-fast) var(--ease-out);
+}
+
+/* The toast's duration is the time to read it, not a motion, so reduced motion keeps it. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
+    --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
+  }
+}
+
+/* One row per state tone: pills, bars, dots and badges all read these properties. */
+[data-state-tone="neutral"]        { --s-fill: #8f8f8f; --s-tint: var(--wash); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); --s-head: var(--ink-muted); }
+[data-state-tone="accent"]         { --s-fill: var(--signal); --s-tint: var(--link-tint); --s-ink: var(--link); --s-edge: var(--accent-edge); }
+[data-state-tone="accent-outline"] { --s-fill: var(--signal); --s-tint: var(--surface); --s-ink: var(--link); --s-edge: var(--accent-edge); }
+[data-state-tone="info-outline"]   { --s-fill: var(--tone-info); --s-tint: var(--surface); --s-ink: #0e6672; --s-edge: #7cc3cd; }
+[data-state-tone="info"]           { --s-fill: var(--tone-info); --s-tint: #e0f2f5; --s-ink: #0e6672; --s-edge: #7cc3cd; }
+[data-state-tone="info-deep"]      { --s-fill: var(--tone-info); --s-tint: #c9e8ed; --s-ink: #0a5761; --s-edge: #7cc3cd; }
+[data-state-tone="success"]        { --s-fill: var(--tone-success); --s-tint: #e3f5e9; --s-ink: #156b37; --s-edge: #86cf9f; }
+[data-state-tone="ink"]            { --s-fill: var(--ink); --s-tint: var(--wash); --s-ink: var(--ink); --s-edge: var(--line-strong); }
+[data-state-tone="muted"]          { --s-fill: rgba(24, 24, 24, 0.3); --s-tint: var(--surface); --s-ink: var(--ink-4); --s-edge: var(--line); --s-head: var(--ink-4); }
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:           #101318;
+  --lane-bg:      #15181e;
+  --surface:      #1a1d24;
+  --ink:          #e8ebf1;
+  --ink-muted:    rgba(232, 235, 241, 0.72);
+  --ink-disabled: rgba(232, 235, 241, 0.45);
+  --line:         rgba(232, 235, 241, 0.11);
+  --line-strong:  rgba(232, 235, 241, 0.2);
+  --wash:         rgba(232, 235, 241, 0.05);
+
+  --button:       #e15306;
+  --link:         #ffa46e;
+  --link-tint:    #4b2412;
+  --accent-edge:  #a44c1d;
+
+  --tone-info:    #29b9c7;
+  --tone-success: #53bd7f;
+
+  --pass-tint:    #193b26;
+  --pass-ink:     #bce7ca;
+  --err-fill:     #f0473d;
+  --err-tint:     #47211e;
+  --err-edge:     #8a3a33;
+  --err-ink:      #ffbab3;
+
+  --shadow-popover: oklch(0 0 0 / 0.45);
+  --shadow-panel:   oklch(0 0 0 / 0.4);
+  --shadow-card-lift: rgba(232, 235, 241, 0.14);
+
+  --badge-info-tint:    #123a40; --badge-info-ink:    #8fe0e8; --badge-info-edge:    #1f7f89;
+  --badge-success-tint: #193b26; --badge-success-ink: #bce7ca; --badge-success-edge: #2f7a4c;
+}
+
+:root[data-theme="dark"] {
+  --ink-4: rgba(232, 235, 241, 0.68);
+
+  --done-fill: #193b26; --done-ink: #bce7ca; --done-edge: #2f7a4c;
+
+  --info-fill: #123a40; --info-ink: #8fe0e8;
+  --skeleton-sheen: rgba(232, 235, 241, 0.09);
+
+  --overlay:        rgba(0, 0, 0, 0.56);
+  --shadow-modal:   0 24px 64px rgba(0, 0, 0, 0.5);
+  --shadow-menu:    0 12px 32px oklch(0 0 0 / 0.5);
+  --shadow-toast:   0 16px 40px oklch(0 0 0 / 0.5);
+  --shadow-tooltip: 0 8px 20px oklch(0 0 0 / 0.4);
+}
+/* The dark state rows set only the literals; every var() of a light row already follows the theme. */
+:root[data-theme="dark"] [data-state-tone="neutral"]      { --s-fill: #7f8590; }
+:root[data-theme="dark"] [data-state-tone="info-outline"] { --s-ink: #8fe0e8; --s-edge: #1f7f89; }
+:root[data-theme="dark"] [data-state-tone="info"]         { --s-tint: #123a40; --s-ink: #8fe0e8; --s-edge: #1f7f89; }
+:root[data-theme="dark"] [data-state-tone="info-deep"]    { --s-tint: #174c54; --s-ink: #b4eef3; --s-edge: #1f7f89; }
+:root[data-theme="dark"] [data-state-tone="success"]      { --s-tint: #193b26; --s-ink: #bce7ca; --s-edge: #2f7a4c; }
+:root[data-theme="dark"] [data-state-tone="muted"]        { --s-fill: rgba(232, 235, 241, 0.3); }
+
+/* The quiet palette's badges, keyed by state tone; `:root[data-theme]` outranks both themes' tone rows. */
+:root[data-theme] [data-palette="quiet"][data-state-tone="neutral"]      { --s-tint: var(--surface-2); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); }
+:root[data-theme] [data-palette="quiet"][data-state-tone="accent"]       { --s-tint: var(--badge-accent-tint);  --s-ink: var(--badge-accent-ink);  --s-edge: var(--badge-accent-edge); }
+:root[data-theme] [data-palette="quiet"][data-state-tone="info-outline"] { --s-tint: var(--badge-info-tint);    --s-ink: var(--badge-info-ink);    --s-edge: var(--badge-info-edge); }
+:root[data-theme] [data-palette="quiet"][data-state-tone="success"]      { --s-tint: var(--badge-success-tint); --s-ink: var(--badge-success-ink); --s-edge: var(--badge-success-edge); }
+:root[data-theme] [data-palette="quiet"][data-state-tone="ink"]          { --s-tint: var(--badge-ink-tint);     --s-ink: var(--badge-ink-ink);     --s-edge: var(--badge-ink-edge); }
+:root[data-theme] [data-palette="quiet"][data-state-tone="muted"]        { --s-tint: var(--badge-muted-tint);   --s-ink: var(--badge-muted-ink);   --s-edge: var(--badge-muted-edge); }
+
+/* The side panels: the standard width, the wide width and their slide. */
+:root { --side-panel-width: 480px; --side-panel-wide-width: 800px; --side-panel-motion: 220ms; }
+
+/* Every motion token is 0ms until the host's first paint, so a first render shows its final state at once. */
+:root:not([data-motion="ready"]) {
+  --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
+  --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
+}
+
+/* The names for colours a token above already holds, and the washes mixed from them: one line follows both themes. */
+:root {
+  --surface-2:        var(--wash);
+  --surface-selected: var(--wash);
+  --surface-info:     var(--wash);
+  --log-surface:      var(--lane-bg);
+  --tooltip-surface:  var(--surface);
+  --ink-2:            var(--ink-muted);
+  --line-arrow:       var(--line-strong);
+  --line-conditional: var(--line-strong);
+  --status-live:      var(--signal);
+  --accent-hover:     var(--button);
+
+  --surface-page:   var(--bg);
+  --surface-panel:  var(--surface);
+  --surface-raised: var(--surface-2);
+  --line-hairline:  var(--line);
+  --line-control:   var(--line-strong);
+  --ink-1:          var(--ink);
+  --ink-3:          var(--ink-muted);
+  --accent-ring:    color-mix(in oklch, var(--link) 16%, transparent);
+  --accent-outline: color-mix(in oklch, var(--link) 35%, transparent);
+  --live-dot:       var(--status-live);
+
+  --warn-tint: var(--link-tint); --warn-edge: var(--accent-edge); --warn-ink: var(--link);
+  --primary-disabled-fill: var(--wash); --primary-disabled-ink: var(--ink-4);
+  --toast-fill: var(--done-fill); --toast-track: var(--done-edge); --toast-check: var(--done-ink);
+
+  --decision-fill: var(--link-tint); --decision-ink: var(--link); --decision-edge: var(--accent-edge);
+  --decision-accent: var(--signal); --decision-option-fill: var(--surface); --decision-input-fill: var(--surface);
+  --decision-option-ink: var(--ink);
+
+  --change-changed-fill: var(--link-tint); --change-changed-ink: var(--link); --change-changed-dot: var(--signal);
+  --change-new-fill: var(--pass-tint); --change-new-ink: var(--pass-ink);
+  --change-removed-fill: var(--err-tint); --change-removed-ink: var(--err-ink); --change-removed-row-edge: var(--err-edge);
+  --change-changed-edge: transparent; --change-new-edge: transparent; --change-removed-edge: transparent;
+
+  --badge-accent-tint: var(--link-tint); --badge-accent-ink: var(--link);  --badge-accent-edge: var(--accent-edge);
+  --badge-ink-tint:    var(--wash);      --badge-ink-ink:    var(--ink);   --badge-ink-edge:    var(--line-strong);
+  --badge-muted-tint:  var(--surface);   --badge-muted-ink:  var(--ink-4); --badge-muted-edge:  var(--line);
+}

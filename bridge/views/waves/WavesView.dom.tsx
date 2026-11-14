@@ -1,7 +1,8 @@
 /**
- * The dependencies view in a happy-dom document. What matters: the waves render as columns with their heads, nodes and edges; pointing at a
- * ticket lights its lineage and the edges inside it and dims the rest; leaving the canvas clears the lineage only after the grace; a node
- * opens its ticket's detail panel; the graph and its empty line both sit in the card; and a planted title shows as text.
+ * The dependencies view in a happy-dom document. What matters: the tab opens with its title row; the waves render as columns with their
+ * heads, nodes and edges; an open wave's head says "No forecast" when it has none; a node ends with its ticket's first epic; pointing at
+ * a ticket lights its lineage and the edges inside it and dims the rest; leaving the canvas clears the lineage only after the grace; a
+ * node opens its ticket's detail panel; the graph and its empty line both sit in the card; and a planted title shows as text.
  */
 import {
   cleanup,
@@ -17,21 +18,22 @@ import {
   test
 } from 'bun:test';
 
-import { routedOnTab }                                 from '../../testing/DetailRoutingFixture.ts';
-import { exampleProgressBoard, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
-import { EMPTY_WAVES_TEXT, WavesModel }                from './WavesModel.ts';
-import { WavesView }                                   from './WavesView.tsx';
+import { routedOnTab }                                                      from '../../testing/DetailRoutingFixture.ts';
+import { exampleProgressBoard, exampleProgressEpic, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
+import { EMPTY_WAVES_TEXT, NO_FORECAST_TEXT, WavesModel }                   from './WavesModel.ts';
+import { WavesView }                                                        from './WavesView.tsx';
 
 const PLANTED_TITLE = '<img src=x onerror="window.plantedRan = true">';
 
 const BOARD = exampleProgressBoard({
   tickets: [
     exampleProgressTicket('1', { status: 'delivered' }),
-    exampleProgressTicket('2', { dependsOn: ['1'] }),
+    exampleProgressTicket('2', { dependsOn: ['1'], epics: ['checkout'] }),
     exampleProgressTicket('3', { dependsOn: ['1'], title: PLANTED_TITLE }),
     exampleProgressTicket('4', { dependsOn: ['2'] }),
   ],
   readyTicketIds: ['2', '3'],
+  epics:          [exampleProgressEpic('checkout', { title: 'Checkout', slot: 3 })],
 });
 
 function canvasOfBoard() {
@@ -56,6 +58,13 @@ function nodeOf(container: HTMLElement, ticketId: string): Element {
 
 afterEach(cleanup);
 
+test('opens with the tab’s title row above the graph', () => {
+  renderDependencies();
+
+  expect(screen.getByRole('heading', { level: 2, name: 'Waves' })).not.toBeNull();
+  expect(screen.getByText(/^Tickets that can run side by side, wave by wave\./u)).not.toBeNull();
+});
+
 test('renders the waves as columns with their heads, nodes and edges', () => {
   const container = renderDependencies();
 
@@ -68,9 +77,24 @@ test('renders the waves as columns with their heads, nodes and edges', () => {
 test('heads each node with the shared mono id mark, and keeps the legend', () => {
   const container = renderDependencies();
 
-  expect(nodeOf(container, '2').querySelector('.bridge-dependency-node-head > .bridge-ticket-id')?.textContent).toBe('#2');
+  expect(nodeOf(container, '2').querySelector('.bridge-dependency-node-head > .design-system-mono-id')?.textContent).toBe('#2');
   expect([...container.querySelectorAll('.bridge-dependency-legend li')].map((item) => item.textContent))
-    .toEqual(['sets the pace', 'waits on', 'built on (done)', `slot in use (of ${canvasOfBoard().boardSlots})`]);
+    .toEqual(['sets the pace', 'waits on', 'built on (done)', `slot in use (of ${canvasOfBoard().boardSlots})`, 'one ticket at a time']);
+});
+
+test('says "No forecast" under each open wave with none, and gives the Done column no forecast line', () => {
+  const container = renderDependencies();
+  const headTexts = [...container.querySelectorAll('.bridge-dependency-head')].map((head) => head.textContent);
+
+  expect(headTexts.map((text) => text?.includes(NO_FORECAST_TEXT))).toEqual([false, true, true]);
+});
+
+test('ends a node with its ticket’s first epic, its swatch in the epic’s slot, and draws no epic line for a ticket in none', () => {
+  const container = renderDependencies();
+  const epicLine = nodeOf(container, '2').querySelector('.bridge-dependency-node-epic');
+
+  expect([epicLine?.getAttribute('data-epic-slot'), epicLine?.querySelectorAll('.bridge-epic-swatch').length, epicLine?.textContent]).toEqual(['3', 1, 'Checkout']);
+  expect(nodeOf(container, '4').querySelector('.bridge-dependency-node-epic')).toBeNull();
 });
 
 test('says nothing waits inside the same card as the graph when no column is left', () => {

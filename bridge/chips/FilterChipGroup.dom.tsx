@@ -29,7 +29,6 @@ function renderChips(pressed: readonly string[], onToggle: (value: string) => vo
     <FilterChipGroup
       label="Example filters"
       labelIsShown={labelIsShown}
-      startsOwnLine={labelIsShown}
       chips={CHIPS}
       pressed={pressed}
       countByChip={new Map([['pending', 4], ['checkout', 0], ['planted', 1]])}
@@ -67,18 +66,18 @@ describe('the filter chips', () => {
     expect(toggled).toEqual(['checkout', 'pending']);
   });
 
-  test('a state chip leads with its lane dot and an epic chip with its swatch', () => {
+  test('a state chip leads with its state dot in its tone and shape, and an epic chip with its swatch', () => {
     renderChips([]);
-    expect(chipOf('pending').querySelector('.bridge-lane-dot')?.getAttribute('data-state')).toBe('pending');
+    const dot = chipOf('pending').querySelector('.design-system-state-dot');
+    expect([dot?.getAttribute('data-state-tone'), dot?.getAttribute('data-shape')]).toEqual(['neutral', 'dashed-ring']);
     expect([chipOf('checkout').getAttribute('data-epic-slot'), chipOf('checkout').querySelectorAll('.bridge-epic-swatch').length]).toEqual(['3', 1]);
-    expect(chipOf('planted').querySelector('.bridge-lane-dot, .bridge-epic-swatch')).toBeNull();
+    expect(chipOf('planted').querySelector('.design-system-state-dot, .bridge-epic-swatch')).toBeNull();
   });
 
-  test('a toolbar group shows its label before the chips, takes a line of its own when asked, and names the chips by it', () => {
+  test('a toolbar group shows its label before the chips and names the chips by it', () => {
     renderChips([], () => undefined, true);
     const group = screen.getByRole('group', { name: 'Example filters' });
     expect(group.previousElementSibling?.textContent).toBe('Example filters');
-    expect(group.parentElement?.hasAttribute('data-own-line')).toBe(true);
   });
 
   test('a label is text, never markup', () => {

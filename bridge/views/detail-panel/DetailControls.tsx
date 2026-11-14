@@ -2,9 +2,9 @@
  * The Bridge's own controls on a ticket, in the panel's section style: Merge while the ticket waits for merge (Accept, Update branch), then
  * Controls (Ready, Hold or Unhold, Park, Set network). Each posts its `ControlCommand` and shows the Overseer's refusal verbatim.
  */
-import { useState } from 'react';
+import { TitledBlock } from 'design-system/TitledBlock';
+import { useState }    from 'react';
 
-import { TitledBlock }                                                            from '../../design-system/TitledBlock.tsx';
 import { CommandButton }                                                          from '../../shell/CommandButton.tsx';
 import { DetailControlsModelUtil, type DetailControlsModel, type MergeWaitModel } from './DetailControlsModel.ts';
 

@@ -1,0 +1,13 @@
+/* Lines led by a mono key in a column of their own, a time or a wider tool name; the current line's key in the warn ink, an alert line
+   bold behind an error dot. */
+.design-system-keyed-lines { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); }
+.design-system-keyed-line { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--sp-3); min-width: 0; }
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line { grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-2); }
+.design-system-keyed-line-key { overflow: hidden; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; text-overflow: ellipsis; }
+.design-system-keyed-line-text { min-width: 0; overflow-wrap: anywhere; }
+.design-system-keyed-line[data-mark="current"] .design-system-keyed-line-key { font-weight: 600; color: var(--link); }
+.design-system-keyed-line[data-mark="alert"] .design-system-keyed-line-text { font-weight: 600; }
+.design-system-keyed-line[data-mark="alert"] .design-system-keyed-line-text::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: var(--space-6); vertical-align: 1px;
+  border-radius: var(--r-pill); background: var(--err-fill);
+}

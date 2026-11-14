@@ -12,6 +12,11 @@ import { AgentsModel }                                from '../views/agents/Agen
 
 export interface WorkerChip {
   readonly jobId:      string;
+  /** The job's role as stored, `null` when it has none; the Flint slot's pose reads it. */
+  readonly role:       string | null;
+  readonly kind:       string;
+  /** The job's state as stored; the Flint slot poses for the first running job. */
+  readonly state:      string;
   /** The job's role as stored, its kind when it has none; the chip prints it. */
   readonly roleLabel:  string;
   /** A running build `in-progress`, a running review `reviewing`, any other job state its nearest palette row. */
@@ -24,6 +29,8 @@ export interface WorkerChip {
 
 export interface ActivityStripFacts {
   readonly chips:                 readonly WorkerChip[];
+  /** How many launch slots the board has; `null` on a board that names none. */
+  readonly slotLimit:             number | null;
   readonly buildingCount:         number;
   readonly reviewingCount:        number;
   readonly ticketCountWithoutJob: number;
@@ -32,7 +39,7 @@ export interface ActivityStripFacts {
 export const IDLE_ACTIVITY_TEXT = 'No agent is working right now.';
 
 export const NO_ACTIVITY: ActivityStripFacts = Object.freeze({
-  chips: [], buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
+  chips: [], slotLimit: null, buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
 });
 
 const REVIEW_JOB_KIND = 'review';
@@ -42,7 +49,7 @@ const RUNNING_JOB_STATE = 'running';
 type ActivityTicket = { readonly id: string; readonly title: string };
 
 function stateTokenOf(job: Pick<AgentJobDocument, 'kind' | 'state'>): DisplayState {
-  if (job.state !== RUNNING_JOB_STATE) return JobStateUtil.paletteStateOf(job.state);
+  if (job.state !== RUNNING_JOB_STATE) return JobStateUtil.displayStateOf(job.state);
   return job.kind === REVIEW_JOB_KIND ? 'reviewing' : 'in-progress';
 }
 
@@ -56,6 +63,9 @@ function chipOf(job: AgentJobDocument, ticketTitleById: ReadonlyMap<string, stri
   const ticketId = job.ticketIds[0] ?? null;
   return {
     jobId:      job.id,
+    role:       job.role,
+    kind:       job.kind,
+    state:      job.state,
     roleLabel:  job.role ?? job.kind,
     stateToken: stateTokenOf(job),
     ticketId,
@@ -85,6 +95,7 @@ function activityStripFactsOf(
   const reviewingCount = slotJobs.filter((job) => job.kind === REVIEW_JOB_KIND).length;
   return {
     chips,
+    slotLimit:             launchSlots.limit,
     buildingCount:         slotJobs.length - reviewingCount,
     reviewingCount,
     ticketCountWithoutJob: launchSlots.inProgressTicketIdsWithoutJob.length,

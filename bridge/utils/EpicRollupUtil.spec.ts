@@ -37,12 +37,20 @@ describe('the done text', () => {
 });
 
 describe('the segments and the facts', () => {
-  test('segments come settled first, each worded, and skip a state with no ticket', () => {
+  test('segments come settled first, each worded and in its state tone, and skip a state with no ticket', () => {
     expect(EpicRollupUtil.rollupSegmentsOf(OPEN_EPIC)).toEqual([
-      { state: 'delivered', count: 1, label: 'Done' },
-      { state: 'in-review', count: 1, label: 'Awaiting review' },
-      { state: 'pending', count: 1, label: 'To do' },
-      { state: 'abandoned', count: 1, label: 'Abandoned' },
+      {
+        state: 'delivered', tone: 'ink', count: 1, label: 'Done'
+      },
+      {
+        state: 'in-review', tone: 'info-outline', count: 1, label: 'Awaiting review'
+      },
+      {
+        state: 'pending', tone: 'neutral', count: 1, label: 'To do'
+      },
+      {
+        state: 'abandoned', tone: 'muted', count: 1, label: 'Abandoned'
+      },
     ]);
   });
 

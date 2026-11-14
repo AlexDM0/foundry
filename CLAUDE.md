@@ -50,6 +50,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 
 ```
 src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → overseer)  →  features (cli/, bridge/)
+design-system/  →  bridge/ (as the workspace package design-system, by the exports of design-system/package.json)
 ```
 
 - `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, feature and sibling-command isolation, the bin
@@ -59,6 +60,9 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A `src/lib/` package knows nothing about its callers: no agent-progress names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
+- `design-system/` imports no file of the forge. The Bridge imports it by its name, `design-system/<entry>`, with an
+  entry that `design-system/package.json` exports, never by a file path. `src/ImportDirection.spec.ts` holds this
+  (see The design-system/ package).
 
 ### Values and wording
 
@@ -187,7 +191,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `.bun-version` pins Bun to the locked `@types/bun` version, held by `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
   under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
-  `src/ProjectIncludeLists.spec.ts`; everything the Bridge reaches stays DOM-safe.
+  `src/ProjectIncludeLists.spec.ts`; everything the Bridge reaches stays DOM-safe. The list names no file of
+  `design-system/`: TypeScript finds the package through its exports.
 - ESLint 9 through `@reliquary/eslint-config`, extended in `eslint.config.js`; `bun run lint` is its statement. The
   testing folders may import devDependencies.
 
@@ -231,10 +236,12 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
   answer without this action, write the answer from the documentation of that system and name the source in a
   comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts the default browser opener.
-- `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a component spec is a
-  `<Component>.dom.tsx` under `bridge/` alone, and no spec or test helper creates the real process context.
-- `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` with the skip report and the
-  happy-dom preload, `bun run verify` runs it after `bun test`, and it fails when it finds none.
+- `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a DOM spec is a
+  `<Module>.dom.tsx` under `bridge/` or `design-system/` alone, and no spec or test helper creates the real process
+  context.
+- `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` of `bridge/` and
+  `design-system/` with the skip report and the happy-dom preload, `bun run verify` runs it after `bun test`, and it
+  fails when it finds none in either folder.
 
 ### Documentation and commits
 
@@ -281,7 +288,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 | A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
 | A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
-| Code starts beside its only consumer. | `bridge/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. | The owner ordered the design system first, so the views share one set of parts. |
+| Code starts beside its only consumer. | `design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. `design-system/` is a package at the root of the repository, not a folder of the Bridge. | The owner ordered the design system first, so the views share one set of parts. The owner decided that the design system is a portable package, like Flint. |
 
 ## Local rules
 
@@ -341,19 +348,25 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - A view model reads a structural type of exactly the fields it uses; tracker types satisfy it unchanged.
 - A visual change leaves the README screenshots stale: once it lands, run `.readme-graphics/regenerate.sh` in the
   long-lived checkout holding that code: the script shoots its own checkout.
-- `bridge/styles/tokens.css` holds every colour, state token and theme value; `bridge/styles/board.css` holds every
-  class. Both are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every class a component emits is
-  styled and every styled class is emitted; a `className` is a literal the scan can read.
+- `bridge/index.html` links the package's entry stylesheet, `design-system/design-system.css`, first, then
+  `bridge/styles/tokens.css`, then `bridge/styles/board.css`. `design-system/styles/tokens.css` holds every token of
+  the theme.
+  `bridge/styles/tokens.css` holds only the tokens that only the Bridge's classes read. `bridge/styles/board.css` holds
+  every class of the Bridge. All of them are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every
+  class a Bridge component emits is styled and every styled class is emitted. It also holds that no Bridge component
+  emits a `design-system-…` class, and that no `board.css` selector names one. A `className` is a literal the scan can
+  read.
 - `bridge/HoverMovesNothing.spec.ts` holds that no `:hover` or `:active` rule moves or resizes anything. The one
   exception is the tooltip's transform: the tooltip takes no space.
 - `bridge/ReducedMotionStopsEveryAnimation.spec.ts` holds that a `prefers-reduced-motion: reduce` rule stops each
   animation outside `prefers-reduced-motion: no-preference`. The reduce rule must win: a higher specificity, or the same
   specificity later in the file. A scroll timeline is not motion.
-- `bridge/StyleBraceBalance.spec.ts` holds that `bridge/styles/board.css` and `bridge/styles/tokens.css` close each
-  brace that they open.
+- `bridge/StyleBraceBalance.spec.ts` holds that each stylesheet closes each brace that it opens.
+- These three guards and `bridge/ThemeTokens.spec.ts` read the stylesheets of `bridge/styles/` and of `design-system/`.
 - React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
   entities. `eslint.config.js` bans
-  `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/`; agent-written HTML reaches the DOM
+  `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/` and `design-system/`; agent-written
+  HTML reaches the DOM
   only as a sandboxed iframe's `srcdoc`, whose fixed markup is the one place `escapeHtml` is used, for its title, theme
   and stylesheet addresses.
 - A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
@@ -366,9 +379,8 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 - While the board has no readable `pipeline.json`, the Bridge shows only the Pipeline tab
   (`bridge/shell/HashRouter.ts`). The header then shows the setup stepper in place of the statistics, the Overseer
   controls and the tabs (`setupSteps` in `bridge/shell/HeaderModel.ts`). A done step links back to its route.
-- `bridge/design-system/` holds the reusable components of the Bridge. A component in it knows nothing about the board,
-  the routes, the API or the shell: a link comes as an `href`, an action as a callback and each word as a prop. It
-  takes no `className` prop: a variant is a `data-*` attribute. `src/ImportDirection.spec.ts` holds its imports.
+- The reusable components of the Bridge are in `design-system/` (see The design-system/ package). A component that only
+  the Bridge uses is in `bridge/`.
 - `bridge/shell/` holds what the entry starts with: the hash router, the theme bootstrap, the embedded channel (theme in
   and Esc out by `postMessage`, only with the framing parent's origin), the banners and the error boundary.
   `bridge/api/` holds the clients of the Overseer's API. Every control sends its `ControlCommand` through
@@ -381,6 +393,27 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
   `<STORAGE_PREFIX>:<trackerId>` and the theme under `<STORAGE_PREFIX>:theme`.
 - `bridge/HeadlessBridge.integration.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a
   console error, an exception or a failed request; it skips through `src/testing/ToolGuard.ts` without Chrome.
+
+### The design-system/ package
+
+- `design-system/` is the design system of the Bridge, as a portable package with its own `package.json`,
+  `tsconfig.json`, `tsconfig.spec.json` and `README.md`. Its rules are in `design-system/CONSTITUTION.md`: read it
+  before you change `design-system/`.
+- The root `package.json` makes `design-system/` a workspace package: `"workspaces": ["design-system"]` and the
+  dependency `"design-system": "workspace:*"`. `bun install` links `node_modules/design-system` to the folder, and
+  `bunfig.toml` keeps the hoisted linker. Bun, `Bun.build` and TypeScript resolve `design-system/<entry>` through the
+  `exports` of `design-system/package.json`.
+- `src/ImportDirection.spec.ts` holds that `design-system/` imports no file of the forge, and that a file outside it
+  imports it only as `design-system/<entry>`, with an entry that `design-system/package.json` exports. A relative or
+  absolute path into the folder, and an entry that the exports do not list, are findings.
+- `bun run typecheck` checks `design-system/tsconfig.json` (only the DOM library, no Bun or Node types) and
+  `design-system/tsconfig.spec.json` (the specs, the stories and `.storybook/`). `src/ProjectIncludeLists.spec.ts` holds
+  that its `include` list names only its own folder.
+- `bun run storybook` runs the package's Storybook 10; `design-system/StoryCoverage.spec.ts` holds a story per export.
+- `bridge/testing/RunDomSpecs.ts` runs the DOM specs of `design-system/` with those of the Bridge.
+- The package knows no state of the board: a component takes a `StateTone` and shape flags.
+  `bridge/utils/StateToneUtil.ts` maps each `DisplayState` and job state to its tone and flags, over a `Record` of every
+  `DisplayState`, and every state-coloured element of the Bridge takes its look from it.
 
 ### Skills
 
@@ -425,6 +458,8 @@ launcher.ts          the installed command: setup.ts compiles it, and it starts 
 cli/                 feature: the command surface, its commands grouped into sets
 bridge/              feature: the Bridge, the React live UI the Overseer serves, one DOM-only project: its entry,
                      the shell under bridge/shell/, the API clients under bridge/api/ and the stylesheets
+design-system/       the Bridge's design system as a portable package: the components in atoms/, molecules/ and
+                     organisms/, each with its stylesheet, the theme tokens and the fonts
 resources/           files read at runtime: the markdown init, update and ticket add fill, and the prompts an
                      Overseer's jobs run on
 src/lib/             package-grade building blocks, one folder each

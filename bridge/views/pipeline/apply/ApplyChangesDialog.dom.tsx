@@ -59,7 +59,7 @@ async function openApplyChanges() {
 }
 
 function rows(): HTMLElement[] {
-  return [...applyChangesDialog().querySelectorAll<HTMLElement>('.bridge-change-row')];
+  return [...applyChangesDialog().querySelectorAll<HTMLElement>('.design-system-change-row')];
 }
 
 describe('the rows', () => {

@@ -1,15 +1,20 @@
 /**
- * The agent step dialog (A3Inspector) of Ticket creation and the Builder: the model and effort, every value the board offers, the meter
- * in the head following the form, the instruction list, when the step runs and what it fixes, and the foot. The form is local until Save,
+ * The agent step dialog (A3Inspector) of Ticket creation and the Builder: the model beside the effort, every value the board offers, the
+ * meter in the head following the form, the brief, when the step runs and what it fixes, and the foot. The form is local until Save,
  * which sends the role's one edit; Reset to default fills the form with the defaults and sends nothing; Esc, × and Cancel send nothing.
  */
-import { useRef, useState } from 'react';
+
+import { Button }           from 'design-system/Button';
+import { Card }             from 'design-system/Card';
+import { Dialog }           from 'design-system/Dialog';
+import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
+import { Row }              from 'design-system/Row';
+import { Text }             from 'design-system/Text';
+import { View }             from 'design-system/View';
+import { useState }         from 'react';
 
 import type { Pipeline }                          from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChoices, PipelineFlowNode } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { Button }                                 from '../../../design-system/Button.tsx';
-import { Dialog }                                 from '../../../design-system/Dialog.tsx';
-import { ModelEffortMeter }                       from '../../../design-system/ModelEffortMeter.tsx';
 import type { PipelineFlowEditSender }            from '../flow/PipelineFlowEditSender.ts';
 
 import { AgentStepDialogModel, type AgentStepForm, type AgentStepRole } from './AgentStepDialogModel.ts';
@@ -36,11 +41,25 @@ export interface AgentStepDialogProps {
   readonly onClose:      () => void;
 }
 
+interface StepFactProps {
+  readonly term:        string;
+  readonly description: string;
+}
+
+/** One line of the step's facts: the term in bold, what it says muted beside it. */
+function StepFact({ term, description }: StepFactProps) {
+  return (
+    <Row gap="ten" paddingVertical="eight">
+      <Text bold>{term}</Text>
+      <Text muted>{description}</Text>
+    </Row>
+  );
+}
+
 export function AgentStepDialog({
   role, node, draft, choices, constitution, editSender, asker, onClose
 }: AgentStepDialogProps) {
   const [form, setForm] = useState<AgentStepForm>(() => AgentStepDialogModel.formOf(role, draft, node.settings));
-  const selectedModel = useRef<HTMLButtonElement | null>(null);
   const words = AgentStepDialogModel.wordsOf(role);
   const meter = (
     <ModelEffortMeter
@@ -55,20 +74,19 @@ export function AgentStepDialog({
   return (
     <Dialog
       title={words.title}
-      kicker={AgentStepDialogModel.AGENT_STEP_KICKER}
+      kicker={AgentStepDialogModel.kickerOf(role)}
       headEnd={meter}
       description={words.description}
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="wide"
-      initialFocus={selectedModel}
+      width="widest"
       foot={(
         <StepDialogFoot
           start={(
             <>
               <Button label="Ask the pipeline agent" disabled={!asker.enabled} onPress={() => asker.ask(AgentStepDialogModel.questionOf(words.title))} />
-              <Button label="Reset to default" emphasis="quiet" onPress={() => setForm(AgentStepDialogModel.resetFormOf(role))} />
+              <Button label="Reset to default" emphasis="ghost" onPress={() => setForm(AgentStepDialogModel.resetFormOf(role))} />
             </>
           )}
           saveLabel="Save"
@@ -79,7 +97,7 @@ export function AgentStepDialog({
         />
       )}
     >
-      <div className="bridge-pipeline-dialog-body">
+      <View gap="eighteen">
         <ModelEffortFields
           models={choices.models}
           efforts={choices.efforts}
@@ -91,31 +109,20 @@ export function AgentStepDialog({
           size="standard"
           onModel={(model) => setForm({ ...form, model })}
           onEffort={(effort) => setForm({ ...form, effort })}
-          selectedModelRef={selectedModel}
         />
         <InstructionsEditor
-          label="Instructions"
+          label="Brief"
           role={role}
           entries={form.entries}
           resolvedEntries={node.instructionEntries}
           constitution={constitution}
           onChange={(entries) => setForm({ ...form, entries })}
         />
-        <div className="bridge-pipeline-dialog-info">
-          <span>
-            <strong>Runs</strong>
-            {` ${words.runs}`}
-          </span>
-          {words.fixes === null
-            ? null
-            : (
-              <span>
-                <strong>Fixes</strong>
-                {` ${words.fixes}`}
-              </span>
-            )}
-        </div>
-      </div>
+        <Card step paddingVertical="four" paddingHorizontal="fourteen" divider>
+          <StepFact term="Runs" description={words.runs} />
+          {words.fixes === null ? null : <StepFact term="Fixes" description={words.fixes} />}
+        </Card>
+      </View>
     </Dialog>
   );
 }

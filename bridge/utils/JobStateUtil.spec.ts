@@ -1,5 +1,5 @@
 /**
- * The job-state readings. What matters: a session is up only past its launch and before it stops; every job state takes the palette row
+ * The job-state readings. What matters: a session is up only past its launch and before it stops; every job state takes the display state
  * nearest its meaning; a state the Bridge does not know, also one named like an object property, reads as waiting instead of breaking;
  * and only a builder or reviewer, which has a worktree to hand on, is offered a fresh agent.
  */
@@ -14,17 +14,17 @@ describe('whether a session is up', () => {
   });
 });
 
-describe('the palette row of a job state', () => {
+describe('the display state of a job state', () => {
   test('each job state takes the nearest display state', () => {
     expect([
       'launching', 'running', 'waiting-for-answer', 'interrupted', 'stopping', 'in-customs', 'gating', 'merging', 'landing',
-    ].map(JobStateUtil.paletteStateOf)).toEqual([
+    ].map(JobStateUtil.displayStateOf)).toEqual([
       'pending', 'in-progress', 'paused', 'paused', 'paused', 'in-review', 'in-review', 'reviewed', 'reviewed',
     ]);
   });
 
   test('an unknown state, also one named like an object property, reads as waiting', () => {
-    expect(['someday', 'constructor', 'toString'].map(JobStateUtil.paletteStateOf)).toEqual(['pending', 'pending', 'pending']);
+    expect(['someday', 'constructor', 'toString'].map(JobStateUtil.displayStateOf)).toEqual(['pending', 'pending', 'pending']);
   });
 });
 

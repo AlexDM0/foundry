@@ -9,8 +9,8 @@ import type { PipelineFlowFacts, PipelineFlowNode, PipelineNodeMark } from '../.
 import type { PipelineViewFacts }                                     from '../PipelineViewModel.ts';
 import { PipelineViewModel }                                          from '../PipelineViewModel.ts';
 import { PipelineAgentPanelModel }                                    from '../agent-panel/PipelineAgentPanelModel.ts';
-import type { FlowOpenRequest }                                       from '../flow/PipelineFlow.tsx';
 import { usePipelineFlowEditSender }                                  from '../flow/PipelineFlowEditSender.ts';
+import type { FlowOpenRequest }                                       from '../flow/PipelineFlowModel.ts';
 import { PipelineFlowModel }                                          from '../flow/PipelineFlowModel.ts';
 import type { GatesOpenRequest }                                      from '../gates/GatesAreaModel.ts';
 

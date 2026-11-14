@@ -83,7 +83,7 @@ function scrollRowClearOfPanel(chart: HTMLElement, row: HTMLElement): void {
     barsLeft:   Math.min(...bars.map((box) => box.left)),
     barsRight:  Math.max(...bars.map((box) => box.right)),
     trackLeft:  pinnedRightEdge + PANEL_GUTTER_PIXELS,
-    trackRight: Math.min(visibleRightEdgeOf(chart), panelLeftEdge('--detail-w')) - PANEL_GUTTER_PIXELS,
+    trackRight: Math.min(visibleRightEdgeOf(chart), panelLeftEdge('--side-panel-width')) - PANEL_GUTTER_PIXELS,
   });
   if (offset !== 0) chart.scrollBy({ left: offset, behavior: motionIsReduced() ? 'auto' : 'smooth' });
 }

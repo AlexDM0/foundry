@@ -107,7 +107,7 @@ function clicked(element: HTMLElement): void {
 }
 
 function readyCardIds(): (string | null)[] {
-  return [...screen.getByRole('region', { name: 'Ready' }).querySelectorAll('.bridge-ticket-id')].map((id) => id.textContent);
+  return [...screen.getByRole('region', { name: 'Ready' }).querySelectorAll('.design-system-mono-id')].map((id) => id.textContent);
 }
 
 afterEach(() => {

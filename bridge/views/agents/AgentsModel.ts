@@ -4,10 +4,11 @@
  * the cards' counts and tallies, its worded Watcher, whether it is stopping, and whether a concurrency limit asked for may be sent. Which
  * job holds a launch slot is the Overseer's `launchSlots` fact, never a kind list copied here.
  */
+import type { IconName } from 'design-system/Icon';
+
 import type { DisplayState }                                                 from '../../../src/lib/tracker-model/@types/Task.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }                        from '../../@types/BoardStateDocument.ts';
-import type { IconName }                                                     from '../../design-system/Icon.tsx';
 import { TimeUtil, type TimestampSlices }                                    from '../../utils/TimeUtil.ts';
 import type {
   AgentJobDocument,
@@ -287,6 +288,21 @@ function isStopping(job: Pick<AgentJobDocument, 'state' | 'stopRequest'>): boole
   return job.state === 'stopping' || job.stopRequest !== undefined;
 }
 
+/** A job with a role takes a message while it is not stopping and its Watcher does more than watch. */
+function takesMessages(job: Pick<AgentJobDocument, 'role' | 'state' | 'stopRequest'> & { readonly live: Pick<AgentJobDocument['live'], 'watchOnly'> }): boolean {
+  return job.role !== null && !job.live.watchOnly && !isStopping(job);
+}
+
+/** "followed live · 11 entries": the transcript head says it follows the job and how much it holds. */
+function transcriptCountTextOf(entryCount: number): string {
+  return `followed live · ${entryCount} ${entryCount === 1 ? 'entry' : 'entries'}`;
+}
+
+/** The head of the job panel: the job's state, then how long ago it launched where the log holds its launch. */
+function panelStateTextOf(job: Pick<AgentJobDocument, 'state'>, launchedText: string | null): string {
+  return launchedText === null ? job.state : `${job.state} · ${launchedText}`;
+}
+
 /** A limit to send: a whole number from the lowest limit to the ceiling, which the Overseer refuses past, that differs from the current one. */
 function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): boolean {
   return wantedLimit !== currentLimit && Number.isInteger(wantedLimit)
@@ -315,5 +331,8 @@ export const AgentsModel = Object.freeze({
   sessionAboutTextOf,
   watcherTextOf,
   isStopping,
+  takesMessages,
+  panelStateTextOf,
+  transcriptCountTextOf,
   concurrencyLimitIsSendable,
 });

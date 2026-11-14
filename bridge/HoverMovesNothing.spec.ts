@@ -1,15 +1,13 @@
 /**
- * Hover and press move nothing in the Bridge: a rule whose selector holds `:hover` or `:active` (also inside `:is()`, `:where()`,
- * `:has()` or a selector list, and inside `@media` and `@container`) changes only colour, outline, a shadow, a filter, opacity, visibility
- * or the cursor. A movement allowed because it moves nothing else is an entry of `MOVEMENTS_ALLOWED`, held exact both ways; `transform:
- * none` only cancels a movement and always passes. The scan first proves it found a floor of hover and active rules, and each form is
- * planted in memory.
+ * Hover and press move nothing in the Bridge and its design system: a rule whose selector holds `:hover` or `:active` (also inside
+ * `:is()`, `:where()`, `:has()` or a selector list, and inside `@media` and `@container`) changes only colour, outline, a shadow, a filter,
+ * opacity, visibility or the cursor. A movement allowed because it moves nothing else is an entry of `MOVEMENTS_ALLOWED`, held exact both
+ * ways; `transform: none` only cancels a movement and always passes. The scan first proves it found a floor of hover and active rules, and
+ * each form is planted in memory.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
-
 import { describe, expect, test } from 'bun:test';
 
+import { pageStylesheets } from './testing/PageStylesheets.ts';
 import {
   rulesOf,
   selectorLineOf,
@@ -17,8 +15,7 @@ import {
   type StyleRule
 } from './testing/StyleRuleReader.ts';
 
-const STYLES_FOLDER = join(import.meta.dir, 'styles');
-const SCANNED_STYLESHEETS = ['board.css', 'tokens.css'] as const;
+const SMALLEST_STYLESHEET_COUNT = 40;
 const SMALLEST_HOVER_RULE_COUNT = 41;
 const SMALLEST_ACTIVE_RULE_COUNT = 1;
 const POINTER_STATE_PATTERN = /:(?:hover|active)\b/;
@@ -46,9 +43,14 @@ interface AllowedMovement {
   readonly property: string;
 }
 
-/** Each entry moves nothing else, for a reason its own rule states: the tooltip hangs absolutely and takes no space. */
+/**
+ * Each entry moves nothing else, for a reason its own rule states: the tooltip hangs absolutely and takes no space, and a pressed button
+ * scales inside its own box, which a transform never gives back to the layout.
+ */
 const MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [
-  { selector: '.bridge-tooltip-trigger:is(:hover, :focus-within) > .bridge-tooltip', property: 'transform' },
+  { selector: '.design-system-tooltip-trigger:is(:hover, :focus-within) > .design-system-tooltip', property: 'transform' },
+  { selector: '.design-system-button:not(:disabled):active', property: 'transform' },
+  { selector: '.design-system-icon-button:active', property: 'transform' },
 ];
 
 function holdsPointerState(rule: StyleRule): boolean {
@@ -74,14 +76,18 @@ function unusedAllowanceSentencesOf(rules: readonly StyleRule[], allowedMovement
     .map(({ selector, property }) => `${selector} { ${property} } is allowed but no rule sets it`);
 }
 
-const RULES = SCANNED_STYLESHEETS.flatMap((stylesheet) => rulesOf(stylesheet, readFileSync(join(STYLES_FOLDER, stylesheet), 'utf8')));
+const RULES = pageStylesheets().flatMap(({ path, text }) => rulesOf(path, text));
 
 describe('the scan itself', () => {
-  test('it reads both stylesheets and finds a floor of hover rules and of active rules', () => {
+  test('it reads the stylesheets of the package and of the Bridge, and finds a floor of hover rules and of active rules', () => {
     const pointerStateRules = RULES.filter(holdsPointerState);
     expect(pointerStateRules.filter((rule) => rule.selector.includes(':hover')).length).toBeGreaterThanOrEqual(SMALLEST_HOVER_RULE_COUNT);
     expect(pointerStateRules.filter((rule) => rule.selector.includes(':active')).length).toBeGreaterThanOrEqual(SMALLEST_ACTIVE_RULE_COUNT);
-    expect(new Set(RULES.map(({ stylesheet }) => stylesheet))).toEqual(new Set(SCANNED_STYLESHEETS));
+    const scannedStylesheets = new Set(RULES.map(({ stylesheet }) => stylesheet));
+    for (const path of ['bridge/styles/board.css', 'bridge/styles/tokens.css', 'design-system/styles/tokens.css', 'design-system/atoms/Button.css']) {
+      expect(scannedStylesheets).toContain(path);
+    }
+    expect(scannedStylesheets.size).toBeGreaterThanOrEqual(SMALLEST_STYLESHEET_COUNT);
   });
 });
 
@@ -120,18 +126,18 @@ describe('the guard, planted in memory', () => {
 
   test('a filter, an opacity, a colour, a shadow and a transform: none pass', () => {
     expect(sentencesOfPlanted([
-      'button:not(:disabled):active { filter: brightness(0.92); }',
+      'button:not(:disabled):active { filter: brightness(0.94); }',
       '.bridge-planted:hover { opacity: 0.8; color: var(--ink); box-shadow: 0 4px 12px var(--shadow-card-lift); }',
       '.bridge-planted:active { transform: none; }',
     ].join('\n'))).toEqual([]);
   });
 
   test('an allowed movement passes on its own selector only, and an allowance no rule uses is named', () => {
-    const allowedMovements = [{ selector: '.bridge-tooltip:hover', property: 'transform' }];
-    expect(sentencesOfPlanted('.bridge-tooltip:hover { transform: translateY(-2px); } .bridge-planted:hover { transform: translateY(-2px); }', allowedMovements))
+    const allowedMovements = [{ selector: '.design-system-tooltip:hover', property: 'transform' }];
+    expect(sentencesOfPlanted('.design-system-tooltip:hover { transform: translateY(-2px); } .bridge-planted:hover { transform: translateY(-2px); }', allowedMovements))
       .toEqual(['planted.css: .bridge-planted:hover sets transform, which a :hover or :active rule may not change']);
     expect(unusedAllowanceSentencesOf(rulesOf('planted.css', '.bridge-planted:hover { color: red; }'), allowedMovements))
-      .toEqual(['.bridge-tooltip:hover { transform } is allowed but no rule sets it']);
+      .toEqual(['.design-system-tooltip:hover { transform } is allowed but no rule sets it']);
   });
 });
 
@@ -146,7 +152,7 @@ describe('board.css and tokens.css', () => {
 });
 
 describe('the press and the kanban card', () => {
-  const PRESS_FILTER = 'brightness(0.92)';
+  const PRESS_FILTER = 'brightness(0.94)';
   const pointerStateRulesWhere = (selectorHolds: string): StyleRule[] =>
     RULES.filter((rule) => holdsPointerState(rule) && rule.selector.includes(selectorHolds));
   const valuesOf = (rules: readonly StyleRule[], property: string): string[] =>
@@ -157,13 +163,15 @@ describe('the press and the kanban card', () => {
     expect(valuesOf(pointerStateRulesWhere('.bridge-kanban-card:active'), 'filter')).toEqual([PRESS_FILTER]);
   });
 
-  test('a hovered kanban card keeps its shadow and its border colour change', () => {
-    expect(valuesOf(pointerStateRulesWhere('.bridge-kanban-card:hover'), 'box-shadow')).not.toEqual([]);
-    expect(valuesOf(pointerStateRulesWhere('.bridge-kanban-card'), 'border-color')).not.toEqual([]);
+  test('a hovered kanban card shows the ring of the interactive Card it holds', () => {
+    expect(valuesOf(pointerStateRulesWhere('.design-system-card[data-interactive]:hover'), 'box-shadow')).not.toEqual([]);
   });
 
-  test('reduced motion keeps the colour feedback: no hover or press rule is written for it alone', () => {
-    const reducedMotionPointerStateRules = RULES.filter((rule) => holdsPointerState(rule) && rule.conditions.some((condition) => condition.includes('prefers-reduced-motion')));
+  test('reduced motion keeps the colour feedback: a hover or press rule written for it alone only cancels a movement', () => {
+    const cancelsOnlyAMovement = (rule: StyleRule): boolean =>
+      rule.declarations.every(({ property, value }) => property === 'transform' && value === 'none');
+    const reducedMotionPointerStateRules = RULES.filter((rule) => holdsPointerState(rule)
+      && rule.conditions.some((condition) => condition.includes('prefers-reduced-motion')) && !cancelsOnlyAMovement(rule));
     expect(reducedMotionPointerStateRules.map(({ selector }) => selectorLineOf(selector))).toEqual([]);
   });
 });

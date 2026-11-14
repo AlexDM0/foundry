@@ -1,0 +1,8 @@
+/* A screen's footer bar on the page ground: its status at the start, its actions at the end. */
+.design-system-action-bar {
+  display: flex; align-items: center; gap: var(--sp-3);
+  box-sizing: border-box; height: 60px; padding: 0 var(--space-20) 0 var(--space-28);
+  background: var(--bg); border-top: 1px solid var(--line);
+}
+.design-system-action-bar-start { display: flex; flex: 1 1 auto; align-items: center; gap: var(--sp-3); min-width: 0; }
+.design-system-action-bar-end { display: flex; flex: none; align-items: center; gap: var(--sp-2); margin-left: auto; }

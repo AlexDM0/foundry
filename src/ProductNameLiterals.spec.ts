@@ -1,10 +1,10 @@
 /**
  * Every command text the CLI prints (a refusal, a usage line, a suggested command, the help, a hook command) names the program through
  * `PRODUCT_NAMES.PROGRAM`, so a build named beside the released program never tells an agent to run the other one. The scan reads the
- * string and template literals of every non-spec source under `src/`, `cli/` and `bridge/` (`.tsx` included) from the syntax
- * tree, so a comment is never
- * command text; a brief's `agent-progress row:`, `ticket:` or `review:` line is a marker the dispatcher writes and the hook reads, not a
- * command. What remains must be in the allowlist, exact both ways. The scan first proves it read the sources, and each form is planted.
+ * string and template literals of every non-spec source under `src/`, `cli/`, `bridge/` and `design-system/` (`.tsx` included) from the
+ * syntax tree, so a comment is never command text; a brief's `agent-progress row:`, `ticket:` or `review:` line is a marker the dispatcher
+ * writes and the hook reads, not a command. What remains must be in the allowlist, exact both ways. The scan first proves it read the
+ * sources, and each form is planted.
  */
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
@@ -17,7 +17,7 @@ interface LiteralFinding {
   readonly literal: string;
 }
 
-const SCANNED_FOLDERS = ['src/', 'cli/', 'bridge/'];
+const SCANNED_FOLDERS = ['src/', 'cli/', 'bridge/', 'design-system/'];
 
 const PRODUCT_NAMES_PATH = 'src/shared/constants/ProductNames.ts';
 
@@ -33,6 +33,8 @@ const [RELEASED_PROGRAM = ''] = PROGRAM_NAMES;
 const ALLOWED_LITERALS: readonly LiteralFinding[] = [
   // The names themselves.
   ...PROGRAM_NAMES.map((name) => ({ path: PRODUCT_NAMES_PATH, literal: name })),
+  // The header's wordmark is the brand the designs fix, not a command, so it keeps its name in a build beside the released program.
+  { path: 'bridge/shell/Header.tsx', literal: 'forge' },
 ];
 
 /** The name standing alone, longest first: not inside a path, a folder, a file name, a longer name or a storage key. */

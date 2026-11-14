@@ -1,7 +1,7 @@
 /**
  * The resume summary against fake controls. What matters: the bare `#pipeline` of an open setup shows it in place of the landing; each
  * step row shows its status and summary, a done row Open; Start over asks first and sends only on the confirm; the main-moved note shows
- * only while main moved; Resume sends the record's id and then opens the current step.
+ * only while main moved; the footer counts the done steps; Resume sends the record's id and then opens the current step.
  */
 import {
   cleanup,
@@ -62,13 +62,19 @@ describe('the resume summary', () => {
     const controls = renderResume('A0b-running');
     fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
     const strip = screen.getByRole('group', { name: 'Confirm starting over' });
-    expect(strip.textContent).toContain('Discard the saved setup? This cannot be undone.');
+    expect(strip.textContent).toContain('Discard the saved setup?');
+    expect(strip.textContent).toContain('This cannot be undone.');
     expect(controls.sent).toEqual([]);
-    fireEvent.click(within(strip).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(strip).getByRole('button', { name: 'Keep the setup' }));
     expect(screen.queryByRole('group', { name: 'Confirm starting over' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Start over' }));
     await clickSettled(within(screen.getByRole('group', { name: 'Confirm starting over' })).getByRole('button', { name: 'Start over' }));
     expect(controls.sent).toEqual([{ kind: 'pipeline-setup-start-over', setupId: 'S1' }]);
+  });
+
+  test('the footer counts the steps done', () => {
+    renderResume('A0b-running');
+    expect(within(screen.getByRole('region', { name: 'Resume setup actions' })).getByText('3 of 5 steps done')).toBeDefined();
   });
 
   test('the main-moved note shows only while main moved', () => {

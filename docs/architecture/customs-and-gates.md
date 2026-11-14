@@ -536,7 +536,7 @@ of its own.
 ### Checks and profiles, on User's press
 
 No proposed line runs by itself. Two runs exist, and each starts only when User presses for it: `pipeline check` or
-"Ask the pipeline agent to check", and `pipeline profile` or a gate row's stopwatch. The agent may relay neither.
+"Ask the pipeline agent to check", and `pipeline profile` or a gate row's time chip. The agent may relay neither.
 
 | | Pipeline check | Gate profile |
 | --- | --- | --- |

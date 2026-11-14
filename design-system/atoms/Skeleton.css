@@ -1,0 +1,14 @@
+/* Lines in the place of text on its way, on the wash, a light band sweeping across them; the last of several is shorter, as a paragraph
+   ends. */
+.design-system-skeleton { display: flex; flex-direction: column; gap: var(--sp-2); }
+.design-system-skeleton-line {
+  display: block; height: 10px; border-radius: var(--r-1);
+  background: linear-gradient(90deg, var(--wash) 0%, var(--skeleton-sheen) 50%, var(--wash) 100%);
+  background-size: 640px 100%; animation: design-system-shimmer 1.4s linear infinite;
+}
+.design-system-skeleton-line:last-child:not(:first-child) { width: 60%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-skeleton-line { animation: none; background: var(--wash); }
+}
+@keyframes design-system-shimmer { from { background-position: -320px 0; } to { background-position: 320px 0; } }

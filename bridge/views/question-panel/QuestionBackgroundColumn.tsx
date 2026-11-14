@@ -4,18 +4,19 @@
  * the ticket tab its whole body in a sandboxed frame; the conversation tab the asking job's chat. The transcript is followed while a tab
  * that reads it shows, and the tab starts at Background for every decision, since the column is keyed by it.
  */
-import { useState } from 'react';
+
+import { Callout }            from 'design-system/Callout';
+import { KeyedLineList }      from 'design-system/KeyedLineList';
+import { MonoId }             from 'design-system/MonoId';
+import { Tabs, type TabItem } from 'design-system/Tabs';
+import { TextButton }         from 'design-system/TextButton';
+import { TitledBlock }        from 'design-system/TitledBlock';
+import { useState }           from 'react';
 
 import { EpicChips }                              from '../../chips/EpicChips.tsx';
 import { ChatCard, ChatThread }                   from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }                    from '../../conversation/ChatThreadModel.ts';
 import { useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
-import { TextButton }                             from '../../design-system/Button.tsx';
-import { Callout }                                from '../../design-system/Callout.tsx';
-import { KeyedLineList }                          from '../../design-system/KeyedLineList.tsx';
-import { MonoId }                                 from '../../design-system/MonoId.tsx';
-import { Tabs, type TabItem }                     from '../../design-system/Tabs.tsx';
-import { TitledBlock }                            from '../../design-system/TitledBlock.tsx';
 import { SandboxedHtmlFrame }                     from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailRoute }                            from '../../shell/DetailRoute.ts';
 import { HashRouter }                             from '../../shell/HashRouter.ts';
@@ -83,7 +84,7 @@ function TicketCard({ ticket }: { readonly ticket: TicketBlock }) {
             <ol className="bridge-question-panel-acceptance">
               {ticket.acceptanceItems.map((item) => (
                 <li key={item.label} data-waived={item.waived ? '' : undefined}>
-                  <MonoId text={item.label} />
+                  <span className="bridge-question-panel-acceptance-id"><MonoId text={item.label} tone="muted" /></span>
                   {item.text}
                 </li>
               ))}

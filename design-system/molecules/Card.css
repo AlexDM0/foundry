@@ -1,0 +1,28 @@
+/*
+ * A card: the surface ground, a strong border, the section radius and the card padding, each a default that an inline spacing prop
+ * overrides. The ground flags swap the ground, the border and the radius; the hover ring and the selected edge share the box shadow. A
+ * highlighted card takes the orange tint and edge on any ground, and a growing one the room its holder leaves. The step radius, the clip and
+ * the one wash in the surrounding tone's tint combine with any ground.
+ */
+.design-system-card { display: flex; flex-direction: column; min-width: 0; padding: var(--space-14); border: 1px solid var(--line-strong); border-radius: var(--r-3); background: var(--surface); }
+.design-system-card > .design-system-view { flex: 1 1 auto; }
+.design-system-card[data-ground="quiet"] { border-color: transparent; background: var(--lane-bg); }
+.design-system-card[data-ground="step"] { padding: var(--space-13) var(--space-14); border-color: var(--line); border-radius: var(--r-2); background: var(--bg); }
+.design-system-card[data-ground="decision"] { border-color: var(--accent-edge); background: var(--link-tint); }
+.design-system-card[data-dashed] { border-style: dashed; }
+.design-system-card[data-ground="step"][data-dashed] { border-color: var(--line-strong); }
+.design-system-card[data-selected] { background: var(--surface-selected); box-shadow: inset 3px 0 0 var(--signal); }
+.design-system-card[data-highlighted],
+.design-system-card[data-ground][data-highlighted] { background: var(--link-tint); border-color: var(--accent-edge); }
+.design-system-card[data-grow] { flex: 1 1 0%; }
+.design-system-card[data-radius="step"] { border-radius: var(--r-2); }
+.design-system-card[data-clipped] { overflow: hidden; }
+.design-system-card[data-washes] { animation: design-system-card-wash var(--motion-wash) var(--ease-out); }
+.design-system-card[data-interactive]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-card[data-interactive][data-selected]:hover { box-shadow: inset 3px 0 0 var(--signal), 0 0 0 2px var(--shadow-card-lift); }
+
+@keyframes design-system-card-wash { from { background-color: var(--s-tint); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-card[data-washes] { animation: none; }
+}

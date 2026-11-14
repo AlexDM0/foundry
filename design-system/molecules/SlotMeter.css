@@ -1,0 +1,5 @@
+/* Slots: one small cell per slot of the limit, filled in its state's fill, and a cell in the orange edge for each past the limit. */
+.design-system-slot-meter { display: inline-flex; flex: none; gap: var(--space-2); }
+.design-system-slot-meter-cell { width: 14px; height: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; }
+.design-system-slot-meter-cell[data-cell="filled"] { background: var(--s-fill); border-color: var(--s-fill); }
+.design-system-slot-meter-cell[data-cell="over"] { background: var(--accent-edge); border-color: var(--accent-edge); }

@@ -101,14 +101,6 @@ function monthDayAndClockText(epochMilliseconds: number): string {
   return `${monthAndDayOf(moment)} ${clockOf(moment)}`;
 }
 
-/** A range within one local day shows its two clock times; one whose ends fall on different local days dates both ends. */
-function rangeEndsText(fromEpochMilliseconds: number, toEpochMilliseconds: number): string {
-  if (calendarDateOf(fromEpochMilliseconds) === calendarDateOf(toEpochMilliseconds)) {
-    return `${clockOf(new Date(fromEpochMilliseconds))} → ${clockOf(new Date(toEpochMilliseconds))}`;
-  }
-  return `${monthDayAndClockText(fromEpochMilliseconds)} → ${monthDayAndClockText(toEpochMilliseconds)}`;
-}
-
 /** Null for a span that runs backwards, which a backfilled `--at` can write: it is no duration, not a short one. */
 function formatDuration(milliseconds: number, units: DurationUnits): string | null {
   if (milliseconds < 0) {
@@ -150,7 +142,6 @@ export const TimeUtil = {
   shortInstantText,
   secondsClockText,
   monthDayAndClockText,
-  rangeEndsText,
   formatDuration,
   epochMillisecondsOf,
 } as const;

@@ -31,6 +31,7 @@ const MECHANISED_RULE_IDS = [
   'id-length',
   '@typescript-eslint/no-magic-numbers',
   'react-hooks/rules-of-hooks',
+  'import/no-extraneous-dependencies',
 ];
 
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
@@ -96,6 +97,19 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'bridge/shell/Planted.ts', text: 'export const storage = window.sessionStorage;\n', ruleId: 'no-restricted-properties' },
   { path: 'bridge/shell/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
   { path: 'bridge/shell/Planted.tsx', text: 'export const scaled = (side: number): number => side * 7;\n', ruleId: '@typescript-eslint/no-magic-numbers' },
+  { path: 'design-system/atoms/Planted.tsx', text: 'export const view = <div dangerouslySetInnerHTML={{ __html: \'<b>bold</b>\' }} />;\n', ruleId: 'no-restricted-syntax' },
+  {
+    path:   'design-system/molecules/Planted.ts',
+    text:   'export const fill = (element: Element): void => {\n  element.innerHTML = \'<b>bold</b>\';\n};\n',
+    ruleId: 'no-restricted-syntax',
+  },
+  { path: 'design-system/organisms/Planted.ts', text: 'export const stored = localStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
+  { path: 'design-system/organisms/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
+  {
+    path:   'design-system/atoms/Planted.ts',
+    text:   'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n',
+    ruleId: 'import/no-extraneous-dependencies',
+  },
 ];
 
 const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
@@ -129,6 +143,17 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the Bridge\'s preference store reaching storage', 'bridge/preferences/PreferenceStore.ts', 'export const storage = (): Storage => window.localStorage;\n'],
   ['a number in a DOM spec', 'bridge/shell/Planted.dom.tsx', 'export const scaled = (side: number): number => side * 7;\n'],
   ['a component rendering a value as text', 'bridge/shell/Planted.tsx', 'export const view = (text: string) => <p className="bridge-empty">{text}</p>;\n'],
+  ['a design-system component importing React, its one peer', 'design-system/atoms/Planted.ts', 'import { useState } from \'react\';\n\nexport const state = useState;\n'],
+  [
+    'a design-system spec importing a test package of the forge',
+    'design-system/atoms/Planted.spec.ts',
+    'import { GlobalRegistrator } from \'@happy-dom/global-registrator\';\n\nexport const register = GlobalRegistrator;\n',
+  ],
+  [
+    'a design-system DOM spec importing a test package of the forge',
+    'design-system/atoms/Planted.dom.tsx',
+    'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n',
+  ],
 ];
 
 describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {

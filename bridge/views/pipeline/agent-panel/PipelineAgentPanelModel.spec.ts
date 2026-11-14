@@ -3,7 +3,8 @@
  * or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer sends the chosen letters or the
  * Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with every recommended one, a single
  * one keeps one letter, and Other excludes the letters, since the control contract takes either letters or a text; a message goes to the
- * agent's job; a flow node's question cards are only its open ones.
+ * agent's job; a flow node's question cards are only its open ones; the agent strip reads on research, drafts on the constitution, and
+ * waits on the design only while a design question is open.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -126,5 +127,24 @@ describe('the questions of a flow node', () => {
     expect(PipelineAgentPanelModel.openQuestionIdsOf(questions)).toEqual(['Q3']);
     expect(PipelineAgentPanelModel.openQuestionCardsOf(questions, ['Q1', 'Q3'], findings).map((card) => card.questionId)).toEqual(['Q3']);
     expect(PipelineAgentPanelModel.openQuestionCardsOf(questions, ['Q3'], findings)[0]?.eyebrow).toBe('Question · gate browser-tests');
+  });
+});
+
+describe('the agent strip', () => {
+  test('reads on research, drafts on the constitution, waits while a design question is open and is ready once the agent proposed', () => {
+    const setup = pipelineBoardStateOf('A2-question-open').pipelineSetup;
+    if (setup === null || setup === undefined) throw new Error('the fixture A2-question-open has no setup');
+    const { questions } = setup.record;
+    const proposed = { questions, readyToContinue: ['design' as const] };
+    expect(PipelineAgentPanelModel.agentStripOf('research', proposed)).toEqual({ text: 'Reading the repository', pose: 'typing' });
+    expect(PipelineAgentPanelModel.agentStripOf('constitution', proposed)).toEqual({ text: 'Drafting the constitution', pose: 'thinking' });
+    expect(PipelineAgentPanelModel.agentStripOf('design', proposed)).toEqual({ text: 'Waiting for your answer', pose: 'waiting' });
+    const answeredQuestions = questions.filter((question) => question.answer !== null);
+    expect(PipelineAgentPanelModel.agentStripOf('design', { ...proposed, questions: answeredQuestions })).toEqual({ text: 'Proposal ready', pose: 'happy' });
+  });
+
+  test('an open design step with no question and no proposal yet is designing, never ready', () => {
+    expect(PipelineAgentPanelModel.agentStripOf('design', { questions: [], readyToContinue: ['research'] }))
+      .toEqual({ text: 'Designing the pipeline', pose: 'thinking' });
   });
 });

@@ -5,6 +5,8 @@
  * the facts. The live job is joined here by its `ticketIds`; nothing here decides a step: the forecast and the controls are the Board's
  * and the Overseer's, and the hold a stop leaves is the Board's own phrase (`JobStopHolds.ts`).
  */
+import type { FlintPose } from 'design-system/FlintSlot';
+
 import type { DisplayState }         from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketPriority }       from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { jobStopHoldOf }             from '../../../src/lib/tracker-model/constants/JobStopHolds.ts';
@@ -17,6 +19,7 @@ import type {
   DetailTicketForecastDocument
 } from '../../@types/DetailBoardState.ts';
 import { DisplayStateWordingUtil }                  from '../../utils/DisplayStateWordingUtil.ts';
+import { FlintPoseUtil }                            from '../../utils/FlintPoseUtil.ts';
 import { JobLiveFactsUtil }                         from '../../utils/JobLiveFactsUtil.ts';
 import { JobStateUtil }                             from '../../utils/JobStateUtil.ts';
 import { TimeUtil }                                 from '../../utils/TimeUtil.ts';
@@ -93,6 +96,8 @@ export interface NowCardModel {
   readonly job:        NowJobModel | null;
   /** With no job: why nothing works on the ticket, `null` when the heading says it all. */
   readonly note:       string | null;
+  /** The pose the card's Flint slot asks for: the live job's, `idle` with none. */
+  readonly flintPose:  FlintPose;
 }
 
 /** A move the panel offers; `opens` a field to fill before the move is sent, `sendable` false where the Overseer would refuse it. */
@@ -293,13 +298,14 @@ function noteOf(reading: TicketOverviewReading): string | null {
 function nowCardOf(liveJob: DetailJobDocument | null, reading: TicketOverviewReading): NowCardModel {
   const { displayState, ownRow } = reading;
   if (liveJob !== null) return {
-    stateToken: displayState, heading: headingOf(liveJob), job: nowJobOf(liveJob, reading), note: null
+    stateToken: displayState, heading: headingOf(liveJob), job: nowJobOf(liveJob, reading), note: null, flintPose: FlintPoseUtil.poseOfJob(liveJob)
   };
   return {
     stateToken: displayState,
     heading:    DisplayStateWordingUtil.stateLabelOf(displayState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND),
     job:        null,
     note:       noteOf(reading),
+    flintPose:  FlintPoseUtil.poseOfJob(null),
   };
 }
 

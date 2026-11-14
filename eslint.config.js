@@ -1,5 +1,9 @@
+import { fileURLToPath } from 'node:url';
+
 import base       from '@reliquary/eslint-config';
 import reactHooks from 'eslint-plugin-react-hooks';
+
+const REPOSITORY_FOLDER = fileURLToPath(new URL('.', import.meta.url));
 
 const STORAGE_MESSAGE = 'Browser storage is reached only in bridge/preferences/PreferenceStore.ts.';
 const STORAGE_SITES = ['bridge/preferences/PreferenceStore.ts'];
@@ -7,6 +11,8 @@ const STORAGE_SITES = ['bridge/preferences/PreferenceStore.ts'];
 const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
 const RAW_MARKUP_MESSAGE = 'React escapes every value; agent-written HTML reaches the DOM only as a sandboxed iframe\'s srcdoc.';
+
+const DESIGN_SYSTEM_MARKUP_MESSAGE = 'design-system/ renders every value through React, which escapes it; it injects no markup as text.';
 
 const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/**/*.ts'];
 
@@ -87,6 +93,18 @@ export default [
     ],
     rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true }] },
   },
+  {
+    // design-system/ has its own package.json with React as its one peer; its specs and stories run on the forge's devDependencies until
+    // the split.
+    files: [
+      'design-system/testing/**/*.ts',
+      'design-system/**/*.spec.ts',
+      'design-system/**/*.dom.tsx',
+      'design-system/**/*.stories.tsx',
+      'design-system/.storybook/**/*.ts',
+    ],
+    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: [REPOSITORY_FOLDER, `${REPOSITORY_FOLDER}/design-system`] }] },
+  },
   { files: TYPESCRIPT_FILES, rules: { 'import/enforce-node-protocol-usage': ['error', 'always'] } },
   // The shared config's object-curly-newline fix leaves a trailing space where it breaks a line of properties, which then want one per line.
   { files: TYPESCRIPT_FILES, rules: { '@stylistic/no-trailing-spaces': 'error' } },
@@ -129,6 +147,19 @@ export default [
     },
   },
   {
+    files:   ['design-system/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules:   {
+      ...reactHooks.configs.flat.recommended.rules,
+      'react-hooks/exhaustive-deps': 'error',
+      'no-restricted-syntax':        [
+        'error',
+        { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: DESIGN_SYSTEM_MARKUP_MESSAGE },
+        { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: DESIGN_SYSTEM_MARKUP_MESSAGE },
+      ],
+    },
+  },
+  {
     files: TYPESCRIPT_FILES,
     rules: {
       '@typescript-eslint/no-non-null-assertion':  'error',
@@ -139,7 +170,7 @@ export default [
   },
   {
     files:   TYPESCRIPT_FILES,
-    ignores: [...SPECS_AND_TESTING_FOLDERS, '**/constants/**/*.ts'],
+    ignores: [...SPECS_AND_TESTING_FOLDERS, '**/constants/**/*.ts', '**/*.stories.tsx'],
     rules:   {
       '@typescript-eslint/no-magic-numbers': ['error', {
         // Arithmetic identities stay inline: a step, a halving, the hexadecimal radix, a percent.

@@ -3,14 +3,17 @@
  * whose ticket and job ids each link to their own place, and an incident step's words with the job or decision it names linked; the
  * Agents table links its tickets the same way, and the shell's incident drawer draws its trails with the same step.
  */
+
+import { IdLink }                   from 'design-system/IdLink';
+import { MonoId }                   from 'design-system/MonoId';
+import { StateBadge }               from 'design-system/StateBadge';
 import { Fragment, type ReactNode } from 'react';
 
 import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
-import { IdLink, MonoId }    from '../design-system/MonoId.tsx';
-import { StateBadge }        from '../design-system/StateBadge.tsx';
 import { DetailRoute }       from '../shell/DetailRoute.ts';
 import { HashRouter }        from '../shell/HashRouter.ts';
 import type { IncidentStep } from '../utils/IncidentTrailUtil.ts';
+import { StateToneUtil }     from '../utils/StateToneUtil.ts';
 
 export interface CardPill {
   readonly state: DisplayState;
@@ -18,19 +21,23 @@ export interface CardPill {
 }
 
 export interface CardHeadProps {
-  readonly id:     string;
-  readonly title?: string;
-  readonly pill:   CardPill;
+  readonly id:               string;
+  readonly title?:           string;
+  readonly pill:             CardPill;
+  /** A warn card's id takes the card's ink. */
+  readonly isOnWarnSurface?: boolean;
 }
 
-export function CardHead({ id, title, pill }: CardHeadProps) {
+export function CardHead({
+  id, title, pill, isOnWarnSurface = false
+}: CardHeadProps) {
   return (
     <div className="bridge-card-head">
       <h3 className="bridge-card-title">
-        <MonoId text={id} />
+        <MonoId text={id} weight="regular" tone={isOnWarnSurface ? 'inherited' : 'subtle'} />
         {title === undefined ? null : <span>{title}</span>}
       </h3>
-      <StateBadge state={pill.state} label={pill.label} />
+      <span className="bridge-card-head-pill"><StateBadge {...StateToneUtil.lookOf(pill.state)} label={pill.label} /></span>
     </div>
   );
 }

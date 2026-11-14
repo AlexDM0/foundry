@@ -3,11 +3,13 @@
  * a count of zero, and hands its value on when clicked. Which chips are pressed and what they count is the caller's, from
  * `ChipFilterUtil`. A toolbar's group shows its label before the chips, as the Tickets toolbar does.
  */
-import { useId } from 'react';
+
+import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { StateDot }       from 'design-system/StateDot';
+import { useId }          from 'react';
 
 import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
-import { MicroCapsLabel }    from '../design-system/MicroCapsLabel.tsx';
-import { StateDot }          from '../design-system/StateDot.tsx';
+import { StateToneUtil }     from '../utils/StateToneUtil.ts';
 
 export interface FilterChip {
   readonly value:       string;
@@ -19,15 +21,13 @@ export interface FilterChip {
 }
 
 export interface FilterChipGroupProps {
-  readonly label:          string;
-  readonly chips:          readonly FilterChip[];
-  readonly pressed:        readonly string[];
-  readonly countByChip:    ReadonlyMap<string, number>;
-  readonly onToggle:       (value: string) => void;
+  readonly label:         string;
+  readonly chips:         readonly FilterChip[];
+  readonly pressed:       readonly string[];
+  readonly countByChip:   ReadonlyMap<string, number>;
+  readonly onToggle:      (value: string) => void;
   /** Shows the label before the chips, naming the group; otherwise the label is only the group's accessible name. */
-  readonly labelIsShown?:  boolean;
-  /** With a shown label: the group takes a line of its own, as the Tickets toolbar's Status group does. */
-  readonly startsOwnLine?: boolean;
+  readonly labelIsShown?: boolean;
 }
 
 function FilterChips({
@@ -42,12 +42,13 @@ function FilterChips({
         className="bridge-chip"
         data-chip={chip.value}
         data-state={chip.stateToken}
+        data-state-tone={StateToneUtil.optionalToneOf(chip.stateToken)}
         data-epic-slot={chip.slot === undefined ? undefined : String(chip.slot)}
         data-empty={count === 0 ? '' : undefined}
         aria-pressed={pressed.includes(chip.value)}
         onClick={() => onToggle(chip.value)}
       >
-        {chip.stateToken === undefined ? null : <StateDot state={chip.stateToken} />}
+        {chip.stateToken === undefined ? null : <StateDot {...StateToneUtil.dotOf(chip.stateToken)} small />}
         {chip.slot === undefined ? null : <span className="bridge-epic-swatch" aria-hidden="true" />}
         {chip.label}
         {' '}
@@ -58,14 +59,14 @@ function FilterChips({
 }
 
 export function FilterChipGroup({
-  label, chips, pressed, countByChip, onToggle, labelIsShown = false, startsOwnLine = false
+  label, chips, pressed, countByChip, onToggle, labelIsShown = false
 }: FilterChipGroupProps) {
   const labelId = useId();
   const chipButtons = <FilterChips chips={chips} pressed={pressed} countByChip={countByChip} onToggle={onToggle} />;
   if (!labelIsShown) return <div className="bridge-chips" role="group" aria-label={label}>{chipButtons}</div>;
   return (
-    <div className="bridge-toolbar-group" data-own-line={startsOwnLine ? '' : undefined}>
-      <MicroCapsLabel text={label} id={labelId} />
+    <div className="bridge-toolbar-group">
+      <span className="bridge-toolbar-group-label"><MicroCapsLabel text={label} id={labelId} /></span>
       <div className="bridge-chips" role="group" aria-labelledby={labelId}>{chipButtons}</div>
     </div>
   );

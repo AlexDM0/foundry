@@ -140,7 +140,7 @@ function typedInto(label: string, text: string): void {
 }
 
 function sectionTitles(): string[] {
-  return [...document.querySelectorAll('.bridge-block-title')].map((title) => title.textContent ?? '');
+  return [...document.querySelectorAll('.design-system-block > [data-type-role="micro"]')].map((title) => title.textContent ?? '');
 }
 
 afterEach(() => {
@@ -175,7 +175,7 @@ describe('the body', () => {
   test('a planted title shows as text in the head', () => {
     renderPanel(TICKET_013_BODY);
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('<b>Planted title</b>');
-    expect(document.querySelector('.bridge-detail-head b')).toBeNull();
+    expect(document.querySelector('.bridge-ticket-detail-head b')).toBeNull();
   });
 
   test('the frame links the page\'s stylesheets and takes its theme, and follows a theme change', async () => {
@@ -200,7 +200,10 @@ describe('the forms', () => {
   test('a card opens the ticket form on its Overview: head, Other moves and Facts, its links staying on the tab', () => {
     renderPanel({ form: 'ticket', ticketId: '014' });
     expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Ticket #014');
-    expect([...document.querySelectorAll('.bridge-detail-head > *')].map((part) => part.textContent)).toEqual(['#014', 'Example ticket 014', 'In progress', 'ticket']);
+    const head = document.querySelector('.design-system-side-panel-head .bridge-ticket-detail-head');
+    expect([...(head?.children ?? [])].map((line) => line.textContent)).toEqual(['#014ticket', 'Example ticket 014In progress']);
+    expect(head?.querySelector('h2')?.getAttribute('data-type-role')).toBe('page');
+    expect(document.querySelector('.design-system-side-panel-scroll .bridge-detail-tab-bar')).toBeNull();
     expect(sectionTitles()).toEqual(['Other moves', 'Facts']);
     expect(screen.getByRole('link', { name: '#013' }).getAttribute('href')).toBe('#tickets/ticket/013');
     expect(screen.getByRole('link', { name: '#014' }).getAttribute('href')).toBe('#tickets/task-row/9');
@@ -254,15 +257,15 @@ describe('the forms', () => {
 describe('the frame', () => {
   test('a switch of item cross-fades the contents, which the first item does not', () => {
     const panel = renderPanel({ form: 'ticket', ticketId: '014' });
-    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
+    expect(document.querySelector('.design-system-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
     act(() => panel.rerender({ form: 'ticket', ticketId: '015' }));
-    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(true);
+    expect(document.querySelector('.design-system-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(true);
   });
 
   test('a switch of section keeps the item, so the contents do not cross-fade', () => {
     const panel = renderPanel({ form: 'ticket', ticketId: '014' });
     act(() => panel.rerender({ form: 'ticket', ticketId: '014', section: 'activity' }));
-    expect(document.querySelector('.bridge-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
+    expect(document.querySelector('.design-system-side-panel-scroll')?.hasAttribute('data-swapped')).toBe(false);
     expect(screen.getByRole('link', { name: 'Activity, 1 log line' }).getAttribute('aria-current')).toBe('page');
   });
 

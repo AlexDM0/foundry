@@ -1,0 +1,51 @@
+/* A non-modal panel over the page's right edge: nothing underneath moves or narrows. It starts under what it docks below
+   (--side-panel-top, set by the panel as the header scrolls away) and slides in from the right. Its head and foot stay put; the
+   body scrolls. */
+.design-system-side-panel {
+  position: fixed; inset: var(--side-panel-top, 0px) 0 auto auto;
+  display: flex; flex-direction: column;
+  box-sizing: border-box;
+  height: calc(100vh - var(--side-panel-top, 0px)); max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0; border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong);
+  border-radius: var(--r-3) 0 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--fs-body)/19px var(--font-ui);
+  overflow: hidden;
+  box-shadow: var(--shadow-modal);
+  z-index: 20;
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform var(--side-panel-motion) var(--ease-out), opacity var(--side-panel-motion) ease-out;
+}
+.design-system-side-panel[data-width="detail"] { width: min(var(--side-panel-width), 100vw); }
+.design-system-side-panel[data-width="question"] { width: min(var(--side-panel-wide-width), 100vw); }
+/* Set for one frame before opening and while closing; the panel unmounts once the slide ends. */
+.design-system-side-panel[data-motion="out"] { transform: translateX(100%); opacity: 0; }
+
+/* The head: its title and children at the start, × at the end. With nothing but ×, × floats over the body's top end. */
+.design-system-side-panel-head { flex: none; display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-4) var(--space-20) 0; }
+.design-system-side-panel-head[data-close-alone] { position: absolute; top: var(--sp-4); right: var(--space-20); z-index: 1; padding: 0; }
+.design-system-side-panel-head-content { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.design-system-side-panel-head > .design-system-icon-button { flex: none; width: 30px; height: 30px; }
+
+.design-system-side-panel-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--space-14) var(--space-20) var(--space-20); }
+.design-system-side-panel-scroll[data-swapped] { animation: design-system-side-panel-swap 140ms ease-out; }
+@keyframes design-system-side-panel-swap { from { opacity: 0; } to { opacity: 1; } }
+.design-system-side-panel-foot { flex: none; padding: var(--sp-3) var(--space-20); border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) {
+  .design-system-side-panel { transition: none; }
+  .design-system-side-panel-scroll[data-swapped] { animation: none; }
+}
+
+/* The question panel: one head row over both columns, ruled under it, its parts padded by the panel's own contents. */
+.design-system-side-panel[data-width="question"] > .design-system-side-panel-head {
+  align-items: center; min-height: 52px; padding: 0 var(--sp-3) 0 0; border-bottom: 1px solid var(--line);
+}
+.design-system-side-panel[data-width="question"] > .design-system-side-panel-foot { padding: 0; }
+.design-system-side-panel[data-width="question"] > .design-system-side-panel-scroll { display: flex; padding: 0; overflow: hidden; }
+@media (max-width: 900px) {
+  .design-system-side-panel[data-width="question"] > .design-system-side-panel-scroll { display: block; overflow: auto; }
+}

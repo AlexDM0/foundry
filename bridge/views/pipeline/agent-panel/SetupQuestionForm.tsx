@@ -2,9 +2,9 @@
  * One setup question as a question card: the recommended option starts chosen, Answer sends the chosen letters or the Other text as
  * `pipeline-setup-answer`, and the card turns into its answered confirmation once the answer is applied. A refusal shows verbatim.
  */
-import { useState } from 'react';
+import { MultipleChoiceQuestion, QuestionOption, QuestionOtherOption } from 'design-system/MultipleChoiceQuestion';
+import { useState }                                                    from 'react';
 
-import { MultipleChoiceQuestion }                                              from '../../../design-system/MultipleChoiceQuestion.tsx';
 import { useControlCommand }                                                   from '../../../shell/ControlCommandSender.ts';
 import { OTHER_OPTION_LABEL, PipelineAgentPanelModel, type SetupQuestionCard } from './PipelineAgentPanelModel.ts';
 
@@ -37,24 +37,32 @@ export function SetupQuestionForm({
       <MultipleChoiceQuestion
         eyebrow={card.eyebrow}
         question={card.question}
-        options={card.options}
-        recommendedLetters={card.recommendedLetters}
-        recommendedLabel="Recommended"
-        otherLetter={card.otherLetter}
-        otherLabel={OTHER_OPTION_LABEL}
-        otherPlaceholder="Describe another way"
-        otherTextLabel="Other answer"
-        layout={layout}
         multiple={card.isMultiple}
+        columns={layout === 'columns'}
         chosen={chosen}
         onChoose={(letter) => setChosen(PipelineAgentPanelModel.choiceAfterChoosing(card, chosen, letter))}
-        otherText={otherText}
-        onOtherText={setOtherText}
         answerLabel="Answer"
         onAnswer={() => void sender.send()}
         {...(answeredText === null ? {} : { answeredText })}
         disabled={sendingIsBlocked}
-      />
+      >
+        {card.options.map((option) => (
+          <QuestionOption
+            key={option.letter}
+            letter={option.letter}
+            label={option.text}
+            {...(card.recommendedLetters.includes(option.letter) ? { recommendedLabel: 'Recommended' } : {})}
+          />
+        ))}
+        <QuestionOtherOption
+          letter={card.otherLetter}
+          label={OTHER_OPTION_LABEL}
+          placeholder="Describe another way"
+          textLabel="Other answer"
+          text={otherText}
+          onText={setOtherText}
+        />
+      </MultipleChoiceQuestion>
       {card.context === '' || answeredText !== null ? null : <p className="bridge-pipeline-agent-question-context">{card.context}</p>}
       {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
     </div>

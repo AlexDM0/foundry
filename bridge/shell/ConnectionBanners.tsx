@@ -1,9 +1,11 @@
 /**
- * The banners the shell shows above the header: the page's session lost, the Overseer unreachable while the event stream is down,
- * launches held for an install change, and the Overseer's warnings (in the error colours) and notices.
+ * The banners the shell shows above the header: the page's session lost and the Overseer unreachable while the event stream is down, both
+ * in the error colours; launches held for an install change in the held orange; and the Overseer's warnings (in the error colours) and
+ * notices.
  */
+import { Banner } from 'design-system/Banner';
+
 import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
-import { Banner }                               from '../design-system/Banner.tsx';
 import { type SessionLoss, SessionWordingUtil } from './SessionWordingUtil.ts';
 
 export interface ConnectionBannersProps {
@@ -22,26 +24,32 @@ export function ConnectionBanners({
 }: ConnectionBannersProps) {
   return (
     <>
-      {sessionLoss === null ? null : <Banner tone="warn" role="alert" text={SessionWordingUtil.bannerOf(sessionLoss)} />}
+      {sessionLoss === null
+        ? null
+        : <div className="bridge-shell-banner"><Banner tone="error" role="alert" text={SessionWordingUtil.bannerOf(sessionLoss)} /></div>}
       {streamIsDown
         ? (
-          <Banner
-            tone="warn"
-            role="alert"
-            lead="Overseer unreachable."
-            text={`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}
-          />
+          <div className="bridge-shell-banner">
+            <Banner
+              tone="error"
+              role="alert"
+              lead="Overseer unreachable."
+              text={`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}
+            />
+          </div>
         )
         : null}
       {installHeldRefusal === undefined
         ? null
         : (
-          <Banner
-            tone="warn"
-            role="alert"
-            lead="Launches held."
-            text={installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}
-          />
+          <div className="bridge-shell-banner">
+            <Banner
+              tone="warn"
+              role="alert"
+              lead="Launches held."
+              text={installHeldRefusal ?? `The install version changed: run \`${PRODUCT_NAMES.PROGRAM} update\`.`}
+            />
+          </div>
         )}
       {warnings.length === 0 ? null : (
         <ul className="bridge-banners" aria-label={`${warnings.length} warnings`}>

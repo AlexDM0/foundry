@@ -1,10 +1,16 @@
 /**
- * The Agents view: the worker list (builders and reviewers, under the project row holding the launch-slot meter and the concurrency
- * limit), then Sessions (intake and the Assistant), both ticking each second, and for the job the route names, its controls and its
- * transcript. Show diagnostics adds the same four columns to both cards. Its clock and transcript stream arrive as props, so a DOM spec
- * drives both.
+ * The Agents view: its title row, the worker list (builders and reviewers, under the project row holding the launch-slot meter and the
+ * concurrency limit), then Sessions (intake and the Assistant), both ticking each second, and for the job the route names its side panel,
+ * which slides out again when the route drops the job. Show diagnostics adds the same four columns to both cards. Its clock and transcript
+ * stream arrive as props, so a DOM spec drives both.
  */
-import { useEffect, useMemo, useState } from 'react';
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
 import type {
   ConcurrencyDocument,
@@ -12,16 +18,17 @@ import type {
   LaunchSlotsDocument,
   PageTicketDocument
 } from '../../@types/BoardStateDocument.ts';
-import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
-import { Pane }                                                          from '../../design-system/Pane.tsx';
-import { TitledBlock }                                                   from '../../design-system/TitledBlock.tsx';
-import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
-import type { TimestampSlices }                                          from '../../utils/TimeUtil.ts';
-import { AgentsModel }                                                   from './AgentsModel.ts';
-import { JobControls }                                                   from './JobControls.tsx';
-import { SessionCard }                                                   from './SessionCard.tsx';
-import { TranscriptPanel, type FollowTranscript, type TranscriptMemory } from './TranscriptPanel.tsx';
-import { WorkerCard }                                                    from './WorkerCard.tsx';
+import { TranscriptStreamClient }                  from '../../api/TranscriptStreamClient.ts';
+import type { BridgeClock }                        from '../../shell/BridgeClock.ts';
+import { HashRouter }                              from '../../shell/HashRouter.ts';
+import type { TimestampSlices }                    from '../../utils/TimeUtil.ts';
+import { ViewTitle }                               from '../ViewTitle.tsx';
+import type { AgentJobDocument }                   from './AgentJobDocument.ts';
+import { AgentsModel }                             from './AgentsModel.ts';
+import { JobPanel }                                from './JobPanel.tsx';
+import { SessionCard }                             from './SessionCard.tsx';
+import type { FollowTranscript, TranscriptMemory } from './TranscriptPanel.tsx';
+import { WorkerCard }                              from './WorkerCard.tsx';
 
 export interface AgentsViewProps {
   readonly project:           string;
@@ -46,6 +53,17 @@ function useNowEverySecond(clock: BridgeClock): Date {
   return now;
 }
 
+/** The job the panel shows: the routed one, else the last one shown while the panel slides out, until it is gone. */
+function useShownJob(routedJob: AgentJobDocument | null, agentJobs: readonly AgentJobDocument[]) {
+  const [shownJobId, setShownJobId] = useState<string | null>(routedJob?.id ?? null);
+  if (routedJob !== null && routedJob.id !== shownJobId) setShownJobId(routedJob.id);
+  const shownJob = routedJob ?? agentJobs.find((job) => job.id === shownJobId) ?? null;
+  const finishClosing = useCallback(() => setShownJobId(null), []);
+  return { shownJob, isClosing: routedJob === null, finishClosing };
+}
+
+const closeJobPanel = (): void => HashRouter.navigateTo({ tab: 'agents', item: null });
+
 export function AgentsView({
   project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow
 }: AgentsViewProps) {
@@ -53,20 +71,23 @@ export function AgentsView({
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const ticketTitles = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket.title])), [tickets]);
+  const ticketTitleOf = (ticketId: string): string | null => ticketTitles.get(ticketId) ?? null;
   const agentJobs = jobs.filter(AgentsModel.isAgentJob);
   const workerJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'workers');
   const sessionJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
+  const { shownJob, isClosing, finishClosing } = useShownJob(selectedJob, agentJobs);
 
   return (
-    <div className="agents-view">
+    <div className="agents-view" data-job-open={selectedJob === null ? undefined : ''}>
+      <ViewTitle title="Agents" lead="The agents at work on this board. Select a job to read its transcript and steer it." />
       <WorkerCard
         project={project}
         jobs={workerJobs}
         decisions={decisions}
         launchSlots={launchSlots}
         concurrency={concurrency}
-        ticketTitleOf={(ticketId) => ticketTitles.get(ticketId) ?? null}
+        ticketTitleOf={ticketTitleOf}
         emptyText={agentJobs.length === 0 ? 'No agents are running.' : 'No builder or reviewer is working.'}
         selectedJobId={selectedJobId}
         now={now}
@@ -84,17 +105,20 @@ export function AgentsView({
         timestampSlices={timestampSlices}
         showDiagnostics={showDiagnostics}
       />
-      {selectedJob === null
+      {shownJob === null
         ? null
         : (
-          <Pane key={selectedJob.id} label={`Job ${selectedJob.id}`} title="Job" titleMark={selectedJob.id} body="padded">
-            <TitledBlock title="Controls" rule="between">
-              <JobControls job={selectedJob} openDecision={AgentsModel.openDecisionOf(decisions, selectedJob.id)} />
-            </TitledBlock>
-            <TitledBlock title="Transcript" rule="between">
-              <TranscriptPanel jobId={selectedJob.id} memory={transcriptMemory} followTranscript={followTranscript} />
-            </TitledBlock>
-          </Pane>
+          <JobPanel
+            job={shownJob}
+            decisions={decisions}
+            ticketTitleOf={ticketTitleOf}
+            now={now}
+            transcriptMemory={transcriptMemory}
+            followTranscript={followTranscript}
+            isClosing={isClosing}
+            onClosed={finishClosing}
+            onClose={closeJobPanel}
+          />
         )}
     </div>
   );

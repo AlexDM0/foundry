@@ -29,7 +29,7 @@ const PHASE_LABELS: Readonly<Record<string, string>> = {
 type Forecast = MergeTargetDocument['order'][number]['againstTarget'];
 
 /** A prediction's pill: clean reads as ready to merge, a conflict in the draft rose, a failed prediction as idle. */
-const PALETTE_STATE_OF_FORECAST: Readonly<Record<Forecast, DisplayState>> = {
+const DISPLAY_STATE_OF_FORECAST: Readonly<Record<Forecast, DisplayState>> = {
   'clean':             'reviewed',
   'conflicting':       'draft',
   'prediction-failed': 'paused',
@@ -85,7 +85,7 @@ function forecastFactsOf(entry: MergeTargetDocument['order'][number] | WaitingFo
   return {
     forecast:            entry.againstTarget,
     forecastLabel:       FORECAST_LABEL[entry.againstTarget],
-    forecastState:       PALETTE_STATE_OF_FORECAST[entry.againstTarget],
+    forecastState:       DISPLAY_STATE_OF_FORECAST[entry.againstTarget],
     conflictedFilesText: files.length === 0 ? null : files.join(', '),
   };
 }

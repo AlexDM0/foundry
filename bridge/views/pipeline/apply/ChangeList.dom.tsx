@@ -34,7 +34,7 @@ describe('the change list', () => {
     const controls = fakeControls();
     controls.render(<ChangeList setupId="S1" changeList={CHANGES} edits={EDITS} />);
     const items = screen.getAllByRole('listitem');
-    expect(items.map((item) => item.querySelector('.bridge-change-row')?.getAttribute('data-change'))).toEqual(['changed', 'removed']);
+    expect(items.map((item) => item.querySelector('.design-system-change-row')?.getAttribute('data-change'))).toEqual(['changed', 'removed']);
     expect(within(items[0] ?? document.body).getByText('gate · changed')).toBeDefined();
     expect(within(items[0] ?? document.body).getByText('Pipeline agent: Example: typecheck runs in the merge phase only.')).toBeDefined();
     expect(within(items[1] ?? document.body).queryByRole('button')).toBeNull();

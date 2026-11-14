@@ -1,7 +1,8 @@
 /**
  * The resume summary's model. What matters: each step carries the record's status and the summary the facts' counts give it, and a done
  * or recheck step reopens at its route; the current step carries the open questions and the pipeline agent's job; a pending Apply names
- * its commit, hold or refusal; Resume and Start over name the record; the main-moved note shows only while main moved.
+ * its commit, hold or refusal; Resume and Start over name the record; the main-moved note shows only while main moved; the footer counts
+ * the done steps.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -48,6 +49,12 @@ describe('each step\'s row', () => {
     const setup = setupOf('A0b-running');
     const withCap = { ...setup, record: { ...setup.record, billing: { mode: 'api', maxBudgetUsd: 5 } } } as const;
     expect(stepOf(withCap, 'billing').summary).toBe('API key · cap $5 per launch');
+  });
+});
+
+describe('the footer', () => {
+  test('counts the steps done of the five', () => {
+    expect(ResumeSummaryModel.doneStepsTextOf(setupOf('A0b-running'))).toBe('3 of 5 steps done');
   });
 });
 

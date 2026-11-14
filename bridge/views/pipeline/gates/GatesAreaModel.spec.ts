@@ -1,13 +1,14 @@
 /**
- * The gates area's model. What matters: the tabs count the gates that run and say so in their names; a prepare row leads with "P" and
+ * The gates table's model. What matters: a phase counts the gates that run and says why it has none; a prepare row leads with "P" and
  * gates count from 1; a reorder sends the phase's run order, or the prepare steps' order for a prepare row, without the removed rows;
  * a removed row is a band of its own, so no row passes it; Delete takes a gate out of this phase alone and removes a prepare step; a
- * prepare row opens the prepare variant; the stopwatch chip words each profile state and takes no press while it measures.
+ * prepare row opens the prepare variant; the time chip words each profile state in its pass, fail or waiting tone, asks to measure a
+ * changed gate, and takes no press while it measures.
  */
 import { describe, expect, test } from 'bun:test';
+import { ReorderIndexUtil }       from 'design-system/ReorderIndexUtil';
 
 import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { ReorderIndexUtil }                          from '../../../design-system/utils/ReorderIndexUtil.ts';
 import { GatesAreaModel }                            from './GatesAreaModel.ts';
 
 function gateRow(name: string, changes: Partial<PipelineGateRow> = {}): PipelineGateRow {
@@ -35,26 +36,24 @@ function profileRun(state: GateProfileRunFacts['state'], elapsedMilliseconds: nu
   };
 }
 
-describe('the tabs', () => {
-  test('count the gates that run in each phase, leaving out prepare and removed rows', () => {
-    const tabs = GatesAreaModel.tabItemsOf({ build: [...BUILD_ROWS], review: [gateRow('tests')], merge: [] });
-    expect(tabs.map((tab) => [tab.key, tab.label, tab.count?.count, tab.accessibleName])).toEqual([
-      ['build', 'Build', 3, 'Build, 3 gates'],
-      ['review', 'Review', 1, 'Review, 1 gate'],
-      ['merge', 'Merge', 0, 'Merge, 0 gates'],
-    ]);
+describe('a phase\'s head', () => {
+  test('counts the gates that run, leaving out prepare and removed rows, and names the phase and its line', () => {
+    expect(GatesAreaModel.gateCountOf(BUILD_ROWS)).toBe(3);
+    expect([GatesAreaModel.titleOf('build'), GatesAreaModel.lineOf('build'), GatesAreaModel.addGateLabelOf('merge')])
+      .toEqual(['Build gates', 'What the builder must pass before review', 'Add merge gate']);
   });
 
-  test('the empty state is the smallest pipeline\'s sentence while no phase has a gate', () => {
-    expect(GatesAreaModel.emptyTextOf({ build: [], review: [], merge: [] }, 'build')).toBe('No gates: no command judges a ticket before it lands.');
-    expect(GatesAreaModel.emptyTextOf({ build: [gateRow('tests')], review: [], merge: [] }, 'merge')).toBe('No merge gates.');
+  test('a phase with no gate says so, and the review phase says when no review runs', () => {
+    expect(GatesAreaModel.emptyTextOf('build', true)).toBe('No build gates. No command checks a ticket after its build.');
+    expect(GatesAreaModel.emptyTextOf('review', true)).toBe('No review gates. No command checks the reviewer\'s fixes.');
+    expect(GatesAreaModel.emptyTextOf('review', false)).toBe('No review gates, since no review runs.');
   });
 });
 
 describe('the rows', () => {
   test('a prepare row is P and gates count from 1; each row words its kind, phases and network', () => {
     const views = GatesAreaModel.rowViewsOf(BUILD_ROWS, 'build', []);
-    expect(views.map((view) => [view.positionText, view.name, view.kindText, view.alsoInText, view.networkText])).toEqual([
+    expect(views.map((view) => [view.positionText, view.name, view.tagText, view.alsoInText, view.networkText])).toEqual([
       ['P', 'install', 'prepare', '', 'off'],
       ['P', 'seed', 'prepare', '', 'off'],
       ['1', 'tests', null, 'review, merge', 'off'],
@@ -125,25 +124,28 @@ describe('the edits', () => {
   });
 });
 
-describe('the stopwatch chip', () => {
-  test('words each profile state; a prepare row has none', () => {
+describe('the time chip', () => {
+  test('words each profile state in its tone; a prepare row has none', () => {
     const chipOf = (run: GateProfileRunFacts | null) => GatesAreaModel.rowViewsOf([gateRow('tests')], 'build', run === null ? [] : [run])[0]?.profileChip;
     expect(chipOf(null)).toMatchObject({
-      text: 'not profiled', tone: 'neutral', pressable: true, title: 'Profile tests in the build phase'
+      text: 'not measured', tone: 'waiting', pressable: true, title: 'Profile tests in the build phase'
     });
     expect(chipOf(profileRun('running', 4000))).toMatchObject({ text: 'measuring', busy: true, pressable: false });
-    expect(chipOf(profileRun('passed', 41_000))).toMatchObject({
-      text: '41 s', tone: 'state', state: 'delivered', pressable: true
-    });
-    expect(chipOf(profileRun('timed-out', 600_000))).toMatchObject({ text: 'timed out', tone: 'warn', title: 'Profile tests again in the build phase' });
-    expect(chipOf(profileRun('red', 9000))).toMatchObject({ text: 'red · 9 s', tone: 'error' });
-    expect(chipOf(profileRun('stopped', null))).toMatchObject({ text: 'stopped', tone: 'neutral' });
+    expect(chipOf(profileRun('passed', 41_000))).toMatchObject({ text: '41 s', tone: 'pass', pressable: true });
+    expect(chipOf(profileRun('timed-out', 600_000))).toMatchObject({ text: 'timed out', tone: 'fail', title: 'Profile tests again in the build phase' });
+    expect(chipOf(profileRun('red', 9000))).toMatchObject({ text: 'red · 9 s', tone: 'fail' });
+    expect(chipOf(profileRun('stopped', null))).toMatchObject({ text: 'stopped', tone: 'waiting' });
     expect(GatesAreaModel.rowViewsOf([prepareRow('install')], 'build', [])[0]?.profileChip).toBeNull();
   });
 
-  test('a run of the same gate in another phase is not this tab\'s', () => {
+  test('a gate an edit changed or added asks to be measured', () => {
+    expect(['changed', 'new'].map((mark) => GatesAreaModel.rowViewsOf([gateRow('tests', { mark: mark as 'changed' | 'new' })], 'build', [])[0]?.profileChip?.text))
+      .toEqual(['measure', 'measure']);
+  });
+
+  test('a run of the same gate in another phase is not this phase\'s', () => {
     const otherPhase = { ...profileRun('passed', 41_000), phase: 'merge' as const };
-    expect(GatesAreaModel.rowViewsOf([gateRow('tests')], 'build', [otherPhase])[0]?.profileChip?.text).toBe('not profiled');
+    expect(GatesAreaModel.rowViewsOf([gateRow('tests')], 'build', [otherPhase])[0]?.profileChip?.text).toBe('not measured');
   });
 
   test('times read in seconds under a minute, then minutes and seconds', () => {

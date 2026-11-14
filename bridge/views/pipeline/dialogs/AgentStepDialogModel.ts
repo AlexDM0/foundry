@@ -33,14 +33,14 @@ const AGENT_STEP_WORDS: Readonly<Record<AgentStepRole, AgentStepWords>> = Object
   productOwner: {
     title:       'Ticket creation',
     description: 'Turns what User reports into draft tickets, each with a numbered Acceptance and a Brief.',
-    runs:        'once per filing session, when User asks for a ticket.',
+    runs:        'Once per filing session, when User asks for a ticket.',
     fixes:       null,
   },
   builder: {
     title:       'Builder',
     description: 'Builds each readied ticket in its own worktree, then fixes its own red build gates.',
-    runs:        'once per attempt, after Human ticket review.',
-    fixes:       'red build gates, the conflicts and red build gates of the merge before review, and conflicts and red merge gates when no review ran after it.',
+    runs:        'Once per attempt, after Human ticket review.',
+    fixes:       'Red build gates, the conflicts and red build gates of the merge before review, and conflicts and red merge gates when no review ran after it.',
   },
 });
 
@@ -52,7 +52,11 @@ const EFFORT_HINTS: Readonly<Record<AgentEffort, string>> = Object.freeze({
   max:    'The deepest reasoning: slow, for the hardest tickets.',
 });
 
-const AGENT_STEP_KICKER = 'Agent step';
+/** The phase a role's step stands in, then what kind of step it is: "Build · Agent step". */
+const AGENT_STEP_KICKERS: Readonly<Record<AgentStepRole, string>> = Object.freeze({
+  productOwner: 'Ticket · Agent step',
+  builder:      'Build · Agent step',
+});
 
 function isAgentStepRole(role: PipelineAgentRole | null): role is AgentStepRole {
   return role === 'productOwner' || role === 'builder';
@@ -91,6 +95,10 @@ function wordsOf(role: AgentStepRole): AgentStepWords {
   return AGENT_STEP_WORDS[role];
 }
 
+function kickerOf(role: AgentStepRole): string {
+  return AGENT_STEP_KICKERS[role];
+}
+
 function effortHintOf(effort: AgentEffort): string {
   return EFFORT_HINTS[effort];
 }
@@ -101,7 +109,7 @@ function questionOf(title: string): string {
 }
 
 export const AgentStepDialogModel = Object.freeze({
-  AGENT_STEP_KICKER,
+  kickerOf,
   effortHintOf,
   formOf,
   isAgentStepRole,

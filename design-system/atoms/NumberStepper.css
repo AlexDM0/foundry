@@ -1,0 +1,15 @@
+/* A number changed in steps: the value sits read-only on the page ground between the lower and the raise button, in one 32px box. */
+.design-system-number-stepper {
+  display: inline-flex; flex: none; align-items: stretch; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.design-system-number-stepper > button {
+  width: 30px; height: 30px; padding: 0; color: var(--ink); font: 15px/1 var(--font-ui); background: var(--surface); border: 0; cursor: pointer;
+}
+.design-system-number-stepper > button:not(:disabled):hover { filter: brightness(0.94); }
+.design-system-number-stepper > button:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.design-system-number-stepper > button:disabled { color: var(--ink-4); cursor: not-allowed; }
+.design-system-number-stepper-value {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 56px; height: 30px;
+  color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;
+  background: var(--bg); border-inline: 1px solid var(--line);
+}

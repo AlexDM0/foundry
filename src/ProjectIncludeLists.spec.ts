@@ -1,8 +1,10 @@
 /**
- * The `include` list of `bridge/tsconfig.json`, held against what the Bridge reaches: every file outside its folder that its shipping
- * modules import, directly or through each other, and every shipping module of the tracker model, which it compiles whole to prove the
- * package DOM-safe. The comparison is exact both ways, so a missing entry and one nothing needs both fail. The scan first proves it found
- * the project's reach, and each form is planted once in memory to prove the guard still names it.
+ * The `include` lists of `bridge/tsconfig.json` and `design-system/tsconfig.json`, held against what each project reaches: every file
+ * outside its folder that its shipping modules import, directly or through each other, and every shipping module of the tracker model,
+ * which the Bridge compiles whole to prove the package DOM-safe. The design-system package is a workspace package with its own project:
+ * the Bridge imports it by name, TypeScript finds its files through the exports of its `package.json`, and the list names none of them.
+ * The comparison is exact both ways, so a missing entry and one nothing needs both fail. The scan first proves it found each project's
+ * reach, and each form is planted once in memory to prove the guard still names it.
  */
 import { posix } from 'node:path';
 
@@ -13,21 +15,33 @@ import type { ImportGraph }                                                     
 import { importGraphScannerOf, reachablePathsFrom, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
 
 interface IncludeListContract {
-  readonly configurationPath:   string;
-  readonly projectFolder:       string;
+  readonly configurationPath:       string;
+  readonly projectFolder:           string;
   /** Folders whose every shipping module the project compiles, reached or not. */
-  readonly wholePackageFolders: readonly string[];
+  readonly wholePackageFolders:     readonly string[];
   /** The globs naming the project's own folder, one per source extension. */
-  readonly ownFolderGlobs:      readonly string[];
+  readonly ownFolderGlobs:          readonly string[];
+  /** Folders of workspace packages, reached by package name through their exports: the list names no file of one. */
+  readonly workspacePackageFolders: readonly string[];
 }
 
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
+const DESIGN_SYSTEM_FOLDER = 'design-system/';
 
 const BRIDGE_PROJECT: IncludeListContract = {
-  configurationPath:   'bridge/tsconfig.json',
-  projectFolder:       'bridge/',
-  wholePackageFolders: [TRACKER_MODEL_FOLDER],
-  ownFolderGlobs:      ['./**/*.ts', './**/*.tsx'],
+  configurationPath:       'bridge/tsconfig.json',
+  projectFolder:           'bridge/',
+  wholePackageFolders:     [TRACKER_MODEL_FOLDER],
+  ownFolderGlobs:          ['./**/*.ts', './**/*.tsx'],
+  workspacePackageFolders: [DESIGN_SYSTEM_FOLDER],
+};
+
+const DESIGN_SYSTEM_PROJECT: IncludeListContract = {
+  configurationPath:       'design-system/tsconfig.json',
+  projectFolder:           DESIGN_SYSTEM_FOLDER,
+  wholePackageFolders:     [],
+  ownFolderGlobs:          ['./**/*.ts', './**/*.tsx'],
+  workspacePackageFolders: [],
 };
 
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
@@ -48,7 +62,10 @@ function listedPathsOf(project: IncludeListContract, includeEntries: readonly st
 
 function reachedPathsOf(project: IncludeListContract, graph: ImportGraph): ReadonlySet<string> {
   const shippingModulePaths = graph.scannedPaths.filter((path) => path.startsWith(project.projectFolder) && isShippingModule(path));
-  const reachedOutside = [...reachablePathsFrom(graph, shippingModulePaths)].filter((path) => !path.startsWith(project.projectFolder));
+  const isInAWorkspacePackage = (path: string): boolean => project.workspacePackageFolders.some((folder) => path.startsWith(folder));
+  const graphStoppingAtWorkspacePackages: ImportGraph = { ...graph, edges: graph.edges.filter((edge) => !isInAWorkspacePackage(edge.fromPath)) };
+  const reachedOutside = [...reachablePathsFrom(graphStoppingAtWorkspacePackages, shippingModulePaths)]
+    .filter((path) => !path.startsWith(project.projectFolder) && !isInAWorkspacePackage(path));
   const wholePackagePaths = graph.scannedPaths.filter((path) => isShippingModule(path) && project.wholePackageFolders.some((folder) => path.startsWith(folder)));
   return new Set([...reachedOutside, ...wholePackagePaths]);
 }
@@ -84,6 +101,12 @@ test('bridge/tsconfig.json lists every file the Bridge reaches and the whole tra
   expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), SCANNER.graph)).toEqual([]);
 });
 
+test('design-system/tsconfig.json lists only the package\'s own folder, which reaches nothing outside it', () => {
+  const includeEntries = includeEntriesOf(DESIGN_SYSTEM_PROJECT.configurationPath);
+  expect(includeEntries).toEqual([...DESIGN_SYSTEM_PROJECT.ownFolderGlobs]);
+  expect(includeListSentencesOf(DESIGN_SYSTEM_PROJECT, includeEntries, SCANNER.graph)).toEqual([]);
+});
+
 describe('the guard still names each form, planted in memory', () => {
   test('a needed entry removed from the list', () => {
     const includeEntries = includeEntriesOf(BRIDGE_PROJECT.configurationPath).filter((entry) => entry !== '../src/lib/html-escape/HtmlEscapeUtil.ts');
@@ -115,6 +138,22 @@ describe('the guard still names each form, planted in memory', () => {
     expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), graph)).toEqual([
       'bridge/tsconfig.json does not list src/shared/PlantedDeeperValue.ts, which bridge/ reaches: add it to the include list',
       'bridge/tsconfig.json does not list src/shared/PlantedValue.ts, which bridge/ reaches: add it to the include list',
+    ]);
+  });
+
+  test('a file of the design-system workspace package named in the list, which the package\'s exports already reach', () => {
+    const graph = SCANNER.graphWithPlantedFiles({ 'bridge/PlantedPart.ts': 'import { SegmentMeter } from \'design-system/SegmentMeter\';\nexport const part = SegmentMeter;\n' });
+    expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), graph)).toEqual([]);
+    const includeEntries = [...includeEntriesOf(BRIDGE_PROJECT.configurationPath), '../design-system/molecules/SegmentMeter.tsx'];
+    expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntries, graph)).toEqual([
+      'bridge/tsconfig.json lists design-system/molecules/SegmentMeter.tsx, which nothing bridge/ ships reaches: remove it from the include list',
+    ]);
+  });
+
+  test('a file outside the design-system package that one of its modules imports', () => {
+    const graph = SCANNER.graphWithPlantedFiles({ 'design-system/PlantedPart.ts': 'import { planted } from \'../src/shared/PlantedValue.ts\';\nexport const part = planted;\n' });
+    expect(includeListSentencesOf(DESIGN_SYSTEM_PROJECT, includeEntriesOf(DESIGN_SYSTEM_PROJECT.configurationPath), graph)).toEqual([
+      'design-system/tsconfig.json does not list src/shared/PlantedValue.ts, which design-system/ reaches: add it to the include list',
     ]);
   });
 

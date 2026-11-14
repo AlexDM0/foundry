@@ -2,8 +2,9 @@
  * The activity strip's facts. What matters: a chip exists only for a job the board names in `launchSlots`, since the Overseer counts a
  * slot by job kind (a merge agent runs as a builder yet holds none) and the Bridge must not count by a rule of its own; a running build
  * and a running review take the in-progress and reviewing palettes, any other state its nearest row; a chip's time is the job's launch
- * stamp, the longest running first and a launching job without one last; the counts split the slot jobs by kind and the without-job count
- * is the board's list; a board without launch slots shows nothing.
+ * stamp, the longest running first and a launching job without one last; a chip carries the job's role, kind and state, which Flint's
+ * slot poses by; the counts split the slot jobs by kind, the without-job count is the board's list and the slot limit is the board's; a
+ * board without launch slots shows nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -43,7 +44,7 @@ describe('which jobs get a chip', () => {
 
   test('a board without launch slots shows no chip and counts nothing', () => {
     expect(ActivityStripModel.activityStripFactsOf(undefined, [BUILDER, REVIEWER], TICKETS)).toEqual({
-      chips: [], buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
+      chips: [], slotLimit: null, buildingCount: 0, reviewingCount: 0, ticketCountWithoutJob: 0,
     });
   });
 
@@ -68,6 +69,14 @@ describe('what a chip shows', () => {
     ]);
   });
 
+  test('it carries the job\'s role, kind and state, a role the job lacks as null', () => {
+    const roleless = exampleAgentJob({
+      id: 'J9', kind: 'review', role: null, state: 'waiting-for-answer', launchedAt: '2026-10-29T11:50:00Z'
+    });
+    const facts = ActivityStripModel.activityStripFactsOf(slots(['J2', 'J9']), [BUILDER, roleless], TICKETS);
+    expect(facts.chips.map(({ role, kind, state }) => [role, kind, state])).toEqual([['builder', 'build', 'running'], [null, 'review', 'waiting-for-answer']]);
+  });
+
   test('the longest running comes first by launch stamp, and a launching job with no stamp comes last with no time', () => {
     const launching = exampleAgentJob({ id: 'J1', state: 'launching', launchedAt: null });
     const facts = ActivityStripModel.activityStripFactsOf(slots(['J1', 'J2', 'J5']), [launching, REVIEWER, BUILDER], TICKETS);
@@ -82,5 +91,9 @@ describe('the counts', () => {
     const secondBuilder = exampleAgentJob({ id: 'J8', ticketIds: ['008'] });
     const facts = ActivityStripModel.activityStripFactsOf(slots(['J2', 'J5', 'J8'], ['011', '012']), [BUILDER, REVIEWER, secondBuilder, ASSISTANT], TICKETS);
     expect([facts.buildingCount, facts.reviewingCount, facts.ticketCountWithoutJob]).toEqual([2, 1, 2]);
+  });
+
+  test('the slot limit is the board\'s launch slot limit', () => {
+    expect(ActivityStripModel.activityStripFactsOf(slots(['J2']), [BUILDER], TICKETS).slotLimit).toBe(5);
   });
 });

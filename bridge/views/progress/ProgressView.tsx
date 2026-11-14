@@ -1,9 +1,14 @@
 /**
- * The Progress tab: one card holding the Gantt chart of `ProgressModel`, its sticky head carrying the range menu and the row options in the
- * pinned cell and the axis ticks on the track, its rows grouped by epic on a board with epics. Bars, ticks, spans and the now line are
- * placed through the `style` prop. The range, the name column, the folded groups and the review-rows choice are kept per viewer under
- * their keys. A row opens its row detail in place; its number links to its ticket on Tickets, an epic head's name to that epic.
+ * The Progress tab: its title row, the range control and the row options above one card holding the Gantt chart of `ProgressModel`, its
+ * sticky head carrying the column names in the pinned cell and the axis ticks on the track, its rows grouped by epic on a board with
+ * epics. Bars, ticks, spans and the now line are placed through the `style` prop. The range, the name column, the folded groups and the
+ * review-rows choice are kept per viewer under their keys. A row opens its row detail in place; its number links to its ticket on
+ * Tickets, an epic head's name to that epic.
  */
+
+import { Icon }           from 'design-system/Icon';
+import { Menu, MenuItem } from 'design-system/Menu';
+import { Row }            from 'design-system/Row';
 import {
   useCallback,
   useLayoutEffect,
@@ -19,7 +24,6 @@ import {
 
 import type { ProgressBoardState }                                     from '../../@types/ProgressBoardState.ts';
 import { EpicChips }                                                   from '../../chips/EpicChips.tsx';
-import { Menu, MenuItem }                                              from '../../design-system/Menu.tsx';
 import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                                              from '../../shell/ChangeHighlight.ts';
 import { useCoveringPanelWidthProperty }                               from '../../shell/CoveringPanel.ts';
@@ -28,20 +32,15 @@ import { useDetailRouting }                                            from '../
 import { useFinishedWorkWindow }                                       from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                                                  from '../../shell/HashRouter.ts';
 import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
+import { StateToneUtil }                                               from '../../utils/StateToneUtil.ts';
+import { ViewTitle }                                                   from '../ViewTitle.tsx';
 import { useChartPanelRoom }                                           from './ChartPanelRoom.ts';
-import { CustomRangePopover }                                          from './CustomRangePopover.tsx';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
 import { ProgressModel, type ProgressBarModel, type ProgressRowModel } from './ProgressModel.ts';
 import { progressPreferencesOf }                                       from './ProgressPreferences.ts';
-import {
-  CUSTOM_RANGE_PRESET,
-  FIT_RANGE_PRESET,
-  RANGE_PRESET_KEYS,
-  type RangePresetKey
-} from './constants/ProgressChart.ts';
-import { AxisFitUtil }                                  from './utils/AxisFitUtil.ts';
-import { ChartPreferenceUtil, type StoredViewOverride } from './utils/ChartPreferenceUtil.ts';
-import { RangePresetUtil }                              from './utils/RangePresetUtil.ts';
+import { RangeControl }                                                from './RangeControl.tsx';
+import { AxisFitUtil }                                                 from './utils/AxisFitUtil.ts';
+import { ChartPreferenceUtil, type StoredViewOverride }                from './utils/ChartPreferenceUtil.ts';
 
 export interface ProgressViewProps {
   readonly boardState:           ProgressBoardState;
@@ -52,27 +51,13 @@ export interface ProgressViewProps {
 }
 
 const FOLD_CARET = '▾';
-const FIT_PRESET_TITLE = 'Fit the range to the rows shown: from the earliest start to now. Follows the finished-work choice.';
 
 function ticketRowHrefOf(ticketId: string): string {
   return HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId }) });
 }
 
-/** Three lines that get shorter: the row options glyph. */
-function RowOptionsIcon() {
-  return (
-    <svg className="bridge-icon" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M2 4h12M4 8h8M6 12h4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function percent(value: number): string {
   return `${value}%`;
-}
-
-function presetLabelOf(presetKey: string): string {
-  return RangePresetUtil.modeLabelOf(presetKey);
 }
 
 /** A choice read from the store until the viewer makes one, so a store that arrives after the first render is still read. */
@@ -106,6 +91,7 @@ function ChartBar({ bar }: { readonly bar: ProgressBarModel }) {
     <div
       className="bridge-progress-bar"
       data-state={bar.stateToken}
+      data-state-tone={StateToneUtil.toneOf(bar.stateToken)}
       data-bar-kind={bar.kind}
       data-live={bar.isLive ? '' : undefined}
       hidden={bar.isHidden}
@@ -143,6 +129,7 @@ function ChartRow({ row, isChanged, onChangeShown }: ChartRowProps) {
       tabIndex={0}
       data-task-id={String(row.taskId)}
       data-state={row.stateToken}
+      data-state-tone={StateToneUtil.toneOf(row.stateToken)}
       data-review-of={row.nestedWithTicket ?? undefined}
       data-live={row.isLive ? '' : undefined}
       data-selected={routing.isOpen(detailItem) ? '' : undefined}
@@ -261,7 +248,7 @@ function useCoveredTickLabels(trackRef: RefObject<HTMLDivElement | null>, layout
 }
 
 /**
- * The range button's dot: the rows drawn changed while a range was held, since a range was last chosen. It stays once lit, even when the
+ * The range control's mark: the rows drawn changed while a range was held, since a range was last chosen. It stays once lit, even when the
  * rows change back, until the viewer chooses a range again.
  */
 function useRowsChangedUnderHeldRange(shownRowSignature: string, modeIsHeld: boolean): [boolean, () => void] {
@@ -309,8 +296,6 @@ export function ProgressView({
   const [reviewRowsAreShown, chooseReviewRows] = useStoredChoice(preferences.readReviewRowsAreShown, preferences.writeReviewRowsAreShown);
   const [nameColumnWidth, chooseNameColumnWidth] = useStoredChoice(preferences.readNameColumnWidth, preferences.writeNameColumnWidth);
   const [foldedGroupKeys, chooseFoldedGroupKeys] = useStoredChoice(preferences.readFoldedEpicGroups, preferences.writeFoldedEpicGroups);
-  const [customRangeIsOpen, setCustomRangeIsOpen] = useState(false);
-  const rangeButtonRef = useRef<HTMLButtonElement | null>(null);
   const chartRef = useRef<HTMLElement | null>(null);
   const axisTrackRef = useRef<HTMLDivElement | null>(null);
   const trackWidthPixels = useTrackWidthPixels(axisTrackRef);
@@ -350,82 +335,47 @@ export function ProgressView({
     rememberRowsAtChoice();
     chooseOverride(next);
   };
-  const choosePreset = (presetKey: RangePresetKey): void => applyOverride(RangePresetUtil.overrideOfPreset(presetKey, override));
   const resolveBound = (text: string): number | null => ProgressModel.rangeBoundOf(boardState, text, nowEpochMilliseconds, cutoffEpochMilliseconds);
-  const closeCustomRange = useCallback((returnFocus: boolean) => {
-    setCustomRangeIsOpen(false);
-    if (returnFocus) rangeButtonRef.current?.focus();
-  }, []);
   const toggleGroup = (groupKey: string): void => chooseFoldedGroupKeys(EpicRowGrouping.foldedGroupKeysAfterToggle(foldedGroupKeys, groupKey));
 
   return (
     <div className="bridge-progress-view" data-name-column={nameColumnWidth}>
+      <ViewTitle
+        title="Progress"
+        lead="Each ticket's builds and reviews over time, grouped by epic. Click a row to open it. Click its number to open the ticket."
+      />
+      <Row centerY between gap="twelve">
+        <RangeControl
+          chart={chart}
+          appliedOverride={override}
+          rowsChangedUnderHeldRange={rowsChangedUnderHeldRange}
+          todayCalendarDate={todayCalendarDate}
+          resolveBound={resolveBound}
+          onApply={applyOverride}
+        />
+        <Menu label="Row options" trigger="icon" align="end" triggerName="Row options" triggerTitle="Row options" triggerContent={<Icon name="narrowing-lines" label={null} />}>
+          <MenuItem
+            label="Review passes as rows"
+            title="Draw each review pass as a row of its own, above its ticket's row"
+            checked={reviewRowsAreShown}
+            closing="return-focus"
+            onChoose={() => chooseReviewRows(!reviewRowsAreShown)}
+          />
+          <MenuItem
+            label="Wide titles"
+            title="Widen the task column so full names fit"
+            checked={nameColumnWidth === 'wide'}
+            closing="return-focus"
+            onChoose={() => chooseNameColumnWidth(ChartPreferenceUtil.toggledNameColumnWidth(nameColumnWidth))}
+          />
+        </Menu>
+      </Row>
       <section ref={chartRef} className="bridge-progress-chart" aria-label="Progress chart" style={chartStyle}>
         <div className="bridge-progress-row bridge-progress-chart-head">
           <div className="bridge-progress-name">
-            <Menu
-              label="Range"
-              trigger="outlined"
-              align="start"
-              triggerRef={rangeButtonRef}
-              marked={rowsChangedUnderHeldRange}
-              triggerContent={(
-                <>
-                  <span className="bridge-range-summary">
-                    <span className="bridge-range-mode" data-held={chart.modeIsHeld ? '' : undefined} title={chart.modeTitle}>{chart.modeLabel}</span>
-                    <span className="bridge-range-ends">{chart.rangeEndsText}</span>
-                  </span>
-                  <span className="bridge-range-caret" aria-hidden="true">{FOLD_CARET}</span>
-                </>
-              )}
-            >
-              <p className="bridge-progress-range-note" title={chart.rangeNoteTitle}>{chart.rangeNoteText}</p>
-              {RANGE_PRESET_KEYS.map((key) => (
-                <MenuItem
-                  key={key}
-                  label={presetLabelOf(key)}
-                  {...(key === FIT_RANGE_PRESET ? { hint: 'the rows shown', title: FIT_PRESET_TITLE, marked: rowsChangedUnderHeldRange } : {})}
-                  pressed={key === chart.pressedPreset}
-                  closing="return-focus"
-                  onChoose={() => choosePreset(key)}
-                />
-              ))}
-              <MenuItem
-                label="Custom…"
-                hint="from, to, ticks"
-                pressed={chart.pressedPreset === CUSTOM_RANGE_PRESET}
-                dialogIsOpen={customRangeIsOpen}
-                closing="keep-focus"
-                onChoose={() => setCustomRangeIsOpen(true)}
-              />
-            </Menu>
-            {customRangeIsOpen
-              ? (
-                <CustomRangePopover
-                  appliedOverride={override}
-                  resolveBound={resolveBound}
-                  todayCalendarDate={todayCalendarDate}
-                  onApply={applyOverride}
-                  onClose={closeCustomRange}
-                />
-              )
-              : null}
-            <Menu label="Row options" trigger="icon" align="end" triggerName="Row options" triggerTitle="Row options" triggerContent={<RowOptionsIcon />}>
-              <MenuItem
-                label="Review passes as rows"
-                title="Draw each review pass as a row of its own, above its ticket's row"
-                checked={reviewRowsAreShown}
-                closing="return-focus"
-                onChoose={() => chooseReviewRows(!reviewRowsAreShown)}
-              />
-              <MenuItem
-                label="Wide titles"
-                title="Widen the task column so full names fit"
-                checked={nameColumnWidth === 'wide'}
-                closing="return-focus"
-                onChoose={() => chooseNameColumnWidth(ChartPreferenceUtil.toggledNameColumnWidth(nameColumnWidth))}
-              />
-            </Menu>
+            <span className="bridge-progress-column-name" data-column="id">ID</span>
+            <span className="bridge-progress-column-name" data-column="task">Task</span>
+            <span className="bridge-progress-column-name" data-column="state">State</span>
           </div>
           <div ref={axisTrackRef} className="bridge-progress-track">
             {chart.ticks.map((tick, index) => (

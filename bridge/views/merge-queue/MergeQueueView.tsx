@@ -2,12 +2,15 @@
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
  * waiting for merge links to its detail panel, which holds Accept and Update branch.
  */
+import { Card }       from 'design-system/Card';
+import { EmptyState } from 'design-system/EmptyState';
+import { IdLink }     from 'design-system/IdLink';
+import { StateBadge } from 'design-system/StateBadge';
+
 import { PriorityMark }                               from '../../chips/TicketMarks.tsx';
-import { EmptyState }                                 from '../../design-system/ListSection.tsx';
-import { IdLink }                                     from '../../design-system/MonoId.tsx';
-import { StateBadge }                                 from '../../design-system/StateBadge.tsx';
 import { DetailRoute }                                from '../../shell/DetailRoute.ts';
 import { HashRouter }                                 from '../../shell/HashRouter.ts';
+import { StateToneUtil }                              from '../../utils/StateToneUtil.ts';
 import type { MergeQueueTarget, WaitingForMergeLine } from './MergeQueueModel.ts';
 
 const NOTHING_QUEUED_TEXT = 'Nothing is queued to merge.';
@@ -23,7 +26,7 @@ function ForecastParts({ line }: { readonly line: WaitingForMergeLine }) {
     <>
       <IdLink text={`#${line.ticketId}`} href={HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId: line.ticketId }) })} />
       <PriorityMark priority={line.priority} />
-      <StateBadge state={line.forecastState} label={line.forecastLabel} />
+      <StateBadge {...StateToneUtil.lookOf(line.forecastState)} label={line.forecastLabel} />
       {line.conflictedFilesText === null ? null : <span className="bridge-merge-files">{line.conflictedFilesText}</span>}
     </>
   );
@@ -33,7 +36,7 @@ export function MergeQueueView({ targets, orderText }: MergeQueueViewProps) {
   return (
     <section className="bridge-merge-queue" aria-label="Merge queue">
       <p className="bridge-merge-order">{orderText}</p>
-      {targets.length === 0 ? <EmptyState text={NOTHING_QUEUED_TEXT} /> : null}
+      {targets.length === 0 ? <Card padding="none"><EmptyState text={NOTHING_QUEUED_TEXT} /></Card> : null}
       {targets.map((target) => (
         <article key={target.target} className="bridge-merge-target" aria-label={target.target}>
           <div className="bridge-merge-target-head">
@@ -43,7 +46,7 @@ export function MergeQueueView({ targets, orderText }: MergeQueueViewProps) {
           <div className="bridge-merge-target-body">
             {target.waitingReasons.map((reason) => <p key={reason} className="bridge-merge-waiting" role="status">{reason}</p>)}
             {target.lines.length === 0
-              ? <EmptyState text={NOTHING_QUEUED_TEXT} />
+              ? <EmptyState text={NOTHING_QUEUED_TEXT} compact />
               : (
                 <ol className="bridge-merge-lines">
                   {target.lines.map((line) => (

@@ -1,8 +1,10 @@
 /** The read-only form a filing draft opens: head, facts, its Request as the user wrote it, then its Questions tree. */
-import { ChoiceOption }                                                     from '../../design-system/ChoiceOption.tsx';
-import { MonoId }                                                           from '../../design-system/MonoId.tsx';
-import { StatePill }                                                        from '../../design-system/StatePill.tsx';
-import { TitledBlock }                                                      from '../../design-system/TitledBlock.tsx';
+import { ChoiceOption } from 'design-system/ChoiceOption';
+import { MonoId }       from 'design-system/MonoId';
+import { StatePill }    from 'design-system/StatePill';
+import { TitledBlock }  from 'design-system/TitledBlock';
+
+import { StateToneUtil }                                                    from '../../utils/StateToneUtil.ts';
 import { DetailFacts }                                                      from './DetailParts.tsx';
 import { NO_QUESTION_TEXT, type DraftDetailModel, type DraftQuestionModel } from './DraftDetailModel.ts';
 
@@ -48,10 +50,10 @@ function DraftQuestions({ questions }: { readonly questions: readonly DraftQuest
 export function DraftDetail({ model }: { readonly model: DraftDetailModel }) {
   return (
     <>
-      <div className="bridge-detail-head" data-state="draft">
+      <div className="bridge-detail-head" data-state="draft" data-state-tone={StateToneUtil.toneOf('draft')}>
         <span className="bridge-detail-id">{model.idText}</span>
         <h2 className="bridge-detail-title">{model.title}</h2>
-        <StatePill label={model.stateWord} />
+        <StatePill label={model.stateWord} {...StateToneUtil.pillLookOf('draft')} />
       </div>
       <DetailFacts facts={model.facts} />
       <TitledBlock title="Request" rule="above">

@@ -1,9 +1,10 @@
 /**
- * The box under a chat: it names its recipient, says through its status tag whether a message sends now or queues, and sends what its
- * caller makes of the text. Enter sends and Shift + Enter starts a new line; Enter and Send share one send, so both obey every rule of a
- * Bridge control. The text clears once the Overseer applied the command, unless User changed it while the command was on its way, and
- * stays on a refusal, which shows verbatim beside Send.
+ * The box under a chat: its head names the recipient, says through its status tag whether a message sends now or queues, and gives the
+ * keys; under it the text box and the paper-plane Send, then the caller's foot controls. Enter sends and Shift + Enter starts a new line;
+ * Enter and Send share one send, so both obey every rule of a Bridge control. The text clears once the Overseer applied the command, unless
+ * User changed it while the command was on its way, and stays on a refusal, which shows verbatim under the text box.
  */
+import { Tag, type TagProps } from 'design-system/Tag';
 import {
   useState,
   type ClipboardEvent,
@@ -12,10 +13,9 @@ import {
 } from 'react';
 
 import type { ControlCommandBody } from '../api/CommandClient.ts';
-import { Button }                  from '../design-system/Button.tsx';
-import { Tag, type TagProps }      from '../design-system/Tag.tsx';
 import { useControlCommand }       from '../shell/ControlCommandSender.ts';
 import { JobLink }                 from './ConversationParts.tsx';
+import { SendButton }              from './SendButton.tsx';
 
 export interface ComposerProps {
   /** The text box's accessible name. */
@@ -31,9 +31,26 @@ export interface ComposerProps {
   readonly onApplied?:     (text: string, result: unknown) => void;
   /** Shown above the text box, such as the pictures a message carries. */
   readonly attachments?:   ReactNode;
-  /** Shown first in the foot, such as a button that attaches pictures. */
+  /** The foot under the text box, such as a button that attaches pictures; without it the composer has no foot. */
   readonly footStart?:     ReactNode;
   readonly onFilesPasted?: (files: readonly File[]) => void;
+}
+
+function KeyHints() {
+  return (
+    <span className="bridge-composer-key-hints">
+      <span className="bridge-key-hint">
+        <kbd>Enter</kbd>
+        {' sends'}
+      </span>
+      <span className="bridge-key-hint">
+        <kbd>Shift</kbd>
+        {' + '}
+        <kbd>Enter</kbd>
+        {' new line'}
+      </span>
+    </span>
+  );
 }
 
 export function Composer({
@@ -61,7 +78,7 @@ export function Composer({
   return (
     <div className="bridge-composer">
       <div className="bridge-composer-head">
-        <span>To</span>
+        <span className="bridge-composer-to">To</span>
         <span className="bridge-composer-recipient">
           {recipientLabel}
           {recipientJobId === null
@@ -74,6 +91,7 @@ export function Composer({
             )}
         </span>
         {status === null ? null : <Tag {...status} />}
+        <KeyHints />
       </div>
       {attachments}
       <div className="bridge-composer-entry">
@@ -86,24 +104,10 @@ export function Composer({
           onKeyDown={sendOnEnter}
           onPaste={passPastedFiles}
         />
-        <span className="bridge-control">
-          <Button label={sendLabel} emphasis="primary" disabled={!sender.enabled} onPress={() => void sender.send()} />
-          {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
-        </span>
+        <SendButton accessibleName={sendLabel} enabled={sender.enabled} onPress={() => void sender.send()} />
       </div>
-      <div className="bridge-composer-foot">
-        {footStart}
-        <span className="bridge-key-hint">
-          <kbd>Enter</kbd>
-          {' sends'}
-        </span>
-        <span className="bridge-key-hint">
-          <kbd>Shift</kbd>
-          {' + '}
-          <kbd>Enter</kbd>
-          {' new line'}
-        </span>
-      </div>
+      {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
+      {footStart === undefined ? null : <div className="bridge-composer-foot">{footStart}</div>}
     </div>
   );
 }

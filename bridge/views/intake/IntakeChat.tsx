@@ -3,13 +3,13 @@
  * box or dropped anywhere on the column; it uploads at once and goes with the next send, which waits until every upload settled. With no
  * picture limits served, or no picture client in the shell, no picture is offered and a pasted or dropped one is ignored.
  */
+import type { TagProps }                            from 'design-system/Tag';
 import { useState, type DragEvent, type ReactNode } from 'react';
 
 import type { PictureLimitsDocument }                             from '../../@types/ConversationDocuments.ts';
 import type { ControlCommandBody }                                from '../../api/CommandClient.ts';
 import { ChatCard }                                               from '../../conversation/ChatThread.tsx';
 import { Composer }                                               from '../../conversation/Composer.tsx';
-import type { TagProps }                                          from '../../design-system/Tag.tsx';
 import { AttachPicturesButton }                                   from './AttachPicturesButton.tsx';
 import { usePictureAttachments }                                  from './PictureAttachments.ts';
 import { PictureAttachmentsModelUtil, type SentPictureReference } from './PictureAttachmentsModel.ts';

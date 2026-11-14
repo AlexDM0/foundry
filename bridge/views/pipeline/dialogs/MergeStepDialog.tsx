@@ -3,13 +3,18 @@
  * the merge itself is set: its derived meter, focusable with its tooltip, says whose model and effort fix its conflicts. Its one setting is
  * the conditional re-review after a conflict merge; Save sends the merge train's `reReview` and, while on, the conflict re-reviewer.
  */
+
+import { Button }           from 'design-system/Button';
+import { Card }             from 'design-system/Card';
+import { Dialog }           from 'design-system/Dialog';
+import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
+import { Row }              from 'design-system/Row';
+import { Text }             from 'design-system/Text';
+import { View }             from 'design-system/View';
 import { useRef, useState } from 'react';
 
 import type { Pipeline }                          from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChoices, PipelineFlowNode } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { Button }                                 from '../../../design-system/Button.tsx';
-import { Dialog }                                 from '../../../design-system/Dialog.tsx';
-import { ModelEffortMeter }                       from '../../../design-system/ModelEffortMeter.tsx';
 import type { PipelineFlowEditSender }            from '../flow/PipelineFlowEditSender.ts';
 import { PipelineFlowModel }                      from '../flow/PipelineFlowModel.ts';
 
@@ -49,11 +54,11 @@ export function MergeStepDialog({
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="standard"
+      width="widest"
       {...(focusesReReview ? { initialFocus: reReviewSwitch } : {})}
       foot={(
         <StepDialogFoot
-          start={<Button label="Reset to default" emphasis="quiet" onPress={() => setReReviewForm(RereviewSettingsModel.resetFormOf('merge'))} />}
+          start={<Button label="Reset to default" emphasis="ghost" onPress={() => setReReviewForm(RereviewSettingsModel.resetFormOf('merge'))} />}
           saveLabel="Save"
           canSave={editSender.enabled}
           refusal={editSender.refusal}
@@ -62,26 +67,26 @@ export function MergeStepDialog({
         />
       )}
     >
-      <div className="bridge-pipeline-dialog-body">
-        <div className="bridge-pipeline-dialog-info" data-layout="row">
-          {meter === null
-            ? null
-            : (
-              <ModelEffortMeter
-                model={meter.model}
-                effort={meter.effort}
-                level={meter.level}
-                levelCount={meter.levelCount}
-                accessibleName={meter.accessibleName}
-                size="node"
-                {...(meter.derivedNote === null ? {} : { derivedNote: meter.derivedNote })}
-              />
-            )}
-          <span>
-            <strong>{MergeStepDialogModel.CONFLICTS_LEAD}</strong>
-            {` ${MergeStepDialogModel.conflictTextOf(mergeNode.derivedFrom)}`}
-          </span>
-        </div>
+      <View gap="sixteen">
+        <Card step padding="fourteen" paddingVertical="twelve" gap="two">
+          <Row centerY gap="ten" wrap>
+            <Text typeRole="title">{MergeStepDialogModel.CONFLICT_FIXER_TITLE}</Text>
+            {meter === null
+              ? null
+              : (
+                <ModelEffortMeter
+                  model={meter.model}
+                  effort={meter.effort}
+                  level={meter.level}
+                  levelCount={meter.levelCount}
+                  accessibleName={meter.accessibleName}
+                  size="node"
+                  {...(meter.derivedNote === null ? {} : { derivedNote: meter.derivedNote })}
+                />
+              )}
+          </Row>
+          <Text muted>{MergeStepDialogModel.conflictTextOf(mergeNode.derivedFrom)}</Text>
+        </Card>
         <RereviewSettings
           place="merge"
           form={reReviewForm}
@@ -91,7 +96,7 @@ export function MergeStepDialog({
           onChange={setReReviewForm}
           switchRef={reReviewSwitch}
         />
-      </div>
+      </View>
     </Dialog>
   );
 }

@@ -2,18 +2,21 @@
  * The marks a ticket carries wherever it shows: its mono id, its priority (low quiet, high amber; normal unmarked), its type in small
  * capitals, and the dashed "waiting on" note whose ids each link where the caller says.
  */
-import { Fragment } from 'react';
+import { MonoId, type MonoIdProps } from 'design-system/MonoId';
+import { Fragment }                 from 'react';
 
 import type { TicketPriority, TicketType } from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { MonoId }                          from '../design-system/MonoId.tsx';
 
 const PRIORITY_MARK_TITLE: Readonly<Record<Exclude<TicketPriority, 'normal'>, string>> = {
   low:  'Low priority: no row on the chart until it is started, and worked once every normal and high ticket is done',
   high: 'High priority: dispatched before every normal ticket',
 };
 
-export function TicketIdMark({ ticketId }: { readonly ticketId: string }) {
-  return <MonoId text={`#${ticketId}`} />;
+export type TicketIdMarkProps = Omit<MonoIdProps, 'text'> & { readonly ticketId: string };
+
+/** The ticket's `#id` as a mono id, in the tone and size the caller gives it. */
+export function TicketIdMark({ ticketId, ...monoIdLook }: TicketIdMarkProps) {
+  return <MonoId text={`#${ticketId}`} {...monoIdLook} />;
 }
 
 /** Nothing for a normal ticket. */

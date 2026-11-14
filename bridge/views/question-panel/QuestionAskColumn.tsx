@@ -1,14 +1,20 @@
 /**
- * The panel's left column: each question as asked, its options as cards with what each touches, trades off and does to the Acceptance
- * when the agent noted it, User's own words on a decision of one question, and the answer row naming the command it posts. The choices
- * start empty for every decision, since the column is keyed by it.
+ * The panel's left column: the orange decision card, where Flint waits beside "Your decision" and the question (or the count of questions
+ * on a decision of several); then each question's options as cards, the agent's recommendation a pill beside its option, with what each
+ * touches, trades off and does to the Acceptance when the agent noted it; User's own words on a decision of one question; and the answer
+ * row naming the command it posts. The choices start empty for every decision, since the column is keyed by it.
  */
-import { useState } from 'react';
+
+import { Card }                                  from 'design-system/Card';
+import { ChoiceInput, ChoiceMark, ChoiceOption } from 'design-system/ChoiceOption';
+import { FlintSlot }                             from 'design-system/FlintSlot';
+import { Text }                                  from 'design-system/Text';
+import { View }                                  from 'design-system/View';
+import { useState, type ReactNode }              from 'react';
 
 import type { DecisionDocument }                       from '../../@types/ConversationDocuments.ts';
 import { DecisionAnswerUtil, type QuestionSelections } from '../../conversation/DecisionAnswerUtil.ts';
 import { OptionConsequenceFacts }                      from '../../conversation/OptionConsequenceFacts.tsx';
-import { ChoiceOption }                                from '../../design-system/ChoiceOption.tsx';
 import { CommandButton }                               from '../../shell/CommandButton.tsx';
 import type { QuestionModel, QuestionPanelViewModel }  from './QuestionPanelModel.ts';
 
@@ -17,44 +23,79 @@ export interface QuestionAskColumnProps {
   readonly model:    QuestionPanelViewModel;
 }
 
+const YOUR_DECISION = 'Your decision';
+
+function questionTextIdOf(decisionId: string, questionIndex: number): string {
+  return `${decisionId}-question-${questionIndex}`;
+}
+
+/** What waits on User: Flint beside the eyebrow and the question a decision of one question asks, or how many a decision of several asks. */
+function DecisionHead({ model }: { readonly model: QuestionPanelViewModel }) {
+  const [onlyQuestion] = model.questions;
+  const asksOneQuestion = model.questions.length === 1 && onlyQuestion !== undefined;
+  const eyebrowText = asksOneQuestion ? `${YOUR_DECISION} · ${onlyQuestion.header}` : YOUR_DECISION;
+  return (
+    <Card decision row centerY gap="fourteen" paddingVertical="six" paddingLeft="eighteen" paddingRight="sixteen">
+      <FlintSlot size="84" ground="decision" label="Flint, the agent that asks" pose="waiting" />
+      <View gap="four">
+        <span className="bridge-question-panel-eyebrow">{eyebrowText}</span>
+        <Text typeRole="title" element="p" bold {...(asksOneQuestion ? { id: questionTextIdOf(model.decisionId, 0) } : {})}>
+          {asksOneQuestion ? onlyQuestion.text : `${model.questions.length} questions from ${model.head.askerText}`}
+        </Text>
+      </View>
+    </Card>
+  );
+}
+
 interface QuestionFieldProps {
   readonly decisionId:    string;
   readonly question:      QuestionModel;
   readonly questionIndex: number;
-  readonly showsHeader:   boolean;
+  /** A decision of several questions heads each with its header and text; one question is the decision card's own. */
+  readonly showsQuestion: boolean;
   readonly chosen:        readonly number[];
   readonly onChoose:      (optionIndex: number) => void;
 }
 
 function QuestionField({
-  decisionId, question, questionIndex, showsHeader, chosen, onChoose
+  decisionId, question, questionIndex, showsQuestion, chosen, onChoose
 }: QuestionFieldProps) {
-  const textId = `${decisionId}-question-${questionIndex}`;
-  return (
-    <div className="bridge-question-panel-question">
+  const textId = questionTextIdOf(decisionId, questionIndex);
+  const heading: ReactNode = showsQuestion
+    ? (
       <p className="bridge-question-panel-text" id={textId}>
-        {showsHeader ? <span className="bridge-question-header">{question.header}</span> : null}
+        <span className="bridge-question-header">{question.header}</span>
         {question.text}
       </p>
+    )
+    : null;
+  return (
+    <div className="bridge-question-panel-question">
+      {heading}
       <fieldset className="bridge-question-panel-options" aria-labelledby={textId}>
         {question.options.map((option, optionIndex) => {
           const isChosen = chosen.includes(optionIndex);
           return (
             <ChoiceOption
               key={option.label}
-              letter={option.letter}
+              letter={`${option.letter}.`}
               label={option.label}
               {...(option.description === null ? {} : { description: option.description })}
               chosen={isChosen}
+              {...(option.isRecommended ? { marks: <ChoiceMark mark="recommended" text="Recommended" /> } : {})}
               {...(option.consequences === null ? {} : { facts: <OptionConsequenceFacts consequences={option.consequences} /> })}
               variant="card"
-              input={{
-                type:           question.multiSelect ? 'checkbox' : 'radio',
-                name:           `${decisionId}-panel-${questionIndex}`,
-                checked:        isChosen,
-                accessibleName: `${option.letter}. ${option.label}`,
-                onChange:       () => onChoose(optionIndex),
-              }}
+              tone="question"
+              size="large"
+              input={(
+                <ChoiceInput
+                  type={question.multiSelect ? 'checkbox' : 'radio'}
+                  name={`${decisionId}-panel-${questionIndex}`}
+                  checked={isChosen}
+                  accessibleName={`${option.letter}. ${option.label}`}
+                  onChange={() => onChoose(optionIndex)}
+                />
+              )}
             />
           );
         })}
@@ -70,13 +111,14 @@ export function QuestionAskColumn({ decision, model }: QuestionAskColumnProps) {
   const ownWordsId = `${decision.id}-own-words`;
   return (
     <section className="bridge-question-panel-ask" aria-label="The question">
+      <DecisionHead model={model} />
       {model.questions.map((question, questionIndex) => (
         <QuestionField
           key={question.text}
           decisionId={decision.id}
           question={question}
           questionIndex={questionIndex}
-          showsHeader={model.questions.length > 1}
+          showsQuestion={model.questions.length > 1}
           chosen={selections[questionIndex] ?? []}
           onChoose={(optionIndex) => setSelections(DecisionAnswerUtil.selectionsAfter(selections, questionIndex, optionIndex, question.multiSelect))}
         />
