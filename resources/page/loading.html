@@ -108,19 +108,19 @@
   </div>
   <ol class="splash-steps" aria-live="polite">
     <li class="splash-step" id="server-step" data-step="now">
-      <span class="splash-step-dot"></span><span class="splash-step-label" id="server-label" data-label-now="Starting Gaia's server" data-label-done="Gaia's server is up">Starting Gaia's server</span><span class="splash-step-fact" id="server-fact"></span>
+      <span class="splash-step-dot"></span><span class="splash-step-label" id="server-label" data-label-now="Starting Gaia…" data-label-done="Gaia's server is up">Starting Gaia…</span><span class="splash-step-fact" id="server-fact"></span>
     </li>
     <li class="splash-step" id="forges-step" data-step="next">
       <span class="splash-step-dot"></span><span class="splash-step-label">Looking for forges</span><span class="splash-step-fact" id="forges-fact"></span>
     </li>
     <li class="splash-step" id="opening-step" data-step="next">
-      <span class="splash-step-dot"></span><span class="splash-step-label">Opening Attention</span>
+      <span class="splash-step-dot"></span><span class="splash-step-label">Opening the window…</span>
     </li>
   </ol>
   <div class="splash-closing">Closing this window stops Gaia. The forges keep running.</div>
   <script>
     'use strict';
-    /* The launcher's steps, in order: the server starting, the server up and the forges being looked for, Attention opening. */
+    /* The launcher's steps, in order: the server starting, the server up and the forges being looked for, the window opening. */
     const SPLASH_STEPS = ['starting', 'looking', 'opening'];
 
     function applyTheme(theme) {

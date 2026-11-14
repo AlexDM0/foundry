@@ -126,11 +126,10 @@ describe('the splash', () => {
     expect(readTokens.filter((token) => !definedTokens.has(token))).toEqual([]);
   });
 
-  test('names the three steps and the closing line of SCREENS C3, and tells User to run nothing', () => {
+  test('names the steps and the closing line of SCREENS C3, and tells User to run nothing', () => {
     const html = splashText();
-    for (const sentence of ['Gaia\'s server is up', 'Looking for forges', 'Opening Attention', 'Closing this window stops Gaia. The forges keep running.']) {
-      expect(html).toContain(sentence);
-    }
+    const sentences = ['Starting Gaia…', 'Gaia\'s server is up', 'Looking for forges', 'Opening the window…', 'Closing this window stops Gaia. The forges keep running.'];
+    for (const sentence of sentences) expect(html).toContain(sentence);
     expect(html.replace(/<script>[\s\S]*?<\/script>/, '')).not.toMatch(/\b(?:run|terminal|command)\b/i);
   });
 
@@ -150,7 +149,7 @@ describe('the splash at each step the launcher moves it to', () => {
   test('shows the server starting, with no address and no counts, before the launcher moves it on', () => {
     expect(renderedSplashAt(splashAddress)).toEqual({
       stepStates:  'now,next,next',
-      serverLabel: 'Starting Gaia\'s server',
+      serverLabel: 'Starting Gaia…',
       serverFact:  '',
       forgesFact:  '',
       theme:       'dark',
@@ -172,7 +171,7 @@ describe('the splash at each step the launcher moves it to', () => {
     expect(renderedSplashAt(LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', null)).forgesFact).toBe('');
   });
 
-  test('shows Attention opening once both steps before it are done', () => {
+  test('shows the window opening once both steps before it are done', () => {
     const openingSplash = renderedSplashAt(LaunchAddressUtil.splashStepAddressOf(splashAddress, 'opening', null));
     expect([openingSplash.stepStates, openingSplash.serverLabel, openingSplash.serverFact]).toEqual(['done,done,now', 'Gaia\'s server is up', '127.0.0.1:4790']);
   });
