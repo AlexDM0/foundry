@@ -33,8 +33,8 @@
         "verdict": "listed",
         "pageTargets": [
           {
-            "targetId": "95BB9A95656DC9F9D2F4754B5570AAFC",
-            "url": "http://127.0.0.1:61872/resources/page/loading.html?address=127.0.0.1:4790&theme=dark#step=looking&answered=3&registered=5"
+            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark#step=looking&answered=3&registered=5"
           }
         ]
       }
@@ -65,8 +65,8 @@
         "verdict": "listed",
         "pageTargets": [
           {
-            "targetId": "95BB9A95656DC9F9D2F4754B5570AAFC",
-            "url": "http://127.0.0.1:61872/resources/page/loading.html?address=127.0.0.1:4790&theme=dark"
+            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark"
           }
         ]
       }

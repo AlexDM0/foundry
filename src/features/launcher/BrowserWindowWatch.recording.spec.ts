@@ -1,12 +1,13 @@
 /**
  * The real-system spec of the browser window watch, run only by `bun run record browser-window-watch` on a Mac with Chrome or Edge. It
- * opens the browser as the launcher does, on a scratch profile with its debugging pipe and on the splash served from this repository, and
- * records each situation of the window: the splash listed and navigated to a step, which the splash then shows; a navigation the browser
- * refuses while the window stays; the window closed while the browser runs; and the browser ended. The browser opens no debugging port.
- * The browser's own version stamps the recording.
+ * opens the browser as the launcher does, on a scratch profile with its debugging pipe and on this repository's splash as a file page, and
+ * records each situation of the window, with the splash's file at the launcher specs' example path: the splash listed and navigated to a
+ * step, which the splash then shows; a navigation the browser refuses while the window stays; the window closed while the browser runs;
+ * and the browser ended. The browser opens no debugging port. The browser's own version stamps the recording.
  */
-import { readFileSync, readdirSync } from 'node:fs';
-import { join }                      from 'node:path';
+import { readdirSync }   from 'node:fs';
+import { join }          from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   afterAll,
   beforeAll,
@@ -33,33 +34,38 @@ import {
   type BrowserWindowCall,
   type BrowserWindowSituation,
 } from './testing/RecordedBrowserWindowWatch.ts';
-import { LaunchAddressUtil } from './utils/LaunchAddressUtil.ts';
+import { EXAMPLE_SPLASH_PAGE_PATH } from './testing/RecordedLauncherPrograms.ts';
+import { LaunchAddressUtil }        from './utils/LaunchAddressUtil.ts';
 
 const POLL_MILLISECONDS = 100;
 const POLL_TRIES = 150;
 const VERSION_TIMEOUT_MILLISECONDS = 10_000;
 const EXAMPLE_GAIA_PORT = 4790;
-const SPLASH_PATH = '/resources/page/loading.html';
+const SPLASH_PAGE_PATH_IN_REPOSITORY = 'resources/page/loading.html';
 /**
  * Under the run's scratch home the browser finds no keychain of the account and waits on it, and its windows answer no navigation; the
  * browser's own switch for a test keeps its secrets in memory instead. Gaia's launch runs under the account's home and needs no switch.
  */
 const SCRATCH_HOME_BROWSER_ARGUMENTS = ['--use-mock-keychain'];
-const TOKENS_PATH = '/page/styles/tokens.css';
 /** The file a browser writes into its profile when it opens a debugging port. */
 const DEBUGGING_PORT_FILE_NAME = 'DevToolsActivePort';
 const ADDRESS_THE_BROWSER_REFUSES = 'not an address';
 
 let browser: FoundBrowser;
 let profileFolder = '';
-let splashServer: Bun.Server<undefined>;
 let browserChild: OwnedChild | null = null;
 let watch: BrowserWindowWatch;
 let rawProtocol: RawDebuggingProtocol;
 let splashTarget: PageTarget;
 
+function splashPagePath(): string {
+  return join(repositoryRoot(), SPLASH_PAGE_PATH_IN_REPOSITORY);
+}
+
+/** Records the answer with the splash's file at the example path the launcher specs open, so no checkout's path is kept. */
 function record(situation: BrowserWindowSituation, call: BrowserWindowCall, answer: unknown): void {
-  recordAnswer(BROWSER_WINDOW_WATCH_RECORDING_NAME, browserWindowCallShapeOf(situation, call), answer);
+  const exampleAnswerText = JSON.stringify(answer).replaceAll(pathToFileURL(splashPagePath()).href, pathToFileURL(EXAMPLE_SPLASH_PAGE_PATH).href);
+  recordAnswer(BROWSER_WINDOW_WATCH_RECORDING_NAME, browserWindowCallShapeOf(situation, call), JSON.parse(exampleAnswerText) as unknown);
 }
 
 /** Polls the real browser until the answer holds or the tries run out; the browser takes its own time to start and to close a window. */
@@ -77,16 +83,6 @@ beforeAll(async () => {
   if (foundBrowser === null) throw new Error('Recording browser-window-watch needs Google Chrome or Microsoft Edge in /Applications.');
   browser       = foundBrowser;
   profileFolder = createScratchDirectory('browser-profile');
-  splashServer  = Bun.serve({
-    hostname: '127.0.0.1',
-    port:     0,
-    fetch:    (request) => {
-      const { pathname } = new URL(request.url);
-      if (pathname === SPLASH_PATH) return new Response(readFileSync(join(repositoryRoot(), SPLASH_PATH), 'utf8'), { headers: { 'content-type': 'text/html' } });
-      if (pathname === TOKENS_PATH) return new Response(readFileSync(join(repositoryRoot(), TOKENS_PATH), 'utf8'), { headers: { 'content-type': 'text/css' } });
-      return new Response(null, { status: 404 });
-    },
-  });
   const version = await realProcessRun(environmentCopy).run({
     program: browser.program, programArguments: ['--version'], workingDirectory: profileFolder, timeoutMilliseconds: VERSION_TIMEOUT_MILLISECONDS
   });
@@ -100,13 +96,12 @@ afterAll(async () => {
     await browserChild.exited;
     browserChild.channel?.close();
   }
-  await splashServer.stop(true);
   removeScratchPath(profileFolder);
 });
 
 describe('the window of a browser started as the launcher starts it', () => {
   test('is listed as one page target over the pipe, and moves to a step of the splash, which the splash shows', async () => {
-    const splashAddress = `http://127.0.0.1:${splashServer.port}${SPLASH_PATH}?address=127.0.0.1:${EXAMPLE_GAIA_PORT}&theme=dark`;
+    const splashAddress = LaunchAddressUtil.splashAddressOf(splashPagePath(), EXAMPLE_GAIA_PORT, 'dark');
     const browserStart  = realProcessRun(environmentCopy).startOwned({
       program:          browser.program,
       programArguments: [...LaunchAddressUtil.browserArgumentsOf(splashAddress, profileFolder), ...SCRATCH_HOME_BROWSER_ARGUMENTS],
