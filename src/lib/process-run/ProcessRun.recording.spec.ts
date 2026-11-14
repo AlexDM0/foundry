@@ -6,8 +6,8 @@
  * itself, the channel on an owned child's descriptors 3 and 4, both ways, and its end when the child stops reading or ends, and a detached
  * start that outlives the call.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 import {
   afterEach,
   describe,
@@ -30,6 +30,9 @@ const SECONDS_A_SLEEPER_WOULD_RUN = '30';
 const EXIT_CODE_OF_A_REFUSAL = 3;
 const POLL_MILLISECONDS = 20;
 const POLL_TRIES = 250;
+/** Enough copies of a message that the socket's buffer holds them not all, so the write is still flushing when the child stops reading. */
+const TIMES_A_MESSAGE_OVERFILLS_THE_SOCKET = 100_000;
+const STOP_READING_FILE_NAME = 'stop-reading';
 /** 128 and the number of `SIGTERM`, as a shell reports it. */
 const EXIT_CODE_OF_A_TERMINATED_PROGRAM = 143;
 
@@ -235,6 +238,27 @@ describe('the channel of an owned start', () => {
       expect(channelIsClosed).toBe(true);
       expect(processIsRunning(answer.child.processId)).toBe(true);
       expect(() => channel.write('Example message after the end\n')).not.toThrow();
+    } finally {
+      answer.child.stop();
+      await answer.child.exited;
+    }
+  });
+
+  test('ends without a throw when the child stops reading while a write it has not read yet is still flushing', async () => {
+    const workingDirectory = scratchDirectory('owned');
+    const programArguments = [
+      '-c', `while [ ! -e ${STOP_READING_FILE_NAME} ]; do sleep ${POLL_MILLISECONDS / 1000}; done; exec 3<&-; exec sleep ${SECONDS_A_SLEEPER_WOULD_RUN}`
+    ];
+    const answer = realProcessRun(environmentCopy).startOwned({
+      program: 'sh', programArguments, workingDirectory, withChannel: true
+    });
+    if (answer.verdict !== 'started' || answer.child.channel === null) throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    const { channel } = answer.child;
+    try {
+      expect(() => channel.write('Example message\n'.repeat(TIMES_A_MESSAGE_OVERFILLS_THE_SOCKET))).not.toThrow();
+      writeFileSync(join(workingDirectory, STOP_READING_FILE_NAME), '');
+      await channel.closed;
+      expect(processIsRunning(answer.child.processId)).toBe(true);
     } finally {
       answer.child.stop();
       await answer.child.exited;
