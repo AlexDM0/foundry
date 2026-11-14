@@ -9,6 +9,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
 import type { CommandSender, CommandStates }  from '../../api/CommandSender.ts';
+import { NOTHING_SENT }                       from '../../shared/add-repository/AddRepositoryFields.tsx';
 import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
 import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
 import { PackageButtons }                     from '../../testing/PackageButtons.ts';
@@ -48,7 +49,7 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
     <NoForgeYetLayout
       content={{ forgeProgramIsMissing, forgeProgramText: forgeProgramIsMissing ? null : '~/.bun/bin/forge' }}
       form={form}
-      pathChooser="folder"
+      sentResults={NOTHING_SENT}
       commandStates={commandStates}
       handlers={{
         onFolderTyped:  () => undefined,

@@ -18,9 +18,9 @@ import {
 import { CommandFailureRefusal } from '../../shared/CommandFailureRefusal.tsx';
 import {
   AddRepositoryFields,
+  type AddRepositorySentResults,
   type AddRepositoryHandlers,
   ForgeProgramMissingLine,
-  type PathChooser,
   useAddRepositoryForm,
 } from '../../shared/add-repository/AddRepositoryFields.tsx';
 import type { AddRepositoryForm } from '../../shared/add-repository/AddRepositoryForm.ts';
@@ -29,7 +29,7 @@ import type { NoForgeContent }    from './AttentionModel.ts';
 export interface NoForgeYetLayoutProps {
   readonly content:          NoForgeContent;
   readonly form:             AddRepositoryForm;
-  readonly pathChooser:      PathChooser;
+  readonly sentResults:      AddRepositorySentResults;
   readonly commandStates:    CommandStates;
   readonly handlers:         AddRepositoryHandlers;
   /** Sends Look again, from its button or once more from its refusal. */
@@ -42,7 +42,7 @@ const ADD_HEAD_ID = 'gaia-attention-add-head';
 const LOOK_AGAIN: CommandSubject = { fleetCommand: 'fleet-look-again' };
 
 export function NoForgeYetLayout({
-  content, form, pathChooser, commandStates, handlers, onLookAgain, onDismissFailure
+  content, form, sentResults, commandStates, handlers, onLookAgain, onDismissFailure
 }: NoForgeYetLayoutProps) {
   return (
     <div className="gaia-attention-no-forge">
@@ -67,7 +67,7 @@ export function NoForgeYetLayout({
             <Text typeRole="page" element="h3" id={ADD_HEAD_ID}>Add a repository</Text>
             <AddRepositoryFields
               form={form}
-              pathChooser={pathChooser}
+              sentResults={sentResults}
               forgeProgramIsMissing={content.forgeProgramIsMissing}
               commandStates={commandStates}
               handlers={handlers}
@@ -77,7 +77,7 @@ export function NoForgeYetLayout({
         </section>
         <ForgeProgramMissingLine
           forgeProgramIsMissing={content.forgeProgramIsMissing}
-          pathChooser={pathChooser}
+          sentResults={sentResults}
           commandStates={commandStates}
           onChooseForgeProgram={handlers.onChooseForgeProgram}
           onDismissFailure={onDismissFailure}
@@ -96,12 +96,12 @@ export function NoForgeYetLayout({
 
 export function NoForgeYet({ content }: { readonly content: NoForgeContent }) {
   const { send, dismissFailure, states } = useCommandSender();
-  const { form, pathChooser, handlers } = useAddRepositoryForm(send);
+  const { form, sentResults, handlers } = useAddRepositoryForm(send);
   return (
     <NoForgeYetLayout
       content={content}
       form={form}
-      pathChooser={pathChooser}
+      sentResults={sentResults}
       commandStates={states}
       handlers={handlers}
       onLookAgain={() => void send({ kind: 'fleet-look-again' })}

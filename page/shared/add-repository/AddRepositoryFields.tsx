@@ -3,10 +3,11 @@
  * with its hint, then under a hairline what "Add and start" does, or why it waits, beside it; a refusal of either under them; and, when no
  * forge program is known, the dashed line that says so with a way to choose one. `AddRepositoryFields` and `ForgeProgramMissingLine` take
  * no hooks; `useAddRepositoryForm` keeps the form and sends its commands: a folder chosen through `path-choose`, `forge-add`, and the
- * program's path chosen and kept through `settings-set`.
+ * program's path chosen and kept through `settings-set`. Both choosers share `path-choose`, and other screens send `settings-set`, so the
+ * form keeps the result of each send it made and shows a refusal of those subjects only beside the button whose send it was.
  */
-import { Button }   from 'design-system/Button';
-import { useState } from 'react';
+import { Button }                      from 'design-system/Button';
+import { useEffect, useRef, useState } from 'react';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
 import {
@@ -20,8 +21,14 @@ import { TextField }             from '../../design-system/TextField.tsx';
 import { CommandFailureRefusal } from '../CommandFailureRefusal.tsx';
 import { AddRepositoryForm }     from './AddRepositoryForm.ts';
 
-/** Which button asked for the last path, so a refused choice shows beside it. */
-export type PathChooser = 'folder' | 'forge-program';
+/** The result of the form's own last send behind each chooser, so a failure shows beside the button that caused it and nowhere else. */
+export interface AddRepositorySentResults {
+  readonly folderChoice:        CommandResult | null;
+  readonly forgeProgramChoice:  CommandResult | null;
+  readonly forgeProgramKeeping: CommandResult | null;
+}
+
+export const NOTHING_SENT: AddRepositorySentResults = { folderChoice: null, forgeProgramChoice: null, forgeProgramKeeping: null };
 
 export interface AddRepositoryHandlers {
   readonly onFolderTyped:        (folder: string) => void;
@@ -33,7 +40,7 @@ export interface AddRepositoryHandlers {
 
 export interface AddRepositoryFieldsProps {
   readonly form:                  AddRepositoryForm;
-  readonly pathChooser:           PathChooser;
+  readonly sentResults:           AddRepositorySentResults;
   readonly forgeProgramIsMissing: boolean;
   readonly commandStates:         CommandStates;
   readonly handlers:              AddRepositoryHandlers;
@@ -42,7 +49,7 @@ export interface AddRepositoryFieldsProps {
 
 export interface ForgeProgramMissingLineProps {
   readonly forgeProgramIsMissing: boolean;
-  readonly pathChooser:           PathChooser;
+  readonly sentResults:           AddRepositorySentResults;
   readonly commandStates:         CommandStates;
   readonly onChooseForgeProgram:  () => void;
   readonly onDismissFailure:      (subject: CommandSubject) => void;
@@ -59,8 +66,14 @@ function isOnItsWay(commandStates: CommandStates, subject: CommandSubject): bool
   return CommandSender.stateOf(commandStates, subject).onItsWay !== null;
 }
 
+/** Whether the subject's failure is the result of this send, the very object the sender answered. */
+function failureCameFrom(commandStates: CommandStates, subject: CommandSubject, sentResult: CommandResult | null): boolean {
+  const { failure } = CommandSender.stateOf(commandStates, subject);
+  return failure !== null && failure.result === sentResult;
+}
+
 export function AddRepositoryFields({
-  form, pathChooser, forgeProgramIsMissing, commandStates, handlers, onDismissFailure
+  form, sentResults, forgeProgramIsMissing, commandStates, handlers, onDismissFailure
 }: AddRepositoryFieldsProps) {
   const addAndStartCanBeSent = AddRepositoryForm.addAndStartCanBeSent(form, { forgeProgramIsMissing, addIsOnItsWay: isOnItsWay(commandStates, FORGE_ADD) });
   return (
@@ -77,7 +90,7 @@ export function AddRepositoryFields({
         <p className="gaia-add-repository-note">{forgeProgramIsMissing ? ADD_AND_START_WAITS_SENTENCE : ADD_AND_START_SENTENCE}</p>
         <Button label="Add and start" emphasis="primary" disabled={!addAndStartCanBeSent} onPress={handlers.onAddAndStart} />
       </div>
-      {pathChooser === 'folder' ? (
+      {failureCameFrom(commandStates, PATH_CHOOSE, sentResults.folderChoice) ? (
         <CommandFailureRefusal
           commandStates={commandStates}
           subject={PATH_CHOOSE}
@@ -99,8 +112,12 @@ export function AddRepositoryFields({
 
 /** Shown only while no forge program is known; a refused choice or a refused keeping of it shows under it either way. */
 export function ForgeProgramMissingLine({
-  forgeProgramIsMissing, pathChooser, commandStates, onChooseForgeProgram, onDismissFailure
+  forgeProgramIsMissing, sentResults, commandStates, onChooseForgeProgram, onDismissFailure
 }: ForgeProgramMissingLineProps) {
+  const failedSubjects = [
+    ...(failureCameFrom(commandStates, PATH_CHOOSE, sentResults.forgeProgramChoice) ? [PATH_CHOOSE] : []),
+    ...(failureCameFrom(commandStates, SETTINGS_SET, sentResults.forgeProgramKeeping) ? [SETTINGS_SET] : []),
+  ];
   return (
     <>
       {forgeProgramIsMissing ? (
@@ -118,7 +135,7 @@ export function ForgeProgramMissingLine({
           />
         </div>
       ) : null}
-      {[...(pathChooser === 'forge-program' ? [PATH_CHOOSE] : []), SETTINGS_SET].map((subject) => (
+      {failedSubjects.map((subject) => (
         <CommandFailureRefusal
           key={'fleetCommand' in subject ? subject.fleetCommand : subject.trackerId}
           commandStates={commandStates}
@@ -146,9 +163,9 @@ export const AddRepositoryCommands = {
     return chosenPathOf(await send({ kind: 'path-choose', what: 'folder' }));
   },
 
-  async chooseAndKeepForgeProgram(send: Send): Promise<void> {
-    const programPath = chosenPathOf(await send({ kind: 'path-choose', what: 'file' }));
-    if (programPath !== null) await send({ kind: 'settings-set', key: 'forgeProgramPath', value: programPath });
+  async chooseAndKeepForgeProgram(sendChoice: Send, sendKeeping: Send): Promise<void> {
+    const programPath = chosenPathOf(await sendChoice({ kind: 'path-choose', what: 'file' }));
+    if (programPath !== null) await sendKeeping({ kind: 'settings-set', key: 'forgeProgramPath', value: programPath });
   },
 
   /** Whether the add went through: the forge was set up and started, or already was. */
@@ -156,38 +173,51 @@ export const AddRepositoryCommands = {
     const result = await send(AddRepositoryForm.addCommandOf(form));
     return result.verdict === 'answered' && (result.answer.outcome === 'done' || result.answer.outcome === 'nothing-to-do');
   },
+
+  /** Adds, then runs `onAdded` only while the form is still open: a late answer must not move User from where they went since. */
+  async addAndStartWhileOpen(send: Send, form: AddRepositoryForm, formIsOpen: () => boolean, onAdded: () => void): Promise<void> {
+    if (await AddRepositoryCommands.addAndStart(send, form) && formIsOpen()) onAdded();
+  },
 } as const;
 
 export interface AddRepositoryFormState {
   readonly form:        AddRepositoryForm;
-  readonly pathChooser: PathChooser;
+  readonly sentResults: AddRepositorySentResults;
   readonly handlers:    AddRepositoryHandlers;
 }
 
-/** The form as User fills it in; `onAdded` runs once an add went through, as a dialog that closes then needs. */
+/** The form as User fills it in; `onAdded` runs once an add went through while the form is still open, as a dialog that closes then needs. */
 export function useAddRepositoryForm(send: Send, onAdded?: () => void): AddRepositoryFormState {
   const [form, setForm] = useState(AddRepositoryForm.EMPTY_FORM);
-  const [pathChooser, setPathChooser] = useState<PathChooser>('folder');
+  const [sentResults, setSentResults] = useState(NOTHING_SENT);
+  const formIsOpen = useRef(false);
+  useEffect(() => {
+    formIsOpen.current = true;
+    return () => {
+      formIsOpen.current = false;
+    };
+  }, []);
+  const sendRecordedAs = (place: keyof AddRepositorySentResults): Send => async (command) => {
+    const result = await send(command);
+    if (formIsOpen.current) setSentResults((current) => ({ ...current, [place]: result }));
+    return result;
+  };
   return {
     form,
-    pathChooser,
+    sentResults,
     handlers: {
       onFolderTyped:  (folder) => setForm((current) => AddRepositoryForm.formAfterFolder(current, folder)),
       onProjectTyped: (project) => setForm((current) => AddRepositoryForm.formAfterProject(current, project)),
       onChooseFolder: () => {
-        setPathChooser('folder');
-        void AddRepositoryCommands.chosenFolderOf(send).then((folder) => {
-          if (folder !== null) setForm((current) => AddRepositoryForm.formAfterFolder(current, folder));
+        void AddRepositoryCommands.chosenFolderOf(sendRecordedAs('folderChoice')).then((folder) => {
+          if (folder !== null && formIsOpen.current) setForm((current) => AddRepositoryForm.formAfterFolder(current, folder));
         });
       },
       onAddAndStart: () => {
-        void AddRepositoryCommands.addAndStart(send, form).then((wentThrough) => {
-          if (wentThrough) onAdded?.();
-        });
+        void AddRepositoryCommands.addAndStartWhileOpen(send, form, () => formIsOpen.current, () => onAdded?.());
       },
       onChooseForgeProgram: () => {
-        setPathChooser('forge-program');
-        void AddRepositoryCommands.chooseAndKeepForgeProgram(send);
+        void AddRepositoryCommands.chooseAndKeepForgeProgram(sendRecordedAs('forgeProgramChoice'), sendRecordedAs('forgeProgramKeeping'));
       },
     },
   };

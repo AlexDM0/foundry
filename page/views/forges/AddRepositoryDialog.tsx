@@ -10,9 +10,9 @@ import { Dialog } from 'design-system/Dialog';
 import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
 import {
   AddRepositoryFields,
+  type AddRepositorySentResults,
   type AddRepositoryHandlers,
   ForgeProgramMissingLine,
-  type PathChooser,
   useAddRepositoryForm,
 } from '../../shared/add-repository/AddRepositoryFields.tsx';
 import type { AddRepositoryForm } from '../../shared/add-repository/AddRepositoryForm.ts';
@@ -21,7 +21,7 @@ import { FormDialogUtil }         from './utils/FormDialogUtil.ts';
 export interface AddRepositoryDialogLayoutProps {
   readonly forgeProgramIsMissing: boolean;
   readonly form:                  AddRepositoryForm;
-  readonly pathChooser:           PathChooser;
+  readonly sentResults:           AddRepositorySentResults;
   readonly commandStates:         CommandStates;
   readonly handlers:              AddRepositoryHandlers;
   readonly onDismissFailure:      (subject: CommandSubject) => void;
@@ -30,13 +30,13 @@ export interface AddRepositoryDialogLayoutProps {
 
 /** The form and the line of a missing forge program, without hooks, so a spec unfolds them whole. */
 export function AddRepositoryDialogBody({
-  forgeProgramIsMissing, form, pathChooser, commandStates, handlers, onDismissFailure
+  forgeProgramIsMissing, form, sentResults, commandStates, handlers, onDismissFailure
 }: Omit<AddRepositoryDialogLayoutProps, 'onClose'>) {
   return (
     <div className="gaia-forges-add-dialog-body">
       <AddRepositoryFields
         form={form}
-        pathChooser={pathChooser}
+        sentResults={sentResults}
         forgeProgramIsMissing={forgeProgramIsMissing}
         commandStates={commandStates}
         handlers={handlers}
@@ -44,7 +44,7 @@ export function AddRepositoryDialogBody({
       />
       <ForgeProgramMissingLine
         forgeProgramIsMissing={forgeProgramIsMissing}
-        pathChooser={pathChooser}
+        sentResults={sentResults}
         commandStates={commandStates}
         onChooseForgeProgram={handlers.onChooseForgeProgram}
         onDismissFailure={onDismissFailure}
@@ -79,12 +79,12 @@ export interface AddRepositoryDialogProps {
 
 export function AddRepositoryDialog({ forgeProgramIsMissing, onClose }: AddRepositoryDialogProps) {
   const { send, dismissFailure, states } = useCommandSender();
-  const { form, pathChooser, handlers } = useAddRepositoryForm(send, onClose);
+  const { form, sentResults, handlers } = useAddRepositoryForm(send, onClose);
   return (
     <AddRepositoryDialogLayout
       forgeProgramIsMissing={forgeProgramIsMissing}
       form={form}
-      pathChooser={pathChooser}
+      sentResults={sentResults}
       commandStates={states}
       handlers={handlers}
       onDismissFailure={dismissFailure}

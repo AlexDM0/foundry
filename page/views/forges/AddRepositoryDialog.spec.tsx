@@ -10,6 +10,7 @@ import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
 import type { CommandStates }                 from '../../api/CommandSender.ts';
+import { NOTHING_SENT }                       from '../../shared/add-repository/AddRepositoryFields.tsx';
 import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
 import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
 import { type HostElement, ReactElementTree } from '../../testing/ReactElementTree.ts';
@@ -35,7 +36,7 @@ function propsOf(forgeProgramIsMissing: boolean, commandStates: CommandStates, c
   return {
     forgeProgramIsMissing,
     form:        FILLED_FORM,
-    pathChooser: 'folder',
+    sentResults: NOTHING_SENT,
     commandStates,
     handlers:    {
       onFolderTyped:        () => undefined,
