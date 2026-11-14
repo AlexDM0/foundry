@@ -10,7 +10,7 @@
  * Flint's brain: each state the forge reports is worded for the bar, the time left counted down to the forge's `endsAt` and never ending
  * the brain by itself; it is absent under a monitor older than contract 3 and for a forge without Flint, both reported as `not-reported`;
  * its controls are served only by an Overseer that answers, at a control contract that carries them; a wake refused here shows in the
- * brain's group, not under the bar.
+ * brain's group, not under the bar, and only until the forge reports the brain waking or awake.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,9 +21,10 @@ import type {
   FleetDocumentForge,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import { HashRouter }        from '../../shell/HashRouter.ts';
-import { STOREFRONT_BRAINS } from '../../testing/fixtures/fleet-brain-states.ts';
-import { FLEET_DEGRADED }    from '../../testing/fixtures/fleet-degraded.ts';
+import type { CommandFailure } from '../../api/CommandSender.ts';
+import { HashRouter }          from '../../shell/HashRouter.ts';
+import { STOREFRONT_BRAINS }   from '../../testing/fixtures/fleet-brain-states.ts';
+import { FLEET_DEGRADED }      from '../../testing/fixtures/fleet-degraded.ts';
 import {
   FLEET_FIVE_FORGES,
   FLEET_FIVE_FORGES_READINGS,
@@ -388,6 +389,18 @@ describe('Flint\'s brain in the bar', () => {
       sentence:     'Gaia\'s server could not be reached.',
       tryAgain:     { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront },
     });
+  });
+
+  test('a wake refused here lasts only until the forge reports its brain waking or awake, so the forge\'s own later end shows', () => {
+    const wakeRefused = { kind: 'forge-brain-start', result: { verdict: 'server-unreachable' } } as const;
+    let failure: CommandFailure | null = wakeRefused;
+    const shownStates = (['off', 'running', 'ended'] as const).map((state) => {
+      const brain = brainOf(STOREFRONT_BRAINS[state]);
+      if (brain === null) throw new Error('The forge has no brain.');
+      if (ForgeFrameModel.brainWakeRefusalIsOutOfDate(brain, failure)) failure = null;
+      return ForgeFrameModel.brainShownAfter(brain, failure).state;
+    });
+    expect(shownStates).toEqual(['refused', 'running', 'ended']);
   });
 
   test('a wake refused here with no sentence is worded as the forge\'s own brain refusal of that code, never as a bare refusal', () => {

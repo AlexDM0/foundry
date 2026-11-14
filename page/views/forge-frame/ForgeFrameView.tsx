@@ -67,12 +67,16 @@ function shownOf(state: ForgeFrameState): FrameAreaShown {
 }
 
 function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
-  const { send, states } = useCommandSender();
+  const { send, dismissFailure, states } = useCommandSender();
   const [stopIsOpen, setStopIsOpen] = useState(false);
   const [stopAgents, setStopAgents] = useState<ForgeStopAgents>('keep');
   const commandState = CommandSender.stateOf(states, { trackerId: bar.trackerId });
   const commandIsOnItsWay = commandState.onItsWay !== null;
   const brainShown = bar.brain === null ? null : ForgeFrameModel.brainShownAfter(bar.brain, commandState.failure);
+  const wakeRefusalIsOutOfDate = ForgeFrameModel.brainWakeRefusalIsOutOfDate(bar.brain, commandState.failure);
+  useEffect(() => {
+    if (wakeRefusalIsOutOfDate) dismissFailure({ trackerId: bar.trackerId });
+  }, [wakeRefusalIsOutOfDate, dismissFailure, bar.trackerId]);
   const markWake = ForgeFrameModel.markWakeOf(bar.brain, brainShown);
   const wakeBrain = (): void => void send({ kind: 'forge-brain-start', trackerId: bar.trackerId });
   return (

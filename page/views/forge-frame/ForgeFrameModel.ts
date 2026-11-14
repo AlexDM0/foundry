@@ -407,6 +407,11 @@ function brainShownAfter(brain: BarBrain, failure: CommandFailure | null): BarBr
   return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure) };
 }
 
+/** A wake refused here is out of date once the forge reports its brain waking or awake, whichever route woke it, and is then dismissed. */
+function brainWakeRefusalIsOutOfDate(brain: BarBrain | null, failure: CommandFailure | null): boolean {
+  return brain !== null && failure?.kind === 'forge-brain-start' && !BRAIN_WAKES_FROM.has(brain.shown.state);
+}
+
 /** The forge mark's part in the brain (PLAN B2): a double click wakes it where Wake would; otherwise its title says how the brain is, if awake. */
 export interface BarMarkWake {
   readonly title:      string | null;
@@ -444,6 +449,7 @@ export const ForgeFrameModel = {
   forgeFrameContentOf,
   barRefusalOf,
   brainShownAfter,
+  brainWakeRefusalIsOutOfDate,
   markWakeOf,
   frameSessionRefusalTextOf,
   initialLeaveTarget,
