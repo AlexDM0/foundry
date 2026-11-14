@@ -177,7 +177,7 @@ describe('a callout\'s command', () => {
 });
 
 describe('forges Gaia cannot fully read (B3)', () => {
-  test('an unreachable forge has a banner under the top bar with its last stamp in mono and Look again', () => {
+  test('an unreachable forge has a banner atop the view with its last stamp in mono and Look again', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
     const inCallouts = new Set(tree.hostElementsIn(tree.hostElementsIn(unfolded, tree.withClass('gaia-callout'))));
     const banner = tree.onlyHostElementIn(unfolded, (element) => tree.hasClass(element, 'design-system-banner') && !inCallouts.has(element));

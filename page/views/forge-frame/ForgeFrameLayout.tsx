@@ -1,8 +1,8 @@
 /**
  * A forge in place laid out (SCREENS B1): the bar, with the forge's name, its condition and mono line, and its controls with Stop's question
- * as a popover under its button, a refusal under the bar,
- * and the frame area: "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, or why the forge cannot be shown
- * here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
+ * as a popover under its button; a refusal under the bar; and the frame area: "Opening <project>." until the Bridge is ready, the Bridge's
+ * frame, B3's callout, or why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec
+ * unfolds it whole.
  */
 import { Button }              from 'design-system/Button';
 import { ChoiceOption }        from 'design-system/ChoiceOption';

@@ -237,7 +237,6 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
   };
 }
 
-/** With no agent there is no forge or token to count, so the line says only that none works. */
 /** The page title's figures, over the job rows: the agents against the machine limit when one is known, their forges and their tokens. */
 function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   const agents = jobRowsOf(fleetDocument);
