@@ -17,6 +17,7 @@ import { HashRouter }                                                           
 import { ForgesLayout }                                                             from '../views/forges/ForgesLayout.tsx';
 import { ForgesModel, type StopDialogState }                                        from '../views/forges/ForgesModel.ts';
 import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';
+import { WhatNotifiesDialog }                                                       from '../views/forges/WhatNotifiesDialog.tsx';
 import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
 import { forgeFrameSurroundingsAt }                                                 from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
@@ -389,6 +390,10 @@ export function themesOf(screen: ArtboardScreen): readonly ScreenTheme[] {
  * inline in the page's order, the design system's fonts and stylesheet before Gaia's.
  */
 export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): string {
+  return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
+}
+
+function documentAround(title: string, theme: ScreenTheme, bodyMarkup: string): string {
   const stylesheetTexts = [
     DesignSystemStylesheet.fontFaceRules(),
     DesignSystemStylesheet.text(),
@@ -400,15 +405,60 @@ export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): st
     `<html lang="en" data-theme="${theme}" data-motion="ready">`,
     '<head>',
     '<meta charset="utf-8">',
-    `<title>${screen.artboard} ${screen.title}, ${theme}</title>`,
+    `<title>${title}</title>`,
     stylesheets,
     '</head>',
     '<body>',
-    `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`,
+    bodyMarkup,
     '</body>',
     '</html>',
     '',
   ].join('\n');
+}
+
+export interface WhatNotifiesScreen {
+  readonly artboard:      'C2';
+  readonly title:         string;
+  readonly designFile:    'Notifications.dc.html';
+  readonly fleetDocument: FleetDocument;
+}
+
+/** C2's checklist as the page builds it: the "What notifies" dialog over the Forges view it opens from, its kinds as the fixture's settings set them. */
+export const WHAT_NOTIFIES_SCREENS: readonly WhatNotifiesScreen[] = [
+  {
+    artboard:      'C2',
+    title:         'What notifies',
+    designFile:    'Notifications.dc.html',
+    fleetDocument: FLEET_FIVE_FORGES,
+  },
+];
+
+/** The dialog as the Forges view opens it, with every control live; a server render shows no dialog, which the page opens as a modal. */
+export function whatNotifiesMarkupOf(screen: WhatNotifiesScreen, theme: ScreenTheme): string {
+  const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
+  return renderToStaticMarkup(
+    <WhatNotifiesDialog
+      content={GaiaPanelModel.whatNotifiesOf(fleetDocument, { commandStates: NO_COMMAND_STATES, sentSettingsChange: null })}
+      handlers={{ onSettingsCheckbox: doNothing, onDismissFailure: doNothing }}
+      onClose={doNothing}
+    />,
+  );
+}
+
+/** The page shows a dialog with `showModal()`, which a server render cannot, so the document does it once loaded: top layer and scrim. */
+const SHOW_DIALOGS_SCRIPT = '<script>for (const dialog of document.querySelectorAll(\'dialog\')) dialog.showModal();</script>';
+
+/** The Forges view in the screen's theme, with the dialog shown over it as the page shows it. */
+export function whatNotifiesDocumentOf(screen: WhatNotifiesScreen, theme: ScreenTheme): string {
+  const forges = { ...screenOfArtboard('A4'), fleetDocument: screen.fleetDocument };
+  const bodyMarkup = `<div id="gaia-root">${screenMarkupOf(forges, theme)}${whatNotifiesMarkupOf(screen, theme)}</div>\n${SHOW_DIALOGS_SCRIPT}`;
+  return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, bodyMarkup);
+}
+
+function screenOfArtboard(artboard: PageArtboard): ArtboardScreen {
+  const screen = ARTBOARD_SCREENS.find((candidate) => candidate.artboard === artboard);
+  if (screen === undefined) throw new Error(`No screen paints artboard ${artboard}.`);
+  return screen;
 }
 
 /** The two steps C3's `step` tweak draws: the server starting, and the window about to open on Gaia's page. */

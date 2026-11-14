@@ -17,7 +17,7 @@ import { describe, expect, test } from 'bun:test';
 import { createElement }          from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import { GaiaMark } from './design-system/GaiaMark.tsx';
+import { GaiaMark }       from './design-system/GaiaMark.tsx';
 import {
   ARTBOARD_SCREENS,
   ARTBOARD_SIZE_PIXELS,
@@ -38,6 +38,9 @@ import {
   SPLASH_SIZE_PIXELS,
   splashScreenAddressOf,
   themesOf,
+  WHAT_NOTIFIES_SCREENS,
+  whatNotifiesDocumentOf,
+  whatNotifiesMarkupOf,
 } from './testing/ArtboardScreens.tsx';
 import { DesignSystemStylesheet } from './testing/DesignSystemStylesheet.ts';
 
@@ -139,6 +142,21 @@ describe('the screens of the visual pass', () => {
 });
 
 describe('each screen shows the state its artboard draws', () => {
+  test('C2: the "What notifies" dialog over Forges, five of its seven kinds on, shown as a modal in each theme with no colour of its own', () => {
+    for (const screen of WHAT_NOTIFIES_SCREENS) {
+      for (const theme of SCREEN_THEMES) {
+        const markup = whatNotifiesMarkupOf(screen, theme);
+        expect(markup).toContain('>5 of 7 on<');
+        expect(markup.match(/class="gaia-checkbox"/g)).toHaveLength(7);
+        for (const inlineStyle of inlineStylesOf(markup)) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
+        const screenDocument = whatNotifiesDocumentOf(screen, theme);
+        expect(screenDocument).toContain(`data-theme="${theme}"`);
+        expect(screenDocument).toContain('dialog.showModal()');
+        expect(pageTitleOf(screenDocument)).toEqual(['Forges']);
+      }
+    }
+  });
+
   test('A1 and C1: Attention lists the five entries of the artboard in its order, under the brand bar, beside the rail and under its page title', () => {
     for (const artboard of ['A1', 'C1'] as const) {
       const markup = screenMarkupOf(screenOf(artboard), 'light');

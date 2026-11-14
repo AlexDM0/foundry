@@ -977,8 +977,13 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forges-gaia-fact dt { color: var(--ink-muted); }
 .gaia-forges-gaia-fact dd { margin: 0; overflow-wrap: anywhere; }
-.gaia-forges-what-notifies-off { margin: 0 0 var(--sp-3); font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-forges-what-notifies-kinds { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* What notifies (C2): the count at the head's end, then the kinds in a card, a hairline between each two, each name in the strong weight */
+.gaia-forges-what-notifies-count { margin-left: auto; }
+.gaia-forges-what-notifies-off { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
+.gaia-forges-what-notifies-kinds .gaia-checkbox { gap: var(--space-10); padding: var(--sp-2) 0; }
+.gaia-forges-what-notifies-kinds .gaia-checkbox-label { font-weight: var(--weight-strong); }
+.gaia-forges-what-notifies-kinds .gaia-checkbox-explanation { line-height: var(--line-height-small); }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-forges-hidden-summary:focus-visible,
