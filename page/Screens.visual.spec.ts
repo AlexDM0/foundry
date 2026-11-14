@@ -321,7 +321,7 @@ describe('the restart an update left pending, over the artboard it changes', () 
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
     const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
-    const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held"')) ?? '';
+    const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held."')) ?? '';
     expect(heldLook).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span> Its Overseer runs the old code until it restarts.');
     expect(heldLook).toContain('>Restart</button>');
   });
@@ -358,7 +358,7 @@ describe('the warnings of monitor contract 2, over the artboard that shows each'
     const markup = screenMarkupOf(attention, 'dark');
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
-    expect(lookBlocks[0]).toContain('aria-label="Invoice Service: Baton pass failed"');
+    expect(lookBlocks[0]).toContain('aria-label="Invoice Service: Baton pass failed."');
     expect(lookBlocks[0]).toContain(BATON_PASS_FAILED_SENTENCE);
     expect(lookBlocks[0]).toContain('>Open</a>');
     expect(lookBlocks).toHaveLength(3);

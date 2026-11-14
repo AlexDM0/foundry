@@ -90,7 +90,7 @@ export interface LookCallout {
 export interface RunningJob {
   readonly jobId:    string;
   readonly role:     DotRole;
-  /** The job's role as its forge names it, else its kind: `builder`, `reviewer`. */
+  /** The job's role as its forge names it, else its kind: `builder`, `reviewer`; `asks` while it waits on User's decision. */
   readonly roleWord: string;
 }
 
@@ -177,6 +177,7 @@ const HEAD_SEPARATOR = ' · ';
 const META_SEPARATOR = ' · ';
 const RECENT_ENTRIES_SHOWN = 4;
 const COUNTS_ONLY_WORD = 'counts only';
+const ASKS_WORD = 'asks';
 
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
@@ -236,7 +237,10 @@ function metaTextOf(item: FleetDocumentFleetAttentionItem, forge: FleetDocumentF
     ].filter((part) => part !== null).join(META_SEPARATOR);
   }
   const age = StampTextUtil.ageTextOf(item.stamp, clock.nowEpochMilliseconds);
-  return [item.metaText ?? item.decisionKind, age === null ? null : `${item.stampWord} ${age}`].filter((part) => part !== null).join(META_SEPARATOR);
+  const lead = item.metaText ?? item.decisionKind;
+  const leadNamesTheStampWord = lead !== null && lead.split(' ')[0] === item.stampWord;
+  const ageText = age === null || leadNamesTheStampWord ? age : `${item.stampWord} ${age}`;
+  return [lead, ageText].filter((part) => part !== null).join(META_SEPARATOR);
 }
 
 /** The fleet's own order, which the server sorts; only the first row whose button can act is primary. */
@@ -306,10 +310,7 @@ function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
   return {
     tone:    'error' as const,
     ...ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock)),
-    actions: [
-      commandAction('Look again', 'quiet', { kind: 'fleet-look-again' }),
-      linkAction('Stop', HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId })),
-    ],
+    actions: [commandAction('Look again', 'quiet', { kind: 'fleet-look-again' })],
   };
 }
 
@@ -383,7 +384,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
           ? 'This forge is not running.'
           : `This forge is not running. ${CountTextUtil.countedPhrase(forge.readyTicketCount, 'ticket is', 'tickets are')} ready and nothing drives them.`,
         machineLine: forge.lastCommand === null ? null : `last command: ${forge.lastCommand}`,
-        actions:     [commandAction('Start forge', 'primary', { kind: 'forge-start', trackerId })],
+        actions:     [commandAction('Start forge', 'quiet', { kind: 'forge-start', trackerId })],
       };
     case 'machine-limit-reached':
       return null;
@@ -415,10 +416,19 @@ function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, F
   });
 }
 
+/** A job that waits on a decision asks User, so its chip is drawn as what needs User and named for that, not for its role. */
 function jobRoleOf(role: string | null, waitingOnDecisionId: string | null): DotRole {
-  if (waitingOnDecisionId !== null) return 'waiting';
+  if (waitingOnDecisionId !== null) return 'needs-user';
   if (role === 'builder' || role === 'reviewer') return role;
   return 'forge';
+}
+
+function runningJobOf(row: FleetDocumentForge['agents'][number]): RunningJob {
+  return {
+    jobId:    row.jobId,
+    role:     jobRoleOf(row.role, row.waitingOnDecisionId),
+    roleWord: row.waitingOnDecisionId === null ? row.role ?? row.kind : ASKS_WORD,
+  };
 }
 
 /**
@@ -457,7 +467,7 @@ function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReadi
       conditionWord: runningConditionWordOf(forge, clock),
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
       slotsText:     slotsTextOf(forge),
-      jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), roleWord: row.role ?? row.kind })),
+      jobs:          forge.agents.map(runningJobOf),
       waitingText:   waitingCount === 0 ? null : CountTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
       isStale:       forge.fidelity === 'unreachable',
       brain:         runningBrainLineOf(forge, clock),
@@ -488,10 +498,10 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
       return 'Everything, live.';
     case 'unreachable': {
       const lastReported = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
-      return `Nothing since ${lastReported ?? 'it stopped answering'}. Its rows are shown as last reported and their actions are off.`;
+      return `Nothing since ${lastReported ?? 'it stopped answering'}. Its rows show as last reported.`;
     }
     case 'counts-only':
-      return 'Counts and jobs only. No questions, reviews or notices by name.';
+      return 'Counts and jobs only. No questions or reviews by name.';
     case 'newer-contract':
       return 'Nothing. Its contract is newer than this Gaia.';
     case 'dormant':

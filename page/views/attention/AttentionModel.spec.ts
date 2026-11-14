@@ -67,11 +67,17 @@ describe('what waits on User (A1)', () => {
     expect(waitingHead).toBe('Waiting on you · 5');
     expect(rows.map((row) => [row.project, row.kindText, row.kindTone, row.idText, row.subject, row.metaText, row.actionLabel])).toEqual([
       ['Invoice Service', 'Escalated', 'warn', 'E4', 'The VAT gate cannot run in the sandbox. Allow network for it?', 'from incident I2 · opened 21m', 'Answer'],
-      ['Example Storefront', 'Draft', 'warn', '#015', 'Search suggestions', 'filed by intake · filed 2h 04m', 'Ready'],
+      ['Example Storefront', 'Draft', 'warn', '#015', 'Search suggestions', 'filed by intake · 2h 04m', 'Ready'],
       ['Research Wiki', 'Question', 'warn', 'E1', 'Two gates are proposed for this repository. Accept them?', 'pipeline-proposal · opened 26m', 'Answer'],
       ['Invoice Service', 'Accept', 'pass', '#031', 'Round VAT per line, not per invoice', 'merges clean into main · reviewed 12m', 'Accept'],
       ['Example Storefront', 'Question', 'warn', 'E2', 'How long should a password reset link stay valid?', 'asked by J3 builder · opened 4m', 'Answer'],
     ]);
+  });
+
+  test('a meta line that already opens with the stamp\'s word prints the age alone after it, and any other prints the word before the age', () => {
+    const metaTexts = fleetContentOf(FLEET_FIVE_FORGES).rows.map((row) => row.metaText);
+    expect(metaTexts.filter((metaText) => metaText.startsWith('filed '))).toEqual(['filed by intake · 2h 04m']);
+    expect(metaTexts.filter((metaText) => !metaText.startsWith('filed ')).every((metaText) => /· (opened|reviewed) \d/.test(metaText))).toBe(true);
   });
 
   test('each row shows its forge\'s dot and condition word, and only the first row\'s button is primary', () => {
@@ -90,7 +96,7 @@ describe('what waits on User (A1)', () => {
     const atTheArtboard = fleetContentOf(FLEET_FIVE_FORGES).rows;
     const later = fleetContentOf(FLEET_FIVE_FORGES, anHourLater).rows;
     expect(later.map((row) => row.key)).toEqual(atTheArtboard.map((row) => row.key));
-    expect(later.map((row) => row.metaText.split(' · ').at(-1))).toEqual(['opened 1h 21m', 'filed 3h 04m', 'opened 1h 26m', 'reviewed 1h 12m', 'opened 1h 04m']);
+    expect(later.map((row) => row.metaText.split(' · ').at(-1))).toEqual(['opened 1h 21m', '3h 04m', 'opened 1h 26m', 'reviewed 1h 12m', 'opened 1h 04m']);
     const reversed = { ...FLEET_FIVE_FORGES, attention: [...FLEET_FIVE_FORGES.attention].reverse() };
     expect(fleetContentOf(reversed).rows.map((row) => row.idText)).toEqual(['E2', '#031', 'E1', '#015', 'E4']);
   });
@@ -165,7 +171,7 @@ describe('the forges that need a look', () => {
     expect([dormant.tone, dormant.condition, dormant.word, dormant.sentence, dormant.machineLine]).toEqual([
       'neutral', 'dormant', 'Dormant', 'This forge is not running. 3 tickets are ready and nothing drives them.', 'last command: Stop forge',
     ]);
-    expect(actionsOf(dormant)).toEqual([['Start forge', 'primary', { kind: 'forge-start', trackerId: TRACKER_IDS.designSystem }, true]]);
+    expect(actionsOf(dormant)).toEqual([['Start forge', 'quiet', { kind: 'forge-start', trackerId: TRACKER_IDS.designSystem }, true]]);
   });
 
   test('the machine at its limit is never a forge\'s callout here', () => {
@@ -203,7 +209,7 @@ describe('the forges that need a look', () => {
 });
 
 describe('the running forges and what just happened', () => {
-  test('one card per forge that runs agents, a waiting job slate, and what waits on User', () => {
+  test('one card per forge that runs agents, a job that waits on a decision drawn as asking User, and what waits on User', () => {
     const { running, runningHead } = fleetContentOf(FLEET_FIVE_FORGES);
     expect(runningHead).toBe('Running · 4');
     expect(running.map((card) => [card.project, card.conditionWord, card.slotsText, card.waitingText, card.href])).toEqual([
@@ -214,7 +220,7 @@ describe('the running forges and what just happened', () => {
     ]);
     expect(running[0]?.jobs).toEqual([
       { jobId: 'J2', role: 'builder', roleWord: 'builder' },
-      { jobId: 'J3', role: 'waiting', roleWord: 'builder' },
+      { jobId: 'J3', role: 'needs-user', roleWord: 'asks' },
       { jobId: 'J4', role: 'builder', roleWord: 'builder' },
       { jobId: 'J6', role: 'reviewer', roleWord: 'reviewer' },
     ]);
@@ -303,7 +309,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const { rows } = fleetContentOf(FLEET_DEGRADED);
     expect(rows.map((row) => [row.idText, row.isStale, row.isPrimary, row.metaText])).toEqual([
       ['E4', true, false, 'as last reported 13:14 · opened 12:58'],
-      ['#015', false, true, 'filed by intake · filed 2h 04m'],
+      ['#015', false, true, 'filed by intake · 2h 04m'],
       ['#031', true, false, 'as last reported 13:14 · reviewed 13:07'],
       ['E2', false, false, 'asked by J3 builder · opened 4m'],
     ]);
@@ -329,10 +335,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect([unreachable.tone, unreachable.condition, unreachable.word, unreachable.machineLine]).toEqual([
       'error', 'unreachable', 'Unreachable', '127.0.0.1:4957 · process 48211 · last answer 13:14',
     ]);
-    expect(actionsOf(unreachable)).toEqual([
-      ['Look again', 'quiet', { kind: 'fleet-look-again' }, true],
-      ['Stop', 'quiet', `#forges?forge=${TRACKER_IDS.invoiceService}`],
-    ]);
+    expect(actionsOf(unreachable)).toEqual([['Look again', 'quiet', { kind: 'fleet-look-again' }, true]]);
   });
 
   test('a counts-only forge is a dashed callout with its counts, and a newer one a warn callout with its contract numbers', () => {
@@ -364,8 +367,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, reading.contractText, reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
       ['Example Storefront', 'monitor 3', 'Everything, live.', false],
-      ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows are shown as last reported and their actions are off.', true],
-      ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions, reviews or notices by name.', true],
+      ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows show as last reported.', true],
+      ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions or reviews by name.', true],
       ['Example Mobile App', 'monitor 3', 'Everything, live.', false],
       ['Analytics Sandbox', 'monitor 4', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
@@ -384,7 +387,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(content.banners).toEqual([]);
     expect(content.rows.map((row) => [row.idText, row.isStale, row.isPrimary, row.metaText])).toEqual([
       ['E4', false, true, 'from incident I2 · opened 21m'],
-      ['#015', false, false, 'filed by intake · filed 2h 04m'],
+      ['#015', false, false, 'filed by intake · 2h 04m'],
       ['#031', false, false, 'merges clean into main · reviewed 12m'],
       ['E2', false, false, 'asked by J3 builder · opened 4m'],
     ]);

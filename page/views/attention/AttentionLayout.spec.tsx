@@ -233,11 +233,13 @@ describe('forges Gaia cannot fully read (B3)', () => {
       .toEqual(['Invoice Service', 'Research Wiki', 'Analytics Sandbox']);
     expect(marked.map((reading) => tree.textOf([tree.onlyWithClass([reading], 'gaia-attention-reading-text')])))
       .toEqual([
-        'Nothing since 13:14. Its rows are shown as last reported and their actions are off. The totals cannot vouch for it.',
-        'Counts and jobs only. No questions, reviews or notices by name. The totals cannot vouch for it.',
+        'Nothing since 13:14. Its rows show as last reported. The totals cannot vouch for it.',
+        'Counts and jobs only. No questions or reviews by name. The totals cannot vouch for it.',
         'Nothing. Its contract is newer than this Gaia. The totals cannot vouch for it.',
       ]);
-    expect(tree.hostElementsIn(readings, tree.withClass('gaia-attention-reading-totals'))).toHaveLength(3);
+    expect(tree.hostElementsIn(readings, tree.withClass('gaia-visually-hidden'))).toHaveLength(3);
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-note')]))
+      .toBe('Gaia never guesses a count. The totals leave out the 3 forges it cannot read in full.');
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-attention-readings'))).toEqual([]);
   });
 
@@ -266,13 +268,18 @@ describe('forges Gaia cannot fully read (B3)', () => {
       .map((waiting) => tree.textOf([waiting])))).toEqual([['2 wait on you'], [], ['1 waits on you'], []]);
   });
 
+  test('each look carries its kind, so a held forge\'s agents line can be set as a sentence and not as a machine value', () => {
+    const looks = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-attention-look'));
+    expect(looks.map((look) => look.props['data-look-kind'])).toEqual(['unreachable', 'counts-only', 'launches-held', 'newer-contract']);
+  });
+
   test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {
     const callouts = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-callout'));
     expect(callouts.map((callout) => [callout.props['aria-label'], tree.onlyWithClass([callout], 'gaia-callout-body').props['data-tone']])).toEqual([
-      ['Invoice Service: Unreachable', 'error'],
+      ['Invoice Service: Unreachable.', 'error'],
       ['Research Wiki: Counts only', 'neutral'],
-      ['Example Mobile App: Launches held', 'warn'],
-      ['Analytics Sandbox: Newer than this Gaia', 'warn'],
+      ['Example Mobile App: Launches held.', 'warn'],
+      ['Analytics Sandbox: Newer than this Gaia.', 'warn'],
     ]);
     const newer = callouts[3];
     expect(newer === undefined ? null : DrawnDots.conditionOf(tree.onlyHostElementIn([newer], DrawnDots.isDot))).toBe('unreadable|missing');
@@ -290,7 +297,7 @@ describe('the side of the view', () => {
       ['a', `#forge/${TRACKER_IDS.exampleMobileApp}`],
     ]);
     const firstJobs = cards[0] === undefined ? [] : tree.hostElementsIn(tree.hostElementsIn([cards[0]], tree.withClass('gaia-attention-running-job')), DrawnDots.isDot);
-    expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
+    expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'needs-user', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
     expect(tree.onlyWithClass(unfolded, 'design-system-link-button').props['href']).toBe('#activity');
   });

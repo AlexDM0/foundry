@@ -29,6 +29,7 @@ import { Refusal }                                                from '../../de
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                                          from '../../shared/utils/CountTextUtil.ts';
 import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
@@ -203,14 +204,19 @@ function LookPendingRestart({ look, ...handlers }: { readonly look: LookCallout 
   );
 }
 
+/** A warn or error callout's word is a sentence of its own, "Launches held."; a neutral one's is a pill, "Dormant". */
+function calloutWordOf(look: LookCallout): string {
+  return look.tone === 'neutral' ? look.word : `${look.word}.`;
+}
+
 function LookBlock({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
   return (
-    <div className="gaia-attention-look">
+    <div className="gaia-attention-look" data-look-kind={look.lookKind}>
       <Callout
         tone={look.tone}
         dot={<ConditionDot condition={look.condition} />}
         title={look.project}
-        word={look.word}
+        word={calloutWordOf(look)}
         sentence={look.sentence}
         {...(look.machineLine === null ? {} : { machineLine: look.machineLine })}
         actions={<>{look.actions.map((action) => <LookActionButton key={action.label} action={action} {...handlers} />)}</>}
@@ -237,6 +243,11 @@ function Figures({ content }: { readonly content: AttentionContent }) {
   );
 }
 
+function readingsNoteOf(readings: readonly ForgeReadingLine[]): string {
+  const leftOut = readings.filter((reading) => reading.totalsCannotVouchForIt).length;
+  return `Gaia never guesses a count. The totals leave out the ${CountTextUtil.countedPhrase(leftOut, 'forge', 'forges')} it cannot read in full.`;
+}
+
 function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
   return (
     <section className="gaia-attention-section" aria-label={READINGS_HEAD}>
@@ -251,12 +262,12 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
             <span className="gaia-attention-reading-contract">{reading.contractText}</span>
             <span className="gaia-attention-reading-text">
               {reading.readingText}
-              {reading.totalsCannotVouchForIt ? <>{' '}<span className="gaia-attention-reading-totals">The totals cannot vouch for it.</span></> : null}
+              {reading.totalsCannotVouchForIt ? <span className="gaia-visually-hidden">{' The totals cannot vouch for it.'}</span> : null}
             </span>
           </li>
         ))}
       </ul>
-      <p className="gaia-attention-note">Gaia never guesses a count. A forge it cannot read in full is named here, and the totals do not vouch for it.</p>
+      <p className="gaia-attention-note">{readingsNoteOf(readings)}</p>
     </section>
   );
 }

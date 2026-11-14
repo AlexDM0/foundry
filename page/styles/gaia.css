@@ -1180,6 +1180,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 /* Forges that need a look: a callout, and the refusal of its command under it; an incomplete forge's word is a quiet pill */
 .gaia-attention-look { display: flex; flex-direction: column; gap: var(--sp-2); }
+.gaia-attention-look .gaia-callout-body { gap: var(--space-4); }
+/* A held forge's third line counts agents, a sentence and no machine value, so it is set in the callout's own face. */
+.gaia-attention-look[data-look-kind="launches-held"] .gaia-callout-machine-line { font-family: inherit; font-size: var(--fs-small); }
 .gaia-attention-look .gaia-callout-body[data-tone="neutral"] .gaia-callout-word {
   padding: 0 var(--sp-2);
   border-radius: var(--r-pill);
@@ -1203,7 +1206,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--sp-3);
-  padding: var(--sp-2) var(--space-14);
+  padding: var(--space-6) var(--space-14);
   border-bottom: var(--hairline) solid var(--line);
 }
 .gaia-attention-reading:last-child { border-bottom: 0; }
@@ -1211,7 +1214,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-reading-forge { font-weight: var(--weight-strong); }
 .gaia-attention-reading-contract { font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-attention-reading-text { grid-column: 1 / -1; font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-attention-reading-totals { color: var(--ink); }
 
 /* Running forges: each card a link to the forge in place, with the hover ring; compact, its waiting line moves into its head */
 .gaia-attention-running-card {
@@ -1226,7 +1228,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   text-decoration: none;
   transition: var(--feedback-transition);
 }
-.gaia-attention-running-card[data-form="compact"] { gap: var(--sp-1); padding: var(--sp-2) var(--space-14); }
+.gaia-attention-running-card[data-form="compact"] { gap: var(--space-6); padding: var(--space-10) var(--space-14); }
+.gaia-attention-running-card[data-form="compact"] .gaia-attention-running-jobs { column-gap: var(--space-8); }
 .gaia-attention-running-card:hover { box-shadow: 0 0 0 var(--focus-ring-width) var(--shadow-card-lift); }
 .gaia-attention-running-card[data-stale] .gaia-attention-running-jobs { opacity: var(--stale-opacity); }
 .gaia-attention-running-head { display: flex; align-items: center; gap: var(--sp-2); }
@@ -1235,7 +1238,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-running-condition[data-condition="held"] { color: var(--link); }
 .gaia-attention-running-condition[data-condition="unreachable"] { color: var(--err-ink); }
 .gaia-attention-running-slots { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
-.gaia-attention-running-jobs { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--space-14); transition: opacity var(--motion-slow) var(--ease-out); }
+.gaia-attention-running-jobs { display: flex; flex-wrap: wrap; gap: var(--space-10); transition: opacity var(--motion-slow) var(--ease-out); }
 .gaia-attention-running-job {
   display: inline-flex;
   align-items: center;
@@ -1245,7 +1248,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   line-height: var(--line-height-micro);
 }
 .gaia-attention-running-job-role { font-weight: var(--weight-strong); letter-spacing: var(--letter-spacing-micro); text-transform: uppercase; color: var(--ink-muted); }
-.gaia-attention-running-job[data-role="builder"] .gaia-attention-running-job-role { color: var(--link); }
+.gaia-attention-running-job[data-role="builder"] .gaia-attention-running-job-role,
+.gaia-attention-running-job[data-role="needs-user"] .gaia-attention-running-job-role { color: var(--link); }
 .gaia-attention-running-job[data-role="reviewer"] .gaia-attention-running-job-role { color: var(--info-ink); }
 .gaia-attention-running-waiting { font-size: var(--fs-small); font-weight: var(--weight-strong); color: var(--link); white-space: nowrap; }
 .gaia-attention-running-brain {
@@ -1311,6 +1315,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-attention-no-forge-program { font-family: var(--font-mono); color: var(--ink); }
 .gaia-attention-no-forge-elsewhere { margin: 0 0 0 auto; }
+.gaia-attention-no-forge .gaia-add-repository-program-missing-why { font-size: var(--fs-small); }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-attention-running-card:focus-visible {
