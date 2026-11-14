@@ -19,22 +19,19 @@ import type {
 import type { CalloutTone }     from '../../design-system/Callout.tsx';
 import type { DotCondition }    from '../../design-system/ConditionDot.tsx';
 import type { DotRole }         from '../../design-system/RoleDot.tsx';
+import type { ClockReading }    from '../../shared/@types/ClockReading.ts';
+import { HashRouter }           from '../../shared/HashRouter.ts';
 import { AddRepositoryForm }    from '../../shared/add-repository/AddRepositoryForm.ts';
+import { CountTextUtil }        from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }    from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeCommandTextUtil } from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }    from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }        from '../../shared/utils/ForgeTextUtil.ts';
 import { PathTextUtil }         from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }        from '../../shared/utils/StampTextUtil.ts';
-import { HashRouter }           from '../../shell/HashRouter.ts';
-
-/** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
 
 /** The one drawn shape a look's button carries. */
 export type LookActionIcon = 'open-in-new-tab';
-export interface ClockReading {
-  readonly nowEpochMilliseconds: number;
-  readonly timeZone:             string | undefined;
-}
 
 export interface AttentionFigure {
   readonly value:     string;
@@ -180,9 +177,6 @@ const HEAD_SEPARATOR = ' · ';
 const META_SEPARATOR = ' · ';
 const RECENT_ENTRIES_SHOWN = 4;
 const COUNTS_ONLY_WORD = 'counts only';
-const THOUSAND = 1_000;
-const MILLION = 1_000_000;
-const COMPACT_SIGNIFICANT_DIGITS = 3;
 
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
@@ -196,10 +190,6 @@ const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
 const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 const NEW_CODE_NOTICE_KIND = 'new-code';
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
@@ -207,18 +197,6 @@ function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
 
 function forgeInPlaceHrefOf(trackerId: string, bridgeFragment: string | null): string {
   return HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment });
-}
-
-function clockTextOf(stamp: string | null, clock: ClockReading): string | null {
-  return stamp === null ? null : StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone);
-}
-
-/** The significant digits of a count, so a figure stays short: `1.24M`, `512k`, `840`. */
-function compactCountOf(count: number): string {
-  const thousands = Number((count / THOUSAND).toPrecision(COMPACT_SIGNIFICANT_DIGITS));
-  if (count < THOUSAND) return String(count);
-  if (thousands < THOUSAND) return `${thousands}k`;
-  return `${Number((count / MILLION).toPrecision(COMPACT_SIGNIFICANT_DIGITS))}M`;
 }
 
 /** The document sums today over the forges that report it, so with none reporting, its zero is not a count. */
@@ -233,7 +211,7 @@ function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   const todayFigures: AttentionFigure[] = aForgeReportsToday(fleetDocument)
     ? [
       { value: String(deliveredToday), label: 'done today', attention: false },
-      { value: compactCountOf(tokensToday), label: 'tokens today', attention: false },
+      { value: CountTextUtil.shortCountTextOf(tokensToday), label: 'tokens today', attention: false },
     ]
     : [];
   return [
@@ -250,8 +228,8 @@ function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
 /** A row read as last reported keeps the stamp as a clock time, since an age would keep growing past what Gaia knows. */
 function metaTextOf(item: FleetDocumentFleetAttentionItem, forge: FleetDocumentForge, isStale: boolean, clock: ClockReading): string {
   if (isStale) {
-    const lastReported = clockTextOf(forge.lastReportedAt, clock);
-    const stampClock = clockTextOf(item.stamp, clock);
+    const lastReported = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
+    const stampClock = StampTextUtil.clockTextAtReadingOf(item.stamp, clock);
     return [
       lastReported === null ? 'as last reported' : `as last reported ${lastReported}`,
       stampClock === null ? null : `${item.stampWord} ${stampClock}`,
@@ -327,7 +305,7 @@ function forgeTextOf(entries: readonly { readonly kind: string; readonly text: s
 function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
   return {
     tone:    'error' as const,
-    ...ForgeTextUtil.unreachableCalloutTextOf(forge, clockTextOf(forge.lastReportedAt, clock)),
+    ...ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock)),
     actions: [
       commandAction('Look again', 'quiet', { kind: 'fleet-look-again' }),
       linkAction('Stop', HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId })),
@@ -350,8 +328,8 @@ function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
 
 function countsOnlySentenceOf(forge: FleetDocumentForge): string {
   const known = [
-    forge.attentionCount === null ? null : countedPhrase(forge.attentionCount, 'entry waits on you', 'entries wait on you'),
-    countedPhrase(forge.agents.length, 'agent runs', 'agents run'),
+    forge.attentionCount === null ? null : CountTextUtil.countedPhrase(forge.attentionCount, 'entry waits on you', 'entries wait on you'),
+    CountTextUtil.countedPhrase(forge.agents.length, 'agent runs', 'agents run'),
   ].filter((part) => part !== null).join(', ');
   return `This forge is older than the monitor contract. Gaia reads its summary: ${known}. Open it to see what waits.`;
 }
@@ -377,7 +355,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
         tone:        'warn' as const,
         word:        'Launches held',
         sentence:    'The install version changed. Nothing launches until this forge is updated.',
-        machineLine: agentsRunning === 0 ? null : `${countedPhrase(agentsRunning, 'agent keeps', 'agents keep')} running through the update`,
+        machineLine: agentsRunning === 0 ? null : `${CountTextUtil.countedPhrase(agentsRunning, 'agent keeps', 'agents keep')} running through the update`,
         actions:     [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId }), linkAction('Open', forgeInPlaceHrefOf(trackerId, null))],
       };
     }
@@ -403,7 +381,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
         word:     'Dormant',
         sentence: forge.readyTicketCount === null
           ? 'This forge is not running.'
-          : `This forge is not running. ${countedPhrase(forge.readyTicketCount, 'ticket is', 'tickets are')} ready and nothing drives them.`,
+          : `This forge is not running. ${CountTextUtil.countedPhrase(forge.readyTicketCount, 'ticket is', 'tickets are')} ready and nothing drives them.`,
         machineLine: forge.lastCommand === null ? null : `last command: ${forge.lastCommand}`,
         actions:     [commandAction('Start forge', 'primary', { kind: 'forge-start', trackerId })],
       };
@@ -437,10 +415,6 @@ function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, F
   });
 }
 
-function waitingCountOf(forge: FleetDocumentForge): number {
-  return forge.fidelity === 'counts-only' ? forge.attentionCount ?? 0 : forge.attention.length;
-}
-
 function jobRoleOf(role: string | null, waitingOnDecisionId: string | null): DotRole {
   if (waitingOnDecisionId !== null) return 'waiting';
   if (role === 'builder' || role === 'reviewer') return role;
@@ -453,14 +427,14 @@ function jobRoleOf(role: string | null, waitingOnDecisionId: string | null): Dot
  */
 function runningConditionWordOf(forge: FleetDocumentForge, clock: ClockReading): string {
   if (forge.fidelity === 'counts-only') return COUNTS_ONLY_WORD;
-  const lastReported = forge.fidelity === 'unreachable' ? clockTextOf(forge.lastReportedAt, clock) : null;
+  const lastReported = forge.fidelity === 'unreachable' ? StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock) : null;
   return lastReported === null ? ForgeTextUtil.conditionWordOf(forge.condition) : `as last reported ${lastReported}`;
 }
 
 /** Its slots against its limit, or, for a forge that reports no limit, its agents alone. */
 function slotsTextOf(forge: FleetDocumentForge): string {
   return forge.concurrency === null
-    ? countedPhrase(forge.agents.length, 'agent', 'agents')
+    ? CountTextUtil.countedPhrase(forge.agents.length, 'agent', 'agents')
     : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`;
 }
 
@@ -475,7 +449,7 @@ function runningBrainLineOf(forge: FleetDocumentForge, clock: ClockReading): Run
 /** A card is for a forge that runs agents: a brain running in a forge with no job has none (SCREENS A1). */
 function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReading): RunningCard[] {
   return forges.filter((forge) => forge.agents.length > 0).map((forge) => {
-    const waitingCount = waitingCountOf(forge);
+    const waitingCount = FleetDocumentUtil.waitingCountOf(forge) ?? 0;
     return {
       trackerId:     forge.trackerId,
       project:       forge.project,
@@ -484,7 +458,7 @@ function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReadi
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
       slotsText:     slotsTextOf(forge),
       jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), roleWord: row.role ?? row.kind })),
-      waitingText:   waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
+      waitingText:   waitingCount === 0 ? null : CountTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
       isStale:       forge.fidelity === 'unreachable',
       brain:         runningBrainLineOf(forge, clock),
     };
@@ -496,7 +470,7 @@ function recentOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, 
   const entries = fleetDocument.activity.filter((entry) => entry.kind !== 'flint-brain');
   return entries.slice(0, RECENT_ENTRIES_SHOWN).map((entry) => ({
     key:       `${entry.trackerId}/${entry.logPosition}`,
-    clockText: clockTextOf(entry.at, clock),
+    clockText: StampTextUtil.clockTextAtReadingOf(entry.at, clock),
     project:   forgesById.get(entry.trackerId)?.project ?? entry.trackerId,
     text:      entry.text,
   }));
@@ -513,7 +487,7 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
     case 'full':
       return 'Everything, live.';
     case 'unreachable': {
-      const lastReported = clockTextOf(forge.lastReportedAt, clock);
+      const lastReported = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
       return `Nothing since ${lastReported ?? 'it stopped answering'}. Its rows are shown as last reported and their actions are off.`;
     }
     case 'counts-only':
@@ -552,7 +526,7 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
     banners: forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => ({
       trackerId:         forge.trackerId,
       project:           forge.project,
-      lastReportedClock: clockTextOf(forge.lastReportedAt, clock),
+      lastReportedClock: StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock),
     })),
     figures:     figuresOf(fleetDocument),
     figuresForm: morePossible ? 'line' : 'row',
@@ -599,5 +573,4 @@ export const AttentionModel = {
   noForgeIsRegisteredIn,
   screenOf,
   titleFiguresOf,
-  compactCountOf,
 } as const;

@@ -6,13 +6,9 @@ import { CountBadge }     from 'design-system/CountBadge';
 import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
 import { SlotMeter }      from 'design-system/SlotMeter';
 
-import { ConditionDot } from '../design-system/ConditionDot.tsx';
-import type {
-  RailContent,
-  RailCount,
-  RailCountMark,
-  RailMachine
-} from './RailModel.ts';
+import { ConditionDot }                               from '../design-system/ConditionDot.tsx';
+import type { MachineLoad }                           from '../shared/MachineLoadModel.ts';
+import type { RailContent, RailCount, RailCountMark } from './RailModel.ts';
 
 const MACHINE_HREF = '#forges';
 const FORGES_HEAD_ID = 'gaia-rail-forges-head';
@@ -33,7 +29,7 @@ function RailCountBadge({ count }: { readonly count: RailCount | null }) {
   );
 }
 
-function RailMachineLink({ machine }: { readonly machine: RailMachine }) {
+function RailMachineLink({ machine }: { readonly machine: MachineLoad }) {
   return (
     <a className="gaia-rail-machine" href={MACHINE_HREF} data-at-the-limit={machine.isAtTheLimit ? '' : undefined}>
       <MicroCapsLabel text="This machine" />

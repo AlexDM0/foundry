@@ -17,21 +17,18 @@ import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '
 import { CommandSender, type CommandStates }                              from '../../api/CommandSender.ts';
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
 import type { PageFigure }                                                from '../../design-system/PageTitle.tsx';
+import type { ClockReading }                                              from '../../shared/@types/ClockReading.ts';
+import { HashRouter }                                                     from '../../shared/HashRouter.ts';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { CommandFailureTextUtil, type RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                                                  from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                                              from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                                              from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
 import { PathTextUtil }                                                   from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }                                                  from '../../shared/utils/StampTextUtil.ts';
-import { HashRouter }                                                     from '../../shell/HashRouter.ts';
 import { AGENT_LIMITS }                                                   from './constants/AgentLimits.ts';
-
-/** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
-export interface ClockReading {
-  readonly nowEpochMilliseconds: number;
-  readonly timeZone:             string | undefined;
-}
 
 /** The Stop dialog open under one row, and the choice it holds. */
 export interface StopDialogState {
@@ -247,14 +244,6 @@ const NOTICE_KIND_OF_ASSISTANT_DOWN = 'assistant-down';
 
 const HELD_SENTENCE_WITHOUT_NOTICE = 'Its install version changed. Nothing launches until this forge is updated.';
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
-function clockTextOf(stamp: string | null, clock: ClockReading): string | null {
-  return stamp === null ? null : StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone);
-}
-
 function hiddenTrackerIdsOf(fleetDocument: FleetDocument): ReadonlySet<string> {
   return new Set(fleetDocument.settings.hiddenTrackerIds);
 }
@@ -371,22 +360,23 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: FleetDocumentCo
     case 'live':
     case 'held':
     case 'passing-baton': {
-      const startedClock = clockTextOf(forge.overseerStartedAt, clock);
+      const startedClock = StampTextUtil.clockTextAtReadingOf(forge.overseerStartedAt, clock);
       return startedClock === null ? null : `since ${startedClock}`;
     }
     case 'paused': {
       const finishing = agentsInFlightOf(forge);
-      return [finishing === 0 ? null : countedPhrase(finishing, 'agent finishing', 'agents finishing'), 'starts no new job'].filter((part) => part !== null).join(DETAIL_SEPARATOR);
+      const finishingPhrase = finishing === 0 ? null : CountTextUtil.countedPhrase(finishing, 'agent finishing', 'agents finishing');
+      return [finishingPhrase, 'starts no new job'].filter((part) => part !== null).join(DETAIL_SEPARATOR);
     }
     case 'starting':
       return `forge start${DETAIL_SEPARATOR}waiting for its API`;
     case 'dormant': {
       if (rowSurroundings.forgeProgramIsMissing) return 'the forge program was not found';
-      const stoppedClock = clockTextOf(forge.lastChangedAt, clock);
+      const stoppedClock = StampTextUtil.clockTextAtReadingOf(forge.lastChangedAt, clock);
       return stoppedClock === null ? null : `stopped ${stoppedClock}`;
     }
     case 'unreachable': {
-      const lastReported = clockTextOf(forge.lastReportedAt, clock);
+      const lastReported = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
       return lastReported === null ? 'stopped answering' : `as last reported ${lastReported}`;
     }
     case 'unreadable':
@@ -428,9 +418,10 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   };
 }
 
-function waitingCountOf(forge: FleetDocumentForge): number | null {
-  const count = forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
-  return count === null || count === 0 ? null : count;
+/** A row shows no count for nothing waiting, as for no count reported. */
+function waitingCountShownOf(forge: FleetDocumentForge): number | null {
+  const count = FleetDocumentUtil.waitingCountOf(forge);
+  return count === 0 ? null : count;
 }
 
 /** A command that names only its forge can be sent again from its kind alone; any other only as this view last sent it. */
@@ -530,7 +521,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     detailText:     detailTextOf(forge, shownCondition, rowSurroundings),
     detailFace:     detailFaceOf(shownCondition, rowSurroundings.forgeProgramIsMissing),
     agents:         agentsCellOf(forge, rowSurroundings),
-    waitingCount:   waitingCountOf(forge),
+    waitingCount:   waitingCountShownOf(forge),
     codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:        buttonsOf(forge, rowSurroundings),
     isInView:       surroundings.forgeInView === forge.trackerId,
@@ -549,7 +540,7 @@ function noticeSentenceOf(forge: FleetDocumentForge): string {
 
 function heldBannerOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): HeldBanner {
   const agentsRunning = agentsInFlightOf(forge);
-  const keepRunning = agentsRunning === 0 ? null : `Its ${countedPhrase(agentsRunning, 'agent keeps', 'agents keep')} running.`;
+  const keepRunning = agentsRunning === 0 ? null : `Its ${CountTextUtil.countedPhrase(agentsRunning, 'agent keeps', 'agents keep')} running.`;
   const { trackerId } = forge;
   return {
     trackerId,
@@ -610,7 +601,7 @@ function atTheLimitTextOf(fleetDocument: FleetDocument): string {
   const waiting = fleetDocument.machine.ticketsWaitingForMachineSlot;
   if (waiting === null || waiting === 0) return 'The machine is at its limit.';
   const byForge = waitingByForgeOf(fleetDocument);
-  const waitingText = `${countedPhrase(waiting, 'ready ticket waits', 'ready tickets wait')} for a slot`;
+  const waitingText = `${CountTextUtil.countedPhrase(waiting, 'ready ticket waits', 'ready tickets wait')} for a slot`;
   return `The machine is at its limit. ${waitingText}${byForge === null ? '.' : `: ${byForge}.`}`;
 }
 

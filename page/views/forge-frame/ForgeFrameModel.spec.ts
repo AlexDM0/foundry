@@ -22,7 +22,8 @@ import type {
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure } from '../../api/CommandSender.ts';
-import { HashRouter }          from '../../shell/HashRouter.ts';
+import type { ClockReading }   from '../../shared/@types/ClockReading.ts';
+import { HashRouter }          from '../../shared/HashRouter.ts';
 import { STOREFRONT_BRAINS }   from '../../testing/fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }      from '../../testing/fixtures/fleet-degraded.ts';
 import {
@@ -31,7 +32,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
-import { type ForgeFrameClock, ForgeFrameModel } from './ForgeFrameModel.ts';
+import { ForgeFrameModel } from './ForgeFrameModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const READINGS = FLEET_FIVE_FORGES_READINGS;
@@ -42,7 +43,7 @@ const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
   currentWindow:         'five_hour',
   currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
 };
-const CLOCK: ForgeFrameClock = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
+const CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 function contentOf(trackerId: string, fleetDocument: FleetDocument = FLEET_FIVE_FORGES) {
   return ForgeFrameModel.forgeFrameContentOf(trackerId, fleetDocument, CLOCK);
@@ -305,7 +306,7 @@ describe('Flint\'s brain in the bar', () => {
   const MILLISECONDS_PER_SECOND = 1000;
 
   /** Example Storefront at control contract 2, which carries the brain's commands, unless the overrides say otherwise. */
-  function brainOf(brain: FleetDocumentBrain | 'not-reported', overrides: Partial<FleetDocumentForge> = {}, clock: ForgeFrameClock = CLOCK) {
+  function brainOf(brain: FleetDocumentBrain | 'not-reported', overrides: Partial<FleetDocumentForge> = {}, clock: ClockReading = CLOCK) {
     const storefront = READINGS.exampleStorefront;
     const forge = {
       ...storefront, contracts: { ...storefront.contracts, control: 2 }, brain, ...overrides,
@@ -315,7 +316,7 @@ describe('Flint\'s brain in the bar', () => {
     return bar.brain;
   }
 
-  function clockLaterBy(seconds: number): ForgeFrameClock {
+  function clockLaterBy(seconds: number): ClockReading {
     return { ...CLOCK, nowEpochMilliseconds: CLOCK.nowEpochMilliseconds + seconds * MILLISECONDS_PER_SECOND };
   }
 
@@ -331,12 +332,12 @@ describe('Flint\'s brain in the bar', () => {
     expect(brainOf(STOREFRONT_BRAINS.ended)?.shown).toEqual({ state: 'ended', sentence: 'Flint\'s brain stopped after 2:00 · 4.2k tokens' });
   });
 
-  test('counts the time left down with the page\'s clock, and stays at 0:00 running until the forge reports the brain ended', () => {
+  test('counts the time left down with the page\'s clock, its part second dropped as in every view, and stays at 0:00 running until the forge reports the brain ended', () => {
     const countdownAt = (seconds: number) => {
       const shown = brainOf(STOREFRONT_BRAINS.running, {}, clockLaterBy(seconds))?.shown;
       return shown?.state === 'running' ? shown.countdown : shown?.state;
     };
-    expect([countdownAt(0), countdownAt(0.4), countdownAt(30), countdownAt(83.5), countdownAt(84), countdownAt(600)]).toEqual(['1:24', '1:24', '0:54', '0:01', '0:00', '0:00']);
+    expect([countdownAt(0), countdownAt(0.4), countdownAt(30), countdownAt(83.5), countdownAt(84), countdownAt(600)]).toEqual(['1:24', '1:23', '0:54', '0:00', '0:00', '0:00']);
   });
 
   test('a figure the forge did not report reads as a dash, never as zero', () => {

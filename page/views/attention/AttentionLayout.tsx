@@ -22,6 +22,7 @@ import { OpenInNewTabGlyph }                                      from '../../de
 import { PendingStep }                                            from '../../design-system/PendingStep.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
+import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
@@ -61,8 +62,6 @@ const RECENT_HEAD_ID = 'gaia-attention-recent-head';
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 
 const ACTIVITY_HREF = '#activity';
-
-const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
 
 const WAITING_ORDER_SENTENCE = 'oldest first · escalations on top';
 
@@ -342,7 +341,7 @@ function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
         <Text typeRole="micro" element="h2" id={RECENT_HEAD_ID}>Just happened</Text>
         <a className="gaia-attention-link" href={ACTIVITY_HREF}>All activity</a>
       </div>
-      {recent.length === 0 ? <p className="gaia-attention-nothing">{NO_ACTIVITY_SENTENCE}</p> : (
+      {recent.length === 0 ? <p className="gaia-attention-nothing">{ACTIVITY_SENTENCES.noActivity}</p> : (
         <ul className="gaia-attention-recent">
           {recent.map((entry) => (
             <li key={entry.key} className="gaia-attention-recent-entry">

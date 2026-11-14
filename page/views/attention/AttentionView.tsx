@@ -3,12 +3,13 @@
  * shell's reading of the page's clock, and lays it out: the fleet (A1, B3) or no forge yet (B4). `attentionViewPartsOf` hands the shell
  * the page title's parts with it, so a new fleet document changes both at once, with no reload.
  */
-import type { FleetDocument }                from '../../@types/FleetDocument.ts';
-import { useCommandSender }                  from '../../api/CommandSender.ts';
-import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
-import { AttentionLayout }                   from './AttentionLayout.tsx';
-import { AttentionModel, type ClockReading } from './AttentionModel.ts';
-import { NoForgeYet }                        from './NoForgeYet.tsx';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
+import { useCommandSender }   from '../../api/CommandSender.ts';
+import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
+import type { ViewParts }     from '../../shared/@types/ViewParts.ts';
+import { AttentionLayout }    from './AttentionLayout.tsx';
+import { AttentionModel }     from './AttentionModel.ts';
+import { NoForgeYet }         from './NoForgeYet.tsx';
 
 export interface AttentionViewProps {
   readonly fleetDocument: FleetDocument;

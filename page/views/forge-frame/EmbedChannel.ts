@@ -4,7 +4,7 @@
  * version; anything else is ignored and answered by nothing. Gaia posts only to the frame's origin, never to `*`.
  */
 import { CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
-import type { ThemeChoice }  from '../../shell/ThemeBootstrap.ts';
+import type { ThemeChoice }  from '../../shared/@types/ThemeChoice.ts';
 
 /** What the Bridge tells Gaia: it painted and listens, its route changed, Esc was left unused, or an API call found its session gone. */
 export type BridgeMessage =

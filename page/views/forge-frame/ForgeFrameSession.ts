@@ -5,8 +5,8 @@
  * came from; `session-lost` from a ready Bridge asks for a new frame session and loads a fresh frame, so a restarted Overseer needs
  * nothing of User.
  */
-import { HashRouter }       from '../../shell/HashRouter.ts';
-import type { ThemeChoice } from '../../shell/ThemeBootstrap.ts';
+import type { ThemeChoice } from '../../shared/@types/ThemeChoice.ts';
+import { HashRouter }       from '../../shared/HashRouter.ts';
 import {
   type BridgeMessage,
   EmbedChannel,

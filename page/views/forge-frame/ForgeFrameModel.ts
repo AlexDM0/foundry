@@ -18,19 +18,16 @@ import type {
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
 import type { RefusedBy }                             from '../../design-system/Refusal.tsx';
+import type { ClockReading }                          from '../../shared/@types/ClockReading.ts';
+import { DEFAULT_ROUTE, type GaiaRoute, HashRouter }  from '../../shared/HashRouter.ts';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                              from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                          from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
-import { DEFAULT_ROUTE, type GaiaRoute, HashRouter }  from '../../shell/HashRouter.ts';
 import { SESSION_LOST_WHILE_OPENING }                 from './ForgeFrameSession.ts';
-
-/** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
-export interface ForgeFrameClock {
-  readonly nowEpochMilliseconds: number;
-  readonly timeZone:             string | undefined;
-}
 
 export interface BarCommand {
   readonly label:    string;
@@ -162,13 +159,6 @@ const BRAIN_ENDED_SENTENCE = 'Flint\'s brain stopped';
 /** A figure of a running brain the forge did not report. */
 const UNREPORTED_FIGURE = '–';
 
-const MILLISECONDS_PER_SECOND = 1000;
-const SECONDS_PER_MINUTE = 60;
-
-const ONE_THOUSAND = 1_000;
-const ONE_MILLION = 1_000_000;
-const SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT = 3;
-
 /** Gaia's own reasons for no frame session, worded where the forge sent no sentence. */
 const FRAME_SESSION_REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
   'forge-not-registered':       'The registry does not name this forge.',
@@ -190,48 +180,35 @@ const STOPPABLE: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused'
 /** The fidelities at which the forge reported its agents, the last reading of one that stopped answering included. */
 const AGENTS_ARE_REPORTED_AT: ReadonlySet<FleetDocumentFidelity> = new Set<FleetDocumentFidelity>(['full', 'counts-only', 'unreachable']);
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
-function clockTextOf(stamp: string | null, clock: ForgeFrameClock): string | null {
-  return stamp === null ? null : StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone);
-}
-
-/** What waits on User from this forge; a forge read through its summary reports only the count. */
-function waitingCountOf(forge: FleetDocumentForge): number | null {
-  return forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
-}
-
 /** A forge Gaia reads nothing of, dormant, gone or newer than this Gaia, reports no agents: their count is absent, not zero. */
 function agentsTextOf(forge: FleetDocumentForge): string | null {
   if (!AGENTS_ARE_REPORTED_AT.has(forge.fidelity)) return null;
   const { concurrency } = forge;
   return concurrency === null
-    ? countedPhrase(forge.agents.length, 'agent', 'agents')
-    : `${concurrency.agentsInFlight} / ${countedPhrase(concurrency.limit, 'agent', 'agents')}`;
+    ? CountTextUtil.countedPhrase(forge.agents.length, 'agent', 'agents')
+    : `${concurrency.agentsInFlight} / ${CountTextUtil.countedPhrase(concurrency.limit, 'agent', 'agents')}`;
 }
 
 /**
  * The tooltip's usage names only a limit that was hit, without its window; usage under its limit is no news there, nor is the last reading
  * of a forge that stopped answering, which says "as last reported" and since.
  */
-function usageTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string | null {
+function usageTextOf(forge: FleetDocumentForge, clock: ClockReading): string | null {
   const { usage } = forge;
   if (forge.fidelity === 'unreachable' || usage === null || usage.resetsAt === null) return null;
-  return `usage limit hit · resets ${clockTextOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
+  return `usage limit hit · resets ${StampTextUtil.clockTextAtReadingOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
 }
 
 /** The whole reading for the tooltip: agents, what waits, a usage limit hit and since, after "as last reported" for a forge that stopped answering. */
-function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string {
-  const waitingCount = waitingCountOf(forge);
-  const startedClock = clockTextOf(forge.overseerStartedAt, clock);
-  const lastReportedClock = clockTextOf(forge.lastReportedAt, clock);
+function statusTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
+  const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
+  const startedClock = StampTextUtil.clockTextAtReadingOf(forge.overseerStartedAt, clock);
+  const lastReportedClock = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
   const asLastReported = lastReportedClock === null ? 'as last reported' : `as last reported ${lastReportedClock}`;
   return [
     forge.fidelity === 'unreachable' ? asLastReported : null,
     agentsTextOf(forge),
-    waitingCount === null || waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
+    waitingCount === null || waitingCount === 0 ? null : CountTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
     usageTextOf(forge, clock),
     startedClock === null ? null : `since ${startedClock}`,
   ].filter((part) => part !== null).join(LINE_SEPARATOR);
@@ -254,9 +231,9 @@ function agentsLineOf(forge: FleetDocumentForge): readonly BarLineSegment[] | nu
 }
 
 /** The line the bar shows: what `statusTextOf` says but usage and since, with the figures apart from the words. */
-function statusLineOf(forge: FleetDocumentForge, clock: ForgeFrameClock): readonly BarLineSegment[] {
-  const waitingCount = waitingCountOf(forge);
-  const lastReportedClock = clockTextOf(forge.lastReportedAt, clock);
+function statusLineOf(forge: FleetDocumentForge, clock: ClockReading): readonly BarLineSegment[] {
+  const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
+  const lastReportedClock = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
   const asLastReported = lastReportedClock === null ? [wordsOf('as last reported')] : [wordsOf('as last reported '), figureOf(lastReportedClock)];
   const parts = [
     forge.fidelity === 'unreachable' ? asLastReported : null,
@@ -277,27 +254,9 @@ function stopQuestionOf(forge: FleetDocumentForge): StopQuestion | null {
   return STOPPABLE.has(forge.condition) ? ForgeCommandTextUtil.stopQuestionOf(forge) : null;
 }
 
-function roundedToTokenCountDigitsOf(value: number): number {
-  return Number(value.toPrecision(SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT));
-}
-
-/** 3100 as `3.1k`, 1240000 as `1.24M`: three significant digits, as artboard B1 writes the brain's tokens. */
-function tokenCountTextOf(tokens: number): string {
-  if (tokens < ONE_THOUSAND) return String(tokens);
-  const thousands = roundedToTokenCountDigitsOf(tokens / ONE_THOUSAND);
-  if (thousands < ONE_THOUSAND) return `${thousands}k`;
-  return `${roundedToTokenCountDigitsOf(tokens / ONE_MILLION)}M`;
-}
-
-/**
- * The time left to the forge's `endsAt` as `1:24`, whole seconds rounded up, and `0:00` once it passed: the brain stays until the forge
- * reports it ended. Reading the clock against `endsAt` is a stated clock exception (PLAN B6): it decides only the text printed.
- */
-function countdownTextOf(endsAt: string | null, clock: ForgeFrameClock): string {
-  const endsAtEpochMilliseconds = endsAt === null ? Number.NaN : Date.parse(endsAt);
-  if (Number.isNaN(endsAtEpochMilliseconds)) return UNREPORTED_FIGURE;
-  const secondsLeft = Math.max(0, Math.ceil((endsAtEpochMilliseconds - clock.nowEpochMilliseconds) / MILLISECONDS_PER_SECOND));
-  return `${Math.floor(secondsLeft / SECONDS_PER_MINUTE)}:${String(secondsLeft % SECONDS_PER_MINUTE).padStart(2, '0')}`;
+/** The time left to the forge's `endsAt`, which stays at `0:00` once it passed: the brain stays until the forge reports it ended. */
+function countdownTextOf(endsAt: string | null, clock: ClockReading): string {
+  return (endsAt === null ? null : StampTextUtil.countdownTextOf(endsAt, clock.nowEpochMilliseconds)) ?? UNREPORTED_FIGURE;
 }
 
 function brainRefusalSentenceOf(code: string, sentence: string | null): string {
@@ -307,10 +266,10 @@ function brainRefusalSentenceOf(code: string, sentence: string | null): string {
 
 function brainEndedSentenceOf(brain: FleetDocumentBrain): string {
   if (brain.sentence !== null) return brain.sentence;
-  return brain.tokens === null ? BRAIN_ENDED_SENTENCE : `${BRAIN_ENDED_SENTENCE} · ${tokenCountTextOf(brain.tokens)} tokens`;
+  return brain.tokens === null ? BRAIN_ENDED_SENTENCE : `${BRAIN_ENDED_SENTENCE} · ${CountTextUtil.shortCountTextOf(brain.tokens)} tokens`;
 }
 
-function brainShownOf(brain: FleetDocumentBrain, clock: ForgeFrameClock): BarBrainShown {
+function brainShownOf(brain: FleetDocumentBrain, clock: ClockReading): BarBrainShown {
   switch (brain.state) {
     case 'off':
     case 'starting':
@@ -321,7 +280,7 @@ function brainShownOf(brain: FleetDocumentBrain, clock: ForgeFrameClock): BarBra
         model:     brain.model ?? UNREPORTED_FIGURE,
         effort:    brain.effort ?? UNREPORTED_FIGURE,
         countdown: countdownTextOf(brain.endsAt, clock),
-        tokens:    brain.tokens === null ? UNREPORTED_FIGURE : tokenCountTextOf(brain.tokens),
+        tokens:    brain.tokens === null ? UNREPORTED_FIGURE : CountTextUtil.shortCountTextOf(brain.tokens),
       };
     case 'refused': {
       const code = brain.refusal?.code ?? 'refused';
@@ -334,13 +293,13 @@ function brainShownOf(brain: FleetDocumentBrain, clock: ForgeFrameClock): BarBra
   }
 }
 
-function barBrainOf(forge: FleetDocumentForge, clock: ForgeFrameClock): BarBrain | null {
+function barBrainOf(forge: FleetDocumentForge, clock: ClockReading): BarBrain | null {
   const { brain } = forge;
   if (brain === 'not-reported') return null;
   return { shown: brainShownOf(brain, clock), controlsAreServed: ForgeContractUtil.brainCommandsAreServed(forge) };
 }
 
-function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
+function barOf(forge: FleetDocumentForge, clock: ClockReading): ForgeBar {
   return {
     trackerId: forge.trackerId,
     project:   forge.project,
@@ -364,10 +323,10 @@ function overseerKeyOf(forge: FleetDocumentForge): string {
 }
 
 /** An Overseer that stopped answering shows B3's callout first: its last reading may still name an embed channel it no longer serves. */
-function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock: ForgeFrameClock): ForgeFrameArea {
+function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock: ClockReading): ForgeFrameArea {
   if (forge === undefined) return { kind: 'not-registered', trackerId };
   const { project } = forge;
-  const callout = ForgeTextUtil.unreachableCalloutTextOf(forge, clockTextOf(forge.lastReportedAt, clock));
+  const callout = ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock));
   if (forge.fidelity === 'unreachable') return {
     kind: 'unreachable', trackerId, project, callout,
   };
@@ -377,7 +336,7 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock:
   return { kind: 'cannot-show', trackerId, project };
 }
 
-function forgeFrameContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ForgeFrameClock): ForgeFrameContent {
+function forgeFrameContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ClockReading): ForgeFrameContent {
   const forge = fleetDocument.forges.find((candidate) => candidate.trackerId === trackerId);
   return { bar: forge === undefined ? null : barOf(forge, clock), area: areaOf(trackerId, forge, clock) };
 }

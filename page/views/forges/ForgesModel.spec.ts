@@ -21,6 +21,7 @@ import type {
   FleetDocumentForge,
 } from '../../@types/FleetDocument.ts';
 import { type CommandSender, type CommandStates } from '../../api/CommandSender.ts';
+import type { ClockReading }                      from '../../shared/@types/ClockReading.ts';
 import { answerResponse, senderOver }             from '../../testing/CommandServer.ts';
 import { FLEET_AT_LIMIT }                         from '../../testing/fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                         from '../../testing/fixtures/fleet-degraded.ts';
@@ -33,7 +34,6 @@ import {
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
 import {
-  type ClockReading,
   type ForgeButton,
   type ForgeRow,
   type ForgesContent,

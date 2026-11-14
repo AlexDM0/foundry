@@ -5,12 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import {
-  ThemeBootstrap,
-  type ThemeChoice,
-  type ThemeChoiceState,
-  type ThemeSurroundings
-} from './ThemeBootstrap.ts';
+import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
+import { ThemeBootstrap, type ThemeChoiceState, type ThemeSurroundings } from './ThemeBootstrap.ts';
 
 interface RecordedSurroundings extends ThemeSurroundings {
   readonly rootAttributes: Map<string, string>;

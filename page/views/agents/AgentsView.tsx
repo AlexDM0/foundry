@@ -11,8 +11,8 @@ import { SegmentedControl } from 'design-system/SegmentedControl';
 import type { FleetDocument }                                       from '../../@types/FleetDocument.ts';
 import { type CommandSenderInView, useCommandSender }               from '../../api/CommandSender.ts';
 import type { ViewParts }                                           from '../../shared/@types/ViewParts.ts';
-import type { SelectedAgent }                                       from '../../shell/HashRouter.ts';
-import type { RailMachine }                                         from '../../shell/RailModel.ts';
+import type { SelectedAgent }                                       from '../../shared/HashRouter.ts';
+import type { MachineLoad }                                         from '../../shared/MachineLoadModel.ts';
 import type { AgentConditionFilter, AgentFilters, AgentRoleFilter } from './AgentsFilters.ts';
 import { type AgentsContent, AgentsModel }                          from './AgentsModel.ts';
 import { AgentsTable, type BrainHandlers }                          from './AgentsTable.tsx';
@@ -40,7 +40,7 @@ function footnoteOf(content: AgentsContent): string {
   return `${brainSentence} ${EACH_FORGE_REPORTS_NOTE}`;
 }
 
-function NoAgentRuns({ machine }: { readonly machine: RailMachine }) {
+function NoAgentRuns({ machine }: { readonly machine: MachineLoad }) {
   return (
     <section className="gaia-agents-empty" aria-label="No agents">
       <p className="gaia-agents-empty-sentence">No agents are running.</p>

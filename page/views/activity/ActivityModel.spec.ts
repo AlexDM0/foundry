@@ -14,6 +14,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { LIMITS }                                                     from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { ClockReading }                                          from '../../shared/@types/ClockReading.ts';
 import { FLEET_EMPTY }                                                from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
@@ -22,12 +23,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
-import {
-  type ActivityFilters,
-  ActivityModel,
-  type ClockReading,
-  EVERY_ENTRY,
-} from './ActivityModel.ts';
+import { type ActivityFilters, ActivityModel, EVERY_ENTRY } from './ActivityModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const READINGS = FLEET_FIVE_FORGES_READINGS;
@@ -222,10 +218,6 @@ describe('landed today and tokens today', () => {
     const nothingLanded = withForges(FLEET_FIVE_FORGES.forges.map((forge) => (forge.today === null ? forge : { ...forge, today: { ...forge.today, deliveredTickets: 0 } })));
     expect(contentOf(nothingLanded).landedToday.rows.map((row) => row.meter)).toEqual([null, null, null, null]);
     expect(contentOf(nothingLanded).landedToday.totalText).toBe('0');
-  });
-
-  test('a token count keeps three significant digits, in thousands or millions', () => {
-    expect([999, 146_000, 51_900, 1_240_000, 999_999, 12_345_678].map(ActivityModel.tokenCountTextOf)).toEqual(['999', '146k', '51.9k', '1.24M', '1M', '12.3M']);
   });
 });
 

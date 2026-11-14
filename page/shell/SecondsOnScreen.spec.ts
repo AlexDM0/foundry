@@ -6,8 +6,8 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FleetDocument, FleetDocumentForge }                                     from '../@types/FleetDocument.ts';
+import { HashRouter }                                                                 from '../shared/HashRouter.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_BRAINS, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
-import { HashRouter }                                                                 from './HashRouter.ts';
 import { SecondsOnScreen }                                                            from './SecondsOnScreen.ts';
 
 const STOREFRONT = FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront;

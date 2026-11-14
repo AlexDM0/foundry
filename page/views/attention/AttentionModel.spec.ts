@@ -13,6 +13,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { ClockReading }                                          from '../../shared/@types/ClockReading.ts';
 import { FLEET_AT_LIMIT }                                             from '../../testing/fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                                             from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                from '../../testing/fixtures/fleet-empty.ts';
@@ -26,7 +27,6 @@ import {
 import {
   type AttentionContent,
   AttentionModel,
-  type ClockReading,
   type LookCallout,
   type NoForgeContent,
 } from './AttentionModel.ts';
@@ -121,8 +121,7 @@ describe('the figures', () => {
     expect(AttentionModel.titleFiguresOf(FLEET_DEGRADED)).toEqual([]);
   });
 
-  test('print a count by its significant digits, and an unknown machine limit as the agents alone', () => {
-    expect([840, 41_300, 512_000, 999_999, 1_240_000, 12_400_000].map(AttentionModel.compactCountOf)).toEqual(['840', '41.3k', '512k', '1M', '1.24M', '12.4M']);
+  test('print an unknown machine limit as the agents alone', () => {
     const noLimit = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
     expect(fleetContentOf(noLimit).figures[1]).toEqual({ value: '10', label: 'agents', attention: false });
   });

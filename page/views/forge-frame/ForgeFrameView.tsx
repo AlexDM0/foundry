@@ -15,8 +15,9 @@ import {
 import type { CommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                from '../../@types/FleetDocument.ts';
 import { CommandSender, useCommandSender }   from '../../api/CommandSender.ts';
+import type { ClockReading }                 from '../../shared/@types/ClockReading.ts';
+import type { ThemeChoice }                  from '../../shared/@types/ThemeChoice.ts';
 import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
-import type { ThemeChoice }                  from '../../shell/ThemeBootstrap.ts';
 import type { EmbedChannelSurroundings }     from './EmbedChannel.ts';
 import {
   BarRefusalLine,
@@ -29,7 +30,6 @@ import {
 import {
   type ForgeBar,
   type ForgeFrameArea,
-  type ForgeFrameClock,
   type ForgeFrameContent,
   ForgeFrameModel,
 } from './ForgeFrameModel.ts';
@@ -203,7 +203,7 @@ function ForgeFrameContentView({ content, bridgeFragment, surroundings }: ForgeF
 export function forgeFrameViewPartsOf(
   route: { readonly trackerId: string; readonly bridgeFragment: string | null },
   fleetDocument: FleetDocument | null,
-  clock: ForgeFrameClock,
+  clock: ClockReading,
   surroundings: ForgeFrameSurroundings,
 ): ViewParts {
   const selfHeaded = {

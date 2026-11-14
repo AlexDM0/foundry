@@ -1,14 +1,14 @@
 /**
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
- * saying the registry holds none, and this machine's agents against its limit with the slots of its meter. Every count is the document's
- * own figure; one the document does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit,
- * so it is never counted, and the limit's line says so.
+ * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
+ * does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit, so it is never counted.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
+import { type GaiaRoute, type GaiaView, HashRouter } from '../shared/HashRouter.ts';
+import { type MachineLoad, MachineLoadModel }        from '../shared/MachineLoadModel.ts';
 import { ForgeContractUtil }                         from '../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                             from '../shared/utils/ForgeTextUtil.ts';
-import { type GaiaRoute, type GaiaView, HashRouter } from './HashRouter.ts';
 
 export type RailCountTone = 'attention' | 'muted';
 
@@ -40,29 +40,13 @@ export interface RailForgeRow {
   readonly isCurrent: boolean;
 }
 
-export interface RailMachineMeter {
-  readonly filled: number;
-  /** The machine limit, or the CPU count while no forge reports a limit: the limit is never above it. */
-  readonly slots:  number;
-  readonly label:  string;
-}
-
-export interface RailMachine {
-  readonly agentsText:     string;
-  readonly meter:          RailMachineMeter;
-  /** What waits at the limit (B2), above the limit's line; `null` under the limit. */
-  readonly atTheLimitLine: string | null;
-  readonly limitLine:      string;
-  readonly isAtTheLimit:   boolean;
-}
-
 export interface RailContent {
   readonly views:       readonly RailViewRow[];
   readonly forges:      readonly RailForgeRow[];
   /** The line under the forges' head when the registry holds no forge (B4); `null` while it holds one and before the first document. */
   readonly noForgeLine: string | null;
   /** `null` until the first fleet document. */
-  readonly machine:     RailMachine | null;
+  readonly machine:     MachineLoad | null;
 }
 
 const VIEW_LABELS: Readonly<Record<RailView, string>> = {
@@ -75,14 +59,6 @@ const VIEW_LABELS: Readonly<Record<RailView, string>> = {
 const RAIL_VIEWS: readonly RailView[] = ['attention', 'agents', 'activity', 'forges'];
 
 const NO_FORGE_LINE = 'No forge is registered';
-
-const LINE_SEPARATOR = ' · ';
-
-const BRAIN_OUTSIDE_THE_LIMIT_CLAUSE = 'Flint\'s brain runs outside it';
-
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
 
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
@@ -139,46 +115,6 @@ function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailC
   }
 }
 
-function atTheLimitLineOf(fleetDocument: FleetDocument): string {
-  const { ticketsWaitingForMachineSlot } = fleetDocument.machine;
-  if (ticketsWaitingForMachineSlot === null || ticketsWaitingForMachineSlot === 0) return 'at the limit';
-  return `at the limit${LINE_SEPARATOR}${countedPhrase(ticketsWaitingForMachineSlot, 'ticket waits', 'tickets wait')}`;
-}
-
-/**
- * The limit against the CPUs, then what the figure holds that Gaia cannot vouch for now: the agents of an unreachable forge as it last
- * reported them (B3); otherwise, under a known limit, that Flint's brain runs outside it, once a forge reports a brain at all.
- */
-function limitLineOf(fleetDocument: FleetDocument): string {
-  const { machineLimit, agentsInFlight } = fleetDocument.figures;
-  const cpus = countedPhrase(fleetDocument.machine.cpuCount, 'CPU', 'CPUs');
-  const limitClause = machineLimit === null ? `no limit known${LINE_SEPARATOR}${cpus}` : `limit ${machineLimit} of ${cpus}`;
-  const unreachable = new Set(fleetDocument.forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => forge.trackerId));
-  if (unreachable.size > 0) {
-    const asLastReported = fleetDocument.agents.filter((row) => row.countsAgainstLimit && unreachable.has(row.trackerId)).length;
-    return `${limitClause}${LINE_SEPARATOR}${asLastReported} of the ${agentsInFlight} as last reported`;
-  }
-  const aBrainIsReported = fleetDocument.forges.some((forge) => forge.brain !== 'not-reported');
-  return machineLimit !== null && aBrainIsReported ? `${limitClause}${LINE_SEPARATOR}${BRAIN_OUTSIDE_THE_LIMIT_CLAUSE}` : limitClause;
-}
-
-function machineOf(fleetDocument: FleetDocument): RailMachine {
-  const { agentsInFlight, machineLimit } = fleetDocument.figures;
-  const isAtTheLimit = machineLimit !== null && agentsInFlight >= machineLimit;
-  const slots = machineLimit ?? fleetDocument.machine.cpuCount;
-  return {
-    agentsText: machineLimit === null ? String(agentsInFlight) : `${agentsInFlight} / ${machineLimit}`,
-    meter:      {
-      filled: agentsInFlight,
-      slots,
-      label:  machineLimit === null ? `${agentsInFlight} agents, no limit known` : `${agentsInFlight} of ${machineLimit} agents`,
-    },
-    atTheLimitLine: isAtTheLimit ? atTheLimitLineOf(fleetDocument) : null,
-    limitLine:      limitLineOf(fleetDocument),
-    isAtTheLimit,
-  };
-}
-
 function railViewOf(route: GaiaRoute): RailView | null {
   return route.view === 'forge' ? null : route.view;
 }
@@ -203,7 +139,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
       isCurrent: forge.trackerId === currentTrackerId,
     })),
     noForgeLine: fleetDocument !== null && fleetDocument.forges.length === 0 ? NO_FORGE_LINE : null,
-    machine:     fleetDocument === null ? null : machineOf(fleetDocument),
+    machine:     fleetDocument === null ? null : MachineLoadModel.machineLoadOf(fleetDocument),
   };
 }
 
@@ -211,6 +147,5 @@ export const RailModel = {
   railContentOf,
   attentionCountOf,
   countTextOf,
-  machineOf,
   VIEW_LABELS,
 } as const;

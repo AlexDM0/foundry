@@ -4,6 +4,7 @@
  */
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';
 import type { BrandStatus }                           from '../design-system/BrandBar.tsx';
+import { CountTextUtil }                              from '../shared/utils/CountTextUtil.ts';
 
 const SENTENCE_SEPARATOR = ' · ';
 
@@ -16,13 +17,9 @@ const EVERY_FORGE_HIDDEN_STATUS: BrandStatus = { fleet: 'dormant', pillText: 'No
 
 const NO_FORGE_RUNNING_PILL = 'No forge running';
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
 /** A clause of the sentence, absent for a count of none. */
 function clauseOf(count: number, singularPhrase: string, pluralPhrase = singularPhrase): string | null {
-  return count === 0 ? null : countedPhrase(count, singularPhrase, pluralPhrase);
+  return count === 0 ? null : CountTextUtil.countedPhrase(count, singularPhrase, pluralPhrase);
 }
 
 function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null {
@@ -45,7 +42,7 @@ function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null 
   ];
   return {
     fleet:    runningCount === 0 ? 'dormant' : 'running',
-    pillText: runningCount === 0 ? NO_FORGE_RUNNING_PILL : countedPhrase(runningCount, 'forge running', 'forges running'),
+    pillText: runningCount === 0 ? NO_FORGE_RUNNING_PILL : CountTextUtil.countedPhrase(runningCount, 'forge running', 'forges running'),
     sentence: clauses.filter((clause) => clause !== null).join(SENTENCE_SEPARATOR),
   };
 }

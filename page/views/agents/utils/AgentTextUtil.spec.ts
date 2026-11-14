@@ -48,8 +48,4 @@ describe('counts', () => {
   test('thousands are grouped with commas', () => {
     expect([0, 999, 84_210, 821_300, 1_240_000].map(AgentTextUtil.groupedNumberText)).toEqual(['0', '999', '84,210', '821,300', '1,240,000']);
   });
-
-  test('a counted phrase is singular for one only', () => {
-    expect([0, 1, 4].map((count) => AgentTextUtil.countedPhrase(count, 'sweep', 'sweeps'))).toEqual(['0 sweeps', '1 sweep', '4 sweeps']);
-  });
 });

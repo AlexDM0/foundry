@@ -3,7 +3,7 @@
  * running time. The page clock ticks every second only while one may show, and every ten seconds otherwise.
  */
 import type { FleetDocument, FleetDocumentForge } from '../@types/FleetDocument.ts';
-import type { GaiaRoute }                         from './HashRouter.ts';
+import type { GaiaRoute }                         from '../shared/HashRouter.ts';
 
 function brainCountsDownIn(forge: FleetDocumentForge): boolean {
   return forge.brain !== 'not-reported' && forge.brain.state === 'running' && forge.brain.endsAt !== null;

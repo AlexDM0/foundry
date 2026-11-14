@@ -22,6 +22,7 @@ import type { FleetDocument }              from '../../@types/FleetDocument.ts';
 import { BrainDiamond }                    from '../../design-system/BrainDiamond.tsx';
 import { DataTable, type DataTableColumn } from '../../design-system/DataTable.tsx';
 import { RoleDot }                         from '../../design-system/RoleDot.tsx';
+import type { ClockReading }               from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                  from '../../shared/@types/ViewParts.ts';
 import {
   type ActivityContent,
@@ -30,7 +31,6 @@ import {
   ActivityModel,
   type ActivityRow,
   type BrainTokensNote,
-  type ClockReading,
   type CountedKind,
   EVERY_ENTRY,
   type ForgeChoices,

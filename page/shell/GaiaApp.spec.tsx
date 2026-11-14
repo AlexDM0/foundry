@@ -23,6 +23,7 @@ import { CommandSender }                                                        
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
 import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
 import { TextField }                                                                from '../design-system/TextField.tsx';
+import { DEFAULT_ROUTE, HashRouter }                                                from '../shared/HashRouter.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
@@ -44,8 +45,7 @@ import {
   themeChoiceHandlerOf,
   viewPartsOf,
 } from './GaiaApp.tsx';
-import { DEFAULT_ROUTE, HashRouter } from './HashRouter.ts';
-import { MotionReadiness }           from './MotionReadiness.ts';
+import { MotionReadiness } from './MotionReadiness.ts';
 
 const tree = ReactElementTree;
 

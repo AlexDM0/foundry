@@ -15,6 +15,7 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { ClockReading }                                                        from '../../shared/@types/ClockReading.ts';
 import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
 import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
 import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
@@ -23,7 +24,6 @@ import {
   type ActivityFilters,
   type ActivityKindFilter,
   ActivityModel,
-  type ClockReading,
   EVERY_ENTRY,
 } from './ActivityModel.ts';
 import {

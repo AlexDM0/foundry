@@ -10,13 +10,14 @@ import { useEffect, useState } from 'react';
 import type { CommandBody, ForgeCommandBody }                             from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                             from '../../@types/FleetDocument.ts';
 import { useCommandSender }                                               from '../../api/CommandSender.ts';
+import type { ClockReading }                                              from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                                                 from '../../shared/@types/ViewParts.ts';
+import { HashRouter }                                                     from '../../shared/HashRouter.ts';
 import { LookAgainButton }                                                from '../../shared/LookAgainButton.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
-import { HashRouter }                                                     from '../../shell/HashRouter.ts';
 import { AddRepositoryDialog }                                            from './AddRepositoryDialog.tsx';
 import { forgeAnchorIdOf, ForgesLayout }                                  from './ForgesLayout.tsx';
-import { type ClockReading, ForgesModel, type StopDialogState }           from './ForgesModel.ts';
+import { ForgesModel, type StopDialogState }                              from './ForgesModel.ts';
 import { GaiaPanelModel, type SentSettingsChange, type SettingsCheckbox } from './GaiaPanelModel.ts';
 import { WhatNotifiesDialog }                                             from './WhatNotifiesDialog.tsx';
 

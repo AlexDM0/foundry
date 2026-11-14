@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ThemeChoice } from '../../shell/ThemeBootstrap.ts';
+import type { ThemeChoice } from '../../shared/@types/ThemeChoice.ts';
 import {
   BRIDGE_MESSAGES,
   BRIDGE_ORIGIN,

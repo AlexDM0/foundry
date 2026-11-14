@@ -62,14 +62,9 @@ function groupedNumberText(value: number): string {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
 export const AgentTextUtil = {
   stateWordOf,
   stateIsWaiting,
   runningTimeText,
   groupedNumberText,
-  countedPhrase,
 } as const;

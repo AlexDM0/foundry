@@ -12,11 +12,14 @@ import type {
   FleetDocumentForge
 } from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandStates }        from '../../api/CommandSender.ts';
+import type { ClockReading }                        from '../../shared/@types/ClockReading.ts';
+import { HashRouter }                               from '../../shared/HashRouter.ts';
 import { CommandFailureTextUtil, type RefusalText } from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                            from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                        from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeCommandTextUtil }                     from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                        from '../../shared/utils/ForgeContractUtil.ts';
 import { StampTextUtil }                            from '../../shared/utils/StampTextUtil.ts';
-import { HashRouter }                               from '../../shell/HashRouter.ts';
 import { type AgentFilters, AgentsFilters }         from './AgentsFilters.ts';
 import { BrainTextUtil }                            from './utils/BrainTextUtil.ts';
 
@@ -24,8 +27,8 @@ import { BrainTextUtil }                            from './utils/BrainTextUtil.
 const BRAIN_ROLE = 'brain';
 const BRAIN_JOB_ID = 'flint-brain';
 
-/** The Bridge's own Agents view, where the forge shows its brain beside its jobs. */
-const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents';
+/** The Bridge's own Agents view, where the forge shows its brain beside its jobs and a job at `#agents/<jobId>`. */
+export const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents';
 
 type BrainCommandKind = Extract<ForgeCommandBody['kind'], 'forge-brain-start' | 'forge-brain-stop'>;
 
@@ -170,13 +173,9 @@ function openHrefOf(forge: FleetDocumentForge | null, trackerId: string): string
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: trackerId });
 }
 
-function forgeOf(fleetDocument: FleetDocument, trackerId: string): FleetDocumentForge | null {
-  return fleetDocument.forges.find((forge) => forge.trackerId === trackerId) ?? null;
-}
-
 function brainRowContentOf(surroundings: BrainSurroundings, row: FleetDocumentFleetAgentRow, filters: AgentFilters, isSelected: boolean): BrainRowContent {
   const { fleetDocument, commandStates, readAtMilliseconds } = surroundings;
-  const forge = forgeOf(fleetDocument, row.trackerId);
+  const forge = FleetDocumentUtil.forgeOf(fleetDocument, row.trackerId);
   const brain = reportedBrainOf(forge);
   const [newestMove] = brain?.recentMoves ?? [];
   return {
@@ -190,23 +189,22 @@ function brainRowContentOf(surroundings: BrainSurroundings, row: FleetDocumentFl
     model:          brain?.model ?? null,
     effort:         brain?.effort ?? null,
     calls:          row.calls,
-    tokensText:     BrainTextUtil.shortCountText(row.tokens),
+    tokensText:     CountTextUtil.shortCountTextOf(row.tokens),
     stop:           forge === null ? null : brainCommandButtonOf(forge, 'forge-brain-stop', commandStates),
   };
 }
 
 function brainFactsOf(brain: FleetDocumentBrain | null, row: FleetDocumentFleetAgentRow, surroundings: BrainSurroundings): BrainFact[] {
-  const { readAtMilliseconds, timeZone } = surroundings;
-  const clockTextOf = (stamp: string | null) => (stamp === null ? null : StampTextUtil.clockTextOf(stamp, readAtMilliseconds, timeZone));
-  const startedAtText = clockTextOf(row.startedAt ?? brain?.startedAt ?? null);
-  const endsAtText = clockTextOf(brain?.endsAt ?? null);
+  const clock: ClockReading = { nowEpochMilliseconds: surroundings.readAtMilliseconds, timeZone: surroundings.timeZone };
+  const startedAtText = StampTextUtil.clockTextAtReadingOf(row.startedAt ?? brain?.startedAt ?? null, clock);
+  const endsAtText = StampTextUtil.clockTextAtReadingOf(brain?.endsAt ?? null, clock);
   const model = brain?.model ?? null;
   const effort = brain?.effort ?? null;
   const facts: readonly (BrainFact | null)[] = [
     startedAtText === null ? null : { label: 'Started', machineValue: startedAtText, words: BrainTextUtil.startedByPlaceOf(brain?.startedBy ?? null) },
     endsAtText === null ? null : { label: 'Ends', machineValue: endsAtText, words: 'at the latest' },
     model === null ? null : { label: effort === null ? 'Model' : 'Model, effort', machineValue: model, words: effort === null ? null : `· ${effort}` },
-    { label: 'Tokens so far', machineValue: BrainTextUtil.shortCountText(row.tokens), words: null },
+    { label: 'Tokens so far', machineValue: CountTextUtil.shortCountTextOf(row.tokens), words: null },
     row.calls === null ? null : { label: 'Calls so far', machineValue: String(row.calls), words: null },
   ];
   return facts.filter((fact) => fact !== null);
@@ -223,7 +221,7 @@ function selectedBrainOf(surroundings: BrainSurroundings, trackerId: string): Se
   const {
     fleetDocument, commandStates, readAtMilliseconds, timeZone
   } = surroundings;
-  const forge = forgeOf(fleetDocument, trackerId);
+  const forge = FleetDocumentUtil.forgeOf(fleetDocument, trackerId);
   const project = forge?.project ?? trackerId;
   const openHref = openHrefOf(forge, trackerId);
   const row = fleetDocument.agents.find((candidate) => candidate.trackerId === trackerId && rowIsABrain(candidate));

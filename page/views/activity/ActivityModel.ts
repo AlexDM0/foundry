@@ -12,17 +12,14 @@ import type {
   FleetDocumentForge,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { PageFigure } from '../../design-system/PageTitle.tsx';
-import type { DotRole }    from '../../design-system/RoleDot.tsx';
-import { ForgeTextUtil }   from '../../shared/utils/ForgeTextUtil.ts';
-import { StampTextUtil }   from '../../shared/utils/StampTextUtil.ts';
-import { HashRouter }      from '../../shell/HashRouter.ts';
-
-/** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
-export interface ClockReading {
-  readonly nowEpochMilliseconds: number;
-  readonly timeZone:             string | undefined;
-}
+import type { PageFigure }    from '../../design-system/PageTitle.tsx';
+import type { DotRole }       from '../../design-system/RoleDot.tsx';
+import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
+import { HashRouter }         from '../../shared/HashRouter.ts';
+import { ACTIVITY_SENTENCES } from '../../shared/constants/ActivitySentences.ts';
+import { CountTextUtil }      from '../../shared/utils/CountTextUtil.ts';
+import { ForgeTextUtil }      from '../../shared/utils/ForgeTextUtil.ts';
+import { StampTextUtil }      from '../../shared/utils/StampTextUtil.ts';
 
 export type ActivityKindFilter = 'everything' | FleetDocumentActivityCategory;
 
@@ -125,13 +122,8 @@ const CATEGORY_WORDS: Readonly<Record<FleetDocumentActivityCategory, string>> = 
 
 const FORGE_SEGMENTS_SHOWN = 3;
 
-const ONE_THOUSAND = 1_000;
-const ONE_MILLION = 1_000_000;
-const SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT = 3;
-
 const BRAIN_KIND_WORD = 'Flint\'s brain';
 
-const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
 const NOTHING_MATCHES_SENTENCE = 'No entry matches these filters.';
 
 /** A clock time, with its month and day when it is of another day than the clock's; a stamp that does not parse is shown as the forge wrote it. */
@@ -142,18 +134,6 @@ function clockTimeOf(stamp: string, clock: ClockReading): string {
 /** A count that may hold more than the document shows: `2+`. */
 function atLeastTextOf(text: string, mayHoldMore: boolean): string {
   return mayHoldMore ? `${text}+` : text;
-}
-
-function roundedToTokenCountDigitsOf(value: number): number {
-  return Number(value.toPrecision(SIGNIFICANT_DIGITS_OF_A_TOKEN_COUNT));
-}
-
-/** 146000 as `146k`, 1240000 as `1.24M`: three significant digits, as the artboard writes a token count. */
-function tokenCountTextOf(tokens: number): string {
-  if (tokens < ONE_THOUSAND) return String(tokens);
-  const thousands = roundedToTokenCountDigitsOf(tokens / ONE_THOUSAND);
-  if (thousands < ONE_THOUSAND) return `${thousands}k`;
-  return `${roundedToTokenCountDigitsOf(tokens / ONE_MILLION)}M`;
 }
 
 function projectsByTrackerIdOf(fleetDocument: FleetDocument): ReadonlyMap<string, string> {
@@ -251,7 +231,7 @@ function kindCountsOf(fleetDocument: FleetDocument, trackerId: string | null): R
 
 function emptySentenceOf(fleetDocument: FleetDocument, rows: readonly ActivityRow[]): string | null {
   if (rows.length > 0) return null;
-  return fleetDocument.activity.length === 0 ? NO_ACTIVITY_SENTENCE : NOTHING_MATCHES_SENTENCE;
+  return fleetDocument.activity.length === 0 ? ACTIVITY_SENTENCES.noActivity : NOTHING_MATCHES_SENTENCE;
 }
 
 /** G2's entry of a brain's run that ended carries its tokens; another entry of the brain, such as its start, carries none. */
@@ -297,8 +277,8 @@ function brainTokensNoteOf(fleetDocument: FleetDocument, clock: ClockReading): B
   });
   if (forges.length === 0) return null;
   return {
-    totalText: atLeastTextOf(tokenCountTextOf(forges.reduce((sum, forge) => sum + forge.tokens, 0)), mayBeCut.size > 0),
-    forges:    forges.map(({ trackerId, project, tokens }) => ({ trackerId, project, tokensText: atLeastTextOf(tokenCountTextOf(tokens), mayBeCut.has(trackerId)) })),
+    totalText: atLeastTextOf(CountTextUtil.shortCountTextOf(forges.reduce((sum, forge) => sum + forge.tokens, 0)), mayBeCut.size > 0),
+    forges:    forges.map(({ trackerId, project, tokens }) => ({ trackerId, project, tokensText: atLeastTextOf(CountTextUtil.shortCountTextOf(tokens), mayBeCut.has(trackerId)) })),
   };
 }
 
@@ -333,7 +313,7 @@ function landedTodayOf(fleetDocument: FleetDocument): TodayList {
 }
 
 function tokensTodayOf(fleetDocument: FleetDocument): TodayList {
-  return todayListOf(fleetDocument, (today) => today.tokens, tokenCountTextOf, (project, valueText) => `${project}: ${valueText} tokens today`);
+  return todayListOf(fleetDocument, (today) => today.tokens, CountTextUtil.shortCountTextOf, (project, valueText) => `${project}: ${valueText} tokens today`);
 }
 
 /**
@@ -356,5 +336,4 @@ function titleFiguresOf(fleetDocument: FleetDocument, clock: ClockReading): Page
 export const ActivityModel = {
   activityContentOf,
   titleFiguresOf,
-  tokenCountTextOf,
 } as const;

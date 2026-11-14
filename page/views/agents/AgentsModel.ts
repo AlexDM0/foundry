@@ -12,10 +12,12 @@ import type { CommandStates }                                                 fr
 import type { DotCondition }                                                  from '../../design-system/ConditionDot.tsx';
 import type { PageFigure }                                                    from '../../design-system/PageTitle.tsx';
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
+import { HashRouter, type SelectedAgent }                                     from '../../shared/HashRouter.ts';
+import { type MachineLoad, MachineLoadModel }                                 from '../../shared/MachineLoadModel.ts';
+import { CountTextUtil }                                                      from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                                                  from '../../shared/utils/FleetDocumentUtil.ts';
 import { ForgeContractUtil }                                                  from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                                                      from '../../shared/utils/ForgeTextUtil.ts';
-import { HashRouter, type SelectedAgent }                                     from '../../shell/HashRouter.ts';
-import { RailModel, type RailMachine }                                        from '../../shell/RailModel.ts';
 import {
   type AgentConditionFilter,
   type AgentFilters,
@@ -23,6 +25,7 @@ import {
   AgentsFilters,
 } from './AgentsFilters.ts';
 import {
+  AGENTS_ROUTE_OF_THE_BRIDGE,
   type BrainCommandRefusal,
   BrainModel,
   type BrainRowContent,
@@ -143,7 +146,7 @@ export interface AgentsContent {
   readonly groups:              readonly AgentGroupContent[];
   readonly selected:            SelectedAgentContent;
   /** This machine's agents against its limit, shown when no agent runs. */
-  readonly machine:             RailMachine;
+  readonly machine:             MachineLoad;
 }
 
 export interface AgentsModelInput {
@@ -158,8 +161,6 @@ export interface AgentsModelInput {
   readonly commandStates:      CommandStates;
 }
 
-const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents/';
-
 const METER_TONE_OF_DOT_ROLE: Readonly<Partial<Record<DotRole, AgentMeterTone>>> = {
   'builder':    'builder',
   'reviewer':   'reviewer',
@@ -172,20 +173,16 @@ const DOT_ROLE_OF_ROLE: Readonly<Record<string, DotRole>> = {
   reviewer: 'reviewer',
 };
 
-function forgeOf(fleetDocument: FleetDocument, trackerId: string): FleetDocumentForge | null {
-  return fleetDocument.forges.find((forge) => forge.trackerId === trackerId) ?? null;
-}
-
 /** A tracker id the document holds no forge for stands in for its project. */
 function projectOf(fleetDocument: FleetDocument, trackerId: string): string {
-  return forgeOf(fleetDocument, trackerId)?.project ?? trackerId;
+  return FleetDocumentUtil.forgeOf(fleetDocument, trackerId)?.project ?? trackerId;
 }
 
 /** The agent in its forge's own Agents view when the forge opens in place, else the forge's row on the Forges view. */
 function jobHrefOf(fleetDocument: FleetDocument, row: FleetDocumentFleetAgentRow): string {
-  const forge = forgeOf(fleetDocument, row.trackerId);
+  const forge = FleetDocumentUtil.forgeOf(fleetDocument, row.trackerId);
   if (forge !== null && ForgeContractUtil.canOpenInPlace(forge)) {
-    const bridgeFragment = row.route ?? `${AGENTS_ROUTE_OF_THE_BRIDGE}${encodeURIComponent(row.jobId)}`;
+    const bridgeFragment = row.route ?? `${AGENTS_ROUTE_OF_THE_BRIDGE}/${encodeURIComponent(row.jobId)}`;
     return HashRouter.fragmentOf({ view: 'forge', trackerId: row.trackerId, bridgeFragment });
   }
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: row.trackerId });
@@ -199,7 +196,7 @@ function flagsOf(row: FleetDocumentFleetAgentRow): AgentFlag[] {
   const flags: AgentFlag[] = [];
   if (row.waitingOnDecisionId !== null) flags.push({ text: `asks you · ${row.waitingOnDecisionId}`, tone: 'warn' });
   if (row.quiet === true) {
-    const sweepsText = row.silentSweeps === null ? '' : ` · ${AgentTextUtil.countedPhrase(row.silentSweeps, 'sweep', 'sweeps')}`;
+    const sweepsText = row.silentSweeps === null ? '' : ` · ${CountTextUtil.countedPhrase(row.silentSweeps, 'sweep', 'sweeps')}`;
     flags.push({ text: `quiet${sweepsText}`, tone: 'neutral' });
   }
   return flags;
@@ -340,17 +337,12 @@ function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   return [...figures, { value: String(brainCount), label: brainCount === 1 ? 'brain, outside the limit' : 'brains, outside the limit' }];
 }
 
-/** What waits on User in the forge as its forge counts it, or `null` when it reports no count. */
-function waitingCountOf(forge: FleetDocumentForge): number | null {
-  return forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
-}
-
 /** A held forge says so first, as its head's note in orange; then what of it waits on User. */
 function groupNoteOf(forge: FleetDocumentForge): string | null {
-  const waitingCount = waitingCountOf(forge);
+  const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
   const parts = [
     forge.condition === 'held' ? ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition) : null,
-    waitingCount === null || waitingCount === 0 ? null : AgentTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
+    waitingCount === null || waitingCount === 0 ? null : CountTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
   ];
   const shownParts = parts.filter((part) => part !== null);
   return shownParts.length === 0 ? null : shownParts.join(' · ');
@@ -359,7 +351,7 @@ function groupNoteOf(forge: FleetDocumentForge): string | null {
 /** The forge's own job rows count against its limit, whatever the filters leave; a brain's row never does. */
 function groupOf(input: AgentsModelInput, trackerId: string, rows: readonly AgentRowContent[], brainRow: BrainRowContent | null): AgentGroupContent {
   const { fleetDocument, commandStates } = input;
-  const forge = forgeOf(fleetDocument, trackerId);
+  const forge = FleetDocumentUtil.forgeOf(fleetDocument, trackerId);
   const agentCount = jobRowsOf(fleetDocument).filter((row) => row.trackerId === trackerId).length;
   const limit = forge?.concurrency?.limit ?? null;
   return {
@@ -371,7 +363,7 @@ function groupOf(input: AgentsModelInput, trackerId: string, rows: readonly Agen
     slots:        limit === null ? null : {
       filled: agentCount,
       limit,
-      label:  `${AgentTextUtil.countedPhrase(agentCount, 'agent', 'agents')} against a limit of ${limit}`,
+      label:  `${CountTextUtil.countedPhrase(agentCount, 'agent', 'agents')} against a limit of ${limit}`,
     },
     noteText:     forge === null ? null : groupNoteOf(forge),
     brain:        BrainModel.groupBrainOf(forge, commandStates),
@@ -439,7 +431,7 @@ function agentsContentOf(input: AgentsModelInput): AgentsContent {
     rows:                shownRows.flatMap((row) => (row.kind === 'job' ? [row.content] : [])),
     groups:              groupsOf(input, shownRows),
     selected:            selectedContentOf(input),
-    machine:             RailModel.machineOf(fleetDocument),
+    machine:             MachineLoadModel.machineLoadOf(fleetDocument),
   };
 }
 

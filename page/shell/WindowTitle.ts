@@ -4,7 +4,7 @@
  */
 import { PRODUCT_NAMES }      from '../../src/shared/constants/ProductNames.ts';
 import type { FleetDocument } from '../@types/FleetDocument.ts';
-import type { GaiaRoute }     from './HashRouter.ts';
+import type { GaiaRoute }     from '../shared/HashRouter.ts';
 import { RailModel }          from './RailModel.ts';
 
 const TITLE_SEPARATOR = ' · ';

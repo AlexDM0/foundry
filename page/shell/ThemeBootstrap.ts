@@ -3,9 +3,7 @@
  * `gaia.css` keeps the body hidden until `data-theme` is set. `auto` follows the system's scheme. Gaia's settings hold the choice itself;
  * the stored copy only serves the first paint.
  */
-import type { FleetDocumentThemeChoice } from '../@types/FleetDocument.ts';
-
-export type ThemeChoice = FleetDocumentThemeChoice;
+import type { ThemeChoice } from '../shared/@types/ThemeChoice.ts';
 
 export type Theme = 'light' | 'dark';
 

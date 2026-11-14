@@ -2,7 +2,8 @@
  * How a forge's stamp prints. What matters: the ages of artboard A1 come out of the fixtures' stamps at the clock the artboard was drawn
  * at; an age is minutes alone under an hour and two units above it; a stamp ahead of the clock or one that does not parse prints no wrong
  * time; a clock time carries its month and day only when it is from another day than the clock's, in the time zone handed in; the time
- * left until a brain's end is A2's `1:24` at the fixtures' clock and stops at `0:00`, since the page decides nothing from it.
+ * left until a brain's end is A2's `1:24` at the fixtures' clock, its part second dropped in every view alike, and stops at `0:00`, since
+ * the page decides nothing from it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -42,6 +43,13 @@ describe('the clock time of a stamp', () => {
   test('prints nothing for a stamp that does not parse', () => {
     expect(StampTextUtil.clockTextOf('', READ_AT, 'UTC')).toBeNull();
   });
+
+  test('reads the same at a reading of the page\'s clock, and prints nothing for a stamp the forge did not give', () => {
+    const clock = { nowEpochMilliseconds: READ_AT, timeZone: 'Europe/Amsterdam' };
+    expect(StampTextUtil.clockTextAtReadingOf('2026-11-12T13:14:05.000Z', clock)).toBe('14:14');
+    expect(StampTextUtil.clockTextAtReadingOf('2026-09-03T17:40:00.000Z', clock)).toBe('09-03 19:40');
+    expect(StampTextUtil.clockTextAtReadingOf(null, clock)).toBeNull();
+  });
 });
 
 describe('whether a stamp is of the clock\'s day', () => {
@@ -53,6 +61,12 @@ describe('whether a stamp is of the clock\'s day', () => {
 
   test('does not hold for a stamp that does not parse', () => {
     expect(StampTextUtil.stampIsOfTheClocksDay('today', READ_AT, 'UTC')).toBe(false);
+  });
+});
+
+describe('a span as minutes and seconds', () => {
+  test('drops the part second, pads the seconds and reads a negative span as none', () => {
+    expect([84_000, 84_999, 725_000, 0, -5_000].map((milliseconds) => StampTextUtil.minutesAndSecondsTextOf(milliseconds))).toEqual(['1:24', '1:24', '12:05', '0:00', '0:00']);
   });
 });
 

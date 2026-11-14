@@ -14,36 +14,33 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import type { FleetDocument }                                 from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext }           from '../api/CommandSender.ts';
-import { FleetStreamClient, type FleetStreamState }           from '../api/FleetStreamClient.ts';
-import { BrandBar }                                           from '../design-system/BrandBar.tsx';
-import { PageTitle }                                          from '../design-system/PageTitle.tsx';
-import type { ViewParts }                                     from '../shared/@types/ViewParts.ts';
-import { activityViewPartsOf }                                from '../views/activity/ActivityView.tsx';
-import { agentsViewPartsOf }                                  from '../views/agents/AgentsView.tsx';
-import { attentionViewPartsOf }                               from '../views/attention/AttentionView.tsx';
-import { EmbedChannel, type EmbedChannelSurroundings }        from '../views/forge-frame/EmbedChannel.ts';
-import { ForgeFrameModel }                                    from '../views/forge-frame/ForgeFrameModel.ts';
-import { type ForgeFrameSurroundings, forgeFrameViewPartsOf } from '../views/forge-frame/ForgeFrameView.tsx';
-import { type FrameSessionResult, FrameSessionRequest }       from '../views/forge-frame/FrameSessionRequest.ts';
-import { forgesViewPartsOf }                                  from '../views/forges/ForgesView.tsx';
-import { BrandStatusModel }                                   from './BrandStatusModel.ts';
-import { ConnectionBanner }                                   from './ConnectionBanner.tsx';
-import type { FleetSource }                                   from './FleetSource.ts';
-import { type GaiaRoute, HashRouter, type HashSurroundings }  from './HashRouter.ts';
-import { MotionReadiness }                                    from './MotionReadiness.ts';
-import { PageClock }                                          from './PageClock.ts';
-import { Rail }                                               from './Rail.tsx';
-import { RailModel }                                          from './RailModel.ts';
-import { SecondsOnScreen }                                    from './SecondsOnScreen.ts';
-import {
-  type ThemeChoice,
-  type ThemeChoiceState,
-  ThemeBootstrap,
-  type ThemeSurroundings,
-} from './ThemeBootstrap.ts';
-import { WindowTitle } from './WindowTitle.ts';
+import type { FleetDocument }                                            from '../@types/FleetDocument.ts';
+import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
+import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
+import { BrandBar }                                                      from '../design-system/BrandBar.tsx';
+import { PageTitle }                                                     from '../design-system/PageTitle.tsx';
+import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
+import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
+import type { ViewParts }                                                from '../shared/@types/ViewParts.ts';
+import { type GaiaRoute, HashRouter, type HashSurroundings }             from '../shared/HashRouter.ts';
+import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
+import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
+import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
+import { EmbedChannel, type EmbedChannelSurroundings }                   from '../views/forge-frame/EmbedChannel.ts';
+import { ForgeFrameModel }                                               from '../views/forge-frame/ForgeFrameModel.ts';
+import { type ForgeFrameSurroundings, forgeFrameViewPartsOf }            from '../views/forge-frame/ForgeFrameView.tsx';
+import { type FrameSessionResult, FrameSessionRequest }                  from '../views/forge-frame/FrameSessionRequest.ts';
+import { forgesViewPartsOf }                                             from '../views/forges/ForgesView.tsx';
+import { BrandStatusModel }                                              from './BrandStatusModel.ts';
+import { ConnectionBanner }                                              from './ConnectionBanner.tsx';
+import type { FleetSource }                                              from './FleetSource.ts';
+import { MotionReadiness }                                               from './MotionReadiness.ts';
+import { PageClock }                                                     from './PageClock.ts';
+import { Rail }                                                          from './Rail.tsx';
+import { RailModel }                                                     from './RailModel.ts';
+import { SecondsOnScreen }                                               from './SecondsOnScreen.ts';
+import { type ThemeChoiceState, ThemeBootstrap, type ThemeSurroundings } from './ThemeBootstrap.ts';
+import { WindowTitle }                                                   from './WindowTitle.ts';
 
 export interface GaiaShellProps {
   readonly fleetDocument: FleetDocument | null;
@@ -95,7 +92,7 @@ export interface ViewSurroundings {
 export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, {
   readAtMilliseconds, timeZone, goTo, forgeFrame
 }: ViewSurroundings): ViewParts {
-  const clock = { nowEpochMilliseconds: readAtMilliseconds, timeZone };
+  const clock: ClockReading = { nowEpochMilliseconds: readAtMilliseconds, timeZone };
   switch (route.view) {
     case 'attention':
       return attentionViewPartsOf(fleetDocument, clock);

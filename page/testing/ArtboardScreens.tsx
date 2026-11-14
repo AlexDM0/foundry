@@ -13,8 +13,8 @@ import { FLINT_BRAIN_CONTRACT_VERSIONS }                                        
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
+import { HashRouter }                                                               from '../shared/HashRouter.ts';
 import { GaiaShell, viewPartsOf }                                                   from '../shell/GaiaApp.tsx';
-import { HashRouter }                                                               from '../shell/HashRouter.ts';
 import { ForgesLayout }                                                             from '../views/forges/ForgesLayout.tsx';
 import { ForgesModel, type StopDialogState }                                        from '../views/forges/ForgesModel.ts';
 import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';

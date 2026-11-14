@@ -7,6 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { DEFAULT_ROUTE, type GaiaRoute }                    from '../shared/HashRouter.ts';
 import { DrawnDots }                                        from '../testing/DrawnDots.ts';
 import { GaiaStylesheet }                                   from '../testing/GaiaStylesheet.ts';
 import { type HostElement, ReactElementTree }               from '../testing/ReactElementTree.ts';
@@ -14,7 +15,6 @@ import { FLEET_AT_LIMIT }                                   from '../testing/fix
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
-import { DEFAULT_ROUTE, type GaiaRoute }                    from './HashRouter.ts';
 import { Rail }                                             from './Rail.tsx';
 import { RailModel }                                        from './RailModel.ts';
 

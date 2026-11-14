@@ -10,11 +10,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FleetDocument }                               from '../@types/FleetDocument.ts';
+import { DEFAULT_ROUTE }                                    from '../shared/HashRouter.ts';
 import { FLEET_AT_LIMIT }                                   from '../testing/fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
-import { DEFAULT_ROUTE }                                    from './HashRouter.ts';
 import { type RailContent, type RailCount, RailModel }      from './RailModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;

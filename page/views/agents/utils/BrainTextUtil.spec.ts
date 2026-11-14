@@ -1,7 +1,7 @@
 /**
  * The brain's words and machine values. What matters: its time left counts down to the forge's `endsAt` and stops at `0:00`, never below;
- * a stamp that does not read as a time gives nothing rather than a wrong time; its tokens read short (`3.1k`); the four-bar mark knows the
- * effort words the forge's sessions take and no other; and who woke it is said by place, never by person.
+ * a stamp that does not read as a time gives nothing rather than a wrong time; the four-bar mark knows the effort words the forge's
+ * sessions take and no other; and who woke it is said by place, never by person.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,13 +35,6 @@ describe('times', () => {
 });
 
 describe('words and figures', () => {
-  test('a count reads short: whole under a thousand, then thousands and millions to one decimal, without a trailing zero', () => {
-    expect([950, 3_100, 12_000, 1_250_000].map((count) => BrainTextUtil.shortCountText(count))).toEqual(['950', '3.1k', '12k', '1.3M']);
-  });
-
-  test('a count just under a million rounds up into millions, never reading as a thousand thousands', () => {
-    expect([999_940, 999_950].map((count) => BrainTextUtil.shortCountText(count))).toEqual(['999.9k', '1M']);
-  });
 
   test('the four-bar mark knows low to max, and no other word', () => {
     expect(['low', 'medium', 'high', 'max', 'xhigh'].map((effort) => BrainTextUtil.effortLevelOf(effort))).toEqual([1, 2, 3, 4, null]);

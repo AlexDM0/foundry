@@ -4,6 +4,7 @@
  */
 import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocumentForge }                             from '../../@types/FleetDocument.ts';
+import { CountTextUtil }                                       from './CountTextUtil.ts';
 
 export interface StopChoice {
   readonly agents:      ForgeStopAgents;
@@ -42,10 +43,6 @@ const RESTART_PENDING = {
   dismissLabel: 'Dismiss the pending restart',
 } as const;
 
-function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
-  return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
-}
-
 /** The name a refusal gives the refused command, `null` for a command that names no forge. */
 function commandLabelOf(kind: CommandKind): string | null {
   return Object.hasOwn(FORGE_COMMAND_LABELS, kind) ? FORGE_COMMAND_LABELS[kind as ForgeCommandBody['kind']] : null;
@@ -74,14 +71,14 @@ function stopChoicesOf(agentsRunning: number): StopChoice[] {
 function stopQuestionOf(forge: FleetDocumentForge): StopQuestion {
   const agentsRunning = forge.concurrency?.agentsInFlight ?? forge.agents.length;
   const waitingCount = forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
-  const running = agentsRunning === 0 ? '' : ` ${countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`;
+  const running = agentsRunning === 0 ? '' : ` ${CountTextUtil.countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`;
   return {
     label:       `Stop ${forge.project}`,
     question:    `Stop the Overseer of ${forge.project}?${running}`,
     choices:     stopChoicesOf(agentsRunning),
     consequence: waitingCount === null || waitingCount === 0
       ? null
-      : `${countedPhrase(waitingCount, 'entry keeps', 'entries keep')} waiting on you while it is stopped.`,
+      : `${CountTextUtil.countedPhrase(waitingCount, 'entry keeps', 'entries keep')} waiting on you while it is stopped.`,
   };
 }
 
