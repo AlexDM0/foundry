@@ -9,13 +9,6 @@
   },
   "answers": [
     {
-      "callShape": "browser-ended: debugging port",
-      "answer": {
-        "verdict": "written",
-        "debuggingPort": 60014
-      }
-    },
-    {
       "callShape": "browser-ended: navigate",
       "answer": {
         "verdict": "unreachable"
@@ -28,22 +21,29 @@
       }
     },
     {
-      "callShape": "browser-starting: debugging port",
+      "callShape": "navigation-refused: navigate",
       "answer": {
-        "verdict": "not-written"
+        "verdict": "refused",
+        "failure": "Cannot navigate to invalid URL"
       }
     },
     {
-      "callShape": "window-closed: debugging port",
+      "callShape": "navigation-refused: page targets",
       "answer": {
-        "verdict": "written",
-        "debuggingPort": 60014
+        "verdict": "listed",
+        "pageTargets": [
+          {
+            "targetId": "95BB9A95656DC9F9D2F4754B5570AAFC",
+            "url": "http://127.0.0.1:61872/resources/page/loading.html?address=127.0.0.1:4790&theme=dark#step=looking&answered=3&registered=5"
+          }
+        ]
       }
     },
     {
       "callShape": "window-closed: navigate",
       "answer": {
-        "verdict": "unreachable"
+        "verdict": "refused",
+        "failure": "No target with given id found"
       }
     },
     {
@@ -51,13 +51,6 @@
       "answer": {
         "verdict": "listed",
         "pageTargets": []
-      }
-    },
-    {
-      "callShape": "window-open: debugging port",
-      "answer": {
-        "verdict": "written",
-        "debuggingPort": 60014
       }
     },
     {
@@ -72,9 +65,8 @@
         "verdict": "listed",
         "pageTargets": [
           {
-            "targetId": "7CF7EAD1F9611DE26B93830C1E6BBB6E",
-            "url": "http://127.0.0.1:60013/resources/page/loading.html?address=127.0.0.1:4790&theme=dark",
-            "debuggerAddress": "ws://127.0.0.1:60014/devtools/page/7CF7EAD1F9611DE26B93830C1E6BBB6E"
+            "targetId": "95BB9A95656DC9F9D2F4754B5570AAFC",
+            "url": "http://127.0.0.1:61872/resources/page/loading.html?address=127.0.0.1:4790&theme=dark"
           }
         ]
       }

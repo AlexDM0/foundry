@@ -75,7 +75,7 @@ page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `Frame
 | --- | --- |
 | Other programs: `forge`, `osascript`, `clang`, `lipo`, `codesign`, the browser | `src/lib/process-run/ProcessRun.ts` |
 | HTTP to an Overseer | `src/lib/forge-client/OverseerFetch.ts` |
-| The browser's debugging port | `src/features/launcher/BrowserWindowWatch.ts` |
+| The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
 | The Notification API | `page/notifications/NotificationBoundary.ts` |
 | A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge-frame/EmbedChannel.ts` |
@@ -114,8 +114,9 @@ is the only way the bundle is installed.
 
 The launcher's splash (`resources/page/loading.html`) is a file page, and Gaia's server answers no cross-origin read and refuses a file
 page's origin, so the splash cannot read the health route itself: the launcher follows it and moves the splash on through the browser's
-debugging port, and navigates the window to Gaia's page with the session code. When Gaia already runs, no splash shows: the window opens
-on the page with the code at once (PLAN 9.2).
+debugging pipe (`--remote-debugging-pipe`, never a port another process could reach), and navigates the window to Gaia's page with the
+session code. No session code is ever in the browser's arguments: when Gaia already runs, the window opens on the splash at its last
+step, and the launcher asks for the code once the window is listed and moves the window to the page at once (PLAN 9.2).
 
 # Coding conventions
 

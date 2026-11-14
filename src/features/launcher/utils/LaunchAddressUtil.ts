@@ -4,10 +4,10 @@
  */
 import { pathToFileURL } from 'node:url';
 
-import type { ForgeCounts } from '../../../adapters/gaia-server/HealthDocument.ts';
-import type { ThemeChoice } from '../../../shared/@types/GaiaSettings.ts';
-import { PRODUCT_NAMES }    from '../../../shared/constants/ProductNames.ts';
-import type { PageTarget }  from '../BrowserWindowWatch.ts';
+import type { ForgeCounts }                         from '../../../adapters/gaia-server/HealthDocument.ts';
+import type { ThemeChoice }                         from '../../../shared/@types/GaiaSettings.ts';
+import { PRODUCT_NAMES }                            from '../../../shared/constants/ProductNames.ts';
+import { DEBUGGING_PIPE_ARGUMENT, type PageTarget } from '../BrowserWindowWatch.ts';
 
 /** `starting`: the server is starting. `looking`: it answers, and its forges are being looked for. `opening`: Attention opens next. */
 export type SplashStep = 'starting' | 'looking' | 'opening';
@@ -46,7 +46,7 @@ function pageAddressOf(port: number, sessionCode: string): string {
   return `http://${addressOfPort(port)}/#session=${sessionCode}`;
 }
 
-/** PLAN 9.2: an app window on Gaia's own profile, whose windows the debugging port reports. */
+/** PLAN 9.2: an app window on Gaia's own profile, whose windows the browser reports over the debugging pipe only the launcher holds. */
 function browserArgumentsOf(startAddress: string, profileFolder: string): readonly string[] {
   return [
     `--app=${startAddress}`,
@@ -54,7 +54,7 @@ function browserArgumentsOf(startAddress: string, profileFolder: string): readon
     '--no-first-run',
     '--no-default-browser-check',
     `--window-size=${WINDOW_SIZE}`,
-    '--remote-debugging-port=0',
+    DEBUGGING_PIPE_ARGUMENT,
   ];
 }
 

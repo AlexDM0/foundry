@@ -101,6 +101,32 @@ describe('the recorded process run', () => {
     expect(processRun.ownedChildrenStopped()).toEqual([sleeperShape]);
   });
 
+  test('ends a running owned child by itself when the spec says, as a real child may at any time, and counts no stop of it', async () => {
+    const processRun = recordedProcessRun(recordedRunsOf('process-run'));
+    const answer     = processRun.startOwned({ program: 'sleep', programArguments: ['30'], workingDirectory: homeDirectory() });
+    if (answer.verdict !== 'started') throw new Error(`The owned start answered ${JSON.stringify(answer)}`);
+    const sleeperShape = ownedStartCallShapeOf('sleep', ['30']);
+    processRun.endByItself(sleeperShape);
+    expect(await answer.child.exited).toBe(EXIT_CODE_OF_A_TERMINATED_PROGRAM);
+    answer.child.stop();
+    expect([processRun.ownedChildrenRunning(), processRun.ownedChildrenStopped()]).toEqual([[], []]);
+    expect(() => processRun.endByItself(sleeperShape)).toThrow('is running to end');
+  });
+
+  test('hands an owned child started with a channel one that carries no text and closes at the child\'s end, and others none', async () => {
+    const processRun = recordedProcessRun(recordedRunsOf('process-run'));
+    const withChannel = processRun.startOwned({
+      program: 'sleep', programArguments: ['30'], workingDirectory: homeDirectory(), withChannel: true
+    });
+    if (withChannel.verdict !== 'started' || withChannel.child.channel === null) throw new Error(`The owned start answered ${JSON.stringify(withChannel)}`);
+    const { channel } = withChannel.child;
+    expect(() => channel.write('text')).toThrow('carries no text');
+    withChannel.child.stop();
+    await channel.closed;
+    const withoutChannel = processRun.startOwned({ program: 'sh', programArguments: ['-c', 'exit 3'], workingDirectory: homeDirectory() });
+    expect(withoutChannel.verdict === 'started' ? withoutChannel.child.channel : 'not started').toBeNull();
+  });
+
   test('ends a recorded owned child that ended by itself at once, and counts no stop of it', async () => {
     const processRun = recordedProcessRun(recordedRunsOf('process-run'));
     const answer     = processRun.startOwned({ program: 'sh', programArguments: ['-c', 'exit 3'], workingDirectory: homeDirectory() });

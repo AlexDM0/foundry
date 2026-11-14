@@ -1,6 +1,7 @@
 /**
  * Finds the browser Gaia's window opens in: Google Chrome, else Microsoft Edge, each in the system's and then the user's Applications
- * folder. Both open an `--app` window on a profile of Gaia's own and report its windows on a debugging port (docs/spikes.md, spike 3).
+ * folder. Both open an `--app` window on a profile of Gaia's own and report its windows over a debugging pipe (docs/architecture.md,
+ * "Guards and sessions").
  */
 import { accessSync, constants } from 'node:fs';
 import { join }                  from 'node:path';

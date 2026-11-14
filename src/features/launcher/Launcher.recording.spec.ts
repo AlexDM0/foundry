@@ -2,7 +2,8 @@
  * The real-system spec of the launcher, run only by `bun run record launcher-programs` on a Mac with Chrome or Edge: it launches Gaia for
  * real under the run's scratch home, with the real `gaia serve`, browser, window watch and dialogs, and records what each program the
  * launcher starts answers, under the example values the flow spec launches with. The situations: nothing on the port (the server and the
- * splash start, the page opens, and closing the window stops both), Gaia already up (the page opens, and the server outlives the window),
+ * splash start, the page opens, and closing the window stops both), Gaia already up (the splash opens at its last step and moves on to the
+ * page, and the server outlives the window),
  * a server that ends before it answers, no browser, another program on the port and a Gaia.app installed for another install version (a
  * dialog each, which this spec dismisses), and the dialog of every other refusal and failure. The browser's version stamps the recording.
  */
@@ -35,8 +36,9 @@ import { recordAnswer, recordSystemVersion, repositoryRoot }   from '../../testi
 import { detachedStartCallShapeOf, ownedStartCallShapeOf }     from '../../testing/RecordedRuns.ts';
 import { createScratchDirectory, removeScratchPath }           from '../../testing/ScratchRoot.ts';
 import { foundBrowserIn, type FoundBrowser }                   from './BrowserFinder.ts';
-import { realBrowserWindowWatch }                              from './BrowserWindowWatch.ts';
+import { browserWindowWatchOver }                              from './BrowserWindowWatch.ts';
 import { createLauncher, launchMessageOf, type LaunchVerdict } from './Launcher.ts';
+import { rawDebuggingProtocolOver, type RawDebuggingProtocol } from './testing/RawDebuggingProtocol.ts';
 import {
   EXAMPLE_BROWSER,
   EXAMPLE_BUN_PROGRAM,
@@ -70,6 +72,8 @@ let requestStop: () => void = () => undefined;
 let childrenToEnd: OwnedChild[] = [];
 let recordingsInFlight: Promise<void>[] = [];
 let portHolders: Bun.Server<undefined>[] = [];
+/** The recording's own requests over the pipe of the browser the launch started, beside the launcher's window watch. */
+let browserProtocol: RawDebuggingProtocol | null = null;
 
 beforeEach(() => {
   const foundBrowser = foundBrowserIn(homeDirectory());
@@ -86,6 +90,7 @@ afterEach(async () => {
     await child.exited;
   }
   childrenToEnd = [];
+  browserProtocol = null;
   for (const portHolder of portHolders) await portHolder.stop(true);
   portHolders = [];
   removeScratchPath(profileFolder);
@@ -147,6 +152,7 @@ function recordingProcessRun(situation: LaunchSituation, port: number): ProcessR
         return answer;
       }
       childrenToEnd.push(answer.child);
+      if (isBrowser && answer.child.channel !== null) browserProtocol = rawDebuggingProtocolOver(answer.child.channel);
       let stopWasAsked = false;
       recordingsInFlight.push(answer.child.exited.then((exitCode) => {
         const ending = { by: stopWasAsked ? 'stop' : 'itself', exitCode };
@@ -161,6 +167,7 @@ function recordingProcessRun(situation: LaunchSituation, port: number): ProcessR
             stopWasAsked = true;
             answer.child.stop();
           },
+          channel: answer.child.channel,
         },
       };
     },
@@ -188,7 +195,7 @@ function launchOf(situation: LaunchSituation, port: number, findBrowser: () => F
     workingDirectory:     homeDirectory(),
     findBrowser,
     processRun:           recordingProcessRun(situation, port),
-    browserWindowWatch:   realBrowserWindowWatch(),
+    browserWindowWatchOver,
     gaiaServer:           realGaiaServerClient(),
     readServerToken:      () => new ServerTokenFile(launchHome).read(),
     timers:               realWatchTimers(),
@@ -196,17 +203,16 @@ function launchOf(situation: LaunchSituation, port: number, findBrowser: () => F
   }).launch();
 }
 
-/** Closes Gaia's window once it shows Gaia's page, as User does; the browser keeps running, as it does on a Mac. */
+/** Closes Gaia's window once it shows Gaia's page, as User does, over the browser's own pipe; the browser keeps running, as it does on a Mac. */
 async function closeTheWindowOnceThePageOpens(port: number): Promise<void> {
-  const watch = realBrowserWindowWatch();
   for (let i = 0; i < POLL_TRIES; i++) {
     await Bun.sleep(POLL_MILLISECONDS);
-    const portAnswer = await watch.debuggingPortIn(profileFolder);
-    if (portAnswer.verdict === 'not-written') continue;
-    const targetsAnswer = await watch.pageTargetsAt(portAnswer.debuggingPort);
-    const page = targetsAnswer.verdict === 'listed' ? targetsAnswer.pageTargets.find((pageTarget) => pageTarget.url.startsWith(`http://127.0.0.1:${port}/`)) : undefined;
+    if (browserProtocol === null) continue;
+    const { targetInfos } = await browserProtocol.ask('Target.getTargets', {});
+    const listed = Array.isArray(targetInfos) ? targetInfos as readonly { readonly targetId: string; readonly type: string; readonly url: string }[] : [];
+    const page = listed.find((target) => target.type === 'page' && target.url.startsWith(`http://127.0.0.1:${port}/`));
     if (page === undefined) continue;
-    await fetch(`http://127.0.0.1:${portAnswer.debuggingPort}/json/close/${page.targetId}`);
+    await browserProtocol.closeWindow(page.targetId);
     return;
   }
   throw new Error('Gaia\'s page never opened in the window.');
@@ -263,7 +269,7 @@ describe('a launch on a real Mac', () => {
       { verdict: 'refused', refusal: 'app-bundle-from-another-version' },
       { verdict: 'refused', refusal: 'no-browser' },
       { verdict: 'refused', refusal: 'port-held-by-another-program' },
-      ...(['server-not-started', 'server-ended', 'browser-not-started', 'window-not-found', 'session-not-issued', 'page-not-opened'] as const)
+      ...(['server-not-started', 'server-ended', 'server-stopped', 'browser-not-started', 'window-not-found', 'session-not-issued', 'page-not-opened'] as const)
         .map((failure) => ({ verdict: 'unrepaired', failure }) as const),
     ];
     const processRun = recordingProcessRun('every-dialog', EXAMPLE_PORT);

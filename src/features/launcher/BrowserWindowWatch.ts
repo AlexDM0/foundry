@@ -1,131 +1,137 @@
 /**
- * The boundary to the browser's debugging port: the port the browser chose for `--remote-debugging-port=0`, read from its profile; the
- * page targets it lists, one per open window; and a navigation of one window to another address. A browser that does not answer is an
+ * The boundary to the browser's debugging pipe: the browser started with `--remote-debugging-pipe` speaks its DevTools protocol over the
+ * channel of the browser child, which only the launcher holds, so no other process can reach the window. Over it the watch reads the page
+ * targets the browser lists, one per open window, and navigates one window to another address. A browser that does not answer is an
  * ordinary answer, never a throw.
  */
-import { readFile } from 'node:fs/promises';
-import { join }     from 'node:path';
+import type { ChildChannel } from '../../lib/process-run/ProcessRun.ts';
 
 export interface PageTarget {
-  readonly targetId:        string;
-  readonly url:             string;
-  /** The target's own debugging socket, on 127.0.0.1, where a navigation is sent. */
-  readonly debuggerAddress: string;
+  readonly targetId: string;
+  readonly url:      string;
 }
-
-export type DebuggingPortAnswer = { readonly verdict: 'written'; readonly debuggingPort: number } | { readonly verdict: 'not-written' };
 
 export type PageTargetsAnswer = { readonly verdict: 'listed'; readonly pageTargets: readonly PageTarget[] } | { readonly verdict: 'unreachable' };
 
-/** `refused`: the browser answered the navigation with an error. `unreachable`: no answer from the target's socket within the bound. */
+/** `refused`: the browser answered the navigation with an error. `unreachable`: no answer over the pipe within the bound. */
 export type NavigationAnswer = { readonly verdict: 'navigated' } | { readonly verdict: 'refused'; readonly failure: string } | { readonly verdict: 'unreachable' };
 
 export interface BrowserWindowWatch {
-  readonly debuggingPortIn: (profileFolder: string) => Promise<DebuggingPortAnswer>;
-  readonly pageTargetsAt:   (debuggingPort: number) => Promise<PageTargetsAnswer>;
-  readonly navigate:        (pageTarget: PageTarget, address: string) => Promise<NavigationAnswer>;
+  readonly pageTargets: () => Promise<PageTargetsAnswer>;
+  readonly navigate:    (pageTarget: PageTarget, address: string) => Promise<NavigationAnswer>;
 }
 
-/** The file a browser started with `--remote-debugging-port=0` writes into its profile: the port on the first line. */
-const DEBUGGING_PORT_FILE_NAME = 'DevToolsActivePort';
+/** The switch that has the browser speak its debugging protocol over descriptors 3 and 4 instead of a port any local process can reach. */
+export const DEBUGGING_PIPE_ARGUMENT = '--remote-debugging-pipe';
 
 /** The browser answers its target list and a navigation from memory; one that takes longer is not answering. */
 export const DEBUGGING_ANSWER_TIMEOUT_MILLISECONDS = 2_000;
 
+/** The pipe carries one JSON message after another, each ended by a NUL character. */
+const MESSAGE_END = '\0';
+
 const PAGE_TARGET_TYPE = 'page';
 
-const NAVIGATION_MESSAGE_ID = 1;
-
-const HIGHEST_PORT = 65_535;
-
-const LOOPBACK_SOCKET_PREFIX = 'ws://127.0.0.1:';
+type ProtocolAnswer =
+  | { readonly verdict: 'answered'; readonly result: Readonly<Record<string, unknown>> }
+  | { readonly verdict: 'refused'; readonly failure: string }
+  | { readonly verdict: 'unreachable' };
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function portOfLine(line: string | undefined): number | null {
-  const port = line !== undefined && /^\d+$/.test(line) ? Number(line) : Number.NaN;
-  return Number.isSafeInteger(port) && port > 0 && port <= HIGHEST_PORT ? port : null;
-}
-
-/** A listed target as Gaia reads it: a page with an address and a socket on 127.0.0.1, or nothing. */
+/** A listed target as Gaia reads it: a page with an address, or nothing. */
 function pageTargetOf(listed: unknown): PageTarget | null {
   if (!isRecord(listed) || listed['type'] !== PAGE_TARGET_TYPE) return null;
-  const { id, url, webSocketDebuggerUrl } = listed;
-  if (typeof id !== 'string' || typeof url !== 'string' || typeof webSocketDebuggerUrl !== 'string') return null;
-  return webSocketDebuggerUrl.startsWith(LOOPBACK_SOCKET_PREFIX) ? { targetId: id, url, debuggerAddress: webSocketDebuggerUrl } : null;
+  const { targetId, url } = listed;
+  return typeof targetId === 'string' && typeof url === 'string' ? { targetId, url } : null;
 }
 
-async function debuggingPortIn(profileFolder: string): Promise<DebuggingPortAnswer> {
-  let contents: string;
-  try {
-    contents = await readFile(join(profileFolder, DEBUGGING_PORT_FILE_NAME), 'utf8');
-  } catch {
-    return { verdict: 'not-written' };
-  }
-  const debuggingPort = portOfLine(contents.split('\n')[0]);
-  return debuggingPort === null ? { verdict: 'not-written' } : { verdict: 'written', debuggingPort };
-}
-
-async function pageTargetsAt(debuggingPort: number): Promise<PageTargetsAnswer> {
-  let listed: unknown;
-  try {
-    const response = await fetch(`http://127.0.0.1:${debuggingPort}/json/list`, { redirect: 'manual', signal: AbortSignal.timeout(DEBUGGING_ANSWER_TIMEOUT_MILLISECONDS) });
-    listed = await response.json();
-  } catch {
-    return { verdict: 'unreachable' };
-  }
-  if (!Array.isArray(listed)) return { verdict: 'unreachable' };
-  return { verdict: 'listed', pageTargets: listed.map(pageTargetOf).filter((pageTarget) => pageTarget !== null) };
-}
-
-function navigationAnswerOf(messageText: string): NavigationAnswer | null {
-  let message: unknown;
-  try {
-    message = JSON.parse(messageText);
-  } catch {
-    return null;
-  }
-  if (!isRecord(message) || message['id'] !== NAVIGATION_MESSAGE_ID) return null;
+function protocolAnswerOf(message: Readonly<Record<string, unknown>>): ProtocolAnswer {
   const { error, result } = message;
-  if (isRecord(error)) return { verdict: 'refused', failure: typeof error['message'] === 'string' ? error['message'] : 'the browser refused the navigation' };
-  if (isRecord(result) && typeof result['errorText'] === 'string') return { verdict: 'refused', failure: result['errorText'] };
-  return { verdict: 'navigated' };
+  if (isRecord(error)) return { verdict: 'refused', failure: typeof error['message'] === 'string' ? error['message'] : 'the browser refused the request' };
+  return isRecord(result) ? { verdict: 'answered', result } : { verdict: 'refused', failure: 'the browser answered without a result' };
 }
 
-/** One socket per navigation, closed at its answer: a navigation is rare, and a socket held open would hold the window's target. */
-function navigate(pageTarget: PageTarget, address: string): Promise<NavigationAnswer> {
-  return new Promise((resolve) => {
-    let socket: WebSocket;
+function navigationAnswerOf(answer: ProtocolAnswer): NavigationAnswer {
+  if (answer.verdict !== 'answered') return answer;
+  const { errorText } = answer.result;
+  return typeof errorText === 'string' ? { verdict: 'refused', failure: errorText } : { verdict: 'navigated' };
+}
+
+/** The watch over one browser's channel: every request carries an id of its own, and the browser's answer settles the request of that id. */
+export function browserWindowWatchOver(channel: ChildChannel): BrowserWindowWatch {
+  const settleById = new Map<number, (answer: ProtocolAnswer) => void>();
+  let lastMessageId = 0;
+  let unreadText = '';
+  let channelIsClosed = false;
+
+  function settleAnswerIn(messageText: string): void {
+    let message: unknown;
     try {
-      socket = new WebSocket(pageTarget.debuggerAddress);
+      message = JSON.parse(messageText);
     } catch {
-      resolve({ verdict: 'unreachable' });
       return;
     }
-    let isSettled = false;
-    let boundTimer: ReturnType<typeof setTimeout> | undefined;
-    const settle = (answer: NavigationAnswer): void => {
-      if (isSettled) return;
-      isSettled = true;
-      clearTimeout(boundTimer);
-      socket.close();
-      resolve(answer);
-    };
-    boundTimer = setTimeout(() => settle({ verdict: 'unreachable' }), DEBUGGING_ANSWER_TIMEOUT_MILLISECONDS);
-    socket.addEventListener('open', () => {
-      socket.send(JSON.stringify({ id: NAVIGATION_MESSAGE_ID, method: 'Page.navigate', params: { url: address } }));
-    });
-    socket.addEventListener('message', (event) => {
-      const answer = typeof event.data === 'string' ? navigationAnswerOf(event.data) : null;
-      if (answer !== null) settle(answer);
-    });
-    socket.addEventListener('error', () => settle({ verdict: 'unreachable' }));
-    socket.addEventListener('close', () => settle({ verdict: 'unreachable' }));
-  });
-}
+    if (!isRecord(message) || typeof message['id'] !== 'number') return;
+    const settle = settleById.get(message['id']);
+    if (settle === undefined) return;
+    settleById.delete(message['id']);
+    settle(protocolAnswerOf(message));
+  }
 
-export function realBrowserWindowWatch(): BrowserWindowWatch {
-  return { debuggingPortIn, pageTargetsAt, navigate };
+  channel.onText((text) => {
+    const messageTexts = (unreadText + text).split(MESSAGE_END);
+    unreadText = messageTexts.pop() ?? '';
+    for (const messageText of messageTexts) settleAnswerIn(messageText);
+  });
+  void channel.closed.then(() => {
+    channelIsClosed = true;
+    for (const settle of settleById.values()) settle({ verdict: 'unreachable' });
+    settleById.clear();
+  });
+
+  function send(method: string, params: Readonly<Record<string, unknown>>, sessionId: string | null): number {
+    lastMessageId += 1;
+    channel.write(`${JSON.stringify({
+      id: lastMessageId, method, params, ...(sessionId === null ? {} : { sessionId })
+    })}${MESSAGE_END}`);
+    return lastMessageId;
+  }
+
+  function ask(method: string, params: Readonly<Record<string, unknown>>, sessionId: string | null = null): Promise<ProtocolAnswer> {
+    if (channelIsClosed) return Promise.resolve({ verdict: 'unreachable' });
+    return new Promise((resolve) => {
+      const messageId  = send(method, params, sessionId);
+      const boundTimer = setTimeout(() => {
+        settleById.delete(messageId);
+        resolve({ verdict: 'unreachable' });
+      }, DEBUGGING_ANSWER_TIMEOUT_MILLISECONDS);
+      settleById.set(messageId, (answer) => {
+        clearTimeout(boundTimer);
+        resolve(answer);
+      });
+    });
+  }
+
+  async function pageTargets(): Promise<PageTargetsAnswer> {
+    const answer = await ask('Target.getTargets', {});
+    const { targetInfos } = answer.verdict === 'answered' ? answer.result : {};
+    if (!Array.isArray(targetInfos)) return { verdict: 'unreachable' };
+    return { verdict: 'listed', pageTargets: targetInfos.map(pageTargetOf).filter((pageTarget) => pageTarget !== null) };
+  }
+
+  /** Attaches to the window for the one navigation and detaches after it: a session held open would hold the window's target. */
+  async function navigate(pageTarget: PageTarget, address: string): Promise<NavigationAnswer> {
+    const attachment = await ask('Target.attachToTarget', { targetId: pageTarget.targetId, flatten: true });
+    if (attachment.verdict !== 'answered') return attachment;
+    const { sessionId } = attachment.result;
+    if (typeof sessionId !== 'string') return { verdict: 'refused', failure: 'the browser gave the window no session' };
+    const navigation = navigationAnswerOf(await ask('Page.navigate', { url: address }, sessionId));
+    if (!channelIsClosed) send('Target.detachFromTarget', { sessionId }, null);
+    return navigation;
+  }
+
+  return { pageTargets, navigate };
 }

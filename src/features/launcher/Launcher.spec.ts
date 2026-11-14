@@ -2,9 +2,11 @@
  * The launch as a flow, over the programs and the window recorded from a real Mac (one answer set per situation), Gaia's own health and
  * session code per stage, and timers fired by hand. What matters: with nothing on the port the launch starts the server and the splash at
  * once, moves the splash on as the server and its forges answer, opens the page with a fresh code and stops both programs when the window
- * closes; with Gaia up it opens the page and stops nothing of Gaia's; a missing browser and another program on the port are refusals in
- * a dialog that start nothing; a server that ends, a window that never shows and a stop request each close what the launch started; a
- * Gaia.app installed for another install version refuses in a dialog before it probes anything.
+ * closes; with Gaia up it opens the splash at its last step, asks for a code only once the window is listed, never puts the code in the
+ * browser's arguments, and stops nothing of Gaia's; a missing browser and another program on the port are refusals in a dialog that start
+ * nothing; a server that ends, before or after it answers, a window that never shows and a stop request each close what the launch
+ * started; a splash User closes closes Gaia without a dialog; a Gaia.app installed for another install version refuses in a dialog before
+ * it probes anything.
  */
 import { pathToFileURL } from 'node:url';
 import {
@@ -60,7 +62,8 @@ const SERVER_SHAPE = ownedStartCallShapeOf(EXAMPLE_BUN_PROGRAM, [EXAMPLE_MAIN_PA
 const SPLASH_ADDRESS = `${pathToFileURL(EXAMPLE_SPLASH_PAGE_PATH).href}?address=127.0.0.1%3A${EXAMPLE_PORT}&theme=${EXAMPLE_THEME}`;
 const PAGE_ADDRESS = `http://127.0.0.1:${EXAMPLE_PORT}/#session=${EXAMPLE_SESSION_CODE}`;
 const SPLASH_BROWSER_SHAPE = ownedStartCallShapeOf(EXAMPLE_BROWSER.program, LaunchAddressUtil.browserArgumentsOf(SPLASH_ADDRESS, EXAMPLE_PROFILE_FOLDER));
-const PAGE_BROWSER_SHAPE = ownedStartCallShapeOf(EXAMPLE_BROWSER.program, LaunchAddressUtil.browserArgumentsOf(PAGE_ADDRESS, EXAMPLE_PROFILE_FOLDER));
+const OPENING_SPLASH_ADDRESS = LaunchAddressUtil.splashStepAddressOf(SPLASH_ADDRESS, 'opening', null);
+const BESIDE_BROWSER_SHAPE = ownedStartCallShapeOf(EXAMPLE_BROWSER.program, LaunchAddressUtil.browserArgumentsOf(OPENING_SPLASH_ADDRESS, EXAMPLE_PROFILE_FOLDER));
 
 interface LaunchInFlight {
   readonly verdict:       Promise<LaunchVerdict>;
@@ -124,11 +127,11 @@ function launchIn(
       return browser;
     },
     processRun,
-    browserWindowWatch: window,
+    browserWindowWatchOver: window.watchOver,
     gaiaServer,
-    readServerToken:    () => Promise.resolve(token),
+    readServerToken:        () => Promise.resolve(token),
     timers,
-    untilStopRequested: new Promise<void>((resolve) => {
+    untilStopRequested:     new Promise<void>((resolve) => {
       requestStop = resolve;
     }),
     waits: WAITS,
@@ -175,7 +178,7 @@ function splashAt(step: 'looking' | 'opening', forgeCounts: ForgeCounts | null):
 
 describe('a launch with nothing on the port', () => {
   test('starts the server and the splash at once, moves the splash on, opens the page, and stops both when the window closes', async () => {
-    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'browser-starting');
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-closed');
     await launch.timers.untilPending(WAITS.pollIntervalMilliseconds);
     expect(launch.processRun.ownedChildrenRunning()).toEqual([SERVER_SHAPE, SPLASH_BROWSER_SHAPE]);
 
@@ -211,7 +214,8 @@ describe('a launch with nothing on the port', () => {
       await afterTheNextWait(launch, WAITS.windowWatchIntervalMilliseconds, () => launch.window.enterSituation('browser-ended'));
     }
     expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
-    const pageTargetCalls = launch.window.callsAnswered().filter((call) => call.endsWith('page targets')).slice(1);
+    // The first two listings are the window found and the server's first wait; the rest follow the open page.
+    const pageTargetCalls = launch.window.callsAnswered().filter((call) => call.endsWith('page targets')).slice(2);
     expect(pageTargetCalls).toEqual([
       'window-closed: page targets',
       'window-open: page targets',
@@ -265,22 +269,80 @@ describe('a launch with nothing on the port', () => {
   });
 
   test('stops both and says so in a dialog when the browser shows no window within its tries', async () => {
-    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'browser-starting');
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-closed');
     for (let i = 0; i < WAITS.windowAppearTries; i++) await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
     expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'window-not-found' });
     expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
     expect(launch.processRun.callShapesAnswered().at(-1)).toBe(dialogShapeOf({ verdict: 'unrepaired', failure: 'window-not-found' }));
   });
 
-  test('stops both and says so in a dialog when the window does not move on to the page', async () => {
+  test('stops looking for the window at once and says so in a dialog when the browser ends before it lists one', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-closed');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.processRun.endByItself(SPLASH_BROWSER_SHAPE));
+    expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'window-not-found' });
+    expect(launch.window.callsAnswered()).toEqual(['window-closed: page targets']);
+    expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
+  });
+
+  test('stops both and says so in a dialog when the window is still listed but does not move on to the page', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => {
+      launch.setHealth(gaiaAnswering({ forgesRegistered: 0, forgesAnswered: 0 }));
+      launch.window.enterSituation('navigation-refused');
+    });
+    expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'page-not-opened' });
+    expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
+    expect(launch.processRun.callShapesAnswered().at(-1)).toBe(dialogShapeOf({ verdict: 'unrepaired', failure: 'page-not-opened' }));
+  });
+
+  test('stops both quietly, with no dialog, when User closes the splash before the page opens', async () => {
     const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
     await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
     await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => {
       launch.setHealth(gaiaAnswering({ forgesRegistered: 0, forgesAnswered: 0 }));
       launch.window.enterSituation('window-closed');
     });
-    expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'page-not-opened' });
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
+    expect(launch.processRun.callShapesAnswered()).toEqual([SERVER_SHAPE, SPLASH_BROWSER_SHAPE]);
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([SPLASH_BROWSER_SHAPE, SERVER_SHAPE]);
+  });
+
+  test('stops both quietly, with no dialog and no more tries, when User closes the splash while the server starts', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    for (let i = 0; i < WAITS.windowGonePolls; i++) {
+      await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.window.enterSituation('window-closed'));
+    }
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
+    expect(launch.healthAsked()).toBe(1 + WAITS.windowGonePolls);
+    expect(launch.processRun.callShapesAnswered()).toEqual([SERVER_SHAPE, SPLASH_BROWSER_SHAPE]);
     expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
+  });
+
+  test('stops the browser and says so in a dialog when the server it started ends while the forges are looked for', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.setHealth(gaiaAnswering({ forgesRegistered: 5, forgesAnswered: 2 })));
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.processRun.endByItself(SERVER_SHAPE));
+    expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'server-stopped' });
+    expect(launch.codesAsked()).toEqual([]);
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([SPLASH_BROWSER_SHAPE]);
+    expect(launch.processRun.callShapesAnswered().at(-1)).toBe(dialogShapeOf({ verdict: 'unrepaired', failure: 'server-stopped' }));
+  });
+
+  test('stops the browser and says so in a dialog when the server it started ends while the page is open', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.setHealth(gaiaAnswering({ forgesRegistered: 1, forgesAnswered: 1 })));
+    await afterTheNextWait(launch, WAITS.windowWatchIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.windowWatchIntervalMilliseconds, () => launch.processRun.endByItself(SERVER_SHAPE));
+    expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'server-stopped' });
+    expect(launch.window.navigations().at(-1)).toBe(PAGE_ADDRESS);
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([SPLASH_BROWSER_SHAPE]);
+    expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
+    expect(launch.processRun.callShapesAnswered().at(-1)).toBe(dialogShapeOf({ verdict: 'unrepaired', failure: 'server-stopped' }));
   });
 });
 
@@ -297,16 +359,28 @@ describe('a launch whose server ends before it answers', () => {
 });
 
 describe('a launch with Gaia already up', () => {
-  test('opens the page with a fresh code, shows no splash, and stops only the browser when the window closes', async () => {
+  test('opens the splash at its last step, asks for a code only once the window is listed, moves it to the page, and stops only the browser', async () => {
     const launch = launchIn('server-up', gaiaAnswering({ forgesRegistered: 5, forgesAnswered: 5 }), 'window-open');
+    await launch.timers.untilPending(WAITS.pollIntervalMilliseconds);
+    expect(launch.processRun.callShapesAnswered()).toEqual([BESIDE_BROWSER_SHAPE]);
+    expect(launch.codesAsked()).toEqual([]);
     await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
-    expect(launch.processRun.callShapesAnswered()).toEqual([PAGE_BROWSER_SHAPE]);
+    await launch.timers.untilPending(WAITS.windowWatchIntervalMilliseconds);
     expect(launch.codesAsked()).toEqual([EXAMPLE_TOKEN]);
+    expect(launch.window.navigations()).toEqual([PAGE_ADDRESS]);
     await untilTheWindowCloses(launch);
     expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: false });
-    expect(launch.processRun.ownedChildrenStopped()).toEqual([PAGE_BROWSER_SHAPE]);
-    expect(launch.window.navigations()).toEqual([]);
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([BESIDE_BROWSER_SHAPE]);
     expect(launch.healthAsked()).toBe(1);
+  });
+
+  test('puts no session code in the browser\'s arguments, where every account on the Mac could read it', async () => {
+    const launch = launchIn('server-up', gaiaAnswering({ forgesRegistered: 5, forgesAnswered: 5 }), 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await launch.timers.untilPending(WAITS.windowWatchIntervalMilliseconds);
+    expect(launch.processRun.callShapesAnswered().join()).not.toContain(EXAMPLE_SESSION_CODE);
+    launch.requestStop();
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: false });
   });
 
   test('starts no browser when Gaia\'s token cannot be read, and says so in a dialog', async () => {
@@ -314,19 +388,21 @@ describe('a launch with Gaia already up', () => {
     const launch = launchIn('server-up', gaiaAnswering(null), 'window-open');
     expect(await launch.verdict).toEqual({ verdict: 'unrepaired', failure: 'session-not-issued' });
     expect(launch.codesAsked()).toEqual([]);
+    expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'unrepaired', failure: 'session-not-issued' })]);
+    expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
   });
 });
 
 describe('a launch that is refused', () => {
   test('with no browser shows a dialog that names the browsers Gaia opens in, and starts nothing', async () => {
-    const launch = launchIn('no-browser', { verdict: 'nothing-answers' }, 'browser-starting', null);
+    const launch = launchIn('no-browser', { verdict: 'nothing-answers' }, 'window-closed', null);
     expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'no-browser' });
     expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'refused', refusal: 'no-browser' })]);
     expect(launchMessageOf({ verdict: 'refused', refusal: 'no-browser' }, EXAMPLE_PORT)).toContain('Google Chrome or Microsoft Edge');
   });
 
   test('with another program on the port shows a dialog, looks for no browser and starts nothing', async () => {
-    const launch = launchIn('port-held', { verdict: 'another-program-answers' }, 'browser-starting');
+    const launch = launchIn('port-held', { verdict: 'another-program-answers' }, 'window-closed');
     expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'port-held-by-another-program' });
     expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'refused', refusal: 'port-held-by-another-program' })]);
     expect(launch.browserLooked()).toBe(0);
@@ -336,7 +412,7 @@ describe('a launch that is refused', () => {
 describe('a launch from a Gaia.app', () => {
   test('installed for another install version shows a dialog that says to install it again, and probes and starts nothing', async () => {
     const appBundleInfo: AppBundleInfoReading = { verdict: 'readable', installVersion: GAIA_INSTALL_VERSION + 1 };
-    const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'browser-starting', EXAMPLE_BROWSER, appBundleInfo);
+    const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'window-closed', EXAMPLE_BROWSER, appBundleInfo);
     expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
     expect(launch.processRun.callShapesAnswered()).toEqual([dialogShapeOf({ verdict: 'refused', refusal: 'app-bundle-from-another-version' })]);
     expect([launch.healthAsked(), launch.browserLooked()]).toEqual([0, 0]);
@@ -346,7 +422,7 @@ describe('a launch from a Gaia.app', () => {
   test('whose Info.plist is absent or holds no install version refuses the same, since it cannot show which version it fits', async () => {
     const unreadablePlists: readonly AppBundleInfoReading[] = [{ verdict: 'absent' }, { verdict: 'unreadable', failure: 'no GaiaInstallVersion' }];
     for (const appBundleInfo of unreadablePlists) {
-      const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'browser-starting', EXAMPLE_BROWSER, appBundleInfo);
+      const launch = launchIn('app-bundle-from-another-version', { verdict: 'nothing-answers' }, 'window-closed', EXAMPLE_BROWSER, appBundleInfo);
       expect(await launch.verdict).toEqual({ verdict: 'refused', refusal: 'app-bundle-from-another-version' });
       expect(launch.healthAsked()).toBe(0);
     }
@@ -356,7 +432,7 @@ describe('a launch from a Gaia.app', () => {
     const appBundleInfo: AppBundleInfoReading = { verdict: 'readable', installVersion: GAIA_INSTALL_VERSION };
     const launch = launchIn('server-up', gaiaAnswering({ forgesRegistered: 5, forgesAnswered: 5 }), 'window-open', EXAMPLE_BROWSER, appBundleInfo);
     await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
-    expect(launch.processRun.callShapesAnswered()).toEqual([PAGE_BROWSER_SHAPE]);
+    expect(launch.processRun.callShapesAnswered()).toEqual([BESIDE_BROWSER_SHAPE]);
     launch.requestStop();
     expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: false });
   });

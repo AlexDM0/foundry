@@ -3,8 +3,8 @@
  * start one owned, which the caller stops and whose end it awaits; or start one detached that outlives Gaia. Every answer is a verdict,
  * never a throw for an ordinary outcome.
  */
-import { statSync }  from 'node:fs';
-import { constants } from 'node:os';
+import { closeSync, statSync } from 'node:fs';
+import { constants }           from 'node:os';
 
 export interface ProgramRunRequest {
   readonly program:             string;
@@ -19,7 +19,10 @@ export interface DetachedStartRequest {
   readonly workingDirectory: string;
 }
 
-export type OwnedStartRequest = DetachedStartRequest;
+export interface OwnedStartRequest extends DetachedStartRequest {
+  /** Hands the child a channel on its descriptors 3, which it reads, and 4, which it writes, as a browser's debugging pipe expects. */
+  readonly withChannel?: boolean;
+}
 
 /** `program`: no runnable file by that name or path. `working-directory`: the directory to run in is gone or is no directory. */
 export type MissingForARun = 'program' | 'working-directory';
@@ -40,6 +43,16 @@ export type ProgramRunAnswer = FinishedRunAnswer | NotFoundAnswer | { readonly v
 
 export type DetachedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly processId: number };
 
+/** Text to and from an owned child over its descriptors 3 and 4; only the caller and the child hold them. */
+export interface ChildChannel {
+  readonly write:  (text: string) => void;
+  /** Hands each listener every piece of text the child writes, as it arrives: a piece is no message, and may hold several or part of one. */
+  readonly onText: (listener: (text: string) => void) => void;
+  /** Settles once the channel is closed, by the caller or by the child's end. */
+  readonly closed: Promise<void>;
+  readonly close:  () => void;
+}
+
 /** A child the caller owns: it runs until it ends by itself or the caller stops it. It outlives a caller that ends without stopping it. */
 export interface OwnedChild {
   readonly processId: number;
@@ -47,6 +60,8 @@ export interface OwnedChild {
   readonly exited:    Promise<number>;
   /** Asks the child to end, with `SIGTERM`; a child that has already ended is left alone. */
   readonly stop:      () => void;
+  /** The channel the start asked for with `withChannel`, or `null`. */
+  readonly channel:   ChildChannel | null;
 }
 
 export type OwnedStartAnswer = NotFoundAnswer | { readonly verdict: 'started'; readonly child: OwnedChild };
@@ -74,6 +89,62 @@ function programNotFoundOrThrow(startError: unknown): NotFoundAnswer {
   const errorCode = startError instanceof Error && 'code' in startError ? startError.code : undefined;
   if (typeof errorCode === 'string' && PROGRAM_NOT_FOUND_ERROR_CODES.has(errorCode)) return { verdict: 'not-found', missing: 'program' };
   throw startError;
+}
+
+/** The child reads its descriptor 3 and writes its descriptor 4; each is one end of a socket pair whose other end the caller holds. */
+const CHANNEL_STDIO = ['socket-fd', 'socket-fd'] as const;
+
+function closeDescriptor(descriptor: number): void {
+  try {
+    closeSync(descriptor);
+  } catch {
+    // Already closed: the channel's end is the same either way.
+  }
+}
+
+function channelOver(writtenDescriptor: number, readDescriptor: number): ChildChannel {
+  const writer    = Bun.file(writtenDescriptor).writer();
+  const reader    = Bun.file(readDescriptor).stream().pipeThrough(new TextDecoderStream()).getReader();
+  const listeners: ((text: string) => void)[] = [];
+  let channelIsClosed = false;
+  let markClosed: () => void = () => undefined;
+  const closed = new Promise<void>((resolve) => {
+    markClosed = resolve;
+  });
+  const close = (): void => {
+    if (channelIsClosed) return;
+    channelIsClosed = true;
+    void reader.cancel().catch(() => undefined);
+    closeDescriptor(writtenDescriptor);
+    closeDescriptor(readDescriptor);
+    markClosed();
+  };
+  void (async () => {
+    try {
+      for (let piece = await reader.read(); !piece.done; piece = await reader.read()) {
+        for (const listener of listeners) listener(piece.value);
+      }
+    } catch {
+      // A read that fails ends the channel as the child's end does.
+    }
+    close();
+  })();
+  return {
+    write: (text) => {
+      if (channelIsClosed) return;
+      try {
+        writer.write(text);
+        void writer.flush();
+      } catch {
+        close();
+      }
+    },
+    onText: (listener) => {
+      listeners.push(listener);
+    },
+    closed,
+    close,
+  };
 }
 
 function exitCodeOf(exitCode: number | null, signalName: NodeJS.Signals | null): number {
@@ -129,15 +200,15 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
     let child: Bun.Subprocess<'ignore', 'ignore', 'ignore'>;
     try {
       child = Bun.spawn([request.program, ...request.programArguments], {
-        cwd:    request.workingDirectory,
-        env:    { ...childEnvironment() },
-        stdin:  'ignore',
-        stdout: 'ignore',
-        stderr: 'ignore',
+        cwd:   request.workingDirectory,
+        env:   { ...childEnvironment() },
+        stdio: request.withChannel === true ? ['ignore', 'ignore', 'ignore', ...CHANNEL_STDIO] : ['ignore', 'ignore', 'ignore'],
       });
     } catch (startError) {
       return programNotFoundOrThrow(startError);
     }
+    const [, , , writtenDescriptor, readDescriptor] = child.stdio;
+    const channel = typeof writtenDescriptor === 'number' && typeof readDescriptor === 'number' ? channelOver(writtenDescriptor, readDescriptor) : null;
     return {
       verdict: 'started',
       child:   {
@@ -146,6 +217,7 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
         stop:      () => {
           if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
         },
+        channel,
       },
     };
   }

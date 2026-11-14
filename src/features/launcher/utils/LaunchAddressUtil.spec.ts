@@ -14,7 +14,7 @@ const SPLASH_PAGE_PATH = '/Users/example/gaia/resources/page/loading.html';
 const SPLASH_ADDRESS = 'file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark';
 
 function pageTargetAt(url: string, targetId = 'example-target'): PageTarget {
-  return { targetId, url, debuggerAddress: `ws://127.0.0.1:9222/devtools/page/${targetId}` };
+  return { targetId, url };
 }
 
 describe('the splash address', () => {
@@ -36,14 +36,14 @@ describe('the page address', () => {
 });
 
 describe('the browser arguments', () => {
-  test('open an app window at the address on Gaia\'s profile, at the artboards\' size, reporting its windows on a debugging port', () => {
+  test('open an app window at the address on Gaia\'s profile, at the artboards\' size, reporting its windows over a debugging pipe and on no port', () => {
     expect(LaunchAddressUtil.browserArgumentsOf('http://127.0.0.1:4790/', '/Users/example/.gaia/browser-profile')).toEqual([
       '--app=http://127.0.0.1:4790/',
       '--user-data-dir=/Users/example/.gaia/browser-profile',
       '--no-first-run',
       '--no-default-browser-check',
       '--window-size=1440,1016',
-      '--remote-debugging-port=0',
+      '--remote-debugging-pipe',
     ]);
   });
 });

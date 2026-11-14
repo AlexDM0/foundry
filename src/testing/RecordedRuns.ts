@@ -7,6 +7,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { join }                   from 'node:path';
 
 import type {
+  ChildChannel,
   DetachedStartAnswer,
   DetachedStartRequest,
   NotFoundAnswer,
@@ -45,6 +46,8 @@ export interface RecordedProcessRun extends ProcessRun {
   readonly ownedChildrenRunning: () => readonly string[];
   /** The call shape of every owned child its caller stopped, in the order they were stopped. */
   readonly ownedChildrenStopped: () => readonly string[];
+  /** Ends the running owned child of the call shape by itself, as a real child may at any time, with the exit code it was recorded ending with. */
+  readonly endByItself:          (callShape: string) => void;
 }
 
 const RUN_CALL_SHAPE_PREFIX = 'run ';
@@ -169,8 +172,24 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
   const callShapesAnswered: string[] = [];
   const ownedChildrenRunning: string[] = [];
   const ownedChildrenStopped: string[] = [];
+  const endOfRunningChild = new Map<string, () => void>();
 
-  function ownedStartAnswerOf(callShape: string, recorded: RecordedOwnedStartAnswer): OwnedStartAnswer {
+  /** A recorded child's channel carries no recorded text: the program that speaks over it is mocked at its own boundary, over this channel. */
+  function silentChannelOf(childExited: Promise<number>): ChildChannel {
+    let closeChannel: () => void = () => undefined;
+    const closed = new Promise<void>((resolve) => {
+      closeChannel = resolve;
+    });
+    void childExited.then(() => closeChannel());
+    const refuse = (): never => {
+      throw new Error('A recorded child\'s channel carries no text: the program that speaks over it is mocked at its own boundary.');
+    };
+    return {
+      write: refuse, onText: refuse, closed, close: () => closeChannel()
+    };
+  }
+
+  function ownedStartAnswerOf(callShape: string, recorded: RecordedOwnedStartAnswer, withChannel: boolean): OwnedStartAnswer {
     if (recorded.verdict === 'not-found') return recorded;
     const { ending } = recorded;
     let endChild: (exitCode: number) => void = () => undefined;
@@ -180,9 +199,11 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     let hasEnded = false;
     const end = (): void => {
       hasEnded = true;
+      endOfRunningChild.delete(callShape);
       ownedChildrenRunning.splice(ownedChildrenRunning.indexOf(callShape), 1);
       endChild(ending.exitCode);
     };
+    endOfRunningChild.set(callShape, end);
     ownedChildrenRunning.push(callShape);
     if (ending.by === 'itself') end();
     return {
@@ -195,6 +216,7 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
           ownedChildrenStopped.push(callShape);
           end();
         },
+        channel: withChannel ? silentChannelOf(exited) : null,
       },
     };
   }
@@ -223,7 +245,7 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     },
     startOwned: (request: OwnedStartRequest) => {
       const callShape = ownedStartCallShapeOf(request.program, request.programArguments);
-      return ownedStartAnswerOf(callShape, recordedAnswerFor(callShape, request.workingDirectory) as RecordedOwnedStartAnswer);
+      return ownedStartAnswerOf(callShape, recordedAnswerFor(callShape, request.workingDirectory) as RecordedOwnedStartAnswer, request.withChannel === true);
     },
     startDetached: (request: DetachedStartRequest) => {
       return recordedAnswerFor(detachedStartCallShapeOf(request.program, request.programArguments), request.workingDirectory) as DetachedStartAnswer;
@@ -231,5 +253,10 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     callShapesAnswered:   () => [...callShapesAnswered],
     ownedChildrenRunning: () => [...ownedChildrenRunning],
     ownedChildrenStopped: () => [...ownedChildrenStopped],
+    endByItself:          (callShape) => {
+      const end = endOfRunningChild.get(callShape);
+      if (end === undefined) throw new Error(`No owned child of ${callShape} is running to end.`);
+      end();
+    },
   };
 }

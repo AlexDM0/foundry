@@ -1,12 +1,13 @@
 /**
  * The browser-window-watch mock every launcher spec uses in place of the real boundary. It answers from the answers recorded from a real
  * browser for one situation of its window, which the spec moves on as the flow goes, and fails the spec on a call with no answer. It keeps
- * the real boundary's demands on the caller: a target list is asked at the port the profile names, and a navigation goes to a listed
- * window. Test-only.
+ * the real boundary's demands on the caller: a watch is built over a browser child's channel and asked only while that channel is open,
+ * and a navigation goes to a listed window. Test-only.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
+import type { ChildChannel } from '../../../lib/process-run/ProcessRun.ts';
 import {
   boundaryRecordingReadingOf,
   recordCommandOf,
@@ -15,27 +16,28 @@ import {
 } from '../../../testing/BoundaryRecordings.ts';
 import type {
   BrowserWindowWatch,
-  DebuggingPortAnswer,
   NavigationAnswer,
   PageTarget,
   PageTargetsAnswer,
 } from '../BrowserWindowWatch.ts';
 
 /**
- * `browser-starting`: the profile names no port yet. `window-open`: one window, the splash, is listed. `window-closed`: the browser runs
- * and lists no window. `browser-ended`: the browser is gone, and its port answers nothing.
+ * `window-open`: one window, the splash, is listed. `navigation-refused`: the window is listed and refuses a navigation. `window-closed`:
+ * the browser runs and lists no window. `browser-ended`: the browser is gone, and its pipe answers nothing.
  */
-export const BROWSER_WINDOW_SITUATIONS = ['browser-starting', 'window-open', 'window-closed', 'browser-ended'] as const;
+export const BROWSER_WINDOW_SITUATIONS = ['window-open', 'navigation-refused', 'window-closed', 'browser-ended'] as const;
 
 export type BrowserWindowSituation = typeof BROWSER_WINDOW_SITUATIONS[number];
 
-export type BrowserWindowCall = 'debugging port' | 'page targets' | 'navigate';
+export type BrowserWindowCall = 'page targets' | 'navigate';
 
 export const BROWSER_WINDOW_WATCH_RECORDING_NAME = 'browser-window-watch';
 
 const SITUATION_SEPARATOR = ': ';
 
-export interface RecordedBrowserWindowWatch extends BrowserWindowWatch {
+export interface RecordedBrowserWindowWatch {
+  /** Takes the place of `browserWindowWatchOver`: the watch over one browser child's channel. */
+  readonly watchOver:      (channel: ChildChannel) => BrowserWindowWatch;
   readonly enterSituation: (situation: BrowserWindowSituation) => void;
   /** Every address a window was navigated to, in order. */
   readonly navigations:    () => readonly string[];
@@ -66,8 +68,7 @@ export function recordedBrowserWindowWatch(firstSituation: BrowserWindowSituatio
   let situation = firstSituation;
   const navigations: string[]   = [];
   const callsAnswered: string[] = [];
-  const answeredPorts = new Set<number>();
-  const listedDebuggerAddresses = new Set<string>();
+  const listedTargetIds = new Set<string>();
 
   function recordedAnswerFor(call: BrowserWindowCall): unknown {
     const callShape = browserWindowCallShapeOf(situation, call);
@@ -79,24 +80,33 @@ export function recordedBrowserWindowWatch(firstSituation: BrowserWindowSituatio
     return answerByCallShape.get(callShape);
   }
 
+  function watchOver(channel: ChildChannel): BrowserWindowWatch {
+    let channelIsClosed = false;
+    void channel.closed.then(() => {
+      channelIsClosed = true;
+    });
+    const demandAnOpenChannel = (call: BrowserWindowCall): void => {
+      if (channelIsClosed) throw new Error(`The window watch was asked for ${call} after its browser's channel had closed.`);
+    };
+    return {
+      pageTargets: async () => {
+        demandAnOpenChannel('page targets');
+        const answer = recordedAnswerFor('page targets') as PageTargetsAnswer;
+        if (answer.verdict === 'listed') for (const pageTarget of answer.pageTargets) listedTargetIds.add(pageTarget.targetId);
+        return answer;
+      },
+      navigate: async (pageTarget: PageTarget, address: string) => {
+        demandAnOpenChannel('navigate');
+        if (!listedTargetIds.has(pageTarget.targetId)) throw new Error(`A navigation went to ${pageTarget.targetId}, which no listing held.`);
+        const answer = recordedAnswerFor('navigate') as NavigationAnswer;
+        navigations.push(address);
+        return answer;
+      },
+    };
+  }
+
   return {
-    debuggingPortIn: async () => {
-      const answer = recordedAnswerFor('debugging port') as DebuggingPortAnswer;
-      if (answer.verdict === 'written') answeredPorts.add(answer.debuggingPort);
-      return answer;
-    },
-    pageTargetsAt: async (debuggingPort) => {
-      if (!answeredPorts.has(debuggingPort)) throw new Error(`The page targets were asked at port ${debuggingPort}, which no profile named.`);
-      const answer = recordedAnswerFor('page targets') as PageTargetsAnswer;
-      if (answer.verdict === 'listed') for (const pageTarget of answer.pageTargets) listedDebuggerAddresses.add(pageTarget.debuggerAddress);
-      return answer;
-    },
-    navigate: async (pageTarget: PageTarget, address: string) => {
-      if (!listedDebuggerAddresses.has(pageTarget.debuggerAddress)) throw new Error(`A navigation went to ${pageTarget.debuggerAddress}, which no listing held.`);
-      const answer = recordedAnswerFor('navigate') as NavigationAnswer;
-      navigations.push(address);
-      return answer;
-    },
+    watchOver,
     enterSituation: (nextSituation) => {
       situation = nextSituation;
     },

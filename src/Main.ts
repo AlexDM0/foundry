@@ -18,7 +18,7 @@ import { appInstallMessageOf, createAppInstall, type AppInstallVerdict } from '.
 import { fleetSnapshotOf }                                               from './features/fleet/FleetAssembly.ts';
 import { createForgeControl }                                            from './features/forge-control/ForgeControl.ts';
 import { foundBrowserIn }                                                from './features/launcher/BrowserFinder.ts';
-import { realBrowserWindowWatch }                                        from './features/launcher/BrowserWindowWatch.ts';
+import { browserWindowWatchOver }                                        from './features/launcher/BrowserWindowWatch.ts';
 import { createLauncher, launchMessageOf, type LaunchVerdict }           from './features/launcher/Launcher.ts';
 import { startPageServer, type PageServerStartVerdict }                  from './features/page-server/PageServer.ts';
 import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
@@ -243,7 +243,7 @@ async function launch(remainingArguments: readonly string[], _output: ProgramOut
     workingDirectory:   home,
     findBrowser:        () => foundBrowserIn(home),
     processRun:         realProcessRun(environmentCopy),
-    browserWindowWatch: realBrowserWindowWatch(),
+    browserWindowWatchOver,
     gaiaServer:         realGaiaServerClient(),
     readServerToken:    () => new ServerTokenFile(home).read(),
     timers:             realWatchTimers(),

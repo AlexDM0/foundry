@@ -1,14 +1,15 @@
 /**
  * `gaia launch` (PLAN 9.2): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing answers and opens the
- * browser at once on the splash, which it moves on as the server and its forges answer; opens the window on Gaia's page with a fresh
- * session code; follows the window through the browser's debugging port; and when no window is left, stops the browser and the server it
- * started. Every wait is a bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog. A launch
- * from a Gaia.app installed for another install version refuses before it starts anything (conventions section 9).
+ * browser at once on the splash, which it moves on as the server and its forges answer; moves the window to Gaia's page with a session
+ * code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no window is left, stops
+ * the browser and the server it started. Every wait is a bounded number of tries at an injectable interval, and every refusal or failure
+ * is shown in a dialog; a window User closes before the page opens closes Gaia quietly. A launch from a Gaia.app installed for another
+ * install version refuses before it starts anything (conventions section 9).
  */
 import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';
 import type { ForgeCounts }                               from '../../adapters/gaia-server/HealthDocument.ts';
-import type { OwnedChild, ProcessRun }                    from '../../lib/process-run/ProcessRun.ts';
+import type { ChildChannel, OwnedChild, ProcessRun }      from '../../lib/process-run/ProcessRun.ts';
 import type { WatchTimers }                               from '../../services/ForgeWatch.ts';
 import type { ThemeChoice }                               from '../../shared/@types/GaiaSettings.ts';
 import { GAIA_INSTALL_VERSION }                           from '../../shared/constants/InstallVersion.ts';
@@ -46,25 +47,26 @@ export const LAUNCH_WAITS: LaunchWaits = {
 };
 
 export interface LauncherOptions {
-  readonly port:                 number;
+  readonly port:                   number;
   /** The Info.plist of the Gaia.app that started this launch; `null` for a launch from a terminal, which no bundle started. */
-  readonly appBundleInfo:        AppBundleInfoReading | null;
-  readonly serverProgram:        ProgramToStart;
+  readonly appBundleInfo:          AppBundleInfoReading | null;
+  readonly serverProgram:          ProgramToStart;
   /** Gaia's own browser profile, kept between launches for the notification permission and the stored choices (PLAN 4). */
-  readonly browserProfileFolder: string;
-  readonly splashPagePath:       string;
-  readonly theme:                ThemeChoice;
+  readonly browserProfileFolder:   string;
+  readonly splashPagePath:         string;
+  readonly theme:                  ThemeChoice;
   /** Where the browser and the dialog run: a folder that exists. */
-  readonly workingDirectory:     string;
-  readonly findBrowser:          () => FoundBrowser | null;
-  readonly processRun:           ProcessRun;
-  readonly browserWindowWatch:   BrowserWindowWatch;
-  readonly gaiaServer:           GaiaServerClient;
-  readonly readServerToken:      () => Promise<string | null>;
-  readonly timers:               WatchTimers;
+  readonly workingDirectory:       string;
+  readonly findBrowser:            () => FoundBrowser | null;
+  readonly processRun:             ProcessRun;
+  /** The watch over the debugging pipe of the browser the launch starts. */
+  readonly browserWindowWatchOver: (channel: ChildChannel) => BrowserWindowWatch;
+  readonly gaiaServer:             GaiaServerClient;
+  readonly readServerToken:        () => Promise<string | null>;
+  readonly timers:                 WatchTimers;
   /** Settles when the launcher is asked to end, as by a signal: it then closes as if the window had closed. */
-  readonly untilStopRequested:   Promise<void>;
-  readonly waits?:               LaunchWaits;
+  readonly untilStopRequested:     Promise<void>;
+  readonly waits?:                 LaunchWaits;
 }
 
 export type LaunchRefusal = 'app-bundle-from-another-version' | 'port-held-by-another-program' | 'no-browser';
@@ -72,6 +74,7 @@ export type LaunchRefusal = 'app-bundle-from-another-version' | 'port-held-by-an
 export type LaunchFailure =
   | 'server-not-started'
   | 'server-ended'
+  | 'server-stopped'
   | 'browser-not-started'
   | 'window-not-found'
   | 'session-not-issued'
@@ -104,6 +107,7 @@ export function launchMessageOf(verdict: Exclude<LaunchVerdict, { readonly verdi
   switch (verdict.failure) {
     case 'server-not-started': return 'Gaia\'s server did not start in time. Gaia closed again.';
     case 'server-ended': return 'Gaia\'s server stopped before it answered. Gaia closed again.';
+    case 'server-stopped': return 'Gaia\'s server stopped while its window was open. Gaia closed again.';
     case 'browser-not-started': return `The browser did not start. Gaia opens in a ${BROWSER_NAMES} window.`;
     case 'window-not-found': return 'The browser opened no window that Gaia can follow. Gaia closed again.';
     case 'session-not-issued': return 'Gaia\'s server gave the window no session. Gaia closed again.';
@@ -113,10 +117,8 @@ export function launchMessageOf(verdict: Exclude<LaunchVerdict, { readonly verdi
 
 type WaitOutcome = 'elapsed' | 'stop-requested';
 
-interface WindowFound {
-  readonly debuggingPort: number;
-  readonly pageTargets:   readonly PageTarget[];
-}
+/** How a launch ends without a dialog: asked to end, or its window closed by User. */
+type QuietEnding = 'stop-requested' | 'window-closed';
 
 interface StopLatch {
   readonly afterDelay: (delayMilliseconds: number) => Promise<WaitOutcome>;
@@ -162,6 +164,18 @@ function followedChildOf(child: OwnedChild): FollowedChild {
   return { child, hasEnded: () => childHasEnded };
 }
 
+interface StartedBrowser {
+  readonly followed:    FollowedChild;
+  readonly channel:     ChildChannel;
+  readonly windowWatch: BrowserWindowWatch;
+}
+
+/** Whether a listing holds a window; a browser that does not answer lists none. */
+async function windowIsListed(windowWatch: BrowserWindowWatch): Promise<boolean> {
+  const targetsAnswer = await windowWatch.pageTargets();
+  return targetsAnswer.verdict === 'listed' && targetsAnswer.pageTargets.length > 0;
+}
+
 export function createLauncher(options: LauncherOptions): Launcher {
   const waits = options.waits ?? LAUNCH_WAITS;
   const latch = stopLatchOf(options.untilStopRequested, options.timers);
@@ -185,73 +199,121 @@ export function createLauncher(options: LauncherOptions): Launcher {
     boundTimer.cancel();
   }
 
-  async function stopAll(browser: FollowedChild | null, server: FollowedChild | null): Promise<void> {
-    if (browser !== null) await stopAndAwait(browser);
+  async function stopAll(browser: StartedBrowser | null, server: FollowedChild | null): Promise<void> {
+    if (browser !== null) {
+      await stopAndAwait(browser.followed);
+      browser.channel.close();
+    }
     if (server !== null) await stopAndAwait(server);
   }
 
-  function startBrowser(foundBrowser: FoundBrowser, startAddress: string): FollowedChild | null {
+  /** Stops what the launch started; a quiet ending closes with no dialog, a failure shows one. */
+  async function closedAfter(ending: LaunchFailure | QuietEnding, browser: StartedBrowser | null, server: FollowedChild | null): Promise<LaunchVerdict> {
+    await stopAll(browser, server);
+    if (ending === 'stop-requested' || ending === 'window-closed') return { verdict: 'closed', serverWasStarted: server !== null };
+    return showDialog({ verdict: 'unrepaired', failure: ending });
+  }
+
+  function startBrowser(foundBrowser: FoundBrowser, startAddress: string): StartedBrowser | null {
     const browserStart = options.processRun.startOwned({
       program:          foundBrowser.program,
       programArguments: LaunchAddressUtil.browserArgumentsOf(startAddress, options.browserProfileFolder),
       workingDirectory: options.workingDirectory,
+      withChannel:      true,
     });
-    return browserStart.verdict === 'started' ? followedChildOf(browserStart.child) : null;
+    if (browserStart.verdict !== 'started') return null;
+    const { channel } = browserStart.child;
+    if (channel === null) {
+      browserStart.child.stop();
+      return null;
+    }
+    return { followed: followedChildOf(browserStart.child), channel, windowWatch: options.browserWindowWatchOver(channel) };
   }
 
-  /** The first listing that holds a window; the port is read again at each try, since a stale file names the browser before this one. */
-  async function windowFound(): Promise<WindowFound | 'not-found' | 'stop-requested'> {
+  /**
+   * The first listing that holds a window. A browser that ends before it lists one has handed its window to a browser already running on
+   * Gaia's profile, whose pipe the launch does not hold, so the launch stops looking at once.
+   */
+  async function windowFound(browser: StartedBrowser): Promise<readonly PageTarget[] | 'not-found' | 'stop-requested'> {
     for (let i = 0; i < waits.windowAppearTries; i++) {
       if (await latch.afterDelay(waits.pollIntervalMilliseconds) === 'stop-requested') return 'stop-requested';
-      const portAnswer = await options.browserWindowWatch.debuggingPortIn(options.browserProfileFolder);
-      if (portAnswer.verdict === 'not-written') continue;
-      const targetsAnswer = await options.browserWindowWatch.pageTargetsAt(portAnswer.debuggingPort);
-      if (targetsAnswer.verdict === 'listed' && targetsAnswer.pageTargets.length > 0) {
-        return { debuggingPort: portAnswer.debuggingPort, pageTargets: targetsAnswer.pageTargets };
-      }
+      if (browser.followed.hasEnded()) return 'not-found';
+      const targetsAnswer = await browser.windowWatch.pageTargets();
+      if (targetsAnswer.verdict === 'listed' && targetsAnswer.pageTargets.length > 0) return targetsAnswer.pageTargets;
     }
     return 'not-found';
   }
 
-  /** Follows the window until no page target is left for the gone polls in a row, or until the launcher is asked to end. */
-  async function untilWindowCloses(debuggingPort: number): Promise<void> {
-    let pollsWithoutWindow = 0;
-    while (pollsWithoutWindow < waits.windowGonePolls) {
-      if (await latch.afterDelay(waits.windowWatchIntervalMilliseconds) === 'stop-requested') return;
-      const targetsAnswer = await options.browserWindowWatch.pageTargetsAt(debuggingPort);
-      pollsWithoutWindow = targetsAnswer.verdict === 'listed' && targetsAnswer.pageTargets.length > 0 ? 0 : pollsWithoutWindow + 1;
+  /** Counts listings in a row that hold no window: a browser lists none for a moment while one window replaces another. */
+  function windowAbsenceOf(windowWatch: BrowserWindowWatch): { readonly windowIsGone: () => Promise<boolean> } {
+    let listingsWithoutWindow = 0;
+    return {
+      windowIsGone: async () => {
+        listingsWithoutWindow = await windowIsListed(windowWatch) ? 0 : listingsWithoutWindow + 1;
+        return listingsWithoutWindow >= waits.windowGonePolls;
+      },
+    };
+  }
+
+  /** Follows the window until it is gone, the launcher is asked to end, or the server the launch started has ended. */
+  async function untilWindowCloses(windowWatch: BrowserWindowWatch, ownedServer: FollowedChild | null): Promise<QuietEnding | 'server-stopped'> {
+    const windowAbsence = windowAbsenceOf(windowWatch);
+    for (;;) {
+      if (await latch.afterDelay(waits.windowWatchIntervalMilliseconds) === 'stop-requested') return 'stop-requested';
+      if (ownedServer?.hasEnded() === true) return 'server-stopped';
+      if (await windowAbsence.windowIsGone()) return 'window-closed';
     }
   }
 
-  async function sessionCodeOrNull(): Promise<string | null> {
-    const token = await options.readServerToken();
-    if (token === null) return null;
+  async function sessionCodeOrNull(token: string): Promise<string | null> {
     const codeAnswer = await options.gaiaServer.sessionCodeFor(options.port, token);
     return codeAnswer.verdict === 'issued' ? codeAnswer.code : null;
   }
 
-  async function launchBesideARunningServer(foundBrowser: FoundBrowser): Promise<LaunchVerdict> {
-    const sessionCode = await sessionCodeOrNull();
-    if (sessionCode === null) return showDialog({ verdict: 'unrepaired', failure: 'session-not-issued' });
-    const browser = startBrowser(foundBrowser, LaunchAddressUtil.pageAddressOf(options.port, sessionCode));
-    if (browser === null) return showDialog({ verdict: 'unrepaired', failure: 'browser-not-started' });
-    const window = await windowFound();
-    if (window === 'not-found') {
-      await stopAll(browser, null);
-      return showDialog({ verdict: 'unrepaired', failure: 'window-not-found' });
-    }
-    if (window !== 'stop-requested') await untilWindowCloses(window.debuggingPort);
-    await stopAll(browser, null);
-    return { verdict: 'closed', serverWasStarted: false };
+  /** Moves the splash's window to Gaia's page; a window gone by then was closed by User, and the launch closes quietly. */
+  async function pageOpenedIn(windowWatch: BrowserWindowWatch, splashTarget: PageTarget, sessionCode: string): Promise<'opened' | 'page-not-opened' | 'window-closed'> {
+    const pageNavigation = await windowWatch.navigate(splashTarget, LaunchAddressUtil.pageAddressOf(options.port, sessionCode));
+    if (pageNavigation.verdict === 'navigated') return 'opened';
+    return await windowIsListed(windowWatch) ? 'page-not-opened' : 'window-closed';
   }
 
-  /** The server's first Gaia answer, or why there is none: the server ended, the tries ran out, or the launcher was asked to end. */
-  async function serverAnswer(server: FollowedChild): Promise<Extract<HealthReading, { readonly verdict: 'gaia-answers' }> | LaunchFailure | 'stop-requested'> {
+  /**
+   * The window opens on the splash at its last step, never on an address with the code: a browser's arguments are readable by every
+   * account on the Mac. The code is asked for once the window exists, so its short life starts then.
+   */
+  async function launchBesideARunningServer(foundBrowser: FoundBrowser): Promise<LaunchVerdict> {
+    const token = await options.readServerToken();
+    if (token === null) return showDialog({ verdict: 'unrepaired', failure: 'session-not-issued' });
+    const splashAddress = LaunchAddressUtil.splashAddressOf(options.splashPagePath, options.port, options.theme);
+    const browser       = startBrowser(foundBrowser, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'opening', null));
+    if (browser === null) return showDialog({ verdict: 'unrepaired', failure: 'browser-not-started' });
+
+    const pageTargets = await windowFound(browser);
+    if (pageTargets === 'not-found') return closedAfter('window-not-found', browser, null);
+    if (pageTargets === 'stop-requested') return closedAfter('stop-requested', browser, null);
+    const splashTarget = LaunchAddressUtil.splashTargetAmong(pageTargets, splashAddress);
+    if (splashTarget === null) return closedAfter('window-not-found', browser, null);
+
+    const sessionCode = await sessionCodeOrNull(token);
+    if (sessionCode === null) return closedAfter('session-not-issued', browser, null);
+    const pageOpening = await pageOpenedIn(browser.windowWatch, splashTarget, sessionCode);
+    if (pageOpening !== 'opened') return closedAfter(pageOpening, browser, null);
+
+    return closedAfter(await untilWindowCloses(browser.windowWatch, null), browser, null);
+  }
+
+  /** The server's first Gaia answer, or why there is none: the server ended, the tries ran out, the window closed, or a stop was asked. */
+  async function serverAnswer(
+    server: FollowedChild,
+    windowWatch: BrowserWindowWatch,
+  ): Promise<Extract<HealthReading, { readonly verdict: 'gaia-answers' }> | LaunchFailure | QuietEnding> {
+    const windowAbsence = windowAbsenceOf(windowWatch);
     for (let i = 0; i < waits.serverStartTries; i++) {
       if (server.hasEnded()) return 'server-ended';
       const healthReading = await options.gaiaServer.healthReadingFor(options.port);
       if (healthReading.verdict === 'gaia-answers') return healthReading;
       if (await latch.afterDelay(waits.pollIntervalMilliseconds) === 'stop-requested') return 'stop-requested';
+      if (await windowAbsence.windowIsGone()) return 'window-closed';
     }
     return 'server-not-started';
   }
@@ -261,16 +323,25 @@ export function createLauncher(options: LauncherOptions): Launcher {
   }
 
   /** Shows the forges answering on the splash until all have, or the tries run out; Attention shows any that answer later. */
-  async function lookForForges(splashTarget: PageTarget, splashAddress: string, firstCounts: ForgeCounts | null): Promise<WaitOutcome> {
+  async function lookForForges(
+    server: FollowedChild,
+    windowWatch: BrowserWindowWatch,
+    splashTarget: PageTarget,
+    splashAddress: string,
+    firstCounts: ForgeCounts | null,
+  ): Promise<WaitOutcome | 'window-closed' | 'server-stopped'> {
+    const windowAbsence = windowAbsenceOf(windowWatch);
     let shownCounts = firstCounts;
-    await options.browserWindowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', shownCounts));
+    await windowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', shownCounts));
     for (let i = 0; i < waits.forgeLookTries && !forgesAllAnswered(shownCounts); i++) {
       if (await latch.afterDelay(waits.pollIntervalMilliseconds) === 'stop-requested') return 'stop-requested';
+      if (server.hasEnded()) return 'server-stopped';
+      if (await windowAbsence.windowIsGone()) return 'window-closed';
       const healthReading = await options.gaiaServer.healthReadingFor(options.port);
       const counts = healthReading.verdict === 'gaia-answers' ? healthReading.forgeCounts : shownCounts;
       if (counts?.forgesAnswered !== shownCounts?.forgesAnswered || counts?.forgesRegistered !== shownCounts?.forgesRegistered) {
         shownCounts = counts;
-        await options.browserWindowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', shownCounts));
+        await windowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', shownCounts));
       }
     }
     return 'elapsed';
@@ -282,31 +353,27 @@ export function createLauncher(options: LauncherOptions): Launcher {
     const server        = followedChildOf(serverStart.child);
     const splashAddress = LaunchAddressUtil.splashAddressOf(options.splashPagePath, options.port, options.theme);
     const browser       = startBrowser(foundBrowser, splashAddress);
-    const closedEarly = async (failure: LaunchFailure | 'stop-requested'): Promise<LaunchVerdict> => {
-      await stopAll(browser, server);
-      return failure === 'stop-requested' ? { verdict: 'closed', serverWasStarted: true } : showDialog({ verdict: 'unrepaired', failure });
-    };
-    if (browser === null) return closedEarly('browser-not-started');
+    if (browser === null) return closedAfter('browser-not-started', null, server);
 
-    const window = await windowFound();
-    if (window === 'not-found') return closedEarly('window-not-found');
-    if (window === 'stop-requested') return closedEarly('stop-requested');
-    const splashTarget = LaunchAddressUtil.splashTargetAmong(window.pageTargets, splashAddress);
-    if (splashTarget === null) return closedEarly('window-not-found');
+    const pageTargets = await windowFound(browser);
+    if (pageTargets === 'not-found') return closedAfter('window-not-found', browser, server);
+    if (pageTargets === 'stop-requested') return closedAfter('stop-requested', browser, server);
+    const splashTarget = LaunchAddressUtil.splashTargetAmong(pageTargets, splashAddress);
+    if (splashTarget === null) return closedAfter('window-not-found', browser, server);
 
-    const answer = await serverAnswer(server);
-    if (typeof answer === 'string') return closedEarly(answer);
-    if (await lookForForges(splashTarget, splashAddress, answer.forgeCounts) === 'stop-requested') return closedEarly('stop-requested');
-    await options.browserWindowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'opening', null));
+    const answer = await serverAnswer(server, browser.windowWatch);
+    if (typeof answer === 'string') return closedAfter(answer, browser, server);
+    const lookOutcome = await lookForForges(server, browser.windowWatch, splashTarget, splashAddress, answer.forgeCounts);
+    if (lookOutcome !== 'elapsed') return closedAfter(lookOutcome, browser, server);
+    await browser.windowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'opening', null));
 
-    const sessionCode = await sessionCodeOrNull();
-    if (sessionCode === null) return closedEarly('session-not-issued');
-    const pageNavigation = await options.browserWindowWatch.navigate(splashTarget, LaunchAddressUtil.pageAddressOf(options.port, sessionCode));
-    if (pageNavigation.verdict !== 'navigated') return closedEarly('page-not-opened');
+    const token       = await options.readServerToken();
+    const sessionCode = token === null ? null : await sessionCodeOrNull(token);
+    if (sessionCode === null) return closedAfter(server.hasEnded() ? 'server-stopped' : 'session-not-issued', browser, server);
+    const pageOpening = await pageOpenedIn(browser.windowWatch, splashTarget, sessionCode);
+    if (pageOpening !== 'opened') return closedAfter(pageOpening, browser, server);
 
-    await untilWindowCloses(window.debuggingPort);
-    await stopAll(browser, server);
-    return { verdict: 'closed', serverWasStarted: true };
+    return closedAfter(await untilWindowCloses(browser.windowWatch, server), browser, server);
   }
 
   /** A plist that holds no install version reads as another version's: the launch fails closed. */
