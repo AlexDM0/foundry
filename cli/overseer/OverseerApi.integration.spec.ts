@@ -2,7 +2,8 @@
  * The Overseer's API end to end against a spawned Overseer on a scratch board, the fake agent playing every session. What matters: the
  * Baton names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
- * and the Overseer; `/api/summary` has the fixture's shape; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
+ * and the Overseer; `/api/summary` and `/api/monitor` have their fixtures' shapes, the monitor's only with the token and its stream starting
+ * with the whole snapshot; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
  * clickjacking of the Bridge's controls; an event-stream client sees a `board` event for a ticket move and a `job`
  * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
  * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
@@ -45,6 +46,7 @@ import { COMMON_FOLDER_OUTSIDE }                                                
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'monitor-v1.json');
 
 const recordedGit = useRecordedGit();
 
@@ -188,6 +190,19 @@ describe('the Overseer API on a scratch board', () => {
     const fixture = JSON.parse(readFileSync(SUMMARY_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(summary)).toEqual(Object.keys(fixture));
     expect(summary['summaryVersion']).toBe(1);
+
+    const monitorRefused = await fetch(new URL('api/monitor', url));
+    expect([monitorRefused.status, Object.keys(await monitorRefused.json() as object)]).toEqual([401, ['refusal', 'text']]);
+    const monitor = await (await fetch(new URL('api/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
+    const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
+    expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));
+    expect(monitor).toMatchObject({ monitorVersion: 1, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
+    const monitorStream = await fetch(new URL('api/monitor/events', url), { headers: tokenHeaders() });
+    const firstChunk = await monitorStream.body?.getReader().read();
+    const firstEvent = new TextDecoder().decode(firstChunk?.value);
+    await monitorStream.body?.cancel().catch(() => undefined);
+    expect(/^event: (.+)$/m.exec(firstEvent)?.[1]).toBe('monitor');
+    expect(JSON.parse(/^data: (.+)$/m.exec(firstEvent)?.[1] ?? 'null')).toMatchObject({ monitorVersion: 1, project: 'Example Agency' });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {
@@ -223,10 +238,10 @@ describe('the Overseer API on a scratch board', () => {
     const command = (body: unknown) => fetch(new URL('api/commands', url), { method: 'POST', headers, body: JSON.stringify(body) });
     const unknown = await command({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] });
     expect(unknown.status).toBe(409);
-    expect(((await unknown.json()) as { refusal: string }).refusal).toContain(`No picture ${'b'.repeat(64)} is stored`);
+    expect(await unknown.json()).toMatchObject({ controlVersion: 1, refusal: 'picture-unknown', text: expect.stringContaining(`No picture ${'b'.repeat(64)} is stored`) });
     const blank = await command({ kind: 'intake-start', text: ' ' });
     expect(blank.status).toBe(409);
-    expect(((await blank.json()) as { refusal: string }).refusal).toContain('blank and carries no picture');
+    expect(await blank.json()).toMatchObject({ controlVersion: 1, refusal: 'intake-empty', text: expect.stringContaining('blank and carries no picture') });
     const state = await (await fetch(new URL('api/state', url), { headers })).json() as Record<string, unknown>;
     expect(state['pictureLimits']).toMatchObject({ perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

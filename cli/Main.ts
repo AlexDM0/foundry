@@ -11,22 +11,41 @@ import { helpText }                                                  from './Hel
 import { requireCurrentInstall }                                     from './InstallVersionCheck.ts';
 import { createArgumentParser }                                      from './arguments/ArgumentParser.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND } from './constants/JobVerbs.ts';
+import { ProgramAnswerUtil, VERBS_THAT_ANSWER_IN_VERSIONED_JSON }    from './utils/ProgramAnswerUtil.ts';
 
 const HELP_OPTION_NAME = 'help';
 const HELP_SHORT_ALIAS = '-h';
 const HELP_ALIASES     = new Set([`--${HELP_OPTION_NAME}`, HELP_SHORT_ALIAS]);
 
-/** `init` and `update` repair a mismatch, `status` output is a contract that stays silent about one, and `version` reports the versions itself. */
-const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version']);
+/**
+ * `init` and `update` repair a mismatch, `status` output is a contract that stays silent about one, and `version` reports the versions itself;
+ * `stop` must reach an Overseer whose install changed, and `machine` and `login-item` write nothing of a repository's install.
+ */
+const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'machine', 'login-item']);
 /**
  * A hook prints or guards whatever the install, and `oversee status` and `oversee stop` must reach an Overseer whose install changed, so each runs the
  * check inside its own handling.
  */
-const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'oversee']);
+const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'oversee', 'start']);
 
 /** The commands whose first argument names a subcommand, which the recorded verb then carries: `ticket hold`, not `ticket`. */
 const COMMANDS_WITH_A_SUBCOMMAND = new Set([
-  'task', 'ticket', 'epic', 'draft', 'hook', 'oversee', 'job', 'intake', 'question', 'incident', 'worktree', 'gate', 'merge', 'pipeline',
+  'task',
+  'ticket',
+  'epic',
+  'draft',
+  'hook',
+  'oversee',
+  'job',
+  'intake',
+  'question',
+  'incident',
+  'worktree',
+  'gate',
+  'merge',
+  'machine',
+  'login-item',
+  'pipeline',
 ]);
 
 type HelpRequest = 'reference' | 'ambiguous' | 'none';
@@ -95,6 +114,9 @@ export async function runCommandLine(commandLineArguments: readonly string[], co
   } catch (error) {
     if (refusalIsHatchConcluded(error)) return error.exitCode;
     if (refusalIsOperationRefusal(error)) {
+      if (VERBS_THAT_ANSWER_IN_VERSIONED_JSON.has(command) && createArgumentParser(remainingArguments).flag('json')) {
+        context.standardOutput(ProgramAnswerUtil.refusalAnswerTextOf(error));
+      }
       context.standardError(OperationRefusalWordingUtil.messageOf(error));
       return error.status === 'refused' ? 1 : 2;
     }

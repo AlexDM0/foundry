@@ -39,12 +39,15 @@ function followParentTheme(surroundings: EmbeddedSurroundings, onTheme: (choice:
   return { close: () => surroundings.window.removeEventListener('message', onMessage as EventListener) };
 }
 
-/** `panelIsOpen` says whether a panel is open, which Esc closes first instead of leaving the frame. */
-function forwardEscape(surroundings: EmbeddedSurroundings, panelIsOpen: () => boolean): EmbeddedChannel {
+/**
+ * `panelIsOpen` says whether a panel is open, which Esc closes first instead of leaving the frame. `leaveMessage` is agent-dashboard's
+ * shape unless the framing program speaks another.
+ */
+function forwardEscape(surroundings: EmbeddedSurroundings, panelIsOpen: () => boolean, leaveMessage: object = { kind: LEAVE_BOARD_MESSAGE_KIND }): EmbeddedChannel {
   const { parent, parentOrigin } = surroundings;
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape' || event.defaultPrevented || panelIsOpen() || parent === null || parentOrigin === null) return;
-    parent.postMessage({ kind: LEAVE_BOARD_MESSAGE_KIND }, parentOrigin);
+    parent.postMessage(leaveMessage, parentOrigin);
   };
   surroundings.window.addEventListener('keydown', onKeyDown as EventListener);
   return { close: () => surroundings.window.removeEventListener('keydown', onKeyDown as EventListener) };

@@ -11,25 +11,25 @@ import { DetailControlsModelUtil } from './DetailControlsModel.ts';
 describe('the ticket controls', () => {
   test('a draft offers Ready, Hold, Park and network', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('013', { status: 'draft' }), undefined)).toEqual({
-      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: []
+      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: [], deliversByHand: false
     });
   });
 
   test('a held ticket under review offers Unhold and Park, and no network', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('012', { status: 'in-review', hold: '', network: ['registry.example.com'] }), undefined)).toEqual({
-      readies: false, holdMove: 'unhold', parks: true, setsNetwork: false, network: ['registry.example.com'], priorityChoices: []
+      readies: false, holdMove: 'unhold', parks: true, setsNetwork: false, network: ['registry.example.com'], priorityChoices: [], deliversByHand: true
     });
   });
 
   test('a ticket ready for review offers Ready, Hold, Park and network, and no priority', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('015', { status: 'ready-for-review' }), undefined)).toEqual({
-      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: []
+      readies: true, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: [], deliversByHand: true
     });
   });
 
   test('a pending ticket offers Hold, Park, network and every priority but its own, highest first, and no Ready', () => {
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('016', { status: 'pending', priority: 'low' }), undefined)).toEqual({
-      readies: false, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: ['high', 'normal']
+      readies: false, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: ['high', 'normal'], deliversByHand: true
     });
     expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('017', { status: 'pending' }), undefined).priorityChoices).toEqual(['high', 'low']);
   });
@@ -46,7 +46,7 @@ describe('the ticket controls', () => {
   test('a closed ticket offers nothing', () => {
     const controls = DetailControlsModelUtil.controlsOf(exampleDetailTicket('014', { status: 'delivered' }), undefined);
     expect(controls).toEqual({
-      readies: false, holdMove: null, parks: false, setsNetwork: false, network: [], priorityChoices: []
+      readies: false, holdMove: null, parks: false, setsNetwork: false, network: [], priorityChoices: [], deliversByHand: false
     });
     expect(DetailControlsModelUtil.offersAnyTicketControl(controls)).toBe(false);
   });

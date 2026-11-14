@@ -3,10 +3,12 @@
  * when an `incident-escalated` record names it; the escalated items lead, then everything else oldest first across kinds, a tie in key
  * order, so the order needs no clock; each row's action opens its place; the tab counts tone Questions by escalation, sum the four Kanban
  * kinds, count the Assistant's open incidents in grey, give no entry at zero and never count Intake; the accessible names read singular and
- * plural; and a board missing its optional slices counts them as empty.
+ * plural; a board missing its optional slices counts them as empty; and the list is the monitor snapshot's `attention`, entry for entry, each
+ * route one the Bridge's router reads as a tab it shows.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { attentionEntriesOf }      from '../../src/shared/monitor/AttentionEntries.ts';
 import {
   AGENT_DECISION,
   nothingWaitingBoard,
@@ -14,6 +16,7 @@ import {
   WAITING_TICKETS,
   type WaitingOnUserFixtureBoard
 } from '../testing/WaitingOnUserFixture.ts';
+import { BRIDGE_TABS, HashRouter }                from './HashRouter.ts';
 import { WaitingOnUserModel, type WaitingOnUser } from './WaitingOnUserModel.ts';
 
 const { waitingOnUserOf, tabCountsOf, pillAriaLabelOf } = WaitingOnUserModel;
@@ -27,14 +30,14 @@ describe('the six kinds', () => {
     const waiting = waitingOnUserOf(waitingOnUserBoard());
     const rows = [...waiting.escalated, ...waiting.byAge].map((item) => [item.kind, item.idText, item.subject, item.stamp, item.action.label, item.action.href]);
     expect(rows).toEqual([
-      ['escalated-question', 'E3', 'Example rate-limit window: per customer or per address?', '2026-11-09T14:19:40', 'Answer', '#questions'],
+      ['escalated-question', 'E3', 'Example rate-limit window: per customer or per address?', '2026-11-09T14:19:40', 'Answer', '#questions/E3'],
       ['filing-draft', 'D2', 'Example filing draft', '2026-11-09T09:30:00', 'Answer', '#kanban/draft/D2'],
-      ['question', 'E2', 'Example worktree left on a branch', '2026-11-09T10:58:00', 'Answer', '#questions'],
+      ['question', 'E2', 'Example worktree left on a branch', '2026-11-09T10:58:00', 'Answer', '#questions/E2'],
       ['draft-ticket', '#009', 'Example dates in the shop time zone', '2026-11-09T11:52:00', 'Ready', '#kanban/ticket/009'],
       ['review', '#006', 'Example review ready', '2026-11-09T12:00:00', 'Review', '#kanban/ticket/006'],
       ['merge-accept', '#005', 'Example reviewed change', '2026-11-09T13:00:00', 'Accept', '#kanban/ticket/005'],
       ['draft-ticket', '#015', 'Example search suggestions', '2026-11-09T13:31:00', 'Ready', '#kanban/ticket/015'],
-      ['question', 'E4', 'Example table rows: zebra or dividers?', '2026-11-09T14:19:55', 'Answer', '#questions'],
+      ['question', 'E4', 'Example table rows: zebra or dividers?', '2026-11-09T14:19:55', 'Answer', '#questions/E4'],
     ]);
   });
 
@@ -141,5 +144,21 @@ describe('the tab counts and the accessible names', () => {
     expect(pillAriaLabelOf(waitingOnUserOf(waitingOnUserBoard()))).toBe('Waiting on User: 8, 1 escalated');
     expect(pillAriaLabelOf(waitingOnUserOf(waitingOnUserBoard({ questionHistory: [] })))).toBe('Waiting on User: 8');
     expect(pillAriaLabelOf(waitingOnUserOf(nothingWaitingBoard()))).toBe('Waiting on User: none');
+  });
+});
+
+describe('the monitor snapshot\'s attention', () => {
+  test('the Bridge\'s list is the attention list entry for entry, the action only added', () => {
+    const waiting = waitingOnUserOf(waitingOnUserBoard());
+    const shownEntries = [...waiting.escalated, ...waiting.byAge].map(({ action: _action, ...entry }) => entry);
+    expect(shownEntries).toEqual(attentionEntriesOf(waitingOnUserBoard()));
+  });
+
+  test('every route names a tab the Bridge has, and the item the router reads back', () => {
+    for (const entry of attentionEntriesOf(waitingOnUserBoard())) {
+      const route = HashRouter.routeOf(entry.route, null);
+      expect(BRIDGE_TABS).toContain(route.tab);
+      expect(HashRouter.fragmentOf(route)).toBe(entry.route);
+    }
   });
 });

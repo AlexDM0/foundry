@@ -9,8 +9,14 @@
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
-import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { join }                             from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -20,6 +26,7 @@ import {
 
 
 import { hatchReplyFilePathOf, writeHatchRequest }          from '../../src/adapters/hatch/HatchFolder.ts';
+import { MachineLimitsFile }                                from '../../src/adapters/machine-limits/MachineLimitsFile.ts';
 import { UsageMarkerFile }                                  from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                 from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { OperationRefusalWordingUtil }                      from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
@@ -28,6 +35,7 @@ import { createWindowsExecutableResolver }                  from '../../src/lib/
 import type { PlatformWatch }                               from '../../src/lib/quiet-watch/QuietWatch.ts';
 import type { Board }                                       from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
+import { AGENT_SLOTS_FOLDER }                               from '../../src/services/overseer/AgentSlots.ts';
 import { DataFolderWatch }                                  from '../../src/services/overseer/DataFolderWatch.ts';
 import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
@@ -272,6 +280,36 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(Object.hasOwn(launchKeysOfKind('assistant'), 'treeStopAtEndGraceMilliseconds')).toBe(false);
   });
 
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the machine agent limit', () => {
+  /** A live holding of another board, under this process's identity, so the Overseer reads it as the slot of a running Overseer. */
+  function holdTheOnlyMachineSlotForAnotherBoard(): string {
+    MachineLimitsFile.write(monitorFolder, { agentLimit: 1 });
+    const slotsFolder = join(monitorFolder, AGENT_SLOTS_FOLDER);
+    mkdirSync(slotsFolder, { recursive: true });
+    const slotPath = join(slotsFolder, 'slot-1');
+    const overseer = ports.processSupervision.identityOf(process.pid);
+    writeFileSync(slotPath, `${JSON.stringify({
+      version: 1, trackerId: 'other-board', jobId: 'J9', overseer
+    })}\n`);
+    return slotPath;
+  }
+
+  test('a ready ticket that finds no free machine slot launches no build and waits, and a sweep launches it once a slot is free', async () => {
+    const otherBoardSlotPath = holdTheOnlyMachineSlotForAnotherBoard();
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build'), overseerLog.join('\n')).toEqual([]);
+    expect(drivePass.state().ticketsWaitingForMachineSlot).toBe(1);
+
+    rmSync(otherBoardSlotPath);
+    drivePass.sweep();
+    await drivePass.idle();
+    expect(buildJobId()).toBeDefined();
+    expect(drivePass.state().ticketsWaitingForMachineSlot).toBe(0);
+    expect(JSON.parse(readFileSync(otherBoardSlotPath, 'utf8'))).toMatchObject({ version: 1, jobId: buildJobId() });
+  });
 });
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {

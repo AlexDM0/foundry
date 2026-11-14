@@ -236,6 +236,28 @@ describe('ticket review', () => {
   });
 });
 
+// Their verbs are refused under a job before anything relays; a request file written by hand must meet the same wall at the Overseer.
+describe('the kinds only User\'s own surfaces send', () => {
+  const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', null];
+  const SYSTEM_QUESTION_ON_TICKET_7: RelayingJob['deliveredIncidents'][number] = {
+    id: 'I9', kind: 'system-question', ticketIds: ['007'], jobId: 'J2'
+  };
+
+  test('no Overseer-launched session relays range, clear or a by-hand delivery, not even naming a delivered incident', () => {
+    const commands: ControlCommand[] = [
+      { kind: 'chart-range-set', range: { kind: 'automatic' } },
+      { kind: 'tracker-clear', scope: 'everything' },
+      { kind: 'ticket-deliver-by-hand', ticketReference: '7' },
+    ];
+    for (const role of ROLES) {
+      const job = jobOf(role, { deliveredIncidents: [SYSTEM_QUESTION_ON_TICKET_7], filedTickets: [{ id: '007', status: 'draft' }] });
+      for (const command of commands) {
+        expect(Bouncer.verdictOf(job, { ...command, incidentId: 'I9' } as ControlCommand).verdict, `${String(role)} ${command.kind}`).toBe('refused');
+      }
+    }
+  });
+});
+
 /** Design section 8.3's table, written out again so a drift on either side fails. */
 const DESIGN_TABLE: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {
   'system-question':        ['incident-answer', 'incident-escalate', 'job-fresh', 'ticket-park', 'incident-note'],

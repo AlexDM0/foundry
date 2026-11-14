@@ -2,7 +2,8 @@
  * The question panel: one open decision beside the board, over every tab, with what to answer on the left and why it was asked on the
  * right, and the queue of the other open decisions in its foot. It slides in while a decision waits and out once none shows, keeping the
  * last one shown while it slides, handing the focus it held back to what held it as it appeared; it stays mounted but hidden while the
- * detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first.
+ * detail panel shows, and Esc closes it only when no inner layer took the key, so the detail panel closes first. While it shows, it is
+ * the questions habitat of Flint (`bridge/flint/UseQuestionsHabitat.ts`).
  */
 
 import { Button } from 'design-system/Button';
@@ -19,13 +20,18 @@ import { Tag }      from 'design-system/Tag';
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
-  useState
+  useState,
+  type ReactNode
 } from 'react';
 
+import type { OpenDecision }                                                    from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { DecisionDocument }                                                from '../../@types/ConversationDocuments.ts';
 import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';
-import type { OpenDecision }                                                    from '../../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                                              from '../../conversation/TranscriptLog.tsx';
+import type { QuestionsFacts }                                                  from '../../flint/QuestionsSpriteModel.ts';
+import { useQuestionsHabitat }                                                  from '../../flint/UseQuestionsHabitat.ts';
 import { StateToneUtil }                                                        from '../../utils/StateToneUtil.ts';
 import { QuestionAskColumn }                                                    from './QuestionAskColumn.tsx';
 import { QuestionBackgroundColumn }                                             from './QuestionBackgroundColumn.tsx';
@@ -34,9 +40,9 @@ import { QuestionPanelModel }                                                   
 
 export interface QuestionPanelProps {
   readonly board:                QuestionPanelBoard;
-  readonly queue:                readonly OpenDecision[];
+  readonly queue:                readonly OpenDecision<DecisionDocument>[];
   /** `null` while the panel is folded or nothing is open: a shown panel then slides out. */
-  readonly shownDecision:        OpenDecision | null;
+  readonly shownDecision:        OpenDecision<DecisionDocument> | null;
   /** True while the detail panel shows: one right-edge panel shows at a time. */
   readonly isHiddenBehindDetail: boolean;
   readonly format:               QuestionPanelFormat;
@@ -132,9 +138,22 @@ function useOpenerFocusReturn(panelIsMounted: boolean): () => void {
   };
 }
 
+interface QuestionPanelHabitatProps {
+  readonly facts:    QuestionsFacts;
+  readonly hidden:   boolean;
+  readonly children: ReactNode;
+}
+
+/** The panel's element, which exists only while the panel shows, so it registers the habitat for as long as it is mounted. */
+function QuestionPanelHabitat({ facts, hidden, children }: QuestionPanelHabitatProps) {
+  const panelElement = useRef<HTMLDivElement>(null);
+  useQuestionsHabitat(panelElement, facts);
+  return <div className="bridge-question-panel" hidden={hidden} ref={panelElement} data-flint-workplace="">{children}</div>;
+}
+
 /** The decision to show, kept while the panel slides out so its contents stay put; forgotten once the slide ends. */
-function useKeptDecision(shownDecision: OpenDecision | null): [OpenDecision | null, () => void] {
-  const [kept, setKept] = useState<OpenDecision | null>(shownDecision);
+function useKeptDecision(shownDecision: OpenDecision<DecisionDocument> | null): [OpenDecision<DecisionDocument> | null, () => void] {
+  const [kept, setKept] = useState<OpenDecision<DecisionDocument> | null>(shownDecision);
   if (shownDecision !== null && shownDecision !== kept) setKept(shownDecision);
   return [shownDecision ?? kept, () => setKept(null)];
 }
@@ -145,6 +164,10 @@ export function QuestionPanel({
   const [displayed, forget] = useKeptDecision(shownDecision);
   const returnFocusToOpener = useOpenerFocusReturn(displayed !== null);
   const isActive = shownDecision !== null && !isHiddenBehindDetail;
+  const shownDecisionId = shownDecision?.decision.id ?? null;
+  const questionsFacts = useMemo<QuestionsFacts>(() => ({
+    decisions: board.decisions, selectedDecisionId: shownDecisionId, incidents: board.incidents ?? [], history: board.questionHistory ?? [],
+  }), [board, shownDecisionId]);
 
   useEffect(() => {
     if (!isActive) return undefined;
@@ -160,7 +183,7 @@ export function QuestionPanel({
   if (displayed === null) return null;
   const model = QuestionPanelModel.questionPanelModelOf(board, queue.length === 0 ? [displayed] : queue, displayed, format);
   return (
-    <div className="bridge-question-panel" hidden={isHiddenBehindDetail}>
+    <QuestionPanelHabitat facts={questionsFacts} hidden={isHiddenBehindDetail}>
       <SidePanel
         label={`Question ${model.decisionId} from ${model.head.askerText}`}
         width="question"
@@ -185,6 +208,6 @@ export function QuestionPanel({
           <PanelFoot model={model} onNext={onNext} />
         </SidePanelFoot>
       </SidePanel>
-    </div>
+    </QuestionPanelHabitat>
   );
 }

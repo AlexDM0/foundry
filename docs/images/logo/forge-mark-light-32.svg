@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64" role="img">
+  <title>forge</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d6d6d6"/></linearGradient>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><circle cx="48.02" cy="22.75" r="10.75" fill="#000"/></mask>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#tile)"/>
+  <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
+    <g mask="url(#gap)"><path d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="#3d3d3d" stroke-width="4.3"/>
+    </g>
+    <path d="M31.5 26.09 A1 1 0 0 1 32.5 26.09 L36.87 28.61 A1 1 0 0 1 37.37 29.48 L37.37 34.52 A1 1 0 0 1 36.87 35.39 L32.5 37.91 A1 1 0 0 1 31.5 37.91 L27.13 35.39 A1 1 0 0 1 26.63 34.52 L26.63 29.48 A1 1 0 0 1 27.13 28.61 Z" fill="#fa5f01" fill-opacity="0.5"/>
+    <circle cx="48.02" cy="22.75" r="7.4" fill="none" stroke="#ee5600" stroke-width="2.3"/>
+    <circle cx="48.02" cy="22.75" r="3.6" fill="#ff8d42"/>
+  </g>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#000" stroke-opacity="0.14"/>
+</svg>

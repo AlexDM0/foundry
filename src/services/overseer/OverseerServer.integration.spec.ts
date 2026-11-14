@@ -92,6 +92,9 @@ function startExampleServer(
     onNudge:         () => nudges.push('nudge'),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     summary:         () => ({ summaryVersion: 1 }),
+    monitor:         () => ({ status: 200, body: { monitorVersion: 1 } }),
+    monitorStream:   () => null,
+    refusalTextOf:   (refusal) => `Example sentence for ${refusal}`,
     events:          () => broker,
     transcriptOf:    (jobId) => (jobId === 'J1' ? () => [] : null),
     profileOutputOf: (profileRunId) => (profileRunId === 'P1' ? () => [] : null),
@@ -181,6 +184,7 @@ describe('OverseerServer guards', () => {
     expect(server.url).toBe(`http://127.0.0.1:${server.port}/`);
     const response = await fetch(new URL('api/identity', server.url));
     expect(await response.json()).toEqual({
+      identityVersion:        1,
       application:            PRODUCT_NAMES.PROGRAM,
       trackerId:              EXAMPLE_TRACKER_ID,
       project:                'Example Agency',
@@ -188,6 +192,9 @@ describe('OverseerServer guards', () => {
       installVersion:         17,
       watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
       processId:              process.pid,
+      contracts:              {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      },
     });
   });
 

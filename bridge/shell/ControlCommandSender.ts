@@ -29,7 +29,7 @@ export interface ControlCommandOptions {
 export function useControlCommand(command: ControlCommandBody | null, options: ControlCommandOptions = {}): ControlCommandSender {
   const { answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied } = options;
   const {
-    availability, commandClient, onInstallHeld, onSessionLost
+    availability, commandClient, onInstallHeld, onSessionLost, onRefused
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -42,7 +42,10 @@ export function useControlCommand(command: ControlCommandBody | null, options: C
     const outcome = await commandClient.send(command);
     setSending(false);
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
-    if (outcome.verdict === 'refused') setRefusal(outcome.refusal);
+    if (outcome.verdict === 'refused') {
+      setRefusal(outcome.refusal);
+      onRefused?.(outcome.refusal);
+    }
     if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
     if (outcome.verdict === 'no-session') onSessionLost?.();

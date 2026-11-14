@@ -3,8 +3,7 @@
 > **Question:** What happens to a ticket at each step, who moves it, and what can send it back?
 > **Time:** 15 minutes.
 > **Read first:** [Overview](overview.md).
-> **Next:** [Walk a ticket](../interactive/ticket-journey.html), [State machines](../data-model/state-machines.md),
-> [Build and review](../architecture/build-and-review.md).
+> **Next:** [Getting started](../operations/getting-started.md).
 
 ## In one screen
 
@@ -54,8 +53,7 @@ on branch `ticket-003` from the target's tip, and a [Watcher](../glossary.md#wat
 
 **Customs.** The report is a claim, so Customs reads git and checks it. The ticket body must be unchanged since launch,
 the worktree clean, the report must account for every Acceptance item with evidence or a
-[waiver](../glossary.md#waiver) proposal, and it must claim each agent-run gate on HEAD. The checks are in [Customs
-and gates](../architecture/customs-and-gates.md).
+[waiver](../glossary.md#waiver) proposal, and it must claim each agent-run gate on HEAD.
 
 **Gates.** Each gate of the [pipeline](../glossary.md#pipeline) runs in order under a Watcher, on the builder's commit.
 The Overseer runs the gates of the job's phase itself, so the report's claim that a gate passed counts for nothing here.
@@ -68,12 +66,10 @@ free, the Playbook picks the review job in that same lock hold.
 
 **Review.** A review job reuses the worktree and goes through Customs and the gates too; when the reviewer leaves the
 tree as it was, the Overseer runs no gate. The reviewer judges each Acceptance item, and code appends `## Review 1` to
-the ticket from the report. A review ends in one of four moves, set out in [Build and
-review](../architecture/build-and-review.md): the ticket is queued, another round is granted, a waiver is proposed, or
-the reviewer finds an Acceptance item unmet.
+the ticket from the report. A review ends in one of four moves: the ticket is queued, another round is granted, a waiver
+is proposed, or the reviewer finds an Acceptance item unmet.
 
-> **As built.** A proposed waiver waits for an answer that has no effect: [the waiver
-> answer](../reference/known-gaps.md#gap-waiver-answer-has-no-effect).
+> **As built.** A proposed waiver waits for an answer that has no effect.
 
 **Merge queue.** A passed review sets `mergeQueued` on the row and adds `merge-queued` to the
 [log](../glossary.md#log). The status does not change, and no job exists until an Airlock claims the ticket.
@@ -81,8 +77,7 @@ the reviewer finds an Acceptance item unmet.
 **Airlock.** Each target has one Airlock slot. The Airlock [sweep](../glossary.md#sweep) inside the Pass claims it for
 the next queued ticket and launches a merge job, which is Overseer code with no agent. The merge job works in order:
 
-1. It merges the target into `ticket-003`. A conflict brings back the ticket's reviewer, a story told in
-   [Airlocks and groups](../architecture/airlocks-and-groups.md).
+1. It merges the target into `ticket-003`. A conflict brings back the ticket's reviewer.
 2. It gates the merged tree, skipping this when the merge changed nothing and that tree already passed.
 3. It refuses the ticket if the review did not settle its Acceptance. This is the last check before git moves.
 4. It fast-forwards main, only if main's tip is still the one it merged.
@@ -91,8 +86,7 @@ the next queued ticket and launches a merge job, which is Overseer code with no 
 `reviewed` then `delivered`, and the log gains `merge-landed` with kind `landed`. On the [main
 line](../glossary.md#main-line) `reviewed` is never a resting place.
 
-> **As built.** The branch and worktree of a landed ticket stay on disk: [landed worktrees
-> stay](../reference/known-gaps.md#gap-landed-worktrees-stay).
+> **As built.** The branch and worktree of a landed ticket stay on disk.
 
 ## Who moves a ticket
 
@@ -103,16 +97,14 @@ line](../glossary.md#main-line) `reviewed` is never a resting place.
 *Agents working a ticket have no route to an existing ticket, at most a new low finding. The product owner and the
 Assistant ask, and only for the move shown.*
 
-No session writes files in [`<data>`](../glossary.md#reading-names): [confinement](../architecture/confinement.md)
+No session writes files in [`<data>`](../glossary.md#reading-names): confinement
 denies it, and Customs refuses a run whose commits touch that folder or that changed the ticket body.
 
 That is why the Handoff is the code's. The builder writes a `handoff` field in its report, and the Overseer copies it
 into the ticket once it has verified the rest.
 
 `ticket deliver --by-hand` is for work landed outside the Overseer. A request through the Hatch applies only after the
-[Bouncer](../glossary.md#bouncer) admits it, and [Control and Hatch](../architecture/control-and-hatch.md) shows how a
-verb travels. A hold is not a status, so it is not on this list: [State machines](../data-model/state-machines.md) has
-the legal moves and hold forms.
+[Bouncer](../glossary.md#bouncer) admits it. A hold is not a status, so it is not on this list.
 
 ## Four things to read separately
 
@@ -127,7 +119,7 @@ naming job J2. Lifting the hold lets the Playbook pick another review. The statu
 | Track | Stored in | It answers | It changes when |
 | --- | --- | --- | --- |
 | Status | the ticket's `status` | How far has the work come? | the Overseer or a User verb moves the ticket |
-| Hold | the ticket's `hold`, whose presence is the hold | Is something keeping it from the next step? | User or the Overseer sets it; `ticket unhold` lifts any form, and an answer lifts some ([every form](../data-model/state-machines.md)) |
+| Hold | the ticket's `hold`, whose presence is the hold | Is something keeping it from the next step? | User or the Overseer sets it; `ticket unhold` lifts any form, and an answer lifts some |
 | Row mark | the row's `mergeQueued` | Is it waiting to land? | usually a passed review, or passed gates with no review phase, sets it; a refused or aborted merge drops it |
 | Jobs | `jobs` in `progress.json`, while live | Is anything working on it? | a launch or a job's ending |
 
@@ -143,11 +135,10 @@ Most 'why is this not moving?' questions end on one of these:
 | `in-progress` or `in-review`, job `waiting-for-answer` | a question to User, keeping its launch slot |
 | `pending`, no job, no hold | usually a dependency unsettled, no launch slot free, or an open incident or a blocking decision |
 
-These are the common readings. A launch also waits on the board as a whole, and [Why is this not
-moving?](../interactive/why-not-moving.html) walks the full check.
+These are the common readings. A launch also waits on the board as a whole: the runbook's
+[Not moving](../operations/runbook.md#not-moving) ladder walks the full check.
 
-> **As built.** A refused merge relaunches a review while its decision is open: [refused
-> merges](../reference/known-gaps.md#gap-refused-merge-relaunches-review).
+> **As built.** A refused merge relaunches a review while its decision is open.
 
 > **Careful.** In the [Bridge](../glossary.md#bridge), the web client, trust the Kanban lane over the state word. A
 > queued ticket sits in the Merge queue lane while its word stays `Awaiting review`, because the word comes from the
@@ -171,22 +162,15 @@ The commits stay on the branch.
 A red gate on a review job resumes the reviewer the same way, on its own count. Customs takes the first way back too
 when the fault is one a session can fix: no commit, a dirty worktree, or missing gate claims.
 
-Step through each in the lab: [a red gate](../interactive/ticket-journey.html#red-gate), [a Customs refusal the session
-can fix](../interactive/ticket-journey.html#customs-resumable), [a review that does not
-hold](../interactive/ticket-journey.html#review-fails) and [a moved
-target](../interactive/ticket-journey.html#target-moved).
-
 A [failed pass](../glossary.md#failed-pass) is the harsher path, for an ending the session cannot repair, such as a
 session that exits cleanly with no valid report. A session that crashes is resumed instead and does not count. The next
 job of that kind starts fresh on the same branch, and `FAILED_PASSES_BEFORE_PARKING` (2) of them park the ticket. A
 review that resumes its builder is not a failed pass.
 
 Every way back ends the same way once its bound is reached: a `parked:<cause>` hold and a `parked` decision to User,
-with the status unchanged. The rules are in [Build and review](../architecture/build-and-review.md), the values in
-[Deciders and bounds](../reference/deciders-and-bounds.md).
+with the status unchanged.
 
-> **As built.** Answering a `parked` decision lifts nothing; `ticket unhold` does: [answering
-> parked](../reference/known-gaps.md#gap-answering-parked-does-not-unhold).
+> **As built.** Answering a `parked` decision lifts nothing; `ticket unhold` does.
 
 ## Variants
 
@@ -196,11 +180,11 @@ Each variant keeps the main path and changes one part: a skipped step, a differe
 
 *Read each strip against the main path at the top: the outlined or dashed boxes are what differs.*
 
-**[No review phase](../interactive/ticket-journey.html#no-review).** Review exists only when the pipeline has a `review`
+**No review phase.** Review exists only when the pipeline has a `review`
 key. Without it, the lock hold that records the passed gates also queues the ticket, and the merge job skips its check
 that the review settled Acceptance, since no reviewer judged the items.
 
-**[Group ticket](../interactive/ticket-journey.html#group-release).** A ticket with a [group](../glossary.md#group)
+**Group ticket.** A ticket with a [group](../glossary.md#group)
 targets the branch `group-<name>`, and its branch forks from that tip. Landing there logs `merge-landed` with kind
 [integrated](../glossary.md#integrated), and the Bridge shows the `reviewed` status as `Awaiting merge`. `reviewed`
 settles a dependency, so the group's next ticket can start.
@@ -210,19 +194,13 @@ It is a candidate only once the rest of its [release bundle](../glossary.md#rele
 moves it and every `reviewed` ticket of the bundle to `delivered` in one lock hold, and the group's worktree and branch
 are removed after that.
 
-**[A question to User](../interactive/ticket-journey.html#question).** A builder or reviewer may ask, and the Overseer
+**A question to User.** A builder or reviewer may ask, and the Overseer
 opens an `agent-question` decision. The answer returns the job to `running`. A question that outlives its job holds the
-ticket until answered, and a question the system can answer goes to the Assistant: see [Questions and
-incidents](../architecture/questions-and-incidents.md).
-
-Every other branch can be stepped through in [Walk a ticket](../interactive/ticket-journey.html), among them [a granted
-round](../interactive/ticket-journey.html#round-granted), [a merge
-conflict](../interactive/ticket-journey.html#conflict) and [a red merged
-tree](../interactive/ticket-journey.html#merge-gate-red).
+ticket until answered, and a question the system can answer goes to the Assistant.
 
 ## Invariants
 
-The general ones are in [State machines](../data-model/state-machines.md). These belong to this story.
+These belong to this story.
 
 1. Every ticket starts `draft`.
 2. No agent working a ticket, whether builder or reviewer, in the Airlock or not, changes an existing ticket's status or

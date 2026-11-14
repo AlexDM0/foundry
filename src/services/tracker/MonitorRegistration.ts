@@ -31,6 +31,8 @@ export interface MonitorRegistrationRequest {
   temporaryDirectories: readonly string[];
   /** The verb that wrote the page, such as `ticket hold`. */
   command:              string;
+  /** The absolute path of the program that writes the entry, which a monitor starts this board's Overseer with. */
+  program:              string;
   now:                  () => Date;
   /** The live Overseer, written at its start; `removed` at its stop; absent, a stored Overseer key is kept as it was. */
   overseer?:            OverseerRegistration | 'removed';
@@ -42,6 +44,8 @@ export interface OverseerRegistration {
   url:       string;
   processId: number;
   startedAt: string;
+  /** The absolute path of the Overseer's token file, which a monitor reads its bearer token from. */
+  tokenPath: string;
 }
 
 export type MonitorRegistrationOutcome =
@@ -130,7 +134,7 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    workspace, monitorFolder, temporaryDirectories, command, now, overseer, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
+    workspace, monitorFolder, temporaryDirectories, command, program, now, overseer, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
   } = request;
   if (trackerLiesInATemporaryFolder(workspace.rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
@@ -147,6 +151,7 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
       progressHtml: workspace.htmlFilePath,
       progressJson: workspace.progressFilePath,
       gitOrigin:    gitOriginOf(workspace.rootDirectory),
+      program,
     },
     changedAt: LocalTimeUtil.formatLocalIso(now()),
     command,

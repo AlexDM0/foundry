@@ -1,7 +1,7 @@
 /**
  * The cutover smoke the owner runs before unholding the release ticket, never a spec: this checkout's binary under the side-by-side names
  * drives two planted tickets to delivered with real `claude` sessions in a scratch repository, and the log under the main checkout's
- * `.claude/.evidence/cutover-smoke/` holds one pass line per item. `docs/development/cutover-smoke.md` says how to run and read it.
+ * `.claude/.evidence/cutover-smoke/` holds one pass line per item.
  */
 import {
   appendFileSync,

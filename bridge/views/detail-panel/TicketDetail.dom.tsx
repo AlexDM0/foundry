@@ -4,13 +4,13 @@
  * DOM; the arrow keys, Home and End open a section; Activity counts and lists the lines naming the ticket or its row, or says none does;
  * the Overview's state card names the live job and its calls beside Flint's slot in the job's pose (no slot while the question panel shows
  * over the panel's slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept
- * by state, Accept disabled unless the prediction is clean; Park… and Hold… open their reason row before anything is sent, Cancel sending
- * nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once applied and
- * showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent without a
- * forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live job's controls
- * sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind down, Stop and
- * Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until confirmed, Cancel and Esc
- * handing the focus back; a stopping job shows Stopping. alone, a watched one Stop alone.
+ * by state, Accept disabled unless the prediction is clean; Park…, Hold… and Delivered by hand… open their row before anything is sent,
+ * Cancel sending nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once
+ * applied and showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent
+ * without a forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live
+ * job's controls sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind
+ * down, Stop and Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until
+ * confirmed, Cancel and Esc handing the focus back; a stopping job shows Stopping. alone, a watched one Stop alone.
  */
 import {
   act,
@@ -298,6 +298,20 @@ describe('the Overview', () => {
     });
     await clicked(screen.getByRole('button', { name: 'Park' }));
     expect(panel.sent).toEqual([{ kind: 'ticket-park', ticketReference: '004', reason: 'waiting on the example vendor' }]);
+  });
+
+  test('Delivered by hand… opens its confirmation; Record delivered posts ticket-deliver-by-hand with the typed branch, and waits on a live job', async () => {
+    const reviewed = renderTicket({ form: 'ticket', ticketId: '020' });
+    await clicked(screen.getByRole('button', { name: 'Delivered by hand…' }));
+    act(() => {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Branch' }), { target: { value: 'ticket-020' } });
+    });
+    await clicked(screen.getByRole('button', { name: 'Record delivered' }));
+    expect(reviewed.sent).toEqual([{ kind: 'ticket-deliver-by-hand', ticketReference: '020', branch: 'ticket-020' }]);
+    cleanup();
+    renderTicket(BUILDING);
+    await clicked(screen.getByRole('button', { name: 'Delivered by hand…' }));
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Record delivered' }).disabled).toBe(true);
   });
 
   test('Hold… on a draft opens its reason row too, and its Park names no job', async () => {

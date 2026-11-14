@@ -245,7 +245,17 @@ const CLAIMS: PolicyClaim[] = [
     name:   'launches stop at the concurrency limit',
     facts:  factsWith({ tickets: [ticketOf('001', 'pending'), ticketOf('002', 'pending')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
-    mutant: policyLine('    .slice(0, freeSlotsOf(facts))\n', ''),
+    mutant: policyLine('    .slice(0, freeSlotsOf(facts));\n', ';\n'),
+  },
+  {
+    name:  'launches stop at the machine slots reserved, and each other launchable ticket waits for a machine slot',
+    facts: factsWith({
+      tickets:          [ticketOf('001', 'pending'), ticketOf('002', 'pending')],
+      concurrencyLimit: 2,
+      observations:     { ...FIXTURE_OBSERVATIONS, machineAgentSlotsFree: 1 },
+    }),
+    holds:  (steps) => launchesExactly(['001'])(steps) && steps.some((step) => step.kind === 'await-machine-slot' && step.ticketId === '002'),
+    mutant: policyLine('index < machineSlotsFree', 'index <= machineSlotsFree'),
   },
   {
     name:   'a job crash-resumed up to the bound is replaced, not resumed',

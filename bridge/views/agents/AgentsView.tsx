@@ -2,13 +2,14 @@
  * The Agents view: its title row, the worker list (builders and reviewers, under the project row holding the launch-slot meter and the
  * concurrency limit), then Sessions (intake and the Assistant), both ticking each second, and for the job the route names its side panel,
  * which slides out again when the route drops the job. Show diagnostics adds the same four columns to both cards. Its clock and transcript
- * stream arrive as props, so a DOM spec drives both.
+ * stream arrive as props, so a DOM spec drives both. The view is the agent panel habitat of Flint.
  */
 
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -16,19 +17,21 @@ import type {
   ConcurrencyDocument,
   IdentifiedRecord,
   LaunchSlotsDocument,
+  OverseerFactsDocument,
   PageTicketDocument
 } from '../../@types/BoardStateDocument.ts';
-import { TranscriptStreamClient }                  from '../../api/TranscriptStreamClient.ts';
-import type { BridgeClock }                        from '../../shell/BridgeClock.ts';
-import { HashRouter }                              from '../../shell/HashRouter.ts';
-import type { TimestampSlices }                    from '../../utils/TimeUtil.ts';
-import { ViewTitle }                               from '../ViewTitle.tsx';
-import type { AgentJobDocument }                   from './AgentJobDocument.ts';
-import { AgentsModel }                             from './AgentsModel.ts';
-import { JobPanel }                                from './JobPanel.tsx';
-import { SessionCard }                             from './SessionCard.tsx';
-import type { FollowTranscript, TranscriptMemory } from './TranscriptPanel.tsx';
-import { WorkerCard }                              from './WorkerCard.tsx';
+import { TranscriptStreamClient }                       from '../../api/TranscriptStreamClient.ts';
+import type { BridgeClock }                             from '../../shell/BridgeClock.ts';
+import { HashRouter }                                   from '../../shell/HashRouter.ts';
+import type { TimestampSlices }                         from '../../utils/TimeUtil.ts';
+import { ViewTitle }                                    from '../ViewTitle.tsx';
+import type { AgentJobDocument, EndedAgentJobDocument } from './AgentJobDocument.ts';
+import { AgentsModel }                                  from './AgentsModel.ts';
+import { JobPanel }                                     from './JobPanel.tsx';
+import { SessionCard }                                  from './SessionCard.tsx';
+import type { FollowTranscript, TranscriptMemory }      from './TranscriptPanel.tsx';
+import { useAgentPanelHabitat }                         from './UseAgentPanelHabitat.ts';
+import { WorkerCard }                                   from './WorkerCard.tsx';
 
 export interface AgentsViewProps {
   readonly project:           string;
@@ -45,7 +48,13 @@ export interface AgentsViewProps {
   /** How a full stamp is sliced; `null` on a board that serves no slices. */
   readonly timestampSlices:   TimestampSlices | null;
   readonly followTranscript?: FollowTranscript;
+  /** The board's `endedJobs`, which Flint answers a landing from; without them it shows none. */
+  readonly endedJobs?:        readonly EndedAgentJobDocument[];
+  /** Without the Overseer's state, Flint is never told that every agent is idle. */
+  readonly overseer?:         OverseerFactsDocument | null;
 }
+
+const NO_ENDED_JOBS: readonly EndedAgentJobDocument[] = Object.freeze([]);
 
 function useNowEverySecond(clock: BridgeClock): Date {
   const [now, setNow] = useState(() => clock.now());
@@ -65,7 +74,8 @@ function useShownJob(routedJob: AgentJobDocument | null, agentJobs: readonly Age
 const closeJobPanel = (): void => HashRouter.navigateTo({ tab: 'agents', item: null });
 
 export function AgentsView({
-  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow
+  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow,
+  endedJobs = NO_ENDED_JOBS, overseer = null
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -77,9 +87,13 @@ export function AgentsView({
   const sessionJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
   const { shownJob, isClosing, finishClosing } = useShownJob(selectedJob, agentJobs);
+  const viewElement = useRef<HTMLDivElement>(null);
+  useAgentPanelHabitat(viewElement, {
+    jobs, endedJobs, concurrency, overseer
+  }, selectedJobId);
 
   return (
-    <div className="agents-view" data-job-open={selectedJob === null ? undefined : ''}>
+    <div className="agents-view" ref={viewElement} data-job-open={selectedJob === null ? undefined : ''}>
       <ViewTitle title="Agents" lead="The agents at work on this board. Select a job to read its transcript and steer it." />
       <WorkerCard
         project={project}

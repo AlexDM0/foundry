@@ -166,6 +166,8 @@ export interface BoardStateDocument {
   readonly confinement?:           'confined' | 'unavailable' | 'unconfined-by-design';
   readonly page?:                  PageDocument;
   readonly mergeQueue?:            MergeQueueDocument;
+  /** The newest jobs that left the board, oldest first, each with how it ended. */
+  readonly endedJobs?:             readonly (IdentifiedRecord & { readonly outcome: string })[];
   readonly pipeline?:              AppliedPipelineFacts;
   /** Null with no open setup, update or advise record. */
   readonly pipelineSetup?:         PipelineSetupFacts | null;

@@ -20,6 +20,8 @@ export interface DetailControlsModel {
   readonly network:         readonly string[];
   /** Only while `pending`: the priorities `ticket-priority` may move the ticket to, every one but its own; empty otherwise. */
   readonly priorityChoices: readonly TicketPriority[];
+  /** Any open ticket past `draft`: `ticket-deliver-by-hand`, for work User landed outside the Overseer. */
+  readonly deliversByHand:  boolean;
   /** Written only while the ticket waits for merge (merge approval on): `merge-accept` and `merge-update`. */
   readonly mergeWait?:      MergeWaitModel;
 }
@@ -65,6 +67,7 @@ function controlsOf(ticket: DetailTicketDocument, mergeQueue: DetailBoardState['
     setsNetwork:     notYetStarted,
     network:         ticket.network ?? [],
     priorityChoices: ticket.status === 'pending' ? PRIORITY_CHOICE_ORDER.filter((priority) => priority !== currentPriority) : [],
+    deliversByHand:  isOpen && ticket.status !== 'draft',
     ...mergeWaitOf(mergeQueue, ticket.id),
   };
 }

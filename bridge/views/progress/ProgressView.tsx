@@ -3,7 +3,8 @@
  * sticky head carrying the column names in the pinned cell and the axis ticks on the track, its rows grouped by epic on a board with
  * epics. Bars, ticks, spans and the now line are placed through the `style` prop. The range, the name column, the folded groups and the
  * review-rows choice are kept per viewer under their keys. A row opens its row detail in place; its number links to its ticket on
- * Tickets, an epic head's name to that epic.
+ * Tickets, an epic head's name to that epic. The tab is the timeline habitat of Flint
+ * (`bridge/views/progress/UseTimelineHabitat.ts`).
  */
 
 import { Icon }           from 'design-system/Icon';
@@ -34,11 +35,13 @@ import { HashRouter }                                                  from '../
 import { GeometryUtil }                                                from '../../utils/GeometryUtil.ts';
 import { StateToneUtil }                                               from '../../utils/StateToneUtil.ts';
 import { ViewTitle }                                                   from '../ViewTitle.tsx';
+import { BoardLifetimeControls }                                       from './BoardLifetimeControls.tsx';
 import { useChartPanelRoom }                                           from './ChartPanelRoom.ts';
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
 import { ProgressModel, type ProgressBarModel, type ProgressRowModel } from './ProgressModel.ts';
 import { progressPreferencesOf }                                       from './ProgressPreferences.ts';
 import { RangeControl }                                                from './RangeControl.tsx';
+import { useTimelineHabitat }                                          from './UseTimelineHabitat.ts';
 import { AxisFitUtil }                                                 from './utils/AxisFitUtil.ts';
 import { ChartPreferenceUtil, type StoredViewOverride }                from './utils/ChartPreferenceUtil.ts';
 
@@ -297,6 +300,8 @@ export function ProgressView({
   const [nameColumnWidth, chooseNameColumnWidth] = useStoredChoice(preferences.readNameColumnWidth, preferences.writeNameColumnWidth);
   const [foldedGroupKeys, chooseFoldedGroupKeys] = useStoredChoice(preferences.readFoldedEpicGroups, preferences.writeFoldedEpicGroups);
   const chartRef = useRef<HTMLElement | null>(null);
+  const viewElement = useRef<HTMLDivElement | null>(null);
+  useTimelineHabitat(viewElement, boardState);
   const axisTrackRef = useRef<HTMLDivElement | null>(null);
   const trackWidthPixels = useTrackWidthPixels(axisTrackRef);
 
@@ -339,7 +344,7 @@ export function ProgressView({
   const toggleGroup = (groupKey: string): void => chooseFoldedGroupKeys(EpicRowGrouping.foldedGroupKeysAfterToggle(foldedGroupKeys, groupKey));
 
   return (
-    <div className="bridge-progress-view" data-name-column={nameColumnWidth}>
+    <div className="bridge-progress-view" data-name-column={nameColumnWidth} ref={viewElement} data-flint-workplace="">
       <ViewTitle
         title="Progress"
         lead="Each ticket's builds and reviews over time, grouped by epic. Click a row to open it. Click its number to open the ticket."
@@ -407,6 +412,7 @@ export function ProgressView({
         </div>
         {chart.rows.length === 0 ? <p className="bridge-progress-empty">No tasks in this range.</p> : null}
       </section>
+      <BoardLifetimeControls override={override} />
     </div>
   );
 }

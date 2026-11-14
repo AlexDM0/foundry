@@ -2,7 +2,7 @@
 
 > **Question:** How do I get this running, try a change safely and get it past every check?
 > **Time:** 15 minutes.
-> **Read first:** [README](../../README.md), [Code map](../architecture/code-map.md).
+> **Read first:** [README](../../README.md).
 > **Next:** [Guards and testing](guards-and-testing.md), [CLI reference](../cli.md), [Rule book](../../CLAUDE.md).
 
 ## In one screen
@@ -31,15 +31,12 @@ matter:
 
 ## Getting the code running
 
-This build runs beside the released `agent-progress` under its own names
-([Reading names](../glossary.md#reading-names)). It lives on its own branch and never merges into `main`, so a plain
-clone checks out the released program, a different codebase. You need Bun and git. Clone, switch to the branch and run
-the setup script:
+forge runs beside the released `agent-progress` under its own names
+([Reading names](../glossary.md#reading-names)). You need Bun and git. Clone and run the setup script:
 
 ```sh
-git clone <this repository> agent-progress
-cd agent-progress
-git switch group-code-lifecycle
+git clone git@github.com:AlexDM0/forge.git
+cd forge
 ./setup.sh
 ```
 
@@ -61,7 +58,7 @@ Setup touches nothing in any tracked repository: adopting one is `forge init`'s 
 `cli/SetupScript.integration.spec.ts` hold that.
 
 > **Careful.** `bun link` repoints the machine-wide `forge` at the checkout you run it from. Run the
-> setup from a long-lived checkout of this branch, not from a [ticket](../glossary.md#ticket)
+> setup from a long-lived checkout of `main`, not from a [ticket](../glossary.md#ticket)
 > [worktree](../glossary.md#worktree) that a merge removes later.
 
 **Running from source.** The linked command runs this checkout's `agent-progress.ts`. Without the link, run the entry
@@ -126,7 +123,7 @@ Six lines are easy to get wrong:
 | `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
 | `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
 | `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
-| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. See [Failure and recovery](../architecture/failure-and-recovery.md). |
+| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. |
 | `oversee --port 0 --detach` | Port 0 asks for any free port; `open` with no live Overseer would start one on the derived port. |
 
 The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
@@ -169,7 +166,7 @@ rm -rf "$SCRATCH"
 
 `--now` also stops process Watchers (gates, installs). Session Watchers and their agents keep running, so `pkill` ends
 them; its pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached
-processes. [Baton](../architecture/baton.md) has the full stop matrix.
+processes. Baton has the full stop matrix.
 
 ### Why only the `FORGE_` variables work
 
@@ -225,7 +222,7 @@ A spec that needs a tool the machine lacks, such as Chrome, skips and is counted
 | `.githooks/pre-commit` | `bun run lint`, then `bun run typecheck` | Every `git commit` | Yes | No tests, so a commit stays quick when several agents commit at once. A clone without `setup.sh` has no hook. |
 
 An agent can write hooks, so a passing hook proves nothing about an agent's commit. The verdict comes from Customs, the
-gates and the [Airlock](../glossary.md#airlock): see [Confinement](../architecture/confinement.md).
+gates and the [Airlock](../glossary.md#airlock): see Confinement.
 
 When a guard fails and you do not know why, open the spec: its header says what it holds, and
 [Guards and testing](guards-and-testing.md) says how to fix each one.
@@ -233,7 +230,7 @@ When a guard fails and you do not know why, open the spec: its header says what 
 ## Where does my change go
 
 **Find your change below. A green run proves only the part in Held by; Also touch is yours to do.** The rules behind
-each row are in the [rule book](../../CLAUDE.md), and the layers in the [Code map](../architecture/code-map.md).
+each row are in the [rule book](../../CLAUDE.md).
 
 ![A grid of eleven kinds of change against eight parts of the repository, columns in import order. Seven rows have one filled dot in one code layer and at most one document, forming a staircase from src/lib to bridge. Word a refusal, change an installed file and add a board change reach two or three parts, and a rename fills its whole row.](../figures/contributing/where-does-my-change-go.png)
 
@@ -249,8 +246,8 @@ row.*
 | Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
 | Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
 | Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
-| Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md`; [Storage](../data-model/storage.md) | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
-| Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | [Deciders and bounds](../reference/deciders-and-bounds.md) | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
+| Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
+| Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
 | Change what an installed file names | `resources/templates/`, `resources/prompts/` or `skills/` | Bump the [install version](../glossary.md#install-version), `INSTALL_VERSION` in `cli/constants/InstallVersion.ts`, by hand, in the same commit | `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json` |
 | Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `src/ImportDirection.spec.ts` |
 | Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
@@ -276,7 +273,7 @@ bun agent-progress.ts open
 ```
 
 > **As built.** `oversee restart` does not build the Bridge before it hands over. See
-> [the gap](../reference/known-gaps.md#gap-baton-pass-builds-no-bridge).
+> the gap.
 
 `oversee status` prints the hash of the code on disk and of the code in memory. Two different hashes mean the Overseer
 runs older code than your checkout: restart it. See [code version](../glossary.md#code-version).
@@ -292,8 +289,8 @@ Chrome. `--no-copy` keeps the result in `.readme-graphics/build/images/` and lea
 .readme-graphics/regenerate.sh --no-copy
 ```
 
-**Retake the README screenshots after a visual change reaches the branch.** Run `.readme-graphics/regenerate.sh` in the
-long-lived checkout of this branch, look at the images, then commit them. The Overseer runs on the real clock and its
+**Retake the README screenshots after a visual change reaches `main`.** Run `.readme-graphics/regenerate.sh` in the
+long-lived checkout of `main`, look at the images, then commit them. The Overseer runs on the real clock and its
 fake agents race it, so jobs and times differ between runs.
 [The folder's own README](../../.readme-graphics/README.md) has the details.
 
@@ -303,17 +300,10 @@ fake agents race it, so jobs and times differ between runs.
 document and the question it answers. [CLI reference](../cli.md) rows and three of its sections are held by specs; read
 [Guards and testing](guards-and-testing.md) before you restructure it.
 
-**Add a figure** as an SVG with its PNG beside it, in `docs/figures/<doc-slug>/`, a folder named after the document,
-such as `contributing`. The renderer is the owner's `diagrams` skill for Claude Code. It is not in this repository and
-it needs macOS. With it, start from its `assets/template.svg`, render, then open the PNG and look at it:
+**A figure** is a rendered PNG in `docs/figures/<doc-slug>/`, a folder named after the document, such as
+`contributing`. `docs/figures/` holds rendered PNGs only; no SVG source is kept.
 
-```sh
-python3 ~/.claude/skills/diagrams/scripts/render.py docs/figures/<doc-slug>/<figure-name>.svg
-```
-
-Without it, commit the SVG and ask the owner to render it.
-
-Embed the PNG, never the SVG, followed by one italic line saying what to notice. The alt text states the content and
+Embed the PNG, followed by one italic line saying what to notice. The alt text states the content and
 the conclusion. A figure teaches one idea, and its card title states that idea. Colour means who, across every figure:
 
 | Colour | Means |
@@ -341,7 +331,7 @@ awk '/^```/{fence=!fence} !fence && length > 120 && !/^\|/ && !/^!\[/' <file>.md
 ```
 
 **Never write a retired component name.** `src/ComponentNames.spec.ts` matches `RETIRED_NAMES` by substring over every
-tracked file, `.svg` and `.html` included, so it fails on a hyphenated word in a figure's `<desc>` too. It reads
+tracked file, `.svg` and `.html` included. It reads
 `git ls-files`, so an unstaged new file passes until it is added. Run it after `git add`:
 
 ```sh

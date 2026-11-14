@@ -1,17 +1,21 @@
 /**
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
- * waiting for merge links to its detail panel, which holds Accept and Update branch.
+ * waiting for merge links to its detail panel, which holds Accept and Update branch. It is the merge-queue habitat of Flint.
  */
 import { Card }       from 'design-system/Card';
 import { EmptyState } from 'design-system/EmptyState';
 import { IdLink }     from 'design-system/IdLink';
 import { StateBadge } from 'design-system/StateBadge';
+import { useRef }     from 'react';
 
 import { PriorityMark }                               from '../../chips/TicketMarks.tsx';
+import { useHabitatCues }                             from '../../flint/UseHabitatHappenings.ts';
 import { DetailRoute }                                from '../../shell/DetailRoute.ts';
 import { HashRouter }                                 from '../../shell/HashRouter.ts';
 import { StateToneUtil }                              from '../../utils/StateToneUtil.ts';
 import type { MergeQueueTarget, WaitingForMergeLine } from './MergeQueueModel.ts';
+import { MERGE_QUEUE_SPRITE_HABITAT }                 from './MergeQueueSpriteHabitat.ts';
+import { MergeQueueSpriteModel }                      from './MergeQueueSpriteModel.ts';
 
 const NOTHING_QUEUED_TEXT = 'Nothing is queued to merge.';
 
@@ -33,8 +37,10 @@ function ForecastParts({ line }: { readonly line: WaitingForMergeLine }) {
 }
 
 export function MergeQueueView({ targets, orderText }: MergeQueueViewProps) {
+  const viewElement = useRef<HTMLElement>(null);
+  useHabitatCues(viewElement, MERGE_QUEUE_SPRITE_HABITAT, targets, MergeQueueSpriteModel.cuesBetween);
   return (
-    <section className="bridge-merge-queue" aria-label="Merge queue">
+    <section className="bridge-merge-queue" aria-label="Merge queue" ref={viewElement} data-flint-workplace="">
       <p className="bridge-merge-order">{orderText}</p>
       {targets.length === 0 ? <Card padding="none"><EmptyState text={NOTHING_QUEUED_TEXT} /></Card> : null}
       {targets.map((target) => (

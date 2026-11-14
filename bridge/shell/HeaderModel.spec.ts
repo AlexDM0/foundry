@@ -2,13 +2,13 @@
  * The header's model. What matters: the state pill reads Running, orange, only while serving unpaused with the stream up, and otherwise
  * the state the Bridge knows on the quiet pill; Restart is offered only with new code on disk and never during a Baton pass, which also
  * withdraws Pause and Stop; the new-code notice points at `update`; a failed Baton pass with its step and error and an Assistant that
- * cannot come up are warnings, kept apart from the other notices, and an incident default is neither (the incident line holds it); any
- * notice also reads as one sentence; the statistics read concurrency and today's work, and say which tab and which Kanban lane they open;
- * the agents figure counts the jobs holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the
- * embedded summary line counts building and reviewing from the same slot jobs as the activity strip, so the line, the figure and the
- * strip agree. The status details are the usage windows the facts carry and never a placeholder or the confinement; while the board has
- * no readable pipeline the header is in setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps
- * linking to their route) and no usage, and a board that says nothing of a pipeline is never in setup.
+ * cannot come up are warnings, kept apart from the other notices, and an incident default is neither (the incident line holds it); the
+ * statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
+ * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building
+ * and reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree. The status details are the
+ * usage windows the facts carry and never a placeholder or the confinement; while the board has no readable pipeline the header is in
+ * setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps linking to their route) and no usage,
+ * and a board that says nothing of a pipeline is never in setup.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,9 +21,7 @@ import {
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
 import { pipelineBoardStateOf } from '../testing/PipelineFixture.ts';
-import { HeaderModelUtil }      from './HeaderModel.ts';
-
-const { headerModelOf } = HeaderModelUtil;
+import { headerModelOf }        from './HeaderModel.ts';
 
 describe('the Overseer state and its controls', () => {
   test('serving offers Pause and Stop, and no Restart without new code', () => {
@@ -169,18 +167,6 @@ describe('the warnings and notices', () => {
   test('a Watcher endpoint that does not fit names its job and the endpoint, never only its kind', () => {
     const model = headerModelOf(boardStateFixture({ notices: [{ kind: 'watcher-endpoint-does-not-fit', jobId: 'J7', endpoint: '/long/watchers/a.sock' }], }), FIXTURE_NOW, 'live');
     expect(model.notices).toEqual(['job J7 is not launched: this platform cannot bind the Watcher endpoint /long/watchers/a.sock']);
-  });
-
-  test('any notice reads as one sentence: an incident default as its warning, every other kind as its notice line', () => {
-    expect([
-      {
-        kind: 'incident-defaulted', incidentId: 'I3', move: 'merge-abort', cause: 'turn-closed'
-      },
-      { kind: 'rounds-not-converging', ticketId: '42' },
-    ].map(HeaderModelUtil.noticeSentenceOf)).toEqual([
-      'incident I3 took its default, merge-abort: its delivery turn closed',
-      'ticket #42\'s review rounds are not converging',
-    ]);
   });
 });
 

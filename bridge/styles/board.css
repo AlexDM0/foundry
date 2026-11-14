@@ -25,7 +25,8 @@
  *                           .bridge-filter: .bridge-filter-line opening a Popover); embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar
  *                           show, and the .bridge-stale-notice banner while the stream is down; in setup, while the board has no
  *                           readable pipeline, the title row is the brand, the title, the Setting up pill and the theme button, over
- *                           the .bridge-setup-step-bar holding the compact Stepper
+ *                           the .bridge-setup-step-bar holding the compact Stepper; framed by Gaia
+ *                           ([data-embedded="gaia"]) only the tab bar shows
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-pipeline[data-screen] the Pipeline view (bridge/views/pipeline/): its .bridge-pipeline-title over the screen that the
  *                           facts and the route pick
@@ -151,6 +152,10 @@
  *                           .bridge-composer-key-hints of .bridge-key-hint kbd hints), the .bridge-composer-entry row (the
  *                           .bridge-composer-input text box and the .bridge-send-button), the caller's .bridge-composer-foot
  *   .bridge-path            a repository path an option touches, a mono chip in the option's facts
+ * Flint (bridge/flint/), the sprite of the agents, drawn by `flint/` in its own overlay
+ *   .bridge-flint-home      Flint's home corner: a fixed box at the bottom right whose bottom edge Flint stands on; it takes no
+ *                           pointer input
+ *   [data-sprite-habitat][data-sprite-drop-target]  the habitat below a Flint that User carries, outlined as the drop target
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          its title row, then .bridge-kanban-frame[data-overflow?] (its edge fades), holding .bridge-kanban-lanes[data-panel-room?]
  *                           and, while a card is hovered, svg.bridge-kanban-arrows[data-still?] of its arrows; the filter menu's
@@ -216,7 +221,9 @@
  *                           Custom… opens .bridge-range-popover) beside the row options Menu, then
  *                           .bridge-progress-chart[data-panel-room?], the card and its scroller: the sticky
  *                           .bridge-progress-chart-head row (in its pinned cell the .bridge-progress-column-name[data-column] heads;
- *                           on its track the .bridge-progress-tick lines and labels, [data-covered] hidden) over .bridge-progress-rows
+ *                           on its track the .bridge-progress-tick lines and labels, [data-covered] hidden) over .bridge-progress-rows;
+ *                           under the card the .bridge-progress-board-controls row (Save as the board's range, Clear… and its
+ *                           confirmation)
  *   .bridge-progress-row[data-state][data-live?][data-selected?][data-changed?]  .bridge-progress-number, the name and
  *                           .bridge-progress-chip in the pinned cell, and a .bridge-progress-track of
  *                           .bridge-progress-bar[data-state][data-bar-kind] stretches placed by style; [data-changed] once its
@@ -562,6 +569,10 @@ html[data-embedded="dashboard"] .bridge-stale-notice {
   width: max-content; max-width: calc(100vw - 40px); transform: translate(-50%, -50%); pointer-events: none;
   background: var(--surface); border-radius: var(--r-2); box-shadow: 0 10px 28px var(--shadow-popover);
 }
+/* Framed by Gaia, which draws the board's name, state, controls and theme above the frame, so the tab bar is the first row. */
+html[data-embedded="gaia"] body { padding: 18px 20px 24px; }
+html[data-embedded="gaia"] .bridge-head-title-row { display: none; }
+html[data-embedded="gaia"] .bridge-activity { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 a.bridge-stat, a.bridge-activity-job, .bridge-kanban-size { transition: var(--feedback-transition); }
@@ -1300,6 +1311,8 @@ body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
   transition: --col-name var(--motion-base) var(--ease-out);
 }
 .bridge-progress-view[data-name-column="wide"] { --col-name: var(--col-name-wide); }
+/* Under the chart card: the range shown saved as the board's, and Clear… with its confirmation. */
+.bridge-progress-board-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding-top: var(--sp-3); }
 
 .bridge-progress-chart {
   flex: 1; min-height: 320px;
@@ -2714,3 +2727,7 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-apply-pending-text { font-weight: 600; }
 .bridge-pipeline-apply-pending-next { margin: 0; }
 .bridge-pipeline-apply-pending-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* Flint's home corner and the drop target of a carried Flint; Flint draws itself, and only its body takes pointer input. */
+.bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 56px; pointer-events: none; }
+[data-sprite-habitat][data-sprite-drop-target] { outline: 2px dashed var(--flint-body); outline-offset: 2px; }

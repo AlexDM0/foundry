@@ -21,7 +21,7 @@ describe('the recorded Overseer fetch', () => {
     for (const path of ['/api/session-token', '/api/state']) {
       const response = await overseer.fetch(path, { credentials: 'same-origin' });
       expect(response.status).toBe(401);
-      expect(await response.json()).toEqual({ refusal: 'unauthorized' });
+      expect(await response.json()).toMatchObject({ refusal: 'unauthorized', text: expect.any(String) });
     }
     expect(overseer.requests.map((request) => request.callShape)).toEqual([
       OVERSEER_CALL_SHAPES.SESSION_TOKEN_NO_SESSION, OVERSEER_CALL_SHAPES.STATE_NO_SESSION,

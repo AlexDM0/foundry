@@ -100,6 +100,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'overseer-stop':             { kind: 'overseer-stop', now: true },
   'overseer-restart':          { kind: 'overseer-restart', now: false },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
+  'machine-agent-limit-set':   { kind: 'machine-agent-limit-set', limit: 2 },
   'pipeline-prepare-step-set': { kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install' } },
   'pipeline-gate-add':         { kind: 'pipeline-gate-add', gate: { name: 'test', run: 'bun test', definedBy: ['bunfig.toml'] } },
   'pipeline-gate-order':       { kind: 'pipeline-gate-order', phase: 'merge', names: ['test'] },
@@ -178,6 +179,16 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   },
   'pipeline-step-ready': {
     kind: 'pipeline-step-ready', jobId: 'J4', setupId: 'S1', step: 'research'
+  },
+  'chart-range-set': {
+    kind:  'chart-range-set',
+    range: {
+      kind: 'window', from: '-2h', to: 'now', tickMinutes: 15
+    }
+  },
+  'tracker-clear':          { kind: 'tracker-clear', scope: 'tasks-and-log' },
+  'ticket-deliver-by-hand': {
+    kind: 'ticket-deliver-by-hand', ticketReference: '1', branch: 'ticket-001', commit: 'abc1234'
   },
 };
 

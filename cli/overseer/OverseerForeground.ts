@@ -23,6 +23,7 @@ import { readingBoardOf }                                 from '../../src/lib/tr
 import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
 import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
+import { AgentSlots }                                     from '../../src/services/overseer/AgentSlots.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import {
   type BatonPassFailure,
@@ -39,7 +40,10 @@ import { createDrivePass, type DrivePass }                          from '../../
 import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
 import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
 import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { MachineAgentLimit }                                        from '../../src/services/overseer/MachineAgentLimit.ts';
 import { MainLineReads }                                            from '../../src/services/overseer/MainLineReads.ts';
+import { MonitorSnapshotAssembly, type MonitorOverseerFacts }       from '../../src/services/overseer/MonitorSnapshotAssembly.ts';
+import { MonitorStream }                                            from '../../src/services/overseer/MonitorStream.ts';
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
@@ -145,6 +149,7 @@ async function registerOverseer(request: StoppedOverseerRequest, overseer: Monit
     monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
     temporaryDirectories: context.temporaryDirectories,
     command:              context.commandVerb,
+    program:              context.programPath,
     now:                  context.now,
     lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
     ...(overseer === undefined ? {} : { overseer }),
@@ -345,9 +350,15 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const mainLine    = mainLineOf(workspace.rootDirectory);
   const mergeForecastCache = createMergeForecastCache();
   const mainLineReads = new MainLineReads(workspace.rootDirectory);
+  // Shown in the monitor snapshot only; until the program on disk answered, the code in memory stands in for it.
+  let codeVersionOnDisk = codeVersion;
   const installWatch = createInstallChangeWatch({
-    inMemory:        { codeVersion, installVersion: INSTALL_VERSION },
-    versionsOnDisk:  () => versionsFromTheBinary(context.programCommand, workspace.rootDirectory),
+    inMemory:       { codeVersion, installVersion: INSTALL_VERSION },
+    versionsOnDisk: async () => {
+      const versions = await versionsFromTheBinary(context.programCommand, workspace.rootDirectory);
+      codeVersionOnDisk = versions?.codeVersion ?? codeVersionOnDisk;
+      return versions;
+    },
     manifestMatches: () => manifestMatchesIn(workspace.rootDirectory),
     landingMark:     () => tipOf(workspace.rootDirectory, mainLine),
     // Forced: an answer moves no fingerprint the pass compares.
@@ -383,7 +394,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     let drivePass: DrivePass | null = null;
     enterStep('bind-port');
     let broker: EventBroker | null = null;
+    let monitorStream: MonitorStream | null = null;
     let servedUrl: string | null = null;
+    let servedGeneration: number | null = null;
+    let startedAt: string | null = null;
     let started = false;
     const overseerFactsNow = () => {
       const state = overseerState();
@@ -395,6 +409,27 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         installVersion:   INSTALL_VERSION,
         batonPassWarning: state?.batonPassWarning ?? null,
       } as const;
+    };
+    const monitorFolderOfTheMachine = context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
+    const monitorFactsNow = (): MonitorOverseerFacts | null => {
+      if (servedUrl === null || servedGeneration === null || startedAt === null) return null;
+      return {
+        trackerId:      progress.trackerId,
+        root:           workspace.rootDirectory,
+        state:          overseerFactsNow().state,
+        url:            servedUrl,
+        processId:      process.pid,
+        startedAt,
+        generation:     servedGeneration,
+        codeVersion,
+        codeVersionOnDisk,
+        installVersion: INSTALL_VERSION,
+        machine:        {
+          limit:                        MachineAgentLimit.readingIn(monitorFolderOfTheMachine, MachineAgentLimit.cpuCeiling()).limit,
+          agentsInFlight:               AgentSlots.liveHoldingCountIn(context.platformPorts, monitorFolderOfTheMachine),
+          ticketsWaitingForMachineSlot: current?.drivePass.state().ticketsWaitingForMachineSlot ?? 0,
+        },
+      };
     };
     const server = OverseerServer.start({
       portChoice,
@@ -409,6 +444,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         token:            () => token,
         started:          () => started,
         broker:           () => broker,
+        monitorStream:    () => monitorStream,
+        monitorFacts:     monitorFactsNow,
         wake:             () => drivePass?.wake(),
         launchesHeld:     () => overseerState()?.runtimeState === 'held-by-install-change',
         notices:          () => overseerState()?.notices ?? [],
@@ -458,9 +495,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     }
     const { generation } = acquisition;
     const ownBroker = EventBroker.createEventBroker(generation);
+    const ownMonitorStream = MonitorStream.createMonitorStream();
     const publishState = () => {
       try {
-        ownBroker.publishState(readBoardState({
+        const read = readBoardState({
           context,
           workspace,
           notices:        () => overseerState()?.notices ?? [],
@@ -469,13 +507,20 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
           mainLine,
           mergeForecastCache,
           mainLineReads,
-        }).state);
+        });
+        ownBroker.publishState(read.state);
+        const monitorFacts = monitorFactsNow();
+        if (monitorFacts !== null) ownMonitorStream.publish(MonitorSnapshotAssembly.monitorSnapshotOf({ ...read, overseer: monitorFacts, now: context.now() }));
       } catch (thrown) {
         log(`The board state could not be read for the event stream: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
       }
     };
-    broker    = ownBroker;
-    servedUrl = server.url;
+    broker           = ownBroker;
+    monitorStream    = ownMonitorStream;
+    servedUrl        = server.url;
+    servedGeneration = generation;
+    startedAt        = LocalTimeUtil.formatLocalIso(context.now());
+    const servingStartedAt = startedAt;
     let watcher: DataFolderWatch | null = null;
     try {
       token    = writeToken(platformPorts, tokenFilePath);
@@ -546,7 +591,9 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       // The identity, the registry, the page stub and the print give out the URL only once the synchronous start is done: a recursive
       // watch can block the event loop for many seconds on a loaded macOS, and a client that had the URL earlier waited that long.
       started = true;
-      await registerOverseer(request, { url: server.url, processId: process.pid, startedAt: LocalTimeUtil.formatLocalIso(context.now()) });
+      await registerOverseer(request, {
+        url: server.url, processId: process.pid, startedAt: servingStartedAt, tokenPath: tokenFilePath
+      });
       createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
       printedTheUrl = true;

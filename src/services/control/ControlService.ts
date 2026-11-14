@@ -6,6 +6,7 @@ import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../..
 import type { ControlContext }                                       from '../../shared/@types/ControlContext.ts';
 import type { TrackerChange }                                        from '../tracker/TrackerPipeline.ts';
 import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
+import { BOARD_LIFETIME_CONTROLS }                                   from './BoardLifetimeControls.ts';
 import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
 import { FILING_CONTROLS }                                           from './FilingControls.ts';
 import { GATE_PROFILE_CONTROLS }                                     from './GateProfileControls.ts';
@@ -31,6 +32,7 @@ const CONTROL_APPLIERS = {
   ...PIPELINE_SETUP_CONTROLS,
   ...GATE_PROFILE_CONTROLS,
   ...PIPELINE_AGENT_CONTROLS,
+  ...BOARD_LIFETIME_CONTROLS,
 } as const satisfies {
   [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange, context: ControlContext) => unknown
 };

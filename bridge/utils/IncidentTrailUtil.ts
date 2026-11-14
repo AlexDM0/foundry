@@ -4,6 +4,7 @@
  * why a default applied. A step carries the job or decision it names as an id, so a view links it instead of reading it out of text.
  */
 import type { DisplayState }                                                          from '../../src/lib/tracker-model/@types/Task.ts';
+import { NoticeWordingUtil }                                                          from '../../src/shared/monitor/utils/NoticeWordingUtil.ts';
 import type { HistoryRecordDocument, IncidentDeliveryTurnDocument, IncidentDocument } from '../@types/ConversationDocuments.ts';
 
 export type IncidentSettlement = 'open' | 'handled' | 'escalated' | 'defaulted';
@@ -69,22 +70,11 @@ const STEP_FORM_OF_RECORD_KIND: Readonly<Record<string, IncidentStepForm>> = {
   'incident-noted':     'noted',
 };
 
-const DEFAULT_CAUSE_TEXT: Readonly<Record<string, string>> = {
-  'turn-closed':  'its delivery turn closed',
-  'turn-budget':  'the turn budget ran out',
-  'no-assistant': 'no Assistant was up',
-};
-
 const INCIDENT_OPENED = 'incident-opened';
 
 function textField(record: HistoryRecordDocument, name: string): string {
   const value = record.fields[name];
   return typeof value === 'string' ? value : '';
-}
-
-/** Why an incident took its default, `its delivery turn closed`; a cause the Bridge does not know reads as itself. */
-function defaultCauseTextOf(cause: string): string {
-  return Object.hasOwn(DEFAULT_CAUSE_TEXT, cause) ? DEFAULT_CAUSE_TEXT[cause] ?? cause : cause;
 }
 
 function recordedStepOf(record: HistoryRecordDocument): IncidentStep | null {
@@ -102,7 +92,7 @@ function recordedStepOf(record: HistoryRecordDocument): IncidentStep | null {
       };
     }
     case 'defaulted':
-      return { at: record.at, form, text: `default applied: ${textField(record, 'move')}, as ${defaultCauseTextOf(textField(record, 'cause'))}` };
+      return { at: record.at, form, text: `default applied: ${textField(record, 'move')}, as ${NoticeWordingUtil.defaultCauseTextOf(textField(record, 'cause'))}` };
     default:
       return { at: record.at, form, text: `note: ${textField(record, 'text')}` };
   }
@@ -190,6 +180,4 @@ function incidentPillOf(incident: Pick<IncidentEntry, 'settlement' | 'delivered'
   return { state: DISPLAY_STATE_OF_SETTLEMENT[incident.settlement], label: incident.settlement };
 }
 
-export const IncidentTrailUtil = Object.freeze({
-  openIncidentEntriesOf, settledIncidentEntriesOf, incidentPillOf, defaultCauseTextOf
-});
+export const IncidentTrailUtil = Object.freeze({ openIncidentEntriesOf, settledIncidentEntriesOf, incidentPillOf });

@@ -1,6 +1,6 @@
 /**
  * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, never `.test.ts` or `.spec.tsx`, a DOM suite a `.dom.tsx` under
- * `bridge/` or `design-system/` alone, and no spec or test helper creates the real
+ * `bridge/`, `design-system/` or `flint/` alone, and no spec or test helper creates the real
  * process context, whose working directory, clock and home are the live ones. The context is found by its factory's name as an identifier
  * in the syntax tree, so a sentence naming it is not a use. The scan first proves it saw the specs and the factory's real callers, and
  * each form is planted to prove the guard names it.
@@ -16,7 +16,7 @@ const PROCESS_CONTEXT_FACTORY = 'createProcessContext';
 const RETIRED_TEST_SUFFIX = '.test.ts';
 const UNRUN_COMPONENT_SPEC_SUFFIX = '.spec.tsx';
 const DOM_SPEC_SUFFIX = '.dom.tsx';
-const DOM_SPEC_FOLDERS = ['bridge/', 'design-system/'];
+const DOM_SPEC_FOLDERS = ['bridge/', 'design-system/', 'flint/'];
 const MINIMUM_SPEC_FILE_COUNT = 100;
 
 function isTestCode(path: string): boolean {
@@ -29,6 +29,9 @@ function namesTheProcessContextFactoryIn(sourceFile: ts.SourceFile): boolean {
 }
 
 const OVERSEER_START_WORD     = 'oversee';
+/** `start` starts the Overseer detached; as a word it is common, so only an argument list a command line runner is given counts. */
+const START_VERB_WORD         = 'start';
+const COMMAND_LINE_RUNNERS    = new Set(['runAgentProgress', 'startAgentProgress', 'runCommandLine', 'runAgentProgressBesideRecordedGit']);
 const OVERSEER_SUBCOMMANDS    = new Set(['stop', 'restart', 'pause', 'resume', 'status']);
 const ANY_FREE_PORT_OPTION  = ['--port', '0'];
 
@@ -36,10 +39,15 @@ function stringElementOf(element: ts.Expression | undefined): string | null {
   return element !== undefined && ts.isStringLiteralLike(element) ? element.text : null;
 }
 
-/** An argument list that starts an Overseer, `['oversee', …]` with no subcommand, binds `--port 0`, so no spec takes a board's real port. */
+/**
+ * An argument list that starts an Overseer, `['oversee', …]` with no subcommand or `['start', …]`, binds `--port 0`, so no spec takes a board's
+ * real port.
+ */
 function startsAnOverseerOnAFixedPort(array: ts.ArrayLiteralExpression): boolean {
   const elements = [...array.elements];
-  if (stringElementOf(elements[0]) !== OVERSEER_START_WORD) return false;
+  const startWord = stringElementOf(elements[0]);
+  const givenToARunner = ts.isCallExpression(array.parent) && ts.isIdentifier(array.parent.expression) && COMMAND_LINE_RUNNERS.has(array.parent.expression.text);
+  if (startWord !== OVERSEER_START_WORD && !(startWord === START_VERB_WORD && givenToARunner)) return false;
   if (OVERSEER_SUBCOMMANDS.has(stringElementOf(elements[1]) ?? '')) return false;
   return !elements.some((element, index) => stringElementOf(element) === ANY_FREE_PORT_OPTION[0] && stringElementOf(elements[index + 1]) === ANY_FREE_PORT_OPTION[1]);
 }
@@ -61,9 +69,10 @@ interface SyntaxFacts {
 
 const NO_SYNTAX_FACTS: SyntaxFacts = { namesTheProcessContextFactory: false, overseerStartsOnAFixedPort: 0 };
 
-/** Both forms spell out a word, the factory's name or the start word, so a source holding neither needs no syntax tree. */
+/** Both forms spell out a word, the factory's name or a start word, so a source holding none needs no syntax tree. */
 const syntaxFactsOf = memoisedPerSource((source): SyntaxFacts => {
-  if (!source.text.includes(PROCESS_CONTEXT_FACTORY) && !source.text.includes(OVERSEER_START_WORD)) return NO_SYNTAX_FACTS;
+  const namesAStartWord = source.text.includes(OVERSEER_START_WORD) || source.text.includes(START_VERB_WORD);
+  if (!source.text.includes(PROCESS_CONTEXT_FACTORY) && !namesAStartWord) return NO_SYNTAX_FACTS;
   const sourceFile = ts.createSourceFile(source.path, source.text, ts.ScriptTarget.Latest, true);
   return { namesTheProcessContextFactory: namesTheProcessContextFactoryIn(sourceFile), overseerStartsOnAFixedPort: overseerStartsOnAFixedPortIn(sourceFile) };
 });
@@ -94,10 +103,11 @@ describe('suites are spec files that never create the real process context', () 
     expect(SOURCES.filter(namesTheProcessContextFactory).map((source) => source.path)).toEqual(['agent-progress.ts', 'cli/CommandContext.ts']);
   });
 
-  test('the scan sees the DOM specs of the Bridge and of the design-system package', () => {
+  test('the scan sees the DOM specs of the Bridge, of the design-system package and of the Flint package', () => {
     const domSpecPaths = SOURCES.filter((source) => source.path.endsWith(DOM_SPEC_SUFFIX)).map((source) => source.path);
     expect(domSpecPaths).toContain('bridge/shell/BridgeApp.dom.tsx');
     expect(domSpecPaths).toContain('design-system/atoms/Button.dom.tsx');
+    expect(domSpecPaths).toContain('flint/SpriteRenderer.dom.tsx');
   });
 
   test('no file in the tree breaks either rule', () => {
@@ -109,7 +119,7 @@ describe('suites are spec files that never create the real process context', () 
   test.each([
     ['a `.test.ts` suite', { path: 'cli/Example.test.ts', text: 'export {};\n' }],
     ['a `.spec.tsx` suite', { path: 'bridge/shell/Example.spec.tsx', text: 'export {};\n' }],
-    ['a DOM spec outside bridge/ and design-system/', { path: 'cli/Example.dom.tsx', text: 'export {};\n' }],
+    ['a DOM spec outside bridge/, design-system/ and flint/', { path: 'cli/Example.dom.tsx', text: 'export {};\n' }],
     ['a spec creating the context', { path: 'cli/Example.spec.ts', text: importingTheFactory }],
     ['a test helper creating the context', { path: 'cli/testing/ExampleHelper.ts', text: importingTheFactory }],
   ])('a planted %s is named', (_form, plantedSource) => {
@@ -125,14 +135,16 @@ describe('suites are spec files that never create the real process context', () 
     ['a bare start', 'runAgentProgress([\'oversee\'], options);'],
     ['a detached start', 'runAgentProgress([\'oversee\', \'--detach\'], options);'],
     ['a start on a board\'s own port', 'startAgentProgress([\'oversee\', \'--port\', \'4930\'], options);'],
+    ['a start verb with no port', 'runAgentProgress([\'start\', \'--json\'], options);'],
   ])('a spec planting %s is named', (_form, plantedLine) => {
     expect(testFileViolationsOf([{ path: 'cli/Example.spec.ts', text: plantedLine }])).toEqual(['cli/Example.spec.ts starts an Overseer without --port 0']);
   });
 
-  test('an Overseer on --port 0, an oversee subcommand, and a shipping module starting an Overseer pass', () => {
+  test('an Overseer on --port 0, an oversee subcommand, a shipping module starting an Overseer and a start word given to no runner pass', () => {
     expect(testFileViolationsOf([
       { path: 'cli/Example.spec.ts', text: 'startAgentProgress([\'oversee\', \'--detach\', \'--port\', \'0\'], options);\nrunAgentProgress([\'oversee\', \'stop\'], options);\n' },
       { path: 'cli/Shipping.ts', text: 'spawn([\'oversee\']);\n' },
+      { path: 'bridge/Example.spec.ts', text: 'const bounds = [[\'start\', \'now\']];\n' },
     ])).toEqual([]);
   });
 

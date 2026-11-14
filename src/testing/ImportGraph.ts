@@ -1,5 +1,5 @@
 /**
- * Every import edge of the repository's TypeScript, over the files the root, Bridge and design-system programs compile, read
+ * Every import edge of the repository's TypeScript, over the files the root, Bridge, design-system and Flint programs compile, read
  * syntactically with the compiler API so no type checking is paid for. A specifier naming a workspace package of the root `package.json`
  * resolves through that package's `exports`, as Bun and TypeScript resolve it. Planted sources add or replace files in memory, so a guard
  * can prove it still fires. The tree is read once per run and shared frozen: `bun test` runs every spec file in one process.
@@ -44,7 +44,7 @@ export interface ImportGraph {
 }
 
 /** Each spec project holds its shipping project plus the specs, so these together name every file the type check compiles. */
-const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json', 'design-system/tsconfig.spec.json'];
+const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json', 'design-system/tsconfig.spec.json', 'flint/tsconfig.spec.json'];
 
 function repositoryPathOf(repositoryRoot: string, absolutePath: string): string {
   return relative(repositoryRoot, absolutePath).split('\\').join('/');

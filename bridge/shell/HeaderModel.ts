@@ -1,28 +1,22 @@
 /**
  * The header's model, pure: the status line (its label from the Overseer's state and the event stream, its mono details), which of
  * Pause, Resume and Restart the Overseer offers, the new-code notice, the header statistics, the activity strip's facts, the open notices
- * and the warnings (owner answer Q34): a failed Baton pass with its step and error, and an Assistant that cannot come up. The incident
- * defaults are the incident line's (`IncidentNoticeModel.ts`), one line however many. Warnings are derived from the notices and the
- * Overseer's facts, never stored. While the board has no readable pipeline the header is in setup: its state pill reads Setting up, and it
- * holds the setup steps with the record's statuses, and no usage.
+ * and the warnings, both worded by `NoticeWordingUtil` as the monitor snapshot words them. The incident defaults are the incident line's
+ * (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline the header is in setup: its state pill
+ * reads Setting up, and it holds the setup steps with the record's statuses, and no usage.
  */
 import type { StepperStep } from 'design-system/Stepper';
 
-import { TokenCountUtil }     from '../../src/lib/token-count/TokenCountUtil.ts';
-import type { PipelineSetup } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { PRODUCT_NAMES }      from '../../src/shared/constants/ProductNames.ts';
-import type {
-  BoardStateDocument,
-  NoticeDocument,
-  OverseerFactsDocument,
-  UsageDocument
-} from '../@types/BoardStateDocument.ts';
-import type { ConnectionState }                                       from '../api/EventStreamClient.ts';
-import { IncidentTrailUtil }                                          from '../utils/IncidentTrailUtil.ts';
-import { TimeUtil }                                                   from '../utils/TimeUtil.ts';
-import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../views/pipeline/PipelineViewModel.ts';
-import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }   from './ActivityStripModel.ts';
-import type { BridgeTab }                                             from './HashRouter.ts';
+import { TokenCountUtil }                                                from '../../src/lib/token-count/TokenCountUtil.ts';
+import type { PipelineSetup }                                            from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { todayFiguresOf }                                                from '../../src/shared/monitor/TodayFigures.ts';
+import { NoticeWordingUtil }                                             from '../../src/shared/monitor/utils/NoticeWordingUtil.ts';
+import type { BoardStateDocument, OverseerFactsDocument, UsageDocument } from '../@types/BoardStateDocument.ts';
+import type { ConnectionState }                                          from '../api/EventStreamClient.ts';
+import { TimeUtil }                                                      from '../utils/TimeUtil.ts';
+import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS }    from '../views/pipeline/PipelineViewModel.ts';
+import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }      from './ActivityStripModel.ts';
+import type { BridgeTab }                                                from './HashRouter.ts';
 
 export type PauseControl = 'pause' | 'resume' | null;
 
@@ -99,69 +93,13 @@ const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<OverseerFactsDocume
   'down':                   'down',
 };
 
-const NO_ASSISTANT_CAUSE = 'no-assistant';
-
 const INCIDENT_DEFAULTED = 'incident-defaulted';
 
 const NEW_CODE = 'new-code';
 
-const CALENDAR_DATE_LENGTH_CHARACTERS = 10;
-
 const CLOCK_SLICE = { start: 11, end: 16 } as const;
 
 const PAUSED_DISPLAY_STATE = 'paused';
-
-function factOf(notice: NoticeDocument, fact: string): string {
-  const value = notice[fact];
-  if (Array.isArray(value)) return value.map(String).join(', ');
-  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
-}
-
-function noticeTextOf(notice: NoticeDocument): string {
-  switch (notice.kind) {
-    case 'install-version-changed':
-      return `the install version changed, so launches are held: run \`${PRODUCT_NAMES.PROGRAM} update\``;
-    case 'claude-md-block-committed':
-      return `launches onto ${factOf(notice, 'target')} wait: commit the CLAUDE.md change \`update\` made`;
-    case 'attribution-found':
-      return `ticket #${factOf(notice, 'ticketId')} carries an AI attribution`;
-    case 'rounds-not-converging':
-      return `ticket #${factOf(notice, 'ticketId')}'s review rounds are not converging`;
-    case 'dirty-main-checkout':
-      return factOf(notice, 'blockingFiles') === ''
-        ? `landings on ${factOf(notice, 'target')} wait: the main checkout is not on ${factOf(notice, 'target')}`
-        : `landings on ${factOf(notice, 'target')} wait: the main checkout's changes to ${factOf(notice, 'blockingFiles')} block the fast-forward`;
-    case 'target-file-held':
-      return `landings on ${factOf(notice, 'target')} wait: another process holds ${factOf(notice, 'heldFiles')} open, so git cannot replace what is held`;
-    case 'cleanup-declined':
-      return `git declined the ${factOf(notice, 'cleanup')} cleanup of ${factOf(notice, 'groupBranch')}: ${factOf(notice, 'reason')}`;
-    case 'agent-program-refused':
-      return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
-    case 'watcher-endpoint-does-not-fit':
-      return `job ${factOf(notice, 'jobId')} is not launched: this platform cannot bind the Watcher endpoint ${factOf(notice, 'endpoint')}`;
-    default:
-      return notice.kind;
-  }
-}
-
-function incidentDefaultTextOf(notice: NoticeDocument): string {
-  const cause = factOf(notice, 'cause');
-  return `incident ${factOf(notice, 'incidentId')} took its default, ${factOf(notice, 'move')}: ${IncidentTrailUtil.defaultCauseTextOf(cause)}`;
-}
-
-/** Any open notice as one sentence: an incident default as its warning words it, every other kind as the notice line does. */
-function noticeSentenceOf(notice: NoticeDocument): string {
-  return notice.kind === INCIDENT_DEFAULTED ? incidentDefaultTextOf(notice) : noticeTextOf(notice);
-}
-
-function warningsOf(notices: readonly NoticeDocument[], overseer: OverseerFactsDocument | null): string[] {
-  const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
-  const batonPass = overseer?.batonPassWarning ?? null;
-  return [
-    ...(batonPass === null ? [] : [`the Baton pass to code ${batonPass.successorCodeVersion} failed at ${batonPass.step}: ${batonPass.error}`]),
-    ...(defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE) ? ['no Assistant can come up: open incidents take their defaults'] : []),
-  ];
-}
 
 /** A window's word where it differs from the stored value. */
 const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: '5-hour window', seven_day: 'week' };
@@ -208,17 +146,15 @@ interface BoardFigures {
 
 /** Today is the viewer's local date; the building and reviewing counts are the strip's, so the line, the figure and the strip agree. */
 function boardFiguresOf(state: BoardStateDocument, activity: ActivityStripFacts, todayCalendarDate: string): BoardFigures {
-  const tasks = state.page?.payload.progress.tasks ?? [];
   const tickets = state.page?.tickets ?? [];
-  const isToday = (stamp: string | null): boolean => stamp !== null && stamp.slice(0, CALENDAR_DATE_LENGTH_CHARACTERS) === todayCalendarDate;
-  const running = tasks.filter((task) => task.status === 'in-progress' && task.end === null);
+  const today = todayFiguresOf(state, todayCalendarDate);
   return {
     workerCount:         activity.chips.length,
     buildingCount:       activity.buildingCount,
     reviewingCount:      activity.reviewingCount,
     pausedCount:         (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length,
-    deliveredTodayCount: tickets.filter((ticket) => isToday(ticket.delivered)).length,
-    tokensToday:         tasks.filter((task) => running.includes(task) || isToday(task.end)).reduce((total, task) => total + (task.tokens ?? 0), 0),
+    deliveredTodayCount: today.deliveredTickets,
+    tokensToday:         today.tokens,
     waitingInQueueCount: tickets.filter((ticket) => ticket.status === 'pending').length,
   };
 }
@@ -271,7 +207,7 @@ function statusTokenOf(overseer: OverseerFactsDocument | null, connection: Conne
   return overseer.paused ? 'paused' : 'live';
 }
 
-function headerModelOf(state: BoardStateDocument | null, now: Date, connection: ConnectionState): HeaderModel {
+export function headerModelOf(state: BoardStateDocument | null, now: Date, connection: ConnectionState): HeaderModel {
   const overseer = state?.overseer ?? null;
   const notices = state?.notices ?? [];
   const handingOver = overseer?.state === 'passing-baton';
@@ -290,13 +226,11 @@ function headerModelOf(state: BoardStateDocument | null, now: Date, connection: 
     pauseControl:   answers ? (overseer.paused ? 'resume' : 'pause') : null,
     restartOffered: answers && newCodeOnDisk,
     stopOffered:    answers,
-    newCodeNotice:  newCodeOnDisk ? `new code: run \`${PRODUCT_NAMES.PROGRAM} update\`` : null,
+    newCodeNotice:  newCodeOnDisk ? NoticeWordingUtil.noticeTextOf({ kind: NEW_CODE }) : null,
     statistics:     state === null || figures === null ? [] : statisticsOf(state, figures),
     activity,
     summaryLine:    figures === null ? null : summaryLineOf(figures),
-    notices:        notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(noticeTextOf),
-    warnings:       warningsOf(notices, overseer),
+    notices:        notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(NoticeWordingUtil.noticeTextOf),
+    warnings:       NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null),
   };
 }
-
-export const HeaderModelUtil = Object.freeze({ headerModelOf, noticeSentenceOf });

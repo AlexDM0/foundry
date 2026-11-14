@@ -31,8 +31,20 @@ export const READ_ONLY_VERBS_UNDER_A_JOB: readonly string[] = [
 /** Verbs that build a kind whose own verb is named above: `job wind-down` is a `job-stop` of mode `wind-down`. */
 export const OTHER_VERBS_OF_CONTROL_KIND: Readonly<Partial<Record<ControlCommandKind, readonly string[]>>> = { 'job-stop': ['job wind-down'], };
 
-/** The verb each control command is typed as; under a job the verb parses its arguments as usual and relays the command it built. */
-export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, string>> = {
+/**
+ * Kinds only User's own surfaces send: the Bridge, a monitor holding the token, or the verb outside a job. Under a job the verb is refused
+ * before it runs, never relayed.
+ */
+export const UNRELAYED_VERB_OF_CONTROL_KIND = {
+  'chart-range-set':        'range',
+  'tracker-clear':          'clear',
+  'ticket-deliver-by-hand': 'ticket deliver --by-hand',
+} as const satisfies Partial<Record<ControlCommandKind, string>>;
+
+export type RelayedControlCommandKind = Exclude<ControlCommandKind, keyof typeof UNRELAYED_VERB_OF_CONTROL_KIND>;
+
+/** The verb each relayed control command is typed as; under a job the verb parses its arguments as usual and relays the command it built. */
+export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommandKind, string>> = {
   'ticket-add':                  'ticket add',
   'ticket-edit':                 'ticket edit',
   'ticket-depends':              'ticket depends',
@@ -75,6 +87,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<ControlCommandKind, s
   'overseer-stop':               'oversee stop',
   'overseer-restart':            'oversee restart',
   'concurrency-set':             'concurrency',
+  'machine-agent-limit-set':     'machine limit',
   'pipeline-prepare-step-set':   'gate prepare',
   'pipeline-gate-add':           'gate add',
   'pipeline-gate-order':         'gate order',

@@ -152,7 +152,7 @@ describe('a command run where no tracker is', () => {
 });
 
 describe('a tracker whose installed files are of another install version', () => {
-  const COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN = new Set(['init', 'update', 'help', 'status', 'version', 'hook']);
+  const COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN = new Set(['init', 'update', 'help', 'status', 'version', 'hook', 'stop', 'machine', 'login-item']);
   const CHECKED_COMMAND_NAMES = COMMAND_NAMES.filter((commandName) => !COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN.has(commandName));
 
   /** A tracker made by `init` and then stripped of its manifest is exactly a tracker installed by an agent-progress from before versioning. */
@@ -200,7 +200,15 @@ describe('a tracker whose installed files are of another install version', () =>
   test('version runs and prints the code and install versions, so an Overseer can read the code on disk whatever was installed', async () => {
     const context = trackedContext();
     expect(await runCommandLine(['version', '--json'], context), context.errorText()).toBe(0);
-    expect(JSON.parse(context.outputText())).toEqual({ codeVersion: expect.stringMatching(/^[0-9a-f]{12}$/), installVersion: INSTALL_VERSION });
+    expect(JSON.parse(context.outputText())).toEqual({
+      answerVersion:  1,
+      codeVersion:    expect.stringMatching(/^[0-9a-f]{12}$/),
+      installVersion: INSTALL_VERSION,
+      contracts:      {
+        summary: 1, monitor: 1, control: 1, embed: 1
+      },
+      monitorFolder: expect.stringMatching(/monitor$/),
+    });
   });
 
   test('run status runs and reports the Overseer down, so an Overseer whose install changed can still be inspected', async () => {

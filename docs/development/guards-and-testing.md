@@ -2,8 +2,8 @@
 
 > **Question:** Which spec holds which rule, and how is this codebase tested without ever touching live data?
 > **Time:** 20 minutes; the catalogue is lookup.
-> **Read first:** [Code map](../architecture/code-map.md), [CLAUDE.md](../../CLAUDE.md) for the rules themselves.
-> **Next:** [Changing the code](contributing.md), [Cutover smoke](cutover-smoke.md),
+> **Read first:** [CLAUDE.md](../../CLAUDE.md) for the rules themselves.
+> **Next:** [Changing the code](contributing.md),
 > [Overseer and Claude probe](overseer-claude-probe.md).
 
 ## In one screen
@@ -56,7 +56,7 @@ src/adapters/log/PlantedWording.ts:1 imports src/services/render/RenderState.ts:
 ```
 
 The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.
-`LAYER_REACH` holds the layer table as data; [Code map](../architecture/code-map.md) explains the layers.
+`LAYER_REACH` holds the layer table as data.
 
 When any spec fails, read its opening docblock first: [CLAUDE.md](../../CLAUDE.md) requires one.
 
@@ -86,7 +86,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
 | `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
-| `src/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, `CLAUDE.md` or a file under `docs/` (not `docs/development/documentation-pass/`) cites exists, except an exact list of citations that are absent on purpose. Each failure lab entry names a file that holds its spec `title` or its code `find` text. | Write the path of the file that holds the case now, in the same change as the rename or split. |
+| `src/DocumentSpecCitations.spec.ts` | Each repository-rooted `.spec.ts` path that `README.md`, `CLAUDE.md` or a file under `docs/` (except the untracked `docs/design/`) cites exists, except an exact list of citations that are absent on purpose. | Write the path of the file that holds the case now, in the same change as the rename or split. |
 | `src/ComponentNames.spec.ts` | No tracked file holds a retired name; see [What specs require of docs](#what-specs-require-of-docs). | Write the decided component name. |
 | `src/ProductNameLiterals.spec.ts` | No string or template literal in shipping code names the program alone. | Build the text from `PRODUCT_NAMES.PROGRAM`. |
 | `src/ProductNames.spec.ts` | `package.json`'s `name` and sole `bin` key equal the constants; the setup in `setup.ts` and `cli/setup/` imports them itself. | Align the file with `PRODUCT_NAMES`. |
@@ -109,7 +109,7 @@ These specs hold what the CLI prints and accepts.
 | `cli/HatchUnderJob.spec.ts` | Relayed, read-only and refused verbs under a [job](../glossary.md#job) are exact both ways. | Move the verb between the lists in `cli/constants/JobVerbs.ts`. |
 | `cli/InstalledSurface.spec.ts` | Commands, flags and status fields the installed files name, against `cli/FrozenInstalledSurface.json`; a version's surface only grows. | Add the listed names under the current version; after an `INSTALL_VERSION` bump, add a key. Never delete a frozen name. |
 | `cli/InstalledFiles.spec.ts` | Where installed files live; every path absolute. | Correct `installedFilePathsIn` in `cli/InstalledFiles.ts`. |
-| `cli/InstallVersionCheck.spec.ts`, `cli/InstallVersionVerdict.spec.ts` | The [install version](../glossary.md#install-version) manifest verdicts, on real directories and against the decider's contract. | Correct `installVersionVerdictOf` in `cli/InstallVersionVerdict.ts`. [CLI and install](../architecture/cli-and-install.md) explains the verdicts. |
+| `cli/InstallVersionCheck.spec.ts`, `cli/InstallVersionVerdict.spec.ts` | The [install version](../glossary.md#install-version) manifest verdicts, on real directories and against the decider's contract. | Correct `installVersionVerdictOf` in `cli/InstallVersionVerdict.ts`. |
 | `cli/Main.spec.ts` | What a command line does to the exit code, and that the install check runs first. | Restore the mapping or the `requireCurrentInstall` call in `cli/Main.ts`. [cli.md](../cli.md) holds the exit codes. |
 | `cli/OlderTrackerRefusal.spec.ts` | A file in an older format is refused and left byte for byte. | Add the refusal with `OLDER_FORMAT_ADVICE`; never add a migration. |
 | `cli/RetiredVerbs.spec.ts` | Each retired verb is unknown at exit 1 and writes nothing. | Remove the verb from `COMMAND_TABLE`. |
@@ -123,7 +123,7 @@ These specs hold what the CLI prints and accepts.
 | `cli/OpenerFor.spec.ts` | The browser opener (`open`, `rundll32.exe` by absolute path, or `xdg-open`) comes from the context's platform. | Pass the platform from `CommandContext`; never read `process.platform`. |
 | `cli/BinarySmoke.integration.spec.ts` | The real binary: shebang, argument slice, exit status. | Restore the shebang, the argument slice or the exit call in `agent-progress.ts`. |
 | `cli/InitRootOverride.integration.spec.ts` | `init` beside the root override leaves both store files byte for byte. | Restore the refusal in `init`: it must leave `progress.json` and `log.jsonl` alone when the root override names another folder. |
-| `cli/HoldJournalCrash.integration.spec.ts` | A holder killed mid-write is finished from the [hold journal](../glossary.md#hold-journal) by the next holder; a malformed journal stops writes at exit 2. | Run `replayHoldJournal` before the next holder reads. [Storage](../data-model/storage.md) holds the write order. |
+| `cli/HoldJournalCrash.integration.spec.ts` | A holder killed mid-write is finished from the [hold journal](../glossary.md#hold-journal) by the next holder; a malformed journal stops writes at exit 2. | Run `replayHoldJournal` before the next holder reads. |
 | `cli/RegisterWrittenTracker.integration.spec.ts` | The monitor registry as commands write it, under a scratch home. | Correct `src/services/tracker/MonitorRegistration.ts`. [cli.md](../cli.md) holds the format. |
 
 </details>
@@ -147,13 +147,13 @@ These sit next to the code they guard.
 | `bridge/ThemeTokens.spec.ts` | Every pipeline token in `design-system/styles/tokens.css` or `bridge/styles/tokens.css` has a value in the light and the dark theme (a literal in both, or an alias of a themed token), each new motion token is `0ms` under reduced motion and before the first paint, the toast's reading time is kept, and the three design colours with no name of their own each read a named token. | Add the missing dark value or zero; a new design colour gets a token in both themes. |
 | `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
-| `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. [Watchers](../architecture/watchers.md) says why the bundle stays thin. |
+| `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. Watchers says why the bundle stays thin. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
 | `src/services/overseer/LegacyWatcherReader.spec.ts` | Every event-log and Watcher record format a running Watcher may have written is read, one fixture per version. | Add a fixture and a reader. |
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
-| `src/services/overseer/CrashMatrix.spec.ts`, `src/services/overseer/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. [Failure and recovery](../architecture/failure-and-recovery.md) holds the matrix. |
+| `src/services/overseer/CrashMatrix.spec.ts`, `src/services/overseer/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. |
 
 </details>
 
@@ -194,7 +194,7 @@ outside it, so `bun run lint` alone holds those.
 
 > **As built.** An ESLint allowlist is not exact both ways. `src/LintRules.spec.ts` plants forms and exceptions, and
 > never checks that an `allowedIn` site exists, so the stale `process.cwd` entry above survives: see
-> [stale prose in code](../reference/known-gaps.md#gap-stale-prose-in-code).
+> stale prose in code.
 
 ## Rules that are prose as data
 
@@ -581,7 +581,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 > **Careful.** This test helper is part of the shipped program, so it must not pull in the Claude Code adapter.
 > `cli/CommandContext.ts` imports `src/testing/FakeAgentAdapter.ts`, the one file entry in `TESTING_FOLDER_IMPORTERS`.
 > `FakeAgentAdapter.ts` imports `ClaudeStreamLines.ts` rather than the vendor adapter, so the
-> [vendor seam](../architecture/code-map.md) holds.
+> vendor seam holds.
 
 **DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
 `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
@@ -598,8 +598,8 @@ replacing it, so a DOM run carries the program traps as well.
 fake agent, opens the page over the DevTools protocol, visits every entry of `BRIDGE_TABS`, and collects each console
 error, exception, failed request and error-level log entry, which includes a CSP violation.
 
-**Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. See
-[Cutover smoke](cutover-smoke.md). Only its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
+**Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. Only
+its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
 
 ## Test helper folders
 

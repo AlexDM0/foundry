@@ -5,6 +5,7 @@
  * scroll room the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header
  * figure points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per
  * board.
+ * The Kanban is the tickets habitat of Flint (`bridge/flint/UseTicketsHabitat.ts`).
  */
 
 import { Button }                                        from 'design-system/Button';
@@ -27,6 +28,7 @@ import type { KanbanBoardState }                                          from '
 import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                                                      from '../../chips/EpicChips.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark }                          from '../../chips/TicketMarks.tsx';
+import { useTicketsHabitat }                                              from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
 import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
@@ -480,6 +482,8 @@ export function KanbanView({
   const clock = useBridgeClock();
   const routing = useDetailRouting();
   const finishedWork = useFinishedWorkWindow();
+  const viewElement = useRef<HTMLElement>(null);
+  useTicketsHabitat(viewElement, boardState.page.tickets);
   const [shownBoardState, setShownBoardState] = useState(boardState);
   const [shownFilters, setShownFilters] = useState(filters);
   const [shownNow, setShownNow] = useState(() => clock.now().getTime());
@@ -640,7 +644,7 @@ export function KanbanView({
   };
 
   return (
-    <section className="bridge-kanban" aria-label="Kanban">
+    <section className="bridge-kanban" aria-label="Kanban" ref={viewElement} data-flint-workplace="">
       <ViewTitle title="Kanban" lead={KANBAN_LEAD} />
       <div
         className="bridge-kanban-frame"

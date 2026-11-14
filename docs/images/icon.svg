@@ -1,32 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img">
-  <title>agent-progress</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img">
+  <title>forge</title>
   <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2E3140"/>
-      <stop offset="1" stop-color="#15161C"/>
-    </linearGradient>
-    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/>
-      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-    <pattern id="stripes" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-      <rect width="22" height="22" fill="#F0B43C"/>
-      <rect width="9" height="22" fill="#FFFFFF" fill-opacity="0.38"/>
-    </pattern>
-    <clipPath id="tileClip"><rect x="16" y="16" width="480" height="480" rx="108"/></clipPath>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d6d6d6"/></linearGradient>
+    <filter id="glow" filterUnits="userSpaceOnUse" x="32.02" y="6.75" width="32" height="32"><feGaussianBlur stdDeviation="2"/></filter>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><circle cx="48.02" cy="22.75" r="10.35" fill="#000"/></mask>
   </defs>
-  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#tile)"/>
-  <g clip-path="url(#tileClip)" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="3">
-    <line x1="142" y1="90" x2="142" y2="430"/>
-    <line x1="228" y1="90" x2="228" y2="430"/>
-    <line x1="314" y1="90" x2="314" y2="430"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#tile)"/>
+  <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
+    <g mask="url(#gap)"><path d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="#3d3d3d" stroke-width="3"/>
+    </g>
+    <path d="M31.5 26.29 A1 1 0 0 1 32.5 26.29 L36.7 28.71 A1 1 0 0 1 37.2 29.58 L37.2 34.42 A1 1 0 0 1 36.7 35.29 L32.5 37.71 A1 1 0 0 1 31.5 37.71 L27.3 35.29 A1 1 0 0 1 26.8 34.42 L26.8 29.58 A1 1 0 0 1 27.3 28.71 Z" fill="#fa5f01" fill-opacity="0.5"/>
+    <circle cx="48.02" cy="22.75" r="5.5" fill="#ff8d42" opacity="0.24" filter="url(#glow)"/>
+    <circle cx="48.02" cy="22.75" r="7.4" fill="none" stroke="#ee5600" stroke-width="1.5"/>
+    <circle cx="48.02" cy="22.75" r="3.6" fill="#ff8d42"/>
   </g>
-  <rect x="96" y="128" width="150" height="40" rx="20" fill="#A184F0"/>
-  <rect x="140" y="196" width="196" height="40" rx="20" fill="#4CC38A"/>
-  <rect x="220" y="264" width="150" height="40" rx="20" fill="#2FB8CC"/>
-  <rect x="286" y="332" width="112" height="40" rx="20" fill="url(#stripes)"/>
-  <line x1="398" y1="104" x2="398" y2="410" stroke="#FF5A4E" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="398" cy="104" r="14" fill="#FF5A4E"/>
-  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#sheen)"/>
-  <rect x="17.5" y="17.5" width="477" height="477" rx="106.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="3"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#000" stroke-opacity="0.14"/>
 </svg>

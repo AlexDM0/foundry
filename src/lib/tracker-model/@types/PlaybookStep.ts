@@ -37,7 +37,9 @@ export type PlaybookStep =
   | { kind: 'open-decision'; decision: DecisionDraft }
   | { kind: 'open-incident'; incident: IncidentOpening }
   | { kind: 'default-incident'; incidentId: string; cause: IncidentDefaultCause }
-  | { kind: 'pause-overseer'; cause: 'outage' };
+  | { kind: 'pause-overseer'; cause: 'outage' }
+  // A ticket a board slot would launch now, which waits because no machine-wide agent slot is free; it changes nothing.
+  | { kind: 'await-machine-slot'; ticketId: string };
 
 /** What the Overseer saw outside the board, passed in as values so the policy reaches no git, process or file. */
 export interface PlaybookObservations {
@@ -57,4 +59,6 @@ export interface PlaybookObservations {
   assistantHasAnswered:         boolean;
   /** A sweep asks for one more boot past the failed-boot bound; never set in the pass a boot failed. */
   assistantBootRetryDue:        boolean;
+  /** The machine-wide agent slots this Overseer reserved for the pass; absent where no machine limit applies. */
+  machineAgentSlotsFree?:       number;
 }

@@ -1,4 +1,6 @@
 /** The board settings kinds of the control contract: the concurrency limit and the gate pipeline the `gate` verbs write. */
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }   from '../../lib/tracker-model/constants/ConcurrencyLimits.ts';
+import { BoardSettingsUtil }                  from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
@@ -12,13 +14,22 @@ export function requireReadablePipeline(change: TrackerChange): void {
   throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath, reason: unreadablePipeline.reason });
 }
 
+/** The `concurrency` verb checks its argument itself; a command posted to the API reaches the board only through this check. */
+function setConcurrencyLimit(command: CommandOf<'concurrency-set'>, change: TrackerChange): ReturnType<TrackerChange['board']['setConcurrencyLimit']> {
+  const { limit } = command;
+  if (!BoardSettingsUtil.concurrencyLimitIsWellFormed(limit) || limit > CONCURRENCY_LIMIT_CEILING_AGENTS) {
+    throw new OperationRefusal('refused', { kind: 'concurrency-limit-out-of-range', limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS });
+  }
+  return change.board.setConcurrencyLimit(limit, change.at);
+}
+
 function inReadablePipeline<Result>(change: TrackerChange, apply: () => Result): Result {
   requireReadablePipeline(change);
   return apply();
 }
 
 export const SETTING_CONTROLS = {
-  'concurrency-set':           (command: CommandOf<'concurrency-set'>, change: TrackerChange) => change.board.setConcurrencyLimit(command.limit, change.at),
+  'concurrency-set':           setConcurrencyLimit,
   'pipeline-prepare-step-set': (command: CommandOf<'pipeline-prepare-step-set'>, change: TrackerChange) => inReadablePipeline(
     change,
     () => change.board.setPrepareStep(command.step, change.at),

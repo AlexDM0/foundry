@@ -3,8 +3,7 @@
  * the facts it was opened with, its delivery with the Assistant's job and chat once it went out, then its notes; a settled incident is read
  * back from the log, newest first, has no delivery step (the log records none), and ends in its settling record, whose stamp and move the
  * entry carries; an escalation names its decision as an id; an incident still open is never also settled; the pill reads an open incident
- * as waiting until delivered and an applied default in the draft rose; and a default's cause is worded, an unknown cause, also one named
- * like an object property, reading as itself.
+ * as waiting until delivered and an applied default in the draft rose.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -143,17 +142,5 @@ describe('IncidentTrailUtil.incidentPillOf', () => {
       { state: 're-review', label: 'escalated' },
       { state: 'draft', label: 'defaulted' },
     ]);
-  });
-});
-
-describe('IncidentTrailUtil.defaultCauseTextOf', () => {
-  test('each known cause is worded', () => {
-    expect(['turn-closed', 'turn-budget', 'no-assistant'].map(IncidentTrailUtil.defaultCauseTextOf)).toEqual([
-      'its delivery turn closed', 'the turn budget ran out', 'no Assistant was up',
-    ]);
-  });
-
-  test('an unknown cause, also one named like an object property, reads as itself', () => {
-    expect(['someday', 'constructor', 'toString'].map(IncidentTrailUtil.defaultCauseTextOf)).toEqual(['someday', 'constructor', 'toString']);
   });
 });

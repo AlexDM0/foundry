@@ -1,7 +1,8 @@
 /**
  * An Intake chat column: the thread, when there is one, over a composer that carries pictures. A picture is attached, pasted into the text
  * box or dropped anywhere on the column; it uploads at once and goes with the next send, which waits until every upload settled. With no
- * picture limits served, or no picture client in the shell, no picture is offered and a pasted or dropped one is ignored.
+ * picture limits served, or no picture client in the shell, no picture is offered and a pasted or dropped one is ignored. What sends the
+ * chat habitat's own cues of the intake goes inside the card, where the relay reaches the thread.
  */
 import type { TagProps }                            from 'design-system/Tag';
 import { useState, type DragEvent, type ReactNode } from 'react';
@@ -28,6 +29,8 @@ export interface IntakeChatProps {
   /** The command a sendable text and its uploaded pictures make. */
   readonly commandOf:      (text: string, pictures: readonly SentPictureReference[]) => ControlCommandBody;
   readonly onApplied?:     (result: unknown) => void;
+  /** Rendered inside the chat card, after the thread, so it can cue the thread's habitat. */
+  readonly chatCues?:      ReactNode;
 }
 
 const FILES_DRAG_TYPE = 'Files';
@@ -37,7 +40,7 @@ function imagesOf(files: readonly File[]): File[] {
 }
 
 export function IntakeChat({
-  label, thread, composerLabel, recipientLabel, recipientJobId, status, placeholder, sendLabel, pictureLimits, commandOf, onApplied
+  label, thread, composerLabel, recipientLabel, recipientJobId, status, placeholder, sendLabel, pictureLimits, commandOf, onApplied, chatCues
 }: IntakeChatProps) {
   const attachments = usePictureAttachments(pictureLimits);
   const [dropActive, setDropActive] = useState(false);
@@ -81,6 +84,7 @@ export function IntakeChat({
     <div className="bridge-intake-chat" onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop}>
       <ChatCard label={label}>
         {thread}
+        {chatCues}
         <Composer
           label={composerLabel}
           recipientLabel={recipientLabel}

@@ -16,6 +16,7 @@ import { IntakeChatPane }                 from './IntakeChatPane.tsx';
 import { IntakeModelUtil }                from './IntakeModel.ts';
 import { IntakePane }                     from './IntakePane.tsx';
 import { IntakeSessionList }              from './IntakeSessionList.tsx';
+import type { CuedDraft }                 from './IntakeSpriteModel.ts';
 import { NewChatPane }                    from './NewChatPane.tsx';
 
 export interface IntakeViewProps {
@@ -24,6 +25,8 @@ export interface IntakeViewProps {
   /** The route's item: a session's job id, `new`, or `null`. */
   readonly selectedItem:     string | null;
 }
+
+const NO_FILING_DRAFTS: readonly CuedDraft[] = Object.freeze([]);
 
 export function IntakeView({ board, followTranscript, selectedItem }: IntakeViewProps) {
   const sessions = IntakeModelUtil.intakeSessionsOf(board);
@@ -49,6 +52,7 @@ export function IntakeView({ board, followTranscript, selectedItem }: IntakeView
               followTranscript={followTranscript}
               pictureLimits={pictureLimits}
               todayCalendarDate={todayCalendarDate}
+              filingDrafts={board.page?.payload?.boardFacts.drafts ?? NO_FILING_DRAFTS}
             />
           )
           : null}

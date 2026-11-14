@@ -1,61 +1,62 @@
 /**
- * The routes the Overseer's API serves, over the board, its job folders, its picture store and agent-dashboard's server record: the state
- * and summary read fresh each request, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones
- * a transcript names, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML
- * import is the one place the command surface reaches `bridge/`, by path, for Bun to bundle.
+ * The routes the Overseer's API serves, over the board, its job folders, its picture store and the framing programs' server records: the
+ * state, summary and monitor snapshot read fresh each request, the sentence of each refusal, a job's transcript and served files, a gate
+ * profile's output, the pictures User uploads and the ones a transcript names, the origins allowed to frame the Bridge, and the Bridge
+ * itself, whose HTML import is the one place the command surface reaches `bridge/`, by path, for Bun to bundle.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 
 import bridgePage from '../../../bridge/index.html';
 
-import { LogFileIngestion }                                       from '../../../src/adapters/log/LogFileIngestion.ts';
-import { LogRecordMappingUtil }                                   from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
-import { GateProfilesFile }                                       from '../../../src/adapters/pipeline/GateProfilesFile.ts';
-import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { LogRecord }                                         from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import { BoardStateAssembly }                                     from '../../../src/services/overseer/BoardState.ts';
-import type { EventBroker }                                       from '../../../src/services/overseer/EventBroker.ts';
-import { GateProfiling }                                          from '../../../src/services/overseer/GateProfiling.ts';
-import { JobTranscript }                                          from '../../../src/services/overseer/JobTranscript.ts';
-import type { OverseerRoutes, RouteAnswer, TranscriptFollower }   from '../../../src/services/overseer/OverseerServer.ts';
-import { WatcherFleet }                                           from '../../../src/services/overseer/WatcherFleet.ts';
-import { PictureStore, type PictureStoring }                      from '../../../src/services/tracker/PictureStore.ts';
-import { OperationRefusal, type OperationRefusalDetail }          from '../../../src/shared/OperationRefusal.ts';
-import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES } from '../../../src/shared/constants/OverseerLimits.ts';
-import { JOB_ID_PATTERN }                                         from '../../constants/RecordIdPatterns.ts';
-import { readBoardState, type BoardStateSource }                  from './BoardStateReader.ts';
-import { answerControlCommand, type CommandRouteRequest }         from './CommandRoute.ts';
+import { LogFileIngestion }                                   from '../../../src/adapters/log/LogFileIngestion.ts';
+import { LogRecordMappingUtil }                               from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
+import { GateProfilesFile }                                   from '../../../src/adapters/pipeline/GateProfilesFile.ts';
+import { OperationRefusalWordingUtil }                        from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { LogRecord }                                     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import { BoardStateAssembly }                                 from '../../../src/services/overseer/BoardState.ts';
+import type { EventBroker }                                   from '../../../src/services/overseer/EventBroker.ts';
+import { GateProfiling }                                      from '../../../src/services/overseer/GateProfiling.ts';
+import { JobTranscript }                                      from '../../../src/services/overseer/JobTranscript.ts';
+import { MonitorSnapshotAssembly, type MonitorOverseerFacts } from '../../../src/services/overseer/MonitorSnapshotAssembly.ts';
+import type { MonitorStream }                                 from '../../../src/services/overseer/MonitorStream.ts';
+import type {
+  OverseerRoutes,
+  RouteAnswer,
+  ServerRefusal,
+  TranscriptFollower
+} from '../../../src/services/overseer/OverseerServer.ts';
+import { WatcherFleet }                                                        from '../../../src/services/overseer/WatcherFleet.ts';
+import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
+import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
+import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES }              from '../../../src/shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                                       from '../../../src/shared/constants/ProductNames.ts';
+import { JOB_ID_PATTERN }                                                      from '../../constants/RecordIdPatterns.ts';
+import { readBoardState, type BoardStateSource }                               from './BoardStateReader.ts';
+import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
+import { FrameOrigins }                                                        from './FrameOrigins.ts';
 
 export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context'> {
-  token:   () => string | null;
-  started: () => boolean;
-  broker:  () => EventBroker | null;
+  token:         () => string | null;
+  started:       () => boolean;
+  broker:        () => EventBroker | null;
+  monitorStream: () => MonitorStream | null;
+  /** `null` until the Overseer took its generation. */
+  monitorFacts:  () => MonitorOverseerFacts | null;
 }
 
-/** agent-dashboard's own server record: its path is the dashboard's, never the product's naming constant. */
-const DASHBOARD_SERVER_RECORD = ['.agent-progress-monitor', 'agent-dashboard', 'server.json'] as const;
+const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
+  'unauthorized':      `This needs the Overseer's token or a Bridge session. The Overseer may have restarted: open the board again with \`${PRODUCT_NAMES.PROGRAM} open\`.`,
+  'forbidden':         'The Overseer answers only its own page and programs on this machine that name it by 127.0.0.1 or localhost.',
+  'read-failed':       `The Overseer could not read the board's files. Run \`${PRODUCT_NAMES.PROGRAM} status\` in the repository to see which file is wrong.`,
+  'page-build-failed': 'The Overseer could not build the Bridge\'s page; its log names the cause.',
+  'malformed-body':    MALFORMED_BODY_TEXT,
+};
 
-function originOf(url: unknown): string[] {
-  if (typeof url !== 'string') return [];
-  try {
-    return [new URL(url).origin];
-  } catch {
-    return [];
-  }
-}
-
-/** With no readable record no origin may frame the Bridge. */
-export function dashboardFrameOriginsOf(homeDirectory: string): string[] {
-  try {
-    const record: unknown = JSON.parse(readFileSync(join(homeDirectory, ...DASHBOARD_SERVER_RECORD), 'utf8'));
-    if (typeof record !== 'object' || record === null) return [];
-    const { url, boardOrigin } = record as { url?: unknown; boardOrigin?: unknown };
-    return [...new Set([...originOf(url), ...originOf(boardOrigin)])];
-  } catch {
-    return [];
-  }
-}
+const MONITOR_STATUS = {
+  ANSWERED: 200,
+  STARTING: 503,
+} as const;
 
 /** No cursor, or empty text, starts at the first line; any text but a whole line number is no cursor. */
 function profileOutputCursorOf(after: string | null): number | null {
@@ -119,8 +120,15 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       const { state, project, readyTicketIds } = readBoardState(request);
       return BoardStateAssembly.summaryOf(state, project, readyTicketIds);
     },
-    events:       request.broker,
-    transcriptOf: (jobId, after): TranscriptFollower | null => {
+    monitor: (): RouteAnswer => {
+      const overseer = request.monitorFacts();
+      if (overseer === null) return { status: MONITOR_STATUS.STARTING, body: { refusal: 'starting' } };
+      return { status: MONITOR_STATUS.ANSWERED, body: MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(request), overseer, now: context.now() }) };
+    },
+    monitorStream: request.monitorStream,
+    refusalTextOf: (refusal) => SERVER_REFUSAL_TEXT[refusal],
+    events:        request.broker,
+    transcriptOf:  (jobId, after): TranscriptFollower | null => {
       const jobFolder = jobFolderOf(jobId);
       const startCursor = JobTranscript.cursorOf(after);
       if (jobFolder === null || startCursor === null) return null;
@@ -153,7 +161,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       ? { verdict: 'too-large', bytes: upload.bytes }
       : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
     picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
-    frameOrigins: () => dashboardFrameOriginsOf(context.homeDirectory),
+    frameOrigins: () => FrameOrigins.frameOriginsOf(context.homeDirectory, context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
     page:         bridgePage,
   };
 }

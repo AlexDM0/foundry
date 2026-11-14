@@ -11,8 +11,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { OpenDecisionsUtil, type OpenDecision } from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { DecisionDocument }                from '../../@types/ConversationDocuments.ts';
-import { OpenDecisionsUtil, type OpenDecision } from '../../conversation/OpenDecisionsUtil.ts';
 import {
   ASKING_TRANSCRIPT,
   DARK_MODE_QUESTION,
@@ -24,7 +24,7 @@ import {
 } from '../../testing/QuestionPanelFixture.ts';
 import { QUESTION_PANEL_STEPS_SHOWN, QuestionPanelModel, type QuestionPanelBoard } from './QuestionPanelModel.ts';
 
-function queueOf(...decisions: readonly DecisionDocument[]): OpenDecision[] {
+function queueOf(...decisions: readonly DecisionDocument[]): OpenDecision<DecisionDocument>[] {
   return OpenDecisionsUtil.openDecisionsOf({ decisions, questionHistory: [] });
 }
 

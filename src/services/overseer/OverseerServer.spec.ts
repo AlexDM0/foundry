@@ -94,19 +94,22 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     throw new Error('a route the stream cases never call');
   };
   return {
-    token:        () => null,
-    started:      () => true,
-    command:      neverCalled,
-    onNudge:      neverCalled,
-    state:        neverCalled,
-    summary:      neverCalled,
-    events:       () => broker,
-    transcriptOf: () => null,
+    token:         () => null,
+    started:       () => true,
+    command:       neverCalled,
+    onNudge:       neverCalled,
+    state:         neverCalled,
+    summary:       neverCalled,
+    monitor:       neverCalled,
+    monitorStream: () => null,
+    refusalTextOf: neverCalled,
+    events:        () => broker,
+    transcriptOf:  () => null,
     profileOutputOf,
-    jobFileText:  () => null,
-    storePicture: neverCalled,
-    picture:      () => null,
-    frameOrigins: () => [],
+    jobFileText:   () => null,
+    storePicture:  neverCalled,
+    picture:       () => null,
+    frameOrigins:  () => [],
   };
 }
 
@@ -187,7 +190,7 @@ describe('the gate profile stream', () => {
   });
 
   test('every stream route has Bun\'s idle timeout off, and no other route does', () => {
-    expect(['/api/events', '/api/jobs/J1/stream', '/api/profiles/P1/stream'].map(OverseerServer.isStreamPath)).toEqual([true, true, true]);
-    expect(['/api/state', '/api/profiles/P1', '/api/jobs/J1/files/gate.log'].map(OverseerServer.isStreamPath)).toEqual([false, false, false]);
+    expect(['/api/events', '/api/jobs/J1/stream', '/api/profiles/P1/stream'].map(OverseerServer.pathIsStream)).toEqual([true, true, true]);
+    expect(['/api/state', '/api/profiles/P1', '/api/jobs/J1/files/gate.log'].map(OverseerServer.pathIsStream)).toEqual([false, false, false]);
   });
 });

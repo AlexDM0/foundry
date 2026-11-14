@@ -5,9 +5,11 @@
  */
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
+import type { Decision }                                                                      from '../../lib/tracker-model/@types/Decision.ts';
 import type { Draft }                                                                         from '../../lib/tracker-model/@types/Draft.ts';
 import type { Epic }                                                                          from '../../lib/tracker-model/@types/Epic.ts';
 import type { GateProfilesReading }                                                           from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { Incident }                                                                      from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                                                           from '../../lib/tracker-model/@types/Job.ts';
 import type { LaunchSlots }                                                                   from '../../lib/tracker-model/@types/LaunchSlots.ts';
 import type { LogRecord }                                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -19,6 +21,7 @@ import type { TrackerProgress }                                                 
 import type { BranchTreeOf, MergeTargetOf }                                                   from '../../lib/tracker-model/AirlockClaims.ts';
 import type { Board }                                                                         from '../../lib/tracker-model/Board.ts';
 import { MergeQueueUtil, type MergeForecast, type PairwiseConflict }                          from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { SERVED_CONTRACT_VERSIONS }                                                           from '../../shared/constants/OverseerApiContracts.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT } from '../../shared/constants/OverseerLimits.ts';
 import { boardFactsOf }                                                                       from '../render/BoardFacts.ts';
 import { assemblePagePayload, type AssembledPagePayload }                                     from '../render/PagePayloadAssembly.ts';
@@ -164,8 +167,8 @@ export interface BoardState extends PipelineFacts {
   [statusField: string]: unknown;
   page:                  AssembledPagePayload;
   jobs:                  JobWithLiveFacts[];
-  decisions:             unknown[];
-  incidents:             unknown[];
+  decisions:             Decision[];
+  incidents:             Incident[];
   notices:               unknown[];
   mergeQueue:            MergeQueueFacts;
   overseer:              OverseerFacts;
@@ -196,7 +199,7 @@ export interface EndedJob {
 }
 
 export interface BoardSummary {
-  summaryVersion:      1;
+  summaryVersion:      typeof SERVED_CONTRACT_VERSIONS.summary;
   project:             string;
   overseer:            { state: OverseerRuntimeState; paused: boolean; url: string | null };
   ticketCountByStatus: unknown;
@@ -378,7 +381,7 @@ function boardStateOf(reading: BoardStateReading): BoardState {
 
 function summaryOf(state: BoardState, project: string, readyTicketIds: readonly string[]): BoardSummary {
   return {
-    summaryVersion:      1,
+    summaryVersion:      SERVED_CONTRACT_VERSIONS.summary,
     project,
     overseer:            { state: state.overseer.state, paused: state.overseer.paused, url: state.overseer.url },
     ticketCountByStatus: state['ticketCountByStatus'],

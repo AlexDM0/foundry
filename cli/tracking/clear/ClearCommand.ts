@@ -1,9 +1,12 @@
-import { PictureStore }          from '../../../src/services/tracker/PictureStore.ts';
-import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler }   from '../../CommandHandler.ts';
-import { openTrackerForWriting } from '../../OpenTrackerForWriting.ts';
-import { OutputUtil }            from '../../utils/OutputUtil.ts';
+/** `clear` asks on a terminal, then applies a `tracker-clear` command in a hold of its own, as the Bridge's control does. */
+import { ControlService }          from '../../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
+import { COMMAND_CONTROL_CONTEXT } from '../../CommandControlContext.ts';
+import type { CommandHandler }     from '../../CommandHandler.ts';
+import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
+import { OutputUtil }              from '../../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} clear [--all] [--yes]`;
 
@@ -33,26 +36,11 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
     }
   }
 
-  let deletedTicketCount = 0;
-  let trackerDirectory = '';
-  const summary = await openTrackerForWriting(commandArguments, context, (change) => {
-    const cleared = change.board.clearTracker({ ticketsSurvive: !deletesTickets }, change.at);
-    ({ trackerDirectory } = change.workspace);
-    // After the progress file, like every ticket write, so a failed write leaves the tickets and the file that names them together.
-    if (deletesTickets) change.deleteAllTicketFilesAfterwards((deletedFileCount) => { deletedTicketCount = deletedFileCount; });
-    return {
-      removedTaskCount:    cleared.removedTaskCount,
-      removedLogCount:     change.storedLogEntryCount,
-      reseededTicketCount: cleared.survivingTicketCount,
-      deletedEpicCount:    cleared.removedEpicCount,
-    };
-  });
-
-  // After the hold, as the ticket files go: a picture left by a failed hold is swept at the next Overseer start.
-  if (deletesTickets) PictureStore.removeAllPictures(trackerDirectory);
+  const command: ControlCommandOf<'tracker-clear'> = { kind: 'tracker-clear', scope: deletesTickets ? 'everything' : 'tasks-and-log' };
+  const summary = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   const ticketLine = deletesTickets
-    ? `${deletedTicketCount} ticket(s) and ${summary.deletedEpicCount} epic(s) deleted`
+    ? `${summary.deletedTicketCount} ticket(s) and ${summary.deletedEpicCount} epic(s) deleted`
     : `${summary.reseededTicketCount} ticket(s) re-seeded`;
   OutputUtil.printEntity(
     commandArguments,
@@ -60,7 +48,7 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
     {
       removedTaskCount:    summary.removedTaskCount,
       removedLogCount:     summary.removedLogCount,
-      deletedTicketCount,
+      deletedTicketCount:  summary.deletedTicketCount,
       deletedEpicCount:    summary.deletedEpicCount,
       reseededTicketCount: summary.reseededTicketCount,
     },

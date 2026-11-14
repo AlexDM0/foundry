@@ -3,8 +3,7 @@
 > **Question:** What are the moving parts, who decides what, and what ideas does everything else rest on?
 > **Time:** 20 minutes.
 > **Read first:** nothing; words link to [the glossary](../glossary.md).
-> **Next:** [One ticket, draft to merged](ticket-lifecycle.md), [Walk a ticket](../interactive/ticket-journey.html),
-> [The documentation map](../README.md).
+> **Next:** [One ticket, draft to merged](ticket-lifecycle.md), [The documentation map](../README.md).
 
 ## In one screen
 
@@ -59,8 +58,6 @@ drives while it waits, and the first Pass after the Overseer starts reads it and
 ](../figures/overview/record-now-act-later.png)
 *The two panels differ only in the wait: the verb and the Pass do the same thing in both.*
 
-Which verb takes which route lives in [control and the Hatch](../architecture/control-and-hatch.md).
-
 > **Why.** A control that only records cannot race the driver. The two meet at the tracker lock, and the Overseer
 > sees every change as input to its next Pass.
 
@@ -86,15 +83,13 @@ An agent that needs the board goes through its [Hatch](../glossary.md#hatch), a 
 folder and never from the request.
 
 > **As built.** [Merge agents](../glossary.md#merge-agent), which work inside an Airlock, do not pass the full Customs
-> run; a conflict's merge gets check V10 alone:
-> [known gap](../reference/known-gaps.md#gap-merge-agents-skip-customs).
+> run; a conflict's merge gets check V10 alone.
 
 ## Three stores, one transaction
 
 The board says what is decided, the log says what happened, and a job folder says how far a step got. A restart reads
 all three. The Playbook is pure: it takes the stores plus what the Pass observed (git, the install, the [usage
-marker](../glossary.md#usage-marker)) and calls no clock; the one time comparison is the vendor's usage reset, listed
-with the other [clock exceptions](../reference/deciders-and-bounds.md).
+marker](../glossary.md#usage-marker)) and calls no clock; the one time comparison is the vendor's usage reset.
 
 ![The board says what is decided now, the log says what happened and is read back for retry and failure limits, and
 both commit in one lock hold with the log written last. The job folder says how far a step got and is written outside
@@ -104,8 +99,7 @@ the journal. The Pass reads all three, so the same inputs give the same steps.
 cannot reset them.*
 
 A lock hold writes the board and the log as one transaction, so no log line describes an unstored change. A job folder
-sits outside that transaction, and its [markers](../glossary.md#marker) make each step safe to derive again. The rules
-live in [storage](../data-model/storage.md), the entities in [entities](../data-model/entities.md).
+sits outside that transaction, and its [markers](../glossary.md#marker) make each step safe to derive again.
 
 ## Two lifetimes
 
@@ -124,7 +118,7 @@ applies an event also moves the cursor, so each event applies once. The [Baton](
 Overseer per board, and each starting Overseer runs [Regrouping](../glossary.md#regrouping) once, before its first Pass.
 
 An update follows the same logic. A [Baton pass](../glossary.md#baton-pass) replaces the Overseer's code and touches
-no Watcher. [Failure and recovery](../architecture/failure-and-recovery.md) covers each crash.
+no Watcher.
 
 ## An Airlock gates the merged tree
 
@@ -140,14 +134,12 @@ fast-forwards and the ticket has landed; if it moved, nothing lands and the tick
 Done means merged. Through the Overseer, the only route to [`delivered`](../glossary.md#delivered) is a landing on the
 main line. `ticket deliver --by-hand` and the `ticket status` override record the status without checking git: see
 [the CLI reference](../cli.md). A ticket in a [group](../glossary.md#group) lands `reviewed` on its group branch, and
-its [release](../glossary.md#release-bundle) delivers the bundle. The phases live in [Airlocks and
-groups](../architecture/airlocks-and-groups.md).
+its [release](../glossary.md#release-bundle) delivers the bundle.
 
 > **Careful.** The merged-tree gate runs inside the Overseer, not under a Watcher, so an Overseer death loses the result
 > and the next Overseer gates the tree again.
 
-> **As built.** No Pass runs while that gate runs:
-> [known gap](../reference/known-gaps.md#gap-merge-gate-blocks-pass).
+> **As built.** No Pass runs while that gate runs.
 
 ## Trouble goes three ways
 
@@ -160,12 +152,10 @@ escalate to a decision; no decision becomes an incident.](../figures/overview/tr
 *Every incident ends: if the Assistant makes no move, runs out of its [call budget](../glossary.md#call-budget) or is
 absent, the incident's default move applies.*
 
-Decisions and incidents are stored; a notice is derived afresh each Pass. The kinds and their moves live in [questions
-and incidents](../architecture/questions-and-incidents.md).
+Decisions and incidents are stored; a notice is derived afresh each Pass.
 
-> **As built.** Answering a `parked` decision leaves the [ticket hold](../glossary.md#hold) in place:
-> [known gap](../reference/known-gaps.md#gap-answering-parked-does-not-unhold). The Assistant cannot make moves that
-> target a job: [known gap](../reference/known-gaps.md#gap-assistant-job-moves-refused-at-hatch).
+> **As built.** Answering a `parked` decision leaves the [ticket hold](../glossary.md#hold) in place. The
+> Assistant cannot make moves that target a job.
 
 ## The cast
 
@@ -178,20 +168,20 @@ the Baton a numbered record and the Hatch a request folder.](../figures/overview
 *The Overseer and the Watcher are the only long-running processes of this project; the Assistant is a session a
 Watcher runs as its child.*
 
-| Name | What it is | Home |
-| --- | --- | --- |
-| Overseer | The one process per board that drives everything | [The Pass](../architecture/the-pass.md) |
-| Watcher | A detached process that runs one agent or gate and logs every line | [Watchers](../architecture/watchers.md) |
-| Pass | The Overseer's serial loop: observe, lock hold, act | [The Pass](../architecture/the-pass.md) |
-| Playbook | Pure policy: facts in, next steps out | [The Pass](../architecture/the-pass.md) |
-| Hatch | The request folder through which a session reaches the Overseer | [Control and the Hatch](../architecture/control-and-hatch.md) |
-| Customs | Checks what a session left against git, the ticket and the report | [Customs and gates](../architecture/customs-and-gates.md) |
-| Airlock | One merge at a time per target: merge, gate, land | [Airlocks and groups](../architecture/airlocks-and-groups.md) |
-| Assistant | The session that takes incidents; it writes no code | [Assistant and intake](../architecture/assistant-and-intake.md) |
-| Baton | The numbered record saying which Overseer owns the board | [Baton](../architecture/baton.md) |
-| Regrouping | What a starting Overseer does before its first Pass | [Failure and recovery](../architecture/failure-and-recovery.md) |
-| Bouncer | The role table judging every Hatch request | [Control and the Hatch](../architecture/control-and-hatch.md) |
-| Bridge | The live page the Overseer serves on `127.0.0.1` | [Bridge](../architecture/bridge.md) |
+| Name | What it is |
+| --- | --- |
+| Overseer | The one process per board that drives everything |
+| Watcher | A detached process that runs one agent or gate and logs every line |
+| Pass | The Overseer's serial loop: observe, lock hold, act |
+| Playbook | Pure policy: facts in, next steps out |
+| Hatch | The request folder through which a session reaches the Overseer |
+| Customs | Checks what a session left against git, the ticket and the report |
+| Airlock | One merge at a time per target: merge, gate, land |
+| Assistant | The session that takes incidents; it writes no code |
+| Baton | The numbered record saying which Overseer owns the board |
+| Regrouping | What a starting Overseer does before its first Pass |
+| Bouncer | The role table judging every Hatch request |
+| Bridge | The live page the Overseer serves on `127.0.0.1` |
 
 ## What this is not
 
@@ -205,8 +195,7 @@ Watcher runs as its child.*
 ## The naming trap
 
 v2 runs beside the released v1 program under names of its own. The program is `forge`, and its data
-folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name. The `agent-progress:managed` block
-in `CLAUDE.md` is the released program's v1 install, so its commands, paths and workflow do not describe v2.
+folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 
 ## In the code
 
@@ -228,4 +217,3 @@ in `CLAUDE.md` is the released program's v1 install, so its commands, paths and 
 ## Now try it
 
 [One ticket, from draft to merged](ticket-lifecycle.md) shows the six ideas acting on one ticket.
-[Walk a ticket](../interactive/ticket-journey.html) steps through it, one branch at a time.

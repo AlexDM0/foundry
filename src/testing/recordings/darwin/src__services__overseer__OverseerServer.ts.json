@@ -14,7 +14,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "forbidden"
+          "refusal": "forbidden",
+          "text": "Example sentence for forbidden"
         }
       }
     },
@@ -26,7 +27,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "forbidden"
+          "refusal": "forbidden",
+          "text": "Example sentence for forbidden"
         }
       }
     },
@@ -46,13 +48,20 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
+          "identityVersion": 1,
           "application": "forge",
           "trackerId": "example-tracker-id",
           "project": "Example Agency",
           "codeVersion": "code-example",
           "installVersion": 17,
           "processId": 4242,
-          "watcherProtocolVersion": 2
+          "watcherProtocolVersion": 2,
+          "contracts": {
+            "summary": 1,
+            "monitor": 1,
+            "control": 1,
+            "embed": 1
+          }
         }
       }
     },
@@ -64,7 +73,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },
@@ -88,7 +98,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },
@@ -116,7 +127,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },
@@ -128,6 +140,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
+          "controlVersion": 1,
           "outcome": "done",
           "result": {
             "logged": [
@@ -152,7 +165,9 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "There is no readable ticket 999. Run `forge ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed."
+          "controlVersion": 1,
+          "refusal": "no-readable-ticket",
+          "text": "There is no readable ticket 999. Run `forge ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed."
         }
       }
     },
@@ -188,7 +203,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },
@@ -238,7 +254,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },
@@ -262,7 +279,8 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "refusal": "unauthorized"
+          "refusal": "unauthorized",
+          "text": "Example sentence for unauthorized"
         }
       }
     },

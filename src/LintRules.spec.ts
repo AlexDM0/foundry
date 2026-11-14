@@ -110,6 +110,23 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
     text:   'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n',
     ruleId: 'import/no-extraneous-dependencies',
   },
+  ...[
+    'export const now = Date.now();\n',
+    'export const now = performance.now();\n',
+    'export const now = new Date();\n',
+    'export const fill = (element: Element): void => {\n  element.innerHTML = \'<b>bold</b>\';\n};\n',
+    'export const swap = (element: Element): void => {\n  element.outerHTML = \'<b>bold</b>\';\n};\n',
+    'export const add = (element: Element): void => {\n  element.insertAdjacentHTML(\'beforeend\', \'<b>bold</b>\');\n};\n',
+    'export const answer = fetch(\'/api\');\n',
+    'export const request = new XMLHttpRequest();\n',
+    'export const socket = new WebSocket(\'ws://example.test\');\n',
+    'export const stream = new EventSource(\'/events\');\n',
+    'export const database = indexedDB;\n',
+  ].map((text) => ({ path: 'flint/Planted.ts', text, ruleId: 'no-restricted-syntax' })),
+  { path: 'flint/react/Planted.tsx', text: 'export const view = <div dangerouslySetInnerHTML={{ __html: \'<b>bold</b>\' }} />;\n', ruleId: 'no-restricted-syntax' },
+  { path: 'flint/Planted.ts', text: 'export const stored = localStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
+  { path: 'flint/react/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
+  { path: 'flint/Planted.ts', text: 'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n', ruleId: 'import/no-extraneous-dependencies' },
 ];
 
 const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
@@ -154,6 +171,12 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
     'design-system/atoms/Planted.dom.tsx',
     'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n',
   ],
+  [
+    'a Flint spec importing a test package of the forge',
+    'flint/Planted.spec.ts',
+    'import { GlobalRegistrator } from \'@happy-dom/global-registrator\';\n\nexport const register = GlobalRegistrator;\n',
+  ],
+  ['a Flint DOM spec importing a test package of the forge', 'flint/Planted.dom.tsx', 'import { render } from \'@testing-library/react\';\n\nexport const draw = render;\n'],
 ];
 
 describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {

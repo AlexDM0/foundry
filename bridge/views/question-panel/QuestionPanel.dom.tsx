@@ -9,6 +9,7 @@
  * conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form, and one a later board drops
  * falls back to the background; the steps are the followed transcript's last top-level calls with the question current; earlier answers
  * keep to the ticket; planted markup stays text; and while the detail panel shows the panel is hidden and leaves Esc alone.
+ * The shown panel is a workplace of Flint.
  */
 import {
   act,
@@ -27,9 +28,9 @@ import {
 import { useMemo, type ReactElement } from 'react';
 
 import { PRODUCT_NAMES }                                        from '../../../src/shared/constants/ProductNames.ts';
+import { OpenDecisionsUtil }                                    from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { DecisionDocument }                                from '../../@types/ConversationDocuments.ts';
 import type { CommandOutcome, ControlCommandBody }              from '../../api/CommandClient.ts';
-import { OpenDecisionsUtil }                                    from '../../conversation/OpenDecisionsUtil.ts';
 import type { TranscriptFollower }                              from '../../conversation/TranscriptLog.tsx';
 import { boardPreferenceStoreOf }                               from '../../preferences/PreferenceStore.ts';
 import { ControlSurroundingsContext, type ControlAvailability } from '../../shell/ControlAvailability.ts';
@@ -419,4 +420,9 @@ describe('beside the detail panel', () => {
     });
     expect(panelIsShown()).toBe(true);
   });
+});
+
+test('the shown panel is a workplace of Flint', () => {
+  renderPanel();
+  expect(panel().closest('.bridge-question-panel')?.hasAttribute('data-flint-workplace')).toBe(true);
 });

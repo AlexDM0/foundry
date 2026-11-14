@@ -10,6 +10,7 @@
  * lanes' priority and state groups, "needed first" and `↦ N`, the hover marks and arrows (against stubbed card boxes, since happy-dom
  * lays nothing out), the Ready lane by wave, a closed lane's pages and the finished-work window's hidden line, and the Abandoned lane's
  * fold, each choice stored under its key; the title row, the dashed card of a state that waits for a person, and no state badge.
+ * The view is a workplace of Flint.
  */
 import {
   act,
@@ -675,4 +676,9 @@ describe('the finished-work window', () => {
     renderKanbanWith({ initialBoard: exampleBoard({ tickets: [] }), finishedWork: LAST_DAY });
     expect(within(laneNamed('Done')).getByText('Nothing done in the last day.')).toBeTruthy();
   });
+});
+
+test('the view is a workplace of Flint', () => {
+  renderKanban();
+  expect(screen.getByRole('region', { name: 'Kanban' }).hasAttribute('data-flint-workplace')).toBe(true);
 });

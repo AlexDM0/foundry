@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"codeVersion\": \"da8662a80428\",\n  \"installVersion\": 28\n}\n",
+        "stdout": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"8fecbd785f16\",\n  \"installVersion\": 28,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 1,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
         "stderr": ""
       }
     },

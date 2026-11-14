@@ -1,15 +1,18 @@
 /**
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
- * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
- * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
- * board is live so every live animation follows the stream, the theme button stores and applies each choice in turn, a header chip links
- * to its job on the Agents tab and its flag opens that tab, the Waiting on User pill and the tab counts read the board the stream sends,
- * the question panel shows over every tab, hides behind a routed detail and closes on Esc only after it, holds the page's one Flint slot
- * over the Assistant, whose chat head gets its own back once it folds, an embedded page's Esc leaves
- * the board on any route no panel takes it on, and a view that throws leaves the error banner, not a blank page. The board's no-pipeline
- * question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even from a
- * stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
+ * its control and an unreachable Overseer is said there too, each refused command has Flint refuse, a refused session code or a lost
+ * session raises the session banner in place of an empty board, a reconnect to an Overseer running new code reloads the page, each tab
+ * routes to its view, the root says whether the board is live so every live animation follows the stream, the theme button stores and
+ * applies each choice in turn, a header chip links to its job on the Agents tab and its flag opens that tab, the Waiting on User pill and
+ * the tab counts read the board the stream sends, the question panel shows over every tab, hides behind a routed detail and closes on Esc
+ * only after it, holds the page's one Flint slot over the Assistant, whose chat head gets its own back once it folds,
+ * `#questions/<id>` points it at that question, an embedded page's Esc leaves the board on any route no panel takes it on, Gaia's frame
+ * hears `ready`, each route, `leave` and `session-lost` in the versioned channel's shape and is followed on `navigate`, a message of
+ * another channel version is answered by nothing, a board control in Gaia's frame shows the Overseer's refusal verbatim and posts
+ * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's
+ * no-pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there
+ * even from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
  */
 import {
   act,
@@ -26,6 +29,7 @@ import {
   test
 } from 'bun:test';
 
+import type { FlintHandle }                                        from '../../flint/CreateFlint.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';
@@ -34,6 +38,7 @@ import type { EventStreamHandlers }                                from '../api/
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
+import { createManualFlintFrames }                                 from '../testing/ManualFlintFrames.ts';
 import { pipelineBoardStateOf }                                    from '../testing/PipelineFixture.ts';
 import { DARK_MODE_QUESTION }                                      from '../testing/QuestionPanelFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
@@ -91,7 +96,7 @@ function fakeBridge(): FakeBridge {
         setItem:    (key, value) => storage.set(key, value),
         removeItem: (key) => storage.delete(key),
       }),
-      embedded:             false,
+      embeddingHost:        null,
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:00Z'),
       followTranscript:     () => ({ close: () => undefined }),
@@ -103,6 +108,7 @@ function fakeBridge(): FakeBridge {
         setDocumentTitle:  () => undefined,
         baseDocumentTitle: 'agent-progress',
       },
+      flintFrameSource: createManualFlintFrames().frameSource,
     },
     storage,
     stream: () => {
@@ -188,6 +194,35 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('Ticket 042 is not ready: it has no Brief.').getAttribute('role')).toBe('status');
+  });
+
+  test('each command the Overseer refuses has Flint refuse, once for each refusal', async () => {
+    const bridge = fakeBridge();
+    const performed: string[] = [];
+    const recordingFlint = (handle: FlintHandle | null): void => {
+      if (handle === null) return;
+      const carryOut = handle.perform;
+      Object.assign(handle, {
+        perform: (intent: string, toward?: Element) => {
+          performed.push(intent);
+          return toward === undefined ? carryOut(intent) : carryOut(intent, toward);
+        },
+      });
+    };
+    render(<BridgeApp services={{ ...bridge.services, onFlintHandle: recordingFlint }} />);
+    await act(async () => {
+      bridge.stream().onConnection('live');
+      bridge.stream().onEvent('board', BOARD);
+      await Promise.resolve();
+    });
+    bridge.answerWith({ verdict: 'refused', refusal: 'Ticket 042 is not ready: it has no Brief.' });
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        fireEvent.click(pauseButton());
+        await Promise.resolve();
+      });
+    }
+    expect(performed).toEqual(['refuse', 'refuse']);
   });
 
   test('a command that reaches no Overseer says so beside its control', async () => {
@@ -672,7 +707,10 @@ describe('the embedded page\'s Esc', () => {
     const leaveMessages: unknown[] = [];
     const parent = { postMessage: (message: unknown) => leaveMessages.push(message) };
     return {
-      bridge: { ...bridge, services: { ...bridge.services, embedded: true, embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) } },
+      bridge: {
+        ...bridge,
+        services: { ...bridge.services, embeddingHost: 'dashboard', embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) },
+      },
       leaveMessages,
     };
   }
@@ -698,6 +736,156 @@ describe('the embedded page\'s Esc', () => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
     expect(leaveMessages).toEqual([]);
+  });
+});
+
+describe('the Gaia embed channel', () => {
+  const GAIA_ORIGIN = 'http://127.0.0.1:5180';
+
+  interface PostedMessage {
+    readonly message:      unknown;
+    readonly targetOrigin: string;
+  }
+
+  function gaiaBridge(): { bridge: FakeBridge; posted: PostedMessage[]; parent: Window } {
+    const bridge = fakeBridge();
+    const posted: PostedMessage[] = [];
+    const parent = { postMessage: (message: unknown, targetOrigin: string) => posted.push({ message, targetOrigin }) } as unknown as Window;
+    return {
+      bridge: { ...bridge, services: { ...bridge.services, embeddingHost: 'gaia', embeddedSurroundings: () => ({ window, parent, parentOrigin: GAIA_ORIGIN }) } },
+      posted,
+      parent,
+    };
+  }
+
+  function envelope(message: object): PostedMessage {
+    return { message: { channel: 'forge-embed', channelVersion: 1, ...message }, targetOrigin: GAIA_ORIGIN };
+  }
+
+  async function parentSends(parent: Window, data: unknown): Promise<void> {
+    await act(async () => {
+      window.dispatchEvent(new MessageEvent('message', { data, origin: GAIA_ORIGIN, source: parent }));
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      await Promise.resolve();
+    });
+  }
+
+  /** The identity arrives after the first board; it is awaited too, so no state update lands outside `act`. */
+  async function renderedInGaia(bridge: FakeBridge, board: unknown = BOARD): Promise<void> {
+    await renderedLive(bridge, board);
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  const twoQuestionBoard = (): unknown => ({
+    ...BOARD,
+    ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
+    decisions:       [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }, { ...DARK_MODE_QUESTION, id: 'E8', ticketIds: ['002'] }],
+    questionHistory: [],
+  });
+
+  test('ready goes out once when the shell has painted, then the shown route, both to Gaia\'s origin only', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge);
+    expect(posted).toEqual([envelope({ kind: 'ready' }), envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('navigate to #questions/E8 points the question panel at E8 and is answered with route', async () => {
+    window.location.hash = '#kanban';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge, twoQuestionBoard());
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions/E8'
+    });
+    expect(screen.queryByRole('complementary', { name: 'Question E8 from J4' })).not.toBeNull();
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#questions/E8' })]);
+  });
+
+  test('navigate to the route already shown is answered with route at once', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents'
+    });
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('navigate that moves the address bar but leaves the route shown is answered with the route shown', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents/'
+    });
+    expect(window.location.hash).toBe('#agents/');
+    expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
+  });
+
+  test('a message of another channel version, another channel or agent-dashboard\'s shape is ignored and answered by nothing', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted, parent } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    await parentSends(parent, {
+      channel: 'forge-embed', channelVersion: 2, kind: 'navigate', fragment: '#questions'
+    });
+    await parentSends(parent, {
+      channel: 'other-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions'
+    });
+    await parentSends(parent, { kind: 'theme', themeChoice: 'dark' });
+    expect(window.location.hash).toBe('#agents');
+    expect(posted).toEqual([]);
+  });
+
+  test('Esc that no panel takes posts leave, and a lost session posts session-lost', async () => {
+    window.location.hash = '#agents';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge);
+    posted.length = 0;
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    act(() => bridge.stream().onConnection('no-session'));
+    expect(posted).toEqual([envelope({ kind: 'leave' }), envelope({ kind: 'session-lost' })]);
+  });
+
+  const BOARD_WITH_TICKET_002 = (): unknown => ({ ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
+
+  async function recordDeliveredByHand(): Promise<void> {
+    for (const name of ['Delivered by hand…', 'Record delivered']) {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name }));
+        await Promise.resolve();
+      });
+    }
+  }
+
+  test('a by-hand delivery the Overseer refuses shows its sentence verbatim in the frame, and posts nothing to Gaia', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    posted.length = 0;
+    const refusal = 'Ticket #002 has job J4 live (running), so it cannot be recorded delivered by hand. Nothing was written.';
+    bridge.answerWith({ verdict: 'refused', refusal });
+    await recordDeliveredByHand();
+    expect(screen.getByText(refusal).getAttribute('role')).toBe('status');
+    expect(posted).toEqual([]);
+  });
+
+  test('a by-hand delivery whose session token answers 401 posts session-lost to Gaia', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, posted } = gaiaBridge();
+    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    posted.length = 0;
+    bridge.answerWith({ verdict: 'no-session' });
+    await recordDeliveredByHand();
+    expect(posted).toEqual([envelope({ kind: 'session-lost' })]);
   });
 });
 

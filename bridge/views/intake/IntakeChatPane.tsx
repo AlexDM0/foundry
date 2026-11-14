@@ -1,7 +1,8 @@
 /**
  * The selected session: its head (title, job, turns and calls, state), its chat with User's request first, the agent's turns and each open
  * decision docked where it was asked, then, while the session is open, the product owner's live turn where Flint works; the composer
- * sending `job-message`, and beside it the drafts, the pictures and Close intake. It follows the one transcript stream of its job.
+ * sending `job-message`, and beside it the drafts, the pictures and Close intake. It follows the one transcript stream of its job. Its
+ * chat cues the chat habitat of Flint when a filing draft is researched.
  */
 import { StateBadge } from 'design-system/StateBadge';
 
@@ -12,10 +13,12 @@ import { JobLink }                                                  from '../../
 import { DecisionCard }                                             from '../../conversation/DecisionCard.tsx';
 import { useTranscript, type TranscriptFollower }                   from '../../conversation/TranscriptLog.tsx';
 import { StateToneUtil }                                            from '../../utils/StateToneUtil.ts';
+import { DraftResearchCue }                                         from './DraftResearchCue.tsx';
 import { IntakeAside }                                              from './IntakeAside.tsx';
 import { IntakeChat }                                               from './IntakeChat.tsx';
 import { IntakeModelUtil, type IntakeChatTurn, type IntakeSession } from './IntakeModel.ts';
 import { IntakePane }                                               from './IntakePane.tsx';
+import type { CuedDraft }                                           from './IntakeSpriteModel.ts';
 import { ProductOwnerAtWork }                                       from './ProductOwnerAtWork.tsx';
 import { SentPicture }                                              from './SentPicture.tsx';
 
@@ -24,6 +27,8 @@ export interface IntakeChatPaneProps {
   readonly followTranscript:  TranscriptFollower;
   readonly pictureLimits:     PictureLimitsDocument | null;
   readonly todayCalendarDate: string;
+  /** The board's open filing drafts. */
+  readonly filingDrafts:      readonly CuedDraft[];
 }
 
 const PRODUCT_OWNER_LABEL = 'Product owner';
@@ -42,7 +47,7 @@ function DockedDecision({ decision }: { readonly decision: DecisionDocument }) {
 }
 
 export function IntakeChatPane({
-  session, followTranscript, pictureLimits, todayCalendarDate
+  session, followTranscript, pictureLimits, todayCalendarDate, filingDrafts
 }: IntakeChatPaneProps) {
   const { jobId } = session;
   const entries = useTranscript(jobId, followTranscript);
@@ -92,6 +97,7 @@ export function IntakeChatPane({
           commandOf={(text, pictures) => ({
             kind: 'job-message', jobId, text, ...(pictures.length === 0 ? {} : { pictures })
           })}
+          chatCues={<DraftResearchCue drafts={filingDrafts} />}
         />
         <IntakeAside session={session} pictures={IntakeModelUtil.picturesInChatOf(entries)} />
       </div>

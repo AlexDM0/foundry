@@ -4,6 +4,7 @@
  * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
  * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
  * the consequences its agent noted; and each open card opens the question panel at itself beside the board.
+ * The view is a workplace of Flint.
  */
 import {
   act,
@@ -246,4 +247,9 @@ describe('questions reach User wherever User is', () => {
     expect(asked).toBe(1);
     expect(screen.queryByRole('button', { name: 'Notify me of new questions' })).toBeNull();
   });
+});
+
+test('the view is a workplace of Flint', () => {
+  const { container } = fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} />);
+  expect(container.querySelector('.bridge-view')?.hasAttribute('data-flint-workplace')).toBe(true);
 });

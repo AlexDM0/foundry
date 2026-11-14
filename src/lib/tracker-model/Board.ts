@@ -714,6 +714,8 @@ export class Board {
         return this.incidentMoves.defaultIncident(step.incidentId, step.cause, decisionWordingOf, at);
       case 'pause-overseer':
         return this.setOverseerState('paused', at).logged;
+      case 'await-machine-slot':
+        return [];
     }
   }
 

@@ -1,0 +1,9 @@
+{
+  "stamp": {
+    "boundary": "launcher.ts",
+    "system": "bun",
+    "version": "1.4.2",
+    "os": "darwin"
+  },
+  "answers": []
+}

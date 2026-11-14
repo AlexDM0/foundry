@@ -5,6 +5,7 @@
  * the cards carry the epic marks, a one-at-a-time wave saying so in its head and leaving its ticket cards plain;
  * a ticket line opens its ticket form over the Epics tab and is marked while open; the epic the route points at is marked; and a window
  * that hides every epic says so in one line.
+ * The view is a workplace of Flint.
  */
 import {
   act,
@@ -135,4 +136,9 @@ describe('the epic cards', () => {
     expect(screen.queryAllByRole('article')).toHaveLength(0);
     expect(document.querySelector('.bridge-epics-empty')?.textContent).toBe('No epic finished in the last hour.');
   });
+});
+
+test('the view is a workplace of Flint', () => {
+  renderedEpics();
+  expect(screen.getByRole('region', { name: 'Epics' }).hasAttribute('data-flint-workplace')).toBe(true);
 });

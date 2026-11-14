@@ -11,8 +11,10 @@ function refuseRuntimeOnly(command: ControlCommand): never {
 }
 
 export const OVERSEER_CONTROLS = {
-  'overseer-pause':   (_command: ControlCommand, change: TrackerChange) => change.board.setOverseerState('paused', change.at),
-  'overseer-resume':  (_command: ControlCommand, change: TrackerChange) => change.board.setOverseerState('running', change.at),
-  'overseer-stop':    refuseRuntimeOnly,
-  'overseer-restart': refuseRuntimeOnly,
+  'overseer-pause':          (_command: ControlCommand, change: TrackerChange) => change.board.setOverseerState('paused', change.at),
+  'overseer-resume':         (_command: ControlCommand, change: TrackerChange) => change.board.setOverseerState('running', change.at),
+  'overseer-stop':           refuseRuntimeOnly,
+  'overseer-restart':        refuseRuntimeOnly,
+  // The limit lives in the monitor folder, not in a board, so `POST /api/commands` sets it outside any hold.
+  'machine-agent-limit-set': refuseRuntimeOnly,
 } as const;

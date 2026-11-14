@@ -82,6 +82,7 @@ interface RegistryEntry {
   progressHtml:  string;
   progressJson:  string;
   gitOrigin:     string | null;
+  program:       string;
   registeredAt:  string;
   lastChangedAt: string;
   lastCommand:   string;
@@ -175,11 +176,12 @@ testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carr
     progressHtml:  paths.htmlFilePath,
     progressJson:  paths.progressFilePath,
     gitOrigin:     EXAMPLE_ORIGIN,
+    program:       '/example/bin/forge',
     registeredAt:  LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastChangedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastCommand:   'init',
   });
-  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'registeredAt', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
 });
 
 testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
@@ -201,15 +203,18 @@ testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastC
   expect(Object.keys(registry().projects)).toEqual([trackerId]);
 });
 
-testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
+testWhenGitIsRecorded('an Overseer key with its token path is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
-  const overseer              = { url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW) };
+  const overseer              = {
+    url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW), tokenPath: join(homeDirectory, 'example-token')
+  };
   const registration = {
     workspace:            workspacePathsFor(repositoryDirectory),
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     temporaryDirectories: [folderOutsideEveryRepository],
     command:              'oversee',
+    program:              '/example/bin/forge',
     now:                  () => FIRST_NOW,
   };
 
@@ -218,7 +223,7 @@ testWhenGitIsRecorded('an Overseer key is added at the overseer\'s start, kept b
   )).verdict;
 
   expect(await registered(overseer)).toBe('registered');
-  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'oversee' });
+  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'oversee', program: '/example/bin/forge' });
   await requireExitZero(['log', 'Example milestone'], await registeringContext(repositoryDirectory, SECOND_NOW));
   expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'log' });
   expect(await registered('removed')).toBe('registered');
@@ -287,7 +292,12 @@ testWhenGitIsRecorded('A2: a tracker under the system temp folder registers noth
 /** Registers straight through the service, since no spec may write a tracker under `/tmp` or `/var/tmp` themselves. A refused one asks no origin. */
 async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDirectories: readonly string[], stage: RecordedGitStage = []): Promise<string> {
   const outcome = await recordedGit.playStage(stage, async () => registerWithTheMonitor({
-    workspace: workspacePathsFor(rootDirectory), monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER), temporaryDirectories, command: 'log', now: () => FIRST_NOW
+    workspace:     workspacePathsFor(rootDirectory),
+    monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    temporaryDirectories,
+    command:       'log',
+    program:       '/example/bin/forge',
+    now:           () => FIRST_NOW,
   }));
   return outcome.verdict;
 }
@@ -360,7 +370,9 @@ testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive
   const entries = registry().projects;
   expect(Object.keys(entries)).toEqual(['other', trackerId]);
   expect(entries['other']).toEqual({ project: 'Other Example', pinned: true } as unknown as RegistryEntry);
-  expect(Object.keys(entries[trackerId] ?? {})).toEqual(['pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entries[trackerId] ?? {})).toEqual([
+    'pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
+  ]);
   expect(entries[trackerId]).toMatchObject({ project: 'Example Agency', registeredAt: '2026-01-02T03:04:05+01:00' });
 });
 

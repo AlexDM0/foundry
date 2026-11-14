@@ -1,7 +1,8 @@
 /**
  * The Tickets view: its title row (the count and what the finished-work choice hides), the toolbar card (search, the type, epic and status
  * chips, Group by epic), and the table card of `TicketsModel`, a click, Enter or Space on a row opening its row form in the detail panel.
- * The search and the chips live in the view; the grouping by epic is kept per board.
+ * The search and the chips live in the view; the grouping by epic is kept per board. The view is the tickets
+ * habitat of Flint (`bridge/flint/UseTicketsHabitat.ts`).
  */
 
 import { Button }       from 'design-system/Button';
@@ -22,6 +23,7 @@ import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.
 import { EpicChips }                             from '../../chips/EpicChips.tsx';
 import { FilterChipGroup }                       from '../../chips/FilterChipGroup.tsx';
 import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.tsx';
+import { useTicketsHabitat }                     from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                        from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                           from '../../shell/DetailRoute.ts';
@@ -207,6 +209,8 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const finishedWorkWindow = useFinishedWorkWindow();
   const [changedTicketIds, clearChange] = useChangedKeys(boardState, TicketsModel.changedTicketIdsBetween);
   const searchInput = useRef<HTMLInputElement>(null);
+  const viewElement = useRef<HTMLElement>(null);
+  useTicketsHabitat(viewElement, boardState.page.tickets);
   const [view, setView] = useState<TicketView>(DEFAULT_TICKET_VIEW);
   const [groupedChoice, setGroupedChoice] = useState<boolean | null>(null);
   const groupedByEpic = groupedChoice ?? boardStore?.readChoice(TICKET_GROUPING_CHOICE_NAME) === TICKETS_GROUPED_BY_EPIC_CHOICE;
@@ -239,7 +243,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const hiddenWorkText = TicketsModel.hiddenWorkTextOf(finishedWorkWindow.choice, model.narrows);
 
   return (
-    <section className="bridge-tickets" aria-label="Tickets">
+    <section className="bridge-tickets" aria-label="Tickets" ref={viewElement} data-flint-workplace="">
       <ViewTitle
         title="Tickets"
         lead={(

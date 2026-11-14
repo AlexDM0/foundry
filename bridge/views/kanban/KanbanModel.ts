@@ -8,15 +8,15 @@ import { TokenCountUtil }                               from '../../../src/lib/t
 import type { DisplayState }                            from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketPriority, TicketSize, TicketType }  from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { FIRST_REPEAT_REVIEW_ROUND }                    from '../../../src/lib/tracker-model/constants/ReviewRounds.ts';
+import { DraftWordingUtil }                             from '../../../src/shared/monitor/utils/DraftWordingUtil.ts';
+import { OpenDecisionsUtil }                            from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { DependencyGraph }                         from '../../@types/DependencyGraph.ts';
 import type { KanbanBoardState, KanbanEpicDocument }    from '../../@types/KanbanBoardState.ts';
 import type { KanbanFilingDraft, KanbanTicketDocument } from '../../@types/KanbanBoardState.ts';
 import type { KanbanTaskDocument }                      from '../../@types/KanbanBoardState.ts';
 import { ChipFilterUtil }                               from '../../chips/ChipFilterUtil.ts';
-import { OpenDecisionsUtil }                            from '../../conversation/OpenDecisionsUtil.ts';
 import { DependencyGraphUtil }                          from '../../utils/DependencyGraphUtil.ts';
 import { DisplayStateWordingUtil }                      from '../../utils/DisplayStateWordingUtil.ts';
-import { DraftWordingUtil }                             from '../../utils/DraftWordingUtil.ts';
 import type { FinishedWorkChoice }                      from '../../utils/FinishedWorkUtil.ts';
 import { FinishedWorkUtil }                             from '../../utils/FinishedWorkUtil.ts';
 import { HeldCountUtil }                                from '../../utils/HeldCountUtil.ts';

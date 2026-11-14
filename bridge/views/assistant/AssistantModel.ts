@@ -8,6 +8,7 @@ import type { StampProps } from 'design-system/Stamp';
 import type { TagProps }   from 'design-system/Tag';
 
 import type { DisplayState } from '../../../src/lib/tracker-model/@types/Task.ts';
+import { OpenDecisionsUtil } from '../../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type {
   ConversationBoardDocument,
   HistoryRecordDocument,
@@ -17,7 +18,6 @@ import type {
 import type { ChatTurn }                         from '../../conversation/ChatThread.tsx';
 import type { ChatThreadItem, QueuedMessage }    from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                   from '../../conversation/ChatTurnWordingUtil.ts';
-import { OpenDecisionsUtil }                     from '../../conversation/OpenDecisionsUtil.ts';
 import { IncidentTrailUtil, type IncidentEntry } from '../../utils/IncidentTrailUtil.ts';
 import { JobStateUtil }                          from '../../utils/JobStateUtil.ts';
 import { StateToneUtil }                         from '../../utils/StateToneUtil.ts';

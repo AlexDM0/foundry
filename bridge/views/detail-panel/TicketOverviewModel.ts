@@ -69,7 +69,7 @@ const USER_PARK_HOLD = 'parked:user';
 
 const QUEUED_NOTE = 'In the queue.';
 
-export type TicketMove = 'ready' | 'merge-accept' | 'unhold' | 'merge-update' | 'hold' | 'priority' | 'park' | 'network';
+export type TicketMove = 'ready' | 'merge-accept' | 'unhold' | 'merge-update' | 'hold' | 'priority' | 'park' | 'network' | 'deliver-by-hand';
 
 export type TextPartModel =
   | { readonly kind: 'text'; readonly text: string }
@@ -105,7 +105,7 @@ export interface MoveModel {
   readonly move:        TicketMove;
   readonly label:       string;
   readonly effect:      readonly TextPartModel[];
-  readonly opens:       'reason' | 'domains' | 'priorities' | null;
+  readonly opens:       'reason' | 'domains' | 'priorities' | 'by-hand' | null;
   readonly sendable:    boolean;
   /** Set network…'s field starts from the domains stored now. */
   readonly domains?:    readonly string[];
@@ -342,6 +342,22 @@ function parkMoveOf(ticketId: string, liveJob: DetailJobDocument | null): MoveMo
   };
 }
 
+/** Work User landed outside the Overseer; the Overseer refuses it while a job of the ticket is live, so the button waits for none. */
+function deliverByHandMoveOf(ticketId: string, liveJob: DetailJobDocument | null): MoveModel {
+  return {
+    move:   'deliver-by-hand',
+    label:  'Delivered by hand…',
+    effect: [
+      textOf('Records '),
+      emphasisOf(idTextOf(ticketId)),
+      textOf(' delivered: work User landed outside the Overseer. Nothing merges, lands or launches.'),
+      ...(liveJob === null ? [] : [textOf(` Waits until ${liveJob.id} has ended.`)]),
+    ],
+    opens:    'by-hand',
+    sendable: liveJob === null,
+  };
+}
+
 /** Every move the controls offer, in the order the panel lists them; the lead is taken out of them by `overviewOf`. */
 function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: DetailJobDocument | null): MoveModel[] {
   const id = idTextOf(ticketId);
@@ -404,6 +420,7 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Detai
       domains:  controls.network,
     });
   }
+  if (controls.deliversByHand) moves.push(deliverByHandMoveOf(ticketId, liveJob));
   return moves;
 }
 

@@ -45,6 +45,7 @@ import type { BridgeClock }                                                     
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { QuestionPanelShownContext }                                                       from '../../shell/CoveringPanel.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
+import { createManualFlintFrames }                                                         from '../../testing/ManualFlintFrames.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                                        from '../../testing/TimestampSlicesFixture.ts';
 import type { AgentJobDocument, JobLiveFactsDocument }                                     from './AgentJobDocument.ts';
@@ -401,7 +402,7 @@ describe('a row\'s live facts', () => {
       fetchIdentity:        () => Promise.resolve(identity),
       reload:               () => undefined,
       storage:              () => ({ getItem: () => null, setItem: () => undefined, removeItem: () => undefined }),
-      embedded:             false,
+      embeddingHost:        null,
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:05Z'),
       followTranscript:     () => ({ close: () => undefined }),
@@ -413,6 +414,7 @@ describe('a row\'s live facts', () => {
         setDocumentTitle:  () => undefined,
         baseDocumentTitle: 'agent-progress',
       },
+      flintFrameSource: createManualFlintFrames().frameSource,
     }} />);
     const stream = (): EventStreamHandlers => {
       if (handlers === null) throw new Error('no event stream');
