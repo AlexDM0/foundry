@@ -20,7 +20,7 @@ export interface DetachedStartRequest {
 }
 
 export interface OwnedStartRequest extends DetachedStartRequest {
-  /** Hands the child a channel on its descriptors 3, which it reads, and 4, which it writes, as a browser's debugging pipe expects. */
+  /** Hands the child a channel on its descriptors 3, which it reads, and 4, which it writes. */
   readonly withChannel?: boolean;
 }
 
@@ -134,7 +134,8 @@ function channelOver(writtenDescriptor: number, readDescriptor: number): ChildCh
       if (channelIsClosed) return;
       try {
         writer.write(text);
-        void writer.flush();
+        // A flush the child no longer reads rejects later, with a broken pipe, and ends the channel as a failed write does.
+        void Promise.resolve(writer.flush()).catch(close);
       } catch {
         close();
       }
