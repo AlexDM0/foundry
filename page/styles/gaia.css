@@ -625,7 +625,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-role {
   font-family: var(--font-mono);
   font-size: var(--fs-agents-role);
-  font-weight: var(--weight-brand);
+  font-weight: var(--weight-agents-role);
   letter-spacing: var(--agents-role-tracking);
   text-transform: uppercase;
   color: var(--ink-4);

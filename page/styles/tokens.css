@@ -67,6 +67,7 @@
   --agents-machine-width: 320px;
   --agents-ticket-chip-height: 24px;
   --fs-agents-role:      10.5px;
+  --weight-agents-role:  700;
   --agents-role-tracking: 0.08em;
   --fs-agents-panel-kind: 14px;
   --line-height-agents-last-line: 18px;
