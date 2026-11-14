@@ -4,7 +4,11 @@
  * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 (PLAN V9); every colour token of
  * Gaia's own `tokens.css` has a light and a dark value; `gaia.css` holds no colour value and reads only tokens that the package's or Gaia's
  * `tokens.css` defines; a hover or press rule changes no size or place; and every class a shipping component emits is styled, and every
- * styled class emitted. Each guard is first proved on a planted case, in memory.
+ * styled class emitted. Motion, in `gaia.css` and the splash's own style: every transition and animation times itself with a package motion
+ * token and eases with `--ease-out`, animates no size or place, and starts from no size or place; an animation is a live signal that runs
+ * only once motion is ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no
+ * keyframe and names only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under
+ * reduced motion, or is an exception only a gated animation reads. Each guard is first proved on a planted case, in memory.
  */
 import { readFileSync }  from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -15,6 +19,7 @@ import typescript                 from 'typescript';
 const PAGE_FOLDER = import.meta.dir;
 const TOKENS_PATH = join(PAGE_FOLDER, 'styles', 'tokens.css');
 const STYLESHEET_PATH = join(PAGE_FOLDER, 'styles', 'gaia.css');
+const SPLASH_PATH = join(PAGE_FOLDER, '..', 'resources', 'page', 'loading.html');
 const SMALLEST_TEXT_CONTRAST_RATIO = 4.5;
 const SMALLEST_PRIMARY_BUTTON_CONTRAST_RATIO = 3;
 const SMALLEST_CLASS_COUNT = 20;
@@ -81,6 +86,35 @@ const FEEDBACK_PROPERTIES = new Set([
   'text-decoration-color',
   'cursor',
 ]);
+
+/** Properties a transition, a starting style or a keyframe may animate: none of them sizes or places a box. */
+const MOTION_PROPERTIES = new Set([
+  'color',
+  'background-color',
+  'border-color',
+  'border-top-color',
+  'border-right-color',
+  'border-bottom-color',
+  'border-left-color',
+  'box-shadow',
+  'opacity',
+  'filter',
+  'text-decoration-color',
+]);
+
+const EASE_TOKEN = 'var(--ease-out)';
+const READY_GATE = ':root[data-motion="ready"]';
+const MOTION_GATE_SELECTOR = ':root:not([data-motion="ready"])';
+const REDUCED_MOTION_PATTERN = /prefers-reduced-motion:\s*reduce/;
+const RAW_TIME_PATTERN = /^-?[\d.]+m?s$/;
+const RAW_EASE_PATTERN = /^(?:ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end|steps\(.*\)|cubic-bezier\(.*\)|linear\(.*\))$/;
+const ANIMATION_KEYWORDS = new Set(['infinite', 'both', 'forwards', 'backwards', 'normal', 'reverse', 'alternate', 'alternate-reverse', 'running', 'paused']);
+
+/** The package has no ease token for a pulse (R5): the pulse keeps the package's own `ease-in-out`, as the package's live dots do. */
+const RAW_EASE_EXCEPTIONS: ReadonlyMap<string, string> = new Map([['design-system-pulse', 'ease-in-out']]);
+
+/** The package does not zero `--pulse-status` before motion is ready (R7): only an animation, which its selector gates, may read it. */
+const UNGATED_MOTION_TOKENS: ReadonlySet<string> = new Set(['--pulse-status']);
 
 const COLOUR_FUNCTION_PATTERN = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\(/i;
 const HEX_COLOUR_PATTERN = /#[0-9a-f]{3,8}\b/i;
@@ -360,6 +394,187 @@ function feedbackSentencesOf(stylesheetText: string): string[] {
       .map((declaration) => `${rule.selector} sets ${declaration.property}, which may size or place a box`));
 }
 
+/** A value split at the separators that sit outside every parenthesis: a transition list at its commas, an item at its spaces. */
+function topLevelPartsOf(value: string, separator: ',' | ' '): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const character of value) {
+    if (character === '(') depth += 1;
+    if (character === ')') depth -= 1;
+    const separates = depth === 0 && (separator === ',' ? character === ',' : /\s/.test(character));
+    if (separates) {
+      parts.push(current.trim());
+      current = '';
+    } else current += character;
+  }
+  parts.push(current.trim());
+  return parts.filter((part) => part !== '');
+}
+
+/** What the package gives motion: its time tokens, the transitions it composes of them, and what each of its keyframes animates. */
+interface PackageMotion {
+  readonly timeTokens:         ReadonlySet<string>;
+  readonly transitionTokens:   ReadonlySet<string>;
+  readonly keyframeProperties: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+function tokenReadOf(word: string): string | null {
+  return /^var\((--[\w-]+)\)$/.exec(word)?.[1] ?? null;
+}
+
+function packageMotionOf(packageTokensText: string, packageKeyframesText: string): PackageMotion {
+  const tokens = tokensOf(rulesOf(packageTokensText), 'light');
+  const timeTokens = new Set([...tokens].filter(([, value]) => RAW_TIME_PATTERN.test(value)).map(([tokenName]) => tokenName));
+  const transitionTokens = new Set([...tokens]
+    .filter(([, value]) => [...value.matchAll(/var\((--[\w-]+)\)/g)].some(([, tokenName = '']) => timeTokens.has(tokenName)))
+    .map(([tokenName]) => tokenName));
+  const keyframeProperties = new Map<string, ReadonlySet<string>>();
+  for (const [, name = '', body = ''] of withoutComments(packageKeyframesText).matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g)) {
+    keyframeProperties.set(name, new Set(rulesOf(body).flatMap((rule) => rule.declarations.map((declaration) => declaration.property))));
+  }
+  return { timeTokens, transitionTokens, keyframeProperties };
+}
+
+function keyframeNamesOf(stylesheetText: string): string[] {
+  return [...withoutComments(stylesheetText).matchAll(/@keyframes\s+([\w-]+)/g)].map(([, name = '']) => name);
+}
+
+type MotionKind = 'transition' | 'animation';
+
+/** The part of a transition or an animation a declaration sets: the whole shorthand, or one longhand's part of it. */
+type MotionPart = 'whole' | 'property' | 'name' | 'time' | 'ease' | 'other';
+
+function motionPartOf(longhandSuffix: string): MotionPart {
+  switch (longhandSuffix) {
+    case '':
+      return 'whole';
+    case '-property':
+      return 'property';
+    case '-name':
+      return 'name';
+    case '-duration':
+    case '-delay':
+      return 'time';
+    case '-timing-function':
+      return 'ease';
+    default:
+      return 'other';
+  }
+}
+
+/** One item of a transition or an animation, sorted into what it animates, the tokens that time it, and what it may not hold. */
+function motionItemSentencesOf(site: string, item: string, kind: MotionKind, part: MotionPart, packageMotion: PackageMotion): string[] {
+  const words = topLevelPartsOf(item, ' ');
+  if (kind === 'transition' && part === 'whole' && words.length === 1 && packageMotion.transitionTokens.has(tokenReadOf(words[0] ?? '') ?? '')) return [];
+  const namesAKeyframe = kind === 'animation' && (part === 'whole' || part === 'name');
+  const keyframeName = namesAKeyframe ? words.find((word) => /^[a-z][\w-]*$/i.test(word) && !ANIMATION_KEYWORDS.has(word) && !RAW_EASE_PATTERN.test(word)) : undefined;
+  const sentences: string[] = [];
+  let timed = false;
+  for (const word of words) {
+    const tokenName = tokenReadOf(word);
+    if (tokenName !== null && packageMotion.timeTokens.has(tokenName)) timed = true;
+    else if (word === EASE_TOKEN) continue;
+    else if (RAW_TIME_PATTERN.test(word)) sentences.push(`${site} names a raw time: ${word}`);
+    else if (RAW_EASE_PATTERN.test(word)) {
+      if (keyframeName === undefined || RAW_EASE_EXCEPTIONS.get(keyframeName) !== word) sentences.push(`${site} eases by ${word}, not ${EASE_TOKEN}`);
+    } else if (tokenName !== null) sentences.push(`${site} reads ${tokenName}, which is no motion token of the package`);
+    else if (kind === 'transition' && (part === 'whole' || part === 'property') && !MOTION_PROPERTIES.has(word)) {
+      sentences.push(`${site} animates ${word}, which may size or place a box`);
+    }
+  }
+  if (!timed && (part === 'whole' || part === 'time')) sentences.push(`${site} is timed by no motion token`);
+  if (keyframeName !== undefined) {
+    const animated = packageMotion.keyframeProperties.get(keyframeName);
+    if (animated === undefined) sentences.push(`${site} runs ${keyframeName}, which the package's keyframes.css does not define`);
+    else sentences.push(...[...animated].filter((property) => !MOTION_PROPERTIES.has(property)).map((property) => `${site} runs ${keyframeName}, which animates ${property}`));
+  }
+  return sentences;
+}
+
+function selectorsOf(selectorList: string): string[] {
+  return topLevelPartsOf(selectorList, ',');
+}
+
+function reducedMotionAtRule(atRule: string | null): boolean {
+  return atRule !== null && REDUCED_MOTION_PATTERN.test(atRule);
+}
+
+/**
+ * Every transition, animation and starting style of a stylesheet: timed and eased by the package's tokens, animating no size or place; an
+ * animation, a live signal only, runs once motion is ready and stops under reduced motion.
+ */
+function motionSentencesOf(stylesheetText: string, packageMotion: PackageMotion): string[] {
+  const rules = rulesOf(stylesheetText);
+  const reducedMotionStops = new Set(rules
+    .filter((rule) => reducedMotionAtRule(rule.atRule))
+    .filter((rule) => rule.declarations.some((declaration) => /^animation(?:-name)?$/.test(declaration.property) && declaration.value === 'none'))
+    .flatMap((rule) => selectorsOf(rule.selector)));
+  return rules.flatMap((rule) => {
+    if (rule.atRule === '@starting-style') {
+      return rule.declarations
+        .filter((declaration) => !MOTION_PROPERTIES.has(declaration.property))
+        .map((declaration) => `${rule.selector} starts from ${declaration.property}, which may size or place a box`);
+    }
+    return rule.declarations.flatMap((declaration) => {
+      const match = /^(transition|animation)((?:-[\w-]+)?)$/.exec(declaration.property);
+      const kind = match?.[1];
+      if ((kind !== 'transition' && kind !== 'animation') || declaration.value === 'none') return [];
+      const part = motionPartOf(match?.[2] ?? '');
+      const site = `${rule.selector} { ${declaration.property} }`;
+      const sentences = topLevelPartsOf(declaration.value, ',').flatMap((item) => motionItemSentencesOf(site, item, kind, part, packageMotion));
+      if (kind === 'animation' && !reducedMotionAtRule(rule.atRule)) {
+        for (const selector of selectorsOf(rule.selector)) {
+          if (!selector.startsWith(`${READY_GATE} `)) sentences.push(`${selector} runs an animation before motion is ready`);
+          if (!reducedMotionStops.has(selector)) sentences.push(`${selector} runs an animation that reduced motion does not stop`);
+        }
+        if (part === 'whole' && !declaration.value.split(/\s+/).includes('infinite')) {
+          sentences.push(`${site} runs once: a part that appears fades in by a @starting-style transition, never a keyframe`);
+        }
+      }
+      return sentences;
+    });
+  });
+}
+
+/** How a motion token is read: by a transition, which only the tokens gate, or by animations alone, which their selectors gate as well. */
+type MotionTokenRead = 'transition' | 'animation only';
+
+function motionTokenReadsOf(stylesheetTexts: readonly string[], packageMotion: PackageMotion): ReadonlyMap<string, MotionTokenRead> {
+  const reads = new Map<string, MotionTokenRead>();
+  for (const declaration of stylesheetTexts.flatMap((stylesheetText) => rulesOf(stylesheetText)).flatMap((rule) => rule.declarations)) {
+    const kind = /^(transition|animation)/.exec(declaration.property)?.[1];
+    if (kind === undefined) continue;
+    for (const [, tokenName = ''] of declaration.value.matchAll(/var\((--[\w-]+)\)/g)) {
+      if (!packageMotion.timeTokens.has(tokenName) && !packageMotion.transitionTokens.has(tokenName)) continue;
+      if (kind === 'transition' || !reads.has(tokenName)) reads.set(tokenName, kind === 'transition' ? 'transition' : 'animation only');
+    }
+  }
+  return reads;
+}
+
+/** A time token is gated when the package zeroes it before motion is ready and under reduced motion; a composed token, when its times are. */
+function motionGateSentencesOf(packageTokensText: string, packageMotion: PackageMotion, reads: ReadonlyMap<string, MotionTokenRead>): string[] {
+  const rules = rulesOf(packageTokensText);
+  const zeroedIn = (selected: readonly StyleRule[]) => new Set(selected
+    .flatMap((rule) => rule.declarations)
+    .filter((declaration) => RAW_TIME_PATTERN.test(declaration.value) && Number.parseFloat(declaration.value) === 0)
+    .map((declaration) => declaration.property));
+  const zeroedBeforeReady = zeroedIn(rules.filter((rule) => rule.atRule === null && rule.selector === MOTION_GATE_SELECTOR));
+  const zeroedUnderReducedMotion = zeroedIn(rules.filter((rule) => reducedMotionAtRule(rule.atRule) && rule.selector === ':root'));
+  const tokens = tokensOf(rules, 'light');
+  const timesOf = (tokenName: string): string[] => (packageMotion.timeTokens.has(tokenName)
+    ? [tokenName]
+    : [...(tokens.get(tokenName) ?? '').matchAll(/var\((--[\w-]+)\)/g)].map(([, reference = '']) => reference).filter((reference) => packageMotion.timeTokens.has(reference)));
+  return [...reads].flatMap(([tokenName, readBy]) => {
+    if (UNGATED_MOTION_TOKENS.has(tokenName)) return readBy === 'transition' ? [`a transition reads ${tokenName}, which only a gated animation may read`] : [];
+    return [...new Set(timesOf(tokenName))].flatMap((time) => [
+      ...(zeroedBeforeReady.has(time) ? [] : [`${tokenName} reads ${time}, which the package does not zero before motion is ready`]),
+      ...(zeroedUnderReducedMotion.has(time) ? [] : [`${tokenName} reads ${time}, which the package does not zero under reduced motion`]),
+    ]);
+  });
+}
+
 interface ComponentSource {
   readonly path: string;
   readonly text: string;
@@ -437,6 +652,11 @@ const DEFINED_TOKENS = tokenNamesOf(LINKED_TOKENS_TEXT);
 const SOURCES = shippingComponentSources();
 const EMITTED = emittedClassesOf(SOURCES);
 const STYLED = styledClassesOf(STYLESHEET_TEXT);
+const PACKAGE_KEYFRAMES_TEXT = readFileSync(join(dirname(PACKAGE_TOKENS_PATH), 'keyframes.css'), 'utf8');
+const PACKAGE_MOTION = packageMotionOf(PACKAGE_TOKENS_TEXT, PACKAGE_KEYFRAMES_TEXT);
+const SPLASH_STYLE_TEXT = /<style>([\s\S]*?)<\/style>/.exec(readFileSync(SPLASH_PATH, 'utf8'))?.[1] ?? '';
+/** Gaia's stylesheets as motion reads them: the page's and the splash's own style. */
+const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
 
 describe('the readers, on known and planted values', () => {
   test('white on black is 21:1, and the same colour on itself is 1:1', () => {
@@ -543,6 +763,89 @@ describe('the readers, on known and planted values', () => {
     expect(planted('export const view = (name: string) => <p className={name} />;').unreadable).toEqual(['shell/Planted.tsx:1']);
     expect([...planted('export const view = (on: boolean) => <p className={on ? \'gaia-on\' : `gaia-off`} />;').classNames]).toEqual(['gaia-on', 'gaia-off']);
   });
+
+  test('a transition timed by a raw time, eased by a raw curve or timed by no motion token is named, and the package\'s tokens pass', () => {
+    const planted = [
+      '.a { transition: var(--feedback-transition), opacity var(--motion-base) var(--ease-out); }',
+      '.b { transition: opacity 140ms ease-in-out; }',
+      '.c { transition: color var(--space-2) var(--ease-out); }',
+      '.d { transition-duration: 2s; } .e { transition: none; }',
+    ].join(' ');
+    expect(motionSentencesOf(planted, PACKAGE_MOTION)).toEqual([
+      '.b { transition } names a raw time: 140ms',
+      '.b { transition } eases by ease-in-out, not var(--ease-out)',
+      '.b { transition } is timed by no motion token',
+      '.c { transition } reads --space-2, which is no motion token of the package',
+      '.c { transition } is timed by no motion token',
+      '.d { transition-duration } names a raw time: 2s',
+      '.d { transition-duration } is timed by no motion token',
+    ]);
+  });
+
+  test('a transition, a starting style or a keyframe that sizes or places a box is named, and opacity and colours are not', () => {
+    const planted = [
+      '.a { transition: all var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out); }',
+      '@starting-style { .b { opacity: 0; transform: translateY(4px); } }',
+      ':root[data-motion="ready"] .c { animation: design-system-pop var(--motion-pop) var(--ease-out) infinite; }',
+      '@media (prefers-reduced-motion: reduce) { :root[data-motion="ready"] .c { animation: none; } }',
+    ].join(' ');
+    expect(motionSentencesOf(planted, PACKAGE_MOTION)).toEqual([
+      '.a { transition } animates all, which may size or place a box',
+      '.a { transition } animates transform, which may size or place a box',
+      '.b starts from transform, which may size or place a box',
+      ':root[data-motion="ready"] .c { animation } runs design-system-pop, which animates transform',
+    ]);
+  });
+
+  test('an animation before motion is ready, one reduced motion does not stop, one that runs once and an unknown keyframe are each named', () => {
+    const planted = [
+      '.a { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }',
+      ':root[data-motion="ready"] .b { animation: design-system-fade var(--motion-base) var(--ease-out); }',
+      ':root[data-motion="ready"] .c { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }',
+      ':root[data-motion="ready"] .d { animation: design-system-glow var(--glow-period) ease-in-out infinite; }',
+      ':root[data-motion="ready"] .e { animation: design-system-fadein var(--motion-base) var(--ease-out) infinite; }',
+      '@media (prefers-reduced-motion: reduce) { :root[data-motion="ready"] .b, :root[data-motion="ready"] .c, :root[data-motion="ready"] .d { animation: none; } }',
+    ].join(' ');
+    expect(motionSentencesOf(planted, PACKAGE_MOTION)).toEqual([
+      '.a runs an animation before motion is ready',
+      '.a runs an animation that reduced motion does not stop',
+      ':root[data-motion="ready"] .b { animation } runs once: a part that appears fades in by a @starting-style transition, never a keyframe',
+      ':root[data-motion="ready"] .d { animation } eases by ease-in-out, not var(--ease-out)',
+      ':root[data-motion="ready"] .e { animation } runs design-system-fadein, which the package\'s keyframes.css does not define',
+      ':root[data-motion="ready"] .e runs an animation that reduced motion does not stop',
+    ]);
+  });
+
+  test('a keyframe of Gaia\'s own is named', () => {
+    expect(keyframeNamesOf('/* @keyframes gaia-commented {} */ @keyframes gaia-wash { from { opacity: 0; } }')).toEqual(['gaia-wash']);
+  });
+
+  test('a motion token the package leaves running before motion is ready or under reduced motion is named, and the pulse\'s only in a transition', () => {
+    const plantedPackage = [
+      ':root { --motion-fast: 120ms; --motion-slow: 220ms; --pulse-status: 1.6s; --toast-duration: 5s; --ease-out: cubic-bezier(0.22, 1, 0.36, 1);',
+      '--feedback-transition: color var(--motion-fast) var(--ease-out), border-color var(--toast-duration) var(--ease-out); }',
+      ':root:not([data-motion="ready"]) { --motion-fast: 0ms; --motion-slow: 0ms; }',
+      '@media (prefers-reduced-motion: reduce) { :root { --motion-fast: 0ms; } }',
+    ].join(' ');
+    const plantedMotion = packageMotionOf(plantedPackage, '');
+    expect([[...plantedMotion.timeTokens], [...plantedMotion.transitionTokens]]).toEqual([
+      ['--motion-fast', '--motion-slow', '--pulse-status', '--toast-duration'],
+      ['--feedback-transition'],
+    ]);
+    const gaiaStylesheet = [
+      '.a { transition: var(--feedback-transition); } .b { transition: opacity var(--motion-slow) var(--ease-out); }',
+      '.c { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }',
+    ].join(' ');
+    expect(motionGateSentencesOf(plantedPackage, plantedMotion, motionTokenReadsOf([gaiaStylesheet], plantedMotion))).toEqual([
+      '--feedback-transition reads --toast-duration, which the package does not zero before motion is ready',
+      '--feedback-transition reads --toast-duration, which the package does not zero under reduced motion',
+      '--motion-slow reads --motion-slow, which the package does not zero under reduced motion',
+    ]);
+    const pulsingTransition = '.d { transition: opacity var(--pulse-status) var(--ease-out); }';
+    expect(motionGateSentencesOf(plantedPackage, plantedMotion, motionTokenReadsOf([gaiaStylesheet, pulsingTransition], plantedMotion))).toContain(
+      'a transition reads --pulse-status, which only a gated animation may read',
+    );
+  });
 });
 
 describe('the scan itself', () => {
@@ -552,6 +855,15 @@ describe('the scan itself', () => {
     expect(EMITTED.classNames.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(STYLED.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(DEFINED_TOKENS.has('--bg')).toBe(true);
+  });
+
+  test('it reads the package\'s motion tokens and keyframes, and the splash\'s own style', () => {
+    expect(PACKAGE_MOTION.timeTokens).toContain('--motion-base');
+    expect(PACKAGE_MOTION.timeTokens).toContain('--pulse-status');
+    expect(PACKAGE_MOTION.transitionTokens).toContain('--feedback-transition');
+    expect(PACKAGE_MOTION.keyframeProperties.get('design-system-pulse')).toEqual(new Set(['opacity']));
+    expect(PACKAGE_MOTION.keyframeProperties.get('design-system-pop')).toEqual(new Set(['opacity', 'transform']));
+    expect(SPLASH_STYLE_TEXT).toContain('.splash-step');
   });
 });
 
@@ -588,5 +900,21 @@ describe('gaia.css', () => {
 
   test('every class a shipping component emits is styled, and every styled class is emitted', () => {
     expect(classContractSentencesOf(EMITTED, STYLED)).toEqual([]);
+  });
+});
+
+describe('motion in gaia.css and the splash', () => {
+  test('every transition and animation is timed by a package motion token, eases by --ease-out, and animates no size or place', () => {
+    for (const stylesheetText of MOTION_STYLESHEETS) expect(motionSentencesOf(stylesheetText, PACKAGE_MOTION)).toEqual([]);
+  });
+
+  test('Gaia defines no keyframe of its own: it names the package\'s', () => {
+    for (const stylesheetText of MOTION_STYLESHEETS) expect(keyframeNamesOf(stylesheetText)).toEqual([]);
+  });
+
+  test('every motion token Gaia reads is zeroed before motion is ready and under reduced motion, but the pulse\'s, which only a gated animation reads', () => {
+    const reads = motionTokenReadsOf(MOTION_STYLESHEETS, PACKAGE_MOTION);
+    expect(motionGateSentencesOf(PACKAGE_TOKENS_TEXT, PACKAGE_MOTION, reads)).toEqual([]);
+    expect(reads.get('--pulse-status')).toBe('animation only');
   });
 });
