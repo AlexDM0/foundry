@@ -1,7 +1,8 @@
 /**
  * The page's command body read in. What matters: every kind this Gaia carries out maps to its internal command with exactly its keys, a
- * body at another `commandVersion` maps nothing, a key read only as the body's own, and a kind this Gaia does not carry out named so. A
- * limit is a whole number of at least one, a path the server runs a program in is absolute, and a settings value has the type of its key.
+ * body at another `commandVersion`, older or newer, maps nothing, a `__proto__` key is an ordinary key that carries none of the keys inside
+ * it, and a kind this Gaia does not carry out is named so. A limit is a whole number of at least one, a path the server runs a program in
+ * is absolute, and a settings value has the type of its key.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -108,6 +109,10 @@ describe('a body that maps nothing', () => {
   });
 
   test('answers other-version for a body of a newer page, naming its version', () => {
+    expect(readingOf({ commandVersion: 3, kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: 3 });
+  });
+
+  test('answers other-version for a body of an older page, naming its version', () => {
     expect(readingOf({ commandVersion: 1, kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: 1 });
   });
 
@@ -115,7 +120,7 @@ describe('a body that maps nothing', () => {
     expect(readingOf({ kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: null });
   });
 
-  test('reads commandVersion only as the body\'s own key, never through its prototype', () => {
+  test('treats a __proto__ key in the body as an ordinary key that carries no commandVersion', () => {
     expect(new GaiaCommandIngestion('{"__proto__": {"commandVersion": 2}, "kind": "fleet-look-again"}').read())
       .toEqual({ verdict: 'other-version', commandVersion: null });
   });
@@ -159,7 +164,7 @@ describe('the keys of the limits, adding, settings and the chooser', () => {
     })).toEqual({ verdict: 'malformed', invalidKeys: ['root', 'project'] });
   });
 
-  test('names a settings key the settings do not have as malformed, and reads it only as the body\'s own', () => {
+  test('names a settings key the settings do not have as malformed, and one carried only inside a __proto__ key as missing', () => {
     expect(readingOf({
       commandVersion: 2, kind: 'settings-set', key: 'version', value: 2,
     })).toEqual({ verdict: 'malformed', invalidKeys: ['key'] });
