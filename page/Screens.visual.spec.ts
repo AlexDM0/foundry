@@ -229,6 +229,10 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-refusal-code')).toEqual([B2_STOP_REFUSAL.refusal ?? '']);
     expect(markup).toContain(`${B2_STOP_REFUSAL.text ?? ''}</span><button type="button" class="design-system-button" data-compact="">Try again</button>`);
     expect(textsOfClass(markup, 'gaia-forges-condition-detail')).toContain('forge start · waiting for its API');
+    expect(markup).toContain('<button type="button" class="design-system-button" disabled="" data-compact="">Starting</button>');
+    expect(textsOfClass(markup, 'gaia-forges-controls-note')).toEqual([
+      'A control stays disabled while its command is on its way. A refusal is the forge&#x27;s own sentence, shown beside the control that caused it.',
+    ]);
   });
 
   test('B3: the unreachable banner under the bar, the head that counts what is known, and the figures folded into one line atop the main column', () => {

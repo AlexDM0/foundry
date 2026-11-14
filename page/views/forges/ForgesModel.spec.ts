@@ -199,13 +199,20 @@ describe('a row of the table (A4)', () => {
 describe('which buttons a row shows (A4 acceptance 1)', () => {
   const OPEN_IN_NEW_TAB = 'Open Example Storefront in a new tab';
 
+  test('a forge that reports itself starting shows its limit on a disabled stepper and one disabled "Starting" button (B2)', () => {
+    const starting = rowOf(contentOf(fleetWithOneForgeIn('starting')), TRACKER_IDS.exampleStorefront);
+    expect([starting.buttons, starting.agents?.kind, starting.agents?.kind === 'stepper' && starting.agents.disabled]).toEqual([
+      [{ kind: 'waiting', label: 'Starting' }], 'stepper', true,
+    ]);
+  });
+
   test('each condition shows exactly its buttons', () => {
     const labelsIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows.flatMap((row) => row.buttons.map(labelOf));
     expect(labelsIn('live')).toEqual(['Pause', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
     expect(labelsIn('paused')).toEqual(['Resume', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
     expect(labelsIn('held')).toEqual(['Stop', 'Open', OPEN_IN_NEW_TAB]);
     expect(labelsIn('passing-baton')).toEqual([]);
-    expect(labelsIn('starting')).toEqual([]);
+    expect(labelsIn('starting')).toEqual(['Starting']);
     expect(labelsIn('dormant')).toEqual(['Start']);
     expect(labelsIn('unreachable')).toEqual(['Look again', 'Stop']);
     expect(labelsIn('unreadable')).toEqual([OPEN_IN_NEW_TAB]);
@@ -509,6 +516,21 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     expect(rowOf(content, TRACKER_IDS.exampleStorefront).agents).toMatchObject({ disabled: false });
   });
 
+  test('the line under the table says why a control is off while one is in use: a command on its way, an open Stop dialog or a refusal', async () => {
+    const CONTROLS_NOTE = 'A control stays disabled while its command is on its way. A refusal is the forge\'s own sentence, shown beside the control that caused it.';
+    expect(contentOf(FLEET_FIVE_FORGES).controlsNote).toBeNull();
+    const pending = pendingSender();
+    void pending.send({ kind: 'forge-pause', trackerId: TRACKER_IDS.invoiceService });
+    expect(contentOf(FLEET_FIVE_FORGES, { commandStates: pending.states() }).controlsNote).toBe(CONTROLS_NOTE);
+    const stopDialog: StopDialogState = { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' };
+    expect(contentOf(FLEET_FIVE_FORGES, { stopDialog }).controlsNote).toBe(CONTROLS_NOTE);
+    const refusing = senderOver([() => Promise.resolve(answerResponse(STOP_REFUSED))]);
+    await refusing.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleMobileApp, agents: 'keep' });
+    expect(contentOf(FLEET_FIVE_FORGES, { commandStates: refusing.states() }).controlsNote).toBe(CONTROLS_NOTE);
+    refusing.dismissFailure({ trackerId: TRACKER_IDS.exampleMobileApp });
+    expect(contentOf(FLEET_FIVE_FORGES, { commandStates: refusing.states() }).controlsNote).toBeNull();
+  });
+
   test('the stop on its way holds its dialog', () => {
     const sender = pendingSender();
     void sender.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' });
@@ -629,6 +651,9 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     expect([starting.condition, starting.conditionWord, starting.detailText, starting.buttons]).toEqual([
       'starting', 'Starting', 'forge start · waiting for its API', [{ kind: 'waiting', label: 'Starting' }],
     ]);
+    expect(starting.agents).toMatchObject({
+      kind: 'stepper', inFlight: 0, limit: 2, disabled: true
+    });
     answerStart(answerResponse(DONE));
     await start;
     const live = {

@@ -264,7 +264,7 @@ describe('the held forge and the forges outside the table', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const banner = tree.onlyWithClass(unfolded, 'gaia-forges-held');
     expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-forges-held-text')])).toBe(
-      'Example Mobile App holds its launches. The install version changed. Nothing launches until this forge is updated. Its 2 agents keep running.',
+      'Example Mobile App Launches held. The install version changed. Nothing launches until this forge is updated. Its 2 agents keep running.',
     );
     tree.dispatch(controlNamed([banner], 'Update forge'), 'onClick');
     tree.dispatch(controlNamed(unfolded, 'Hide in Gaia'), 'onClick');

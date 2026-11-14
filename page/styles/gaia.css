@@ -950,8 +950,13 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
 .gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .gaia-forges-icon-button { display: inline-flex; }
-/* What shows under a row, indented to the forge's name: its notice, the Stop question, a refusal, a pending restart */
-.gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-4); }
+/* The line under the table, while a control is in use (B2) */
+.gaia-forges-controls-note { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
+/* The Stop dialog spans the row from its dot; a notice, a refusal and a pending restart are indented to the name (B2) */
+.gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
+.gaia-forges-row-below > .gaia-forges-row-notice,
+.gaia-forges-row-below > .gaia-refusal,
+.gaia-forges-row-below > .gaia-pending-step { margin-left: var(--sp-4); }
 .gaia-forges-row-notice { margin: 0; color: var(--link); }
 
 /* A held forge's banner: the orange tint with a 4 px left edge, its dot, name and word over the notice; under it, indented, the pending

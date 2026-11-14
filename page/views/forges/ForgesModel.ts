@@ -204,6 +204,8 @@ export interface ForgesContent {
   readonly rows:          readonly ForgeRow[];
   /** What the table's place says when it holds no row. */
   readonly emptySentence: string | null;
+  /** B2: the line under the table that says why a control is off or a refusal shows, while one is; `null` at rest. */
+  readonly controlsNote:  string | null;
   readonly heldBanners:   readonly HeldBanner[];
   readonly notFoundHead:  string;
   readonly notFound:      readonly ForgeEntry[];
@@ -343,7 +345,7 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
 }
 
 function buttonsOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton[] {
-  if (shownConditionOf(forge, rowSurroundings.surroundings.commandStates) !== forge.condition) return [{ kind: 'waiting', label: 'Starting' }];
+  if (shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting') return [{ kind: 'waiting', label: 'Starting' }];
   return BUTTONS_BY_CONDITION[forge.condition].flatMap((button) => {
     const shown = buttonOf(button, forge, rowSurroundings);
     return shown === null ? [] : [shown];
@@ -398,13 +400,17 @@ function detailFaceOf(condition: FleetDocumentCondition, forgeProgramIsMissing: 
   return condition === 'dormant' && forgeProgramIsMissing ? 'ui' : 'mono';
 }
 
-/** The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Overseer runs and is read in full. */
+/**
+ * The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Overseer runs and is read in full, and a
+ * disabled one while the forge starts (B2).
+ */
 function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeAgentsCell | null {
   const { concurrency, trackerId, project } = forge;
   if (concurrency === null) return null;
   const valueText = `${concurrency.agentsInFlight} / ${concurrency.limit}`;
+  const isStarting = shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting';
   const overseerRuns = RUNNING_CONDITIONS.has(forge.condition) && forge.fidelity === 'full';
-  if (!overseerRuns) return { kind: 'text', text: valueText };
+  if (!overseerRuns && !isStarting) return { kind: 'text', text: valueText };
   const { limit } = concurrency;
   return {
     kind:         'stepper',
@@ -414,7 +420,7 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
     raiseLabel:   `Raise ${project}'s agent limit`,
     lowerCommand: limit <= AGENT_LIMITS.lowestAgents ? null : { kind: 'forge-concurrency-set', trackerId, limit: limit - 1 },
     raiseCommand: limit >= AGENT_LIMITS.forgeCeilingAgents ? null : { kind: 'forge-concurrency-set', trackerId, limit: limit + 1 },
-    disabled:     forgeIsBusy(forge, rowSurroundings) || !apiCarriesCommandsTo(forge),
+    disabled:     isStarting || forgeIsBusy(forge, rowSurroundings) || !apiCarriesCommandsTo(forge),
   };
 }
 
@@ -676,6 +682,15 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
   };
 }
 
+const CONTROLS_NOTE = 'A control stays disabled while its command is on its way. A refusal is the forge\'s own sentence, shown beside the control that caused it.';
+
+/** A control is in use while a command to a forge is on its way, a forge starts, its Stop dialog is open or its refusal shows. */
+function controlsAreInUse(fleetDocument: FleetDocument, commandStates: CommandStates, rows: readonly ForgeRow[], heldBanners: readonly HeldBanner[]): boolean {
+  return fleetDocument.forges.some((forge) => onItsWayFor(commandStates, forge.trackerId) !== null)
+    || rows.some((row) => row.stopDialog !== null || row.refusal !== null || row.buttons.some((button) => button.kind === 'waiting'))
+    || heldBanners.some((banner) => banner.refusal !== null);
+}
+
 function emptySentenceOf(fleetDocument: FleetDocument, rows: readonly ForgeRow[]): string | null {
   if (fleetDocument.forges.length === 0) return 'No forge is registered on this machine yet.';
   return rows.length === 0 ? 'Every forge here is hidden in Gaia or has lost its repository.' : null;
@@ -689,10 +704,12 @@ function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurro
   const rows = tableForges.map((forge) => rowOf(forge, rowSurroundings));
   const notFound = shownForges.filter((forge) => forge.condition === 'missing').map((forge) => notFoundEntryOf(forge, rowSurroundings));
   const hidden = fleetDocument.forges.filter((forge) => hiddenTrackerIds.has(forge.trackerId)).map((forge) => hiddenEntryOf(forge, rowSurroundings));
+  const heldBanners = tableForges.filter((forge) => forge.condition === 'held').map((forge) => heldBannerOf(forge, rowSurroundings));
   return {
     rows,
     emptySentence: emptySentenceOf(fleetDocument, rows),
-    heldBanners:   tableForges.filter((forge) => forge.condition === 'held').map((forge) => heldBannerOf(forge, rowSurroundings)),
+    controlsNote:  rows.length > 0 && controlsAreInUse(fleetDocument, surroundings.commandStates, rows, heldBanners) ? CONTROLS_NOTE : null,
+    heldBanners,
     notFoundHead:  `Not found${HEAD_SEPARATOR}${notFound.length}`,
     notFound,
     hiddenHead:    `Hidden in Gaia${HEAD_SEPARATOR}${hidden.length}`,

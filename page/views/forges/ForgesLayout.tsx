@@ -322,12 +322,12 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
 function HeldBannerCard({ banner, handlers }: { readonly banner: HeldBanner; readonly handlers: ForgesHandlers }) {
   return (
     <div className="gaia-forges-held-group">
-      <section className="gaia-forges-held" aria-label={`${banner.project} holds its launches`}>
+      <section className="gaia-forges-held" aria-label={`${banner.project}: Launches held`}>
         <p className="gaia-forges-held-text">
           <span className="gaia-forges-held-project">
             <ConditionDot condition="held" />
             <span className="gaia-forges-held-name">{banner.project}</span>
-            <span className="gaia-forges-held-word">{' holds its launches.'}</span>
+            <span className="gaia-forges-held-word">{' Launches held.'}</span>
           </span>
           {` ${banner.sentence}`}
         </p>
@@ -442,6 +442,7 @@ export function ForgesLayout({
             />
           )
           : <EmptyState text={content.emptySentence} />}
+        {content.controlsNote === null ? null : <p className="gaia-forges-controls-note">{content.controlsNote}</p>}
         {content.heldBanners.map((banner) => <HeldBannerCard key={banner.trackerId} banner={banner} handlers={handlers} />)}
         {content.notFound.length === 0 ? null : (
           <section className="gaia-forges-group" aria-label={content.notFoundHead}>
