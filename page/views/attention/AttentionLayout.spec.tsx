@@ -2,11 +2,11 @@
  * The Attention view's layout. What matters (SCREENS A1 acceptance 1, 3 and 4; B3 acceptance 1 and 2): the list draws its rows in the content's order,
  * the first row's button the only primary, and each row's button is a link to its forge in place, Answer on E2 to `#questions/E2`; "Update forge" sends
  * `forge-update` through the command sender and is disabled while it is on its way; a refusal shows under its callout with the forge's code and sentence
- * until dismissed; an update that left a restart pending offers Restart under the callout that sent it until dismissed; nothing waiting says so; B3's
- * banner, its stale rows that can be read and not acted on, its figures folded into one line atop the main column so the side panel and Running fit the
- * window, and the side panel that names the forges the totals cannot vouch for; an empty place says so; Flint's brain running draws one line on its
- * forge's card, the diamond beside its words with the time left in mono, and no line otherwise. The content comes from the model over the artboards'
- * fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
+ * until dismissed; an update that left a restart pending offers Restart under the callout that sent it until dismissed, and a refused Restart's refusal
+ * shows there too; nothing waiting says so; B3's banner, its stale rows that can be read and not acted on, its figures folded into one line atop the
+ * main column so the side panel and Running fit the window, and the side panel that names the forges the totals cannot vouch for; an empty place says
+ * so; Flint's brain running draws one line on its forge's card, the diamond beside its words with the time left in mono, and no line otherwise. The
+ * content comes from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -174,6 +174,20 @@ describe('a callout\'s command', () => {
     expect(buttonNamed([restarting], 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-pending-step'))).toEqual([]);
+  });
+
+  test('a Restart the pending step sent that the forge refuses shows its refusal under the callout that offered it', async () => {
+    const restartPending: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+    };
+    const restartRefused: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.'
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
+    const refusal = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'gaia-refusal');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Restart: overseer-busy. Its Overseer is busy with a baton pass.');
   });
 
   test('a callout that leaves the document leaves the view', () => {

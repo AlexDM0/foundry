@@ -1,15 +1,14 @@
 /**
- * What the Attention view shows of a fleet document. What matters (SCREENS A1, B3, B4): with `fleet-five-forges` the list holds the five
- * rows of A1 in the fleet's order, each with its forge, kind, id, subject, meta line, age and the forge's route in place, the first row's
- * button the only primary; an age is printed from the page's clock and no order depends on it; nothing waiting says so and keeps the
- * figures; the forges that need a look carry PLAN 7.2's actions, the machine's limit never among them. B3: the head and the figure say
- * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and
- * callout name what Gaia last saw,
- * every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers again is
- * read normally. B4: no forge gives its own screen, the forge program is missing only when neither the settings nor Gaia know one, and a
- * known one is named from ~.
- * Flint's brain (A1, R4.6): a running brain gives its forge's card a line with the model and the time left, and changes nothing else; an
- * ended, refused, off or unreported brain gives no line, and a brain in a forge with no job gives no card.
+ * What the Attention view shows of a fleet document. What matters (SCREENS A1, B3, B4): with `fleet-five-forges` the list holds the five rows of A1 in
+ * the fleet's order, each with its forge, kind, id, subject, meta line, age and the forge's route in place, the first row's button the only primary; an
+ * age is printed from the page's clock and no order depends on it; nothing waiting says so and keeps the figures, and today's figures stay absent while
+ * no forge reports today; the forges that need a look carry PLAN 7.2's actions, the machine's limit never among them. B3: the head and the figure say
+ * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and callout name
+ * what Gaia last saw, every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers
+ * again is read normally. B4: no forge gives its own screen, while every forge hidden does not; the forge program is missing only when neither the
+ * settings nor Gaia know one, and a known one is named from ~. Flint's brain (A1, R4.6): a running brain gives its forge's card a line with the model
+ * and the time left, and changes nothing else; an ended, refused, off or unreported brain gives no line, and a brain in a forge with no job gives no
+ * card.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -127,6 +126,12 @@ describe('the figures', () => {
     const noLimit = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
     expect(fleetContentOf(noLimit).figures[1]).toEqual({ value: '10', label: 'agents', attention: false });
   });
+
+  test('with no forge reporting today, neither "done today" nor "tokens today" is printed as a zero', () => {
+    const forges = FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, today: null }));
+    const noToday: FleetDocument = { ...FLEET_FIVE_FORGES, forges, figures: { ...FLEET_FIVE_FORGES.figures, deliveredToday: 0, tokensToday: 0 } };
+    expect(fleetContentOf(noToday).figures.map((figure) => figure.label)).toEqual(['waiting on you', 'agents', 'tickets ready', 'open incidents']);
+  });
 });
 
 describe('the forges that need a look', () => {
@@ -209,10 +214,10 @@ describe('the running forges and what just happened', () => {
       ['Example Mobile App', 'launches held', '2 / 2', null, `#forge/${TRACKER_IDS.exampleMobileApp}`],
     ]);
     expect(running[0]?.jobs).toEqual([
-      { jobId: 'J2', role: 'builder', text: 'J2 builder' },
-      { jobId: 'J3', role: 'waiting', text: 'J3 builder' },
-      { jobId: 'J4', role: 'builder', text: 'J4 builder' },
-      { jobId: 'J6', role: 'reviewer', text: 'J6 reviewer' },
+      { jobId: 'J2', role: 'builder', roleWord: 'builder' },
+      { jobId: 'J3', role: 'waiting', roleWord: 'builder' },
+      { jobId: 'J4', role: 'builder', roleWord: 'builder' },
+      { jobId: 'J6', role: 'reviewer', roleWord: 'reviewer' },
     ]);
   });
 
@@ -394,6 +399,12 @@ describe('no forge yet (B4)', () => {
     expect(noForgeContentOf(chosen).forgeProgramIsMissing).toBe(false);
     const found = { ...FLEET_EMPTY, gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: '/Users/alexexample/.bun/bin/forge' } };
     expect(noForgeContentOf(found).forgeProgramIsMissing).toBe(false);
+  });
+
+  test('a fleet whose every forge is hidden is the fleet screen with nothing in it, not B4', () => {
+    const everyForgeHidden: FleetDocument = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, hiddenTrackerIds: [TRACKER_IDS.exampleStorefront] } };
+    expect(AttentionModel.screenOf(everyForgeHidden, ARTBOARD_CLOCK).kind).toBe('fleet');
+    expect(fleetContentOf(everyForgeHidden).rows).toEqual([]);
   });
 
   test('names the forge program from ~, the one Gaia runs before the one the settings name, and one outside the home folder whole', () => {

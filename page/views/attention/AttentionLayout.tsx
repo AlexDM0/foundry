@@ -149,15 +149,19 @@ function LookActionButton({ action, commandStates, onCommand }: { readonly actio
   );
 }
 
-/** A forge's refusal shows under the callout whose button sent the refused command, until dismissed or the next success. */
+/**
+ * A forge's refusal shows under the callout whose button sent the refused command, the pending step's Restart included, until dismissed or
+ * the next success.
+ */
 function LookRefusal({
   look, commandStates, onCommand, onDismissFailure
 }: { readonly look: LookCallout } & CommandHandlers) {
   const subject = { trackerId: look.trackerId };
   const { failure } = CommandSender.stateOf(commandStates, subject);
+  const actionsItSends = look.restartAfterUpdate === null ? look.actions : [...look.actions, look.restartAfterUpdate];
   const refusedAction = failure === null
     ? undefined
-    : look.actions.find((action) => action.kind === 'command' && action.command.kind === failure.kind && 'trackerId' in action.command);
+    : actionsItSends.find((action) => action.kind === 'command' && action.command.kind === failure.kind && 'trackerId' in action.command);
   if (failure === null || refusedAction?.kind !== 'command') return null;
   const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
@@ -250,13 +254,13 @@ function RunningWaiting({ card }: { readonly card: RunningCard }) {
   return card.waitingText === null ? null : <span className="gaia-attention-running-waiting">{card.waitingText}</span>;
 }
 
-/** A job chip: its id, then its role word, which the model writes after the id. */
+/** A job chip: its id, then its role word. */
 function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) {
   return (
     <span className="gaia-attention-running-job" data-role={job.role}>
       <RoleDot role={job.role} />
       <span className="gaia-attention-running-job-id">{job.jobId}</span>
-      <span className="gaia-attention-running-job-role">{job.text.slice(job.jobId.length)}</span>
+      <span className="gaia-attention-running-job-role">{` ${job.roleWord}`}</span>
     </span>
   );
 }

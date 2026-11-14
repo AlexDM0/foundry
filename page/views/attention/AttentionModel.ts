@@ -91,9 +91,10 @@ export interface LookCallout {
 }
 
 export interface RunningJob {
-  readonly jobId: string;
-  readonly role:  DotRole;
-  readonly text:  string;
+  readonly jobId:    string;
+  readonly role:     DotRole;
+  /** The job's role as its forge names it, else its kind: `builder`, `reviewer`. */
+  readonly roleWord: string;
 }
 
 /** Flint's brain running in a forge, as its Running card's line words it: the model the forge reports and the time left, each when known. */
@@ -220,18 +221,28 @@ function compactCountOf(count: number): string {
   return `${Number((count / MILLION).toPrecision(COMPACT_SIGNIFICANT_DIGITS))}M`;
 }
 
+/** The document sums today over the forges that report it, so with none reporting, its zero is not a count. */
+function aForgeReportsToday(fleetDocument: FleetDocument): boolean {
+  return fleetDocument.forges.some((forge) => forge.today !== null);
+}
+
 function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   const {
     waitingOnUser, agentsInFlight, machineLimit, readyTickets, deliveredToday, tokensToday, openIncidents, incompleteFor
   } = fleetDocument.figures;
+  const todayFigures: AttentionFigure[] = aForgeReportsToday(fleetDocument)
+    ? [
+      { value: String(deliveredToday), label: 'done today', attention: false },
+      { value: compactCountOf(tokensToday), label: 'tokens today', attention: false },
+    ]
+    : [];
   return [
     { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'waiting on you', attention: true },
     machineLimit === null
       ? { value: String(agentsInFlight), label: 'agents', attention: false }
       : { value: `${agentsInFlight} / ${machineLimit}`, label: 'agents', attention: false },
     { value: String(readyTickets), label: 'tickets ready', attention: false },
-    { value: String(deliveredToday), label: 'done today', attention: false },
-    { value: compactCountOf(tokensToday), label: 'tokens today', attention: false },
+    ...todayFigures,
     { value: String(openIncidents), label: 'open incidents', attention: false },
   ];
 }
@@ -472,7 +483,7 @@ function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReadi
       conditionWord: runningConditionWordOf(forge, clock),
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
       slotsText:     slotsTextOf(forge),
-      jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), text: `${row.jobId} ${row.role ?? row.kind}` })),
+      jobs:          forge.agents.map((row) => ({ jobId: row.jobId, role: jobRoleOf(row.role, row.waitingOnDecisionId), roleWord: row.role ?? row.kind })),
       waitingText:   waitingCount === 0 ? null : countedPhrase(waitingCount, 'waits on you', 'wait on you'),
       isStale:       forge.fidelity === 'unreachable',
       brain:         runningBrainLineOf(forge, clock),
@@ -572,8 +583,9 @@ function noForgeContentOf(fleetDocument: FleetDocument): NoForgeContent {
   };
 }
 
+/** The server leaves hidden forges out of the document, so a fleet whose every forge is hidden is still a fleet, not B4. */
 function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionScreen {
-  if (fleetDocument.forges.length === 0) {
+  if (fleetDocument.forges.length === 0 && fleetDocument.settings.hiddenTrackerIds.length === 0) {
     return { kind: 'no-forge', content: noForgeContentOf(fleetDocument) };
   }
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
