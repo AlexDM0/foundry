@@ -4,6 +4,7 @@
  * landings and tokens per forge that reports them, with the tokens of Flint's brain they include; the usage line the forges report; and the
  * page title's figures. Flint's brain's entries carry its kind word and diamond. A value no forge reports is absent, never zero.
  */
+import { LIMITS }       from '../../../src/shared/constants/Limits.ts';
 import type {
   FleetDocument,
   FleetDocumentActivityCategory,
@@ -133,16 +134,14 @@ const BRAIN_KIND_WORD = 'Flint\'s brain';
 const NO_ACTIVITY_SENTENCE = 'No forge has reported activity yet.';
 const NOTHING_MATCHES_SENTENCE = 'No entry matches these filters.';
 
-/** A clock time in the page's own time zone, or the one named, so a spec does not depend on the machine's. */
-function clockFormatOf(timeZone: string | undefined): Intl.DateTimeFormat {
-  const options: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
-  return new Intl.DateTimeFormat('en-GB', timeZone === undefined ? options : { ...options, timeZone });
+/** A clock time, with its month and day when it is of another day than the clock's; a stamp that does not parse is shown as the forge wrote it. */
+function clockTimeOf(stamp: string, clock: ClockReading): string {
+  return StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone) ?? stamp;
 }
 
-/** A stamp that does not parse is shown as the forge wrote it. */
-function clockTimeOf(stamp: string, clockFormat: Intl.DateTimeFormat): string {
-  const instant = Date.parse(stamp);
-  return Number.isNaN(instant) ? stamp : clockFormat.format(instant);
+/** A count that may hold more than the document shows: `2+`. */
+function atLeastTextOf(text: string, mayHoldMore: boolean): string {
+  return mayHoldMore ? `${text}+` : text;
 }
 
 function roundedToTokenCountDigitsOf(value: number): number {
@@ -195,7 +194,7 @@ function entryIsKept(entry: FleetDocumentFleetActivityEntry, kind: ActivityKindF
   return (kind === 'everything' || entry.category === kind) && (trackerId === null || entry.trackerId === trackerId);
 }
 
-function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerId: string | null, clockFormat: Intl.DateTimeFormat): ActivityRow[] {
+function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerId: string | null, clock: ClockReading): ActivityRow[] {
   const projects = projectsByTrackerIdOf(fleetDocument);
   const forges = new Map(fleetDocument.forges.map((forge) => [forge.trackerId, forge]));
   return fleetDocument.activity
@@ -203,7 +202,7 @@ function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerI
     .map((entry) => ({
       key:          `${entry.trackerId}:${entry.logPosition}`,
       at:           entry.at,
-      clockTime:    clockTimeOf(entry.at, clockFormat),
+      clockTime:    clockTimeOf(entry.at, clock),
       project:      projects.get(entry.trackerId) ?? entry.trackerId,
       categoryWord: entry.kind === 'flint-brain' ? BRAIN_KIND_WORD : CATEGORY_WORDS[entry.category],
       dotRole:      dotRoleOf(entry, forges.get(entry.trackerId)),
@@ -233,10 +232,10 @@ function todayListOf(
   };
 }
 
-function usageLinesOf(fleetDocument: FleetDocument, clockFormat: Intl.DateTimeFormat, usageIsKept: (usage: FleetDocumentUsage) => boolean): string[] {
+function usageLinesOf(fleetDocument: FleetDocument, clock: ClockReading, usageIsKept: (usage: FleetDocumentUsage) => boolean): string[] {
   const lines = fleetDocument.forges.flatMap((forge) => (forge.usage === null || !usageIsKept(forge.usage)
     ? []
-    : [ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTimeOf(stamp, clockFormat))]));
+    : [ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTimeOf(stamp, clock))]));
   return [...new Set(lines)];
 }
 
@@ -265,6 +264,21 @@ function brainRunsEndedTodayOf(fleetDocument: FleetDocument, clock: ClockReading
   return fleetDocument.activity.filter(entryEndsABrainRun).filter((entry) => StampTextUtil.stampIsOfTheClocksDay(entry.at, clock.nowEpochMilliseconds, clock.timeZone));
 }
 
+/**
+ * The server keeps only each forge's newest entries, so a forge reporting a brain whose oldest kept entry is still of the clock's day may
+ * have ended runs today that the document does not hold.
+ */
+function forgesWhoseBrainRunsMayBeCutOf(fleetDocument: FleetDocument, clock: ClockReading): ReadonlySet<string> {
+  return new Set(fleetDocument.forges.filter((forge) => {
+    if (forge.brain === 'not-reported') return false;
+    const entries = fleetDocument.activity.filter((entry) => entry.trackerId === forge.trackerId);
+    const oldestKept = entries.at(-1);
+    return entries.length >= LIMITS.activityEntriesShownPerForge
+      && oldestKept !== undefined
+      && StampTextUtil.stampIsOfTheClocksDay(oldestKept.at, clock.nowEpochMilliseconds, clock.timeZone);
+  }).map((forge) => forge.trackerId));
+}
+
 function runningBrainsOf(fleetDocument: FleetDocument) {
   return fleetDocument.forges.flatMap((forge) => (forge.brain !== 'not-reported' && forge.brain.state === 'running' ? [{ forge, brain: forge.brain }] : []));
 }
@@ -272,6 +286,7 @@ function runningBrainsOf(fleetDocument: FleetDocument) {
 function brainTokensNoteOf(fleetDocument: FleetDocument, clock: ClockReading): BrainTokensNote | null {
   const endedToday = brainRunsEndedTodayOf(fleetDocument, clock);
   const running = runningBrainsOf(fleetDocument);
+  const mayBeCut = forgesWhoseBrainRunsMayBeCutOf(fleetDocument, clock);
   const forges = fleetDocument.forges.flatMap((forge) => {
     const runningTokens = running.find((candidate) => candidate.forge.trackerId === forge.trackerId)?.brain.tokens ?? null;
     const tokens = [
@@ -282,21 +297,24 @@ function brainTokensNoteOf(fleetDocument: FleetDocument, clock: ClockReading): B
   });
   if (forges.length === 0) return null;
   return {
-    totalText: tokenCountTextOf(forges.reduce((sum, forge) => sum + forge.tokens, 0)),
-    forges:    forges.map(({ trackerId, project, tokens }) => ({ trackerId, project, tokensText: tokenCountTextOf(tokens) })),
+    totalText: atLeastTextOf(tokenCountTextOf(forges.reduce((sum, forge) => sum + forge.tokens, 0)), mayBeCut.size > 0),
+    forges:    forges.map(({ trackerId, project, tokens }) => ({ trackerId, project, tokensText: atLeastTextOf(tokenCountTextOf(tokens), mayBeCut.has(trackerId)) })),
   };
 }
 
-/** Today's runs as the forges report them: each run that ended today and each brain running now; `null` when no forge reports a brain. */
-function brainRunsTodayOf(fleetDocument: FleetDocument, clock: ClockReading): number | null {
+/**
+ * Today's runs as the forges report them: each run that ended today and each brain running now, with `+` when a forge's entries were cut
+ * within the day; `null` when no forge reports a brain.
+ */
+function brainRunsTodayOf(fleetDocument: FleetDocument, clock: ClockReading): string | null {
   if (fleetDocument.forges.every((forge) => forge.brain === 'not-reported')) return null;
-  return brainRunsEndedTodayOf(fleetDocument, clock).length + runningBrainsOf(fleetDocument).length;
+  const runs = brainRunsEndedTodayOf(fleetDocument, clock).length + runningBrainsOf(fleetDocument).length;
+  return atLeastTextOf(String(runs), forgesWhoseBrainRunsMayBeCutOf(fleetDocument, clock).size > 0);
 }
 
 function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilters, clock: ClockReading): ActivityContent {
-  const clockFormat = clockFormatOf(clock.timeZone);
   const forgeChoices = forgeChoicesOf(fleetDocument, filters.trackerId);
-  const rows = rowsOf(fleetDocument, filters.kind, forgeChoices.chosen, clockFormat);
+  const rows = rowsOf(fleetDocument, filters.kind, forgeChoices.chosen, clock);
   return {
     rows,
     kindCounts:           kindCountsOf(fleetDocument, forgeChoices.chosen),
@@ -305,8 +323,8 @@ function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilter
     landedToday:          landedTodayOf(fleetDocument),
     tokensToday:          tokensTodayOf(fleetDocument),
     brainTokensNote:      brainTokensNoteOf(fleetDocument, clock),
-    usageLines:           usageLinesOf(fleetDocument, clockFormat, () => true),
-    usageLinesAtTheLimit: usageLinesOf(fleetDocument, clockFormat, limitIsHit),
+    usageLines:           usageLinesOf(fleetDocument, clock, () => true),
+    usageLinesAtTheLimit: usageLinesOf(fleetDocument, clock, limitIsHit),
   };
 }
 
@@ -331,7 +349,7 @@ function titleFiguresOf(fleetDocument: FleetDocument, clock: ClockReading): Page
     { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'need you', attention: true },
     ...(landedTotal === null ? [] : [{ value: landedTotal, label: 'landed today' }]),
     ...(tokensTotal === null ? [] : [{ value: tokensTotal, label: 'tokens today' }]),
-    ...(brainRuns === null ? [] : [{ value: String(brainRuns), label: 'brain runs today' }]),
+    ...(brainRuns === null ? [] : [{ value: brainRuns, label: 'brain runs today' }]),
   ];
 }
 
