@@ -516,7 +516,11 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     const lastSent = new Map([[TRACKER_IDS.exampleMobileApp, stop]]);
     const refused = rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent }), TRACKER_IDS.exampleMobileApp);
     expect(refused.refusal).toEqual({
-      commandLabel: 'Stop', code: 'overseer-still-live', sentence: 'The Overseer did not stop within its tries.', retryCommand: stop
+      refusedBy:    'forge',
+      commandLabel: 'Stop',
+      code:         'overseer-still-live',
+      sentence:     'The Overseer did not stop within its tries.',
+      retryCommand: stop
     });
     expect(rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }), TRACKER_IDS.invoiceService).refusal).toBeNull();
     sender.dismissFailure({ trackerId: TRACKER_IDS.exampleMobileApp });

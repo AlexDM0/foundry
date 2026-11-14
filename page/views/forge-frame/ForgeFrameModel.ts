@@ -17,6 +17,7 @@ import type {
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
 import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
+import type { RefusedBy }                             from '../../design-system/Refusal.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
@@ -65,7 +66,7 @@ export type BarBrainShown =
     readonly countdown: string;
     readonly tokens:    string;
   }
-  | { readonly state: 'refused'; readonly code: string; readonly sentence: string }
+  | { readonly state: 'refused'; readonly refusedBy: RefusedBy; readonly code: string; readonly sentence: string }
   | { readonly state: 'ended'; readonly sentence: string };
 
 /** Flint's brain as the forge reports it; Wake, Stop and the mark's double click only where the forge's control contract carries them. */
@@ -106,10 +107,8 @@ export type ForgeFrameArea =
   | { readonly kind: 'not-registered'; readonly trackerId: string };
 
 /** A refusal shown under the bar: the forge's code and sentence, and the command Try again sends when the bar can send it again as it was. */
-export interface BarRefusal {
+export interface BarRefusal extends RefusalText {
   readonly commandLabel: string;
-  readonly code:         string;
-  readonly sentence:     string;
   readonly tryAgain:     ForgeCommandBody | null;
 }
 
@@ -326,7 +325,9 @@ function brainShownOf(brain: FleetDocumentBrain, clock: ForgeFrameClock): BarBra
       };
     case 'refused': {
       const code = brain.refusal?.code ?? 'refused';
-      return { state: 'refused', code, sentence: brainRefusalSentenceOf(code, brain.refusal?.sentence ?? null) };
+      return {
+        state: 'refused', refusedBy: 'forge', code, sentence: brainRefusalSentenceOf(code, brain.refusal?.sentence ?? null)
+      };
     }
     case 'ended':
       return { state: 'ended', sentence: brainEndedSentenceOf(brain) };
@@ -404,7 +405,7 @@ function brainShownAfter(brain: BarBrain, failure: CommandFailure | null): BarBr
   if (failure === null || failure.kind !== 'forge-brain-start' || !BRAIN_WAKES_FROM.has(brain.shown.state)) return brain.shown;
   const { result } = failure;
   if (result.verdict === 'answered' && result.answer.refusal !== null) {
-    return { state: 'refused', code: result.answer.refusal, sentence: brainRefusalSentenceOf(result.answer.refusal, result.answer.text) };
+    return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure), sentence: brainRefusalSentenceOf(result.answer.refusal, result.answer.text) };
   }
   return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure) };
 }
@@ -429,7 +430,7 @@ function markWakeOf(brain: BarBrain | null, shown: BarBrainShown | null): BarMar
 /** The forge's own sentence when it sent one, else Gaia's for its own reason, read through an own-property check. */
 function frameSessionRefusalTextOf(refusal: string, text: string | null): RefusalText {
   const ownSentence = Object.hasOwn(FRAME_SESSION_REFUSAL_SENTENCES, refusal) ? FRAME_SESSION_REFUSAL_SENTENCES[refusal] : undefined;
-  return { code: refusal, sentence: text ?? ownSentence ?? FRAME_SESSION_REFUSED_SENTENCE };
+  return { refusedBy: ownSentence === undefined ? 'forge' : 'gaia', code: refusal, sentence: text ?? ownSentence ?? FRAME_SESSION_REFUSED_SENTENCE };
 }
 
 function initialLeaveTarget(route: GaiaRoute): LeaveTarget {

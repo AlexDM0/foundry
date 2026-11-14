@@ -80,10 +80,17 @@ function LookAgainRefusal({ commandStates, onCommand, onDismissFailure }: Comman
   const subject = CommandSender.subjectOf(LOOK_AGAIN);
   const { failure } = CommandSender.stateOf(commandStates, subject);
   if (failure === null) return null;
-  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
+  const { refusedBy, code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
     <div className="gaia-attention-refusal">
-      <Refusal commandLabel="Look again" code={code} sentence={sentence} onTryAgain={() => onCommand(LOOK_AGAIN)} onDismiss={() => onDismissFailure(subject)} />
+      <Refusal
+        commandLabel="Look again"
+        refusedBy={refusedBy}
+        code={code}
+        sentence={sentence}
+        onTryAgain={() => onCommand(LOOK_AGAIN)}
+        onDismiss={() => onDismissFailure(subject)}
+      />
     </div>
   );
 }
@@ -163,10 +170,11 @@ function LookRefusal({
     ? undefined
     : actionsItSends.find((action) => action.kind === 'command' && action.command.kind === failure.kind && 'trackerId' in action.command);
   if (failure === null || refusedAction?.kind !== 'command') return null;
-  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
+  const { refusedBy, code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
     <Refusal
       commandLabel={refusedAction.label}
+      refusedBy={refusedBy}
       code={code}
       sentence={sentence}
       onTryAgain={() => onCommand(refusedAction.command)}

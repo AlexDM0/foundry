@@ -183,10 +183,11 @@ describe('the brain\'s part of its forge\'s head', () => {
       refusal: { code: 'usage-limit-holds', sentence: 'launches are held until 16:00 (usage limit)' },
     });
     expect(groupOf(refused, TRACKER_IDS.invoiceService).brain).toEqual({
-      kind:     'refused',
-      sentence: 'launches are held until 16:00 (usage limit)',
-      code:     'usage-limit-holds',
-      wake:     { command: { kind: 'forge-brain-start', trackerId: TRACKER_IDS.invoiceService }, disabled: false },
+      refusedBy: 'forge',
+      kind:      'refused',
+      sentence:  'launches are held until 16:00 (usage limit)',
+      code:      'usage-limit-holds',
+      wake:      { command: { kind: 'forge-brain-start', trackerId: TRACKER_IDS.invoiceService }, disabled: false },
     });
     const withoutSentence = withBrain(refused, TRACKER_IDS.invoiceService, { refusal: { code: 'no-flint', sentence: null } });
     expect(groupOf(withoutSentence, TRACKER_IDS.invoiceService).brain).toMatchObject({ sentence: 'it did not wake Flint\'s brain', code: 'no-flint' });
@@ -208,6 +209,7 @@ describe('a refused brain command', () => {
   test('shows under its forge\'s head with the command\'s name, the forge\'s code and its sentence', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.invoiceService, refusedWake);
     expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { commandStates }).brainRefusal).toEqual({
+      refusedBy:    'forge',
       commandLabel: 'Wake Flint\'s brain',
       code:         'usage-limit-holds',
       sentence:     'launches are held until 16:00 (usage limit)',

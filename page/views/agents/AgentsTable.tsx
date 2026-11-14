@@ -178,6 +178,7 @@ function GroupBrain({ brain, project, onBrainCommand }: { readonly brain: GroupB
       return (
         <BrainChip
           state="refused"
+          refusedBy={brain.refusedBy}
           sentence={brain.sentence}
           code={brain.code}
           wake={wake === null ? null : { disabled: wake.disabled, onPress: () => onBrainCommand(wake.command) }}
@@ -214,6 +215,7 @@ function GroupBrainRefusal({ group, handlers }: { readonly group: AgentGroupCont
       <span className="gaia-agents-group-refusal-cell" role="cell" aria-colspan={COLUMN_LABELS.length}>
         <Refusal
           commandLabel={refusal.commandLabel}
+          refusedBy={refusal.refusedBy}
           code={refusal.code}
           sentence={refusal.sentence}
           onDismiss={() => handlers.onDismissFailure({ trackerId: group.trackerId })}

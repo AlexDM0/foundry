@@ -1,17 +1,19 @@
 /**
- * The refusal. What matters: it is an alert that says which command the forge refused, with the forge's code in mono and its own sentence
- * unedited; "Try again" shows only when the command can be sent again, as the package's compact secondary button, never a red one; the
- * dismiss button is the package's icon button, named and titled, and calls onDismiss.
+ * The refusal. What matters: it is an alert that says which command the forge refused, or which one Gaia could not carry out when Gaia
+ * refused or nothing answered, so no forge is blamed for what it was never asked; the code is in mono and the sentence unedited; "Try again"
+ * shows only when the command can be sent again, as the package's compact secondary button, never a red one; the dismiss button is the
+ * package's icon button, named and titled, and calls onDismiss.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { ReactElementTree } from '../testing/ReactElementTree.ts';
-import { Refusal }          from './Refusal.tsx';
+import { ReactElementTree }        from '../testing/ReactElementTree.ts';
+import { Refusal, type RefusedBy } from './Refusal.tsx';
 
-function refusalOf(presses: string[], canTryAgain: boolean) {
+function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy = 'forge') {
   return ReactElementTree.unfolded(
     <Refusal
       commandLabel="Stop"
+      refusedBy={refusedBy}
       code="overseer-still-live"
       sentence="The Overseer did not stop within its tries."
       onDismiss={() => presses.push('dismiss')}
@@ -27,6 +29,11 @@ describe('the refusal', () => {
     expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-refusal-code')])).toBe('overseer-still-live');
     expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-refusal-text')]))
       .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
+  });
+
+  test('a refusal Gaia gave, or one nothing answered, says Gaia could not carry out the command and never that the forge refused it', () => {
+    const text = ReactElementTree.textOf([ReactElementTree.onlyWithClass(refusalOf([], false, 'gaia'), 'gaia-refusal-text')]);
+    expect(text).toBe('Gaia could not Stop: overseer-still-live. The Overseer did not stop within its tries.');
   });
 
   test('Try again and the named dismiss button call their own handlers', () => {

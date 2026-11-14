@@ -127,6 +127,7 @@ function ShownRefusalLine({ refusal, trackerId, handlers }: { readonly refusal: 
   return (
     <Refusal
       commandLabel={refusal.commandLabel}
+      refusedBy={refusal.refusedBy}
       code={refusal.code}
       sentence={refusal.sentence}
       onDismiss={() => handlers.onDismissFailure({ trackerId })}

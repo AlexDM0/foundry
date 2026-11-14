@@ -111,6 +111,7 @@ export function SettingsRefusalLine({ refusal, handlers }: {
   return (
     <Refusal
       commandLabel={refusal.commandLabel}
+      refusedBy={refusal.refusedBy}
       code={refusal.code}
       sentence={refusal.sentence}
       onDismiss={() => handlers.onDismissFailure(SETTINGS_SUBJECT)}

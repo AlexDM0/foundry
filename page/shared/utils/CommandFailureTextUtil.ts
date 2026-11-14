@@ -1,14 +1,19 @@
 /**
- * The code and the sentence a refusal shows for a command that did not succeed: the forge's as Gaia's server answered them when it refused,
- * and Gaia's own for the outcome when the answer carries no sentence or nothing answered.
+ * Who refused, the code and the sentence a refusal shows for a command that did not succeed: the forge's as Gaia's server answered them when
+ * it refused, and Gaia's own for the outcome when the answer carries no sentence or nothing answered.
  */
-import type { CommandOutcome } from '../../@types/CommandDocument.ts';
-import type { CommandFailure } from '../../api/CommandSender.ts';
+import type { CommandKind, CommandOutcome } from '../../@types/CommandDocument.ts';
+import type { CommandFailure }              from '../../api/CommandSender.ts';
+import type { RefusedBy }                   from '../../design-system/Refusal.tsx';
 
 export interface RefusalText {
-  readonly code:     string;
-  readonly sentence: string;
+  readonly refusedBy: RefusedBy;
+  readonly code:      string;
+  readonly sentence:  string;
 }
+
+/** Commands Gaia carries out itself, asking no forge; every other command's refusal is a forge's. */
+const COMMANDS_GAIA_CARRIES_ITSELF: ReadonlySet<CommandKind> = new Set<CommandKind>(['settings-set', 'path-choose', 'fleet-look-again']);
 
 const OUTCOME_SENTENCES: Readonly<Record<CommandOutcome, string>> = {
   'done':            'The command was carried out.',
@@ -23,13 +28,17 @@ function refusalTextOf(failure: CommandFailure): RefusalText {
   const { result } = failure;
   switch (result.verdict) {
     case 'answered':
-      return { code: result.answer.refusal ?? result.answer.outcome, sentence: result.answer.text ?? OUTCOME_SENTENCES[result.answer.outcome] };
+      return {
+        refusedBy: result.answer.outcome === 'refused' && !COMMANDS_GAIA_CARRIES_ITSELF.has(failure.kind) ? 'forge' : 'gaia',
+        code:      result.answer.refusal ?? result.answer.outcome,
+        sentence:  result.answer.text ?? OUTCOME_SENTENCES[result.answer.outcome],
+      };
     case 'server-unreachable':
-      return { code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' };
+      return { refusedBy: 'gaia', code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' };
     case 'answer-not-understood':
-      return { code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' };
+      return { refusedBy: 'gaia', code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' };
     case 'session-lost':
-      return { code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' };
+      return { refusedBy: 'gaia', code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' };
   }
 }
 

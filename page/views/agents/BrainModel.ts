@@ -43,7 +43,7 @@ export type GroupBrainContent =
   | { readonly kind: 'off'; readonly wake: BrainCommandButton }
   | { readonly kind: 'starting' }
   | { readonly kind: 'running' }
-  | { readonly kind: 'refused'; readonly sentence: string; readonly code: string; readonly wake: BrainCommandButton | null };
+  | { readonly kind: 'refused'; readonly refusedBy: 'forge'; readonly sentence: string; readonly code: string; readonly wake: BrainCommandButton | null };
 
 /** A refused brain command as Gaia's answer gave it, with the refused command's own name. */
 export interface BrainCommandRefusal extends RefusalText {
@@ -140,10 +140,11 @@ function groupBrainOf(forge: FleetDocumentForge | null, commandStates: CommandSt
       return { kind: brain.state };
     case 'refused':
       return {
-        kind:     'refused',
-        sentence: brain.refusal?.sentence ?? REFUSAL_WITHOUT_A_SENTENCE,
-        code:     brain.refusal?.code ?? brain.state,
-        wake:     wakeOf(forge, commandStates),
+        kind:      'refused',
+        refusedBy: 'forge',
+        sentence:  brain.refusal?.sentence ?? REFUSAL_WITHOUT_A_SENTENCE,
+        code:      brain.refusal?.code ?? brain.state,
+        wake:      wakeOf(forge, commandStates),
       };
     case 'off':
     case 'ended': {

@@ -194,6 +194,7 @@ export function BarRefusalLine({ refusal, onCommand, onDismiss }: BarRefusalLine
     <div className="gaia-forge-frame-refusal">
       <Refusal
         commandLabel={refusal.commandLabel}
+        refusedBy={refusal.refusedBy}
         code={refusal.code}
         sentence={refusal.sentence}
         onDismiss={onDismiss}
@@ -298,7 +299,14 @@ function SessionArea({
     case 'refused':
       return (
         <div className="gaia-forge-frame-notice">
-          <Refusal commandLabel="Open" code={shown.refusal.code} sentence={shown.refusal.sentence} onTryAgain={onAskAgain} onDismiss={onLeave} />
+          <Refusal
+            commandLabel="Open"
+            refusedBy={shown.refusal.refusedBy}
+            code={shown.refusal.code}
+            sentence={shown.refusal.sentence}
+            onTryAgain={onAskAgain}
+            onDismiss={onLeave}
+          />
         </div>
       );
   }

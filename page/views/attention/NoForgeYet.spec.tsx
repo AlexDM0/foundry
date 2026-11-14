@@ -145,7 +145,7 @@ describe('no forge yet', () => {
     await sender.send({ kind: 'fleet-look-again' });
     const { unfolded, pressed } = layoutOf(false, FILLED_FORM, sender.states());
     const refusal = tree.onlyWithClass(unfolded, 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Look again: registry-unreadable. The registry could not be read.');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('Gaia could not Look again: registry-unreadable. The registry could not be read.');
     tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
     expect(pressed.lookAgain).toBe(1);
   });

@@ -408,7 +408,7 @@ describe('the frame area', () => {
   test('a refused session shows the reason with Try again, and dismissing it goes back', () => {
     const refusal = ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null);
     const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'refused', refusal } });
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-refusal-text')])).toBe('The forge refused Open: token-rejected. The forge did not accept Gaia\'s token.');
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-refusal-text')])).toBe('Gaia could not Open: token-rejected. The forge did not accept Gaia\'s token.');
     tree.dispatch(buttonNamed(unfolded, 'Try again'), 'onClick');
     tree.dispatch(buttonNamed(unfolded, 'Dismiss this refusal'), 'onClick');
     expect(events).toEqual(['ask again', 'leave']);

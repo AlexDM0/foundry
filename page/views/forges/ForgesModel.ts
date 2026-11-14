@@ -18,7 +18,7 @@ import { CommandSender, type CommandStates }                              from '
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
 import type { PageFigure }                                                from '../../design-system/PageTitle.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
-import { CommandFailureTextUtil }                                         from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CommandFailureTextUtil, type RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                                              from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
@@ -90,10 +90,8 @@ export type ConditionTone = 'warn' | 'muted';
 /** A detail that is a machine value, a clock time or a path, is set in mono; one that is words, in the interface face. */
 export type DetailFace = 'mono' | 'ui';
 
-export interface ShownRefusal {
+export interface ShownRefusal extends RefusalText {
   readonly commandLabel: string;
-  readonly code:         string;
-  readonly sentence:     string;
   /** `null` when this view cannot tell what was sent, such as a limit another view set. */
   readonly retryCommand: CommandBody | null;
 }
@@ -458,11 +456,9 @@ function refusalOf(trackerId: string, surroundings: ForgesSurroundings, showsHer
   const { failure } = CommandSender.stateOf(surroundings.commandStates, { trackerId });
   const commandLabel = failure === null ? null : ForgeCommandTextUtil.commandLabelOf(failure.kind);
   if (failure === null || commandLabel === null || !showsHere(failure.kind)) return null;
-  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return {
     commandLabel,
-    code,
-    sentence,
+    ...CommandFailureTextUtil.refusalTextOf(failure),
     retryCommand: retryCommandOf(failure.kind, trackerId, surroundings.lastSent.get(trackerId)),
   };
 }

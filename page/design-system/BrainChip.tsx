@@ -7,8 +7,9 @@
  */
 import { Button } from 'design-system/Button';
 
-import { BrainDiamond } from './BrainDiamond.tsx';
-import { ConditionDot } from './ConditionDot.tsx';
+import { BrainDiamond }   from './BrainDiamond.tsx';
+import { ConditionDot }   from './ConditionDot.tsx';
+import type { RefusedBy } from './Refusal.tsx';
 
 export type BrainState = 'off' | 'starting' | 'running' | 'refused' | 'ended';
 
@@ -33,7 +34,7 @@ export type BrainChipProps =
     readonly tokens:    string;
     readonly stop:      BrainControl | null;
   }
-  | { readonly state: 'refused'; readonly sentence: string; readonly code: string; readonly wake: BrainControl | null }
+  | { readonly state: 'refused'; readonly refusedBy: RefusedBy; readonly sentence: string; readonly code: string; readonly wake: BrainControl | null }
   | { readonly state: 'ended'; readonly sentence: string };
 
 const WAKE_LABEL = 'Wake Flint\'s brain';
@@ -41,6 +42,11 @@ const WAKE_LABEL = 'Wake Flint\'s brain';
 const STARTING_NOTE = 'Waking Flint\'s brain…';
 
 const BRAIN_NAME = 'Flint\'s brain';
+
+const REFUSAL_LEAD_INS: Readonly<Record<RefusedBy, string>> = {
+  forge: 'The forge refused: ',
+  gaia:  'Gaia could not wake Flint\'s brain: ',
+};
 
 function WakeButton({ wake }: { readonly wake: BrainControl | null }) {
   if (wake === null) return null;
@@ -81,11 +87,12 @@ function BrainStateParts(props: BrainChipProps) {
     case 'running':
       return <RunningChip {...props} />;
     case 'refused': {
-      const wholeRefusal = `The forge refused: ${props.sentence} ${props.code}`;
+      const leadIn = REFUSAL_LEAD_INS[props.refusedBy];
+      const wholeRefusal = `${leadIn}${props.sentence} ${props.code}`;
       return (
         <>
           <span className="gaia-brain-chip-refusal" role="alert" title={wholeRefusal}>
-            <span className="gaia-brain-chip-refusal-sentence">{`The forge refused: ${props.sentence}`}</span>
+            <span className="gaia-brain-chip-refusal-sentence">{`${leadIn}${props.sentence}`}</span>
             <span className="gaia-brain-chip-refusal-code">{props.code}</span>
           </span>
           <WakeButton wake={props.wake} />

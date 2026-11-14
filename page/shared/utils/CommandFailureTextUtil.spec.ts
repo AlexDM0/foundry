@@ -12,17 +12,34 @@ describe('a refusal\'s code and sentence', () => {
       answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
     } as const;
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-update', result: { verdict: 'answered', answer: refused } }))
-      .toEqual({ code: 'update-in-progress', sentence: 'An update already runs in this repository.' });
+      .toEqual({ refusedBy: 'forge', code: 'update-in-progress', sentence: 'An update already runs in this repository.' });
     const notSupported = {
       answerVersion: 3, outcome: 'not-supported', refusal: null, text: null
     } as const;
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-restart', result: { verdict: 'answered', answer: notSupported } }))
-      .toEqual({ code: 'not-supported', sentence: 'This forge does not take this command from Gaia.' });
+      .toEqual({ refusedBy: 'gaia', code: 'not-supported', sentence: 'This forge does not take this command from Gaia.' });
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-start', result: { verdict: 'server-unreachable' } }))
-      .toEqual({ code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' });
+      .toEqual({ refusedBy: 'gaia', code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' });
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-start', result: { verdict: 'answer-not-understood' } }))
-      .toEqual({ code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' });
+      .toEqual({ refusedBy: 'gaia', code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' });
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-start', result: { verdict: 'session-lost' } }))
-      .toEqual({ code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' });
+      .toEqual({ refusedBy: 'gaia', code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' });
+  });
+});
+
+describe('who refused', () => {
+  test('a forge refused only an answered refusal of a command Gaia asked a forge to carry; Gaia\'s own commands are refused by Gaia', () => {
+    const refused = {
+      answerVersion: 3, outcome: 'refused', refusal: 'settings-unwritable', text: null
+    } as const;
+    const refusedByOf = (kind: 'forge-add' | 'settings-set' | 'path-choose' | 'fleet-look-again') => (
+      CommandFailureTextUtil.refusalTextOf({ kind, result: { verdict: 'answered', answer: refused } }).refusedBy
+    );
+    expect(['forge-add', 'settings-set', 'path-choose', 'fleet-look-again'].map((kind) => refusedByOf(kind as Parameters<typeof refusedByOf>[0])))
+      .toEqual(['forge', 'gaia', 'gaia', 'gaia']);
+    const unreachable = {
+      answerVersion: 3, outcome: 'unreachable', refusal: null, text: null
+    } as const;
+    expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-stop', result: { verdict: 'answered', answer: unreachable } }).refusedBy).toBe('gaia');
   });
 });

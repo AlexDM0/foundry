@@ -21,10 +21,11 @@ export function CommandFailureRefusal({
 }: CommandFailureRefusalProps) {
   const { failure } = CommandSender.stateOf(commandStates, subject);
   if (failure === null) return null;
-  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
+  const { refusedBy, code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return (
     <Refusal
       commandLabel={commandLabel}
+      refusedBy={refusedBy}
       code={code}
       sentence={sentence}
       onDismiss={() => onDismissFailure(subject)}

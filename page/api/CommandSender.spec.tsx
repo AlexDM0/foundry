@@ -117,7 +117,7 @@ describe('a refusal reaches the view with the forge\'s sentence', () => {
       const { failure } = CommandSender.stateOf(states, subject);
       if (failure?.result.verdict !== 'answered') return null;
       const { refusal, text } = failure.result.answer;
-      return <Refusal commandLabel="Stop" code={refusal ?? ''} sentence={text ?? ''} onDismiss={() => dismissFailure(subject)} />;
+      return <Refusal commandLabel="Stop" refusedBy="forge" code={refusal ?? ''} sentence={text ?? ''} onDismiss={() => dismissFailure(subject)} />;
     }
     const view = <CommandSenderContext value={sender}><StopRefusalProbe /></CommandSenderContext>;
     expect(renderToStaticMarkup(view)).toBe('');

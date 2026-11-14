@@ -120,6 +120,7 @@ describe('a refused settings change', () => {
   test('shows in the panel with the forge\'s code and sentence, and offers the same checkbox again', async () => {
     const { commandStates, sentSettingsChange } = await refusedStartAtLogin();
     expect(panelOf(FLEET_FIVE_FORGES, commandStates, sentSettingsChange).refusal).toEqual({
+      refusedBy:     'gaia',
       commandLabel:  'Start the running forges at login',
       code:          'login-item-unwritable',
       sentence:      LOGIN_ITEM_REFUSAL_SENTENCE,

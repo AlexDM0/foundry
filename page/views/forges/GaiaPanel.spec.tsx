@@ -182,7 +182,7 @@ describe('the panel', () => {
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), sentSettingsChange });
     const refusal = tree.onlyWithClass(unfolded, 'gaia-refusal');
     expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe(
-      'The forge refused Start the running forges at login: settings-unwritable. The command was refused.',
+      'Gaia could not Start the running forges at login: settings-unwritable. The command was refused.',
     );
     tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
     tree.dispatch(buttonNamed([refusal], 'Dismiss this refusal'), 'onClick');

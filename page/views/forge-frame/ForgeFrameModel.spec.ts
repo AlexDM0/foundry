@@ -274,13 +274,18 @@ describe('a refusal under the bar', () => {
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {
     expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } })).toEqual({
-      commandLabel: 'Stop', code: 'overseer-still-live', sentence: 'The Overseer did not stop within its tries.', tryAgain: null,
+      refusedBy:    'forge',
+      commandLabel: 'Stop',
+      code:         'overseer-still-live',
+      sentence:     'The Overseer did not stop within its tries.',
+      tryAgain:     null,
     });
   });
 
   test('sends pause, resume and Open in new tab again as they were', () => {
     const pauseRefusal = ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-pause', result: { verdict: 'server-unreachable' } });
     expect(pauseRefusal).toEqual({
+      refusedBy:    'gaia',
       commandLabel: 'Pause',
       code:         'server-unreachable',
       sentence:     'Gaia\'s server could not be reached.',
@@ -320,7 +325,9 @@ describe('Flint\'s brain in the bar', () => {
     expect(brainOf(STOREFRONT_BRAINS.running)?.shown).toEqual({
       state: 'running', model: 'haiku', effort: 'low', countdown: '1:24', tokens: '3.1k',
     });
-    expect(brainOf(STOREFRONT_BRAINS.refused)?.shown).toEqual({ state: 'refused', code: 'usage-limit-holds', sentence: 'launches are held until 16:00 (usage limit)' });
+    expect(brainOf(STOREFRONT_BRAINS.refused)?.shown).toEqual({
+      state: 'refused', refusedBy: 'forge', code: 'usage-limit-holds', sentence: 'launches are held until 16:00 (usage limit)'
+    });
     expect(brainOf(STOREFRONT_BRAINS.ended)?.shown).toEqual({ state: 'ended', sentence: 'Flint\'s brain stopped after 2:00 · 4.2k tokens' });
   });
 
@@ -343,9 +350,13 @@ describe('Flint\'s brain in the bar', () => {
 
   test('a refusal or an end whose sentence names a command is worded by Gaia from its code and tokens', () => {
     const refusedWithoutSentence = { ...STOREFRONT_BRAINS.refused, refusal: { code: 'overseer-paused', sentence: null } };
-    expect(brainOf(refusedWithoutSentence)?.shown).toEqual({ state: 'refused', code: 'overseer-paused', sentence: 'the Overseer is paused' });
+    expect(brainOf(refusedWithoutSentence)?.shown).toEqual({
+      state: 'refused', refusedBy: 'forge', code: 'overseer-paused', sentence: 'the Overseer is paused'
+    });
     const unknownCode = { ...STOREFRONT_BRAINS.refused, refusal: { code: 'constructor', sentence: null } };
-    expect(brainOf(unknownCode)?.shown).toEqual({ state: 'refused', code: 'constructor', sentence: 'Flint\'s brain did not wake' });
+    expect(brainOf(unknownCode)?.shown).toEqual({
+      state: 'refused', refusedBy: 'forge', code: 'constructor', sentence: 'Flint\'s brain did not wake'
+    });
     expect(brainOf({ ...STOREFRONT_BRAINS.ended, sentence: null })?.shown).toEqual({ state: 'ended', sentence: 'Flint\'s brain stopped · 4.2k tokens' });
   });
 
@@ -372,7 +383,9 @@ describe('Flint\'s brain in the bar', () => {
   test('a wake refused here replaces off, refused and ended in the group, a refused stop does not, and neither shows under the bar as well', () => {
     const wakeRefused = { kind: 'forge-brain-start', result: { verdict: 'server-unreachable' } } as const;
     const stopRefused = { kind: 'forge-brain-stop', result: { verdict: 'server-unreachable' } } as const;
-    const refusedHere = { state: 'refused', code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' } as const;
+    const refusedHere = {
+      state: 'refused', refusedBy: 'gaia', code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.'
+    } as const;
     for (const state of ['off', 'refused', 'ended'] as const) {
       const brain = brainOf(STOREFRONT_BRAINS[state]);
       if (brain === null) throw new Error('The forge has no brain.');
@@ -384,6 +397,7 @@ describe('Flint\'s brain in the bar', () => {
     expect(ForgeFrameModel.brainShownAfter(running, wakeRefused)).toBe(running.shown);
     expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, wakeRefused)).toBeNull();
     expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, stopRefused)).toEqual({
+      refusedBy:    'gaia',
       commandLabel: 'Stop Flint\'s brain',
       code:         'server-unreachable',
       sentence:     'Gaia\'s server could not be reached.',
@@ -415,8 +429,12 @@ describe('Flint\'s brain in the bar', () => {
         },
       },
     } as const);
-    const usageLimit = { state: 'refused', code: 'usage-limit-holds', sentence: 'launches are held until the usage limit resets' } as const;
-    const notServed = { state: 'refused', code: 'brain-not-served', sentence: 'Flint\'s brain did not wake' } as const;
+    const usageLimit = {
+      state: 'refused', refusedBy: 'forge', code: 'usage-limit-holds', sentence: 'launches are held until the usage limit resets'
+    } as const;
+    const notServed = {
+      state: 'refused', refusedBy: 'forge', code: 'brain-not-served', sentence: 'Flint\'s brain did not wake'
+    } as const;
     expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
     expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('brain-not-served'))).toEqual(notServed);
   });
@@ -440,8 +458,9 @@ describe('Flint\'s brain in the bar', () => {
 describe('the reason there is no frame session', () => {
   test('is the forge\'s own sentence when it sent one, else Gaia\'s for its own code, else a plain one', () => {
     expect(ForgeFrameModel.frameSessionRefusalTextOf('sessions-full', 'The Overseer holds as many sessions as it allows.'))
-      .toEqual({ code: 'sessions-full', sentence: 'The Overseer holds as many sessions as it allows.' });
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null)).toEqual({ code: 'token-rejected', sentence: 'The forge did not accept Gaia\'s token.' });
+      .toEqual({ refusedBy: 'forge', code: 'sessions-full', sentence: 'The Overseer holds as many sessions as it allows.' });
+    expect(ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null))
+      .toEqual({ refusedBy: 'gaia', code: 'token-rejected', sentence: 'The forge did not accept Gaia\'s token.' });
     expect(ForgeFrameModel.frameSessionRefusalTextOf('server-unreachable', null).sentence).toBe('Gaia\'s server could not be reached.');
     expect(ForgeFrameModel.frameSessionRefusalTextOf('session-lost-while-opening', null).sentence).toBe('The Bridge lost its session as it opened.');
     expect(ForgeFrameModel.frameSessionRefusalTextOf('constructor', null).sentence).toBe('Gaia could not open a session in this forge.');

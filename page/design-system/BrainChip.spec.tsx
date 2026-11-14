@@ -84,7 +84,7 @@ describe('the brain chip', () => {
 
   test('refused: the forge\'s refusal on one line, its sentence apart from its code in mono, whole in its title, as an alert, then Wake again', () => {
     const unfolded = chipOf({
-      state: 'refused', sentence: 'launches are held until 16:00 (usage limit)', code: 'usage-limit-holds', wake: { onPress: () => undefined, disabled: false },
+      state: 'refused', refusedBy: 'forge', sentence: 'launches are held until 16:00 (usage limit)', code: 'usage-limit-holds', wake: { onPress: () => undefined, disabled: false },
     });
     const group = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-group');
     const [first, second] = group.children;
@@ -96,6 +96,14 @@ describe('the brain chip', () => {
       ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, className)])
     ))).toEqual(['The forge refused: launches are held until 16:00 (usage limit)', 'usage-limit-holds']);
     expect(buttonsOf(unfolded).map((button) => ReactElementTree.textOf([button]))).toEqual(['Wake Flint\'s brain']);
+  });
+
+  test('a wake Gaia could not carry out, as when its server did not answer, says Gaia could not wake the brain, not that the forge refused', () => {
+    const unfolded = chipOf({
+      state: 'refused', refusedBy: 'gaia', sentence: 'Gaia\'s server could not be reached.', code: 'server-unreachable', wake: null
+    });
+    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-refusal').props['title'])
+      .toBe('Gaia could not wake Flint\'s brain: Gaia\'s server could not be reached. server-unreachable');
   });
 
   test('ended: the grey diamond and the forge\'s own sentence, with no button', () => {
@@ -114,7 +122,7 @@ describe('the brain chip', () => {
       partsOf({ state: 'starting' }),
       partsOf(RUNNING),
       partsOf({
-        state: 'refused', sentence: 'launches are held', code: 'usage-limit-holds', wake: null
+        state: 'refused', refusedBy: 'forge', sentence: 'launches are held', code: 'usage-limit-holds', wake: null
       }),
       partsOf({ state: 'ended', sentence: 'Flint\'s brain stopped.' }),
     ]).toEqual([[], ['gaia-brain-chip-note'], ['gaia-brain-chip'], ['gaia-brain-chip-refusal'], ['gaia-brain-chip-note']]);

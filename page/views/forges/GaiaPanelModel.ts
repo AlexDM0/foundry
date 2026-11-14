@@ -7,7 +7,7 @@
 import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
 import { type CommandResult, CommandSender, type CommandStates }                    from '../../api/CommandSender.ts';
-import { CommandFailureTextUtil }                                                   from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CommandFailureTextUtil, type RefusalText }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
 import { PathTextUtil }                                                             from '../../shared/utils/PathTextUtil.ts';
 
 /** Where a settings checkbox sits: the Gaia panel, or the "What notifies" list over the view. */
@@ -37,10 +37,8 @@ export interface SentSettingsChange {
 }
 
 /** A refused settings change, beside the checkbox that sent it; "Try again" sends that checkbox's change once more. */
-export interface SettingsRefusal {
+export interface SettingsRefusal extends RefusalText {
   readonly commandLabel:  string;
-  readonly code:          string;
-  readonly sentence:      string;
   readonly retryCheckbox: SettingsCheckbox;
 }
 
@@ -107,11 +105,9 @@ function refusalIn(place: SettingsPlace, { commandStates, sentSettingsChange }: 
   const { failure } = CommandSender.stateOf(commandStates, { fleetCommand: 'settings-set' });
   if (failure === null || sentSettingsChange === null || sentSettingsChange.checkbox.place !== place) return null;
   if (sentSettingsChange.result !== failure.result) return null;
-  const { code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
   return {
     commandLabel:  sentSettingsChange.checkbox.label,
-    code,
-    sentence,
+    ...CommandFailureTextUtil.refusalTextOf(failure),
     retryCheckbox: sentSettingsChange.checkbox,
   };
 }

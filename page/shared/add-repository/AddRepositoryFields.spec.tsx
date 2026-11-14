@@ -165,7 +165,7 @@ describe('the line of a missing forge program', () => {
     );
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-refusal-text')])).toBe(
-      'The forge refused Choose the forge program: settings-unwritable. Gaia could not write its settings.',
+      'Gaia could not Choose the forge program: settings-unwritable. Gaia could not write its settings.',
     );
   });
 });
