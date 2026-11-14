@@ -1187,7 +1187,10 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   column-gap: var(--sp-3);
   min-height: var(--attention-row-height);
 }
-.gaia-attention-row > :not(.gaia-attention-row-forge) { transition: opacity var(--motion-slow) var(--ease-out); }
+/* Only the row's own cells fade: a transition on the package's button would replace the button's own. */
+.gaia-attention-row-kind,
+.gaia-attention-row-id,
+.gaia-attention-row-text { transition: opacity var(--motion-slow) var(--ease-out); }
 .gaia-attention-row[data-stale] > :not(.gaia-attention-row-forge) { opacity: var(--stale-opacity); }
 .gaia-attention-row-forge { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .gaia-attention-row-forge-text { display: flex; flex-direction: column; min-width: 0; }
