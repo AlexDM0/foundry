@@ -439,15 +439,15 @@ body {
 .gaia-add-repository-program-missing {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) dashed var(--line-strong);
-  border-radius: var(--r-3);
+  border-radius: var(--r-2);
   background: var(--surface);
 }
-.gaia-add-repository-program-missing-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.gaia-add-repository-program-missing-text { display: flex; flex: 1; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .gaia-add-repository-program-missing-title { font-weight: var(--weight-strong); }
-.gaia-add-repository-program-missing-why { color: var(--ink-muted); }
+.gaia-add-repository-program-missing-why { font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--ink-muted); }
 
 /* ── Activity (A3) ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
