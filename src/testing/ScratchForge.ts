@@ -41,7 +41,7 @@ export interface ScratchForge {
   readonly exampleValueFor:      (exampleValue: ExampleValue) => void;
   /** `text` with every value drawn by this run replaced by its example, the longest first so no path is replaced inside another. */
   readonly exampleTextOf:        (text: string) => string;
-  /** Stops each Overseer still live in the scratch repositories and removes the scratch home and repositories. */
+  /** Stops each Overseer still live in the scratch repositories and removes them, then the scratch home once every one is gone. */
   readonly remove:               () => Promise<void>;
 }
 
@@ -65,6 +65,23 @@ function refuseOutsideTheScratchRoot(workingDirectory: string): void {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Tries every repository past a failed one and rethrows the first failure; a repository leaves the list only once it is gone, so a second
+ * call retries the rest.
+ */
+export async function removeEachRepository(repositories: string[], stopAndRemoveRepository: (repository: string) => Promise<void>): Promise<void> {
+  const failures: unknown[] = [];
+  for (const repository of [...repositories]) {
+    try {
+      await stopAndRemoveRepository(repository);
+      repositories.splice(repositories.indexOf(repository), 1);
+    } catch (failure) {
+      failures.push(failure);
+    }
+  }
+  if (failures.length > 0) throw failures[0];
 }
 
 export function createScratchForge(recordingName: string): ScratchForge {
@@ -137,11 +154,13 @@ export function createScratchForge(recordingName: string): ScratchForge {
     return longestFirst.reduce((exampleText, { drawn, example }) => exampleText.replaceAll(drawn, example), text);
   }
 
+  async function stopAndRemoveRepository(repository: string): Promise<void> {
+    if (existsSync(join(repository, '.forge'))) await run(repository, ['stop', '--now', '--json']);
+    removeScratchPath(repository);
+  }
+
   async function remove(): Promise<void> {
-    for (const repository of repositories.splice(0)) {
-      if (existsSync(join(repository, '.forge'))) await run(repository, ['stop', '--now', '--json']);
-      removeScratchPath(repository);
-    }
+    await removeEachRepository(repositories, stopAndRemoveRepository);
     removeScratchPath(forgeHome);
   }
 
