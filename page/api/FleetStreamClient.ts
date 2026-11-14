@@ -4,16 +4,18 @@
  * reads `lost` from the error until the next open. Gaia's server sends its current document first on every open, so a reopened stream
  * needs no separate read of `/api/fleet`. A document of another `fleetVersion` means a stale page: it reloads once, and a mark in the
  * session's storage keeps a second mismatch from reloading again. Page sessions live in the server's memory, so a stream that errs asks
- * whether the window still holds one; once it does not, as after the server restarted, no reopen could succeed and the client stops.
+ * whether the window still holds one; once it does not, as after the server restarted, no reopen could succeed and the client stops. When
+ * nothing answers that check, the server and the session it held are gone: the client reads `server-ended` and keeps reopening, so a server
+ * that answers again moves it on.
  */
 import { CONTRACT_VERSIONS }  from '../../src/shared/constants/ContractVersions.ts';
 import type { FleetDocument } from '../@types/FleetDocument.ts';
 
 /**
  * `connecting` only before the first open; `page-out-of-date` once a reload did not bring a page of the server's `fleetVersion`;
- * `session-lost` once the server no longer knows this window's session.
+ * `session-lost` once the server no longer knows this window's session; `server-ended` while nothing answers the session check.
  */
-export type FleetStreamState = 'connecting' | 'live' | 'lost' | 'page-out-of-date' | 'session-lost';
+export type FleetStreamState = 'connecting' | 'live' | 'lost' | 'server-ended' | 'page-out-of-date' | 'session-lost';
 
 /** Whether the server still knows this window's session: `unknown` when nothing answered, as while the server is down. */
 export type SessionReading = 'held' | 'lost' | 'unknown';
@@ -116,6 +118,12 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
     changeState('session-lost');
   };
 
+  const readSessionAnswer = (reading: SessionReading): void => {
+    if (!following) return;
+    if (reading === 'lost') loseSession();
+    else if (state === 'lost' || state === 'server-ended') changeState(reading === 'unknown' ? 'server-ended' : 'lost');
+  };
+
   const readFleetEvent = (event: Event): void => {
     const fleetEventReading = fleetEventReadingOf('data' in event ? event.data : null);
     if (fleetEventReading === null) return;
@@ -147,11 +155,9 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
       if (source !== opened) return;
       opened.close();
       source = null;
-      changeState('lost');
+      if (state !== 'server-ended') changeState('lost');
       cancelReopen = schedule(open, FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS);
-      void readSession().then((reading) => {
-        if (reading === 'lost' && following) loseSession();
-      });
+      void readSession().then(readSessionAnswer);
     });
   };
 

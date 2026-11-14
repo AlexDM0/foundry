@@ -1,6 +1,7 @@
 /**
  * The connection banner. What matters (SCREENS "The shell"): while Gaia's event stream is lost the banner says so in SCREENS' own words,
- * as an alert in the error tone; a page that cannot read the server's documents says that instead; a live or connecting stream shows none.
+ * as an alert in the error tone; a page that cannot read the server's documents says that instead; a window whose session or server is gone
+ * says that it must be opened again, naming no command; a live or connecting stream shows none.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -30,6 +31,15 @@ describe('the connection banner', () => {
   test('a window the server no longer knows says so in Gaia\'s words, claims no retry, and names no command', () => {
     const text = tree.textOf(bannerOf('session-lost'));
     expect(text).toBe('Gaia\'s server no longer knows this window, as after it restarted. Close this window and open Gaia again.');
+    expect(text).not.toContain('Trying again');
+    expect(text).not.toMatch(/`|gaia [a-z-]+ /);
+  });
+
+  test('a server that no longer answers says so in Gaia\'s words, that the window\'s session ended with it, claims no retry, and names no command', () => {
+    const banner = tree.onlyWithClass(bannerOf('server-ended'), 'design-system-banner');
+    const text = tree.textOf([banner]);
+    expect([banner.props['role'], banner.props['data-tone']]).toEqual(['alert', 'error']);
+    expect(text).toBe('Gaia\'s server no longer answers, and this window\'s session ended with it. Close this window and open Gaia again.');
     expect(text).not.toContain('Trying again');
     expect(text).not.toMatch(/`|gaia [a-z-]+ /);
   });

@@ -3,7 +3,8 @@
  * a stream that errs reads `lost` at once, is closed, and is opened again only when its reopen is due, read `lost` until it opens; a
  * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion`, newer or
  * older, reloads the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without
- * end.
+ * end; a session check that nothing answers reads `server-ended`, since the session lived in the gone server's memory, and only an answer
+ * moves it on (#75).
  *
  * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends (PLAN 8.1: `fleet`
  * events and a heartbeat); the reopen is a schedule the spec runs, so no spec waits the interval.
@@ -51,20 +52,22 @@ function standInSource(path: string): StandInSource {
 }
 
 interface StreamStage {
-  readonly client:    ReturnType<typeof FleetStreamClient.create>;
-  readonly published: FleetDocument[];
-  readonly opened:    StandInSource[];
-  readonly scheduled: ScheduledTask[];
-  readonly reloads:   string[];
-  readonly marks:     (string | null)[];
+  readonly client:                  ReturnType<typeof FleetStreamClient.create>;
+  readonly published:               FleetDocument[];
+  readonly opened:                  StandInSource[];
+  readonly scheduled:               ScheduledTask[];
+  readonly reloads:                 string[];
+  readonly marks:                   (string | null)[];
   /** The source opened last; the spec fails when none was. */
-  readonly latest:    () => StandInSource;
+  readonly latest:                  () => StandInSource;
+  /** What the session check answers from now on. */
+  readonly answerSessionChecksWith: (reading: SessionReading) => void;
 }
 
 interface StreamStageOptions {
   readonly storedMark?:     string | null;
   readonly markCanBeKept?:  boolean;
-  /** What the session check answers after each error; held when the spec names nothing. */
+  /** What the session check answers after each error until the spec answers otherwise; held when the spec names nothing. */
   readonly sessionReading?: SessionReading;
 }
 
@@ -74,6 +77,7 @@ function streamStage(options: StreamStageOptions = {}): StreamStage {
   const scheduled: ScheduledTask[] = [];
   const reloads: string[] = [];
   let storedMark = options.storedMark ?? null;
+  let sessionReading = options.sessionReading ?? 'held';
   const marks: (string | null)[] = [];
   const surroundings: FleetStreamSurroundings = {
     openEventSource: (path) => {
@@ -89,7 +93,7 @@ function streamStage(options: StreamStageOptions = {}): StreamStage {
       };
     },
     reloadPage:  () => reloads.push('reloaded'),
-    readSession: () => Promise.resolve(options.sessionReading ?? 'held'),
+    readSession: () => Promise.resolve(sessionReading),
     reloadMark:  {
       read:  () => storedMark,
       write: (fleetVersion) => {
@@ -111,6 +115,9 @@ function streamStage(options: StreamStageOptions = {}): StreamStage {
       const source = opened.at(-1);
       if (source === undefined) throw new Error('The client opened no stream.');
       return source;
+    },
+    answerSessionChecksWith: (reading) => {
+      sessionReading = reading;
     },
   };
 }
@@ -236,13 +243,11 @@ describe('a session the server no longer knows', () => {
     expect(stage.opened).toHaveLength(1);
   });
 
-  test('a session check that is held, or that nothing answered, leaves the stream lost and its reopen due', async () => {
-    for (const sessionReading of ['held', 'unknown'] as const) {
-      const stage = followedAndLive(streamStage({ sessionReading }));
-      stage.latest().emit('error');
-      await Promise.resolve();
-      expect([sessionReading, stage.client.state(), stage.scheduled[0]?.isCancelled()]).toEqual([sessionReading, 'lost', false]);
-    }
+  test('a session check that is held leaves the stream lost and its reopen due', async () => {
+    const stage = followedAndLive(streamStage({ sessionReading: 'held' }));
+    stage.latest().emit('error');
+    await Promise.resolve();
+    expect([stage.client.state(), stage.scheduled[0]?.isCancelled()]).toEqual(['lost', false]);
   });
 
   test('losing the session from a command\'s answer stops the stream at once, and the controls may not act', () => {
@@ -251,6 +256,67 @@ describe('a session the server no longer knows', () => {
     expect([stage.client.state(), stage.latest().isClosed()]).toEqual(['session-lost', true]);
     expect(FleetStreamClient.controlsMayActIn(stage.client.state())).toBe(false);
   });
+});
+
+describe('a server that no longer answers', () => {
+  test('a session check that nothing answered reads server-ended, keeps the reopen due, and the controls may not act', async () => {
+    const stage = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    stage.latest().emit('error');
+    await Promise.resolve();
+    expect([stage.client.state(), stage.scheduled[0]?.isCancelled()]).toEqual(['server-ended', false]);
+    expect(FleetStreamClient.controlsMayActIn(stage.client.state())).toBe(false);
+  });
+
+  test('each reopen that errs while nothing answers stays server-ended, never back to lost between checks', async () => {
+    const stage = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    const heard: FleetStreamState[] = [];
+    stage.client.subscribe(() => heard.push(stage.client.state()));
+    stage.latest().emit('error');
+    await Promise.resolve();
+    stage.scheduled[0]?.task();
+    stage.latest().emit('error');
+    await Promise.resolve();
+    expect([heard, stage.scheduled.length]).toEqual([['lost', 'server-ended'], 2]);
+  });
+
+  test('a server that answers again moves it on: a session it no longer knows reads session-lost, a session it holds reads lost until the reopen', async () => {
+    const forgotten = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    forgotten.latest().emit('error');
+    await Promise.resolve();
+    forgotten.answerSessionChecksWith('lost');
+    forgotten.scheduled[0]?.task();
+    forgotten.latest().emit('error');
+    await Promise.resolve();
+    expect(forgotten.client.state()).toBe('session-lost');
+
+    const held = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    held.latest().emit('error');
+    await Promise.resolve();
+    held.answerSessionChecksWith('held');
+    held.scheduled[0]?.task();
+    held.latest().emit('error');
+    await Promise.resolve();
+    expect(held.client.state()).toBe('lost');
+    held.scheduled[1]?.task();
+    held.latest().emit('open');
+    expect(held.client.state()).toBe('live');
+  });
+
+  test('a late check that nothing answered changes nothing once the reopened stream is live or the client stopped', async () => {
+    const reopened = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    reopened.latest().emit('error');
+    reopened.scheduled[0]?.task();
+    reopened.latest().emit('open');
+    await Promise.resolve();
+    expect(reopened.client.state()).toBe('live');
+
+    const stopped = followedAndLive(streamStage({ sessionReading: 'unknown' }));
+    stopped.latest().emit('error');
+    stopped.client.stop();
+    await Promise.resolve();
+    expect(stopped.client.state()).toBe('lost');
+  });
+
 });
 
 describe('another fleetVersion', () => {
@@ -297,8 +363,8 @@ describe('another fleetVersion', () => {
 });
 
 describe('whether the controls may act', () => {
-  test('they may while connecting and live, and may not while the stream is lost or the page is out of date', () => {
-    const states: FleetStreamState[] = ['connecting', 'live', 'lost', 'page-out-of-date', 'session-lost'];
-    expect(states.map((state) => FleetStreamClient.controlsMayActIn(state))).toEqual([true, true, false, false, false]);
+  test('they may while connecting and live, and may not while the stream is lost, the server ended or the page is out of date', () => {
+    const states: FleetStreamState[] = ['connecting', 'live', 'lost', 'server-ended', 'page-out-of-date', 'session-lost'];
+    expect(states.map((state) => FleetStreamClient.controlsMayActIn(state))).toEqual([true, true, false, false, false, false]);
   });
 });
