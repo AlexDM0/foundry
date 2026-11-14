@@ -606,24 +606,25 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 /* ── Agents ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
-/* The table and its filters on the left, the selected agent's panel beside them at its full height */
+/* The table and its filters on the left, the selected agent's panel beside them, both held to the view's height: the table's rows scroll
+   in their card, so the footnote and the panel's foot stay in sight; below the table's least height the view scrolls instead. */
 .gaia-agents {
   display: flex;
   gap: var(--space-20);
   box-sizing: border-box;
-  min-height: 100%;
+  height: 100%;
   padding: var(--space-14) var(--sp-5) var(--space-20) var(--space-28);
 }
-.gaia-agents[data-layout="empty"] { flex-direction: column; gap: var(--sp-4); }
-.gaia-agents-main { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
+.gaia-agents[data-layout="empty"] { flex-direction: column; gap: var(--sp-4); height: auto; min-height: 100%; }
+.gaia-agents-main { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; min-height: 0; }
 .gaia-agents-filters { display: flex; align-items: center; gap: var(--sp-3); }
 .gaia-agents-order { flex: 1; text-align: end; font-size: var(--fs-small); color: var(--ink-4); }
-.gaia-agents-no-match { margin: 0; color: var(--ink-muted); }
 .gaia-agents-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 
 /* The table: a card of grid rows, a lane-grounded head row per forge, the selected row on the wash with an orange inset edge */
 .gaia-agents-table {
-  overflow: hidden;
+  min-height: var(--agents-table-least-height);
+  overflow-y: auto;
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-3);
   background: var(--surface);
@@ -756,7 +757,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   flex-direction: column;
   box-sizing: border-box;
   width: var(--agents-panel-width);
-  overflow: hidden;
+  overflow-y: auto;
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-3);
   background: var(--surface);
@@ -765,7 +766,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-panel-section[data-section="head"] { gap: var(--sp-3); border-bottom: var(--hairline) solid var(--line); }
 .gaia-agents-panel-section[data-section="last-line"],
 .gaia-agents-panel-section[data-section="moves"],
-.gaia-agents-panel-section[data-section="sentence"] { flex: 1; gap: var(--sp-2); min-height: 0; padding-top: var(--sp-1); }
+.gaia-agents-panel-section[data-section="sentence"] { flex: 1 0 auto; gap: var(--sp-2); padding-top: var(--sp-1); }
 .gaia-agents-panel-section[data-section="sentence"] { padding-top: var(--space-14); }
 .gaia-agents-panel-section[data-section="foot"] { padding-bottom: var(--sp-4); border-top: var(--hairline) solid var(--line); }
 .gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); }

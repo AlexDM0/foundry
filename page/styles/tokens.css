@@ -59,6 +59,8 @@
   --agents-group-head-height: 30px;
   /* 56 px, not the 58 px of other lists, so that A2's eleven rows and four forge heads fit at 1016 px. */
   --agents-row-height:   56px;
+  /* The column heads, one forge's head and one row: the least of the table that stays in sight before the view scrolls. */
+  --agents-table-least-height: 119px;
   --agents-calls-meter-width: 60px;
   --agents-panel-width:  404px;
   --agents-machine-width: 320px;
