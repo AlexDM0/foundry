@@ -69,7 +69,7 @@ function recordingChooser(): PathChooser {
       throw new Error(`The path-chooser recording starts nothing detached, and was asked to start ${request.program}.`);
     },
   };
-  return createPathChooser({ processRun: recordingProcessRun, workingDirectory: () => workingDirectory });
+  return createPathChooser({ processRun: recordingProcessRun, workingDirectory: () => workingDirectory, cancellation: new AbortController().signal });
 }
 
 describe('the system\'s chooser, answered by a person', () => {

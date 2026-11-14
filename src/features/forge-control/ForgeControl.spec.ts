@@ -180,8 +180,12 @@ function controlOver(controlOptions: ControlOptions): ForgeControl {
       settingsProgramPath: () => settingsStore.settings().forgeProgramPath,
     }),
     settingsStore,
-    pathChooser: createPathChooser({ processRun: controlOptions.pathChooserRun ?? recordedProcessRun([]), workingDirectory: () => scratchFolder }),
-    lookAgain:   controlOptions.lookAgain ?? (async () => undefined),
+    pathChooser: createPathChooser({
+      processRun:       controlOptions.pathChooserRun ?? recordedProcessRun([]),
+      workingDirectory: () => scratchFolder,
+      cancellation:     new AbortController().signal,
+    }),
+    lookAgain: controlOptions.lookAgain ?? (async () => undefined),
   });
 }
 

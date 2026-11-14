@@ -11,6 +11,8 @@ export interface PathChooserOptions {
   readonly processRun:       ProcessRun;
   /** Read at each choice; the chooser reads nothing in it, so any folder that exists will do. */
   readonly workingDirectory: () => string;
+  /** Ends a dialog still open, so no `osascript` outlives the server that asked for it. */
+  readonly cancellation:     AbortSignal;
 }
 
 export interface PathChooser {
@@ -53,6 +55,7 @@ export function createPathChooser(options: PathChooserOptions): PathChooser {
       programArguments:    pathChooserArgumentsOf(what),
       workingDirectory:    options.workingDirectory(),
       timeoutMilliseconds: PATH_CHOICE_TIMEOUT_MILLISECONDS,
+      cancellation:        options.cancellation,
     });
     return PathChoiceMapUtil.verdictOfRun(run);
   }

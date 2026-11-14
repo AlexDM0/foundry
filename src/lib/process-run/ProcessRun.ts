@@ -1,7 +1,7 @@
 /**
- * The boundary to other programs: run one with arguments in a working directory and a bounded wait, and collect its exit code and output;
- * start one owned, which the caller stops and whose end it awaits; or start one detached that outlives Gaia. Every answer is a verdict,
- * never a throw for an ordinary outcome.
+ * The boundary to other programs: run one with arguments in a working directory and a bounded wait, which its caller may also cancel, and
+ * collect its exit code and output; start one owned, which the caller stops and whose end it awaits; or start one detached that outlives
+ * Gaia. Every answer is a verdict, never a throw for an ordinary outcome.
  */
 import { closeSync, statSync } from 'node:fs';
 import { constants }           from 'node:os';
@@ -11,6 +11,8 @@ export interface ProgramRunRequest {
   readonly programArguments:    readonly string[];
   readonly workingDirectory:    string;
   readonly timeoutMilliseconds: number;
+  /** Ends the program with `SIGTERM` once it fires, even before the start; the run then answers as any program ended by a signal does. */
+  readonly cancellation?:       AbortSignal;
 }
 
 export interface DetachedStartRequest {
@@ -173,6 +175,11 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
     } catch (startError) {
       return programNotFoundOrThrow(startError);
     }
+    const endTheProgram = (): void => {
+      child.kill('SIGTERM');
+    };
+    request.cancellation?.addEventListener('abort', endTheProgram, { once: true });
+    if (request.cancellation?.aborted === true) endTheProgram();
     const finished = Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
     let boundTimer: ReturnType<typeof setTimeout> | undefined;
     const boundRanOut = new Promise<'timed-out'>((resolve) => {
@@ -180,6 +187,7 @@ export function realProcessRun(childEnvironment: ChildEnvironmentSource): Proces
     });
     const outcome = await Promise.race([finished, boundRanOut]);
     clearTimeout(boundTimer);
+    request.cancellation?.removeEventListener('abort', endTheProgram);
     if (outcome === 'timed-out') {
       child.kill('SIGKILL');
       // A grandchild may hold the output open after the child is gone; the answer does not wait for it.

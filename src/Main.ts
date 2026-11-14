@@ -160,13 +160,14 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   }
 
   const processRun = realProcessRun(environmentCopy);
+  const pathChoiceCancellation = new AbortController();
   const forgeControl = createForgeControl({
     readRegistry,
     readings:     forgeWatch.readings,
     forgeClient,
     forgeProgram: createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
     settingsStore,
-    pathChooser:  createPathChooser({ processRun, workingDirectory: () => home }),
+    pathChooser:  createPathChooser({ processRun, workingDirectory: () => home, cancellation: pathChoiceCancellation.signal }),
     lookAgain:    forgeWatch.lookAgain,
   });
 
@@ -191,6 +192,8 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   output.writeStandardOutput(`${PRODUCT_NAMES.applicationName} serves ${pageServer.url.href}\n`);
 
   await watchStopSignals().untilAStopSignal;
+  // A dialog still open holds its request, and the page server's stop waits on every request.
+  pathChoiceCancellation.abort();
   unsubscribeFromSettings();
   forgeWatch.stop();
   await pageServer.stop();

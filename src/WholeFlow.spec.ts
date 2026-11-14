@@ -282,7 +282,7 @@ async function startGaia(): Promise<RunningGaia> {
     forgeClient,
     forgeProgram: createForgeProgram({ processRun: forgeProgramRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
     settingsStore,
-    pathChooser:  createPathChooser({ processRun: forgeProgramRun, workingDirectory: () => home }),
+    pathChooser:  createPathChooser({ processRun: forgeProgramRun, workingDirectory: () => home, cancellation: new AbortController().signal }),
     lookAgain:    watch.lookAgain,
   });
   const startVerdict = await startPageServer({
