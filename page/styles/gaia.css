@@ -306,6 +306,19 @@ body {
   color: var(--ink);
 }
 
+.gaia-shell-controls {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.gaia-shell-body { display: flex; flex: 1; min-height: 0; }
+
 /* Rail */
 .gaia-rail {
   display: flex;
@@ -314,105 +327,64 @@ body {
   gap: var(--rail-section-gap);
   box-sizing: border-box;
   width: var(--rail-width);
-  padding: var(--rail-section-gap) var(--sp-3) var(--sp-4);
+  padding: var(--sp-4) var(--sp-3);
   overflow-y: auto;
   border-right: var(--hairline) solid var(--line);
 }
-.gaia-rail-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--rail-inset);
-  height: var(--rail-brand-height);
-  padding: 0 var(--rail-inset);
-}
-.gaia-rail-brand-name { font-size: var(--fs-page); font-weight: var(--weight-brand); letter-spacing: var(--brand-tracking); }
 .gaia-rail-group { display: flex; flex-direction: column; gap: var(--sp-half); }
-.gaia-rail-group-head { padding: 0 var(--rail-inset) calc(var(--sp-1) + var(--sp-half)); }
+.gaia-rail-group-head { padding: 0 var(--rail-inset) var(--space-6); }
 .gaia-rail-row {
   display: flex;
   align-items: center;
   gap: var(--rail-inset);
   height: var(--rail-row-height);
-  padding: 0 var(--rail-inset);
+  padding: 0 var(--sp-2) 0 var(--rail-inset);
   border-radius: var(--r-2);
   color: var(--ink-muted);
   font-size: var(--fs-body);
+  font-weight: var(--weight-label);
   text-decoration: none;
   transition: var(--feedback-transition);
 }
 .gaia-rail-row:hover { background: var(--wash); color: var(--ink); }
-.gaia-rail-row[aria-current="page"] { background: var(--wash); color: var(--ink); font-weight: var(--weight-strong); }
-.gaia-rail-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gaia-rail-count {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
+.gaia-rail-row[aria-current="page"] {
+  background: var(--wash);
+  box-shadow: inset var(--selected-edge-width) 0 0 var(--ink);
+  color: var(--ink);
+  font-weight: var(--weight-strong);
 }
-.gaia-rail-count[data-tone="attention"] { color: var(--link); }
-.gaia-rail-no-forge { margin: 0; padding: 0 var(--rail-inset); font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-rail-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaia-rail-count { display: inline-flex; flex: none; align-items: center; }
+.gaia-rail-count-mark { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-rail-no-forge { margin: 0; padding: var(--sp-half) var(--rail-inset); font-size: var(--fs-tab); color: var(--ink-4); }
 .gaia-rail-spacer { flex: 1; }
 .gaia-rail-machine {
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--rail-inset) 0;
+  gap: var(--rail-machine-gap);
+  padding: var(--space-14) var(--rail-inset) 0;
   border-top: var(--hairline) solid var(--line);
   color: var(--ink);
   text-decoration: none;
 }
-.gaia-rail-machine-agents { display: flex; align-items: baseline; gap: calc(var(--sp-1) + var(--sp-half)); }
+.gaia-rail-machine-agents { display: flex; align-items: baseline; gap: var(--space-6); }
 .gaia-rail-machine-figure {
   font-family: var(--font-mono);
   font-size: var(--fs-figure);
+  line-height: var(--line-height-figure);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-figure);
 }
+.gaia-rail-machine[data-at-the-limit] .gaia-rail-machine-figure { color: var(--link); }
 .gaia-rail-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-rail-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
-.gaia-rail-machine[data-at-the-limit] .gaia-rail-machine-line { color: var(--link); }
+.gaia-rail-machine-at-the-limit { font-size: var(--fs-small); font-weight: var(--weight-strong); color: var(--link); }
+.gaia-rail-machine-line { font-size: var(--fs-small); color: var(--ink-4); }
 
-/* Main area and top bar */
+/* Main area: the view's page title, the connection banner under it, and the view */
 .gaia-shell-main { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-/* The fieldset only disables the controls under it while the stream is lost; it draws nothing and lays out as the main area did. */
-.gaia-shell-controls {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.gaia-top-bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: var(--sp-4);
-  box-sizing: border-box;
-  height: var(--top-bar-height);
-  padding: 0 var(--sp-6);
-  border-bottom: var(--hairline) solid var(--line);
-}
-.gaia-top-bar-title { flex: none; margin: 0; white-space: nowrap; font-size: var(--fs-page); font-weight: var(--weight-page-title); letter-spacing: var(--page-title-tracking); }
-.gaia-top-bar-status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-width: 0;
-  font-family: var(--font-mono);
-  font-size: var(--fs-small);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
-}
-.gaia-top-bar-status-word { flex: none; font-family: var(--font-ui); font-size: var(--fs-body); font-weight: var(--weight-strong); color: var(--ink); }
-.gaia-top-bar-status-text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.gaia-top-bar-actions { display: inline-flex; flex: 1; justify-content: flex-end; gap: var(--sp-2); }
-/* The theme switch, the package's segmented control beside the label that names it; the label takes no room. */
-.gaia-top-bar-theme { display: inline-flex; flex: none; align-items: center; }
+.gaia-shell-page-title { flex: none; padding: var(--space-18) var(--sp-5) 0 var(--space-28); }
+.gaia-connection-banner { flex: none; padding: var(--sp-4) var(--sp-5) 0 var(--space-28); }
 .gaia-shell-view { flex: 1; min-height: 0; overflow: auto; }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
@@ -940,6 +912,7 @@ a.gaia-activity-text:hover { text-decoration: underline; }
   padding: var(--sp-6);
 }
 .gaia-attention-no-forge-column { display: flex; flex-direction: column; gap: var(--sp-5); width: var(--attention-no-forge-width); max-width: 100%; }
+.gaia-attention-no-forge-actions { display: flex; justify-content: flex-end; }
 .gaia-attention-no-forge-intro { display: flex; flex-direction: column; gap: var(--sp-2); }
 .gaia-attention-no-forge-title { margin: 0; font-size: var(--fs-page); font-weight: var(--weight-page-title); letter-spacing: var(--page-title-tracking); }
 .gaia-attention-no-forge-line { margin: 0; color: var(--ink-muted); }
@@ -962,7 +935,23 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 
 /* ── A forge in place (B1) ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
-.gaia-forge-frame { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
+.gaia-forge-frame-view { display: flex; flex-direction: column; height: 100%; }
+/* The forge's bar heads the view in the page title's place: its name, its condition's dot and word, one line, and its controls. */
+.gaia-forge-frame-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-3);
+  box-sizing: border-box;
+  height: var(--forge-bar-height);
+  padding: 0 var(--sp-4) 0 var(--space-18);
+}
+.gaia-forge-frame-bar-name { flex: none; margin: 0; font-size: var(--fs-title); line-height: var(--line-height-lead); font-weight: var(--weight-strong); white-space: nowrap; }
+.gaia-forge-frame-bar-status { display: inline-flex; flex: 0 1 auto; align-items: center; gap: var(--space-7); min-width: 0; }
+.gaia-forge-frame-bar-word { flex: none; font-weight: var(--weight-strong); white-space: nowrap; }
+.gaia-forge-frame-bar-line { min-width: 0; overflow: hidden; font-size: var(--fs-tab); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
+.gaia-forge-frame-bar-controls { display: inline-flex; flex: 1; justify-content: flex-end; gap: var(--sp-2); }
+.gaia-forge-frame { display: flex; flex: 1; flex-direction: column; box-sizing: border-box; min-height: 0; }
 .gaia-forge-frame-refusal { flex: none; padding: var(--sp-2) var(--sp-6) 0; }
 .gaia-forge-frame-area { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; }
 /* The Bridge loads behind "Opening" and shows once it says it is ready, so no half-painted Bridge shows. */

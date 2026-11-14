@@ -1,12 +1,13 @@
 /**
- * The shell's root. What matters (SCREENS "The shell", acceptance 2 and 4): a forge that joins or leaves the registry joins or leaves the
- * rail from the fleet source's next document, with no reload; Tab meets every control in visual order, the rail top to bottom and then
- * the top bar from its view's buttons to the theme switch, and every control, an icon-only one included, has a name. Also: the route is
- * read from the fragment, the settings' theme choice shows on the switch from the first document, and a forge in place leaves the switch
- * out. And (W4.3): a lost event stream
- * shows the connection banner under the top bar and disables every control until the stream opens again. And (W5.2): the Agents route
- * shows the Agents view under its status line, its selected agent survives the source's next document, and a filter press goes to the
- * fragment that keeps it.
+ * The shell's root. What matters (SCREENS "The shell"): a forge that joins or leaves the registry joins or leaves the rail from the fleet
+ * source's next document, with no reload; with no forge registered the rail says "No forge is registered" and its slot meter is all free;
+ * the route's row is the active one; Tab meets every control in visual order, the brand bar from its home link to the theme button, the
+ * rail top to bottom, then the view's buttons in its page title, and every control, an icon-only one included, has a name. Also: the route
+ * is read from the fragment and its view draws its page title under the brand bar, the settings' theme choice shows on the theme button
+ * from the first document, named after the next choice, and a forge in place (B1) has no theme button. And (W4.3): a lost event stream
+ * shows the connection banner under the page title and disables every control until the stream opens again. And (W5.2): the Agents route
+ * shows the Agents view under its page title and figures, its selected agent survives the source's next document, and a filter press goes
+ * to the fragment that keeps it.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
  * would paint for the source's current document; `GaiaShell` takes no hooks and unfolds to its host elements.
@@ -64,7 +65,15 @@ function railForgeProjectsIn(markup: string): string[] {
 }
 
 function railForgesCountIn(markup: string): string | undefined {
-  return /href="#forges"[^>]*><span class="gaia-rail-row-label">Forges<\/span><span class="gaia-rail-count"[^>]*>(\d+)</.exec(markup)?.[1];
+  return /href="#forges"[^>]*><span class="gaia-rail-row-label">Forges<\/span><span class="gaia-rail-count"><span class="design-system-count-badge"[^>]*>(\d+)</.exec(markup)?.[1];
+}
+
+function pageTitleIn(markup: string): string | undefined {
+  return /<h1 class="design-system-text" data-type-role="display">([^<]*)<\/h1>/.exec(markup)?.[1];
+}
+
+function themeButtonNameIn(markup: string): string | undefined {
+  return /<button type="button" class="design-system-icon-button" aria-label="(Theme: [^"]*)"/.exec(markup)?.[1];
 }
 
 function isFocusable(element: HostElement): boolean {
@@ -104,60 +113,88 @@ describe('a forge joins or leaves the rail without a reload', () => {
     expect(railForgesCountIn(emptied)).toBe('0');
   });
 
-  test('before any document the shell already shows its rail and bar, with no count', () => {
+  test('before any document the shell already shows its brand bar, its rail and the view\'s page title, with no count and no pill', () => {
     const markup = renderToStaticMarkup(appAt(createFleetSource(), ''));
-    expect(markup).toContain('<h1 class="gaia-top-bar-title">Attention</h1>');
+    expect(markup).toContain('<header class="gaia-brand-bar">');
+    expect(pageTitleIn(markup)).toBe('Attention');
     expect(markup).not.toContain('gaia-rail-count');
+    expect(markup).not.toContain('design-system-state-badge');
   });
 });
 
 describe('the route and the theme', () => {
-  test('the fragment chooses the view: its title heads the bar and its rail row is current', () => {
+  test('the fragment chooses the view: it draws its page title and its rail row is the one active row', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const onAgents = renderToStaticMarkup(appAt(source, '#agents'));
-    expect(onAgents).toContain('<h1 class="gaia-top-bar-title">Agents</h1>');
+    expect(pageTitleIn(onAgents)).toBe('Agents');
     expect(onAgents).toMatch(/href="#agents" aria-current="page"/);
+    expect(onAgents.match(/aria-current="page"/g)).toHaveLength(1);
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.invoiceService}/#questions/E4`));
-    expect(inPlace).toContain('<h1 class="gaia-top-bar-title">Invoice Service</h1>');
+    expect(pageTitleIn(inPlace)).toBeUndefined();
+    expect(inPlace).toContain('<h1 class="gaia-forge-frame-bar-name">Invoice Service</h1>');
+    expect(inPlace).toMatch(new RegExp(`href="#forge/${TRACKER_IDS.invoiceService}" aria-current="page"`));
   });
 
-  test('the theme switch shows on every view but a forge in place, whose bar leaves it out', () => {
+  test('the theme button shows on every view, named after the next choice, but a forge in place (B1), whose route has none', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     for (const fragment of ['#attention', '#agents', '#activity', '#forges']) {
-      expect(renderToStaticMarkup(appAt(source, fragment)))
-        .toContain('id="gaia-top-bar-theme-label">Theme</span><div class="design-system-segments" role="group" aria-labelledby="gaia-top-bar-theme-label"');
+      expect(themeButtonNameIn(renderToStaticMarkup(appAt(source, fragment)))).toBe('Theme: dark. Switch to auto');
     }
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
-    expect(inPlace).not.toContain('gaia-top-bar-theme-label');
-    expect(inPlace).not.toContain('class="design-system-segments"');
+    expect(inPlace).toContain('<header class="gaia-brand-bar">');
+    expect(themeButtonNameIn(inPlace)).toBeUndefined();
+    expect(inPlace).not.toContain('class="gaia-theme-glyph"');
   });
 
-  test('#activity shows the Activity view under its status line once a document holds, its filters inside the controls\' fieldset', () => {
+  test('the brand bar shows the fleet\'s pill and sentence on every route', () => {
+    const source = createFleetSource();
+    source.publish(FLEET_FIVE_FORGES);
+    for (const fragment of ['#attention', '#forges', `#forge/${TRACKER_IDS.exampleStorefront}`]) {
+      const markup = renderToStaticMarkup(appAt(source, fragment));
+      expect(markup).toMatch(/data-state-tone="accent"[^>]*data-pulsing=""[^>]*>.*?4 forges running</);
+      expect(markup).toContain('<span class="gaia-brand-bar-sentence">1 holds its launches · 1 dormant · 1 repository missing</span>');
+    }
+  });
+
+  test('#activity shows its page title and lead before a document holds, and the Activity view under them once one does, inside the controls\' fieldset', () => {
     const source = createFleetSource();
     const app = appAt(source, '#activity');
-    const statusText = 'the newest 50 entries of each forge, as each forge words them';
-    const statusLine = `<span class="gaia-top-bar-status"><span class="gaia-top-bar-status-text" title="${statusText}">${statusText}</span></span>`;
+    const lead = 'The newest 50 entries of each forge, as each forge words them.';
     const beforeTheDocument = renderToStaticMarkup(app);
-    expect(beforeTheDocument).toContain(statusLine);
+    expect(pageTitleIn(beforeTheDocument)).toBe('Activity');
+    expect(beforeTheDocument).toContain(`data-type-role="lead" data-ink="muted">${lead}</p>`);
     expect(beforeTheDocument).not.toContain('class="gaia-activity"');
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(app);
-    expect(markup).toContain('<h1 class="gaia-top-bar-title">Activity</h1>');
-    expect(markup).toContain(statusLine);
+    expect(pageTitleIn(markup)).toBe('Activity');
+    expect(markup).toContain(`data-type-role="lead" data-ink="muted">${lead}</p>`);
     const fieldsetAt = markup.indexOf('<fieldset class="gaia-shell-controls">');
     expect(fieldsetAt).toBeGreaterThan(-1);
     expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeGreaterThan(fieldsetAt);
     expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeLessThan(markup.indexOf('</fieldset>'));
   });
 
-  test('the switch shows the stored choice before the first document, and the settings\' choice from it on', () => {
+  test('the theme button shows the stored choice before the first document, and the settings\' choice from it on', () => {
     const source = createFleetSource();
     const app = appAt(source, '#attention', LIVE_STREAM, 'light');
-    expect(renderToStaticMarkup(app)).toContain('aria-pressed="true">Light<');
+    expect(themeButtonNameIn(renderToStaticMarkup(app))).toBe('Theme: light. Switch to dark');
     source.publish(FLEET_FIVE_FORGES);
-    expect(renderToStaticMarkup(app)).toContain('aria-pressed="true">Dark<');
+    expect(themeButtonNameIn(renderToStaticMarkup(app))).toBe('Theme: dark. Switch to auto');
+  });
+});
+
+describe('the rail with no forge registered (B4)', () => {
+  test('says "No forge is registered", lists no forge, and its slot meter shows a free slot for each of the 12 CPUs', () => {
+    const source = createFleetSource();
+    source.publish(FLEET_EMPTY);
+    const markup = renderToStaticMarkup(appAt(source, '#attention'));
+    expect(markup).toContain('<p class="gaia-rail-no-forge">No forge is registered</p>');
+    expect(railForgeProjectsIn(markup)).toEqual([]);
+    expect(markup.match(/class="design-system-slot-meter-cell" data-cell="empty"/g)).toHaveLength(12);
+    expect(markup).not.toContain('data-cell="filled"');
+    expect(markup).toMatch(/data-dot-shape="ring"[^>]*>.*?No forge registered</);
   });
 });
 
@@ -171,17 +208,20 @@ describe('Tab and names', () => {
         fleetDocument={fleetDocument}
         streamState="live"
         route={DEFAULT_ROUTE}
-        viewTitle="Attention"
-        view={{ status: { condition: 'live', text: '4 forges running' }, actions: OPEN_IN_NEW_TAB, content: null }}
+        view={{
+          title: 'Attention', lead: 'What waits on you.', figures: [], actions: OPEN_IN_NEW_TAB, content: null
+        }}
         themeChoice="dark"
         onThemeChoice={() => undefined}
       />,
     );
   }
 
-  test('Tab meets the rail top to bottom, then the view\'s buttons, then the theme switch', () => {
+  test('Tab meets the brand bar from its home link to the theme button, the rail top to bottom, then the view\'s buttons', () => {
     const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), isFocusable);
     expect(focusable.map(accessibleNameOf)).toEqual([
+      'Gaia, Attention',
+      'Theme: dark. Switch to auto',
       'Attention5',
       'Agents10',
       'Activity',
@@ -192,11 +232,8 @@ describe('Tab and names', () => {
       'Example Mobile App',
       'Design System',
       'Legacy Importer',
-      'This machine10 / 12agentslimit 12 of 12 CPUs',
+      'This machine10 / 12agentslimit 12 of 12 CPUs · Flint\'s brain runs outside it',
       'Open Example Storefront in a new tab',
-      'Auto',
-      'Light',
-      'Dark',
     ]);
   });
 
@@ -214,6 +251,7 @@ describe('Tab and names', () => {
     expect(focusable.filter((element) => accessibleNameOf(element).trim() === '')).toEqual([]);
     const iconOnly = focusable.filter((element) => tree.hasClass(element, 'design-system-icon-button'));
     expect(iconOnly.map((element) => [element.props['aria-label'], element.props['title']])).toEqual([
+      ['Theme: dark. Switch to auto', 'Theme: dark. Switch to auto'],
       ['Open Example Storefront in a new tab', 'Open Example Storefront in a new tab'],
     ]);
   });
@@ -239,9 +277,10 @@ describe('a lost stream shows the banner and disables every control', () => {
         fleetDocument={FLEET_FIVE_FORGES}
         streamState={streamState}
         route={DEFAULT_ROUTE}
-        viewTitle="Forges"
         view={{
-          status:  null,
+          title:   'Forges',
+          lead:    'Every forge on this machine.',
+          figures: [],
           actions: <Button label="Look again" />,
           content: <><Button label="Stop" /><TextField label="Folder" value="" onChange={() => undefined} /></>,
         }}
@@ -251,7 +290,7 @@ describe('a lost stream shows the banner and disables every control', () => {
     );
   }
 
-  test('from the error the banner shows right under the top bar and the controls\' fieldset is disabled; open again, both are gone', () => {
+  test('from the error the banner shows right under the page title and the controls\' fieldset is disabled; open again, both are gone', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const stream = streamAt('live');
@@ -261,8 +300,8 @@ describe('a lost stream shows the banner and disables every control', () => {
     expect(live).toContain('<fieldset class="gaia-shell-controls">');
     stream.change('lost');
     const lost = renderToStaticMarkup(app);
-    const bannerUnderTheTopBar = '</header><div class="design-system-banner" data-tone="error" role="alert"><span>';
-    expect(lost).toContain(`${bannerUnderTheTopBar}Gaia&#x27;s server could not be reached. Trying again.</span></div>`);
+    const bannerUnderThePageTitle = '</header></div><div class="gaia-connection-banner"><div class="design-system-banner" data-tone="error" role="alert"><span>';
+    expect(lost).toContain(`${bannerUnderThePageTitle}Gaia&#x27;s server could not be reached. Trying again.</span></div>`);
     expect(lost).toContain('<fieldset class="gaia-shell-controls" disabled="">');
     stream.change('live');
     expect(renderToStaticMarkup(app)).toBe(live);
@@ -274,23 +313,21 @@ describe('a lost stream shows the banner and disables every control', () => {
     expect(tree.hostElementsIn(fieldset.children, tree.withClass('design-system-banner'))).toHaveLength(1);
   });
 
-  test('every control of the shell, the view\'s buttons and fields and the theme switch among them, sits in the disabled fieldset; outside it are only links', () => {
+  test('every control of the shell, the theme button and the view\'s buttons and fields among them, sits in the disabled fieldset; nothing focusable lies outside it', () => {
     const shell = unfoldedShellAt('lost');
     const fieldset = tree.onlyWithTag(shell, 'fieldset');
     expect(fieldset.props['disabled']).toBe(true);
     const everyControl = tree.hostElementsIn(shell, (element) => CONTROLS.includes(element.tag));
     const controlsInTheFieldset = tree.hostElementsIn(fieldset.children, (element) => CONTROLS.includes(element.tag));
     expect(controlsInTheFieldset.map((element) => [element.tag, accessibleNameOf(element)])).toEqual([
+      ['button', 'Theme: dark. Switch to auto'],
       ['button', 'Look again'],
-      ['button', 'Auto'],
-      ['button', 'Light'],
-      ['button', 'Dark'],
       ['button', 'Stop'],
       ['input', ''],
     ]);
     expect(controlsInTheFieldset).toEqual(everyControl);
     const focusableOutside = tree.hostElementsIn(shell, isFocusable).filter((element) => !tree.hostElementsIn([fieldset]).includes(element));
-    expect(new Set(focusableOutside.map((element) => element.tag))).toEqual(new Set(['a']));
+    expect(focusableOutside).toEqual([]);
   });
 
   test('a live or connecting stream leaves the fieldset enabled and shows no banner', () => {
@@ -305,18 +342,20 @@ describe('a lost stream shows the banner and disables every control', () => {
 describe('the Agents view in the shell', () => {
   const J12_ROUTE = `#agents/${TRACKER_IDS.invoiceService}/J12`;
 
-  test('the Agents route shows A2\'s status line over the view\'s table', () => {
+  test('the Agents route shows A2\'s page title and figures over the view\'s table', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
-    const statusText = '10 working across 4 forges · 821,300 tokens in flight';
-    expect(markup).toContain(`<span class="gaia-top-bar-status"><span class="gaia-top-bar-status-text" title="${statusText}">${statusText}</span></span>`);
+    expect(pageTitleIn(markup)).toBe('Agents');
+    const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
+    expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
     expect(markup).toContain('<div class="gaia-table" role="table" aria-label="Agents">');
   });
 
-  test('before the first document the Agents route shows no status line and no view', () => {
+  test('before the first document the Agents route shows its page title with no figure and no view', () => {
     const markup = renderToStaticMarkup(appAt(createFleetSource(), '#agents'));
-    expect(markup).not.toContain('gaia-top-bar-status');
+    expect(pageTitleIn(markup)).toBe('Agents');
+    expect(markup).not.toContain('gaia-figure');
     expect(markup).not.toContain('gaia-agents');
   });
 

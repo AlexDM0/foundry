@@ -1,14 +1,11 @@
 /**
  * The Attention view's root, the shell's default route. It reads the command sender, builds the screen from the fleet document and the
  * shell's reading of the page's clock, and lays it out: the fleet (A1, B3) or no forge yet (B4). `attentionViewPartsOf` hands the shell
- * the top bar's status line and buttons with it, so a new fleet document changes all three at once, with no reload.
+ * the page title's parts with it, so a new fleet document changes both at once, with no reload.
  */
-import type { ReactNode } from 'react';
-
 import type { FleetDocument }                from '../../@types/FleetDocument.ts';
 import { useCommandSender }                  from '../../api/CommandSender.ts';
-import { LookAgainButton }                   from '../../shared/LookAgainButton.tsx';
-import type { TopBarStatus }                 from '../../shell/TopBar.tsx';
+import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
 import { AttentionLayout }                   from './AttentionLayout.tsx';
 import { AttentionModel, type ClockReading } from './AttentionModel.ts';
 import { NoForgeYet }                        from './NoForgeYet.tsx';
@@ -18,12 +15,9 @@ export interface AttentionViewProps {
   readonly clock:         ClockReading;
 }
 
-/** The parts of the shell this view fills: the same shape as the shell's own `ShellViewParts`. */
-export interface AttentionViewParts {
-  readonly status:  TopBarStatus;
-  readonly actions: ReactNode;
-  readonly content: ReactNode;
-}
+const TITLE = 'Attention';
+
+const LEAD = 'What waits on you across every forge, and the forges that need a look.';
 
 export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
   const {
@@ -42,11 +36,23 @@ export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
   );
 }
 
-/** B4's top bar carries Look again, since a forge set up elsewhere appears by itself; A1's top bar has no button of its own. */
-export function attentionViewPartsOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionViewParts {
+/**
+ * B4 heads itself, so it has no page title. A1's figures stand in the page title; while a forge is not fully read (B3) they fold into one
+ * line atop the main column instead.
+ */
+export function attentionViewPartsOf(fleetDocument: FleetDocument | null, clock: ClockReading): ViewParts {
+  if (fleetDocument === null) {
+    return {
+      title: TITLE, lead: LEAD, figures: [], actions: null, content: null
+    };
+  }
+  const content = <AttentionView fleetDocument={fleetDocument} clock={clock} />;
+  if (fleetDocument.forges.length === 0) {
+    return {
+      title: null, lead: '', figures: [], actions: null, content
+    };
+  }
   return {
-    status:  AttentionModel.statusLineOf(fleetDocument),
-    actions: fleetDocument.forges.length === 0 ? <LookAgainButton /> : null,
-    content: <AttentionView fleetDocument={fleetDocument} clock={clock} />,
+    title: TITLE, lead: LEAD, figures: AttentionModel.titleFiguresOf(fleetDocument), actions: null, content
   };
 }

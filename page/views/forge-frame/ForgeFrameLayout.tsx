@@ -1,21 +1,27 @@
 /**
- * A forge in place laid out (SCREENS B1): the bar's controls with Stop's question as a popover under its button, a refusal under the bar,
+ * A forge in place laid out (SCREENS B1): the bar, with the forge's name, its condition and mono line, and its controls with Stop's question
+ * as a popover under its button, a refusal under the bar,
  * and the frame area: "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, or why the forge cannot be shown
  * here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Button }       from 'design-system/Button';
-import { ChoiceOption } from 'design-system/ChoiceOption';
-import type { Ref }     from 'react';
+import { Button }              from 'design-system/Button';
+import { ChoiceOption }        from 'design-system/ChoiceOption';
+import type { ReactNode, Ref } from 'react';
 
-import type { ForgeCommandBody, ForgeStopAgents }    from '../../@types/CommandDocument.ts';
-import { Callout }                                   from '../../design-system/Callout.tsx';
-import { ConditionDot }                              from '../../design-system/ConditionDot.tsx';
-import { ConfirmPanel }                              from '../../design-system/ConfirmPanel.tsx';
-import { OpenInNewTabGlyph }                         from '../../design-system/OpenInNewTabGlyph.tsx';
-import { Refusal }                                   from '../../design-system/Refusal.tsx';
-import type { RefusalText }                          from '../../shared/utils/CommandFailureTextUtil.ts';
-import type { StopQuestion }                         from '../../shared/utils/ForgeCommandTextUtil.ts';
-import type { BarRefusal, ForgeBar, ForgeFrameArea } from './ForgeFrameModel.ts';
+import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
+import { Callout }                                from '../../design-system/Callout.tsx';
+import { ConditionDot }                           from '../../design-system/ConditionDot.tsx';
+import { ConfirmPanel }                           from '../../design-system/ConfirmPanel.tsx';
+import { OpenInNewTabGlyph }                      from '../../design-system/OpenInNewTabGlyph.tsx';
+import { Refusal }                                from '../../design-system/Refusal.tsx';
+import type { RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
+import type { StopQuestion }                      from '../../shared/utils/ForgeCommandTextUtil.ts';
+import type {
+  BarRefusal,
+  ForgeBar,
+  ForgeBarStatus,
+  ForgeFrameArea,
+} from './ForgeFrameModel.ts';
 
 export interface ForgeBarControlsProps {
   readonly bar:               ForgeBar;
@@ -92,6 +98,31 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
       )}
       <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
     </>
+  );
+}
+
+export interface ForgeBarLayoutProps {
+  /** The forge's name, or its tracker id until the fleet document names it. */
+  readonly name:     string;
+  /** `null` until the fleet document reports the forge. */
+  readonly status:   ForgeBarStatus | null;
+  readonly controls: ReactNode;
+}
+
+/** The bar heads the view, since a forge in place has no page title; its mono line keeps to one line, whole in its tooltip. */
+export function ForgeBarLayout({ name, status, controls }: ForgeBarLayoutProps) {
+  return (
+    <header className="gaia-forge-frame-bar">
+      <h1 className="gaia-forge-frame-bar-name">{name}</h1>
+      {status === null ? null : (
+        <span className="gaia-forge-frame-bar-status">
+          <ConditionDot condition={status.condition} />
+          <span className="gaia-forge-frame-bar-word">{status.word}</span>
+          <span className="gaia-forge-frame-bar-line" title={status.text}>{status.text}</span>
+        </span>
+      )}
+      <span className="gaia-forge-frame-bar-controls">{controls}</span>
+    </header>
   );
 }
 

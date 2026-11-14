@@ -1,7 +1,7 @@
 /**
  * The visual pass's screens (W7.3): each artboard the page builds, painted from its fixture as the page paints it, as a whole document a
  * browser opens at 1440 x 1016 to compare by eye with the artboard. What matters: no artboard is left out; both themes are the same markup
- * and differ only in the theme the root names and the switch presses (B1 has no switch), so a theme is the tokens' work alone; a screen
+ * and differ only in the theme the root names and the theme button shows (B1 has no theme button), so a theme is the tokens' work alone; a screen
  * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
  * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is. The restart an update left
  * pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so
@@ -44,6 +44,13 @@ function screenOf(artboard: PageArtboard): ArtboardScreen {
 function textsOfClass(markup: string, className: string): string[] {
   return [...markup.matchAll(new RegExp(`class="${className}"[^>]*>([^<]*)<`, 'g'))].map(([, text = '']) => text);
 }
+
+function pageTitleOf(markup: string): string[] {
+  return [...markup.matchAll(/<h1 class="design-system-text" data-type-role="display">([^<]*)<\/h1>/g)].map(([, text = '']) => text);
+}
+
+/** The brand bar's theme button, the one part of a screen that names its theme. */
+const THEME_BUTTON = /<button type="button" class="design-system-icon-button" aria-label="Theme: [^"]*"[^>]*>.*?<\/button>/;
 
 function inlineStylesOf(markup: string): string[] {
   return [...markup.matchAll(/ style="([^"]*)"/g)].map(([, style = '']) => style);
@@ -101,31 +108,32 @@ describe('the screens of the visual pass', () => {
     }
   });
 
-  test('the two themes paint the same markup, but for the theme the switch presses', () => {
-    const screensWithTheSwitch = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS].filter(
+  test('the two themes paint the same markup, but for the theme the theme button shows', () => {
+    const screensWithTheButton = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS].filter(
       (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
     );
-    for (const screen of screensWithTheSwitch) {
+    for (const screen of screensWithTheButton) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
-      expect(dark).toContain('aria-pressed="true">Dark<');
-      expect(light).toContain('aria-pressed="true">Light<');
-      const unpressed = (markup: string) => markup.replaceAll('aria-pressed="true"', 'aria-pressed="false"');
-      expect(unpressed(dark)).toBe(unpressed(light));
+      expect(THEME_BUTTON.exec(dark)?.[0]).toContain('aria-label="Theme: dark. Switch to auto"');
+      expect(THEME_BUTTON.exec(light)?.[0]).toContain('aria-label="Theme: light. Switch to dark"');
+      expect(dark.replace(THEME_BUTTON, '')).toBe(light.replace(THEME_BUTTON, ''));
     }
   });
 
-  test('B1, whose bar leaves the theme switch out, paints the very same markup in both themes', () => {
+  test('B1, whose route has no theme button, paints the very same markup in both themes', () => {
     const forgeInPlace = screenOf('B1');
     expect(screenMarkupOf(forgeInPlace, 'dark')).toBe(screenMarkupOf(forgeInPlace, 'light'));
   });
 });
 
 describe('each screen shows the state its artboard draws', () => {
-  test('A1 and C1: Attention lists the five entries of the artboard in its order, under the rail and the bar', () => {
+  test('A1 and C1: Attention lists the five entries of the artboard in its order, under the brand bar, beside the rail and under its page title', () => {
     for (const artboard of ['A1', 'C1'] as const) {
       const markup = screenMarkupOf(screenOf(artboard), 'light');
-      expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Attention']);
+      expect(markup.indexOf('<header class="gaia-brand-bar">')).toBeLessThan(markup.indexOf('<nav class="gaia-rail"'));
+      expect(textsOfClass(markup, 'gaia-brand-bar-sentence')).toEqual(['1 holds its launches · 1 dormant · 1 repository missing']);
+      expect(pageTitleOf(markup)).toEqual(['Attention']);
       expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     }
   });
@@ -140,17 +148,18 @@ describe('each screen shows the state its artboard draws', () => {
   });
 
   test('A3 and A4: Activity and Forges each open under their own title', () => {
-    expect(textsOfClass(screenMarkupOf(screenOf('A3'), 'dark'), 'gaia-top-bar-title')).toEqual(['Activity']);
-    expect(textsOfClass(screenMarkupOf(screenOf('A4'), 'dark'), 'gaia-top-bar-title')).toEqual(['Forges']);
+    expect(pageTitleOf(screenMarkupOf(screenOf('A3'), 'dark'))).toEqual(['Activity']);
+    expect(pageTitleOf(screenMarkupOf(screenOf('A4'), 'dark'))).toEqual(['Forges']);
   });
 
-  test('B1: Example Storefront in place, Gaia\'s bar over the frame area that opens the Bridge', () => {
+  test('B1: Example Storefront in place, its bar over the frame area that opens the Bridge, no page title and no theme button', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
-    expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Example Storefront']);
+    expect(textsOfClass(markup, 'gaia-forge-frame-bar-name')).toEqual(['Example Storefront']);
     expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
-    expect(textsOfClass(markup, 'gaia-top-bar-status-text')).toEqual(['4 / 5 agents · 2 wait on you · since 09:12']);
+    expect(textsOfClass(markup, 'gaia-forge-frame-bar-line')).toEqual(['4 / 5 agents · 2 wait on you · since 09:12']);
     expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
-    expect(markup).not.toContain('gaia-top-bar-theme-label');
+    expect(pageTitleOf(markup)).toEqual([]);
+    expect(markup).not.toMatch(THEME_BUTTON);
   });
 
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
@@ -177,13 +186,15 @@ describe('each screen shows the state its artboard draws', () => {
     }
   });
 
-  test('B4: no forge registered, with Add a repository in the head\'s place and the rail\'s forges group saying so, and no meter', () => {
+  test('B4: no forge registered, with Add a repository in the head\'s place, the rail\'s forges group saying so, and every slot free', () => {
     const markup = screenMarkupOf(screenOf('B4'), 'dark');
     expect(markup).toContain('Nothing waits on you, because no forge is registered.');
     expect(markup).toContain('Add and start');
-    expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered.']);
+    expect(pageTitleOf(markup)).toEqual([]);
+    expect(textsOfClass(markup, 'gaia-brand-bar-sentence')).toEqual(['nothing runs on this machine yet']);
+    expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered']);
     expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
-    expect(markup).not.toContain('class="design-system-fill-meter"');
+    expect(markup.match(/class="design-system-slot-meter-cell" data-cell="empty"/g)).toHaveLength(12);
   });
 });
 
@@ -204,7 +215,7 @@ describe('the restart an update left pending, over the artboard it changes', () 
     const forges = RESTART_PENDING_SCREENS[1];
     if (forges === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(forges, 'dark');
-    expect(textsOfClass(markup, 'gaia-top-bar-title')).toEqual(['Forges']);
+    expect(pageTitleOf(markup)).toEqual(['Forges']);
     expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
     const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
     expect(heldGroup).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span>');

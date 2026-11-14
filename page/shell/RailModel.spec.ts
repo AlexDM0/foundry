@@ -4,7 +4,8 @@
  * running brain's (shell acceptance 2: 10 with the brain running on Example Storefront); Forges and the forge rows count and list the forges
  * not hidden, in registry order. A count the document does not hold is absent, never 0.
  * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
- * this machine's line at, under and without a limit.
+ * this machine's slots and lines at, under and without a limit: the brain outside the limit, and the agents an unreachable forge last
+ * reported (B3).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -14,7 +15,7 @@ import { FLEET_DEGRADED }                                   from '../testing/fix
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
 import { DEFAULT_ROUTE }                                    from './HashRouter.ts';
-import { type RailContent, RailModel }                      from './RailModel.ts';
+import { type RailContent, type RailCount, RailModel }      from './RailModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
@@ -25,12 +26,16 @@ const FIXTURES: readonly (readonly [name: string, fleetDocument: FleetDocument])
   ['fleet-at-limit', FLEET_AT_LIMIT],
 ];
 
+function countTextOf(count: RailCount | null): string | null {
+  return count === null ? null : RailModel.countTextOf(count);
+}
+
 function viewCountsOf(content: RailContent): Record<string, string | null> {
-  return Object.fromEntries(content.views.map((row) => [row.view, row.count?.text ?? null]));
+  return Object.fromEntries(content.views.map((row) => [row.view, countTextOf(row.count)]));
 }
 
 function forgeRowsOf(content: RailContent): [project: string, condition: string, count: string | null, href: string][] {
-  return content.forges.map((row) => [row.project, row.condition, row.count?.text ?? null, row.href]);
+  return content.forges.map((row) => [row.project, row.condition, countTextOf(row.count), row.href]);
 }
 
 describe('each rail count is the fleet document\'s figure for its row', () => {
@@ -46,7 +51,7 @@ describe('each rail count is the fleet document\'s figure for its row', () => {
         forges:    String(fleetDocument.forges.length),
       });
       expect(content.forges.map((row) => row.trackerId)).toEqual(fleetDocument.forges.map((forge) => forge.trackerId));
-      expect(content.forges.map((row) => row.count?.text.replace('?', '') ?? '0')).toEqual(fleetDocument.forges.map((forge) => String(
+      expect(content.forges.map((row) => String(row.count?.count ?? 0))).toEqual(fleetDocument.forges.map((forge) => String(
         forge.fidelity === 'counts-only' ? forge.attentionCount ?? 0 : forge.attention.length,
       )));
     });
@@ -70,13 +75,19 @@ describe('the rail of artboard A1', () => {
     expect(content.forges.every((row) => row.count === null || row.count.tone === 'attention')).toBe(true);
   });
 
-  test('this machine reads 10 / 12 agents, a meter of 10 of 12, and the limit against the CPUs', () => {
+  test('this machine reads 10 / 12 agents with the brain running, 10 of 12 slots filled, and the limit against the CPUs with the brain outside it', () => {
     expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).machine).toEqual({
-      agentsText:   '10 / 12',
-      meter:        { used: 10, whole: 12, label: '10 of 12 agents' },
-      limitLine:    'limit 12 of 12 CPUs',
-      isAtTheLimit: false,
+      agentsText:     '10 / 12',
+      meter:          { filled: 10, slots: 12, label: '10 of 12 agents' },
+      atTheLimitLine: null,
+      limitLine:      'limit 12 of 12 CPUs · Flint\'s brain runs outside it',
+      isAtTheLimit:   false,
     });
+  });
+
+  test('a fleet whose every forge reports no brain says nothing of one', () => {
+    const noBrain: FleetDocument = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, brain: 'not-reported' })) };
+    expect(RailModel.railContentOf(noBrain, DEFAULT_ROUTE).machine?.limitLine).toBe('limit 12 of 12 CPUs');
   });
 });
 
@@ -85,12 +96,16 @@ describe('a fleet Gaia cannot fully read (B3)', () => {
     const content = RailModel.railContentOf(FLEET_DEGRADED, DEFAULT_ROUTE);
     expect(viewCountsOf(content)['attention']).toBe('4+');
     expect(content.forges.map((row) => [row.project, row.condition, row.count])).toEqual([
-      ['Example Storefront', 'live', { text: '2', tone: 'attention' }],
-      ['Invoice Service', 'unreachable', { text: '2?', tone: 'muted' }],
-      ['Research Wiki', 'live', { text: '1', tone: 'attention' }],
+      ['Example Storefront', 'live', { count: 2, mark: '', tone: 'attention' }],
+      ['Invoice Service', 'unreachable', { count: 2, mark: '?', tone: 'muted' }],
+      ['Research Wiki', 'live', { count: 1, mark: '', tone: 'attention' }],
       ['Example Mobile App', 'held', null],
       ['Analytics Sandbox', 'unreadable', null],
     ]);
+  });
+
+  test('this machine\'s line names the agents of the unreachable forge as it last reported them, in the brain clause\'s place', () => {
+    expect(RailModel.railContentOf(FLEET_DEGRADED, DEFAULT_ROUTE).machine?.limitLine).toBe('limit 12 of 12 CPUs · 3 of the 10 as last reported');
   });
 
   test('an unreachable forge still opens in place; a counts-only one and a newer one open at their Forges row', () => {
@@ -116,18 +131,22 @@ describe('the counts that are absent', () => {
     expect(content.machine).toBeNull();
   });
 
-  test('with no forge (B4) Attention has no count, Agents and Forges read 0, and an unknown limit draws no meter', () => {
+  test('with no forge (B4) Attention has no count, Agents and Forges read 0, and with no limit known the meter shows a free slot per CPU', () => {
     const content = RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE);
     expect(viewCountsOf(content)).toEqual({
       attention: null, agents: '0', activity: null, forges: '0'
     });
     expect(content.machine).toEqual({
-      agentsText: '0', meter: null, limitLine: 'no limit known · 12 CPUs', isAtTheLimit: false
+      agentsText:     '0',
+      meter:          { filled: 0, slots: 12, label: '0 agents, no limit known' },
+      atTheLimitLine: null,
+      limitLine:      'no limit known · 12 CPUs',
+      isAtTheLimit:   false,
     });
   });
 
   test('with no forge (B4) the forges\' group says no forge is registered; with one, it lists the forge and says nothing of the kind', () => {
-    expect(RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE).noForgeLine).toBe('No forge is registered.');
+    expect(RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE).noForgeLine).toBe('No forge is registered');
     expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).noForgeLine).toBeNull();
   });
 
@@ -149,12 +168,13 @@ describe('the counts that are absent', () => {
 });
 
 describe('this machine at its limit (B2)', () => {
-  test('the line says the limit is reached and how many tickets wait, and the meter is full', () => {
+  test('a line over the limit\'s says the limit is reached and how many tickets wait, and every slot is filled', () => {
     expect(RailModel.railContentOf(FLEET_AT_LIMIT, DEFAULT_ROUTE).machine).toEqual({
-      agentsText:   '10 / 10',
-      meter:        { used: 10, whole: 10, label: '10 of 10 agents' },
-      limitLine:    'at the limit · 3 tickets wait',
-      isAtTheLimit: true,
+      agentsText:     '10 / 10',
+      meter:          { filled: 10, slots: 10, label: '10 of 10 agents' },
+      atTheLimitLine: 'at the limit · 3 tickets wait',
+      limitLine:      'limit 10 of 12 CPUs · Flint\'s brain runs outside it',
+      isAtTheLimit:   true,
     });
   });
 
@@ -162,7 +182,7 @@ describe('this machine at its limit (B2)', () => {
     const lineWith = (ticketsWaitingForMachineSlot: number | null) => RailModel.railContentOf({
       ...FLEET_AT_LIMIT,
       machine: { ...FLEET_AT_LIMIT.machine, ticketsWaitingForMachineSlot },
-    }, DEFAULT_ROUTE).machine?.limitLine;
+    }, DEFAULT_ROUTE).machine?.atTheLimitLine;
     expect([lineWith(1), lineWith(0), lineWith(null)]).toEqual(['at the limit · 1 ticket waits', 'at the limit', 'at the limit']);
   });
 });

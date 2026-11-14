@@ -1,12 +1,12 @@
 /**
  * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
  * keeps the window title and the document's theme in step with them, remembers the view a forge in place was entered from, picks the view
- * the route names, and provides the command sender to the views; `GaiaShell` lays out the rail, the top bar, the connection banner and the
- * view from those values alone. While the stream is lost one disabled fieldset disables every button and field of the top bar and the
- * view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
+ * the route names, and provides the command sender to the views; `GaiaShell` lays out the brand bar across the window, the rail under it,
+ * and beside the rail the view's page title, the connection banner and the view, from those values alone. While the stream is lost one
+ * disabled fieldset disables every button and field of the shell and the view, so a view's control needs no word of the stream; a link, as
+ * every rail row is, still navigates.
  */
 import {
-  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -18,15 +18,18 @@ import {
 import type { FleetDocument }                                 from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext }           from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }           from '../api/FleetStreamClient.ts';
-import { ACTIVITY_STATUS_LINE, ActivityView }                 from '../views/activity/ActivityView.tsx';
-import { AgentsModel }                                        from '../views/agents/AgentsModel.ts';
-import { AgentsView }                                         from '../views/agents/AgentsView.tsx';
+import { BrandBar }                                           from '../design-system/BrandBar.tsx';
+import { PageTitle }                                          from '../design-system/PageTitle.tsx';
+import type { ViewParts }                                     from '../shared/@types/ViewParts.ts';
+import { activityViewPartsOf }                                from '../views/activity/ActivityView.tsx';
+import { agentsViewPartsOf }                                  from '../views/agents/AgentsView.tsx';
 import { attentionViewPartsOf }                               from '../views/attention/AttentionView.tsx';
 import { EmbedChannel, type EmbedChannelSurroundings }        from '../views/forge-frame/EmbedChannel.ts';
 import { ForgeFrameModel }                                    from '../views/forge-frame/ForgeFrameModel.ts';
 import { type ForgeFrameSurroundings, forgeFrameViewPartsOf } from '../views/forge-frame/ForgeFrameView.tsx';
 import { type FrameSessionResult, FrameSessionRequest }       from '../views/forge-frame/FrameSessionRequest.ts';
 import { forgesViewPartsOf }                                  from '../views/forges/ForgesView.tsx';
+import { BrandStatusModel }                                   from './BrandStatusModel.ts';
 import { ConnectionBanner }                                   from './ConnectionBanner.tsx';
 import type { FleetSource }                                   from './FleetSource.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings }  from './HashRouter.ts';
@@ -39,22 +42,13 @@ import {
   ThemeBootstrap,
   type ThemeSurroundings,
 } from './ThemeBootstrap.ts';
-import { TopBar, type TopBarStatus } from './TopBar.tsx';
-import { WindowTitle }               from './WindowTitle.ts';
-
-/** What a view adds to the shell: the status line and buttons of the top bar, and the area under it. */
-export interface ShellViewParts {
-  readonly status:  TopBarStatus | null;
-  readonly actions: ReactNode;
-  readonly content: ReactNode;
-}
+import { WindowTitle } from './WindowTitle.ts';
 
 export interface GaiaShellProps {
   readonly fleetDocument: FleetDocument | null;
   readonly streamState:   FleetStreamState;
   readonly route:         GaiaRoute;
-  readonly viewTitle:     string;
-  readonly view:          ShellViewParts;
+  readonly view:          ViewParts;
   readonly themeChoice:   ThemeChoice;
   readonly onThemeChoice: (choice: ThemeChoice) => void;
 }
@@ -84,7 +78,9 @@ export interface GaiaAppProps {
   readonly surroundings:  ShellSurroundings;
 }
 
-const NO_VIEW_PARTS: ShellViewParts = { status: null, actions: null, content: null };
+const NO_VIEW_PARTS: ViewParts = {
+  title: null, lead: '', figures: [], actions: null, content: null
+};
 
 export interface ViewSurroundings {
   readonly readAtMilliseconds: number;
@@ -94,60 +90,51 @@ export interface ViewSurroundings {
   readonly forgeFrame:         ForgeFrameSurroundings;
 }
 
-/** The parts of the view the route names; before the first fleet document a view shows at most its status line. */
+/** The parts of the view the route names; before the first fleet document a view shows at most its page title. */
 export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, {
   readAtMilliseconds, timeZone, goTo, forgeFrame
-}: ViewSurroundings): ShellViewParts {
+}: ViewSurroundings): ViewParts {
+  const clock = { nowEpochMilliseconds: readAtMilliseconds, timeZone };
   switch (route.view) {
     case 'attention':
-      return fleetDocument === null ? NO_VIEW_PARTS : attentionViewPartsOf(fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone });
-    case 'agents': {
-      if (fleetDocument === null) return NO_VIEW_PARTS;
-      const { selectedAgent, query } = route;
-      const content = AgentsModel.agentsContentOf({
-        fleetDocument, selectedAgent, query, readAtMilliseconds
-      });
-      return {
-        status:  { condition: null, text: AgentsModel.statusTextOf(fleetDocument) },
-        actions: null,
-        content: <AgentsView content={content} onFiltersChange={(filters) => goTo(AgentsModel.agentsFragmentOf(selectedAgent, filters))} />,
-      };
-    }
+      return attentionViewPartsOf(fleetDocument, clock);
+    case 'agents':
+      return agentsViewPartsOf(fleetDocument, route, readAtMilliseconds, goTo);
     case 'activity':
-      return {
-        status:  { condition: null, text: ACTIVITY_STATUS_LINE },
-        actions: null,
-        content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
-      };
+      return activityViewPartsOf(fleetDocument);
     case 'forge':
-      return forgeFrameViewPartsOf(route, fleetDocument, { nowEpochMilliseconds: readAtMilliseconds, timeZone }, forgeFrame);
+      return forgeFrameViewPartsOf(route, fleetDocument, clock, forgeFrame);
     case 'forges':
-      return fleetDocument === null ? NO_VIEW_PARTS : forgesViewPartsOf(fleetDocument, route, { nowEpochMilliseconds: readAtMilliseconds, timeZone }, goTo);
+      return forgesViewPartsOf(fleetDocument, route, clock, goTo);
     default:
       return NO_VIEW_PARTS;
   }
 }
 
+/** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (D2). */
 export function GaiaShell({
-  fleetDocument, streamState, route, viewTitle, view, themeChoice, onThemeChoice
+  fleetDocument, streamState, route, view, themeChoice, onThemeChoice
 }: GaiaShellProps) {
   return (
     <div className="gaia-shell">
-      <Rail content={RailModel.railContentOf(fleetDocument, route)} />
-      <main className="gaia-shell-main">
-        <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
-          <TopBar
-            title={viewTitle}
-            status={view.status}
-            actions={view.actions}
-            showsThemeSwitch={route.view !== 'forge'}
-            themeChoice={themeChoice}
-            onThemeChoice={onThemeChoice}
-          />
-          <ConnectionBanner streamState={streamState} />
-          <div className="gaia-shell-view">{view.content}</div>
-        </fieldset>
-      </main>
+      <fieldset className="gaia-shell-controls" disabled={!FleetStreamClient.controlsMayActIn(streamState)}>
+        <BrandBar
+          status={BrandStatusModel.brandStatusOf(fleetDocument)}
+          themeButton={route.view === 'forge' ? null : { choice: themeChoice, onCycle: onThemeChoice }}
+        />
+        <div className="gaia-shell-body">
+          <Rail content={RailModel.railContentOf(fleetDocument, route)} />
+          <main className="gaia-shell-main">
+            {view.title === null ? null : (
+              <div className="gaia-shell-page-title">
+                <PageTitle title={view.title} lead={view.lead} figures={view.figures} {...(view.actions === null ? {} : { actions: view.actions })} />
+              </div>
+            )}
+            <ConnectionBanner streamState={streamState} />
+            <div className="gaia-shell-view">{view.content}</div>
+          </main>
+        </div>
+      </fieldset>
     </div>
   );
 }
@@ -181,8 +168,7 @@ export function GaiaApp({
   useLayoutEffect(() => ThemeBootstrap.chooseTheme(theme, shownThemeChoice), [theme, shownThemeChoice]);
   useEffect(() => (shownThemeChoice === 'auto' ? theme.followSystemScheme(() => ThemeBootstrap.applyChoice(theme, 'auto')) : undefined), [theme, shownThemeChoice]);
 
-  const viewTitle = WindowTitle.viewTitleOf(route, fleetDocument);
-  const windowTitle = WindowTitle.windowTitleOf(viewTitle, fleetDocument);
+  const windowTitle = WindowTitle.windowTitleOf(WindowTitle.viewTitleOf(route, fleetDocument), fleetDocument);
   useEffect(() => setWindowTitle(windowTitle), [setWindowTitle, windowTitle]);
 
   const holdsADocument = fleetDocument !== null;
@@ -196,7 +182,6 @@ export function GaiaApp({
         fleetDocument={fleetDocument}
         streamState={streamState}
         route={route}
-        viewTitle={viewTitle}
         view={viewPartsOf(route, fleetDocument, {
           readAtMilliseconds,
           timeZone:   clock.timeZone,

@@ -1,7 +1,7 @@
 /**
  * The 52 px bar across Gaia's window (COMPONENT_LIBRARY 3.4): the mark and the wordmark as a link to Attention, a divider, the fleet's
  * status pill and its sentence, and at the far end the theme button, which a forge in place leaves out (SCREENS D2). The pill is orange with
- * a pulsing dot while a forge runs, and neutral with a dormant ring while none does.
+ * a pulsing dot while a forge runs, and neutral with a dormant ring while none does; before Gaia knows the fleet, the bar shows neither.
  */
 import { StateBadge } from 'design-system/StateBadge';
 
@@ -12,6 +12,8 @@ const HOME_HREF = '#attention';
 
 const WORDMARK = 'gaia';
 
+const HOME_NAME = 'Gaia, Attention';
+
 export interface BrandStatus {
   readonly fleet:    'running' | 'dormant';
   /** The pill's words, such as "4 forges running". */
@@ -21,7 +23,8 @@ export interface BrandStatus {
 }
 
 export interface BrandBarProps {
-  readonly status:      BrandStatus;
+  /** `null` before Gaia knows the fleet. */
+  readonly status:      BrandStatus | null;
   /** `null` where the bar leaves the theme button out. */
   readonly themeButton: ThemeCycleButtonProps | null;
 }
@@ -34,13 +37,13 @@ function StatusPill({ status }: { readonly status: BrandStatus }) {
 export function BrandBar({ status, themeButton }: BrandBarProps) {
   return (
     <header className="gaia-brand-bar">
-      <a className="gaia-brand-bar-home" href={HOME_HREF}>
+      <a className="gaia-brand-bar-home" href={HOME_HREF} aria-label={HOME_NAME}>
         <GaiaMark />
         <span className="gaia-brand-bar-wordmark">{WORDMARK}</span>
       </a>
       <span className="gaia-brand-bar-divider" aria-hidden="true" />
-      <StatusPill status={status} />
-      <span className="gaia-brand-bar-sentence">{status.sentence}</span>
+      {status === null ? null : <StatusPill status={status} />}
+      <span className="gaia-brand-bar-sentence">{status?.sentence}</span>
       {themeButton === null ? null : <ThemeCycleButton {...themeButton} />}
     </header>
   );

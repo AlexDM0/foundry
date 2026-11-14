@@ -1,6 +1,7 @@
 /**
  * The Agents view (SCREENS A2): every running agent on the machine in one table, the two filters over it, and the selected agent's panel.
- * It takes no hooks: the shell hands it the content and the way to change the filters, which it writes into the route.
+ * It takes no hooks: `agentsViewPartsOf` hands the shell the page title's parts and the view, built from the content and the way to change
+ * the filters, which it writes into the route.
  */
 import { FillMeter }        from 'design-system/FillMeter';
 import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
@@ -8,12 +9,20 @@ import { SegmentedControl } from 'design-system/SegmentedControl';
 import type { StateTone }   from 'design-system/StateTone';
 import { Tag }              from 'design-system/Tag';
 
+import type { FleetDocument }                                       from '../../@types/FleetDocument.ts';
 import { DataTable, type DataTableColumn, type DataTableRow }       from '../../design-system/DataTable.tsx';
 import { RoleDot }                                                  from '../../design-system/RoleDot.tsx';
+import type { ViewParts }                                           from '../../shared/@types/ViewParts.ts';
+import type { SelectedAgent }                                       from '../../shell/HashRouter.ts';
 import type { RailMachine }                                         from '../../shell/RailModel.ts';
 import type { AgentConditionFilter, AgentFilters, AgentRoleFilter } from './AgentsFilters.ts';
-import type { AgentMeterTone, AgentRowContent, AgentsContent }      from './AgentsModel.ts';
-import { SelectedAgentPanel }                                       from './SelectedAgentPanel.tsx';
+import {
+  type AgentMeterTone,
+  type AgentRowContent,
+  type AgentsContent,
+  AgentsModel
+} from './AgentsModel.ts';
+import { SelectedAgentPanel } from './SelectedAgentPanel.tsx';
 
 export interface AgentsViewProps {
   readonly content:         AgentsContent;
@@ -124,10 +133,8 @@ function NoAgentRuns({ machine }: { readonly machine: RailMachine }) {
           <span className="gaia-agents-machine-figure">{machine.agentsText}</span>
           <span className="gaia-agents-machine-unit">agents</span>
         </span>
-        {machine.meter === null ? null : (
-          <FillMeter label={machine.meter.label} used={machine.meter.used} limit={machine.meter.whole} near={machine.meter.used >= machine.meter.whole} tone="neutral" />
-        )}
-        <span className="gaia-agents-machine-line">{machine.limitLine}</span>
+        <FillMeter label={machine.meter.label} used={machine.meter.filled} limit={machine.meter.slots} near={machine.isAtTheLimit} tone="neutral" />
+        <span className="gaia-agents-machine-line">{machine.atTheLimitLine ?? machine.limitLine}</span>
       </div>
     </section>
   );
@@ -174,4 +181,33 @@ export function AgentsView({ content, onFiltersChange }: AgentsViewProps) {
       <SelectedAgentPanel content={content.selected} />
     </div>
   );
+}
+
+export interface AgentsRoute {
+  readonly selectedAgent: SelectedAgent | null;
+  readonly query:         string;
+}
+
+const TITLE = 'Agents';
+
+const LEAD = 'Every agent at work on this machine, per forge. Select one to read what its forge reports.';
+
+/** Before the first fleet document the title stands alone. A filter press goes to the fragment that keeps the selected agent. */
+export function agentsViewPartsOf(fleetDocument: FleetDocument | null, route: AgentsRoute, readAtMilliseconds: number, goTo: (fragment: string) => void): ViewParts {
+  if (fleetDocument === null) {
+    return {
+      title: TITLE, lead: LEAD, figures: [], actions: null, content: null
+    };
+  }
+  const { selectedAgent, query } = route;
+  const content = AgentsModel.agentsContentOf({
+    fleetDocument, selectedAgent, query, readAtMilliseconds
+  });
+  return {
+    title:   TITLE,
+    lead:    LEAD,
+    figures: AgentsModel.titleFiguresOf(fleetDocument),
+    actions: null,
+    content: <AgentsView content={content} onFiltersChange={(filters) => goTo(AgentsModel.agentsFragmentOf(selectedAgent, filters))} />,
+  };
 }

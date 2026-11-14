@@ -1,7 +1,7 @@
 /**
  * The Activity view (artboard A3): what happened across the fleet, newest first, filtered by kind and by forge, beside today's landings and
  * tokens per forge and the usage line. `ActivityView` keeps the filters and whether the forge menu is open; `ActivityLayout` takes no hooks
- * and lays the view out from the model's content alone.
+ * and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the page title's parts with the view.
  */
 import { FillMeter }        from 'design-system/FillMeter';
 import { SegmentedControl } from 'design-system/SegmentedControl';
@@ -18,6 +18,7 @@ import { LIMITS }                          from '../../../src/shared/constants/L
 import type { FleetDocument }              from '../../@types/FleetDocument.ts';
 import { DataTable, type DataTableColumn } from '../../design-system/DataTable.tsx';
 import { RoleDot }                         from '../../design-system/RoleDot.tsx';
+import type { ViewParts }                  from '../../shared/@types/ViewParts.ts';
 import {
   type ActivityContent,
   type ActivityFilters,
@@ -31,7 +32,9 @@ import {
   type TodayList,
 } from './ActivityModel.ts';
 
-export const ACTIVITY_STATUS_LINE = `the newest ${LIMITS.activityEntriesShownPerForge} entries of each forge, as each forge words them`;
+const TITLE = 'Activity';
+
+const LEAD = `The newest ${LIMITS.activityEntriesShownPerForge} entries of each forge, as each forge words them.`;
 
 type ActivityColumn = 'at' | 'forge' | 'kind' | 'text';
 
@@ -248,4 +251,15 @@ export function ActivityView({ fleetDocument, timeZone }: ActivityViewProps) {
       onMenuClose={() => setMenuIsOpen(false)}
     />
   );
+}
+
+/** Before the first fleet document the title and its lead stand alone. */
+export function activityViewPartsOf(fleetDocument: FleetDocument | null): ViewParts {
+  return {
+    title:   TITLE,
+    lead:    LEAD,
+    figures: [],
+    actions: null,
+    content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
+  };
 }

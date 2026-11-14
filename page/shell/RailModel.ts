@@ -1,7 +1,8 @@
 /**
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
- * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
- * does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit, so it is never counted.
+ * saying the registry holds none, and this machine's agents against its limit with the slots of its meter. Every count is the document's
+ * own figure; one the document does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit,
+ * so it is never counted, and the limit's line says so.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
@@ -11,9 +12,13 @@ import { type GaiaRoute, type GaiaView, HashRouter } from './HashRouter.ts';
 
 export type RailCountTone = 'attention' | 'muted';
 
+/** `+` when a forge Gaia cannot read in full may hold more; `?` for an unreachable forge's count, the one it last reported. */
+export type RailCountMark = '' | '+' | '?';
+
 export interface RailCount {
-  readonly text: string;
-  readonly tone: RailCountTone;
+  readonly count: number;
+  readonly mark:  RailCountMark;
+  readonly tone:  RailCountTone;
 }
 
 export type RailView = Exclude<GaiaView, 'forge'>;
@@ -35,11 +40,20 @@ export interface RailForgeRow {
   readonly isCurrent: boolean;
 }
 
+export interface RailMachineMeter {
+  readonly filled: number;
+  /** The machine limit, or the CPU count while no forge reports a limit: the limit is never above it. */
+  readonly slots:  number;
+  readonly label:  string;
+}
+
 export interface RailMachine {
-  readonly agentsText:   string;
-  readonly meter:        { readonly used: number; readonly whole: number; readonly label: string } | null;
-  readonly limitLine:    string;
-  readonly isAtTheLimit: boolean;
+  readonly agentsText:     string;
+  readonly meter:          RailMachineMeter;
+  /** What waits at the limit (B2), above the limit's line; `null` under the limit. */
+  readonly atTheLimitLine: string | null;
+  readonly limitLine:      string;
+  readonly isAtTheLimit:   boolean;
 }
 
 export interface RailContent {
@@ -60,13 +74,11 @@ const VIEW_LABELS: Readonly<Record<RailView, string>> = {
 
 const RAIL_VIEWS: readonly RailView[] = ['attention', 'agents', 'activity', 'forges'];
 
-const NO_FORGE_LINE = 'No forge is registered.';
+const NO_FORGE_LINE = 'No forge is registered';
 
-/** An unreachable forge's count is the one it last reported. */
-const AS_LAST_REPORTED_MARK = '?';
+const LINE_SEPARATOR = ' · ';
 
-/** A forge Gaia cannot read in full may hold more than the fleet's figure counts. */
-const MORE_POSSIBLE_MARK = '+';
+const BRAIN_OUTSIDE_THE_LIMIT_CLAUSE = 'Flint\'s brain runs outside it';
 
 function countedPhrase(count: number, singularPhrase: string, pluralPhrase: string): string {
   return `${count} ${count === 1 ? singularPhrase : pluralPhrase}`;
@@ -83,14 +95,18 @@ function forgeHrefOf(forge: FleetDocumentForge): string {
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId });
 }
 
+function countOf(count: number, tone: RailCountTone, mark: RailCountMark = ''): RailCount {
+  return { count, mark, tone };
+}
+
 function forgeCountOf(forge: FleetDocumentForge): RailCount | null {
   switch (forge.fidelity) {
     case 'full':
-      return forge.attention.length === 0 ? null : { text: String(forge.attention.length), tone: 'attention' };
+      return forge.attention.length === 0 ? null : countOf(forge.attention.length, 'attention');
     case 'counts-only':
-      return forge.attentionCount === null || forge.attentionCount === 0 ? null : { text: String(forge.attentionCount), tone: 'attention' };
+      return forge.attentionCount === null || forge.attentionCount === 0 ? null : countOf(forge.attentionCount, 'attention');
     case 'unreachable':
-      return forge.attention.length === 0 ? null : { text: `${forge.attention.length}${AS_LAST_REPORTED_MARK}`, tone: 'muted' };
+      return forge.attention.length === 0 ? null : countOf(forge.attention.length, 'muted', '?');
     default:
       return null;
   }
@@ -101,7 +117,12 @@ function attentionCountOf(fleetDocument: FleetDocument): RailCount | null {
   const { waitingOnUser, incompleteFor } = fleetDocument.figures;
   const morePossible = incompleteFor.length > 0;
   if (waitingOnUser === 0 && !morePossible) return null;
-  return { text: `${waitingOnUser}${morePossible ? MORE_POSSIBLE_MARK : ''}`, tone: 'attention' };
+  return countOf(waitingOnUser, 'attention', morePossible ? '+' : '');
+}
+
+/** A count as one piece of text, its mark after it: `4+`, `2?`. */
+function countTextOf({ count, mark }: RailCount): string {
+  return `${count}${mark}`;
 }
 
 function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailCount | null {
@@ -110,32 +131,50 @@ function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailC
     case 'attention':
       return attentionCountOf(fleetDocument);
     case 'agents':
-      return { text: String(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length), tone: 'muted' };
+      return countOf(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length, 'muted');
     case 'forges':
-      return { text: String(visibleForgesOf(fleetDocument).length), tone: 'muted' };
+      return countOf(visibleForgesOf(fleetDocument).length, 'muted');
     case 'activity':
       return null;
   }
 }
 
-function limitLineOf(fleetDocument: FleetDocument, isAtTheLimit: boolean): string {
-  const { machineLimit } = fleetDocument.figures;
-  const { cpuCount, ticketsWaitingForMachineSlot } = fleetDocument.machine;
-  if (isAtTheLimit) {
-    if (ticketsWaitingForMachineSlot === null || ticketsWaitingForMachineSlot === 0) return 'at the limit';
-    return `at the limit · ${countedPhrase(ticketsWaitingForMachineSlot, 'ticket waits', 'tickets wait')}`;
+function atTheLimitLineOf(fleetDocument: FleetDocument): string {
+  const { ticketsWaitingForMachineSlot } = fleetDocument.machine;
+  if (ticketsWaitingForMachineSlot === null || ticketsWaitingForMachineSlot === 0) return 'at the limit';
+  return `at the limit${LINE_SEPARATOR}${countedPhrase(ticketsWaitingForMachineSlot, 'ticket waits', 'tickets wait')}`;
+}
+
+/**
+ * The limit against the CPUs, then what the figure holds that Gaia cannot vouch for now: the agents of an unreachable forge as it last
+ * reported them (B3); otherwise, under a known limit, that Flint's brain runs outside it, once a forge reports a brain at all.
+ */
+function limitLineOf(fleetDocument: FleetDocument): string {
+  const { machineLimit, agentsInFlight } = fleetDocument.figures;
+  const cpus = countedPhrase(fleetDocument.machine.cpuCount, 'CPU', 'CPUs');
+  const limitClause = machineLimit === null ? `no limit known${LINE_SEPARATOR}${cpus}` : `limit ${machineLimit} of ${cpus}`;
+  const unreachable = new Set(fleetDocument.forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => forge.trackerId));
+  if (unreachable.size > 0) {
+    const asLastReported = fleetDocument.agents.filter((row) => row.countsAgainstLimit && unreachable.has(row.trackerId)).length;
+    return `${limitClause}${LINE_SEPARATOR}${asLastReported} of the ${agentsInFlight} as last reported`;
   }
-  if (machineLimit === null) return `no limit known · ${countedPhrase(cpuCount, 'CPU', 'CPUs')}`;
-  return `limit ${machineLimit} of ${countedPhrase(cpuCount, 'CPU', 'CPUs')}`;
+  const aBrainIsReported = fleetDocument.forges.some((forge) => forge.brain !== 'not-reported');
+  return machineLimit !== null && aBrainIsReported ? `${limitClause}${LINE_SEPARATOR}${BRAIN_OUTSIDE_THE_LIMIT_CLAUSE}` : limitClause;
 }
 
 function machineOf(fleetDocument: FleetDocument): RailMachine {
   const { agentsInFlight, machineLimit } = fleetDocument.figures;
   const isAtTheLimit = machineLimit !== null && agentsInFlight >= machineLimit;
+  const slots = machineLimit ?? fleetDocument.machine.cpuCount;
   return {
     agentsText: machineLimit === null ? String(agentsInFlight) : `${agentsInFlight} / ${machineLimit}`,
-    meter:      machineLimit === null ? null : { used: agentsInFlight, whole: machineLimit, label: `${agentsInFlight} of ${machineLimit} agents` },
-    limitLine:  limitLineOf(fleetDocument, isAtTheLimit),
+    meter:      {
+      filled: agentsInFlight,
+      slots,
+      label:  machineLimit === null ? `${agentsInFlight} agents, no limit known` : `${agentsInFlight} of ${machineLimit} agents`,
+    },
+    atTheLimitLine: isAtTheLimit ? atTheLimitLineOf(fleetDocument) : null,
+    limitLine:      limitLineOf(fleetDocument),
     isAtTheLimit,
   };
 }
@@ -171,6 +210,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
 export const RailModel = {
   railContentOf,
   attentionCountOf,
+  countTextOf,
   machineOf,
   VIEW_LABELS,
 } as const;

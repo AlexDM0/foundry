@@ -1,12 +1,19 @@
 /**
- * Attention with no forge registered (SCREENS B4): why nothing waits, the form that adds a repository and starts its forge, and, when no
- * forge program is known, a line that says so with a way to choose one. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form
- * through the shared add-a-repository form and sends its commands.
+ * Attention with no forge registered (SCREENS B4), which heads itself: Look again, since a forge set up elsewhere appears by itself, why
+ * nothing waits, the form that adds a repository and starts its forge, and, when no forge program is known, a line that says so with a way
+ * to choose one. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form through the shared add-a-repository form and sends its
+ * commands.
  */
+import { Button }         from 'design-system/Button';
 import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
 
-import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
-import { CommandFailureRefusal }                                     from '../../shared/CommandFailureRefusal.tsx';
+import {
+  CommandSender,
+  type CommandStates,
+  type CommandSubject,
+  useCommandSender,
+} from '../../api/CommandSender.ts';
+import { CommandFailureRefusal } from '../../shared/CommandFailureRefusal.tsx';
 import {
   AddRepositoryFields,
   type AddRepositoryHandlers,
@@ -23,7 +30,7 @@ export interface NoForgeYetLayoutProps {
   readonly pathChooser:      PathChooser;
   readonly commandStates:    CommandStates;
   readonly handlers:         AddRepositoryHandlers;
-  /** Sends the top bar's Look again once more, from its refusal. */
+  /** Sends Look again, from its button or once more from its refusal. */
   readonly onLookAgain:      () => void;
   readonly onDismissFailure: (subject: CommandSubject) => void;
 }
@@ -38,6 +45,9 @@ export function NoForgeYetLayout({
   return (
     <div className="gaia-attention-no-forge">
       <div className="gaia-attention-no-forge-column">
+        <div className="gaia-attention-no-forge-actions">
+          <Button label="Look again" compact disabled={CommandSender.stateOf(commandStates, LOOK_AGAIN).onItsWay !== null} onPress={onLookAgain} />
+        </div>
         <CommandFailureRefusal commandStates={commandStates} subject={LOOK_AGAIN} commandLabel="Look again" onDismissFailure={onDismissFailure} onTryAgain={onLookAgain} />
         <div className="gaia-attention-no-forge-intro">
           <h2 className="gaia-attention-no-forge-title">Nothing waits on you, because no forge is registered.</h2>

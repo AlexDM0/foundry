@@ -114,13 +114,14 @@ function pendingSender(): CommandSender {
   return senderOver([() => new Promise<Response>(() => undefined)]);
 }
 
-describe('the status line', () => {
-  test('counts every registered forge, hidden ones too, then the running ones and the starting ones', () => {
-    expect(ForgesModel.statusOf(FLEET_FIVE_FORGES).text).toBe('6 registered on this machine · 4 running');
-    expect(ForgesModel.statusOf(FLEET_AT_LIMIT).text).toBe('6 registered on this machine · 4 running, 1 starting');
+describe('the page title\'s figures', () => {
+  test('count every registered forge, hidden ones too, then the running ones, and the starting and hidden ones when there are any', () => {
+    const figuresOf = (fleetDocument: FleetDocument) => ForgesModel.titleFiguresOf(fleetDocument).map((figure) => `${figure.value} ${figure.label}`);
+    expect(figuresOf(FLEET_FIVE_FORGES)).toEqual(['6 registered', '4 running']);
+    expect(figuresOf(FLEET_AT_LIMIT)).toEqual(['6 registered', '4 running', '1 starting']);
     const hidden = { ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: [TRACKER_IDS.legacyImporter] } };
-    expect(ForgesModel.statusOf(hidden).text).toBe('6 registered on this machine · 4 running');
-    expect(ForgesModel.statusOf(FLEET_EMPTY).text).toBe('no forge registered on this machine yet');
+    expect(figuresOf(hidden)).toEqual(['6 registered', '4 running', '1 hidden']);
+    expect(figuresOf(FLEET_EMPTY)).toEqual(['0 registered', '0 running']);
   });
 });
 

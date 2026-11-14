@@ -44,11 +44,11 @@
   --brand-bar-divider-height: 18px;
   --wordmark-gap:        9px;
   --rail-width:          232px;
-  --rail-section-gap:    20px;
+  --rail-section-gap:    22px;
   --rail-inset:          10px;
   --rail-row-height:     30px;
-  --rail-brand-height:   32px;
-  --top-bar-height:      64px;
+  --rail-machine-gap:    9px;
+  --forge-bar-height:    56px;
   --view-top-padding:    20px;
   --view-side-width:     320px;
   --activity-at-width:   48px;

@@ -1,10 +1,10 @@
 /**
  * A forge in place, the root of `#forge/<trackerId>` (SCREENS B1). It reads the command sender, keeps the Stop question's state, and keeps
  * one frame session per Overseer: a new address or a new start of the forge's Overseer, as the fleet document reports it, mounts a new one.
- * `forgeFrameViewPartsOf` hands the shell the bar's status line and controls with the content, so a new fleet document changes all three.
+ * The view heads itself with the forge's bar, so `forgeFrameViewPartsOf` hands the shell no page title, only the bar over the frame area.
+ * A new fleet document changes both at once.
  */
 import {
-  type ReactNode,
   useCallback,
   useEffect,
   useState,
@@ -14,12 +14,13 @@ import {
 import type { CommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                from '../../@types/FleetDocument.ts';
 import { CommandSender, useCommandSender }   from '../../api/CommandSender.ts';
+import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
 import type { ThemeChoice }                  from '../../shell/ThemeBootstrap.ts';
-import type { TopBarStatus }                 from '../../shell/TopBar.tsx';
 import type { EmbedChannelSurroundings }     from './EmbedChannel.ts';
 import {
   BarRefusalLine,
   ForgeBarControls,
+  ForgeBarLayout,
   type FrameAreaShown,
   ForgeFrameAreaLayout,
 } from './ForgeFrameLayout.tsx';
@@ -42,13 +43,6 @@ export interface ForgeFrameSurroundings {
   /** The fragment of the view Gaia came from, where `leave` goes. */
   readonly leaveFragment:       string;
   readonly themeChoice:         ThemeChoice;
-}
-
-/** The parts of the shell this view fills: the same shape as the shell's own `ShellViewParts`. */
-export interface ForgeFrameViewParts {
-  readonly status:  TopBarStatus | null;
-  readonly actions: ReactNode;
-  readonly content: ReactNode;
 }
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
@@ -184,19 +178,35 @@ function ForgeFrameContentView({ content, bridgeFragment, surroundings }: ForgeF
   );
 }
 
-/** Before the first fleet document the view shows nothing: Gaia does not yet know whether the forge can open in place. */
+/**
+ * Before the first fleet document the bar names the forge by its tracker id and the view shows nothing more: Gaia does not yet know whether
+ * the forge can open in place.
+ */
 export function forgeFrameViewPartsOf(
   route: { readonly trackerId: string; readonly bridgeFragment: string | null },
   fleetDocument: FleetDocument | null,
   clock: ForgeFrameClock,
   surroundings: ForgeFrameSurroundings,
-): ForgeFrameViewParts {
-  if (fleetDocument === null) return { status: null, actions: null, content: null };
+): ViewParts {
+  const selfHeaded = {
+    title: null, lead: '', figures: [], actions: null
+  } as const;
+  if (fleetDocument === null) {
+    return { ...selfHeaded, content: <div className="gaia-forge-frame-view"><ForgeBarLayout name={route.trackerId} status={null} controls={null} /></div> };
+  }
   const content = ForgeFrameModel.forgeFrameContentOf(route.trackerId, fleetDocument, clock);
   const { bar } = content;
   return {
-    status:  bar === null ? null : bar.status,
-    actions: bar === null ? null : <ForgeBarActions key={bar.trackerId} bar={bar} />,
-    content: <ForgeFrameContentView content={content} bridgeFragment={route.bridgeFragment} surroundings={surroundings} />,
+    ...selfHeaded,
+    content: (
+      <div className="gaia-forge-frame-view">
+        <ForgeBarLayout
+          name={bar === null ? route.trackerId : bar.project}
+          status={bar === null ? null : bar.status}
+          controls={bar === null ? null : <ForgeBarActions key={bar.trackerId} bar={bar} />}
+        />
+        <ForgeFrameContentView content={content} bridgeFragment={route.bridgeFragment} surroundings={surroundings} />
+      </div>
+    ),
   };
 }

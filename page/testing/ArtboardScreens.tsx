@@ -13,7 +13,6 @@ import type { FleetDocument }                                                   
 import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
 import { GaiaShell, viewPartsOf }                                                   from '../shell/GaiaApp.tsx';
 import { HashRouter }                                                               from '../shell/HashRouter.ts';
-import { WindowTitle }                                                              from '../shell/WindowTitle.ts';
 import { ForgesLayout }                                                             from '../views/forges/ForgesLayout.tsx';
 import { ForgesModel, type StopDialogState }                                        from '../views/forges/ForgesModel.ts';
 import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';
@@ -293,12 +292,12 @@ function commandStatesOf(viewState: ScreenViewState): CommandStates {
   }
 }
 
-/** The theme the screen is shown in is the one chosen in Gaia's settings, so the switch presses that theme. */
+/** The theme the screen is shown in is the one chosen in Gaia's settings, so the theme button shows that theme. */
 function fleetDocumentInTheme(fleetDocument: FleetDocument, theme: ScreenTheme): FleetDocument {
   return { ...fleetDocument, settings: { ...fleetDocument.settings, theme } };
 }
 
-/** The shell as the page paints it for the screen: the rail, the top bar and the view, with every control live. */
+/** The shell as the page paints it for the screen: the brand bar, the rail, the page title and the view, with every control live. */
 export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): string {
   const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
   const route = HashRouter.routeOf(screen.fragment);
@@ -316,7 +315,6 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
         fleetDocument={fleetDocument}
         streamState="live"
         route={route}
-        viewTitle={WindowTitle.viewTitleOf(route, fleetDocument)}
         view={view}
         themeChoice={theme}
         onThemeChoice={doNothing}

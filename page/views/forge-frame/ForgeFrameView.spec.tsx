@@ -1,7 +1,7 @@
 /**
  * A forge in place in the shell, fed by the fleet source. What matters (SCREENS B1): Answer on E2 in Attention links to
  * `#forge/<trackerId>/#questions/E2`, and that address shows Example Storefront's bar, its word and its mono line shortened to fit one
- * line, and its controls with the arrow after "Open in new tab" and no theme switch, as artboard B1 draws the bar, over "Opening Example
+ * line, and its controls with the arrow after "Open in new tab" and no theme button, as artboard B1 draws the bar, over "Opening Example
  * Storefront." while the frame session is asked for; an unreachable forge shows B3's callout in the frame area; a forge without the embed
  * channel says it cannot be shown inside Gaia; a command on its way disables the bar's controls, and the forge's refusal shows under the
  * bar; nothing of the frame is asked for or painted before the first fleet document, and the page's markup carries no session code.
@@ -35,8 +35,8 @@ function markupAt(fragment: string, fleetDocument: FleetDocument | null, command
 }
 
 function buttonsIn(markup: string): string[] {
-  const topBarActions = /<span class="gaia-top-bar-actions">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
-  return [...topBarActions.matchAll(/<button type="button" class="design-system-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
+  const barControls = /<span class="gaia-forge-frame-bar-controls">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
+  return [...barControls.matchAll(/<button type="button" class="design-system-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
     .map(([, disabled, label = '']) => `${label}${disabled === undefined ? '' : ' (disabled)'}`);
 }
 
@@ -47,12 +47,12 @@ describe('from Answer on E2 to Example Storefront in place', () => {
 
   test('that address shows the forge\'s bar of artboard B1 over "Opening Example Storefront."', () => {
     const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
-    expect(markup).toContain('<h1 class="gaia-top-bar-title">Example Storefront</h1>');
+    expect(markup).toContain('<h1 class="gaia-forge-frame-bar-name">Example Storefront</h1>');
     const line = '4 / 5 agents · 2 wait on you · since 09:12';
-    expect(markup).toContain(`<span class="gaia-top-bar-status-word">Live</span><span class="gaia-top-bar-status-text" title="${line}">${line}</span>`);
+    expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${line}">${line}</span>`);
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
     expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph" aria-hidden="true"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
-    expect(markup).not.toContain('gaia-top-bar-theme-label');
+    expect(markup).not.toContain('aria-label="Theme: ');
     expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);
   });
@@ -67,7 +67,7 @@ describe('from Answer on E2 to Example Storefront in place', () => {
 describe('a forge that cannot show its Bridge here', () => {
   test('an unreachable forge shows B3\'s callout in the frame area, under a bar that says so and can still stop it', () => {
     const markup = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, FLEET_DEGRADED);
-    expect(markup).toContain('<span class="gaia-top-bar-status-word">Unreachable</span><span class="gaia-top-bar-status-text" title="as last reported 13:14');
+    expect(markup).toContain('<span class="gaia-forge-frame-bar-word">Unreachable</span><span class="gaia-forge-frame-bar-line" title="as last reported 13:14');
     expect(markup).toContain('Its Overseer stopped answering. The registry still names it.');
     expect(markup).toContain('127.0.0.1:4957 · process 48211 · last answer 13:14');
     expect(buttonsIn(markup)).toEqual(['Stop', 'Open in new tab']);
@@ -81,8 +81,9 @@ describe('a forge that cannot show its Bridge here', () => {
 
   test('before the first fleet document nothing of the forge is shown or asked for', () => {
     const markup = markupAt(STOREFRONT_ON_E2, null);
-    expect(markup).toContain(`<h1 class="gaia-top-bar-title">${TRACKER_IDS.exampleStorefront}</h1>`);
-    expect(markup).not.toContain('gaia-forge-frame');
+    expect(markup).toContain(`<h1 class="gaia-forge-frame-bar-name">${TRACKER_IDS.exampleStorefront}</h1>`);
+    expect(markup).not.toContain('gaia-forge-frame-bar-status');
+    expect(markup).not.toContain('class="gaia-forge-frame"');
   });
 });
 

@@ -110,15 +110,10 @@ describe('the list of what waits on User', () => {
     const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } });
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-list-card'))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-nothing')])).toBe('Nothing waits on you.');
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-figure'))).toHaveLength(6);
   });
 
-  test('with every forge read in full, the figures stand stacked in their own row above the body', () => {
-    const unfolded = unfoldedLayout(FLEET_FIVE_FORGES);
-    const figuresRow = tree.onlyWithClass(unfolded, 'gaia-attention-figures');
-    expect(figuresRow.props['data-form']).toBe('row');
-    expect(tree.hostElementsIn([tree.onlyWithClass(unfolded, 'gaia-attention-body')], tree.withClass('gaia-attention-figures'))).toEqual([]);
-    expect(tree.hostElementsIn([figuresRow], tree.withClass('gaia-figure')).map((figure) => figure.props['data-form'])).toEqual(Array(6).fill('stacked'));
+  test('with every forge read in full the layout draws no figures: they stand stacked in the page title', () => {
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-figure'))).toEqual([]);
   });
 });
 
@@ -234,7 +229,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const figures = tree.hostElementsIn([figuresRow], tree.withClass('gaia-figure'));
     expect(figures.map((figure) => [figure.props['data-form'], tree.textOf([figure])])).toEqual([
       ['inline', '4+waiting on you'],
-      ['inline', '10 / 12agents, machine limit'],
+      ['inline', '10 / 12agents'],
       ['inline', '8tickets ready'],
       ['inline', '5done today'],
       ['inline', '1.08Mtokens today'],

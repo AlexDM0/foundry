@@ -38,15 +38,23 @@ function withoutJob(fleetDocument: FleetDocument, trackerId: string, jobId: stri
   return { ...fleetDocument, agents: fleetDocument.agents.filter((row) => !(row.trackerId === trackerId && row.jobId === jobId)) };
 }
 
-describe('the status line and the filters\' counts', () => {
-  test('with fleet-five-forges the status line counts ten agents across four forges and 821,300 tokens', () => {
-    expect(AgentsModel.statusTextOf(FLEET_FIVE_FORGES)).toBe('10 working across 4 forges · 821,300 tokens in flight');
+function titleFiguresTextOf(fleetDocument: FleetDocument): string[] {
+  return AgentsModel.titleFiguresOf(fleetDocument).map((figure) => `${figure.value} ${figure.label}`);
+}
+
+describe('the page title\'s figures and the filters\' counts', () => {
+  test('with fleet-five-forges the figures count ten agents of the twelve the machine allows, across four forges, with 821,300 tokens', () => {
+    expect(titleFiguresTextOf(FLEET_FIVE_FORGES)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
   });
 
-  test('one agent on one forge is counted in the singular', () => {
+  test('one agent on one forge is counted in the singular, and with no limit known the agents stand alone', () => {
     const [onlyRow] = FLEET_FIVE_FORGES.agents;
-    const oneAgent = { ...FLEET_FIVE_FORGES, agents: onlyRow === undefined ? [] : [{ ...onlyRow, tokens: 1 }] };
-    expect(AgentsModel.statusTextOf(oneAgent)).toBe('1 working across 1 forge · 1 token in flight');
+    const oneAgent = {
+      ...FLEET_FIVE_FORGES,
+      agents:  onlyRow === undefined ? [] : [{ ...onlyRow, tokens: 1 }],
+      figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null },
+    };
+    expect(titleFiguresTextOf(oneAgent)).toEqual(['1 agent', '1 forge', '1 token in flight']);
   });
 
   test('the role filter counts All 10, Builders 7, Reviewers 3, and the condition filter Needs a look 2, as A2 shows', () => {
@@ -215,12 +223,16 @@ describe('the selected agent', () => {
 });
 
 describe('no agent', () => {
-  test('with fleet-empty there is no row, the status line counts none, and the machine shows its agents with no limit known', () => {
+  test('with fleet-empty there is no row, the figures count none, and the machine shows its agents with no limit known', () => {
     const content = contentOf(FLEET_EMPTY);
-    expect(AgentsModel.statusTextOf(FLEET_EMPTY)).toBe('0 working');
+    expect(titleFiguresTextOf(FLEET_EMPTY)).toEqual(['0 agents', '0 forges', '0 tokens in flight']);
     expect([content.agentCount, content.rows]).toEqual([0, []]);
     expect(content.machine).toEqual({
-      agentsText: '0', meter: null, limitLine: 'no limit known · 12 CPUs', isAtTheLimit: false
+      agentsText:     '0',
+      meter:          { filled: 0, slots: 12, label: '0 agents, no limit known' },
+      atTheLimitLine: null,
+      limitLine:      'no limit known · 12 CPUs',
+      isAtTheLimit:   false,
     });
   });
 });

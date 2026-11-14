@@ -2,8 +2,9 @@
  * The Attention view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A1 acceptance 2 and 4;
  * B3 acceptance 3; B4 acceptance 1): every change arrives as the next fleet document, with no reload: a new entry appears and a closed one
  * leaves; the held forge's callout leaves once the forge reports serving; an unreachable forge that answers again has its rows back to
- * normal; a forge that registers while no forge is shown replaces B4 with A1. Also: the top bar carries the view's status line, and B4 its
- * Look again; ages are printed from the page's clock.
+ * normal; a forge that registers while no forge is shown replaces B4 with A1. Also: A1's page title carries the title, the lead and the
+ * six figures, the waiting one marked, and keeps them with nothing waiting; B3 and B4 draw no figures there, and B4 no page title at all;
+ * ages are printed from the page's clock.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
  * would paint for the source's current document.
@@ -120,12 +121,43 @@ describe('the view follows the fleet source, with no reload', () => {
   });
 });
 
-describe('the top bar and the clock', () => {
-  test('the top bar carries the view\'s status line; B4 adds Look again, A1 no button of its own', () => {
+function pageTitleFiguresIn(markup: string): string[] {
+  const pageTitle = /<header class="gaia-page-title">.*?<\/header>/.exec(markup)?.[0] ?? '';
+  const figure = /<div class="gaia-figure" data-form="stacked"( data-attention="")?><span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g;
+  return [...pageTitle.matchAll(figure)]
+    .map(([, attention, value, label]) => `${value} ${label}${attention === undefined ? '' : ' (waits on you)'}`);
+}
+
+describe('the page title and the clock', () => {
+  test('A1\'s page title carries the title, the lead and the six figures stacked, the waiting one marked, and no button of its own', () => {
     const fleet = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES)));
-    expect(fleet).toContain('4 forges running, 1 holds its launches · 1 dormant · 1 repository missing</span></span><span class="gaia-top-bar-actions"></span>');
+    expect(fleet).toContain('<h1 class="design-system-text" data-type-role="display">Attention</h1><p class="design-system-text" data-type-role="lead" data-ink="muted">'
+      + 'What waits on you across every forge, and the forges that need a look.</p>');
+    expect(pageTitleFiguresIn(fleet)).toEqual([
+      '5 waiting on you (waits on you)',
+      '10 / 12 agents',
+      '11 tickets ready',
+      '6 done today',
+      '1.24M tokens today',
+      '0 open incidents',
+    ]);
+    expect(fleet).not.toContain('gaia-page-title-actions');
+    expect(fleet).not.toContain('class="gaia-attention-figures"');
+  });
+
+  test('with nothing waiting the page title keeps its six figures', () => {
+    const nothingWaits = { ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } };
+    expect(pageTitleFiguresIn(renderToStaticMarkup(appAt(sourceHolding(nothingWaits))))).toHaveLength(6);
+  });
+
+  test('B3 folds the figures into the main column and leaves the page title without them; B4 heads itself with no page title', () => {
+    const degraded = renderToStaticMarkup(appAt(sourceHolding(FLEET_DEGRADED)));
+    expect(degraded).toContain('data-type-role="display">Attention</h1>');
+    expect(pageTitleFiguresIn(degraded)).toEqual([]);
+    expect(degraded).toContain('<div class="gaia-attention-figures" data-form="line">');
     const empty = renderToStaticMarkup(appAt(sourceHolding(FLEET_EMPTY)));
-    expect(empty).toMatch(/no forge on this machine yet<\/span><\/span><span class="gaia-top-bar-actions"><button[^>]*>Look again<\/button><\/span>/);
+    expect(empty).not.toContain('gaia-page-title');
+    expect(empty).toMatch(/<div class="gaia-attention-no-forge-actions"><button[^>]*>Look again<\/button><\/div>/);
   });
 
   test('ages are printed from the page\'s clock', () => {

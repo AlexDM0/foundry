@@ -13,13 +13,13 @@ import type {
   FleetDocumentForge
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure }                        from '../../api/CommandSender.ts';
+import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
 import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
 import { DEFAULT_ROUTE, type GaiaRoute, HashRouter }  from '../../shell/HashRouter.ts';
-import type { TopBarStatus }                          from '../../shell/TopBar.tsx';
 import { SESSION_LOST_WHILE_OPENING }                 from './ForgeFrameSession.ts';
 
 /** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
@@ -34,9 +34,17 @@ export interface BarCommand {
   readonly command:  ForgeCommandBody;
 }
 
+/** The bar's line: the condition's dot and its word, so the dot is never the only sign, then one mono line of what the forge reports. */
+export interface ForgeBarStatus {
+  readonly condition: DotCondition;
+  readonly word:      string;
+  readonly text:      string;
+}
+
 export interface ForgeBar {
   readonly trackerId:              string;
-  readonly status:                 TopBarStatus;
+  readonly project:                string;
+  readonly status:                 ForgeBarStatus;
   readonly pauseOrResume:          BarCommand | null;
   readonly stop:                   StopQuestion | null;
   readonly openInNewTab:           ForgeCommandBody;
@@ -169,6 +177,7 @@ function stopQuestionOf(forge: FleetDocumentForge): StopQuestion | null {
 function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
   return {
     trackerId: forge.trackerId,
+    project:   forge.project,
     status:    {
       condition: ForgeTextUtil.dotConditionOf(forge.condition),
       word:      ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition),

@@ -96,30 +96,32 @@ describe('what waits on User (A1)', () => {
     const nothingWaits: FleetDocument = { ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } };
     const content = fleetContentOf(nothingWaits);
     expect([content.rows, content.nothingText, content.waitingHead]).toEqual([[], 'Nothing waits on you.', 'Waiting on you · 0']);
-    expect(content.figures.map((figure) => figure.label)).toEqual(['waiting on you', 'agents, machine limit', 'tickets ready', 'done today', 'tokens today', 'open incidents']);
+    expect(content.figures.map((figure) => figure.label)).toEqual(['waiting on you', 'agents', 'tickets ready', 'done today', 'tokens today', 'open incidents']);
   });
 });
 
-describe('the status line and the figures', () => {
-  test('count the forges by condition, and print each figure of the document', () => {
+describe('the figures', () => {
+  test('print each figure of the document, only what waits on User marked as waiting', () => {
     const content = fleetContentOf(FLEET_FIVE_FORGES);
-    expect(content.status).toEqual({ condition: 'live', text: '4 forges running, 1 holds its launches · 1 dormant · 1 repository missing' });
-    expect(content.figures.map((figure) => figure.value)).toEqual(['5', '10 / 12', '11', '6', '1.24M', '0']);
+    expect(content.figures.map((figure) => [figure.value, figure.attention])).toEqual([
+      ['5', true],
+      ['10 / 12', false],
+      ['11', false],
+      ['6', false],
+      ['1.24M', false],
+      ['0', false],
+    ]);
   });
 
-  test('name a paused, starting or unreadable forge, and leave out a hidden one', () => {
-    const paused = AttentionModel.statusLineOf(FLEET_AT_LIMIT);
-    expect(paused.text).toBe('4 forges running, 1 paused, 1 holds its launches · 1 starting · 1 repository missing');
-    const hidden = { ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: [TRACKER_IDS.legacyImporter] } };
-    expect(AttentionModel.statusLineOf(hidden).text).toBe('4 forges running, 1 holds its launches · 1 dormant');
-    const everyForgeHidden = { ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: Object.values(TRACKER_IDS) } };
-    expect(AttentionModel.statusLineOf(everyForgeHidden)).toEqual({ condition: null, text: 'every forge is hidden in Gaia' });
+  test('the page title shows the figures while every forge is read in full, and none while one is not (B3)', () => {
+    expect(AttentionModel.titleFiguresOf(FLEET_FIVE_FORGES)).toEqual([...fleetContentOf(FLEET_FIVE_FORGES).figures]);
+    expect(AttentionModel.titleFiguresOf(FLEET_DEGRADED)).toEqual([]);
   });
 
   test('print a count by its significant digits, and an unknown machine limit as the agents alone', () => {
     expect([840, 41_300, 512_000, 999_999, 1_240_000, 12_400_000].map(AttentionModel.compactCountOf)).toEqual(['840', '41.3k', '512k', '1M', '1.24M', '12.4M']);
     const noLimit = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
-    expect(fleetContentOf(noLimit).figures[1]).toEqual({ value: '10', label: 'agents' });
+    expect(fleetContentOf(noLimit).figures[1]).toEqual({ value: '10', label: 'agents', attention: false });
   });
 });
 
@@ -225,7 +227,6 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const content = fleetContentOf(FLEET_DEGRADED);
     expect(content.waitingHead).toBe('Waiting on you · 4 known, more possible');
     expect(content.figures.map((figure) => figure.value)).toEqual(['4+', '10 / 12', '8', '5', '1.08M', '0']);
-    expect(content.status.text).toBe('3 forges running, 1 holds its launches · 1 unreachable · 1 not readable by this Gaia');
   });
 
   test('the figures fold into one line while a forge is not fully read, and stand in their row once every forge is', () => {
@@ -315,7 +316,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
 
 describe('no forge yet (B4)', () => {
   test('a fleet with no forge is its own screen, and the forge program is missing when neither the settings nor Gaia know one', () => {
-    expect(noForgeContentOf(FLEET_EMPTY)).toEqual({ status: { condition: null, text: 'no forge on this machine yet' }, forgeProgramIsMissing: true });
+    expect(noForgeContentOf(FLEET_EMPTY)).toEqual({ forgeProgramIsMissing: true });
     const chosen = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, forgeProgramPath: '/Users/alexexample/.bun/bin/forge' } };
     expect(noForgeContentOf(chosen).forgeProgramIsMissing).toBe(false);
     const found = { ...FLEET_EMPTY, gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: '/Users/alexexample/.bun/bin/forge' } };

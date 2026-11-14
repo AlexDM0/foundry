@@ -1,5 +1,5 @@
 /**
- * What the Agents view shows of a fleet document: the top bar's status line, the two filters with their counts, the rows the filters
+ * What the Agents view shows of a fleet document: the page title's figures, the two filters with their counts, the rows the filters
  * leave in the document's order, and the selected agent. The selection and the filters live in the route, so both survive a new document;
  * a value the forge did not report is `null` here and a dash on screen, never zero.
  */
@@ -7,6 +7,7 @@ import type { SegmentOption } from 'design-system/SegmentedControl';
 import type { TagTone }       from 'design-system/Tag';
 
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { PageFigure }                                                    from '../../design-system/PageTitle.tsx';
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
 import { ForgeContractUtil }                                                  from '../../shared/utils/ForgeContractUtil.ts';
 import { HashRouter, type SelectedAgent }                                     from '../../shell/HashRouter.ts';
@@ -237,13 +238,19 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
 }
 
 /** With no agent there is no forge or token to count, so the line says only that none works. */
-function statusTextOf(fleetDocument: FleetDocument): string {
+/** The page title's figures, over the job rows: the agents against the machine limit when one is known, their forges and their tokens. */
+function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   const agents = jobRowsOf(fleetDocument);
-  if (agents.length === 0) return '0 working';
+  const { machineLimit } = fleetDocument.figures;
   const forgeCount = new Set(agents.map((row) => row.trackerId)).size;
   const tokens = agents.reduce((sum, row) => sum + row.tokens, 0);
-  const tokensText = `${AgentTextUtil.groupedNumberText(tokens)} ${tokens === 1 ? 'token' : 'tokens'} in flight`;
-  return `${agents.length} working across ${AgentTextUtil.countedPhrase(forgeCount, 'forge', 'forges')} · ${tokensText}`;
+  return [
+    machineLimit === null
+      ? { value: String(agents.length), label: agents.length === 1 ? 'agent' : 'agents' }
+      : { value: `${agents.length} / ${machineLimit}`, label: 'agents' },
+    { value: String(forgeCount), label: forgeCount === 1 ? 'forge' : 'forges' },
+    { value: AgentTextUtil.groupedNumberText(tokens), label: tokens === 1 ? 'token in flight' : 'tokens in flight' },
+  ];
 }
 
 /** Each filter counts the rows it would leave beside the other filter as it stands. */
@@ -281,6 +288,6 @@ function agentsContentOf(input: AgentsModelInput): AgentsContent {
 
 export const AgentsModel = {
   agentsContentOf,
-  statusTextOf,
+  titleFiguresOf,
   agentsFragmentOf,
 } as const;

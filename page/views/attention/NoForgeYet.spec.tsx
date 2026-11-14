@@ -1,7 +1,7 @@
 /**
  * Attention with no forge registered. What matters (SCREENS B4, acceptance 2): the head says why nothing waits; the form adds a repository
  * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program;
- * a refused add shows in the form, and a refused Look again from the top bar on the screen. The command sender is the real one over Gaia's
+ * a refused add shows in the form, and a refused Look again under its button at the head of the screen. The command sender is the real one over Gaia's
  * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
 import { describe, expect, test } from 'bun:test';
@@ -45,7 +45,7 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
   };
   const unfolded = tree.unfolded(
     <NoForgeYetLayout
-      content={{ status: { condition: null, text: 'no forge on this machine yet' }, forgeProgramIsMissing }}
+      content={{ forgeProgramIsMissing }}
       form={form}
       pathChooser="folder"
       commandStates={commandStates}
@@ -76,7 +76,7 @@ function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, label: string): Ho
 }
 
 describe('no forge yet', () => {
-  test('says why nothing waits and offers the form, its fields named and "Add and start" the one primary button', () => {
+  test('offers Look again, says why nothing waits and offers the form, its fields named and "Add and start" the one primary button', () => {
     const { unfolded } = layoutOf(false);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-no-forge-title')])).toBe('Nothing waits on you, because no forge is registered.');
     const fields = tree.hostElementsIn(unfolded, tree.withClass('gaia-text-field'));
@@ -84,6 +84,7 @@ describe('no forge yet', () => {
     expect(fields.map((field) => tree.onlyWithTag([field], 'input').props['value'])).toEqual(['~/development/example-storefront', 'example-storefront']);
     const buttons = tree.hostElementsIn(unfolded, PackageButtons.isButton);
     expect(buttons.map((button) => [tree.textOf([button]), PackageButtons.emphasisOf(button)])).toEqual([
+      ['Look again', 'quiet'],
       ['Choose a folder', 'quiet'],
       ['Add and start', 'primary'],
     ]);
@@ -94,8 +95,9 @@ describe('no forge yet', () => {
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
     tree.dispatch(buttonNamed(unfolded, 'Add and start'), 'onClick');
     tree.dispatch(buttonNamed(unfolded, 'Choose a folder'), 'onClick');
+    tree.dispatch(buttonNamed(unfolded, 'Look again'), 'onClick');
     expect(pressed).toEqual({
-      chooseFolder: 1, addAndStart: 1, chooseForgeProgram: 0, lookAgain: 0
+      chooseFolder: 1, addAndStart: 1, chooseForgeProgram: 0, lookAgain: 1
     });
     expect(buttonNamed(layoutOf(false, AddRepositoryForm.EMPTY_FORM).unfolded, 'Add and start').props['disabled']).toBe(true);
   });
@@ -119,7 +121,7 @@ describe('no forge yet', () => {
     expect(tree.textOf([tree.onlyWithClass([add], 'gaia-refusal-text')])).toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
   });
 
-  test('a refused Look again from the top bar shows on the screen, and Try again sends it once more', async () => {
+  test('a refused Look again shows under its button, and Try again sends it once more', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(LOOK_AGAIN_REFUSED))]);
     await sender.send({ kind: 'fleet-look-again' });
     const { unfolded, pressed } = layoutOf(false, FILLED_FORM, sender.states());
@@ -127,6 +129,12 @@ describe('no forge yet', () => {
     expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Look again: registry-unreadable. The registry could not be read.');
     tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
     expect(pressed.lookAgain).toBe(1);
+  });
+
+  test('Look again is disabled while it is on its way', () => {
+    const sender: CommandSender = senderOver([() => new Promise<Response>(() => undefined)]);
+    void sender.send({ kind: 'fleet-look-again' });
+    expect(buttonNamed(layoutOf(false, FILLED_FORM, sender.states()).unfolded, 'Look again').props['disabled']).toBe(true);
   });
 
   test('"Choose a folder" is disabled while a path is being chosen', () => {

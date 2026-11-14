@@ -1,19 +1,19 @@
 /**
  * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps which row's Stop dialog is open with its choice,
  * the last command it sent each forge, the last settings change and whether "What notifies" is open, builds the content from the fleet
- * document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the shell the top bar's status
- * line and buttons with it, so a new fleet document changes all three at once, with no reload.
+ * document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the shell the page title's
+ * parts with it, so a new fleet document changes both at once, with no reload.
  */
-import { Button }                              from 'design-system/Button';
-import { type ReactNode, useEffect, useState } from 'react';
+import { Button }              from 'design-system/Button';
+import { useEffect, useState } from 'react';
 
 import type { CommandBody, ForgeCommandBody }                             from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                             from '../../@types/FleetDocument.ts';
 import { useCommandSender }                                               from '../../api/CommandSender.ts';
+import type { ViewParts }                                                 from '../../shared/@types/ViewParts.ts';
 import { LookAgainButton }                                                from '../../shared/LookAgainButton.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { HashRouter }                                                     from '../../shell/HashRouter.ts';
-import type { TopBarStatus }                                              from '../../shell/TopBar.tsx';
 import { AddRepositoryDialog }                                            from './AddRepositoryDialog.tsx';
 import { forgeAnchorIdOf, ForgesLayout }                                  from './ForgesLayout.tsx';
 import { type ClockReading, ForgesModel, type StopDialogState }           from './ForgesModel.ts';
@@ -32,12 +32,9 @@ export interface ForgesViewProps {
   readonly goTo:          (fragment: string) => void;
 }
 
-/** The parts of the shell this view fills: the same shape as the shell's own `ShellViewParts`. */
-export interface ForgesViewParts {
-  readonly status:  TopBarStatus;
-  readonly actions: ReactNode;
-  readonly content: ReactNode;
-}
+const TITLE = 'Forges';
+
+const LEAD = 'Every forge on this machine, what each one runs, and the limit the machine sets.';
 
 const FORGES_FRAGMENT = HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: null });
 const ADD_A_REPOSITORY_FRAGMENT = HashRouter.fragmentOf({ view: 'forges', addingARepository: true, forgeInView: null });
@@ -111,9 +108,17 @@ export function ForgesView({
   );
 }
 
-export function forgesViewPartsOf(fleetDocument: FleetDocument, route: ForgesRoute, clock: ClockReading, goTo: (fragment: string) => void): ForgesViewParts {
+/** Before the first fleet document the title stands alone: no figure, and no button that acts on forges Gaia does not know yet. */
+export function forgesViewPartsOf(fleetDocument: FleetDocument | null, route: ForgesRoute, clock: ClockReading, goTo: (fragment: string) => void): ViewParts {
+  if (fleetDocument === null) {
+    return {
+      title: TITLE, lead: LEAD, figures: [], actions: null, content: null
+    };
+  }
   return {
-    status:  ForgesModel.statusOf(fleetDocument),
+    title:   TITLE,
+    lead:    LEAD,
+    figures: ForgesModel.titleFiguresOf(fleetDocument),
     actions: (
       <>
         <LookAgainButton />

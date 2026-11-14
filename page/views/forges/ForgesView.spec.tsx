@@ -1,5 +1,5 @@
 /**
- * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A4, B4): the top bar
+ * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A4, B4): the page title
  * carries the registered and running counts, Look again and "Add a repository", which goes to `#forges/add`; that route opens the dialog
  * over the view; with no forge registered the table says so and the dialog's "Add and start" is off while no forge program is known; a
  * forge that registers appears without a reload; `#forges?forge=` selects that forge's row; the Gaia panel sits under this machine's and
@@ -36,12 +36,13 @@ function forgeNamesIn(markup: string): string[] {
   return [...markup.matchAll(/class="gaia-forges-forge-name">([^<]*)</g)].map(([, name = '']) => name);
 }
 
-describe('the top bar', () => {
+describe('the page title', () => {
   test('carries the counts, Look again and "Add a repository", the view\'s one primary button, which goes to #forges/add', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
-    expect(markup).toContain('<h1 class="gaia-top-bar-title">Forges</h1>');
-    expect(markup).toContain('6 registered on this machine · 4 running');
-    const actions = /<span class="gaia-top-bar-actions">(.*?)<\/span>/.exec(markup)?.[1] ?? '';
+    expect(markup).toContain('<h1 class="design-system-text" data-type-role="display">Forges</h1>');
+    const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
+    expect(figures).toEqual(['6 registered', '4 running']);
+    const actions = /<div class="gaia-page-title-actions">(.*?)<\/div><\/header>/.exec(markup)?.[1] ?? '';
     expect(actions).toMatch(/^<button[^>]*>Look again<\/button><a class="design-system-button" href="#forges\/add" data-primary="" data-compact="">Add a repository<\/a>$/);
     expect(markup).not.toContain('<dialog');
   });

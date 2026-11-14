@@ -1,6 +1,6 @@
 /**
- * The title of the view a route shows, which heads the top bar, and the window's title made from it: `(5) Gaia · Attention`. The count of
- * what waits on User leads the title, so it shows in the window list where a Dock badge would; with nothing waiting it is left out.
+ * The title of the view a route shows and the window's title made from it: `(5) Gaia · Attention`. The count of what waits on User leads
+ * the title, so it shows in the window list where a Dock badge would; with nothing waiting it is left out.
  */
 import { PRODUCT_NAMES }      from '../../src/shared/constants/ProductNames.ts';
 import type { FleetDocument } from '../@types/FleetDocument.ts';
@@ -20,7 +20,7 @@ function viewTitleOf(route: GaiaRoute, fleetDocument: FleetDocument | null): str
 function windowTitleOf(viewTitle: string, fleetDocument: FleetDocument | null): string {
   const attentionCount = fleetDocument === null ? null : RailModel.attentionCountOf(fleetDocument);
   const title = `${PRODUCT_NAMES.applicationName}${TITLE_SEPARATOR}${viewTitle}`;
-  return attentionCount === null ? title : `(${attentionCount.text}) ${title}`;
+  return attentionCount === null ? title : `(${RailModel.countTextOf(attentionCount)}) ${title}`;
 }
 
 export const WindowTitle = {

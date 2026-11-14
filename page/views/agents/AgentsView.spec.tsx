@@ -220,7 +220,7 @@ describe('no agent', () => {
     };
     const machine = tree.onlyWithClass(unfoldedView(idle), 'gaia-agents-machine');
     expect(tree.onlyWithClass([machine], 'design-system-fill-meter').props['aria-label']).toBe('0 of 12 agents');
-    expect(tree.textOf([machine])).toBe('This machine0 / 12agentslimit 12 of 12 CPUs');
+    expect(tree.textOf([machine])).toBe('This machine0 / 12agentslimit 12 of 12 CPUs · Flint\'s brain runs outside it');
   });
 
   test('when the last agent ends while it is selected, the panel says it is no longer running under the sentence', () => {

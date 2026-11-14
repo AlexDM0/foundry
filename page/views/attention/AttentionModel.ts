@@ -1,5 +1,5 @@
 /**
- * What the Attention view shows of a fleet document (SCREENS A1, B3, B4): the status line, the figures, what waits on User in the fleet's
+ * What the Attention view shows of a fleet document (SCREENS A1, B3, B4): the figures, what waits on User in the fleet's
  * own order, the forges that need a look with their actions, the running forges, the newest activity, and for a forge Gaia cannot read in
  * full, its banner and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the
  * document does not hold is absent, never zero.
@@ -11,7 +11,6 @@ import type { CommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentAttentionKind,
-  FleetDocumentCondition,
   FleetDocumentContracts,
   FleetDocumentFleetAttentionItem,
   FleetDocumentForge,
@@ -27,7 +26,6 @@ import { ForgeContractUtil }    from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }        from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }        from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }           from '../../shell/HashRouter.ts';
-import type { TopBarStatus }    from '../../shell/TopBar.tsx';
 
 /** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
 
@@ -39,8 +37,10 @@ export interface ClockReading {
 }
 
 export interface AttentionFigure {
-  readonly value: string;
-  readonly label: string;
+  readonly value:     string;
+  readonly label:     string;
+  /** The value waits on User. */
+  readonly attention: boolean;
 }
 
 /** One entry that waits on User. A row of an unreachable forge is stale: it can be read, not acted on. */
@@ -127,11 +127,10 @@ export interface UnreachableBanner {
   readonly lastReportedClock: string | null;
 }
 
-/** A row of stacked figures under the bar; one line atop the main column while a forge is not fully read, so B3 fits the window. */
+/** A row of stacked figures in the page title; one line atop the main column while a forge is not fully read, so B3 fits the window. */
 export type AttentionFiguresForm = 'row' | 'line';
 
 export interface AttentionContent {
-  readonly status:      TopBarStatus;
   readonly banners:     readonly UnreachableBanner[];
   readonly figures:     readonly AttentionFigure[];
   readonly figuresForm: AttentionFiguresForm;
@@ -150,7 +149,6 @@ export interface AttentionContent {
 
 /** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
 export interface NoForgeContent {
-  readonly status:                TopBarStatus;
   readonly forgeProgramIsMissing: boolean;
 }
 
@@ -163,10 +161,6 @@ const THOUSAND = 1_000;
 const MILLION = 1_000_000;
 const COMPACT_SIGNIFICANT_DIGITS = 3;
 
-const NO_FORGE_STATUS: TopBarStatus = { condition: null, text: 'no forge on this machine yet' };
-
-const EVERY_FORGE_HIDDEN_STATUS: TopBarStatus = { condition: null, text: 'every forge is hidden in Gaia' };
-
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
   'question':           'Question',
@@ -175,9 +169,6 @@ const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'review':             'Review',
   'merge-accept':       'Accept',
 };
-
-/** The conditions under which a forge's Overseer runs. */
-const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
 
 const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 const NEW_CODE_NOTICE_KIND = 'new-code';
@@ -207,44 +198,19 @@ function compactCountOf(count: number): string {
   return `${Number((count / MILLION).toPrecision(COMPACT_SIGNIFICANT_DIGITS))}M`;
 }
 
-/** A clause of the status line, absent for a count of none. */
-function clauseOf(count: number, singularPhrase: string, pluralPhrase = singularPhrase): string | null {
-  return count === 0 ? null : countedPhrase(count, singularPhrase, pluralPhrase);
-}
-
-function statusOf(forges: readonly FleetDocumentForge[]): TopBarStatus {
-  if (forges.length === 0) return NO_FORGE_STATUS;
-  const countOf = (condition: FleetDocumentCondition): number => forges.filter((forge) => forge.condition === condition).length;
-  const runningGroup = clauseOf(forges.filter((forge) => RUNNING_CONDITIONS.has(forge.condition)).length, 'forge running', 'forges running');
-  const runningClauses = [
-    clauseOf(countOf('paused'), 'paused'),
-    clauseOf(countOf('held'), 'holds its launches', 'hold their launches'),
-    clauseOf(countOf('passing-baton'), 'passing the baton'),
-  ];
-  const groups = [
-    runningGroup === null ? null : [runningGroup, ...runningClauses].filter((clause) => clause !== null).join(', '),
-    clauseOf(countOf('starting'), 'starting'),
-    clauseOf(countOf('dormant'), 'dormant'),
-    clauseOf(countOf('unreachable'), 'unreachable'),
-    clauseOf(countOf('unreadable'), 'not readable by this Gaia'),
-    clauseOf(countOf('missing'), 'repository missing', 'repositories missing'),
-  ];
-  return { condition: countOf('live') === 0 ? null : 'live', text: groups.filter((group) => group !== null).join(HEAD_SEPARATOR) };
-}
-
 function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   const {
     waitingOnUser, agentsInFlight, machineLimit, readyTickets, deliveredToday, tokensToday, openIncidents, incompleteFor
   } = fleetDocument.figures;
   return [
-    { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'waiting on you' },
+    { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'waiting on you', attention: true },
     machineLimit === null
-      ? { value: String(agentsInFlight), label: 'agents' }
-      : { value: `${agentsInFlight} / ${machineLimit}`, label: 'agents, machine limit' },
-    { value: String(readyTickets), label: 'tickets ready' },
-    { value: String(deliveredToday), label: 'done today' },
-    { value: compactCountOf(tokensToday), label: 'tokens today' },
-    { value: String(openIncidents), label: 'open incidents' },
+      ? { value: String(agentsInFlight), label: 'agents', attention: false }
+      : { value: `${agentsInFlight} / ${machineLimit}`, label: 'agents', attention: false },
+    { value: String(readyTickets), label: 'tickets ready', attention: false },
+    { value: String(deliveredToday), label: 'done today', attention: false },
+    { value: compactCountOf(tokensToday), label: 'tokens today', attention: false },
+    { value: String(openIncidents), label: 'open incidents', attention: false },
   ];
 }
 
@@ -518,7 +484,6 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
   const looks = looksOf(fleetDocument, forgesById, clock);
   const running = runningCardsOf(forges);
   return {
-    status:  statusLineOf(fleetDocument),
     banners: forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => ({
       trackerId:         forge.trackerId,
       project:           forge.project,
@@ -538,22 +503,20 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
   };
 }
 
-/** The top bar's line: the visible forges counted by condition. */
-function statusLineOf(fleetDocument: FleetDocument): TopBarStatus {
-  const forges = visibleForgesOf(fleetDocument);
-  if (forges.length === 0 && fleetDocument.forges.length > 0) return EVERY_FORGE_HIDDEN_STATUS;
-  return statusOf(forges);
+/** The figures the page title shows: none while a forge is not fully read, when they fold into the main column instead (B3). */
+function titleFiguresOf(fleetDocument: FleetDocument): AttentionFigure[] {
+  return fleetDocument.figures.incompleteFor.length > 0 ? [] : figuresOf(fleetDocument);
 }
 
 function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionScreen {
   if (fleetDocument.forges.length === 0) {
-    return { kind: 'no-forge', content: { status: NO_FORGE_STATUS, forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) } };
+    return { kind: 'no-forge', content: { forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) } };
   }
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }
 
 export const AttentionModel = {
   screenOf,
-  statusLineOf,
+  titleFiguresOf,
   compactCountOf,
 } as const;

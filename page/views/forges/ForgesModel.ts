@@ -15,6 +15,7 @@ import type {
 import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandStates }                              from '../../api/CommandSender.ts';
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
+import type { PageFigure }                                                from '../../design-system/PageTitle.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { CommandFailureTextUtil }                                         from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
@@ -22,7 +23,6 @@ import { ForgeContractUtil }                                              from '
 import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
 import { StampTextUtil }                                                  from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }                                                     from '../../shell/HashRouter.ts';
-import type { TopBarStatus }                                              from '../../shell/TopBar.tsx';
 import { AGENT_LIMITS }                                                   from './constants/AgentLimits.ts';
 
 /** The page's clock as the model reads it: one reading and the time zone a clock time is printed in. */
@@ -249,14 +249,19 @@ function shownConditionOf(forge: FleetDocumentForge, commandStates: CommandState
   return forge.condition === 'dormant' && onItsWayFor(commandStates, forge.trackerId) === 'forge-start' ? 'starting' : forge.condition;
 }
 
-/** The top bar's line: every registered forge, hidden ones too, and how many run or start by the document's own word. */
-function statusOf(fleetDocument: FleetDocument): TopBarStatus {
+/** The page title's figures: every registered forge, hidden ones too, how many run, and how many start or are hidden when any are. */
+function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   const { forges } = fleetDocument;
-  if (forges.length === 0) return { condition: null, text: 'no forge registered on this machine yet' };
   const running = forges.filter((forge) => RUNNING_CONDITIONS.has(forge.condition)).length;
   const starting = forges.filter((forge) => forge.condition === 'starting').length;
-  const runningText = `${running} running${starting === 0 ? '' : `, ${starting} starting`}`;
-  return { condition: null, text: `${forges.length} registered on this machine${HEAD_SEPARATOR}${runningText}` };
+  const hiddenTrackerIds = hiddenTrackerIdsOf(fleetDocument);
+  const hidden = forges.filter((forge) => hiddenTrackerIds.has(forge.trackerId)).length;
+  return [
+    { value: String(forges.length), label: 'registered' },
+    { value: String(running), label: 'running' },
+    ...(starting === 0 ? [] : [{ value: String(starting), label: 'starting' }]),
+    ...(hidden === 0 ? [] : [{ value: String(hidden), label: 'hidden' }]),
+  ];
 }
 
 function apiCarriesCommandsTo(forge: FleetDocumentForge): boolean {
@@ -638,6 +643,6 @@ function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurro
 
 export const ForgesModel = {
   forgesContentOf,
-  statusOf,
+  titleFiguresOf,
   homeRelativePathOf,
 } as const;

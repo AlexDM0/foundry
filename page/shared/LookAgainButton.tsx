@@ -1,4 +1,4 @@
-/** The top bar's "Look again": asks the registry and every registered forge again at once, and waits while that is on its way. */
+/** "Look again" in a page title: asks the registry and every registered forge again at once, and waits while that is on its way. */
 import { Button } from 'design-system/Button';
 
 import type { CommandBody }                from '../@types/CommandDocument.ts';
