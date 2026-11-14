@@ -36,6 +36,7 @@ import { MotionReadiness }                                    from './MotionRead
 import { PageClock }                                          from './PageClock.ts';
 import { Rail }                                               from './Rail.tsx';
 import { RailModel }                                          from './RailModel.ts';
+import { SecondsOnScreen }                                    from './SecondsOnScreen.ts';
 import {
   type ThemeChoice,
   type ThemeChoiceState,
@@ -162,6 +163,8 @@ export function GaiaApp({
   // Adjusting state while rendering, as React advises for a value derived from a changed input: the view sees the target of its own route.
   if (leaveTargetForRoute !== leaveTarget) setLeaveTarget(leaveTargetForRoute);
   const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
+  const secondsMayShow = SecondsOnScreen.secondsMayShowIn(route, fleetDocument);
+  useEffect(() => (secondsMayShow ? clock.holdSecondTicks() : undefined), [clock, secondsMayShow]);
 
   const [themeState, setThemeState] = useState<ThemeChoiceState>(() => ({
     shown:          ThemeBootstrap.themeChoiceOf(theme.readStoredChoice()),

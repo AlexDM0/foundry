@@ -14,7 +14,9 @@ function noFrameSession(): never {
 
 export function fixedPageClockAt(stamp: string): PageClock {
   const reading = Date.parse(stamp);
-  return { now: () => reading, subscribe: () => () => undefined, timeZone: 'UTC' };
+  return {
+    now: () => reading, subscribe: () => () => undefined, holdSecondTicks: () => () => undefined, timeZone: 'UTC'
+  };
 }
 
 export function shellSurroundingsAt(fragment: string, storedThemeChoice: string | null = null): ShellSurroundings {

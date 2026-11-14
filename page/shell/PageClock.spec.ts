@@ -1,6 +1,8 @@
 /**
  * The page's clock. What matters: a reading stays the same between ticks, so React's external-store hook sees one value per render; it
- * ticks only while someone listens, and the last listener leaving cancels the schedule, so no timer outlives the page's root.
+ * ticks only while someone listens, and the last listener leaving cancels the schedule, so no timer outlives the page's root; it ticks
+ * every second only while someone holds second ticks, as while a countdown in seconds shows, and every ten seconds again once every hold
+ * is released. Every tick is a schedule the spec runs by hand.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -56,5 +58,34 @@ describe('the page clock', () => {
 
   test('prints in the time zone its surroundings name', () => {
     expect(clockOverScheduledTicks([0]).clock.timeZone).toBe('UTC');
+  });
+
+  test('a hold moves a running schedule to one tick a second from a fresh reading, and the last release moves it back', () => {
+    const { clock, scheduled } = clockOverScheduledTicks([1_000, 2_000, 3_000, 4_000]);
+    let heard = 0;
+    clock.subscribe(() => {
+      heard += 1;
+    });
+    const releaseFirst = clock.holdSecondTicks();
+    const releaseSecond = clock.holdSecondTicks();
+    expect(scheduled.map((entry) => [entry.intervalMilliseconds, entry.cancelled])).toEqual([
+      [PageClock.PAGE_CLOCK_TICK_MILLISECONDS, true],
+      [PageClock.PAGE_CLOCK_SECOND_TICK_MILLISECONDS, false],
+    ]);
+    expect([clock.now(), heard]).toEqual([3_000, 1]);
+    releaseFirst();
+    releaseFirst();
+    expect(scheduled).toHaveLength(2);
+    releaseSecond();
+    expect(scheduled.map((entry) => [entry.intervalMilliseconds, entry.cancelled]).at(-1)).toEqual([PageClock.PAGE_CLOCK_TICK_MILLISECONDS, false]);
+    expect(scheduled[1]?.cancelled).toBe(true);
+  });
+
+  test('a hold taken before anyone listens schedules nothing, and the first listener then ticks every second', () => {
+    const { clock, scheduled } = clockOverScheduledTicks([1_000]);
+    clock.holdSecondTicks();
+    expect(scheduled).toEqual([]);
+    clock.subscribe(() => undefined);
+    expect(scheduled.map((entry) => entry.intervalMilliseconds)).toEqual([PageClock.PAGE_CLOCK_SECOND_TICK_MILLISECONDS]);
   });
 });
