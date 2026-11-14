@@ -78,6 +78,11 @@ describe('the dialog', () => {
     expect(closed).toEqual([1]);
   });
 
+  test('is the package\'s widest dialog, as B4 draws it', () => {
+    const markup = renderToStaticMarkup(<AddRepositoryDialogLayout {...propsOf(false, senderOver([]).states(), [])} />);
+    expect(markup).toContain('data-width="widest"');
+  });
+
   test('with no forge program, "Add and start" is disabled and the dashed status line says why', () => {
     const { dialog } = dialogOf(true);
     expect(buttonNamed(dialog, 'Add and start').props['disabled']).toBe(true);

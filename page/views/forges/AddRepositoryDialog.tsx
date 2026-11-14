@@ -16,7 +16,7 @@ import {
   useAddRepositoryForm,
 } from '../../shared/add-repository/AddRepositoryFields.tsx';
 import type { AddRepositoryForm } from '../../shared/add-repository/AddRepositoryForm.ts';
-import { FormDialogUtil }         from './utils/FormDialogUtil.ts';
+import { formDialogDismissalOf }  from './FormDialogDismissal.ts';
 
 export interface AddRepositoryDialogLayoutProps {
   readonly forgeProgramIsMissing: boolean;
@@ -62,9 +62,9 @@ export function AddRepositoryDialogLayout({ onClose, ...bodyProps }: AddReposito
     <Dialog
       title="Add a repository"
       isOpen
-      onDismiss={FormDialogUtil.dismissalOf(onClose)}
+      onDismiss={formDialogDismissalOf(onClose)}
       closeLabel="Close Add a repository"
-      width={FormDialogUtil.ADD_REPOSITORY_WIDTH}
+      width="widest"
       foot={<AddRepositoryDialogFoot onClose={onClose} />}
     >
       <AddRepositoryDialogBody {...bodyProps} />

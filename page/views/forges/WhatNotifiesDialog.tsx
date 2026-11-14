@@ -10,9 +10,9 @@ import { Dialog } from 'design-system/Dialog';
 import { Text }   from 'design-system/Text';
 import { View }   from 'design-system/View';
 
+import { formDialogDismissalOf }                                             from './FormDialogDismissal.ts';
 import { type GaiaPanelHandlers, SettingsCheckboxView, SettingsRefusalLine } from './GaiaPanel.tsx';
 import type { WhatNotifiesContent }                                          from './GaiaPanelModel.ts';
-import { FormDialogUtil }                                                    from './utils/FormDialogUtil.ts';
 
 export interface WhatNotifiesDialogProps {
   readonly content:  WhatNotifiesContent;
@@ -58,9 +58,10 @@ export function WhatNotifiesDialog({ content, handlers, onClose }: WhatNotifiesD
       title="What notifies"
       headEnd={<WhatNotifiesCount content={content} />}
       isOpen
-      onDismiss={FormDialogUtil.dismissalOf(onClose)}
+      onDismiss={formDialogDismissalOf(onClose)}
       closeLabel="Close What notifies"
-      width={FormDialogUtil.WHAT_NOTIFIES_WIDTH}
+      // The package's wide dialog is the one whose list comes closest to the width C2 draws.
+      width="wide"
       foot={<WhatNotifiesFoot onClose={onClose} />}
     >
       <WhatNotifiesBody content={content} handlers={handlers} />

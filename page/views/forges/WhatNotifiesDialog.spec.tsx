@@ -31,6 +31,11 @@ describe('"What notifies" in version 2 (C2)', () => {
     expect(markup).toMatch(/class="design-system-dialog-title">What notifies<\/h2><span class="gaia-forges-what-notifies-count"><span[^>]*>5 of 7 on<\/span><\/span>/);
   });
 
+  test('is the package\'s wide dialog, the one closest to the width C2 draws', () => {
+    const markup = renderToStaticMarkup(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />);
+    expect(markup).toContain('data-width="wide"');
+  });
+
   test('the count follows the settings: a kind switched on adds one, and all off reads "0 of 7 on"', () => {
     const { notifications } = FLEET_FIVE_FORGES.settings;
     const withKinds = (kinds: typeof notifications.kinds) => ({ ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, notifications: { ...notifications, kinds } } });
