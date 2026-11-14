@@ -15,6 +15,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Button }                 from 'design-system/Button';
 import { IconButton }             from 'design-system/IconButton';
+import type { ReactElement }      from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument, FleetDocumentForge }                                   from '../@types/FleetDocument.ts';
@@ -27,7 +28,14 @@ import { type HostElement, ReactElementTree }                                   
 import { forgeFrameSurroundingsAt, shellSurroundingsAt }                            from '../testing/ShellSurroundingsAt.ts';
 import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
-import { createFleetSource, type FleetSource }                                      from './FleetSource.ts';
+import { AgentsModel }                                                              from '../views/agents/AgentsModel.ts';
+import {
+  AgentsView,
+  agentsHandlersOf,
+  AgentsViewRoot,
+  type AgentsViewRootProps,
+} from '../views/agents/AgentsView.tsx';
+import { createFleetSource, type FleetSource } from './FleetSource.ts';
 import {
   GaiaApp,
   type GaiaAppProps,
@@ -348,7 +356,7 @@ describe('the Agents view in the shell', () => {
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
     expect(pageTitleIn(markup)).toBe('Agents');
     const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
-    expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
+    expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
     expect(markup).toContain('<div class="gaia-agents-table" role="table" aria-label="Agents">');
   });
 
@@ -383,7 +391,20 @@ describe('the Agents view in the shell', () => {
       goTo:               (fragment) => visited.push(fragment),
       forgeFrame:         forgeFrameSurroundingsAt(),
     });
-    const needsALook = tree.onlyHostElementIn(tree.unfolded(parts.content), (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
+    // The view's root reads the command sender, a hook; its hook-free view is unfolded with the root's own props and handlers instead.
+    const root = parts.content as ReactElement<AgentsViewRootProps>;
+    expect(root.type).toBe(AgentsViewRoot);
+    const { route: agentsRoute, clock, goTo } = root.props;
+    const content = AgentsModel.agentsContentOf({
+      fleetDocument:      root.props.fleetDocument,
+      selectedAgent:      agentsRoute.selectedAgent,
+      query:              agentsRoute.query,
+      readAtMilliseconds: clock.nowEpochMilliseconds,
+      timeZone:           clock.timeZone,
+      commandStates:      SENDER_OF_NOTHING.states(),
+    });
+    const view = tree.unfolded(<AgentsView content={content} handlers={agentsHandlersOf(agentsRoute.selectedAgent, goTo, SENDER_OF_NOTHING)} />);
+    const needsALook = tree.onlyHostElementIn(view, (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
     tree.dispatch(needsALook, 'onClick');
     expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);
   });

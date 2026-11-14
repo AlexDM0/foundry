@@ -1,6 +1,7 @@
 /**
  * The panel beside the Agents table: the selected agent's job, state and ticket, what its forge reports of it, its last line, and the way
- * to the agent in its forge. Gaia sends an agent no message and stops no single job, and the panel says so in every state.
+ * to the agent in its forge. Gaia sends an agent no message and stops no single job, and the panel says so in every state of a job; a
+ * selected Flint brain shows its own panel, with its Stop.
  */
 import { Button }         from 'design-system/Button';
 import { FactList }       from 'design-system/FactList';
@@ -9,9 +10,10 @@ import { Tag }            from 'design-system/Tag';
 import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
 
-import { RoleDot }                              from '../../design-system/RoleDot.tsx';
-import type { AgentFact, SelectedAgentContent } from './AgentsModel.ts';
-import { AgentCallsMeter, RoleWord }            from './AgentsTable.tsx';
+import { RoleDot }                                       from '../../design-system/RoleDot.tsx';
+import type { AgentFact, SelectedAgentContent }          from './AgentsModel.ts';
+import { AgentCallsMeter, type BrainHandlers, RoleWord } from './AgentsTable.tsx';
+import { BrainPanel }                                    from './BrainPanel.tsx';
 
 type RunningAgent = Extract<SelectedAgentContent, { kind: 'running' }>;
 
@@ -136,8 +138,11 @@ function PanelSentence({ sentence }: { readonly sentence: string }) {
   );
 }
 
-function PanelContent({ content }: { readonly content: SelectedAgentContent }) {
+function PanelContent({ content, handlers }: { readonly content: SelectedAgentContent; readonly handlers: BrainHandlers }) {
   switch (content.kind) {
+    case 'brain-running':
+    case 'brain-no-longer-running':
+      return <BrainPanel content={content} handlers={handlers} />;
     case 'none-selected':
       return (
         <>
@@ -163,10 +168,10 @@ function PanelContent({ content }: { readonly content: SelectedAgentContent }) {
   }
 }
 
-export function SelectedAgentPanel({ content }: { readonly content: SelectedAgentContent }) {
+export function SelectedAgentPanel({ content, handlers }: { readonly content: SelectedAgentContent; readonly handlers: BrainHandlers }) {
   return (
     <section className="gaia-agents-panel" aria-label="Selected agent">
-      <PanelContent content={content} />
+      <PanelContent content={content} handlers={handlers} />
     </section>
   );
 }

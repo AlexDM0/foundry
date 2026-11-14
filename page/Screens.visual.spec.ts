@@ -25,6 +25,7 @@ import {
   ASSISTANT_DOWN_SENTENCE,
   type ArtboardScreen,
   B2_STOP_REFUSAL,
+  BRAIN_SCREENS,
   BRAIN_STATE_SCREENS,
   BATON_PASS_FAILED_SENTENCE,
   HIDDEN_FORGE_SCREENS,
@@ -115,7 +116,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('a screen holds no colour of its own: no style of its markup names one, so every colour comes from the inlined tokens', () => {
-    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS, ...BRAIN_STATE_SCREENS]) {
+    for (const screen of [...ARTBOARD_SCREENS, ...BRAIN_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS, ...BRAIN_STATE_SCREENS]) {
       for (const theme of themesOf(screen)) {
         const markup = screenMarkupOf(screen, theme);
         expect(markup).not.toContain('<style');
@@ -125,7 +126,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the theme button shows', () => {
-    const screensWithTheButton = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS].filter(
+    const screensWithTheButton = [...ARTBOARD_SCREENS, ...BRAIN_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS].filter(
       (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
     );
     for (const screen of screensWithTheButton) {
@@ -168,14 +169,26 @@ describe('each screen shows the state its artboard draws', () => {
     }
   });
 
-  test('A2: the Agents table holds its ten agents under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
+  test('A2: the Agents table holds its ten agents and the brain under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
     const markup = screenMarkupOf(screenOf('A2'), 'dark');
-    expect(markup.match(/class="gaia-agents-row" role="row"(?! data-head)/g)).toHaveLength(10);
+    expect(markup.match(/class="gaia-agents-row" role="row"(?! data-head)/g)).toHaveLength(11);
+    expect([...markup.matchAll(/aria-label="Wake Flint&#x27;s brain on ([^"]*)"/g)].map(([, project]) => project)).toEqual(['Invoice Service', 'Research Wiki']);
     expect(markup.match(/class="gaia-agents-group" role="rowgroup"/g)).toHaveLength(4);
     const selectedRow = markup.slice(markup.indexOf('aria-current="true"')).split('role="row"')[0] ?? '';
     expect(selectedRow).toContain('aria-label="Example Storefront, J4"');
     expect(selectedRow).toContain('>J4<');
     expect(markup).toContain('Open J4 in its forge');
+  });
+
+  test('A2 with the brain selected: its row marked, its panel beside the table with Stop, both themes from its own artboard source', () => {
+    expect(BRAIN_SCREENS.map((screen) => [screen.artboard, screen.designFile, themesOf(screen)])).toEqual([['A2', 'AgentsBrain.dc.html', ['dark', 'light']]]);
+    const [brainScreen] = BRAIN_SCREENS;
+    if (brainScreen === undefined) throw new Error('No screen paints A2 with the brain selected.');
+    const markup = screenMarkupOf(brainScreen, 'dark');
+    const selectedRow = markup.slice(markup.indexOf('aria-current="true"')).split('role="row"')[0] ?? '';
+    expect(selectedRow).toContain('aria-label="Example Storefront, Flint&#x27;s brain"');
+    expect(markup).toContain('>Last moves it chose<');
+    expect(markup.match(/aria-label="Stop Flint&#x27;s brain on Example Storefront"/g)).toHaveLength(2);
   });
 
   test('A3 and A4: Activity and Forges each open under their own title', () => {

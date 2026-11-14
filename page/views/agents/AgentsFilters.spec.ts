@@ -1,7 +1,8 @@
 /**
  * The Agents view's filters. What matters: they round-trip through the route's query, so a link or a reload keeps them; no filter is no
  * parameter; a value the view does not know reads as no filter rather than as an empty table; and "Needs a look" keeps exactly what the
- * forge itself flags, a quiet agent or one waiting on a decision, with an unreported verdict never counting as one.
+ * forge itself flags, a quiet agent or one waiting on a decision, with an unreported verdict never counting as one; and Flint's brain has a
+ * role filter of its own, which keeps its row and no job.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,7 +14,7 @@ const BUILDER = FLEET_FIVE_FORGES.agents.find((row) => row.role === 'builder' &&
 
 describe('the filters in the route\'s query', () => {
   test('every pair of filters is written to a query and read back as itself', () => {
-    const everyPair: AgentFilters[] = (['all', 'builders', 'reviewers'] as const).flatMap((role) => (
+    const everyPair: AgentFilters[] = (['all', 'builders', 'reviewers', 'brain'] as const).flatMap((role) => (
       (['every-agent', 'needs-a-look'] as const).map((condition) => ({ role, condition }))
     ));
     expect(everyPair.map((filters) => AgentsFilters.filtersOf(AgentsFilters.queryOf(filters)))).toEqual(everyPair);
@@ -43,8 +44,14 @@ describe('which rows a filter keeps', () => {
 
   test('a role filter keeps its own role only, and an agent with no role passes only All', () => {
     const noRole = { ...BUILDER, role: null };
-    expect(['all', 'builders', 'reviewers'].map((role) => AgentsFilters.rowPassesRoleFilter(BUILDER, role as AgentFilters['role']))).toEqual([true, true, false]);
-    expect(['all', 'builders', 'reviewers'].map((role) => AgentsFilters.rowPassesRoleFilter(noRole, role as AgentFilters['role']))).toEqual([true, false, false]);
+    expect(['all', 'builders', 'reviewers', 'brain'].map((role) => AgentsFilters.rowPassesRoleFilter(BUILDER, role as AgentFilters['role']))).toEqual([true, true, false, false]);
+    expect(['all', 'builders', 'reviewers', 'brain'].map((role) => AgentsFilters.rowPassesRoleFilter(noRole, role as AgentFilters['role']))).toEqual([true, false, false, false]);
+  });
+
+  test('the brain filter keeps Flint\'s brain\'s row, which All keeps too, and which never needs a look', () => {
+    const brainRow = FLEET_FIVE_FORGES.agents.find((row) => row.role === 'brain') as FleetDocumentAgentRow;
+    expect(['all', 'builders', 'reviewers', 'brain'].map((role) => AgentsFilters.rowPassesRoleFilter(brainRow, role as AgentFilters['role']))).toEqual([true, false, false, true]);
+    expect(AgentsFilters.agentNeedsALook(brainRow)).toBe(false);
   });
 
   test('both filters must keep a row', () => {

@@ -3,11 +3,17 @@
  * cell for cell under their forges' heads; "Needs a look" leaves the two rows the forge flags; the Calls cell holds no meter when there is
  * no budget; a `counts-only` forge's row shows a dash where its summary is silent; the selected row is marked and its panel survives a new
  * document or says the agent is no longer running; with no agent the view says so beside the machine meter; a filter press hands the
- * view's caller the new filters; and the view holds no control that would message or stop an agent, and says so.
+ * view's caller the new filters; and the view holds no control that would message or stop a job, and says so. Flint's brain (R4.5): its
+ * row is last in its forge's group and selects itself without a job link; Stop and Wake each send their command for that forge only, and
+ * neither exists where the forge does not serve them or on a held forge; its panel shows what SCREENS A2 lists; and a refused brain command
+ * stays under its forge's head until dismissed.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from '../../../src/shared/constants/ContractVersions.ts';
+import type { ForgeCommandBody }                                                    from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
 import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
@@ -22,18 +28,59 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const J12_OF_INVOICE_SERVICE = { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' };
 
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+
+const IGNORED_BRAIN_HANDLERS = { onBrainCommand: () => undefined, onDismissFailure: () => undefined };
+
+const STOREFRONT_BRAIN = { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' };
+
+/** Every forge at the control contract that carries the brain's commands; the fixture's forges serve control 1. */
+function servingTheBrain(fleetDocument: FleetDocument): FleetDocument {
+  return {
+    ...fleetDocument,
+    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
+  };
+}
+
+/** The view unfolded with every brain command and dismissal it hands on kept, in order. */
+function viewSending(fleetDocument: FleetDocument, overrides: InputOverrides = {}) {
+  const sent: ForgeCommandBody[] = [];
+  const dismissed: CommandSubject[] = [];
+  const content = AgentsModel.agentsContentOf({
+    fleetDocument,
+    selectedAgent:      null,
+    query:              '',
+    readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
+    timeZone:           'UTC',
+    commandStates:      NO_COMMAND_STATES,
+    ...overrides,
+  });
+  const handlers = {
+    onFiltersChange:  () => undefined,
+    onBrainCommand:   (command: ForgeCommandBody) => sent.push(command),
+    onDismissFailure: (subject: CommandSubject) => dismissed.push(subject),
+  };
+  return { view: tree.unfolded(<AgentsView content={content} handlers={handlers} />), sent, dismissed };
+}
+
+function buttonNamed(nodes: ReturnType<typeof unfoldedView>, accessibleName: string): HostElement {
+  return tree.onlyHostElementIn(nodes, (element) => element.tag === 'button' && element.props['aria-label'] === accessibleName);
+}
+
 /**
  * A2's groups as the artboard's example data writes them (designs/Agents.dc.html): each forge's head, then its rows, the forges in the
- * registry's order and the jobs in the document's. Each row is its cells' text: job with its role and running time, ticket with its last
- * tool call, state with its flag, calls, tokens. Example Mobile App's limit is the fixture's 2, where the artboard draws 4. Retake it from
- * the artboard's script when the artboard changes.
+ * registry's order and the jobs in the document's, and Example Storefront's running brain last under its jobs. Each row is its cells'
+ * text: job with its role and running time, ticket with its last tool call, state with its flag, calls, tokens. Example Mobile App's limit
+ * is the fixture's 2, where the artboard draws 4; the fixture's forges serve control 1, so no head offers Wake and the brain has no Stop.
+ * Retake it from the artboard's script when the artboard changes.
  */
 const ARTBOARD_GROUPS = [
-  ['Example Storefront4 / 5agents2 wait on you', [
+  ['Example Storefront4 / 5agents+ brain2 wait on you', [
     ['J2builder12m 04s', '#012 Checkout address formEdit src/checkout/AddressForm.tsx', 'Building', '41 / 120', '84,210'],
     ['J3builder9m 40s', '#014 Password reset flowBash forge ask', 'Waitingasks you · E2', '22 / 120', '51,900'],
     ['J4builder3m 10s', '#013 Product image zoomRead src/product/Gallery.tsx', 'Building', '9 / 120', '18,400'],
     ['J6reviewer6m 22s', '#011 Cart badge countBash bun run verify', 'Reviewing', '30 / 80', '96,700'],
+    ['Flint\'s brainbrain0:36', 'outside the limitvisit Agents · wave', 'Running1:24 left', 'haiku · low9 calls', '3.1k'],
   ]],
   ['Invoice Service3 / 5agents2 wait on you', [
     ['J11builder21m 15s', '#033 PDF footer totalsEdit src/pdf/FooterTotals.ts', 'Building', '77 / 120', '141,800'],
@@ -59,9 +106,11 @@ function unfoldedView(fleetDocument: FleetDocument, overrides: InputOverrides = 
     selectedAgent:      null,
     query:              '',
     readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
+    timeZone:           'UTC',
+    commandStates:      NO_COMMAND_STATES,
     ...overrides,
   });
-  return tree.unfolded(<AgentsView content={content} onFiltersChange={onFiltersChange} />);
+  return tree.unfolded(<AgentsView content={content} handlers={{ ...IGNORED_BRAIN_HANDLERS, onFiltersChange }} />);
 }
 
 function bodyRowsIn(nodes: ReturnType<typeof unfoldedView>): HostElement[] {
@@ -80,6 +129,14 @@ function cellTextsOf(row: HostElement): string[] {
   return tree.hostElementsIn([row], (element) => element.props['role'] === 'cell').map((cell) => tree.textOf([cell]));
 }
 
+/** A body row by its select link's name, such as "Invoice Service, J12". */
+function jobRowNamed(nodes: ReturnType<typeof unfoldedView>, selectLabel: string): HostElement {
+  const rows = bodyRowsIn(nodes).filter((row) => tree.hostElementsIn([row], (element) => element.props['aria-label'] === selectLabel).length > 0);
+  const [row] = rows;
+  if (rows.length !== 1 || row === undefined) throw new Error(`Expected one row named ${selectLabel}, found ${rows.length}.`);
+  return row;
+}
+
 function cellsOf(row: HostElement): HostElement[] {
   return tree.hostElementsIn([row], (element) => element.props['role'] === 'cell');
 }
@@ -95,13 +152,13 @@ function segmentNamed(nodes: ReturnType<typeof unfoldedView>, groupLabel: string
 }
 
 describe('the table', () => {
-  test('with fleet-five-forges the table holds A2\'s ten rows, cell for cell, under their forges\' heads', () => {
+  test('with fleet-five-forges the table holds A2\'s ten rows and the brain\'s, cell for cell, under their forges\' heads', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES);
     expect(tree.hostElementsIn(view, (element) => element.props['role'] === 'columnheader').map((head) => tree.textOf([head]))).toEqual([
       'Job', 'Ticket · last tool', 'State', 'Calls', 'Tokens',
     ]);
     expect(groupsIn(view).map((group) => [groupHeadTextOf(group), bodyRowsIn([group]).map(cellTextsOf)])).toEqual(ARTBOARD_GROUPS);
-    expect(bodyRowsIn(view)).toHaveLength(10);
+    expect(bodyRowsIn(view)).toHaveLength(11);
   });
 
   test('each forge\'s head names it and meters its agents against its limit', () => {
@@ -114,7 +171,7 @@ describe('the table', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES);
     const segments = tree.hostElementsIn(tree.hostElementsIn(view, tree.withClass('design-system-segments')), tree.withTag('button'));
     expect(segments.map((segment) => [tree.textOf([segment]), segment.props['aria-pressed']])).toEqual([
-      ['All 10', true], ['Builders 7', false], ['Reviewers 3', false], ['Every agent', true], ['Needs a look 2', false],
+      ['All 11', true], ['Builders 7', false], ['Reviewers 3', false], ['Flint\'s brain 1', false], ['Every agent', true], ['Needs a look 2', false],
     ]);
   });
 
@@ -127,11 +184,11 @@ describe('the table', () => {
   });
 
   test('the Calls cell holds a meter beside a budget, and none at all when the forge reports no budget', () => {
-    const withBudget = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[5] as HostElement;
+    const withBudget = jobRowNamed(unfoldedView(FLEET_FIVE_FORGES), 'Invoice Service, J12');
     const callsWithBudget = cellsOf(withBudget)[3] as HostElement;
     expect(tree.onlyWithClass([callsWithBudget], 'design-system-fill-meter').props['aria-label']).toBe('58 of 120 calls');
     const withoutBudgets = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, callBudget: null })) };
-    const callsWithoutBudget = cellsOf(bodyRowsIn(unfoldedView(withoutBudgets))[5] as HostElement)[3] as HostElement;
+    const callsWithoutBudget = cellsOf(jobRowNamed(unfoldedView(withoutBudgets), 'Invoice Service, J12'))[3] as HostElement;
     expect(tree.hostElementsIn([callsWithoutBudget], tree.withClass('design-system-fill-meter'))).toEqual([]);
     expect(tree.textOf([callsWithoutBudget])).toBe('58');
   });
@@ -142,7 +199,7 @@ describe('the table', () => {
   });
 
   test('a row selects itself, named by its forge and job, and its job opens the agent in its forge', () => {
-    const row = bodyRowsIn(unfoldedView(FLEET_FIVE_FORGES))[5] as HostElement;
+    const row = jobRowNamed(unfoldedView(FLEET_FIVE_FORGES), 'Invoice Service, J12');
     const links = tree.hostElementsIn([row], tree.withTag('a'));
     expect(links.map((link) => [link.props['className'], link.props['href']])).toEqual([
       ['gaia-agents-select', `#agents/${TRACKER_IDS.invoiceService}/J12`],
@@ -224,12 +281,24 @@ describe('Gaia messages and stops no agent', () => {
     expect(states.map((view) => tree.textOf([tree.onlyWithClass([panelIn(view)], 'gaia-agents-panel-note')]))).toEqual([FORGE_SENDS_NOTE, FORGE_SENDS_NOTE, FORGE_SENDS_NOTE]);
   });
 
-  test('the view\'s only buttons are the filters; everything else is a link', () => {
+  test('where no forge serves the brain\'s commands, the view\'s only buttons are the filters; everything else is a link', () => {
     const view = unfoldedView(FLEET_FIVE_FORGES, { selectedAgent: J12_OF_INVOICE_SERVICE });
     const buttons = tree.hostElementsIn(view, tree.withTag('button'));
     const segments = tree.hostElementsIn(tree.hostElementsIn(view, tree.withClass('design-system-segments')), tree.withTag('button'));
     expect(buttons).toEqual(segments);
-    expect(buttons).toHaveLength(5);
+    expect(buttons).toHaveLength(6);
+  });
+
+  test('where the forges serve them, the only other buttons are the brain\'s Wake and Stop, and the selected job\'s panel holds none', () => {
+    const view = unfoldedView(servingTheBrain(FLEET_FIVE_FORGES), { selectedAgent: J12_OF_INVOICE_SERVICE });
+    const segments = tree.hostElementsIn(tree.hostElementsIn(view, tree.withClass('design-system-segments')), tree.withTag('button'));
+    const others = tree.hostElementsIn(view, tree.withTag('button')).filter((button) => !segments.includes(button));
+    expect(others.map((button) => button.props['aria-label'])).toEqual([
+      'Stop Flint\'s brain on Example Storefront',
+      'Wake Flint\'s brain on Invoice Service',
+      'Wake Flint\'s brain on Research Wiki',
+    ]);
+    expect(tree.hostElementsIn([panelIn(view)], tree.withTag('button'))).toEqual([]);
   });
 });
 
@@ -255,5 +324,107 @@ describe('no agent', () => {
   test('when the last agent ends while it is selected, the panel says it is no longer running under the sentence', () => {
     const view = unfoldedView({ ...FLEET_EMPTY, forges: FLEET_FIVE_FORGES.forges }, { selectedAgent: J12_OF_INVOICE_SERVICE });
     expect(tree.textOf([tree.onlyWithClass([panelIn(view)], 'gaia-agents-panel-sentence')])).toBe('This agent is no longer running.');
+  });
+});
+
+describe('Flint\'s brain', () => {
+  test('its row selects itself, named by its forge, and its name is no link: it is not a job', () => {
+    const row = jobRowNamed(unfoldedView(FLEET_FIVE_FORGES), 'Example Storefront, Flint\'s brain');
+    expect(tree.hostElementsIn([row], tree.withTag('a')).map((link) => [link.props['className'], link.props['href']])).toEqual([
+      ['gaia-agents-select', `#agents/${TRACKER_IDS.exampleStorefront}/flint-brain`],
+    ]);
+  });
+
+  test('its Stop sends forge-brain-stop for its own forge only, without a question first', () => {
+    const { view, sent } = viewSending(servingTheBrain(FLEET_FIVE_FORGES));
+    tree.dispatch(buttonNamed(view, 'Stop Flint\'s brain on Example Storefront'), 'onClick');
+    expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }]);
+    expect(tree.hostElementsIn(view, tree.withClass('gaia-confirm'))).toEqual([]);
+  });
+
+  test('Wake on a forge\'s head sends forge-brain-start for that forge only, and a held forge has none', () => {
+    const { view, sent } = viewSending(servingTheBrain(FLEET_FIVE_FORGES));
+    tree.dispatch(buttonNamed(view, 'Wake Flint\'s brain on Invoice Service'), 'onClick');
+    expect(sent).toEqual([{ kind: 'forge-brain-start', trackerId: TRACKER_IDS.invoiceService }]);
+    const mobileApp = groupsIn(view).find((group) => group.props['aria-label'] === 'Example Mobile App') as HostElement;
+    expect(tree.hostElementsIn([mobileApp], tree.withTag('button'))).toEqual([]);
+  });
+
+  test('Wake and Stop are absent where the forge does not serve the brain\'s commands', () => {
+    const view = unfoldedView(FLEET_FIVE_FORGES);
+    expect(tree.hostElementsIn(view, (element) => element.tag === 'button' && /Flint's brain on/.test(String(element.props['aria-label'])))).toEqual([]);
+    expect(tree.textOf([tree.onlyWithClass(view, 'gaia-agents-group-brain-pill')])).toBe('+ brain');
+  });
+
+  test('selecting it shows the brain\'s panel: its time left, model and effort, what the forge reports, its moves, Stop and the way to its forge', () => {
+    const { view, sent } = viewSending(servingTheBrain(FLEET_FIVE_FORGES), { selectedAgent: STOREFRONT_BRAIN });
+    const row = jobRowNamed(view, 'Example Storefront, Flint\'s brain');
+    expect(row.props['aria-current']).toBe('true');
+    const panel = panelIn(view);
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-head')])).toBe('Flint\'s brainRunning · 1:24 left');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-subject')])).toBe('brainExample Storefront');
+    expect(tree.onlyWithClass([panel], 'design-system-effort-meter').props['aria-label']).toBe('Model haiku, effort low');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-brain-model')])).toBe('haikulow· 2:00 at most');
+    expect(tree.textOf([tree.onlyWithTag([panel], 'dl')])).toBe('Started13:18 from GaiaEnds13:20 at the latestModel, efforthaiku · lowTokens so far3.1kCalls so far9');
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-brain-outside')])).toBe('Not counted in the 10 / 12 machine limit');
+    expect(tree.hostElementsIn([panel], tree.withClass('gaia-agents-panel-move')).map((move) => tree.textOf([move]))).toEqual([
+      '13:19:28visit Agents · wave', '13:19:19walk to Kanban · look at #013', '13:19:06read the board · 4 jobs, 1 question', '13:18:58wake · stretch',
+    ]);
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-note')])).toBe('The brain ends by itself at 2:00. Stop asks the forge to end it now.');
+    const open = tree.onlyHostElementIn([panel], (element) => element.tag === 'a' && tree.hasClass(element, 'design-system-button'));
+    expect([tree.textOf([open]), open.props['href']]).toEqual(['Open in its forge', `#forge/${TRACKER_IDS.exampleStorefront}/#agents`]);
+    tree.dispatch(tree.onlyHostElementIn([panel], tree.withTag('button')), 'onClick');
+    expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }]);
+  });
+
+  test('once the forge drops the selected brain, the panel says it is no longer running and keeps the way to its forge', () => {
+    const ended = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.filter((row) => row.countsAgainstLimit) };
+    const panel = panelIn(unfoldedView(ended, { selectedAgent: STOREFRONT_BRAIN }));
+    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-agents-panel-sentence')])).toBe('Flint\'s brain is no longer running.');
+    expect(tree.textOf([tree.onlyHostElementIn([panel], tree.withClass('design-system-button'))])).toBe('Open in its forge');
+  });
+
+  test('the note under the table says the brain is not one of the machine\'s agents only while one runs', () => {
+    expect(tree.textOf([tree.onlyWithClass(unfoldedView(FLEET_FIVE_FORGES), 'gaia-agents-footnote')])).toBe(
+      'Flint\'s brain is not one of the 10 / 12 machine agents. Gaia shows what each forge reports.',
+    );
+    const withoutTheBrain = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.filter((row) => row.countsAgainstLimit) };
+    expect(tree.textOf([tree.onlyWithClass(unfoldedView(withoutTheBrain), 'gaia-agents-footnote')])).toBe('Gaia shows what each forge reports.');
+  });
+
+  test('a brain running with no job anywhere still gets its forge\'s group, not the sentence that no agent runs', () => {
+    const brainAlone = {
+      ...FLEET_FIVE_FORGES,
+      agents:  FLEET_FIVE_FORGES.agents.filter((row) => !row.countsAgainstLimit),
+      figures: { ...FLEET_FIVE_FORGES.figures, agentsInFlight: 0 },
+    };
+    const view = unfoldedView(brainAlone);
+    expect(tree.hostElementsIn(view, tree.withClass('gaia-agents-empty'))).toEqual([]);
+    expect(groupsIn(view).map(groupHeadTextOf)).toEqual(['Example Storefront0 / 5agents+ brain2 wait on you']);
+  });
+
+  test('a refused brain command shows under its forge\'s head until dismissed, and its dismissal names that forge', () => {
+    const commandStates: CommandStates = {
+      forges: new Map([[TRACKER_IDS.invoiceService, {
+        onItsWay: null,
+        failure:  {
+          kind:   'forge-brain-start',
+          result: {
+            verdict: 'answered',
+            answer:  {
+              answerVersion: 2, outcome: 'refused', refusal: 'no-flint', text: 'this forge has no Flint'
+            }
+          }
+        },
+        restartPending: false,
+      }]]),
+      fleet: new Map(),
+    };
+    const { view, dismissed } = viewSending(servingTheBrain(FLEET_FIVE_FORGES), { commandStates });
+    const invoiceService = groupsIn(view).find((group) => group.props['aria-label'] === 'Invoice Service') as HostElement;
+    const refusal = tree.onlyWithClass([invoiceService], 'gaia-refusal');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Wake Flint\'s brain: no-flint. this forge has no Flint');
+    tree.dispatch(tree.onlyHostElementIn([refusal], tree.withTag('button')), 'onClick');
+    expect(dismissed).toEqual([{ trackerId: TRACKER_IDS.invoiceService }]);
   });
 });

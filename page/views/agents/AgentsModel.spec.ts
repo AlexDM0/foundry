@@ -1,14 +1,16 @@
 /**
  * What the Agents view shows of a fleet document (SCREENS A2). What matters: the status line counts the document's job rows, forges and
- * tokens (821,300 for `fleet-five-forges`), and a running brain's row is not drawn among them; each filter's count is what pressing it
- * would leave; "Needs a look" leaves exactly the rows the forge flags; the rows stand under their forges in the registry's order, each forge
- * counting its own job rows against its limit and saying what of it waits on User; a Calls meter exists only beside a budget; a `counts-only` forge's
- * row holds `null` wherever its summary is silent; the selection, kept in the route, survives a new document and turns into "no longer
- * running" when its job ends; and every link goes where SCREENS says, keeping the filters.
+ * tokens (821,300 for `fleet-five-forges`), and a running brain only in its own figure (its row: `AgentsModel.brain.spec.ts`); each
+ * filter's count is what pressing it would leave; "Needs a look" leaves exactly the rows the forge flags; the rows stand under their
+ * forges in the registry's order, each forge counting its own job rows against its limit and saying what of it waits on User; a Calls
+ * meter exists only beside a budget; a `counts-only` forge's row holds `null` wherever its summary is silent; the selection, kept in the
+ * route, survives a new document and turns into "no longer running" when its job ends; and every link goes where SCREENS says, keeping the
+ * filters.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { FleetDocument, FleetDocumentFleetAgentRow }                           from '../../@types/FleetDocument.ts';
+import type { CommandStates }                                                       from '../../api/CommandSender.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
@@ -19,12 +21,16 @@ const READ_AT_MILLISECONDS = Date.parse(FLEET_FIXTURES_READ_AT);
 
 const J12_OF_INVOICE_SERVICE = { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' };
 
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+
 function contentOf(fleetDocument: FleetDocument, overrides: Partial<Omit<AgentsModelInput, 'fleetDocument'>> = {}) {
   return AgentsModel.agentsContentOf({
     fleetDocument,
     selectedAgent:      null,
     query:              '',
     readAtMilliseconds: READ_AT_MILLISECONDS,
+    timeZone:           'UTC',
+    commandStates:      NO_COMMAND_STATES,
     ...overrides,
   });
 }
@@ -39,13 +45,21 @@ function withoutJob(fleetDocument: FleetDocument, trackerId: string, jobId: stri
   return { ...fleetDocument, agents: fleetDocument.agents.filter((row) => !(row.trackerId === trackerId && row.jobId === jobId)) };
 }
 
+function withoutTheBrain(fleetDocument: FleetDocument): FleetDocument {
+  return { ...fleetDocument, agents: fleetDocument.agents.filter((row) => row.countsAgainstLimit) };
+}
+
 function titleFiguresTextOf(fleetDocument: FleetDocument): string[] {
   return AgentsModel.titleFiguresOf(fleetDocument).map((figure) => `${figure.value} ${figure.label}`);
 }
 
 describe('the page title\'s figures and the filters\' counts', () => {
-  test('with fleet-five-forges the figures count ten agents of the twelve the machine allows, across four forges, with 821,300 tokens', () => {
-    expect(titleFiguresTextOf(FLEET_FIVE_FORGES)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
+  test('with fleet-five-forges the figures count ten agents of the twelve the machine allows, across four forges, with 821,300 tokens, and the brain outside the limit', () => {
+    expect(titleFiguresTextOf(FLEET_FIVE_FORGES)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
+  });
+
+  test('with no brain running there is no brain figure', () => {
+    expect(titleFiguresTextOf(withoutTheBrain(FLEET_FIVE_FORGES))).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
   });
 
   test('one agent on one forge is counted in the singular, and with no limit known the agents stand alone', () => {
@@ -58,15 +72,15 @@ describe('the page title\'s figures and the filters\' counts', () => {
     expect(titleFiguresTextOf(oneAgent)).toEqual(['1 agent', '1 forge', '1 token in flight']);
   });
 
-  test('the role filter counts All 10, Builders 7, Reviewers 3, and the condition filter Needs a look 2, as A2 shows', () => {
+  test('the role filter counts All 11 with the brain, Builders 7, Reviewers 3, Flint\'s brain 1, and the condition filter Needs a look 2, as A2 shows', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
-    expect(content.roleOptions.map((option) => [option.label, option.count])).toEqual([['All', 10], ['Builders', 7], ['Reviewers', 3]]);
+    expect(content.roleOptions.map((option) => [option.label, option.count])).toEqual([['All', 11], ['Builders', 7], ['Reviewers', 3], ['Flint\'s brain', 1]]);
     expect(content.conditionOptions.map((option) => [option.label, option.count])).toEqual([['Every agent', undefined], ['Needs a look', 2]]);
   });
 
   test('each filter counts what it would leave beside the other filter as it stands', () => {
     const content = contentOf(FLEET_FIVE_FORGES, { query: 'role=reviewers&condition=needs-a-look' });
-    expect(content.roleOptions.map((option) => option.count)).toEqual([2, 2, 0]);
+    expect(content.roleOptions.map((option) => option.count)).toEqual([2, 2, 0, 0]);
     expect(content.conditionOptions.map((option) => option.count)).toEqual([undefined, 0]);
   });
 });

@@ -1,13 +1,14 @@
 /**
  * What the Agents view shows of a fleet document: the page title's figures, the two filters with their counts, the rows the filters
- * leave in the document's order and the same rows grouped by forge in the registry's order, and the selected agent. The selection and the
- * filters live in the route, so both survive a new document; a value the forge did not report is `null` here and a dash on screen, never
- * zero.
+ * leave in the document's order and the same rows grouped by forge in the registry's order, each forge's running brain last under its
+ * jobs, and the selected agent or brain. The selection and the filters live in the route, so both survive a new document; a value the forge
+ * did not report is `null` here and a dash on screen, never zero. A brain counts in no figure, count or limit but All and its own segment.
  */
 import type { SegmentOption } from 'design-system/SegmentedControl';
 import type { TagTone }       from 'design-system/Tag';
 
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { CommandStates }                                                 from '../../api/CommandSender.ts';
 import type { DotCondition }                                                  from '../../design-system/ConditionDot.tsx';
 import type { PageFigure }                                                    from '../../design-system/PageTitle.tsx';
 import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
@@ -21,11 +22,27 @@ import {
   type AgentRoleFilter,
   AgentsFilters,
 } from './AgentsFilters.ts';
+import {
+  type BrainCommandRefusal,
+  BrainModel,
+  type BrainRowContent,
+  type GroupBrainContent,
+  type SelectedBrainContent,
+} from './BrainModel.ts';
 import { AgentTextUtil } from './utils/AgentTextUtil.ts';
 
-/** The rows this view draws are the jobs: a running brain's row counts against no limit and is not one of them. */
+/** The jobs: a running brain's row counts against no limit and is not one of them. */
 function jobRowsOf(fleetDocument: FleetDocument): FleetDocumentFleetAgentRow[] {
   return fleetDocument.agents.filter((row) => row.countsAgainstLimit);
+}
+
+function brainRowsOf(fleetDocument: FleetDocument): FleetDocumentFleetAgentRow[] {
+  return fleetDocument.agents.filter((row) => BrainModel.rowIsABrain(row));
+}
+
+/** The rows the table draws: the jobs, and each running brain. */
+function drawnRowsOf(fleetDocument: FleetDocument): FleetDocumentFleetAgentRow[] {
+  return fleetDocument.agents.filter((row) => row.countsAgainstLimit || BrainModel.rowIsABrain(row));
 }
 
 export interface AgentFlag {
@@ -62,7 +79,10 @@ export interface AgentRowContent {
   readonly isSelected:    boolean;
 }
 
-/** A forge's head row over its agents: its condition, its agents against its limit, and what of it waits on User or holds its launches. */
+/**
+ * A forge's head row over its agents: its condition, its agents against its limit, its brain's part, and what of it waits on User or holds its
+ * launches; under it its job rows, then its running brain's row.
+ */
 export interface AgentGroupContent {
   readonly trackerId:    string;
   readonly project:      string;
@@ -74,7 +94,10 @@ export interface AgentGroupContent {
   /** `null` when the forge reports no limit: then there is no meter, not an empty one. */
   readonly slots:        { readonly filled: number; readonly limit: number; readonly label: string } | null;
   readonly noteText:     string | null;
+  readonly brain:        GroupBrainContent;
+  readonly brainRefusal: BrainCommandRefusal | null;
   readonly rows:         readonly AgentRowContent[];
+  readonly brainRow:     BrainRowContent | null;
 }
 
 export interface AgentFact {
@@ -83,6 +106,7 @@ export interface AgentFact {
 }
 
 export type SelectedAgentContent =
+  | SelectedBrainContent
   | { readonly kind: 'none-selected' }
   | { readonly kind: 'no-longer-running'; readonly jobId: string; readonly project: string }
   | {
@@ -106,16 +130,20 @@ export type SelectedAgentContent =
   };
 
 export interface AgentsContent {
-  readonly agentCount:       number;
-  readonly filters:          AgentFilters;
-  readonly roleOptions:      readonly SegmentOption<AgentRoleFilter>[];
-  readonly conditionOptions: readonly SegmentOption<AgentConditionFilter>[];
-  readonly rows:             readonly AgentRowContent[];
+  /** The job rows; the view says no agent runs only when neither a job nor a brain does. */
+  readonly agentCount:          number;
+  readonly brainCount:          number;
+  /** The jobs against the machine's limit, `10 / 12`, or the jobs alone when it reports none. */
+  readonly machineAgentsFigure: string;
+  readonly filters:             AgentFilters;
+  readonly roleOptions:         readonly SegmentOption<AgentRoleFilter>[];
+  readonly conditionOptions:    readonly SegmentOption<AgentConditionFilter>[];
+  readonly rows:                readonly AgentRowContent[];
   /** The same rows under their forges, in the registry's order; a forge the filters leave no row of has no group. */
-  readonly groups:           readonly AgentGroupContent[];
-  readonly selected:         SelectedAgentContent;
+  readonly groups:              readonly AgentGroupContent[];
+  readonly selected:            SelectedAgentContent;
   /** This machine's agents against its limit, shown when no agent runs. */
-  readonly machine:          RailMachine;
+  readonly machine:             RailMachine;
 }
 
 export interface AgentsModelInput {
@@ -124,6 +152,10 @@ export interface AgentsModelInput {
   readonly query:              string;
   /** The page's clock, for running times shown and never compared. */
   readonly readAtMilliseconds: number;
+  /** The time zone a clock time is printed in; `undefined` is the browser's own. */
+  readonly timeZone:           string | undefined;
+  /** Whether a brain command to a forge is on its way, and how the last one failed. */
+  readonly commandStates:      CommandStates;
 }
 
 const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents/';
@@ -258,6 +290,7 @@ function factsOf(row: FleetDocumentFleetAgentRow): AgentFact[] {
 function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
   const { fleetDocument, selectedAgent } = input;
   if (selectedAgent === null) return { kind: 'none-selected' };
+  if (BrainModel.selectionIsABrain(selectedAgent.jobId)) return BrainModel.selectedBrainOf(input, selectedAgent.trackerId);
   const project = projectOf(fleetDocument, selectedAgent.trackerId);
   const row = jobRowsOf(fleetDocument).find((candidate) => isTheSelectedAgent(candidate, selectedAgent));
   if (row === undefined) return { kind: 'no-longer-running', jobId: selectedAgent.jobId, project };
@@ -283,19 +316,28 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
   };
 }
 
-/** The page title's figures, over the job rows: the agents against the machine limit when one is known, their forges and their tokens. */
+function machineAgentsFigureOf(fleetDocument: FleetDocument): string {
+  const agentCount = jobRowsOf(fleetDocument).length;
+  const { machineLimit } = fleetDocument.figures;
+  return machineLimit === null ? String(agentCount) : `${agentCount} / ${machineLimit}`;
+}
+
+/**
+ * The page title's figures, over the job rows: the agents against the machine limit when one is known, their forges and their tokens; then
+ * the running brains, outside the limit, when one runs.
+ */
 function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   const agents = jobRowsOf(fleetDocument);
-  const { machineLimit } = fleetDocument.figures;
+  const brainCount = brainRowsOf(fleetDocument).length;
   const forgeCount = new Set(agents.map((row) => row.trackerId)).size;
   const tokens = agents.reduce((sum, row) => sum + row.tokens, 0);
-  return [
-    machineLimit === null
-      ? { value: String(agents.length), label: agents.length === 1 ? 'agent' : 'agents' }
-      : { value: `${agents.length} / ${machineLimit}`, label: 'agents' },
+  const figures: PageFigure[] = [
+    { value: machineAgentsFigureOf(fleetDocument), label: fleetDocument.figures.machineLimit === null && agents.length === 1 ? 'agent' : 'agents' },
     { value: String(forgeCount), label: forgeCount === 1 ? 'forge' : 'forges' },
     { value: AgentTextUtil.groupedNumberText(tokens), label: tokens === 1 ? 'token in flight' : 'tokens in flight' },
   ];
+  if (brainCount === 0) return figures;
+  return [...figures, { value: String(brainCount), label: brainCount === 1 ? 'brain, outside the limit' : 'brains, outside the limit' }];
 }
 
 /** What waits on User in the forge as its forge counts it, or `null` when it reports no count. */
@@ -315,7 +357,8 @@ function groupNoteOf(forge: FleetDocumentForge): string | null {
 }
 
 /** The forge's own job rows count against its limit, whatever the filters leave; a brain's row never does. */
-function groupOf(fleetDocument: FleetDocument, trackerId: string, rows: readonly AgentRowContent[]): AgentGroupContent {
+function groupOf(input: AgentsModelInput, trackerId: string, rows: readonly AgentRowContent[], brainRow: BrainRowContent | null): AgentGroupContent {
+  const { fleetDocument, commandStates } = input;
   const forge = forgeOf(fleetDocument, trackerId);
   const agentCount = jobRowsOf(fleetDocument).filter((row) => row.trackerId === trackerId).length;
   const limit = forge?.concurrency?.limit ?? null;
@@ -330,54 +373,73 @@ function groupOf(fleetDocument: FleetDocument, trackerId: string, rows: readonly
       limit,
       label:  `${AgentTextUtil.countedPhrase(agentCount, 'agent', 'agents')} against a limit of ${limit}`,
     },
-    noteText: forge === null ? null : groupNoteOf(forge),
+    noteText:     forge === null ? null : groupNoteOf(forge),
+    brain:        BrainModel.groupBrainOf(forge, commandStates),
+    brainRefusal: BrainModel.brainCommandRefusalOf(forge, commandStates),
     rows,
+    brainRow,
   };
 }
 
-/** The forges in the registry's order, then any forge the document no longer holds, in the order its rows come. */
-function groupsOf(fleetDocument: FleetDocument, rows: readonly { readonly trackerId: string; readonly content: AgentRowContent }[]): AgentGroupContent[] {
+type ShownRow =
+  | { readonly trackerId: string; readonly kind: 'job'; readonly content: AgentRowContent }
+  | { readonly trackerId: string; readonly kind: 'brain'; readonly content: BrainRowContent };
+
+/** The forges in the registry's order, then any forge the document no longer holds, in the order its rows come; a forge's brain under its jobs. */
+function groupsOf(input: AgentsModelInput, rows: readonly ShownRow[]): AgentGroupContent[] {
+  const { fleetDocument } = input;
   const trackerIds = [...new Set([...fleetDocument.forges.map((forge) => forge.trackerId), ...rows.map((row) => row.trackerId)])];
   return trackerIds.flatMap((trackerId) => {
-    const groupRows = rows.filter((row) => row.trackerId === trackerId).map((row) => row.content);
-    return groupRows.length === 0 ? [] : [groupOf(fleetDocument, trackerId, groupRows)];
+    const forgeRows = rows.filter((row) => row.trackerId === trackerId);
+    const jobRows = forgeRows.flatMap((row) => (row.kind === 'job' ? [row.content] : []));
+    const brainRow = forgeRows.flatMap((row) => (row.kind === 'brain' ? [row.content] : []))[0] ?? null;
+    return jobRows.length === 0 && brainRow === null ? [] : [groupOf(input, trackerId, jobRows, brainRow)];
   });
 }
 
-/** Each filter counts the rows it would leave beside the other filter as it stands. */
-function roleOptionsOf(fleetDocument: FleetDocument, condition: AgentConditionFilter): SegmentOption<AgentRoleFilter>[] {
-  const rows = jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesConditionFilter(row, condition));
+/** Each filter counts the rows it would leave beside the other filter as it stands; Flint's brain has its segment while one runs or it is chosen. */
+function roleOptionsOf(fleetDocument: FleetDocument, filters: AgentFilters): SegmentOption<AgentRoleFilter>[] {
+  const rows = drawnRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesConditionFilter(row, filters.condition));
   const countOf = (role: AgentRoleFilter) => rows.filter((row) => AgentsFilters.rowPassesRoleFilter(row, role)).length;
-  return [
+  const options: SegmentOption<AgentRoleFilter>[] = [
     { value: 'all', label: 'All', count: countOf('all') },
     { value: 'builders', label: 'Builders', count: countOf('builders') },
     { value: 'reviewers', label: 'Reviewers', count: countOf('reviewers') },
   ];
+  const brainSegmentShows = brainRowsOf(fleetDocument).length > 0 || filters.role === 'brain';
+  return brainSegmentShows ? [...options, { value: 'brain', label: 'Flint\'s brain', count: countOf('brain') }] : options;
 }
 
 function conditionOptionsOf(fleetDocument: FleetDocument, role: AgentRoleFilter): SegmentOption<AgentConditionFilter>[] {
-  const rows = jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesRoleFilter(row, role));
+  const rows = drawnRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesRoleFilter(row, role));
   return [
     { value: 'every-agent', label: 'Every agent' },
     { value: 'needs-a-look', label: 'Needs a look', count: rows.filter((row) => AgentsFilters.agentNeedsALook(row)).length },
   ];
 }
 
+function shownRowOf(input: AgentsModelInput, filters: AgentFilters, row: FleetDocumentFleetAgentRow): ShownRow {
+  if (!BrainModel.rowIsABrain(row)) return { trackerId: row.trackerId, kind: 'job', content: rowContentOf(input, filters, row) };
+  return { trackerId: row.trackerId, kind: 'brain', content: BrainModel.brainRowContentOf(input, row, filters, isTheSelectedAgent(row, input.selectedAgent)) };
+}
+
 function agentsContentOf(input: AgentsModelInput): AgentsContent {
   const { fleetDocument, query } = input;
   const filters = AgentsFilters.filtersOf(query);
-  const shownRows = jobRowsOf(fleetDocument)
+  const shownRows = drawnRowsOf(fleetDocument)
     .filter((row) => AgentsFilters.rowPassesFilters(row, filters))
-    .map((row) => ({ trackerId: row.trackerId, content: rowContentOf(input, filters, row) }));
+    .map((row) => shownRowOf(input, filters, row));
   return {
-    agentCount:       jobRowsOf(fleetDocument).length,
+    agentCount:          jobRowsOf(fleetDocument).length,
+    brainCount:          brainRowsOf(fleetDocument).length,
+    machineAgentsFigure: machineAgentsFigureOf(fleetDocument),
     filters,
-    roleOptions:      roleOptionsOf(fleetDocument, filters.condition),
-    conditionOptions: conditionOptionsOf(fleetDocument, filters.role),
-    rows:             shownRows.map((row) => row.content),
-    groups:           groupsOf(fleetDocument, shownRows),
-    selected:         selectedContentOf(input),
-    machine:          RailModel.machineOf(fleetDocument),
+    roleOptions:         roleOptionsOf(fleetDocument, filters),
+    conditionOptions:    conditionOptionsOf(fleetDocument, filters.role),
+    rows:                shownRows.flatMap((row) => (row.kind === 'job' ? [row.content] : [])),
+    groups:              groupsOf(input, shownRows),
+    selected:            selectedContentOf(input),
+    machine:             RailModel.machineOf(fleetDocument),
   };
 }
 

@@ -9,6 +9,7 @@ import { join }                 from 'node:path';
 import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from '../../src/shared/constants/ContractVersions.ts';
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
@@ -54,6 +55,12 @@ export interface ArtboardScreen {
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
+/** The fixture's forges serve control 1; A2 draws Wake and Stop, which a forge offers only at the control contract that carries them (G3). */
+const FLEET_SERVING_THE_BRAIN: FleetDocument = {
+  ...FLEET_FIVE_FORGES,
+  forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
+};
+
 const STYLESHEET_PATHS = [join(import.meta.dir, '..', 'styles', 'tokens.css'), join(import.meta.dir, '..', 'styles', 'gaia.css')];
 
 export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
@@ -70,7 +77,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     artboard:      'A2',
     title:         'Agents, a job selected',
     designFile:    'Agents.dc.html',
-    fleetDocument: FLEET_FIVE_FORGES,
+    fleetDocument: FLEET_SERVING_THE_BRAIN,
     fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'J4' }, query: '' }),
     viewState:     'as-routed',
     onlyTheme:     null,
@@ -159,6 +166,19 @@ export const BRAIN_STATE_SCREENS: readonly BrainStateScreen[] = BRAIN_STATES_OF_
   onlyTheme:     null,
   brainState,
 }));
+
+/** A2's `selected` tweak at `brain`: Example Storefront's running brain selected, its panel beside the table (SCREENS A2, R4.5). */
+export const BRAIN_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'A2',
+    title:         'Agents, Flint\'s brain selected',
+    designFile:    'AgentsBrain.dc.html',
+    fleetDocument: FLEET_SERVING_THE_BRAIN,
+    fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' }, query: '' }),
+    viewState:     'as-routed',
+    onlyTheme:     null,
+  },
+];
 
 /**
  * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Overseer did not take.

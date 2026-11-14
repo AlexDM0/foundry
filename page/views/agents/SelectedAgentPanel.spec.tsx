@@ -40,7 +40,7 @@ const RUNNING: Extract<SelectedAgentContent, { kind: 'running' }> = {
 };
 
 function unfoldedPanel(content: SelectedAgentContent) {
-  return tree.unfolded(<SelectedAgentPanel content={content} />);
+  return tree.unfolded(<SelectedAgentPanel content={content} handlers={{ onBrainCommand: () => undefined, onDismissFailure: () => undefined }} />);
 }
 
 function textWithClass(content: SelectedAgentContent, className: string): string {
