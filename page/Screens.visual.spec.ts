@@ -156,7 +156,9 @@ describe('each screen shows the state its artboard draws', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
     expect(textsOfClass(markup, 'gaia-forge-frame-bar-name')).toEqual(['Example Storefront']);
     expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
-    expect(textsOfClass(markup, 'gaia-forge-frame-bar-line')).toEqual(['4 / 5 agents · 2 wait on you · since 09:12']);
+    const figure = (text: string) => `<span class="design-system-text" data-type-role="small" data-mono="">${text}</span>`;
+    const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
+    expect(markup).toContain(`<span class="gaia-forge-frame-bar-line" title="4 / 5 agents · 2 wait on you · since 09:12">${line}</span>`);
     expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
     expect(pageTitleOf(markup)).toEqual([]);
     expect(markup).not.toMatch(THEME_BUTTON);

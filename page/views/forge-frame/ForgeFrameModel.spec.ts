@@ -1,12 +1,12 @@
 /**
  * What a forge in place shows of a fleet document. What matters (SCREENS B1, with A4's buttons per condition and B2's Stop question): the
- * bar names the forge's condition by its word beside the dot and prints one mono line of agents, what waits, a usage limit hit and since,
- * artboard B1's line for Example Storefront shortened to fit one line (owner decision D2); a value the forge did not report is absent, not
- * zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly its controls, and a forge whose
- * control contract Gaia does not know cannot be paused, resumed or stopped from Gaia; the Stop question offers its two choices only while
- * agents run; the frame area is the Bridge only for a forge read in full with the embed channel Gaia knows, B3's callout for one that
- * stopped answering, and otherwise why it cannot be shown; a new address or start of the Overseer is a new frame session; `leave` goes back
- * to the view Gaia came from; a refusal is worded with the forge's own sentence.
+ * bar names the forge's condition by its word beside the dot and shows one line of agents and what waits with its figures apart, artboard
+ * B1's line, so the bar keeps to one line (D2), with the whole reading of a usage limit hit and since for its tooltip; a value the forge
+ * did not report is absent, not zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly
+ * its controls, and a forge whose control contract Gaia does not know cannot be paused, resumed or stopped from Gaia; the Stop question
+ * offers its two choices only while agents run; the frame area is the Bridge only for a forge read in full with the embed channel Gaia
+ * knows, B3's callout for one that stopped answering, and otherwise why it cannot be shown; a new address or start of the Overseer is a new
+ * frame session; `leave` goes back to the view Gaia came from; a refusal is worded with the forge's own sentence.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -45,6 +45,14 @@ function withForge(forge: FleetDocumentForge): FleetDocument {
   return { ...FLEET_FIVE_FORGES, forges: [forge] };
 }
 
+function words(text: string) {
+  return { text, isFigure: false };
+}
+
+function figure(text: string) {
+  return { text, isFigure: true };
+}
+
 function barOf(forge: FleetDocumentForge) {
   const { bar } = contentOf(forge.trackerId, withForge(forge));
   if (bar === null) throw new Error('The forge has no bar.');
@@ -52,9 +60,14 @@ function barOf(forge: FleetDocumentForge) {
 }
 
 describe('the bar', () => {
-  test('of Example Storefront is artboard B1\'s, shortened to fit one line: its word beside the live dot, then agents, what waits and since', () => {
+  test('of Example Storefront is artboard B1\'s: its word beside the live dot, a line of agents and what waits, and since in the whole reading', () => {
     const bar = barOf(READINGS.exampleStorefront);
-    expect(bar.status).toEqual({ condition: 'live', word: 'Live', text: '4 / 5 agents · 2 wait on you · since 09:12' });
+    expect(bar.status).toEqual({
+      condition: 'live',
+      word:      'Live',
+      line:      [figure('4 / 5'), words(' agents'), words(' · '), figure('2'), words(' wait on you')],
+      text:      '4 / 5 agents · 2 wait on you · since 09:12',
+    });
     expect(bar.openInNewTab).toEqual({ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront });
     expect(bar.controlContractIsKnown).toBe(true);
   });
@@ -64,8 +77,13 @@ describe('the bar', () => {
       ...READINGS.exampleStorefront, attention: [], usage: null, overseerStartedAt: null, concurrency: null,
     });
     expect(quiet.status.text).toBe('4 agents');
-    expect(barOf(READINGS.designSystem).status).toEqual({ condition: 'dormant', word: 'Dormant', text: '' });
-    expect(barOf(READINGS.legacyImporter).status).toEqual({ condition: 'missing', word: 'Repository missing', text: '' });
+    expect(quiet.status.line).toEqual([figure('4'), words(' agents')]);
+    expect(barOf(READINGS.designSystem).status).toEqual({
+      condition: 'dormant', word: 'Dormant', line: [], text: ''
+    });
+    expect(barOf(READINGS.legacyImporter).status).toEqual({
+      condition: 'missing', word: 'Repository missing', line: [], text: ''
+    });
   });
 
   test('of a forge that stopped answering says its line is as last reported, at the stamp of its last answer', () => {
@@ -73,6 +91,7 @@ describe('the bar', () => {
     expect(bar?.status).toEqual({
       condition: 'unreachable',
       word:      'Unreachable',
+      line:      [words('as last reported '), figure('13:14'), words(' · '), figure('3 / 5'), words(' agents'), words(' · '), figure('2'), words(' wait on you')],
       text:      'as last reported 13:14 · 3 / 5 agents · 2 wait on you · since 08:40',
     });
   });
@@ -80,12 +99,14 @@ describe('the bar', () => {
   test('of a forge read through its summary counts what waits from its summary', () => {
     const { bar } = contentOf(TRACKER_IDS.researchWiki, FLEET_DEGRADED);
     expect(bar?.status.text).toBe('1 agent · 1 waits on you');
+    expect(bar?.status.line).toEqual([figure('1'), words(' agent'), words(' · '), figure('1'), words(' waits on you')]);
     expect(bar?.controlContractIsKnown).toBe(false);
   });
 
   test('names usage only when its limit was hit, with the clock time it resets and without its window, so the line stays short', () => {
     const limitHit = barOf({ ...READINGS.exampleStorefront, usage: { ...USAGE_UNDER_THE_LIMIT, window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z' } });
     expect(limitHit.status.text).toBe('4 / 5 agents · 2 wait on you · usage limit hit · resets 16:00 · since 09:12');
+    expect(limitHit.status.line).toEqual(barOf(READINGS.exampleStorefront).status.line);
     expect(barOf({ ...READINGS.exampleStorefront, usage: USAGE_UNDER_THE_LIMIT }).status.text).not.toContain('usage');
     expect(barOf({ ...READINGS.exampleStorefront, usage: USAGE_UNDER_THE_LIMIT }).status.text).not.toContain('window');
   });

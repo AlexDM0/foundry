@@ -1,22 +1,25 @@
 /**
- * A forge in place laid out (SCREENS B1): the bar, with the forge's name, its condition and mono line, and its controls with Stop's question
- * as a popover under its button; a refusal under the bar; and the frame area: "Opening <project>." until the Bridge is ready, the Bridge's
- * frame, B3's callout, or why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec
+ * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
+ * question as a popover under its button; a refusal under the bar; and the framed area: "Opening <project>." until the Bridge is ready, the
+ * Bridge's frame, B3's callout, or why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec
  * unfolds it whole.
  */
 import { Button }              from 'design-system/Button';
 import { ChoiceOption }        from 'design-system/ChoiceOption';
+import { Text }                from 'design-system/Text';
 import type { ReactNode, Ref } from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import { Callout }                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                           from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                           from '../../design-system/ConfirmPanel.tsx';
+import { ForgeMark }                              from '../../design-system/ForgeMark.tsx';
 import { OpenInNewTabGlyph }                      from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                from '../../design-system/Refusal.tsx';
 import type { RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
 import type { StopQuestion }                      from '../../shared/utils/ForgeCommandTextUtil.ts';
 import type {
+  BarLineSegment,
   BarRefusal,
   ForgeBar,
   ForgeBarStatus,
@@ -109,16 +112,21 @@ export interface ForgeBarLayoutProps {
   readonly controls: ReactNode;
 }
 
-/** The bar heads the view, since a forge in place has no page title; its mono line keeps to one line, whole in its tooltip. */
+function BarLine({ line }: { readonly line: readonly BarLineSegment[] }) {
+  return line.map((segment, i) => (segment.isFigure ? <Text key={i} typeRole="small" mono>{segment.text}</Text> : segment.text));
+}
+
+/** The bar heads the view, since a forge in place has no page title; its line keeps to one line, the whole reading in its tooltip. */
 export function ForgeBarLayout({ name, status, controls }: ForgeBarLayoutProps) {
   return (
     <header className="gaia-forge-frame-bar">
+      <ForgeMark />
       <h1 className="gaia-forge-frame-bar-name">{name}</h1>
       {status === null ? null : (
         <span className="gaia-forge-frame-bar-status">
           <ConditionDot condition={status.condition} />
           <span className="gaia-forge-frame-bar-word">{status.word}</span>
-          <span className="gaia-forge-frame-bar-line" title={status.text}>{status.text}</span>
+          <span className="gaia-forge-frame-bar-line" title={status.text}><BarLine line={status.line} /></span>
         </span>
       )}
       <span className="gaia-forge-frame-bar-controls">{controls}</span>

@@ -936,12 +936,12 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 /* ── A forge in place (B1) ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 .gaia-forge-frame-view { display: flex; flex-direction: column; height: 100%; }
-/* The forge's bar heads the view in the page title's place: its name, its condition's dot and word, one line, and its controls. */
+/* The forge's bar heads the view in the page title's place: its mark and name, its condition's dot and word, one line, and its controls. */
 .gaia-forge-frame-bar {
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--space-10);
   box-sizing: border-box;
   height: var(--forge-bar-height);
   padding: 0 var(--sp-4) 0 var(--space-18);
@@ -949,11 +949,33 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 .gaia-forge-frame-bar-name { flex: none; margin: 0; font-size: var(--fs-title); line-height: var(--line-height-lead); font-weight: var(--weight-strong); white-space: nowrap; }
 .gaia-forge-frame-bar-status { display: inline-flex; flex: 0 1 auto; align-items: center; gap: var(--space-7); min-width: 0; }
 .gaia-forge-frame-bar-word { flex: none; font-weight: var(--weight-strong); white-space: nowrap; }
-.gaia-forge-frame-bar-line { min-width: 0; overflow: hidden; font-size: var(--fs-tab); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap; }
-.gaia-forge-frame-bar-controls { display: inline-flex; flex: 1; justify-content: flex-end; gap: var(--sp-2); }
+.gaia-forge-frame-bar-line {
+  min-width: 0;
+  margin-left: var(--space-2);
+  overflow: hidden;
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-tab);
+  color: var(--ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The controls take the room the line leaves; the brain's group joins them between Stop and Open in new tab. */
+.gaia-forge-frame-bar-controls { display: inline-flex; flex: 1 0 auto; justify-content: flex-end; align-items: center; gap: var(--space-10); }
 .gaia-forge-frame { display: flex; flex: 1; flex-direction: column; box-sizing: border-box; min-height: 0; }
-.gaia-forge-frame-refusal { flex: none; padding: var(--sp-2) var(--sp-6) 0; }
-.gaia-forge-frame-area { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.gaia-forge-frame-refusal { flex: none; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); }
+/* The Bridge sits in a framed box inset from the window's edges, under the bar. */
+.gaia-forge-frame-area {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 var(--sp-4) var(--sp-4);
+  overflow: hidden;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-3);
+  background: var(--bg);
+}
 /* The Bridge loads behind "Opening" and shows once it says it is ready, so no half-painted Bridge shows. */
 .gaia-forge-frame-bridge { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--bg); }
 .gaia-forge-frame-bridge:not([data-bridge-ready]) { visibility: hidden; }

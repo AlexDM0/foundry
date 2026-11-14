@@ -1,12 +1,12 @@
 /**
  * A forge in place in the shell, fed by the fleet source. What matters (SCREENS B1): Answer on E2 in Attention links to
- * `#forge/<trackerId>/#questions/E2`, and that address shows Example Storefront's bar, its word and its mono line shortened to fit one
- * line, and its controls with the arrow after "Open in new tab" and no theme button, as artboard B1 draws the bar, over "Opening Example
- * Storefront." while the frame session is asked for; an unreachable forge shows B3's callout in the frame area; a forge without the embed
- * channel says it cannot be shown inside Gaia; a command on its way disables the bar's controls, and the forge's refusal shows under the
- * bar; nothing of the frame is asked for or painted before the first fleet document, and the page's markup carries no session code.
- * `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect, so no frame session is asked while rendering;
- * the surroundings fail a spec that asks one.
+ * `#forge/<trackerId>/#questions/E2`, and that address shows Example Storefront's bar as artboard B1 draws it: the forge's mark before its
+ * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
+ * with the arrow of "Open in new tab", and no theme button, over "Opening Example Storefront." while the frame session is asked for; an
+ * unreachable forge shows B3's callout in the frame area; a forge without the embed channel says it cannot be shown inside Gaia; a command
+ * on its way disables the bar's controls, and the forge's refusal shows under the bar; nothing of the frame is asked for or painted before
+ * the first fleet document, and the page's markup carries no session code. `GaiaApp` is rendered with React's own server renderer, which
+ * runs the hooks but no effect, so no frame session is asked while rendering; the surroundings fail a spec that asks one.
  */
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
@@ -34,6 +34,11 @@ function markupAt(fragment: string, fleetDocument: FleetDocument | null, command
   return renderToStaticMarkup(<GaiaApp fleetSource={source} fleetStream={LIVE_STREAM} commandSender={commandSender} surroundings={shellSurroundingsAt(fragment)} />);
 }
 
+/** A figure the forge reported, set in mono in the bar's line. */
+function figure(text: string): string {
+  return `<span class="design-system-text" data-type-role="small" data-mono="">${text}</span>`;
+}
+
 function buttonsIn(markup: string): string[] {
   const barControls = /<span class="gaia-forge-frame-bar-controls">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
   return [...barControls.matchAll(/<button type="button" class="design-system-button"( disabled="")?[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/g)]
@@ -48,8 +53,10 @@ describe('from Answer on E2 to Example Storefront in place', () => {
   test('that address shows the forge\'s bar of artboard B1 over "Opening Example Storefront."', () => {
     const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
     expect(markup).toContain('<h1 class="gaia-forge-frame-bar-name">Example Storefront</h1>');
-    const line = '4 / 5 agents · 2 wait on you · since 09:12';
-    expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${line}">${line}</span>`);
+    const wholeReading = '4 / 5 agents · 2 wait on you · since 09:12';
+    const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
+    expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${wholeReading}">${line}</span>`);
+    expect(markup).toContain('<header class="gaia-forge-frame-bar"><svg class="gaia-mark" role="img" aria-label="Forge" width="22" height="22"');
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
     expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph" aria-hidden="true"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
     expect(markup).not.toContain('aria-label="Theme: ');

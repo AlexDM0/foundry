@@ -1,5 +1,5 @@
 /**
- * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the frame, with the forge's name, its condition, one mono
+ * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the frame, with the forge's name, its condition, one short
  * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
  * callout for an Overseer that stopped answering, or the sentence for a forge that cannot be shown inside Gaia. Also where `leave` goes.
  */
@@ -34,10 +34,20 @@ export interface BarCommand {
   readonly command:  ForgeCommandBody;
 }
 
-/** The bar's line: the condition's dot and its word, so the dot is never the only sign, then one mono line of what the forge reports. */
+/** A run of the bar's line: words, or a figure the forge reported, which is set in mono. */
+export interface BarLineSegment {
+  readonly text:     string;
+  readonly isFigure: boolean;
+}
+
+/**
+ * The bar's status: the condition's dot and its word, so the dot is never the only sign; the line it shows, agents and what waits, kept
+ * short so the bar stays on one line beside the brain's group (D2); and `text`, the whole reading with usage and since, for its tooltip.
+ */
 export interface ForgeBarStatus {
   readonly condition: DotCondition;
   readonly word:      string;
+  readonly line:      readonly BarLineSegment[];
   readonly text:      string;
 }
 
@@ -139,8 +149,8 @@ function agentsTextOf(forge: FleetDocumentForge): string | null {
 }
 
 /**
- * The bar's usage names only a limit that was hit, without its window, so the line fits beside the bar's buttons; usage under its limit is
- * no news there, nor is the last reading of a forge that stopped answering, whose line must keep room for "as last reported" and since.
+ * The tooltip's usage names only a limit that was hit, without its window; usage under its limit is no news there, nor is the last reading
+ * of a forge that stopped answering, which says "as last reported" and since.
  */
 function usageTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string | null {
   const { usage } = forge;
@@ -148,7 +158,7 @@ function usageTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string 
   return `usage limit hit · resets ${clockTextOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
 }
 
-/** The mono line: agents, what waits, a usage limit hit and since; a forge that stopped answering says first that this is what it last reported. */
+/** The whole reading for the tooltip: agents, what waits, a usage limit hit and since, after "as last reported" for a forge that stopped answering. */
 function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string {
   const waitingCount = waitingCountOf(forge);
   const startedClock = clockTextOf(forge.overseerStartedAt, clock);
@@ -161,6 +171,35 @@ function statusTextOf(forge: FleetDocumentForge, clock: ForgeFrameClock): string
     usageTextOf(forge, clock),
     startedClock === null ? null : `since ${startedClock}`,
   ].filter((part) => part !== null).join(LINE_SEPARATOR);
+}
+
+function wordsOf(text: string): BarLineSegment {
+  return { text, isFigure: false };
+}
+
+function figureOf(text: string): BarLineSegment {
+  return { text, isFigure: true };
+}
+
+function agentsLineOf(forge: FleetDocumentForge): readonly BarLineSegment[] | null {
+  if (!AGENTS_ARE_REPORTED_AT.has(forge.fidelity)) return null;
+  const { concurrency } = forge;
+  return concurrency === null
+    ? [figureOf(String(forge.agents.length)), wordsOf(forge.agents.length === 1 ? ' agent' : ' agents')]
+    : [figureOf(`${concurrency.agentsInFlight} / ${concurrency.limit}`), wordsOf(concurrency.limit === 1 ? ' agent' : ' agents')];
+}
+
+/** The line the bar shows: what `statusTextOf` says but usage and since, with the figures apart from the words. */
+function statusLineOf(forge: FleetDocumentForge, clock: ForgeFrameClock): readonly BarLineSegment[] {
+  const waitingCount = waitingCountOf(forge);
+  const lastReportedClock = clockTextOf(forge.lastReportedAt, clock);
+  const asLastReported = lastReportedClock === null ? [wordsOf('as last reported')] : [wordsOf('as last reported '), figureOf(lastReportedClock)];
+  const parts = [
+    forge.fidelity === 'unreachable' ? asLastReported : null,
+    agentsLineOf(forge),
+    waitingCount === null || waitingCount === 0 ? null : [figureOf(String(waitingCount)), wordsOf(waitingCount === 1 ? ' waits on you' : ' wait on you')],
+  ].filter((part) => part !== null);
+  return parts.flatMap((part, i) => (i === 0 ? part : [wordsOf(LINE_SEPARATOR), ...part]));
 }
 
 function pauseOrResumeOf(forge: FleetDocumentForge): BarCommand | null {
@@ -181,6 +220,7 @@ function barOf(forge: FleetDocumentForge, clock: ForgeFrameClock): ForgeBar {
     status:    {
       condition: ForgeTextUtil.dotConditionOf(forge.condition),
       word:      ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition),
+      line:      statusLineOf(forge, clock),
       text:      statusTextOf(forge, clock),
     },
     pauseOrResume:          pauseOrResumeOf(forge),
