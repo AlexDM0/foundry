@@ -5,6 +5,7 @@ import type {
   FleetSnapshot,
   GaiaFacts,
 } from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrain }   from '../../shared/@types/ForgeBrain.ts';
 import type { ForgeReading } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings } from '../../shared/@types/GaiaSettings.ts';
 import { LIMITS }            from '../../shared/constants/Limits.ts';
@@ -48,14 +49,54 @@ function fleetActivityOf(readings: readonly ForgeReading[]): FleetActivityEntry[
     .sort(newestFirst);
 }
 
-/** By project name, then by job id read as a number, so J2 comes before J11. */
+/** The id of a brain's row among its forge's job ids, and the last part of its route `#agents/<trackerId>/flint-brain`. */
+export const FLINT_BRAIN_ROW_ID = 'flint-brain';
+
+/** The role of a brain's row, beside a job's `builder` or `reviewer`. */
+export const FLINT_BRAIN_ROLE = 'brain';
+
+/** A running brain is not a job: its row reports what the forge says of the brain, and every job fact it has none of is `null`. */
+function brainRowOf(trackerId: string, brain: ForgeBrain): FleetAgentRow {
+  return {
+    trackerId,
+    countsAgainstLimit:  false,
+    jobId:               FLINT_BRAIN_ROW_ID,
+    kind:                FLINT_BRAIN_ROW_ID,
+    role:                FLINT_BRAIN_ROLE,
+    state:               brain.state,
+    ticketIds:           [],
+    tokens:              brain.tokens ?? 0,
+    ticketTitle:         null,
+    attempt:             null,
+    startedAt:           brain.startedAt,
+    calls:               brain.calls,
+    callBudget:          null,
+    toolCalls:           null,
+    lastToolCall:        null,
+    runningSubagents:    null,
+    silentSweeps:        null,
+    quiet:               null,
+    turn:                null,
+    messagesWaiting:     null,
+    lastLine:            null,
+    waitingOnDecisionId: null,
+    route:               null,
+  };
+}
+
+function brainRowsOf(reading: ForgeReading): FleetAgentRow[] {
+  const { brain } = reading;
+  return brain !== 'not-reported' && brain.state === 'running' ? [brainRowOf(reading.trackerId, brain)] : [];
+}
+
+/** By project name, then by job id read as a number, so J2 comes before J11; a running brain's row closes its forge's rows. */
 function fleetAgentsOf(readings: readonly ForgeReading[]): FleetAgentRow[] {
   const collator = new Intl.Collator('en', { numeric: true });
   return readings
     .filter(FigureUtil.agentsAreReportedBy)
-    .map((reading) => ({ reading, rows: reading.agents.map((row): FleetAgentRow => ({ ...row, trackerId: reading.trackerId })) }))
+    .map((reading) => ({ reading, rows: reading.agents.map((row): FleetAgentRow => ({ ...row, trackerId: reading.trackerId, countsAgainstLimit: true })) }))
     .sort((a, b) => collator.compare(a.reading.project, b.reading.project))
-    .flatMap(({ rows }) => rows.sort((a, b) => collator.compare(a.jobId, b.jobId)));
+    .flatMap(({ reading, rows }) => [...rows.sort((a, b) => collator.compare(a.jobId, b.jobId)), ...brainRowsOf(reading)]);
 }
 
 /** A hidden forge is absent from everything but the settings that hide it. */

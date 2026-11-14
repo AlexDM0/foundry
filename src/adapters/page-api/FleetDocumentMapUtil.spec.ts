@@ -1,7 +1,8 @@
 /**
  * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
  * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
- * report stays `null` rather than becoming zero, and a notice or warning whose sentence names a command reaches it in Gaia's words (D10).
+ * report stays `null` rather than becoming zero, a notice, warning or brain sentence that names a command reaches it in Gaia's words or not
+ * at all (D10), and a forge's brain and a running brain's row outside every limit reach it as the forge reports them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -10,6 +11,7 @@ import { FLEET_DEGRADED }     from '../../../page/testing/fixtures/fleet-degrade
 import { FLEET_EMPTY }        from '../../../page/testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES }  from '../../../page/testing/fixtures/fleet-five-forges.ts';
 import type { FleetSnapshot } from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrain }    from '../../shared/@types/ForgeBrain.ts';
 import { CONTRACT_VERSIONS }  from '../../shared/constants/ContractVersions.ts';
 
 import { FleetDocumentMapUtil }       from './FleetDocumentMapUtil.ts';
@@ -31,7 +33,7 @@ describe('the fleet document mapper', () => {
 
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(2);
+    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(3);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {
@@ -85,6 +87,52 @@ describe('the fleet document mapper', () => {
     const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES).forges[0]?.usage).toEqual(storefront?.usage);
     expect(storefront?.usage?.currentWindowResetsAt).toBe('2026-11-12T16:00:00.000Z');
+  });
+
+  test('carries each forge\'s brain, a running brain\'s row outside every limit, and a brain not reported as not-reported', () => {
+    const document = FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES);
+    const brains = document.forges.map((forge) => (forge.brain === 'not-reported' ? forge.brain : forge.brain.state));
+    expect(brains).toEqual(['running', 'off', 'off', 'off', 'not-reported', 'not-reported']);
+    expect(document.agents.filter((row) => !row.countsAgainstLimit).map((row) => `${row.trackerId} ${row.jobId} ${row.role ?? ''}`))
+      .toEqual([`${FLEET_SNAPSHOT_FIVE_FORGES.forges[0]?.trackerId ?? ''} flint-brain brain`]);
+  });
+
+  test('words a brain\'s sentence or refusal that names a command in Gaia\'s words, or leaves it for the page to word, and passes the others through', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    const runningBrain = storefront?.brain;
+    if (storefront === undefined || runningBrain === undefined || runningBrain === 'not-reported') throw new Error('The five-forges model shows no brain on its first forge.');
+    const usageLimitSentence = 'Flint\'s brain cannot start while the usage limit holds. It resets at 14:00.';
+    const brainOf = (brain: Partial<ForgeBrain>) => FleetDocumentMapUtil.fleetDocumentOf({
+      ...FLEET_SNAPSHOT_FIVE_FORGES,
+      forges: [{ ...storefront, brain: { ...runningBrain, ...brain } }],
+    }).forges[0]?.brain;
+    expect(brainOf({ state: 'refused', sentence: usageLimitSentence, refusal: { code: 'usage-limit-holds', sentence: usageLimitSentence } })).toMatchObject({
+      sentence: usageLimitSentence,
+      refusal:  { code: 'usage-limit-holds', sentence: usageLimitSentence },
+    });
+    const namingACommand = 'Flint\'s brain cannot start: run `forge update` first.';
+    expect(brainOf({ state: 'refused', sentence: namingACommand, refusal: { code: 'example-new-refusal', sentence: namingACommand } })).toMatchObject({
+      sentence: null,
+      refusal:  { code: 'example-new-refusal', sentence: null },
+    });
+    const unauthorized = brainOf({ state: 'refused', sentence: null, refusal: { code: 'unauthorized', sentence: namingACommand } });
+    expect(unauthorized).toMatchObject({ refusal: { code: 'unauthorized', sentence: 'The Overseer did not accept Gaia\'s token. It may have restarted.' } });
+  });
+
+  test('carries an ended brain\'s activity entry with its kind and tokens', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
+    const entry = {
+      logPosition: 460,
+      at:          '2026-11-12T13:18:00.000Z',
+      category:    'agent',
+      text:        'Flint\'s brain ran 2:00',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      4200,
+    } as const;
+    const document = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, activity: [{ ...entry, trackerId: storefront.trackerId }] });
+    expect(document.activity).toEqual([{ ...entry, trackerId: storefront.trackerId }]);
   });
 
   test('shares no array or object with the snapshot it was built from', () => {

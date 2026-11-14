@@ -276,8 +276,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'warn',
       'unreadable',
       'Newer than this Gaia',
-      'This forge publishes monitor contract 3. This Gaia reads 2, so it shows nothing of it and sends it nothing. Update Gaia.',
-      'monitor 3 · control 2',
+      'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing. Update Gaia.',
+      'monitor 4 · control 2',
     ]);
     expect(actionsOf(newer)).toEqual([['Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
   });
@@ -285,11 +285,11 @@ describe('forges Gaia cannot fully read (B3)', () => {
   test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, reading.contractText, reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
-      ['Example Storefront', 'monitor 2', 'Everything, live.', false],
-      ['Invoice Service', 'monitor 2', 'Nothing since 13:14. Its rows are shown as last reported and their actions are off.', true],
+      ['Example Storefront', 'monitor 3', 'Everything, live.', false],
+      ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows are shown as last reported and their actions are off.', true],
       ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions, reviews or notices by name.', true],
-      ['Example Mobile App', 'monitor 2', 'Everything, live.', false],
-      ['Analytics Sandbox', 'monitor 3', 'Nothing. Its contract is newer than this Gaia.', true],
+      ['Example Mobile App', 'monitor 3', 'Everything, live.', false],
+      ['Analytics Sandbox', 'monitor 4', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
     const marked = readings?.filter((reading) => reading.totalsCannotVouchForIt).map((reading) => reading.trackerId);
     expect(marked).toEqual(FLEET_DEGRADED.figures.incompleteFor);

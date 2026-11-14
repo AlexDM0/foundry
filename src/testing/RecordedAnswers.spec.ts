@@ -98,9 +98,9 @@ describe('the recorded forge contracts', () => {
     ...everyRecordedMonitorThreeAnswerOf(),
   ]);
 
-  test('hold a snapshot at every monitor number Gaia reads, still reads or builds toward', () => {
+  test('hold a snapshot at every monitor number Gaia reads or still reads', () => {
     const monitorVersions = new Set(everyDocument().map((document) => document['monitorVersion']));
-    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor, UPCOMING_CONTRACT_VERSIONS.forgeMonitor];
+    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor];
     for (const version of knownVersions) expect([version, monitorVersions.has(version)]).toEqual([version, true]);
   });
 
@@ -141,13 +141,13 @@ describe('the recorded states of Flint\'s brain', () => {
       const [command] = documentsAnsweredIn(answersOfCall('POST /api/commands with bearer'));
       expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
         situation,
-        expect.objectContaining({ monitor: UPCOMING_CONTRACT_VERSIONS.forgeMonitor, control: UPCOMING_CONTRACT_VERSIONS.forgeControl }),
+        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: UPCOMING_CONTRACT_VERSIONS.forgeControl }),
         UPCOMING_CONTRACT_VERSIONS.forgeControl,
       ]);
       const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/monitor with bearer'));
       // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.
       const lastStreamSnapshot = documentsAnsweredIn(answersOfCall(MONITOR_STREAM_CALL_SHAPE)).at(-1);
-      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(UPCOMING_CONTRACT_VERSIONS.forgeMonitor);
+      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor);
       return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
     expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);

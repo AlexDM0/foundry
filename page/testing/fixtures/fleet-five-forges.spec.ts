@@ -1,7 +1,8 @@
 /**
  * The fixture must hold the example data of artboards A1 to A4, or every view spec built on it checks the wrong screen. What matters: A1's
- * rows in their order with their ages, A2's ten agents and their running times, A3's interleaved entries and daily sums, A4's limits, and
- * the fleet-wide lists being copies of their forges' own entries.
+ * rows in their order with their ages, A2's ten agents and their running times, Flint's brain running on Example Storefront with A2's
+ * 0:36 run and 1:24 left, outside every figure, A3's interleaved entries and daily sums, A4's limits, and the fleet-wide lists being copies
+ * of their forges' own entries.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -31,7 +32,8 @@ describe('the fleet-five-forges fixture', () => {
   });
 
   test('holds the ten agents of A2, their running times, and tokens that sum to 821,300', () => {
-    const runningTimes = FLEET_FIVE_FORGES.agents.map((row) => `${projectOf(row.trackerId)} ${row.jobId} ${secondsSince(row.startedAt ?? FLEET_FIXTURES_READ_AT)}`);
+    const jobRows = FLEET_FIVE_FORGES.agents.filter((row) => row.countsAgainstLimit);
+    const runningTimes = jobRows.map((row) => `${projectOf(row.trackerId)} ${row.jobId} ${secondsSince(row.startedAt ?? FLEET_FIXTURES_READ_AT)}`);
     expect(runningTimes).toEqual([
       'Example Mobile App J5 2472',
       'Example Mobile App J7 303',
@@ -44,11 +46,25 @@ describe('the fleet-five-forges fixture', () => {
       'Invoice Service J14 531',
       'Research Wiki J2 990',
     ]);
-    expect(FLEET_FIVE_FORGES.agents.reduce((sum, row) => sum + row.tokens, 0)).toBe(821_300);
-    expect(FLEET_FIVE_FORGES.agents.filter((row) => row.role === 'builder')).toHaveLength(7);
-    expect(FLEET_FIVE_FORGES.agents.filter((row) => row.role === 'reviewer')).toHaveLength(3);
-    const needingALook = FLEET_FIVE_FORGES.agents.filter((row) => row.quiet === true || row.waitingOnDecisionId !== null).map((row) => row.jobId);
+    expect(jobRows.reduce((sum, row) => sum + row.tokens, 0)).toBe(821_300);
+    expect(jobRows.filter((row) => row.role === 'builder')).toHaveLength(7);
+    expect(jobRows.filter((row) => row.role === 'reviewer')).toHaveLength(3);
+    const needingALook = jobRows.filter((row) => row.quiet === true || row.waitingOnDecisionId !== null).map((row) => row.jobId);
     expect(needingALook).toEqual(['J3', 'J12']);
+  });
+
+  test('holds Flint\'s brain running on Example Storefront, woken from Gaia 0:36 ago with 1:24 left, as its group\'s last row and in no figure', () => {
+    const brainForges = FLEET_FIVE_FORGES.forges.flatMap((forge) => (forge.brain === 'not-reported' ? [] : [[forge.project, forge.brain.state]]));
+    expect(brainForges).toEqual([['Example Storefront', 'running'], ['Invoice Service', 'off'], ['Research Wiki', 'off'], ['Example Mobile App', 'off']]);
+    const storefront = FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
+    const brain = storefront?.brain === 'not-reported' ? null : storefront?.brain;
+    expect([secondsSince(brain?.startedAt ?? ''), -secondsSince(brain?.endsAt ?? ''), brain?.startedBy, brain?.model, brain?.effort, brain?.tokens, brain?.calls])
+      .toEqual([36, 84, 'gaia', 'haiku', 'low', 3100, 9]);
+    const brainRows = FLEET_FIVE_FORGES.agents.filter((row) => !row.countsAgainstLimit);
+    expect(brainRows.map((row) => [projectOf(row.trackerId), row.jobId, row.role, row.tokens])).toEqual([['Example Storefront', 'flint-brain', 'brain', 3100]]);
+    const storefrontRows = FLEET_FIVE_FORGES.agents.filter((row) => row.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
+    expect(storefrontRows.at(-1)?.role).toBe('brain');
+    expect([FLEET_FIVE_FORGES.figures.agentsInFlight, storefront?.concurrency?.agentsInFlight]).toEqual([10, 4]);
   });
 
   test('interleaves the sixteen entries of A3 newest first, and sums landed and tokens today as A3 does', () => {
@@ -88,7 +104,11 @@ describe('the fleet-five-forges fixture', () => {
   test('lists across the fleet only copies of what each forge holds itself', () => {
     const forgeOf = (trackerId: string) => FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === trackerId);
     for (const { trackerId, ...item } of FLEET_FIVE_FORGES.attention) expect(forgeOf(trackerId)?.attention).toContainEqual(item);
-    for (const { trackerId, ...row } of FLEET_FIVE_FORGES.agents) expect(forgeOf(trackerId)?.agents).toContainEqual(row);
+    for (const { trackerId, countsAgainstLimit, ...row } of FLEET_FIVE_FORGES.agents) {
+      const forge = forgeOf(trackerId);
+      if (countsAgainstLimit) expect(forge?.agents).toContainEqual(row);
+      else expect(forge?.brain === 'not-reported' ? null : [forge?.brain.state, forge?.brain.startedAt]).toEqual(['running', row.startedAt]);
+    }
     for (const { trackerId, ...entry } of FLEET_FIVE_FORGES.activity) expect(forgeOf(trackerId)?.activity).toContainEqual(entry);
   });
 });

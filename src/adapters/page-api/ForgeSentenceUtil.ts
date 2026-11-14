@@ -59,6 +59,11 @@ function noticeSentenceOf(kind: string, text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_NOTICE_SENTENCE : text;
 }
 
+/** The forge's sentence as it is, or `null` when it names a command and the page words the state itself. */
+function sentenceNamingNoCommandOf(text: string): string | null {
+  return sentenceNamesACommand(text) ? null : text;
+}
+
 /** Gaia has no words of its own for a warning, of a kind or of none (monitor 1): only the guard words one. */
 function warningSentenceOf(text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_WARNING_SENTENCE : text;
@@ -67,6 +72,7 @@ function warningSentenceOf(text: string): string {
 export const ForgeSentenceUtil = {
   sentenceNamesACommand,
   refusalSentenceOf,
+  sentenceNamingNoCommandOf,
   noticeSentenceOf,
   warningSentenceOf,
 } as const;

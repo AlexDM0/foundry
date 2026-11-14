@@ -1,12 +1,13 @@
 /**
  * Maps the internal `FleetSnapshot` out to the page contract. Every key is named one by one, so a key the internal model gains reaches the
- * page only when the contract names it. A forge's notice or warning leaves in Gaia's words when its sentence names a command (D10).
+ * page only when the contract names it. A forge's notice, warning or brain sentence leaves in Gaia's words when it names a command (D10).
  */
 import type {
   FleetDocument,
   FleetDocumentActivityEntry,
   FleetDocumentAgentRow,
   FleetDocumentAttentionItem,
+  FleetDocumentBrain,
   FleetDocumentForge,
   FleetDocumentGaia,
   FleetDocumentNotice,
@@ -16,6 +17,7 @@ import type { ActivityEntry }             from '../../shared/@types/ActivityEntr
 import type { AgentRow }                  from '../../shared/@types/AgentRow.ts';
 import type { AttentionItem }             from '../../shared/@types/AttentionItem.ts';
 import type { FleetSnapshot, GaiaFacts }  from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrainReading }         from '../../shared/@types/ForgeBrain.ts';
 import type { ForgeNotice, ForgeReading } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings }              from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }              from '../../shared/constants/ContractVersions.ts';
@@ -73,6 +75,28 @@ function activityEntryOut(entry: ActivityEntry): FleetDocumentActivityEntry {
     category:    entry.category,
     text:        entry.text,
     route:       entry.route,
+    kind:        entry.kind,
+    tokens:      entry.tokens,
+  };
+}
+
+function brainOut(brain: ForgeBrainReading): FleetDocumentBrain | 'not-reported' {
+  if (brain === 'not-reported') return brain;
+  const { refusal } = brain;
+  return {
+    state:       brain.state,
+    startedAt:   brain.startedAt,
+    endsAt:      brain.endsAt,
+    startedBy:   brain.startedBy,
+    model:       brain.model,
+    effort:      brain.effort,
+    tokens:      brain.tokens,
+    calls:       brain.calls,
+    recentMoves: brain.recentMoves.map((move) => ({ at: move.at, intent: move.intent, emote: move.emote })),
+    endedAt:     brain.endedAt,
+    endedReason: brain.endedReason,
+    sentence:    brain.sentence === null ? null : ForgeSentenceUtil.sentenceNamingNoCommandOf(brain.sentence),
+    refusal:     refusal === null ? null : { code: refusal.code, sentence: ForgeSentenceUtil.refusalSentenceOf(refusal.code, refusal.sentence) },
   };
 }
 
@@ -129,6 +153,7 @@ function forgeOut(reading: ForgeReading): FleetDocumentForge {
       currentWindow:         usage.currentWindow,
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
+    brain: brainOut(reading.brain),
   };
 }
 
@@ -180,7 +205,7 @@ export const FleetDocumentMapUtil = {
       forges:       snapshot.forges.map(forgeOut),
       attention:    snapshot.attention.map((item) => ({ ...attentionItemOut(item), trackerId: item.trackerId })),
       needsALook:   snapshot.needsALook.map((look) => ({ trackerId: look.trackerId, kind: look.kind })),
-      agents:       snapshot.agents.map((row) => ({ ...agentRowOut(row), trackerId: row.trackerId })),
+      agents:       snapshot.agents.map((row) => ({ ...agentRowOut(row), trackerId: row.trackerId, countsAgainstLimit: row.countsAgainstLimit })),
       activity:     snapshot.activity.map((entry) => ({ ...activityEntryOut(entry), trackerId: entry.trackerId })),
       machine:      {
         cpuCount:                     machine.cpuCount,

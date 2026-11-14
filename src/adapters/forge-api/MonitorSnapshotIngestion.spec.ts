@@ -1,7 +1,9 @@
 /**
  * The monitor snapshot ingestion over the snapshots a forge serving every contract answered as Example Storefront (recorded at monitor
- * contract 2, and at monitor contract 1 from the forge at 55beb9cd), read through the forge client. What matters: each recorded snapshot
- * maps to its frozen reading below, the monitor-1 one migrated; a warning of contract 2 keeps its kind, `assistant-down` becoming a notice,
+ * contract 2, and at monitor contract 1 from the forge at 55beb9cd; authored at monitor contract 3 for Flint's brain), read through the
+ * forge client. What matters: each brain state of contract 3 reads as the forge reports it, an ended brain's run as one activity entry with
+ * its tokens, and a forge without Flint, like every snapshot of contracts 2 and 1, as reporting no brain; each recorded snapshot of
+ * contracts 2 and 1 maps to its frozen reading below, migrated; a warning of contract 2 keeps its kind, `assistant-down` becoming a notice,
  * and a warning of contract 1 reads as the kind that names none; the current usage window is read at 2 and unknown at 1; a job's turn and
  * a lost launch stamp read as the forge sends them; a snapshot at a newer `monitorVersion` maps nothing of itself, so no attention entry
  * leaks from it; a malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
@@ -10,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
+import type { FlintBrainSituation }            from '../../testing/RecordedAnswers.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
 import type { ForgeIdentity }       from './@types/ForgeDocumentReading.ts';
@@ -17,6 +20,7 @@ import { MonitorSnapshotIngestion } from './MonitorSnapshotIngestion.ts';
 import {
   EXAMPLE_READ_STAMP,
   recordedDocumentOf,
+  recordedFlintBrainDocumentOf,
   recordedMonitorOneDocumentOf,
   registryFactsOf,
 } from './testing/ExampleForgeDocuments.ts';
@@ -195,6 +199,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'needs-user',
       text:        'Ticket #001 filed: Search suggestions',
       route:       '#kanban/ticket/001',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 1,
@@ -202,6 +208,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'forge',
       text:        'Overseer started on code 2b47322f0984, install version 27',
       route:       null,
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 2,
@@ -209,6 +217,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'needs-user',
       text:        'Decision E1 opened: checks-not-set',
       route:       '#questions/E1',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 3,
@@ -216,6 +226,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'agent',
       text:        'Job J1 launched: assistant (assistant), attempt 1',
       route:       '#agents/J1',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 4,
@@ -223,6 +235,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'forge',
       text:        'Overseer set to running',
       route:       null,
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 5,
@@ -230,6 +244,8 @@ const RECORDED_READING: ForgeReading = {
       category:    'agent',
       text:        'Job J2 launched: onboarder (onboarder), attempt 1',
       route:       '#agents/J2',
+      kind:        null,
+      tokens:      null,
     },
   ],
   today: { deliveredTickets: 0, tokens: 0 },
@@ -239,6 +255,7 @@ const RECORDED_READING: ForgeReading = {
     currentWindow:         null,
     currentWindowResetsAt: null,
   },
+  brain: 'not-reported',
 };
 
 
@@ -372,6 +389,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'needs-user',
       text:        'Ticket #001 filed: Search suggestions',
       route:       '#kanban/ticket/001',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 1,
@@ -379,6 +398,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'forge',
       text:        'Overseer started on code 9fc4e996dd57, install version 27',
       route:       null,
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 2,
@@ -386,6 +407,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'forge',
       text:        'Overseer set to running',
       route:       null,
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 3,
@@ -393,6 +416,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'needs-user',
       text:        'Decision E1 opened: checks-not-set',
       route:       '#questions/E1',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 4,
@@ -400,6 +425,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'agent',
       text:        'Job J1 launched: onboarder (onboarder), attempt 1',
       route:       '#agents/J1',
+      kind:        null,
+      tokens:      null,
     },
     {
       logPosition: 5,
@@ -407,6 +434,8 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
       category:    'agent',
       text:        'Job J2 launched: assistant (assistant), attempt 1',
       route:       '#agents/J2',
+      kind:        null,
+      tokens:      null,
     },
   ],
   today: { deliveredTickets: 0, tokens: 0 },
@@ -416,13 +445,109 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
     currentWindow:         null,
     currentWindowResetsAt: null,
   },
+  brain: 'not-reported',
 };
 
 
 const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
-describe('a snapshot at the known monitor version', () => {
-  test('maps the recorded snapshot of Example Storefront to its reading', async () => {
+/** The code version the monitor-3 answers were authored with; retake it after `bun run record overseer-fetch-monitor-3`. */
+const MONITOR_THREE_CODE_VERSION = '3f9a2c1';
+
+function monitorThreeIngestion(): MonitorSnapshotIngestion {
+  const identity: ForgeIdentity = {
+    ...storefrontIdentityAt(3, MONITOR_THREE_CODE_VERSION),
+    contracts: {
+      summary: 1,
+      monitor: 3,
+      control: 2,
+      embed:   1,
+    },
+  };
+  return new MonitorSnapshotIngestion(STOREFRONT_FACTS, identity);
+}
+
+async function brainSnapshot(situation: FlintBrainSituation): Promise<Record<string, unknown>> {
+  return await recordedFlintBrainDocumentOf(situation, 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
+}
+
+async function brainReadingOf(situation: FlintBrainSituation): Promise<ForgeReading> {
+  const reading = monitorThreeIngestion().readingOf(await brainSnapshot(situation), EXAMPLE_READ_STAMP);
+  if (reading.verdict !== 'readable') throw new Error(`The monitor-3 ${situation} snapshot does not read: ${reading.verdict}.`);
+  return reading.reading;
+}
+
+describe('a snapshot at monitor version 3', () => {
+  test('reads a running brain as the forge reports it, beside the jobs, which it is not one of', async () => {
+    const reading = await brainReadingOf('brain-running');
+    expect(reading.contracts.monitor).toBe(3);
+    expect(reading.brain).toEqual({
+      state:       'running',
+      startedAt:   '2026-11-13T09:58:02+01:00',
+      endsAt:      '2026-11-13T10:00:02+01:00',
+      startedBy:   'gaia',
+      model:       'haiku',
+      effort:      'low',
+      tokens:      1840,
+      calls:       3,
+      recentMoves: [
+        { at: '2026-11-13T09:58:31+01:00', intent: 'watch-agent', emote: null },
+        { at: '2026-11-13T09:58:17+01:00', intent: 'walk-to-column', emote: 'wave' },
+        { at: '2026-11-13T09:58:05+01:00', intent: 'look-around', emote: null },
+      ],
+      endedAt:     null,
+      endedReason: null,
+      sentence:    'Flint\'s brain is running until 10:00',
+      refusal:     null,
+    });
+    expect([reading.agents.map((row) => row.jobId), reading.concurrency?.agentsInFlight]).toEqual([['J1', 'J2'], 0]);
+  });
+
+  test('reads an ended brain with its end, and its run as the one activity entry of its kind, with its tokens, which the day\'s include', async () => {
+    const reading = await brainReadingOf('brain-ended');
+    expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.endedReason, reading.brain.endedAt, reading.brain.tokens])
+      .toEqual(['ended', 'stopped', '2026-11-13T09:59:20+01:00', 2960]);
+    expect(reading.activity.filter((entry) => entry.kind !== null)).toEqual([{
+      logPosition: 6,
+      at:          '2026-11-13T09:59:20+01:00',
+      category:    'agent',
+      text:        'Flint\'s brain stopped after 1:18',
+      route:       null,
+      kind:        'flint-brain',
+      tokens:      2960,
+    }]);
+    expect(reading.today?.tokens).toBe(2960);
+  });
+
+  test('reads a refused start with the forge\'s code and sentence, and no run', async () => {
+    const reading = await brainReadingOf('brain-refused');
+    const sentence = 'Flint\'s brain cannot start while the usage limit holds. It resets at 14:00.';
+    expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.startedAt, reading.brain.refusal])
+      .toEqual(['refused', null, { code: 'usage-limit-holds', sentence }]);
+  });
+
+  test('reads a forge without Flint as one that reports no brain', async () => {
+    expect((await brainReadingOf('no-flint')).brain).toBe('not-reported');
+  });
+
+  test('names a brain key that is missing or fails its check, as a path into the snapshot', async () => {
+    const snapshot = await brainSnapshot('brain-running');
+    const brain = snapshot['flintBrain'] as Record<string, unknown>;
+    const { flintBrain: _droppedBrain, ...withoutBrain } = snapshot;
+    expect(monitorThreeIngestion().readingOf(withoutBrain, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['flintBrain'] });
+    const broken = { ...snapshot, flintBrain: { ...brain, state: 'asleep', recentMoves: [{ at: 'now', intent: 7, emote: null }] } };
+    expect(monitorThreeIngestion().readingOf(broken, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['flintBrain.state', 'flintBrain.recentMoves[0].intent'] });
+  });
+
+  test('reads no brain from a monitor-2 snapshot, even one that carries a brain contract 2 does not have', async () => {
+    const brain = (await brainSnapshot('brain-running'))['flintBrain'];
+    const reading = ingestion().readingOf({ ...await storefrontSnapshot(), flintBrain: brain }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? reading.reading.brain : null).toBe('not-reported');
+  });
+});
+
+describe('a snapshot at monitor version 2, which Gaia still reads', () => {
+  test('maps the recorded snapshot of Example Storefront to its reading, which reports no brain', async () => {
     expect(ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: RECORDED_READING });
   });
 
@@ -494,7 +619,7 @@ describe('a snapshot at the known monitor version', () => {
 });
 
 describe('a snapshot at monitor version 1, which Gaia still reads', () => {
-  test('migrates the recorded monitor-1 snapshot of Example Storefront to its reading, naming the monitor contract the forge serves', async () => {
+  test('migrates the recorded monitor-1 snapshot of Example Storefront to its reading, naming the monitor contract the forge serves and no brain', async () => {
     expect(monitorOneIngestion().readingOf(await monitorOneStorefrontSnapshot(), EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: RECORDED_READING_OF_MONITOR_ONE });
   });
 
@@ -564,6 +689,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       activity:          [],
       today:             null,
       usage:             null,
+      brain:             'not-reported',
     });
   });
 

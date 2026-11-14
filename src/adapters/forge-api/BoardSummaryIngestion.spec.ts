@@ -136,6 +136,7 @@ describe('a summary at the known version', () => {
           currentWindow:         null,
           currentWindowResetsAt: null,
         },
+        brain: 'not-reported',
       },
     });
   });

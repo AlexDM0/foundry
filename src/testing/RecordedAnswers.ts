@@ -85,8 +85,8 @@ export interface RecordedOverseerFetch extends OverseerFetch {
 }
 
 /**
- * The recordings taken from a forge before F1, from a forge that serves every contract at the monitor contract this Gaia knows, and from
- * programs that are no forge. Each situation's call shapes are unique across them.
+ * The recordings taken from a forge before F1, from a forge that serves every contract at monitor contract 2, and from programs that are
+ * no forge. Each situation's call shapes are unique across them.
  */
 export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-every-contract', 'overseer-fetch-other-programs'] as const;
 

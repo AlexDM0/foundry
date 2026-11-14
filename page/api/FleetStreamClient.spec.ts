@@ -1,8 +1,9 @@
 /**
  * The fleet stream client. What matters (W4.3; SCREENS "The shell", the connection banner): each `fleet` event's document is published;
  * a stream that errs reads `lost` at once, is closed, and is opened again only when its reopen is due, read `lost` until it opens; a
- * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion` reloads
- * the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without end.
+ * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion`, newer or
+ * older, reloads the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without
+ * end.
  *
  * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends (PLAN 8.1: `fleet`
  * events and a heartbeat); the reopen is a schedule the spec runs, so no spec waits the interval.
@@ -221,6 +222,16 @@ describe('another fleetVersion', () => {
     expect([stage.marks, stage.reloads, stage.published]).toEqual([[NEWER_FLEET_VERSION_MARK], ['reloaded'], []]);
     expect(stage.latest().isClosed()).toBe(true);
     expect(stage.scheduled).toEqual([]);
+  });
+
+  test('a document of each older fleetVersion, version 1 and the one before this page\'s, is refused as version 1 is: one reload and nothing published', () => {
+    const olderVersions = Array.from({ length: FLEET_FIVE_FORGES.fleetVersion - 1 }, (_unused, i) => i + 1);
+    expect(olderVersions).toEqual([1, 2]);
+    for (const olderVersion of olderVersions) {
+      const stage = followedAndLive(streamStage());
+      stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: olderVersion }));
+      expect([olderVersion, stage.marks, stage.reloads, stage.published, stage.latest().isClosed()]).toEqual([olderVersion, [String(olderVersion)], ['reloaded'], [], true]);
+    }
   });
 
   test('after the reload, the same version again does not reload: the page reads out of date and follows no more', () => {

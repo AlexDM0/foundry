@@ -6,9 +6,11 @@ import type { ForgeDocumentAnswer } from '../../../lib/forge-client/@types/Forge
 import { forgeClientOf }            from '../../../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }        from '../../../shared/@types/ForgeReading.ts';
 import {
+  recordedFlintBrainAnswersOf,
   recordedMonitorOneAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
+  type FlintBrainSituation,
   type OverseerSituation,
   type RecordedOverseerAnswer,
 } from '../../../testing/RecordedAnswers.ts';
@@ -39,6 +41,13 @@ export async function recordedDocumentOf(situation: OverseerSituation, route: Fo
 export async function recordedMonitorOneDocumentOf(situation: OverseerSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
   const answer = await documentAnsweredOf(recordedMonitorOneAnswersOf(situation), route, overseerUrl);
   if (answer.verdict !== 'answered') throw new Error(`The monitor-1 ${situation} answers hold no ${route} document: ${answer.verdict}.`);
+  return answer.document;
+}
+
+/** The same, from the forge at monitor contract 3 in one state of Flint's brain. */
+export async function recordedFlintBrainDocumentOf(situation: FlintBrainSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
+  const answer = await documentAnsweredOf(recordedFlintBrainAnswersOf(situation), route, overseerUrl);
+  if (answer.verdict !== 'answered') throw new Error(`The monitor-3 ${situation} answers hold no ${route} document: ${answer.verdict}.`);
   return answer.document;
 }
 

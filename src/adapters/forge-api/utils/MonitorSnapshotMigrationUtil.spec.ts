@@ -1,12 +1,13 @@
 /**
- * The migration of a checked monitor snapshot of contract 1 to contract 2's shape, against its own contract. What matters: each warning,
- * the forge's sentence alone, keeps its sentence under the kind that names no kind, in order; the usage limit hit is kept and the current
- * window, which contract 1 does not report, is `null`; the document keeps its own `monitorVersion` and every other key as it was.
+ * The migration of a checked monitor snapshot of contract 1 or 2 to contract 3's shape, against its own contract. What matters: neither
+ * knows Flint, so the brain reads as absent; each warning of contract 1, the forge's sentence alone, keeps its sentence under the kind that
+ * names no kind, in order; the usage limit hit is kept and the current window, which contract 1 does not report, is `null`; the document
+ * keeps its own `monitorVersion` and every other key as it was.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { MonitorSnapshotDocumentOfVersionOne }                 from '../@types/MonitorSnapshotDocument.ts';
-import { FORGE_WARNING_WITHOUT_KIND, MonitorSnapshotMigrationUtil } from './MonitorSnapshotMigrationUtil.ts';
+import type { MonitorSnapshotDocumentOfVersionOne, MonitorSnapshotDocumentOfVersionTwo } from '../@types/MonitorSnapshotDocument.ts';
+import { FORGE_WARNING_WITHOUT_KIND, MonitorSnapshotMigrationUtil }                      from './MonitorSnapshotMigrationUtil.ts';
 
 const SNAPSHOT_OF_VERSION_ONE: MonitorSnapshotDocumentOfVersionOne = {
   monitorVersion: 1,
@@ -38,14 +39,14 @@ const SNAPSHOT_OF_VERSION_ONE: MonitorSnapshotDocumentOfVersionOne = {
 
 describe('a snapshot of monitor contract 1', () => {
   test('keeps each warning\'s sentence, in order, under the kind that names no kind', () => {
-    expect(MonitorSnapshotMigrationUtil.currentDocumentOf(SNAPSHOT_OF_VERSION_ONE).warnings).toEqual([
+    expect(MonitorSnapshotMigrationUtil.currentDocumentOfVersionOne(SNAPSHOT_OF_VERSION_ONE).warnings).toEqual([
       { kind: FORGE_WARNING_WITHOUT_KIND, text: 'the Baton pass to code example-code failed at take-baton: Example error' },
       { kind: FORGE_WARNING_WITHOUT_KIND, text: 'no Assistant can come up: open incidents take their defaults' },
     ]);
   });
 
   test('keeps the usage limit hit and knows no current window', () => {
-    expect(MonitorSnapshotMigrationUtil.currentDocumentOf(SNAPSHOT_OF_VERSION_ONE).usage).toEqual({
+    expect(MonitorSnapshotMigrationUtil.currentDocumentOfVersionOne(SNAPSHOT_OF_VERSION_ONE).usage).toEqual({
       resetsAt:              '2026-11-12T15:00:00.000Z',
       window:                'five_hour',
       currentWindow:         null,
@@ -53,10 +54,36 @@ describe('a snapshot of monitor contract 1', () => {
     });
   });
 
+  test('reads as a forge without Flint', () => {
+    expect(MonitorSnapshotMigrationUtil.currentDocumentOfVersionOne(SNAPSHOT_OF_VERSION_ONE).flintBrain).toBeNull();
+  });
+
   test('keeps its monitorVersion and every other key as it was', () => {
-    const { warnings: _migratedWarnings, usage: _migratedUsage, ...unchanged } = MonitorSnapshotMigrationUtil.currentDocumentOf(SNAPSHOT_OF_VERSION_ONE);
+    const {
+      warnings: _migratedWarnings, usage: _migratedUsage, flintBrain: _migratedBrain, ...unchanged
+    } = MonitorSnapshotMigrationUtil.currentDocumentOfVersionOne(SNAPSHOT_OF_VERSION_ONE);
     const { warnings: _sentWarnings, usage: _sentUsage, ...sent } = SNAPSHOT_OF_VERSION_ONE;
     expect(unchanged).toEqual(sent);
     expect(unchanged.monitorVersion).toBe(1);
+  });
+});
+
+const SNAPSHOT_OF_VERSION_TWO: MonitorSnapshotDocumentOfVersionTwo = {
+  ...SNAPSHOT_OF_VERSION_ONE,
+  monitorVersion: 2,
+  warnings:       [{ kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' }],
+  usage:          {
+    resetsAt:              null,
+    window:                null,
+    currentWindow:         'five_hour',
+    currentWindowResetsAt: '2026-11-12T15:00:00.000Z',
+  },
+};
+
+describe('a snapshot of monitor contract 2', () => {
+  test('reads as a forge without Flint, and keeps its monitorVersion and every other key as it was', () => {
+    const { flintBrain, ...unchanged } = MonitorSnapshotMigrationUtil.currentDocumentOfVersionTwo(SNAPSHOT_OF_VERSION_TWO);
+    expect(flintBrain).toBeNull();
+    expect(unchanged).toEqual(SNAPSHOT_OF_VERSION_TWO);
   });
 });

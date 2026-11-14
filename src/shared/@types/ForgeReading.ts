@@ -1,7 +1,8 @@
 /** One forge as Gaia last read it, at the fidelity its contracts allow. Internal only, so it carries no version. */
-import type { ActivityEntry } from './ActivityEntry.ts';
-import type { AgentRow }      from './AgentRow.ts';
-import type { AttentionItem } from './AttentionItem.ts';
+import type { ActivityEntry }     from './ActivityEntry.ts';
+import type { AgentRow }          from './AgentRow.ts';
+import type { AttentionItem }     from './AttentionItem.ts';
+import type { ForgeBrainReading } from './ForgeBrain.ts';
 
 export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
@@ -71,4 +72,5 @@ export interface ForgeReading {
   activity:          ActivityEntry[];
   today:             ForgeToday | null;
   usage:             ForgeUsage | null;
+  brain:             ForgeBrainReading;
 }

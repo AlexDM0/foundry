@@ -86,6 +86,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   activity:          [],
   today:             null,
   usage:             USAGE_OF_A_SUMMARY,
+  brain:             'not-reported',
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -98,7 +99,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   processId: 49_012,
   contracts: {
     summary: 1,
-    monitor: 3,
+    monitor: 4,
     control: 2,
     embed:   1,
   },
@@ -118,7 +119,10 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   activity:          [],
   today:             null,
   usage:             null,
+  brain:             'not-reported',
 };
+
+const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };
 
 const READ_IN_FULL_OR_AS_LAST_REPORTED = new Set<string>([TRACKER_IDS.exampleStorefront, TRACKER_IDS.invoiceService, TRACKER_IDS.exampleMobileApp]);
 
@@ -132,7 +136,7 @@ export const FLEET_DEGRADED: FleetDocument = {
     { trackerId: TRACKER_IDS.exampleMobileApp, kind: 'launches-held' },
     { trackerId: TRACKER_IDS.analyticsSandbox, kind: 'newer-contract' },
   ],
-  agents:   FLEET_FIVE_FORGES.agents.map((row) => (row.trackerId === TRACKER_IDS.researchWiki ? { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki } : row)),
+  agents:   FLEET_FIVE_FORGES.agents.map((row) => (row.trackerId === TRACKER_IDS.researchWiki ? WIKI_COUNTS_ONLY_J2_ROW : row)),
   activity: FLEET_FIVE_FORGES.activity.filter((entry) => READ_IN_FULL_OR_AS_LAST_REPORTED.has(entry.trackerId)),
   machine:  { cpuCount: 12, agentsAskedForByForgeLimits: 12, ticketsWaitingForMachineSlot: 0 },
   figures:  {

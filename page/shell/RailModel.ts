@@ -1,7 +1,7 @@
 /**
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
  * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
- * does not hold is absent, never zero.
+ * does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit, so it is never counted.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
@@ -110,7 +110,7 @@ function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailC
     case 'attention':
       return attentionCountOf(fleetDocument);
     case 'agents':
-      return { text: String(fleetDocument.agents.length), tone: 'muted' };
+      return { text: String(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length), tone: 'muted' };
     case 'forges':
       return { text: String(visibleForgesOf(fleetDocument).length), tone: 'muted' };
     case 'activity':

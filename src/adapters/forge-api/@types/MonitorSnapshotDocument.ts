@@ -1,11 +1,12 @@
 /**
  * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys Gaia reads, after their check, at
- * `monitorVersion: 2`, and the keys of `monitorVersion: 1` that differ, which the ingestion migrates. Keys Gaia does not read, such as
- * `ticketCountByStatus` and the Overseer's `generation`, are passed over.
+ * `monitorVersion: 3`, and the keys of `monitorVersion: 2` and `1` that differ, which the ingestion migrates. Keys Gaia does not read, such
+ * as `ticketCountByStatus` and the Overseer's `generation`, are passed over.
  */
 import type { ActivityCategory }                                        from '../../../shared/@types/ActivityEntry.ts';
 import type { JobTurn }                                                 from '../../../shared/@types/AgentRow.ts';
 import type { AttentionActionLabel, AttentionKind, AttentionStampWord } from '../../../shared/@types/AttentionItem.ts';
+import type { BrainEndedReason, BrainStartedBy, BrainState }            from '../../../shared/@types/ForgeBrain.ts';
 
 export type MonitorOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton';
 
@@ -75,12 +76,15 @@ export interface MonitorNoticeDocument {
   readonly text: string;
 }
 
+/** Monitor contract 3 adds `kind` and `tokens` to the entry an ended brain leaves (G2); every other entry leaves them out. */
 export interface MonitorActivityEntryDocument {
   readonly logPosition: number;
   readonly at:          string;
   readonly category:    ActivityCategory;
   readonly text:        string;
   readonly route:       string | null;
+  readonly kind?:       string | null;
+  readonly tokens?:     number | null;
 }
 
 export interface MonitorTodayDocument {
@@ -100,6 +104,35 @@ export interface MonitorUsageDocument extends UsageLimitDocument {
   readonly currentWindowResetsAt: string | null;
 }
 
+export interface MonitorFlintBrainMoveDocument {
+  readonly at:     string;
+  readonly intent: string;
+  readonly emote:  string | null;
+}
+
+export interface MonitorFlintBrainRefusalDocument {
+  readonly code:     string;
+  readonly sentence: string;
+}
+
+/** Flint's brain as the forge reports it (G1): `ended` and `refused` stay until the next start or for 60 seconds. */
+export interface MonitorFlintBrainDocument {
+  readonly state:       BrainState;
+  readonly startedAt:   string | null;
+  readonly endsAt:      string | null;
+  readonly startedBy:   BrainStartedBy | null;
+  readonly model:       string | null;
+  readonly effort:      string | null;
+  readonly tokens:      number | null;
+  readonly calls:       number | null;
+  /** At most five, newest first. */
+  readonly recentMoves: readonly MonitorFlintBrainMoveDocument[];
+  readonly endedAt:     string | null;
+  readonly endedReason: BrainEndedReason | null;
+  readonly sentence:    string | null;
+  readonly refusal:     MonitorFlintBrainRefusalDocument | null;
+}
+
 export interface MonitorSnapshotDocument {
   readonly monitorVersion: number;
   readonly trackerId:      string;
@@ -117,10 +150,15 @@ export interface MonitorSnapshotDocument {
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
   readonly activity:       readonly MonitorActivityEntryDocument[];
+  /** `null` for a forge without Flint. */
+  readonly flintBrain:     MonitorFlintBrainDocument | null;
 }
 
+/** Monitor contract 2 knows no Flint. */
+export type MonitorSnapshotDocumentOfVersionTwo = Omit<MonitorSnapshotDocument, 'flintBrain'>;
+
 /** Monitor contract 1 sends each header warning as the forge's sentence alone, and a usage without the current window. */
-export interface MonitorSnapshotDocumentOfVersionOne extends Omit<MonitorSnapshotDocument, 'warnings' | 'usage'> {
+export interface MonitorSnapshotDocumentOfVersionOne extends Omit<MonitorSnapshotDocumentOfVersionTwo, 'warnings' | 'usage'> {
   readonly warnings: readonly string[];
   readonly usage:    UsageLimitDocument;
 }

@@ -1,9 +1,9 @@
 /**
- * What the Agents view shows of a fleet document (SCREENS A2). What matters: the status line counts the document's rows, forges and
- * tokens (821,300 for `fleet-five-forges`); each filter's count is what pressing it would leave; "Needs a look" leaves exactly the rows the
- * forge flags; a Calls meter exists only beside a budget; a `counts-only` forge's row holds `null` wherever its summary is silent; the
- * selection, kept in the route, survives a new document and turns into "no longer running" when its job ends; and every link goes where
- * SCREENS says, keeping the filters.
+ * What the Agents view shows of a fleet document (SCREENS A2). What matters: the status line counts the document's job rows, forges and
+ * tokens (821,300 for `fleet-five-forges`), and a running brain's row is not drawn among them; each filter's count is what pressing it
+ * would leave; "Needs a look" leaves exactly the rows the forge flags; a Calls meter exists only beside a budget; a `counts-only` forge's
+ * row holds `null` wherever its summary is silent; the selection, kept in the route, survives a new document and turns into "no longer
+ * running" when its job ends; and every link goes where SCREENS says, keeping the filters.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -63,9 +63,11 @@ describe('the status line and the filters\' counts', () => {
 });
 
 describe('the rows the filters leave', () => {
-  test('with no filter the rows are the document\'s ten, in the document\'s order', () => {
+  test('with no filter the rows are the document\'s ten job rows, in the document\'s order, and not its running brain\'s', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
-    expect(content.rows.map((row) => row.key)).toEqual(FLEET_FIVE_FORGES.agents.map((row) => `${row.trackerId}/${row.jobId}`));
+    const jobRows = FLEET_FIVE_FORGES.agents.filter((row) => row.countsAgainstLimit);
+    expect(content.rows.map((row) => row.key)).toEqual(jobRows.map((row) => `${row.trackerId}/${row.jobId}`));
+    expect(jobRows).toHaveLength(FLEET_FIVE_FORGES.agents.length - 1);
   });
 
   test('"Needs a look" leaves exactly the agent waiting on E2 and the quiet one', () => {

@@ -1,7 +1,8 @@
 /**
  * The rail's model, on the four fleet fixtures. What matters (SCREENS "The shell", acceptance 1): each count is the fleet document's own
- * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the agent rows; Forges
- * and the forge rows count and list the forges not hidden, in registry order. A count the document does not hold is absent, never 0.
+ * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the job rows, never a
+ * running brain's (shell acceptance 2: 10 with the brain running on Example Storefront); Forges and the forge rows count and list the forges
+ * not hidden, in registry order. A count the document does not hold is absent, never 0.
  * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
  * this machine's line at, under and without a limit.
  */
@@ -40,7 +41,7 @@ describe('each rail count is the fleet document\'s figure for its row', () => {
       const attentionFigure = waitingOnUser === 0 && incompleteFor.length === 0 ? null : `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`;
       expect(viewCountsOf(content)).toEqual({
         attention: attentionFigure,
-        agents:    String(fleetDocument.agents.length),
+        agents:    String(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length),
         activity:  null,
         forges:    String(fleetDocument.forges.length),
       });

@@ -9,8 +9,10 @@ export interface FleetAttentionItem extends AttentionItem {
   trackerId: string;
 }
 
+/** A job counts against its forge's limit and the machine's; a brain's row does not (PLAN 7.5). */
 export interface FleetAgentRow extends AgentRow {
-  trackerId: string;
+  trackerId:          string;
+  countsAgainstLimit: boolean;
 }
 
 export interface FleetActivityEntry extends ActivityEntry {

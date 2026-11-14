@@ -11,7 +11,9 @@ What is agreed and not started, with the reason it waits.
   requirements G1 to G3 (monitor contract 3 and control contract 2), which no forge serves yet. Once one does, `bun run record
   overseer-fetch-monitor-3` takes it and `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec reaches a
   running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or
-  to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one.
+  to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended brain's
+  activity entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'`
+  and `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
 - **The embed channel's messages are recorded from a real Bridge.** `page/testing/AuthoredBridge.ts` holds the Bridge's messages as
   authored from FORGE_REQUIREMENTS F5; they match the forge's `bridge/shell/VersionedEmbedChannel.ts` at 55beb9cd. The forge serves F5
   now, but a recording needs a recording boundary of its own: the browser framing a live Bridge from Gaia's origin and collecting what it

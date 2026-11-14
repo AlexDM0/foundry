@@ -18,6 +18,11 @@ import {
 } from './AgentsFilters.ts';
 import { AgentTextUtil } from './utils/AgentTextUtil.ts';
 
+/** The rows this view draws are the jobs: a running brain's row counts against no limit and is not one of them. */
+function jobRowsOf(fleetDocument: FleetDocument): FleetDocumentFleetAgentRow[] {
+  return fleetDocument.agents.filter((row) => row.countsAgainstLimit);
+}
+
 export interface AgentFlag {
   readonly text: string;
   readonly tone: TagTone;
@@ -213,7 +218,7 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
   const { fleetDocument, selectedAgent } = input;
   if (selectedAgent === null) return { kind: 'none-selected' };
   const project = projectOf(fleetDocument, selectedAgent.trackerId);
-  const row = fleetDocument.agents.find((candidate) => isTheSelectedAgent(candidate, selectedAgent));
+  const row = jobRowsOf(fleetDocument).find((candidate) => isTheSelectedAgent(candidate, selectedAgent));
   if (row === undefined) return { kind: 'no-longer-running', jobId: selectedAgent.jobId, project };
   return {
     kind:          'running',
@@ -232,7 +237,7 @@ function selectedContentOf(input: AgentsModelInput): SelectedAgentContent {
 
 /** With no agent there is no forge or token to count, so the line says only that none works. */
 function statusTextOf(fleetDocument: FleetDocument): string {
-  const { agents } = fleetDocument;
+  const agents = jobRowsOf(fleetDocument);
   if (agents.length === 0) return '0 working';
   const forgeCount = new Set(agents.map((row) => row.trackerId)).size;
   const tokens = agents.reduce((sum, row) => sum + row.tokens, 0);
@@ -242,7 +247,7 @@ function statusTextOf(fleetDocument: FleetDocument): string {
 
 /** Each filter counts the rows it would leave beside the other filter as it stands. */
 function roleOptionsOf(fleetDocument: FleetDocument, condition: AgentConditionFilter): SegmentOption<AgentRoleFilter>[] {
-  const rows = fleetDocument.agents.filter((row) => AgentsFilters.rowPassesConditionFilter(row, condition));
+  const rows = jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesConditionFilter(row, condition));
   const countOf = (role: AgentRoleFilter) => rows.filter((row) => AgentsFilters.rowPassesRoleFilter(row, role)).length;
   return [
     { value: 'all', label: 'All', count: countOf('all') },
@@ -252,7 +257,7 @@ function roleOptionsOf(fleetDocument: FleetDocument, condition: AgentConditionFi
 }
 
 function conditionOptionsOf(fleetDocument: FleetDocument, role: AgentRoleFilter): SegmentOption<AgentConditionFilter>[] {
-  const rows = fleetDocument.agents.filter((row) => AgentsFilters.rowPassesRoleFilter(row, role));
+  const rows = jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesRoleFilter(row, role));
   return [
     { value: 'every-agent', label: 'Every agent' },
     { value: 'needs-a-look', label: 'Needs a look', count: rows.filter((row) => AgentsFilters.agentNeedsALook(row)).length },
@@ -263,11 +268,11 @@ function agentsContentOf(input: AgentsModelInput): AgentsContent {
   const { fleetDocument, query } = input;
   const filters = AgentsFilters.filtersOf(query);
   return {
-    agentCount:       fleetDocument.agents.length,
+    agentCount:       jobRowsOf(fleetDocument).length,
     filters,
     roleOptions:      roleOptionsOf(fleetDocument, filters.condition),
     conditionOptions: conditionOptionsOf(fleetDocument, filters.role),
-    rows:             fleetDocument.agents.filter((row) => AgentsFilters.rowPassesFilters(row, filters)).map((row) => rowContentOf(input, filters, row)),
+    rows:             jobRowsOf(fleetDocument).filter((row) => AgentsFilters.rowPassesFilters(row, filters)).map((row) => rowContentOf(input, filters, row)),
     selected:         selectedContentOf(input),
     machine:          RailModel.machineOf(fleetDocument),
   };
