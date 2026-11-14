@@ -51,7 +51,7 @@ export interface AttentionRow {
   readonly condition:     DotCondition;
   readonly conditionWord: string;
   readonly kindText:      string;
-  readonly kindTone:      TagTone;
+  readonly kindTone:      Exclude<TagTone, 'state'>;
   readonly idText:        string;
   readonly subject:       string;
   readonly metaText:      string;

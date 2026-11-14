@@ -27,7 +27,7 @@ function jobRowsOf(fleetDocument: FleetDocument): FleetDocumentFleetAgentRow[] {
 
 export interface AgentFlag {
   readonly text: string;
-  readonly tone: TagTone;
+  readonly tone: Exclude<TagTone, 'state'>;
 }
 
 export type AgentMeterTone = 'neutral' | 'builder' | 'reviewer' | 'paused';
