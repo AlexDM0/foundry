@@ -652,7 +652,10 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
       'starting', 'Starting', 'forge start · waiting for its API', [{ kind: 'waiting', label: 'Starting' }],
     ]);
     expect(starting.agents).toMatchObject({
-      kind: 'stepper', inFlight: 0, limit: 2, disabled: true
+      kind:     'stepper',
+      inFlight: 0,
+      limit:    2,
+      disabled: true,
     });
     answerStart(answerResponse(DONE));
     await start;
