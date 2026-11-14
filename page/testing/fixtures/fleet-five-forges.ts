@@ -739,7 +739,7 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
     agentsInFlight:               0,
     machineLimit:                 12,
     machineAgentsInFlight:        9,
-    ticketsWaitingForMachineSlot: 0,
+    ticketsWaitingForMachineSlot: null,
   },
   readyTicketCount: 3,
   openIncidents:    0,

@@ -88,6 +88,14 @@ describe('machineFactsOf', () => {
     });
   });
 
+  test('counts no ticket waiting for a slot from a forge that is not read in full now, whatever it reported before', () => {
+    const stoppedWhileTicketsWaited     = readingWithConcurrency(READINGS.designSystem, { ticketsWaitingForMachineSlot: 2 });
+    const unreachableWhileTicketsWaited = { ...readingWithConcurrency(READINGS.invoiceService, { ticketsWaitingForMachineSlot: 3 }), fidelity: 'unreachable' as const };
+    const waitingForSlots               = readingWithConcurrency(READINGS.exampleStorefront, { ticketsWaitingForMachineSlot: 1 });
+    expect(FigureUtil.machineFactsOf([stoppedWhileTicketsWaited, unreachableWhileTicketsWaited, waitingForSlots], 12).ticketsWaitingForMachineSlot).toBe(1);
+    expect(FigureUtil.machineFactsOf([stoppedWhileTicketsWaited], 12).ticketsWaitingForMachineSlot).toBeNull();
+  });
+
   test('leaves the tickets waiting for a slot null while no forge reports a machine limit', () => {
     expect(FigureUtil.machineFactsOf([countsOnlyWiki(), READINGS.legacyImporter], 8)).toEqual({
       cpuCount:                     8,

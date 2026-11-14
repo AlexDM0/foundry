@@ -711,7 +711,7 @@ const DESIGN_SYSTEM: ForgeReading = {
     agentsInFlight:               0,
     machineLimit:                 12,
     machineAgentsInFlight:        9,
-    ticketsWaitingForMachineSlot: 0,
+    ticketsWaitingForMachineSlot: null,
   },
   readyTicketCount: 3,
   openIncidents:    0,

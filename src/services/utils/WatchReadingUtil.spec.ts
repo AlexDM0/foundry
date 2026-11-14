@@ -30,6 +30,14 @@ const EXAMPLE_OVERSEER = {
   tokenPath: '/Users/alexexample/.forge-monitor/watchers/design-system-91c2/token',
 } as const;
 
+const LIVE_CONCURRENCY = {
+  limit:                        2,
+  agentsInFlight:               1,
+  machineLimit:                 12,
+  machineAgentsInFlight:        12,
+  ticketsWaitingForMachineSlot: 0,
+} as const;
+
 /** The Design System forge as it was read in full just before its stop: what the fixture keeps, and what a running Overseer adds. */
 const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
   ...READINGS.designSystem,
@@ -56,6 +64,12 @@ describe('a dormant forge', () => {
   test('keeps what it reported in this run about its board, log and limits, and loses its address, jobs, brain, what waits and today', () => {
     const dormant = WatchReadingUtil.dormantReadingOf(entryOf(READINGS.designSystem, null), DESIGN_SYSTEM_BEFORE_THE_STOP);
     expect(dormant).toEqual(READINGS.designSystem);
+  });
+
+  test('keeps its limits but loses the tickets that waited for a machine slot before its stop', () => {
+    const stoppedWhileTicketsWaited = { ...DESIGN_SYSTEM_BEFORE_THE_STOP, concurrency: { ...LIVE_CONCURRENCY, ticketsWaitingForMachineSlot: 2 } };
+    const dormant = WatchReadingUtil.dormantReadingOf(entryOf(READINGS.designSystem, null), stoppedWhileTicketsWaited);
+    expect(dormant.concurrency).toEqual({ ...LIVE_CONCURRENCY, ticketsWaitingForMachineSlot: null });
   });
 
   test('shows only what the registry says when this run read nothing of it', () => {

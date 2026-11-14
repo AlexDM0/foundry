@@ -50,8 +50,10 @@ function figuresOf(readings: readonly ForgeReading[], waitingOnUser: number): Fl
   };
 }
 
+/** Only a forge read in full now has tickets waiting now; a reading kept from before a stop or a lost connection says what waited then. */
 function machineFactsOf(readings: readonly ForgeReading[], cpuCount: number): MachineFacts {
-  const ticketsWaiting = reportedValues(readings, (reading) => reading.concurrency?.ticketsWaitingForMachineSlot);
+  const readInFull     = readings.filter((reading) => reading.fidelity === 'full');
+  const ticketsWaiting = reportedValues(readInFull, (reading) => reading.concurrency?.ticketsWaitingForMachineSlot);
   return {
     cpuCount,
     agentsAskedForByForgeLimits:  sumOf(reportedValues(readings, (reading) => reading.concurrency?.limit)),
