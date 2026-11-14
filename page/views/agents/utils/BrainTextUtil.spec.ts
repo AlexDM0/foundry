@@ -39,6 +39,10 @@ describe('words and figures', () => {
     expect([950, 3_100, 12_000, 1_250_000].map((count) => BrainTextUtil.shortCountText(count))).toEqual(['950', '3.1k', '12k', '1.3M']);
   });
 
+  test('a count just under a million rounds up into millions, never reading as a thousand thousands', () => {
+    expect([999_940, 999_950].map((count) => BrainTextUtil.shortCountText(count))).toEqual(['999.9k', '1M']);
+  });
+
   test('the four-bar mark knows low to max, and no other word', () => {
     expect(['low', 'medium', 'high', 'max', 'xhigh'].map((effort) => BrainTextUtil.effortLevelOf(effort))).toEqual([1, 2, 3, 4, null]);
   });

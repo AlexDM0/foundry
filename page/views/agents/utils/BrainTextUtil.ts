@@ -69,15 +69,16 @@ function clockTimeToTheSecondOf(stamp: string, timeZone: string | undefined): st
   }).format(epochMilliseconds);
 }
 
-function withoutATrailingZero(value: number): string {
-  return String(Math.round(value * TENTHS_PER_UNIT) / TENTHS_PER_UNIT);
+function roundedToTenths(value: number): number {
+  return Math.round(value * TENTHS_PER_UNIT) / TENTHS_PER_UNIT;
 }
 
-/** `950`, `3.1k`, `12k`, `1.2M`: a brain's tokens are few, so they read at a glance. */
+/** `950`, `3.1k`, `12k`, `1.2M`: a brain's tokens are few, so they read at a glance. Rounding picks the unit, so no count reads `1000k`. */
 function shortCountText(count: number): string {
   if (count < THOUSAND) return String(count);
-  if (count < MILLION) return `${withoutATrailingZero(count / THOUSAND)}k`;
-  return `${withoutATrailingZero(count / MILLION)}M`;
+  const thousands = roundedToTenths(count / THOUSAND);
+  if (thousands < THOUSAND) return `${thousands}k`;
+  return `${roundedToTenths(count / MILLION)}M`;
 }
 
 function effortLevelOf(effort: string): number | null {
