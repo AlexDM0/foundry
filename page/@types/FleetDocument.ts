@@ -113,7 +113,7 @@ export interface FleetDocumentBrainMove {
   emote:  string | null;
 }
 
-/** `sentence` is `null` when the forge's names a command Gaia has no words for (D10); the page then words the refusal from its code. */
+/** `sentence` is `null` when the forge's sentence names a command Gaia has no words for (D10); the page then words the refusal from its code. */
 export interface FleetDocumentBrainRefusal {
   code:     string;
   sentence: string | null;
