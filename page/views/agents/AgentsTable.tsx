@@ -5,6 +5,7 @@
  */
 import { Button }         from 'design-system/Button';
 import { FillMeter }      from 'design-system/FillMeter';
+import { MonoId }         from 'design-system/MonoId';
 import { SlotMeter }      from 'design-system/SlotMeter';
 import type { StateTone } from 'design-system/StateTone';
 import { Tag }            from 'design-system/Tag';
@@ -102,7 +103,7 @@ function TicketCell({ row }: { readonly row: AgentRowContent }) {
     <span className="gaia-agents-ticket-cell">
       {hasTicket ? (
         <span className="gaia-agents-ticket">
-          {row.ticketIdsText === null ? null : <span className="gaia-agents-ticket-ids">{row.ticketIdsText}</span>}
+          {row.ticketIdsText === null ? null : <MonoId text={row.ticketIdsText} />}
           {row.ticketIdsText !== null && row.ticketTitle !== null ? ' ' : null}
           {row.ticketTitle}
         </span>

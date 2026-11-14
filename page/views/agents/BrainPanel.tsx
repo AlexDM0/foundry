@@ -7,6 +7,7 @@ import { Button }           from 'design-system/Button';
 import { FactList }         from 'design-system/FactList';
 import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
 import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
+import { Stamp }            from 'design-system/Stamp';
 import { Text }             from 'design-system/Text';
 import type { ReactNode }   from 'react';
 
@@ -127,7 +128,7 @@ function RunningBrainPanel({ content, handlers }: { readonly content: RunningBra
             <ol className="gaia-agents-panel-moves" aria-label="Last moves of Flint's brain">
               {content.moves.map((move) => (
                 <li key={move.key} className="gaia-agents-panel-move">
-                  <span className="gaia-agents-panel-move-at">{move.atText}</span>
+                  <span className="gaia-agents-panel-move-at"><Stamp shortText={move.atText} /></span>
                   <span className="gaia-agents-panel-move-text">{move.text}</span>
                 </li>
               ))}

@@ -7,7 +7,9 @@
 import { Button }                    from 'design-system/Button';
 import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
 import { CountBadge }                from 'design-system/CountBadge';
+import { EmptyState }                from 'design-system/EmptyState';
 import { NumberStepper }             from 'design-system/NumberStepper';
+import { SectionHead }               from 'design-system/SectionHead';
 import { SlotMeter }                 from 'design-system/SlotMeter';
 import { StatePill }                 from 'design-system/StatePill';
 import { Text }                      from 'design-system/Text';
@@ -69,7 +71,6 @@ const COLUMNS: readonly DataTableColumn<ForgeColumn>[] = [
 /** The tracks live in tokens.css with every other size. */
 const COLUMN_WIDTHS = 'var(--forges-table-columns)';
 
-const NOT_FOUND_HEAD_ID = 'gaia-forges-not-found-head';
 const MACHINE_HEAD_ID = 'gaia-forges-machine-head';
 
 const LOOK_AGAIN_SUBJECT: CommandSubject = { fleetCommand: 'fleet-look-again' };
@@ -440,11 +441,11 @@ export function ForgesLayout({
               columnGap="narrow"
             />
           )
-          : <p className="gaia-forges-empty">{content.emptySentence}</p>}
+          : <EmptyState text={content.emptySentence} />}
         {content.heldBanners.map((banner) => <HeldBannerCard key={banner.trackerId} banner={banner} handlers={handlers} />)}
         {content.notFound.length === 0 ? null : (
-          <section className="gaia-forges-group" aria-labelledby={NOT_FOUND_HEAD_ID}>
-            <Text typeRole="micro" element="h2" id={NOT_FOUND_HEAD_ID}>{content.notFoundHead}</Text>
+          <section className="gaia-forges-group" aria-label={content.notFoundHead}>
+            <SectionHead title={content.notFoundHead} />
             {content.notFound.map((entry) => <ForgeEntryCard key={entry.trackerId} entry={entry} place="not-found" handlers={handlers} />)}
           </section>
         )}

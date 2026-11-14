@@ -130,9 +130,9 @@ describe('the table', () => {
   test('with no entry at all the table\'s place says so, and with none that the filters keep it says that', () => {
     const empty = layoutOf(FLEET_EMPTY).unfolded;
     expect(tree.hostElementsIn(empty, (element) => element.props['role'] === 'table')).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass(empty, 'gaia-activity-empty')])).toBe('No forge has reported activity yet.');
+    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(empty, 'gaia-activity-entries')], 'design-system-empty')])).toBe('No forge has reported activity yet.');
     const filteredAway = layoutOf(FLEET_FIVE_FORGES, { kind: 'forge', trackerId: TRACKER_IDS.invoiceService }).unfolded;
-    expect(tree.textOf([tree.onlyWithClass(filteredAway, 'gaia-activity-empty')])).toBe('No entry matches these filters.');
+    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(filteredAway, 'gaia-activity-entries')], 'design-system-empty')])).toBe('No entry matches these filters.');
   });
 });
 
@@ -237,7 +237,8 @@ describe('the side lists', () => {
   test('the usage line is the forges\' reading, and with no forge reporting today or usage the lists say so and the usage is absent', () => {
     expect(tree.textOf([tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-activity-usage-line')])).toBe('under its limit · window resets 16:00');
     const empty = layoutOf(FLEET_EMPTY).unfolded;
-    const sideSentences = tree.hostElementsIn(empty, tree.withClass('gaia-activity-side-empty')).map((sentence) => tree.textOf([sentence]));
+    const side = tree.onlyWithClass(empty, 'gaia-activity-side');
+    const sideSentences = tree.hostElementsIn([side], tree.withClass('design-system-empty')).map((sentence) => tree.textOf([sentence]));
     expect(sideSentences).toEqual(['No forge reports it.', 'No forge reports it.']);
     expect(tree.hostElementsIn(empty, tree.withClass('gaia-activity-usage'))).toEqual([]);
   });

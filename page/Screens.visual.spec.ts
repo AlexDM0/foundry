@@ -76,6 +76,11 @@ function textsOfClass(markup: string, className: string): string[] {
   return [...markup.matchAll(new RegExp(`class="${className}"[^>]*>([^<]*)<`, 'g'))].map(([, text = '']) => text);
 }
 
+/** The ids of what waits on User, each the package's mono id in its row's id cell. */
+function attentionRowIdsOf(markup: string): string[] {
+  return [...markup.matchAll(/class="gaia-attention-row-id"><span class="design-system-mono-id"[^>]*>([^<]*)</g)].map(([, text = '']) => text);
+}
+
 function pageTitleOf(markup: string): string[] {
   return [...markup.matchAll(/<h1 class="design-system-text" data-type-role="display">([^<]*)<\/h1>/g)].map(([, text = '']) => text);
 }
@@ -175,7 +180,7 @@ describe('each screen shows the state its artboard draws', () => {
       expect(markup.indexOf('<header class="gaia-brand-bar">')).toBeLessThan(markup.indexOf('<nav class="gaia-rail"'));
       expect(textsOfClass(markup, 'gaia-brand-bar-sentence')).toEqual(['1 holds its launches · 1 dormant · 1 repository missing']);
       expect(pageTitleOf(markup)).toEqual(['Attention']);
-      expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+      expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     }
   });
 
@@ -309,7 +314,7 @@ describe('the restart an update left pending, over the artboard it changes', () 
     const attention = RESTART_PENDING_SCREENS[0];
     if (attention === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
-    expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+    expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
     const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
     const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held"')) ?? '';
@@ -347,7 +352,7 @@ describe('the warnings of monitor contract 2, over the artboard that shows each'
     const [attention] = MONITOR_WARNING_SCREENS;
     if (attention === undefined) throw new Error('A monitor warning screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
-    expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+    expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
     expect(lookBlocks[0]).toContain('aria-label="Invoice Service: Baton pass failed"');
     expect(lookBlocks[0]).toContain(BATON_PASS_FAILED_SENTENCE);

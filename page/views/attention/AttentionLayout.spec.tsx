@@ -115,7 +115,7 @@ describe('the list of what waits on User', () => {
   test('with nothing waiting the list\'s place says so', () => {
     const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } });
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-list-card'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-nothing')])).toBe('Nothing waits on you.');
+    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(unfolded, 'gaia-attention-waiting')], 'design-system-empty')])).toBe('Nothing waits on you.');
   });
 
   test('with every forge read in full the layout draws no figures: they stand stacked in the page title', () => {
@@ -206,7 +206,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(typeof text === 'object' ? tree.textOf([text]) : null).toBe(
       'Overseer unreachable: Invoice Service. Gaia shows what it last reported at 13:14 and tries again.',
     );
-    expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-attention-banner-stamp')])).toBe('13:14');
+    expect(tree.textOf([tree.onlyWithClass([banner], 'design-system-stamp')])).toBe('13:14');
     expect(tree.textOf([tree.onlyWithClass([banner], 'design-system-banner-action')])).toBe('Look again');
   });
 
@@ -292,7 +292,7 @@ describe('the side of the view', () => {
     const firstJobs = cards[0] === undefined ? [] : tree.hostElementsIn(tree.hostElementsIn([cards[0]], tree.withClass('gaia-attention-running-job')), DrawnDots.isDot);
     expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'waiting', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
-    expect(tree.onlyWithClass(unfolded, 'gaia-attention-link').props['href']).toBe('#activity');
+    expect(tree.onlyWithClass(unfolded, 'design-system-link-button').props['href']).toBe('#activity');
   });
 
   test('a running brain draws one line under its forge\'s job chips: the diamond, "Flint\'s brain · haiku · 1:24 left", the time in mono', () => {
@@ -319,8 +319,8 @@ describe('the side of the view', () => {
   test('with no activity reported, just happened says so in its place', () => {
     const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, activity: [] });
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent'))).toEqual([]);
-    const recentSection = tree.onlyHostElementIn(unfolded, (element) => element.tag === 'section' && element.props['aria-labelledby'] === 'gaia-attention-recent-head');
-    expect(tree.textOf([tree.onlyWithClass([recentSection], 'gaia-attention-nothing')])).toBe('No forge has reported activity yet.');
+    const recentSection = tree.onlyHostElementIn(unfolded, (element) => element.tag === 'section' && element.props['aria-label'] === 'Just happened');
+    expect(tree.textOf([tree.onlyWithClass([recentSection], 'design-system-empty')])).toBe('No forge has reported activity yet.');
   });
 
   test('every control has a name, and the open-in-new-tab command shows its words beside its arrow', () => {

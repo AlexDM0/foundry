@@ -7,6 +7,7 @@
 
 import { Switch }                   from 'design-system/Switch';
 import { Text }                     from 'design-system/Text';
+import { TextButton }               from 'design-system/TextButton';
 import { Fragment, type ReactNode } from 'react';
 
 import type { CommandSubject } from '../../api/CommandSender.ts';
@@ -131,7 +132,7 @@ export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
           checkbox={content.notify}
           labelId={NOTIFY_LABEL_ID}
           handlers={handlers}
-          under={<button type="button" className="gaia-forges-gaia-what-notifies" onClick={handlers.onOpenWhatNotifies}>What notifies</button>}
+          under={<TextButton label="What notifies" onPress={handlers.onOpenWhatNotifies} />}
         />
       </div>
       <SettingsRefusalLine refusal={content.refusal} handlers={handlers} />

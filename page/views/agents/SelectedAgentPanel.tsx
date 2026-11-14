@@ -6,6 +6,7 @@
 import { Button }         from 'design-system/Button';
 import { FactList }       from 'design-system/FactList';
 import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { MonoId }         from 'design-system/MonoId';
 import { Tag }            from 'design-system/Tag';
 import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
@@ -28,7 +29,7 @@ function PanelHead({ jobId, children }: { readonly jobId: string; readonly child
   return (
     <div className="gaia-agents-panel-head">
       <span className="gaia-agents-panel-kind">Job</span>
-      <span className="gaia-agents-panel-job">{jobId}</span>
+      <MonoId text={jobId} tone="strong" weight="medium" />
       {children}
     </div>
   );
@@ -55,7 +56,7 @@ function TicketChip({ content }: { readonly content: RunningAgent }) {
   if (content.ticketIdsText === null && content.ticketTitle === null) return null;
   return (
     <a className="gaia-agents-panel-ticket" href={content.openHref}>
-      {content.ticketIdsText === null ? null : <span className="gaia-agents-ticket-ids">{content.ticketIdsText}</span>}
+      {content.ticketIdsText === null ? null : <MonoId text={content.ticketIdsText} tone="muted" weight="medium" />}
       {content.ticketTitle === null ? null : <span className="gaia-agents-panel-ticket-title">{content.ticketTitle}</span>}
     </a>
   );

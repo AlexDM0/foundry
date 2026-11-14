@@ -6,6 +6,7 @@
  */
 import { Button }                    from 'design-system/Button';
 import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
+import { MonoId }                    from 'design-system/MonoId';
 import { Text }                      from 'design-system/Text';
 import type { ReactNode, Ref }       from 'react';
 
@@ -325,7 +326,7 @@ function areaContentOf(props: ForgeFrameAreaProps) {
       return (
         <div className="gaia-forge-frame-notice">
           <p className="gaia-forge-frame-notice-text">The registry names no forge with this id.</p>
-          <p className="gaia-forge-frame-notice-id">{area.trackerId}</p>
+          <p className="gaia-forge-frame-notice-id"><MonoId text={area.trackerId} tone="muted" /></p>
         </div>
       );
   }

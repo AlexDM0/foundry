@@ -4,12 +4,17 @@
  * a refusal or a pending restart under them, and beside them what Gaia reads of each forge, the running forges and what just happened. It
  * takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Banner } from 'design-system/Banner';
-import { Button } from 'design-system/Button';
-import { Card }   from 'design-system/Card';
-import { Row }    from 'design-system/Row';
-import { Tag }    from 'design-system/Tag';
-import { Text }   from 'design-system/Text';
+import { Banner }      from 'design-system/Banner';
+import { Button }      from 'design-system/Button';
+import { Card }        from 'design-system/Card';
+import { EmptyState }  from 'design-system/EmptyState';
+import { MonoId }      from 'design-system/MonoId';
+import { Row }         from 'design-system/Row';
+import { SectionHead } from 'design-system/SectionHead';
+import { Stamp }       from 'design-system/Stamp';
+import { Tag }         from 'design-system/Tag';
+import { Text }        from 'design-system/Text';
+import { TextButton }  from 'design-system/TextButton';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
@@ -54,10 +59,9 @@ interface CommandHandlers {
   readonly onDismissRestartPending: (subject: CommandSubject) => void;
 }
 
-const LOOKS_HEAD_ID = 'gaia-attention-looks-head';
-const READINGS_HEAD_ID = 'gaia-attention-readings-head';
-const RUNNING_HEAD_ID = 'gaia-attention-running-head';
-const RECENT_HEAD_ID = 'gaia-attention-recent-head';
+const READINGS_HEAD = 'What Gaia reads of each forge';
+
+const RECENT_HEAD = 'Just happened';
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 
@@ -102,7 +106,7 @@ function UnreachableBannerLine({ banner, commandStates, onCommand }: { readonly 
       <>
         {lead}
         {' Gaia shows what it last reported at '}
-        <span className="gaia-attention-banner-stamp">{banner.lastReportedClock}</span>
+        <Stamp shortText={banner.lastReportedClock} />
         {' and tries again.'}
       </>
     );
@@ -131,7 +135,7 @@ function AttentionRowCells({ row }: { readonly row: AttentionRow }) {
         </span>
       </span>
       <span className="gaia-attention-row-kind"><KindPill text={row.kindText} tone={row.kindTone} /></span>
-      <span className="gaia-attention-row-id">{row.idText}</span>
+      <span className="gaia-attention-row-id"><MonoId text={row.idText} tone="muted" /></span>
       <span className="gaia-attention-row-text">
         <span className="gaia-attention-row-subject">{row.subject}</span>
         <span className="gaia-attention-row-meta">{row.metaText}</span>
@@ -235,8 +239,8 @@ function Figures({ content }: { readonly content: AttentionContent }) {
 
 function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
   return (
-    <section className="gaia-attention-section" aria-labelledby={READINGS_HEAD_ID}>
-      <Text typeRole="micro" element="h2" id={READINGS_HEAD_ID}>What Gaia reads of each forge</Text>
+    <section className="gaia-attention-section" aria-label={READINGS_HEAD}>
+      <SectionHead title={READINGS_HEAD} />
       <ul className="gaia-attention-readings">
         {readings.map((reading) => (
           <li key={reading.trackerId} className="gaia-attention-reading" data-totals-cannot-vouch={reading.totalsCannotVouchForIt ? '' : undefined}>
@@ -266,7 +270,7 @@ function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) 
   return (
     <span className="gaia-attention-running-job" data-role={job.role}>
       <RoleDot role={job.role} />
-      <span className="gaia-attention-running-job-id">{job.jobId}</span>
+      <MonoId text={job.jobId} tone="strong" weight="bold" />
       <span className="gaia-attention-running-job-role">{` ${job.roleWord}`}</span>
     </span>
   );
@@ -327,7 +331,7 @@ function WaitingCard({ content }: { readonly content: AttentionContent }) {
           </Row>
         </div>
         {content.rows.length === 0
-          ? <p className="gaia-attention-nothing">{content.nothingText}</p>
+          ? <EmptyState text={content.nothingText} />
           : <ListCard label="Waiting on you" rows={content.rows.map((row) => ({ key: row.key, content: <AttentionRowCells row={row} /> }))} />}
       </Card>
     </section>
@@ -336,16 +340,15 @@ function WaitingCard({ content }: { readonly content: AttentionContent }) {
 
 function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
   return (
-    <section className="gaia-attention-section" aria-labelledby={RECENT_HEAD_ID}>
-      <div className="gaia-attention-recent-top">
-        <Text typeRole="micro" element="h2" id={RECENT_HEAD_ID}>Just happened</Text>
-        <a className="gaia-attention-link" href={ACTIVITY_HREF}>All activity</a>
-      </div>
-      {recent.length === 0 ? <p className="gaia-attention-nothing">{ACTIVITY_SENTENCES.noActivity}</p> : (
+    <section className="gaia-attention-section" aria-label={RECENT_HEAD}>
+      <SectionHead title={RECENT_HEAD}>
+        <span className="gaia-attention-recent-all"><TextButton label="All activity" href={ACTIVITY_HREF} /></span>
+      </SectionHead>
+      {recent.length === 0 ? <EmptyState text={ACTIVITY_SENTENCES.noActivity} compact /> : (
         <ul className="gaia-attention-recent">
           {recent.map((entry) => (
             <li key={entry.key} className="gaia-attention-recent-entry">
-              <span className="gaia-attention-recent-at">{entry.clockText ?? ''}</span>
+              <span className="gaia-attention-recent-at">{entry.clockText === null ? null : <Stamp shortText={entry.clockText} />}</span>
               <span className="gaia-attention-recent-what">
                 <span className="gaia-attention-recent-forge">{entry.project}</span>
                 {' '}
@@ -373,8 +376,8 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}
           <WaitingCard content={content} />
           {content.looks.length === 0 ? null : (
-            <section className="gaia-attention-section" aria-labelledby={LOOKS_HEAD_ID}>
-              <Text typeRole="micro" element="h2" id={LOOKS_HEAD_ID}>{content.looksHead}</Text>
+            <section className="gaia-attention-section" aria-label={content.looksHead}>
+              <SectionHead title={content.looksHead} />
               {content.looks.map((look) => <LookBlock key={`${look.trackerId}/${look.lookKind}`} look={look} {...handlers} />)}
             </section>
           )}
@@ -382,8 +385,8 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
         <aside className="gaia-attention-aside">
           {content.readings === null ? null : <ReadingsPanel readings={content.readings} />}
           {content.running.length === 0 ? null : (
-            <section className="gaia-attention-section" aria-labelledby={RUNNING_HEAD_ID}>
-              <Text typeRole="micro" element="h2" id={RUNNING_HEAD_ID}>{content.runningHead}</Text>
+            <section className="gaia-attention-section" aria-label={content.runningHead}>
+              <SectionHead title={content.runningHead} />
               {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} form={content.runningForm} />)}
             </section>
           )}

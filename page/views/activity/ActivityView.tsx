@@ -5,7 +5,9 @@
  * page title's parts with the view.
  */
 import { Card }                                 from 'design-system/Card';
+import { EmptyState }                           from 'design-system/EmptyState';
 import { FillMeter }                            from 'design-system/FillMeter';
+import { SectionHead }                          from 'design-system/SectionHead';
 import { type SegmentOption, SegmentedControl } from 'design-system/SegmentedControl';
 import { StateDot }                             from 'design-system/StateDot';
 import type { StateTone }                       from 'design-system/StateTone';
@@ -204,7 +206,7 @@ function TodaySection({
         <Text typeRole="micro" element="h2">
           {list.totalText === null ? head : <>{head} · <Text typeRole="micro" mono>{list.totalText}</Text></>}
         </Text>
-        {list.rows.length === 0 ? <p className="gaia-activity-side-empty">{NOTHING_REPORTED_SENTENCE}</p> : (
+        {list.rows.length === 0 ? <EmptyState text={NOTHING_REPORTED_SENTENCE} compact /> : (
           <ul className="gaia-activity-today-list">
             {list.rows.map((row) => (
               <li key={row.trackerId} className="gaia-activity-today-row">
@@ -235,7 +237,7 @@ function UsageSection({ lines, linesAtTheLimit }: UsageSectionProps) {
   if (lines.length === 0) return null;
   return (
     <section className="gaia-activity-usage">
-      <Text typeRole="micro" element="h2">Usage</Text>
+      <SectionHead title="Usage" />
       {lines.map((line) => (
         <div key={line} className="gaia-activity-usage-reading">
           <StateDot tone={linesAtTheLimit.includes(line) ? 'accent' : 'neutral'} small />
@@ -275,7 +277,7 @@ export function ActivityLayout({
         <section className="gaia-activity-entries" aria-label="Entries">
           {content.emptySentence === null
             ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} />
-            : <p className="gaia-activity-empty">{content.emptySentence}</p>}
+            : <EmptyState text={content.emptySentence} />}
           <p className="gaia-activity-footnote">{FOOTNOTE}</p>
         </section>
         <aside className="gaia-activity-side" aria-label="Today">

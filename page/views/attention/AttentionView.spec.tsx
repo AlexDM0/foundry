@@ -63,7 +63,7 @@ function sourceHolding(fleetDocument: FleetDocument): FleetSource {
 }
 
 function rowIdsIn(markup: string): string[] {
-  return [...markup.matchAll(/class="gaia-attention-row-id">([^<]*)</g)].map(([, idText = '']) => idText);
+  return [...markup.matchAll(/class="gaia-attention-row-id"><span class="design-system-mono-id"[^>]*>([^<]*)</g)].map(([, idText = '']) => idText);
 }
 
 function staleRowCountIn(markup: string): number {
