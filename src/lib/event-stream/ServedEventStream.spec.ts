@@ -1,12 +1,15 @@
 /**
  * A served event stream, read back through the event-stream parser as a browser would read it: events arrive whole and in order, data with
  * line breaks arrives as it was sent, a comment is skipped by the reader, and the stream ends exactly once, whether the server closes it or
- * the reader goes away. A write after the end is dropped without a throw.
+ * the reader goes away; a reader that leaves more than its bound unread ends it too. A write after the end is dropped without a throw.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { eventStreamParserOf, type ServerSentEvent } from './EventStreamParser.ts';
 import { servedEventStreamOf }                       from './ServedEventStream.ts';
+
+/** Room for one short event and not for two. */
+const EXAMPLE_UNREAD_BYTES_BOUND = 48;
 
 async function wholeBodyOf(response: Response): Promise<string> {
   return response.text();
@@ -56,6 +59,18 @@ describe('a served event stream', () => {
     expect(stream.isOpen()).toBe(false);
     expect(endings).toBe(1);
     expect(eventsIn(await wholeBodyOf(stream.response)).map((event) => event.data)).toEqual(['before the end']);
+  });
+
+  test('ends once when the reader leaves more than its bound unread, and the reader still gets what was sent before the end', async () => {
+    let endings = 0;
+    const stream = servedEventStreamOf({ onEnded: () => { endings += 1; }, unreadBytesBound: EXAMPLE_UNREAD_BYTES_BOUND });
+    stream.sendEvent('fleet', 'within the bound');
+    expect(stream.isOpen()).toBe(true);
+    stream.sendEvent('fleet', 'past the bound');
+    stream.sendEvent('fleet', 'after the end');
+    expect(stream.isOpen()).toBe(false);
+    expect(endings).toBe(1);
+    expect(eventsIn(await wholeBodyOf(stream.response)).map((event) => event.data)).toEqual(['within the bound', 'past the bound']);
   });
 
   test('ends once when the reader goes away, and drops what is written after', async () => {
