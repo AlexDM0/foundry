@@ -652,7 +652,14 @@ function machineBrainLineOf(fleetDocument: FleetDocument): MachineBrainLine | nu
   };
 }
 
-/** Without F6 no forge reports a machine limit: the panel says so and its stepper is off. A limit above the CPU count cannot be chosen. */
+/** Why no machine limit is known: no forge registered, none that answered reports one, or none has answered at all. */
+function noMachineLimitSentenceOf(fleetDocument: FleetDocument): string {
+  if (fleetDocument.forges.length === 0) return 'No forge is registered to enforce a machine limit.';
+  const aForgeAnswered = fleetDocument.forges.some((forge) => forge.fidelity === 'full' || forge.fidelity === 'counts-only');
+  return aForgeAnswered ? 'This forge version does not enforce a machine limit.' : 'No running forge has reported a machine limit yet.';
+}
+
+/** Without F6 no forge reports a machine limit: the panel says why and its stepper is off. A limit above the CPU count cannot be chosen. */
 function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStates): MachinePanel {
   const { machineLimit, agentsInFlight } = fleetDocument.figures;
   const { cpuCount } = fleetDocument.machine;
@@ -664,7 +671,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
       lowerCommand:   null,
       raiseCommand:   null,
       stepperIsOff:   true,
-      sentence:       fleetDocument.forges.length === 0 ? 'No forge is registered to enforce a machine limit.' : 'This forge version does not enforce a machine limit.',
+      sentence:       noMachineLimitSentenceOf(fleetDocument),
       meter:          null,
       isAtTheLimit:   false,
       atTheLimitText: null,

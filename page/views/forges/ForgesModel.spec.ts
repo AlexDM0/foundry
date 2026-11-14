@@ -2,15 +2,14 @@
  * What the Forges view shows of a fleet document. What matters (SCREENS A4 and B2): each condition shows exactly its buttons, Open only where the forge
  * opens in place; a row reads its root from `~`, its condition word with when it started or stopped, its agents against its limit, what waits and its
  * short code; a forge's limit runs from one agent to the forge's ceiling and the machine's from one to the CPU count, and without F6 the machine panel
- * says no limit is enforced and its stepper is off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and keeps the
+ * says why no limit is known, its stepper off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and keeps the
  * agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a refusal stays on
  * its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the forge answers;
  * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner, with its refusal, or under its row;
  * a forge whose Assistant cannot come up says so under its row. Flint's brain (R4.6): only a forge whose brain runs marks it on its row,
  * with the time left and a name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine
- * panel says the brain runs
- * outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender over Gaia's server
- * stood in for by authored answers.
+ * panel says the brain runs outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender
+ * over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -343,6 +342,15 @@ describe('this machine (A4 acceptance 2 and 3, B2)', () => {
     expect([machine.sentence, machine.stepperIsOff, machine.lowerCommand, machine.raiseCommand, machine.meter]).toEqual([
       'This forge version does not enforce a machine limit.', true, null, null, null,
     ]);
+  });
+
+  test('with no forge answering, the panel says no running forge has reported a machine limit, not that the version enforces none', () => {
+    const noneAnswering = {
+      ...FLEET_FIVE_FORGES,
+      figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null },
+      forges:  FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, fidelity: 'dormant' as const })),
+    };
+    expect(contentOf(noneAnswering).machine.sentence).toBe('No running forge has reported a machine limit yet.');
   });
 
   test('the limit is off while a new one is on its way', () => {
