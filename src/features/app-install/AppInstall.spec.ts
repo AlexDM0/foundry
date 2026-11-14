@@ -2,13 +2,15 @@
  * The install as a flow, over the compiler, joiner and signer recorded from a real Mac, one answer set per situation, into a scratch
  * Applications folder. What matters: the bundle is generated whole, built and signed in a staging folder and only then put in place, over
  * an earlier install of Gaia's; a compile or a signing that fails leaves the earlier install as it was; another application of the same name
- * is never touched; and no staging folder is left behind.
+ * is never touched; an earlier install that a failed placement stranded goes back before the next install clears its staging folder; and no
+ * staging folder is left behind.
  */
 import {
   chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -161,6 +163,50 @@ describe('an install that fails', () => {
     });
     expect(processRun.callShapesAnswered()).toEqual([]);
     expect(existsSync(applicationsFolder)).toBe(false);
+  });
+});
+
+describe('an install after one that stranded the earlier install in its staging folder', () => {
+  const strandedEarlierInstall = (): string => join(applicationsFolder, '.Gaia.app.installing', 'earlier-install.app');
+
+  function strandEarlierBundle(): void {
+    placeEarlierBundle(EARLIER_GAIA_PLIST);
+    mkdirSync(join(applicationsFolder, '.Gaia.app.installing'), { recursive: true });
+    renameSync(appBundlePath, strandedEarlierInstall());
+  }
+
+  test('puts the earlier install back first, so a failure of its own still leaves Gaia.app in place', async () => {
+    strandEarlierBundle();
+    const { verdict } = await installIn('compiler-refuses');
+    expect(verdict).toMatchObject({ verdict: 'unrepaired', failure: 'compile-failed', appBundlePath });
+    expect(readFileSync(bundleFile('earlier-file'), 'utf8')).toBe('the earlier bundle');
+    expect(stagingFolderRemains()).toBe(false);
+  });
+
+  test('replaces the earlier install it put back once the new bundle is built', async () => {
+    strandEarlierBundle();
+    expect((await installIn('installs')).verdict).toEqual({ verdict: 'installed', appBundlePath, replacedAnEarlierInstall: true });
+    expect(existsSync(bundleFile('earlier-file'))).toBe(false);
+    expect(stagingFolderRemains()).toBe(false);
+  });
+
+  test('refuses, runs nothing and keeps the earlier install where it is when it cannot go back, and says where it is kept', async () => {
+    strandEarlierBundle();
+    // A folder that cannot be written lets nothing move out of it: the system refuses the move with EACCES.
+    chmodSync(join(applicationsFolder, '.Gaia.app.installing'), READ_ONLY_FOLDER_MODE);
+    try {
+      const { verdict, processRun } = await installIn('installs');
+      expect(verdict).toEqual({
+        verdict: 'unrepaired',
+        failure: 'bundle-not-placed',
+        appBundlePath,
+        detail:  `the earlier install kept at ${strandedEarlierInstall()} cannot go back: EACCES`,
+      });
+      expect(processRun.callShapesAnswered()).toEqual([]);
+    } finally {
+      chmodSync(join(applicationsFolder, '.Gaia.app.installing'), WRITABLE_FOLDER_MODE);
+    }
+    expect(readFileSync(join(strandedEarlierInstall(), 'Contents', 'earlier-file'), 'utf8')).toBe('the earlier bundle');
   });
 });
 

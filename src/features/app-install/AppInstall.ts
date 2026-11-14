@@ -248,6 +248,17 @@ export function createAppInstall(options: AppInstallOptions): AppInstall {
     return await pathExists(earlierInstall) && !await pathExists(appBundlePath);
   }
 
+  /** An earlier install a failed placement stranded in the staging folder goes back first, since writing the staged bundle clears that folder. */
+  async function restoreStrandedEarlierInstall(): Promise<StepFailed | null> {
+    if (!await earlierInstallIsStranded()) return null;
+    try {
+      await rename(earlierInstall, appBundlePath);
+      return null;
+    } catch (error) {
+      return stepFailed('bundle-not-placed', `the earlier install kept at ${earlierInstall} cannot go back: ${failureTextOf(error)}`);
+    }
+  }
+
   async function buildLauncher(): Promise<StepFailed | null> {
     for (const buildRun of launcherBuildRunsOf()) {
       const failedRun = await runInStaging(buildRun.program, buildRun.programArguments, COMPILE_TIMEOUT_MILLISECONDS, 'compile-failed');
@@ -277,6 +288,8 @@ export function createAppInstall(options: AppInstallOptions): AppInstall {
   async function install(): Promise<AppInstallVerdict> {
     const templates = await filledTemplates();
     if ('verdict' in templates) return unrepairedOf(templates);
+    const failedRestore = await restoreStrandedEarlierInstall();
+    if (failedRestore !== null) return unrepairedOf(failedRestore);
     if (await anotherApplicationIsInPlace()) return { verdict: 'refused', refusal: 'another-application-in-place', appBundlePath };
     try {
       await mkdir(options.applicationsFolder, { recursive: true });
