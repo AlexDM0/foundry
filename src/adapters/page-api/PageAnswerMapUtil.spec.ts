@@ -8,16 +8,16 @@ import { describe, expect, test } from 'bun:test';
 
 import { recordedFlintBrainAnswersOf } from '../../testing/RecordedAnswers.ts';
 
-import { CommandAnswerMapUtil } from './CommandAnswerMapUtil.ts';
+import { PageAnswerMapUtil } from './PageAnswerMapUtil.ts';
 
 describe('the command answer of a verdict', () => {
   test('maps done, nothing to do, unreachable, not supported and restart pending to their outcome with no refusal', () => {
     expect([
-      CommandAnswerMapUtil.commandAnswerOf({ verdict: 'done' }),
-      CommandAnswerMapUtil.commandAnswerOf({ verdict: 'nothing-to-do' }),
-      CommandAnswerMapUtil.commandAnswerOf({ verdict: 'unreachable' }),
-      CommandAnswerMapUtil.commandAnswerOf({ verdict: 'not-supported' }),
-      CommandAnswerMapUtil.commandAnswerOf({ verdict: 'restart-pending' }),
+      PageAnswerMapUtil.commandAnswerOf({ verdict: 'done' }),
+      PageAnswerMapUtil.commandAnswerOf({ verdict: 'nothing-to-do' }),
+      PageAnswerMapUtil.commandAnswerOf({ verdict: 'unreachable' }),
+      PageAnswerMapUtil.commandAnswerOf({ verdict: 'not-supported' }),
+      PageAnswerMapUtil.commandAnswerOf({ verdict: 'restart-pending' }),
     ]).toEqual([
       {
         answerVersion: 3, outcome: 'done', refusal: null, text: null
@@ -38,7 +38,7 @@ describe('the command answer of a verdict', () => {
   });
 
   test('answers a chosen path as done, with the path as its text', () => {
-    expect(CommandAnswerMapUtil.commandAnswerOf({ verdict: 'path-chosen', path: '/Users/example/Development/example-storefront' })).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'path-chosen', path: '/Users/example/Development/example-storefront' })).toEqual({
       answerVersion: 3,
       outcome:       'done',
       refusal:       null,
@@ -50,7 +50,7 @@ describe('the command answer of a verdict', () => {
     const refusal = {
       verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
     } as const;
-    expect(CommandAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3,
       outcome:       'refused',
       refusal:       'overseer-held',
@@ -62,7 +62,7 @@ describe('the command answer of a verdict', () => {
     const refusal = {
       verdict: 'refused', refusedBy: 'forge', refusal: 'launches-held-by-install-change', text: 'The install version changed: run `forge update`.'
     } as const;
-    expect(CommandAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3,
       outcome:       'refused',
       refusal:       'launches-held-by-install-change',
@@ -74,13 +74,13 @@ describe('the command answer of a verdict', () => {
     const refusal = {
       verdict: 'refused', refusedBy: 'forge', refusal: 'arguments-refused', text: 'It is a bare repository. Run `forge init` in a checkout of it.'
     } as const;
-    expect(CommandAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3, outcome: 'refused', refusal: 'arguments-refused', text: null
     });
   });
 
   test('carries Gaia\'s own refusal as its code, with no sentence', () => {
-    expect(CommandAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' })).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' })).toEqual({
       answerVersion: 3,
       outcome:       'refused',
       refusal:       'command-in-flight',
@@ -96,7 +96,7 @@ describe('the command answer of a command of Flint\'s brain', () => {
       .flatMap(({ answer }) => (answer.verdict === 'answered' ? [JSON.parse(answer.bodyText) as { refusal: string; text: string }] : []));
     expect(refusals.map(({ refusal }) => refusal)).toEqual(['usage-limit-holds', 'no-flint']);
     for (const { refusal, text } of refusals) {
-      expect(CommandAnswerMapUtil.commandAnswerOf({
+      expect(PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       })).toEqual({
         answerVersion: 3, outcome: 'refused', refusal, text,
@@ -105,7 +105,7 @@ describe('the command answer of a command of Flint\'s brain', () => {
   });
 
   test('carries Gaia\'s refusal under control contract 1 as brain-not-served, with no sentence', () => {
-    expect(CommandAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' })).toEqual({
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' })).toEqual({
       answerVersion: 3, outcome: 'refused', refusal: 'brain-not-served', text: null,
     });
   });
@@ -114,8 +114,8 @@ describe('the command answer of a command of Flint\'s brain', () => {
 describe('the command answer of a command Gaia could not read', () => {
   test('is not supported, with the reason as its code', () => {
     expect([
-      CommandAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'other-version', commandVersion: 1 }),
-      CommandAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'malformed', invalidKeys: ['trackerId'] }),
+      PageAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'other-version', commandVersion: 1 }),
+      PageAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'malformed', invalidKeys: ['trackerId'] }),
     ]).toEqual([
       {
         answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null

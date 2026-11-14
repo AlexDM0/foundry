@@ -6,7 +6,7 @@
 import { OverseerTokenFile }                        from '../../../adapters/forge-api/OverseerTokenFile.ts';
 import type { RegisteredOverseer }                  from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
 import { registeredForgesOf, type RegistryReading } from '../../../adapters/forge-registry/RegistryFile.ts';
-import { FrameSessionAnswerMapUtil }                from '../../../adapters/page-api/FrameSessionAnswerMapUtil.ts';
+import { PageAnswerMapUtil }                        from '../../../adapters/page-api/PageAnswerMapUtil.ts';
 import type { ForgeSessionCodeAnswer }              from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                         from '../../../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }                        from '../../../shared/@types/ForgeReading.ts';
@@ -97,6 +97,6 @@ export async function frameSessionVerdictFor(trackerId: string, sources: FrameSe
 }
 
 export async function frameSessionAnswerFor(trackerId: string, sources: FrameSessionSources): Promise<Response> {
-  const answerDocument = FrameSessionAnswerMapUtil.answerDocumentOf(await frameSessionVerdictFor(trackerId, sources));
+  const answerDocument = PageAnswerMapUtil.frameSessionAnswerOf(await frameSessionVerdictFor(trackerId, sources));
   return Response.json(answerDocument, { status: HTTP_STATUS_BY_OUTCOME[answerDocument.outcome], headers: { 'cache-control': 'no-store' } });
 }

@@ -3,8 +3,8 @@
  * forge-control, and answered as the page contract's command answer under the status of its verdict. The page reads the answer whatever
  * the status.
  */
-import { CommandAnswerMapUtil } from '../../../adapters/page-api/CommandAnswerMapUtil.ts';
 import { GaiaCommandIngestion } from '../../../adapters/page-api/GaiaCommandIngestion.ts';
+import { PageAnswerMapUtil }    from '../../../adapters/page-api/PageAnswerMapUtil.ts';
 import type { CommandVerdict }  from '../../../shared/@types/CommandVerdict.ts';
 import type { GaiaCommand }     from '../../../shared/@types/GaiaCommand.ts';
 
@@ -27,7 +27,7 @@ const HTTP_BAD_REQUEST = 400;
 
 export async function commandAnswerFor(request: Request, carryCommand: CommandCarrier): Promise<Response> {
   const reading = new GaiaCommandIngestion(await request.text()).read();
-  if (reading.verdict !== 'readable') return Response.json(CommandAnswerMapUtil.unreadableCommandAnswerOf(reading), { status: HTTP_BAD_REQUEST });
+  if (reading.verdict !== 'readable') return Response.json(PageAnswerMapUtil.unreadableCommandAnswerOf(reading), { status: HTTP_BAD_REQUEST });
   const verdict = await carryCommand(reading.command);
-  return Response.json(CommandAnswerMapUtil.commandAnswerOf(verdict), { status: HTTP_STATUS_OF_VERDICT[verdict.verdict] });
+  return Response.json(PageAnswerMapUtil.commandAnswerOf(verdict), { status: HTTP_STATUS_OF_VERDICT[verdict.verdict] });
 }

@@ -21,10 +21,9 @@ import {
 import { recordedRunsOf }                         from '../../testing/RecordedRuns.ts';
 import type { ForgeIdentity, ForgeRegistryFacts } from '../forge-api/@types/ForgeDocumentReading.ts';
 import { MonitorSnapshotIngestion }               from '../forge-api/MonitorSnapshotIngestion.ts';
-import { CommandAnswerMapUtil }                   from './CommandAnswerMapUtil.ts';
 import { FleetDocumentMapUtil }                   from './FleetDocumentMapUtil.ts';
 import { ForgeSentenceUtil }                      from './ForgeSentenceUtil.ts';
-import { FrameSessionAnswerMapUtil }              from './FrameSessionAnswerMapUtil.ts';
+import { PageAnswerMapUtil }                      from './PageAnswerMapUtil.ts';
 import { FLEET_SNAPSHOT_EMPTY }                   from './testing/fleet-snapshot-empty.ts';
 
 const FORGE_PROGRAM_RECORDINGS = ['forge-program', 'forge-program-done', 'forge-program-refused'] as const;
@@ -158,7 +157,7 @@ describe('the sentences recorded from a real forge', () => {
     const refusals = recordedRefusals();
     expect(refusals.length).toBeGreaterThan(REFUSALS_RECORDED_NAMING_A_COMMAND.length);
     for (const { refusal, text } of refusals) {
-      const answer = CommandAnswerMapUtil.commandAnswerOf({
+      const answer = PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       });
       expect(answer.refusal).toBe(refusal);
@@ -168,7 +167,7 @@ describe('the sentences recorded from a real forge', () => {
 
   test('reach the page in no refused frame session\'s answer naming a command', () => {
     for (const { refusal, text } of recordedRefusals()) {
-      const answer = FrameSessionAnswerMapUtil.answerDocumentOf({
+      const answer = PageAnswerMapUtil.frameSessionAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       });
       expect(ForgeSentenceUtil.sentenceNamesACommand(answer.text ?? '')).toBe(false);
