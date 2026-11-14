@@ -2,14 +2,16 @@
  * D10 over every sentence a real forge was recorded answering: none reaches the page naming a command. What matters: every string of
  * every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each recorded
  * refusal reaches the page through the command answer and the frame session answer the page reads; and each recorded monitor snapshot
- * reaches it through the fleet document, its notices and warnings among it. The frozen list of refusal codes whose recorded sentence names
- * a command keeps the spec from passing on nothing; retake it after `bun run record forge-program-refused` or an overseer-fetch recording.
+ * reaches it through the fleet document, its notices, warnings, activity entries and brain moves among it. The frozen list of refusal
+ * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
+ * forge-program-refused` or an overseer-fetch recording.
  * The forge at monitor contract 1 worded its notices and refusals with commands, and Gaia still reads it, so its recording is searched too,
  * as is the monitor-3 recording, whose brain refusals (`usage-limit-holds`, `no-flint`) reach the page through the command answer.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
+import type { FleetDocumentForge } from '../../../page/@types/FleetDocument.ts';
+import { CONTRACT_VERSIONS }       from '../../shared/constants/ContractVersions.ts';
 import {
   everyRecordedMonitorOneAnswerOf,
   everyRecordedMonitorThreeAnswerOf,
@@ -134,7 +136,7 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
 }
 
 /** Each recorded monitor snapshot Gaia reads in full, as the fleet document the page receives holds it. */
-function recordedForgeDocuments(): unknown[] {
+function recordedForgeDocuments(): FleetDocumentForge[] {
   return recordedOverseerDocuments().filter(isMonitorSnapshot).flatMap((snapshot) => {
     const { facts, identity } = factsOf(snapshot);
     const reading = new MonitorSnapshotIngestion(facts, identity).readingOf(snapshot, EXAMPLE_READ_STAMP);
@@ -173,9 +175,11 @@ describe('the sentences recorded from a real forge', () => {
     }
   });
 
-  test('reach the page in no fleet document of a recorded monitor snapshot naming a command, its notices and warnings among it', () => {
+  test('reach the page in no fleet document of a recorded monitor snapshot naming a command, its notices, warnings, activity and brain moves among it', () => {
     const forgeDocuments = recordedForgeDocuments();
     expect(forgeDocuments.length).toBeGreaterThan(0);
+    expect(forgeDocuments.flatMap((forgeDocument) => forgeDocument.activity).length).toBeGreaterThan(0);
+    expect(forgeDocuments.flatMap((forgeDocument) => (forgeDocument.brain === 'not-reported' ? [] : forgeDocument.brain.recentMoves)).length).toBeGreaterThan(0);
     const commandNaming = forgeDocuments.flatMap((forgeDocument) => stringsIn(forgeDocument, 'forge', {}))
       .filter((found) => ForgeSentenceUtil.sentenceNamesACommand(found.text));
     expect(commandNaming.map((found) => found.place)).toEqual([]);

@@ -1,7 +1,8 @@
 /**
  * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
  * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
- * report stays `null` rather than becoming zero, a notice, warning or brain sentence that names a command reaches it in Gaia's words or not
+ * report stays `null` rather than becoming zero, a notice, warning, activity entry, brain sentence or brain move that names a command reaches it in
+ * Gaia's words or not
  * at all (D10), and a forge's brain and a running brain's row outside every limit reach it as the forge reports them.
  */
 import { describe, expect, test } from 'bun:test';
@@ -133,6 +134,32 @@ describe('the fleet document mapper', () => {
     } as const;
     const document = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, activity: [{ ...entry, trackerId: storefront.trackerId }] });
     expect(document.activity).toEqual([{ ...entry, trackerId: storefront.trackerId }]);
+  });
+
+  test('words an activity entry or a brain\'s move that names a command in Gaia\'s words, drops such an emote, and passes the others through', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    const runningBrain = storefront?.brain;
+    if (storefront === undefined || runningBrain === undefined || runningBrain === 'not-reported') throw new Error('The five-forges model shows no brain on its first forge.');
+    const entryOf = (text: string) => ({
+      logPosition: 461, at: '2026-11-12T13:19:00.000Z', category: 'forge', text, route: null, kind: null, tokens: null,
+    } as const);
+    const recentMoves = [
+      { at: '2026-11-12T13:19:00.000Z', intent: 'run `forge merges`', emote: 'say forge update' },
+      { at: '2026-11-12T13:18:00.000Z', intent: 'walk-to-column', emote: 'wave' },
+    ];
+    const forge = { ...storefront, activity: [entryOf('The Baton pass failed: run `forge oversee restart`.')], brain: { ...runningBrain, recentMoves } };
+    const document = FleetDocumentMapUtil.fleetDocumentOf({
+      ...FLEET_SNAPSHOT_FIVE_FORGES,
+      forges:   [forge],
+      activity: [{ ...entryOf('Flint\'s brain ran 2:00 after `forge stop`'), trackerId: storefront.trackerId }],
+    });
+    expect(document.activity.map((entry) => entry.text)).toEqual(['This forge logged an entry that Gaia does not word yet.']);
+    expect(document.forges[0]?.activity.map((entry) => entry.text)).toEqual(['This forge logged an entry that Gaia does not word yet.']);
+    const brain = document.forges[0]?.brain;
+    expect(brain === 'not-reported' ? brain : brain?.recentMoves).toEqual([
+      { at: '2026-11-12T13:19:00.000Z', intent: 'Flint\'s brain made a move that Gaia does not word yet.', emote: null },
+      { at: '2026-11-12T13:18:00.000Z', intent: 'walk-to-column', emote: 'wave' },
+    ]);
   });
 
   test('shares no array or object with the snapshot it was built from', () => {

@@ -1,6 +1,7 @@
 /**
  * Maps the internal `FleetSnapshot` out to the page contract. Every key is named one by one, so a key the internal model gains reaches the
- * page only when the contract names it. A forge's notice, warning or brain sentence leaves in Gaia's words when it names a command (D10).
+ * page only when the contract names it. A forge's notice, warning, activity entry, brain sentence or brain move leaves in Gaia's words when it
+ * names a command (D10).
  */
 import type {
   FleetDocument,
@@ -73,7 +74,7 @@ function activityEntryOut(entry: ActivityEntry): FleetDocumentActivityEntry {
     logPosition: entry.logPosition,
     at:          entry.at,
     category:    entry.category,
-    text:        entry.text,
+    text:        ForgeSentenceUtil.activitySentenceOf(entry.text),
     route:       entry.route,
     kind:        entry.kind,
     tokens:      entry.tokens,
@@ -92,7 +93,11 @@ function brainOut(brain: ForgeBrainReading): FleetDocumentBrain | 'not-reported'
     effort:      brain.effort,
     tokens:      brain.tokens,
     calls:       brain.calls,
-    recentMoves: brain.recentMoves.map((move) => ({ at: move.at, intent: move.intent, emote: move.emote })),
+    recentMoves: brain.recentMoves.map((move) => ({
+      at:     move.at,
+      intent: ForgeSentenceUtil.brainIntentSentenceOf(move.intent),
+      emote:  move.emote === null ? null : ForgeSentenceUtil.sentenceNamingNoCommandOf(move.emote),
+    })),
     endedAt:     brain.endedAt,
     endedReason: brain.endedReason,
     sentence:    brain.sentence === null ? null : ForgeSentenceUtil.sentenceNamingNoCommandOf(brain.sentence),
