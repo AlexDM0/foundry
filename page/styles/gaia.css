@@ -2,7 +2,9 @@
  * Every class of Gaia's page, reading only tokens: the design-system package's and Gaia's own `tokens.css`. No colour value lives here.
  * The package styles its own components; this sheet styles only the classes Gaia's components emit, the parts the package does not have
  * among them. A variant is a `data-*` attribute on the component's one class. A hover or a press changes colour, background, border colour,
- * shadow or opacity only, never a size or a place. One section per owner: Gaia's design-system parts first, then each view's own section.
+ * shadow or opacity only, never a size or a place. Motion reads the package's motion tokens, which stay 0ms until the shell marks motion
+ * ready after the first document has painted and under reduced motion: a part that appears fades its opacity in from `@starting-style`,
+ * and a keyframe runs only under `:root[data-motion="ready"]`. One section per owner: Gaia's design-system parts first, then each view's own.
  */
 
 /* ── Design system: the parts the package does not have ────────────────────────────────────────────────────────────────────── */
@@ -55,6 +57,7 @@
   width: var(--condition-dot-size);
   height: var(--condition-dot-size);
   border-radius: var(--r-pill);
+  transition: background-color var(--motion-base) var(--ease-out);
 }
 .gaia-condition-dot[data-condition="unreachable"] { background: var(--err-fill); }
 .gaia-brain-diamond {
@@ -66,6 +69,7 @@
   border: var(--dot-ring-width) solid var(--signal);
   border-radius: var(--brain-diamond-radius);
   transform: rotate(45deg) scale(var(--brain-diamond-scale));
+  transition: border-color var(--motion-base) var(--ease-out);
 }
 .gaia-brain-diamond[data-ended] { border-color: var(--neutral-fill); }
 
@@ -106,7 +110,14 @@
   border-bottom: var(--hairline) solid var(--line);
   background: var(--bg);
 }
-.gaia-brand-bar-home { display: inline-flex; align-items: center; gap: var(--wordmark-gap); color: var(--ink); text-decoration: none; }
+.gaia-brand-bar-home {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wordmark-gap);
+  color: var(--ink);
+  text-decoration: none;
+  transition: var(--feedback-transition);
+}
 .gaia-brand-bar-home:hover { color: var(--ink); }
 .gaia-brand-bar-wordmark {
   font-size: var(--fs-wordmark);
@@ -144,6 +155,7 @@
   line-height: var(--line-height-tab);
   color: var(--err-ink);
   white-space: nowrap;
+  transition: opacity var(--motion-base) var(--ease-out);
 }
 .gaia-brain-chip-refusal-sentence { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
 .gaia-brain-chip-refusal-code { flex: none; font-family: var(--font-mono); font-weight: var(--weight-strong); }
@@ -153,7 +165,7 @@
 .gaia-callout-body { display: flex; flex: 1; flex-direction: column; gap: var(--sp-half); min-width: 0; color: var(--ink); font-size: var(--fs-body); }
 .gaia-callout-title { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-callout-name { font-weight: var(--weight-strong); }
-.gaia-callout-word { font-weight: var(--weight-strong); color: var(--ink-muted); }
+.gaia-callout-word { font-weight: var(--weight-strong); color: var(--ink-muted); transition: color var(--motion-base) var(--ease-out); }
 .gaia-callout-body[data-tone="warn"] .gaia-callout-word { color: var(--link); }
 .gaia-callout-body[data-tone="error"] .gaia-callout-word { color: var(--err-ink); }
 .gaia-callout-body[data-tone="neutral"] .gaia-callout-word { color: var(--ink-muted); }
@@ -168,7 +180,7 @@
   border-radius: var(--r-3);
   background: var(--surface);
 }
-.gaia-table-row { border-bottom: var(--hairline) solid var(--line); }
+.gaia-table-row { border-bottom: var(--hairline) solid var(--line); transition: var(--feedback-transition); }
 .gaia-table-row:last-child { border-bottom: 0; }
 .gaia-table-row[data-selected] { background: var(--wash); box-shadow: inset var(--selected-edge-width) 0 0 var(--signal); }
 .gaia-table-cells {
@@ -215,6 +227,7 @@
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-3);
   background: var(--surface);
+  transition: opacity var(--motion-base) var(--ease-out);
 }
 .gaia-confirm-question { margin: 0; font-size: var(--fs-confirm-question); line-height: var(--line-height-confirm-question); font-weight: var(--weight-strong); }
 .gaia-confirm-choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--sp-3); }
@@ -222,7 +235,7 @@
 .gaia-confirm-consequence { flex: 1; font-size: var(--fs-small); color: var(--ink-muted); }
 
 /* Refusal: crimson text with the forge's code in mono, beside Try again and the dismiss button; never a red button */
-.gaia-refusal { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-refusal { display: flex; align-items: center; gap: var(--sp-3); transition: opacity var(--motion-base) var(--ease-out); }
 .gaia-refusal-text { flex: 1; min-width: 0; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--err-ink); }
 .gaia-refusal-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: var(--weight-strong); }
 
@@ -238,6 +251,7 @@
   background: var(--surface);
   color: var(--ink-muted);
   font-size: var(--fs-tab);
+  transition: opacity var(--motion-base) var(--ease-out);
 }
 .gaia-pending-step-text { flex: 1; min-width: 0; }
 .gaia-pending-step-word { font-weight: var(--weight-strong); color: var(--link); }
@@ -262,6 +276,7 @@
   background: var(--surface);
   color: var(--ink);
   font: var(--fs-lead) var(--font-ui);
+  transition: var(--feedback-transition);
 }
 .gaia-text-field-input[data-face="mono"] { font: var(--fs-small) var(--font-mono); }
 .gaia-text-field-input:disabled { color: var(--ink-disabled); border-color: var(--line); }
@@ -278,6 +293,14 @@
 .gaia-checkbox-text { display: flex; flex: 1; flex-direction: column; }
 .gaia-checkbox-label { color: var(--ink); }
 .gaia-checkbox-explanation { font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* A refusal, a pending step and a stop panel fade in as they appear; once motion is ready, since the tokens are 0ms until then. */
+@starting-style {
+  .gaia-refusal,
+  .gaia-brain-chip-refusal,
+  .gaia-pending-step,
+  .gaia-confirm { opacity: 0; }
+}
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-brand-bar-home:focus-visible,
@@ -380,6 +403,7 @@ body {
   line-height: var(--line-height-figure);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-figure);
+  transition: var(--feedback-transition);
 }
 .gaia-rail-machine[data-at-the-limit] .gaia-rail-machine-figure { color: var(--link); }
 .gaia-rail-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
@@ -389,7 +413,10 @@ body {
 /* Main area: the view's page title, the connection banner under it, and the view */
 .gaia-shell-main { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .gaia-shell-page-title { flex: none; padding: var(--space-18) var(--sp-5) 0 var(--space-28); }
-.gaia-connection-banner { flex: none; padding: var(--sp-4) var(--sp-5) 0 var(--space-28); }
+.gaia-connection-banner { flex: none; padding: var(--sp-4) var(--sp-5) 0 var(--space-28); transition: opacity var(--motion-slow) var(--ease-out); }
+@starting-style {
+  .gaia-connection-banner { opacity: 0; }
+}
 .gaia-shell-view { flex: 1; min-height: 0; overflow: auto; }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
@@ -445,7 +472,7 @@ body {
 /* The table's rows are the artboard's: 36 px under a 32 px head, each with its hairline, 18 px in from the card's edges; a link ringed on hover. */
 .gaia-activity .gaia-table-cells { min-height: calc(var(--activity-row-height) - var(--hairline)); padding: 0 var(--space-18); }
 .gaia-activity .gaia-table-row[data-head] .gaia-table-cells { min-height: calc(var(--activity-head-height) - var(--hairline)); }
-.gaia-activity .gaia-table-row { position: relative; transition: var(--feedback-transition); }
+.gaia-activity .gaia-table-row { position: relative; }
 .gaia-activity .gaia-table-row:not([data-head]):has(a.gaia-activity-text):hover { box-shadow: 0 0 0 var(--focus-ring-width) var(--shadow-card-lift); }
 .gaia-activity-at { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 .gaia-activity-forge {
@@ -511,6 +538,10 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   border-radius: var(--r-2);
   background: var(--surface);
   box-shadow: var(--shadow-menu);
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+@starting-style {
+  .gaia-activity-forge-menu { opacity: 0; }
 }
 .gaia-activity-forge-menu-item {
   height: var(--menu-item-height);
@@ -687,6 +718,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-strong);
   text-decoration: none;
+  transition: var(--feedback-transition);
 }
 .gaia-agents-job:hover { color: var(--link); }
 .gaia-agents-job-line { display: flex; align-items: baseline; gap: var(--space-6); white-space: nowrap; }
@@ -697,6 +729,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   letter-spacing: var(--agents-role-tracking);
   text-transform: uppercase;
   color: var(--ink-4);
+  transition: color var(--motion-base) var(--ease-out);
 }
 .gaia-agents-role[data-role="builder"],
 .gaia-agents-role[data-role="brain"] { color: var(--link); }
@@ -736,9 +769,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-agents-panel-kind { font-size: var(--fs-agents-panel-kind); font-weight: var(--weight-strong); }
 .gaia-agents-panel-job { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; font-weight: var(--weight-label); }
-.gaia-agents-panel-live-dot { display: inline-flex; animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
+.gaia-agents-panel-live-dot { display: inline-flex; }
+/* The pulse token is not zeroed before motion is ready, so the gate is the selector's; an infinite pulse that starts late starts whole. */
+:root[data-motion="ready"] .gaia-agents-panel-live-dot { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .gaia-agents-panel-live-dot { animation: none; }
+  :root[data-motion="ready"] .gaia-agents-panel-live-dot { animation: none; }
 }
 .gaia-agents-panel-state { font-size: var(--fs-tab); color: var(--ink-muted); }
 .gaia-agents-panel-running { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -759,6 +794,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   background: var(--surface);
   color: var(--ink);
   text-decoration: none;
+  transition: var(--feedback-transition);
 }
 .gaia-agents-panel-ticket:hover { border-color: var(--line-strong); }
 .gaia-agents-panel-ticket .gaia-agents-ticket-ids { font-weight: var(--weight-label); color: var(--ink-muted); }
@@ -826,7 +862,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-figure);
 }
-.gaia-agents-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
+.gaia-agents-machine-line { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); transition: var(--feedback-transition); }
 .gaia-agents-machine[data-at-the-limit] .gaia-agents-machine-line { color: var(--link); }
 
 .gaia-agents-job:focus-visible,
@@ -911,7 +947,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.gaia-forges-condition-word { font-weight: var(--weight-strong); }
+.gaia-forges-condition-word { font-weight: var(--weight-strong); transition: color var(--motion-base) var(--ease-out); }
 .gaia-forges-condition-word[data-tone="warn"] { color: var(--link); }
 .gaia-forges-condition-word[data-tone="muted"] { color: var(--ink-muted); }
 .gaia-forges-agents,
@@ -957,6 +993,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-2);
   background: var(--surface);
+  transition: var(--feedback-transition);
 }
 .gaia-forges-entry[data-place="not-found"] { border-style: dashed; border-color: var(--line-strong); }
 .gaia-forges-entry[data-place="hidden"] { background: var(--lane-bg); }
@@ -964,6 +1001,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-entry[data-in-view] { background: var(--wash); }
 .gaia-forges-entry-text { display: flex; flex: 1; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .gaia-forges-hidden { display: flex; flex-direction: column; gap: var(--space-10); }
+/* The hidden forges fade in as the fold opens; the fold starts shut on every visit, so nothing fades on its own. */
+.gaia-forges-hidden > .gaia-forges-group { transition: opacity var(--motion-base) var(--ease-out); }
+@starting-style {
+  .gaia-forges-hidden > .gaia-forges-group { opacity: 0; }
+}
 .gaia-forges-hidden-summary {
   display: flex;
   align-items: center;
@@ -1007,6 +1049,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   border-radius: var(--r-3);
   background: var(--surface);
 }
+.gaia-forges-machine { transition: var(--feedback-transition); }
 .gaia-forges-machine[data-at-the-limit] { border-color: var(--accent-edge); }
 .gaia-forges-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 .gaia-forges-machine-limit { display: flex; align-items: center; gap: var(--sp-2); }
@@ -1021,6 +1064,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   line-height: var(--line-height-figure);
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-figure);
+  transition: var(--feedback-transition);
 }
 .gaia-forges-machine[data-at-the-limit] .gaia-forges-machine-figure { color: var(--link); }
 .gaia-forges-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
@@ -1063,9 +1107,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   background: none;
   color: var(--link);
   font: var(--fs-small) / var(--line-height-small) var(--font-ui);
+  text-decoration: underline var(--underline-at-rest);
   cursor: pointer;
+  transition: var(--feedback-transition), text-decoration-color var(--motion-fast) var(--ease-out);
 }
-.gaia-forges-gaia-what-notifies:hover { text-decoration: underline; }
+.gaia-forges-gaia-what-notifies:hover { text-decoration-color: currentColor; }
 .gaia-forges-gaia-facts {
   display: flex;
   flex-direction: column;
@@ -1117,15 +1163,21 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
 .gaia-attention-section { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 .gaia-attention-nothing { margin: 0; color: var(--ink-muted); }
-.gaia-attention-link { font-size: var(--fs-small); color: var(--link); text-decoration: none; }
-.gaia-attention-link:hover { text-decoration: underline; }
+/* The underline is always drawn, at rest in no colour, so a hover fades its colour in and moves nothing. */
+.gaia-attention-link {
+  font-size: var(--fs-small);
+  color: var(--link);
+  text-decoration: underline var(--underline-at-rest);
+  transition: var(--feedback-transition), text-decoration-color var(--motion-fast) var(--ease-out);
+}
+.gaia-attention-link:hover { text-decoration-color: currentColor; }
 .gaia-attention-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
 /* What waits on User: one card, its serif head with the count's pill, then one grid per row; the primary row has the orange edge */
 .gaia-attention-waiting-head { padding: var(--space-14) var(--space-18); border-bottom: var(--hairline) solid var(--line); }
 .gaia-attention-waiting-head h2 { display: inline-flex; align-items: center; gap: var(--space-10); }
 .gaia-attention-waiting .gaia-list-card { border: 0; border-radius: 0; }
-.gaia-attention-waiting .gaia-list-card-row { padding: 0 var(--space-18); }
+.gaia-attention-waiting .gaia-list-card-row { padding: 0 var(--space-18); transition: var(--feedback-transition); }
 .gaia-attention-waiting .gaia-list-card-row:has(> .gaia-attention-row[data-primary]) { box-shadow: inset var(--selected-edge-width) 0 0 var(--signal); }
 .gaia-attention-waiting .gaia-attention-nothing { padding: var(--space-14) var(--space-18); }
 .gaia-attention-row {
@@ -1135,6 +1187,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   column-gap: var(--sp-3);
   min-height: var(--attention-row-height);
 }
+.gaia-attention-row > :not(.gaia-attention-row-forge) { transition: opacity var(--motion-slow) var(--ease-out); }
 .gaia-attention-row[data-stale] > :not(.gaia-attention-row-forge) { opacity: var(--stale-opacity); }
 .gaia-attention-row-forge { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .gaia-attention-row-forge-text { display: flex; flex-direction: column; min-width: 0; }
@@ -1207,7 +1260,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-running-condition[data-condition="held"] { color: var(--link); }
 .gaia-attention-running-condition[data-condition="unreachable"] { color: var(--err-ink); }
 .gaia-attention-running-slots { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
-.gaia-attention-running-jobs { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--space-14); }
+.gaia-attention-running-jobs { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--space-14); transition: opacity var(--motion-slow) var(--ease-out); }
 .gaia-attention-running-job {
   display: inline-flex;
   align-items: center;
@@ -1335,9 +1388,16 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   border-radius: var(--r-3);
   background: var(--bg);
 }
-/* The Bridge loads behind "Opening" and shows once it says it is ready, so no half-painted Bridge shows. */
-.gaia-forge-frame-bridge { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--bg); }
-.gaia-forge-frame-bridge:not([data-bridge-ready]) { visibility: hidden; }
+/* The Bridge loads behind "Opening" and fades in once it says it is ready, so no half-painted Bridge shows. */
+.gaia-forge-frame-bridge {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--bg);
+  transition: opacity var(--motion-slow) var(--ease-out);
+}
+.gaia-forge-frame-bridge:not([data-bridge-ready]) { visibility: hidden; opacity: 0; }
 .gaia-forge-frame-opening {
   position: absolute;
   inset: 0;
@@ -1356,6 +1416,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   width: var(--forge-frame-notice-width);
   max-width: 100%;
   padding: var(--sp-6);
+  transition: opacity var(--motion-base) var(--ease-out);
 }
 .gaia-forge-frame-notice > .gaia-callout,
 .gaia-forge-frame-notice > .gaia-refusal { align-self: stretch; }
@@ -1372,4 +1433,13 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   width: var(--forge-frame-stop-popover-width);
   border-radius: var(--r-3);
   box-shadow: var(--shadow-menu);
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
+
+/* A notice and Stop's question fade in as they appear; the refusal or panel inside one fades with it, not again. */
+@starting-style {
+  .gaia-forge-frame-notice,
+  .gaia-forge-frame-stop-popover { opacity: 0; }
+}
+.gaia-forge-frame-notice > .gaia-refusal,
+.gaia-forge-frame-stop-popover > .gaia-confirm { transition: none; }

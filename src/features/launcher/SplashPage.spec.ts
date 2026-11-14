@@ -1,7 +1,8 @@
 /**
  * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only, the design-system package's
  * and Gaia's, and reads no token that both lack; it says what SCREENS C3 says and tells User to run nothing; and it knows every step and
- * fragment key the launcher moves it with. Its own script runs against a stand-in document at each step the launcher moves it to, since
+ * fragment key the launcher moves it with; and it marks motion ready only after its first step has painted, so that step shows at once and
+ * a later one fades in. Its own script runs against a stand-in document and stand-in frames at each step the launcher moves it to, since
  * specs have no document; the browser window watch's recording shows it in a real browser at a step.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -47,14 +48,20 @@ interface RenderedSplash {
   readonly theme:       string | undefined;
 }
 
+interface SplashRun {
+  readonly rendered:      RenderedSplash;
+  /** The root's motion mark before any frame, then after each frame the script asked for has run, in order. */
+  readonly motionByFrame: readonly (string | undefined)[];
+}
+
 const SPLASH_ELEMENT_IDS = ['server-step', 'forges-step', 'opening-step', 'server-label', 'server-fact', 'forges-fact'] as const;
 
 function labelAttributeOf(html: string, attributeName: string): string {
   return new RegExp(`${attributeName}="([^"]+)"`).exec(html)?.[1] ?? '';
 }
 
-/** Runs the splash's script at an address, with the system's colour scheme, against a stand-in of the elements it writes. */
-function renderedSplashAt(address: string, systemPrefersDark = false): RenderedSplash {
+/** Runs the splash's script at an address, with the system's colour scheme, against a stand-in of the elements it writes and of frames. */
+function splashRunAt(address: string, systemPrefersDark = false): SplashRun {
   const html = splashText();
   const elements = new Map<string, SplashElement>(SPLASH_ELEMENT_IDS.map((elementId) => [elementId, { dataset: {}, textContent: '' }]));
   const serverLabel = elements.get('server-label');
@@ -65,17 +72,31 @@ function renderedSplashAt(address: string, systemPrefersDark = false): RenderedS
   const rootDataset: Record<string, string> = {};
   const standInDocument = { documentElement: { dataset: rootDataset }, getElementById: (elementId: string) => elements.get(elementId) };
   const { search, hash } = new URL(address);
-  const runSplashScript = new Function('document', 'location', 'addEventListener', 'matchMedia', scriptOf(html));
-  runSplashScript(standInDocument, { search, hash }, () => undefined, () => ({ matches: systemPrefersDark }));
+  let waitingFrameCallbacks: (() => void)[] = [];
+  const requestFrame = (callback: () => void) => waitingFrameCallbacks.push(callback);
+  const runSplashScript = new Function('document', 'location', 'addEventListener', 'matchMedia', 'requestAnimationFrame', scriptOf(html));
+  runSplashScript(standInDocument, { search, hash }, () => undefined, () => ({ matches: systemPrefersDark }), requestFrame);
+  const motionByFrame = [rootDataset['motion']];
+  while (waitingFrameCallbacks.length > 0) {
+    const frameCallbacks = waitingFrameCallbacks;
+    waitingFrameCallbacks = [];
+    for (const callback of frameCallbacks) callback();
+    motionByFrame.push(rootDataset['motion']);
+  }
   const textOf = (elementId: typeof SPLASH_ELEMENT_IDS[number]): string => elements.get(elementId)?.textContent ?? '';
   const stepOf = (elementId: typeof SPLASH_ELEMENT_IDS[number]): string => elements.get(elementId)?.dataset['step'] ?? '';
-  return {
+  const rendered = {
     stepStates:  [stepOf('server-step'), stepOf('forges-step'), stepOf('opening-step')].join(),
     serverLabel: textOf('server-label'),
     serverFact:  textOf('server-fact'),
     forgesFact:  textOf('forges-fact'),
     theme:       rootDataset['theme'],
   };
+  return { rendered, motionByFrame };
+}
+
+function renderedSplashAt(address: string, systemPrefersDark = false): RenderedSplash {
+  return splashRunAt(address, systemPrefersDark).rendered;
 }
 
 describe('the splash', () => {
@@ -154,6 +175,10 @@ describe('the splash at each step the launcher moves it to', () => {
   test('shows Attention opening once both steps before it are done', () => {
     const openingSplash = renderedSplashAt(LaunchAddressUtil.splashStepAddressOf(splashAddress, 'opening', null));
     expect([openingSplash.stepStates, openingSplash.serverLabel, openingSplash.serverFact]).toEqual(['done,done,now', 'Gaia\'s server is up', '127.0.0.1:4790']);
+  });
+
+  test('marks motion ready only in the frame after the one that paints its first step, so that step shows at once and the next fades in', () => {
+    expect(splashRunAt(splashAddress).motionByFrame).toEqual([undefined, undefined, 'ready']);
   });
 
   test('paints dark for the dark choice and for auto on a dark system, and light otherwise', () => {

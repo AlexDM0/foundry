@@ -107,6 +107,8 @@
   --forge-frame-stop-popover-width:  560px;
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;
+  /* A link's underline at rest: drawn in no colour in either theme, so a hover fades it in and moves nothing. */
+  --underline-at-rest:            transparent;
 
   /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
   --neutral-fill: #8f8f8f;

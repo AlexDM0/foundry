@@ -12,7 +12,8 @@
     health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
     this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
     the window to Gaia's page. The package's tokens and fonts are reached by their files, because a file page resolves no package export:
-    the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way.
+    the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way, and fades in as
+    the launcher moves it on.
   -->
   <style>
     @font-face {
@@ -66,7 +67,11 @@
     .gaia-mark-glow { fill: var(--mark-glow); }
     .gaia-mark-rim { stroke: var(--mark-rim); }
     .splash-steps { display: flex; align-items: center; gap: var(--space-10); height: var(--line-height-lead); margin: 0; padding: 0; list-style: none; }
-    .splash-step { display: flex; align-items: center; gap: var(--space-10); }
+    .splash-step { display: flex; align-items: center; gap: var(--space-10); transition: opacity var(--motion-base) var(--ease-out); }
+    /* The step the launcher moves the splash to fades in; the first paint shows its step at once, as motion is ready only after it. */
+    @starting-style {
+      .splash-step { opacity: 0; }
+    }
     .splash-step:not([data-step="now"]) { display: none; }
     /* Opening, the line names the address the server answered at, which the server's own step holds. */
     .splash-steps:has(#opening-step[data-step="now"]) #server-step { display: flex; order: 1; }
@@ -143,8 +148,16 @@
       document.getElementById('forges-fact').textContent  = stepIndex > 0 && answered !== null && registered !== null ? `${answered} of ${registered} answered` : '';
     }
 
+    /* The package's motion tokens stay 0ms until the root is marked ready, which waits out the frame that paints the first step. */
+    function markMotionReadyAfterFirstPaint() {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.dataset.motion = 'ready';
+      }));
+    }
+
     applyTheme(new URLSearchParams(location.search).get('theme'));
     render();
+    markMotionReadyAfterFirstPaint();
     addEventListener('hashchange', render);
   </script>
 </body>
