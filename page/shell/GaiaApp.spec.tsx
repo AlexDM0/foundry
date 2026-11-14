@@ -54,6 +54,7 @@ const LIVE_STREAM = { state: (): FleetStreamState => 'live', subscribe: () => ()
 const SENDER_OF_NOTHING = CommandSender.create({
   sendRequest:    () => Promise.reject(new Error('The shell sends no command by itself.')),
   controlsMayAct: () => true,
+  sessionWasLost: () => undefined,
 });
 
 const NEWLY_REGISTERED: FleetDocumentForge = {

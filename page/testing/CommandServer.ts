@@ -25,6 +25,6 @@ export function serverAnswering(responses: readonly (() => Promise<Response>)[],
 }
 
 /** A command sender whose controls may act, over a server that answers these responses in order. */
-export function senderOver(responses: readonly (() => Promise<Response>)[], sent: SentRequest[] = []): CommandSender {
-  return CommandSender.create({ sendRequest: serverAnswering(responses, sent), controlsMayAct: () => true });
+export function senderOver(responses: readonly (() => Promise<Response>)[], sent: SentRequest[] = [], sessionWasLost: () => void = () => undefined): CommandSender {
+  return CommandSender.create({ sendRequest: serverAnswering(responses, sent), controlsMayAct: () => true, sessionWasLost });
 }

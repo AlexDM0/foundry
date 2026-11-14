@@ -45,6 +45,8 @@ const RESTART_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-restart', tracker
 
 const HTTP_CONFLICT = 409;
 
+const HTTP_UNAUTHORIZED = 401;
+
 describe('sending one command', () => {
   test('the command goes as one JSON body to /api/commands, at the known commandVersion, with the page\'s own cookie', async () => {
     const sent: SentRequest[] = [];
@@ -192,11 +194,23 @@ describe('a command on its way', () => {
   });
 });
 
+describe('a window whose session the server no longer knows', () => {
+  test('a 401 is no answer to read: the sender says the session is lost, and the command fails as session-lost, not as an answer not understood', async () => {
+    const heardLost: string[] = [];
+    const sender = senderOver([() => Promise.resolve(new Response('{"refusal":"no-session"}', { status: HTTP_UNAUTHORIZED }))], [], () => heardLost.push('lost'));
+    expect(await sender.send(STOP_EXAMPLE_MOBILE_APP)).toEqual({ verdict: 'session-lost' });
+    expect(heardLost).toEqual(['lost']);
+    expect(CommandSender.stateOf(sender.states(), { trackerId: TRACKER_IDS.exampleMobileApp }).failure)
+      .toEqual({ kind: 'forge-stop', result: { verdict: 'session-lost' } });
+  });
+});
+
 describe('while the controls may not act', () => {
   test('nothing is sent, nothing is marked on its way, and the caller hears why', async () => {
     const sender = CommandSender.create({
       sendRequest:    () => Promise.reject(new Error('Nothing may be sent while the event stream is lost.')),
       controlsMayAct: () => false,
+      sessionWasLost: () => undefined,
     });
     const heard: string[] = [];
     sender.subscribe(() => heard.push('changed'));

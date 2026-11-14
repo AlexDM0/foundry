@@ -20,7 +20,8 @@ import type {
 export type SentCommandResult =
   | { readonly verdict: 'answered'; readonly answer: CommandAnswerDocument }
   | { readonly verdict: 'server-unreachable' }
-  | { readonly verdict: 'answer-not-understood' };
+  | { readonly verdict: 'answer-not-understood' }
+  | { readonly verdict: 'session-lost' };
 
 /** `not-sent` when the controls may not act or the subject's last command is still on its way: nothing reached the server. */
 export type CommandResult = SentCommandResult | { readonly verdict: 'not-sent'; readonly reason: 'controls-may-not-act' | 'already-on-its-way' };
@@ -53,6 +54,8 @@ export interface CommandSenderSurroundings {
   readonly sendRequest:    CommandRequestSender;
   /** False while Gaia's event stream is lost: what the page shows may be stale, so no control acts on it. */
   readonly controlsMayAct: () => boolean;
+  /** The server answered that it no longer knows this window's session. */
+  readonly sessionWasLost: () => void;
 }
 
 export interface CommandSender {
@@ -64,6 +67,8 @@ export interface CommandSender {
 }
 
 const COMMANDS_PATH = '/api/commands';
+
+const NO_SESSION_STATUS = 401;
 
 const SUCCESSFUL_OUTCOMES: ReadonlySet<CommandOutcome> = new Set(['done', 'nothing-to-do', 'restart-pending']);
 
@@ -135,7 +140,7 @@ function restartPendingAfter(kind: CommandKind, result: CommandResult, restartWa
   return resultSucceeded(result) && COMMANDS_THAT_END_THE_RUNNING_OVERSEER.has(kind) ? false : restartWasPending;
 }
 
-function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): CommandSender {
+function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSurroundings): CommandSender {
   const listeners = new Set<() => void>();
   let states = NO_COMMAND_STATES;
 
@@ -156,6 +161,10 @@ function create({ sendRequest, controlsMayAct }: CommandSenderSurroundings): Com
       });
     } catch {
       return { verdict: 'server-unreachable' };
+    }
+    if (response.status === NO_SESSION_STATUS) {
+      sessionWasLost();
+      return { verdict: 'session-lost' };
     }
     return resultOf(response);
   };

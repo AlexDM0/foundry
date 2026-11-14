@@ -3,13 +3,20 @@
  * `FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS` by this client, not by the browser, so every wait is a schedule a spec controls; the stream
  * reads `lost` from the error until the next open. Gaia's server sends its current document first on every open, so a reopened stream
  * needs no separate read of `/api/fleet`. A document of another `fleetVersion` means a stale page: it reloads once, and a mark in the
- * session's storage keeps a second mismatch from reloading again.
+ * session's storage keeps a second mismatch from reloading again. Page sessions live in the server's memory, so a stream that errs asks
+ * whether the window still holds one; once it does not, as after the server restarted, no reopen could succeed and the client stops.
  */
 import { CONTRACT_VERSIONS }  from '../../src/shared/constants/ContractVersions.ts';
 import type { FleetDocument } from '../@types/FleetDocument.ts';
 
-/** `connecting` only before the first open; `page-out-of-date` once a reload did not bring a page of the server's `fleetVersion`. */
-export type FleetStreamState = 'connecting' | 'live' | 'lost' | 'page-out-of-date';
+/**
+ * `connecting` only before the first open; `page-out-of-date` once a reload did not bring a page of the server's `fleetVersion`;
+ * `session-lost` once the server no longer knows this window's session.
+ */
+export type FleetStreamState = 'connecting' | 'live' | 'lost' | 'page-out-of-date' | 'session-lost';
+
+/** Whether the server still knows this window's session: `unknown` when nothing answered, as while the server is down. */
+export type SessionReading = 'held' | 'lost' | 'unknown';
 
 /** The part of the browser's `EventSource` the client uses, so a spec can drive it. */
 export interface FleetEventSource {
@@ -30,17 +37,25 @@ export interface FleetStreamSurroundings {
   readonly schedule:        (task: () => void, delayMilliseconds: number) => () => void;
   readonly reloadPage:      () => void;
   readonly reloadMark:      ReloadMark;
+  readonly readSession:     () => Promise<SessionReading>;
 }
 
 export interface FleetStreamClient {
-  readonly follow:    () => void;
+  readonly follow:      () => void;
   /** Closes the stream and cancels a reopen; nothing is published after it. */
-  readonly stop:      () => void;
-  readonly state:     () => FleetStreamState;
-  readonly subscribe: (listener: () => void) => () => void;
+  readonly stop:        () => void;
+  /** Stops for good: the server answered that it no longer knows this window's session. */
+  readonly loseSession: () => void;
+  readonly state:       () => FleetStreamState;
+  readonly subscribe:   (listener: () => void) => () => void;
 }
 
 const EVENTS_PATH = '/api/events';
+
+/** A route that needs the session, read only to learn whether the window still holds one. */
+const SESSION_CHECK_PATH = '/api/fleet';
+
+const NO_SESSION_STATUS = 401;
 
 const FLEET_EVENT_NAME = 'fleet';
 
@@ -73,7 +88,7 @@ function controlsMayActIn(state: FleetStreamState): boolean {
 
 function create(publish: (fleetDocument: FleetDocument) => void, surroundings: FleetStreamSurroundings): FleetStreamClient {
   const {
-    openEventSource, schedule, reloadPage, reloadMark
+    openEventSource, schedule, reloadPage, reloadMark, readSession
   } = surroundings;
   const listeners = new Set<() => void>();
   let state: FleetStreamState = 'connecting';
@@ -93,6 +108,12 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
     cancelReopen = null;
     source?.close();
     source = null;
+  };
+
+  const loseSession = (): void => {
+    if (state === 'page-out-of-date') return;
+    stop();
+    changeState('session-lost');
   };
 
   const readFleetEvent = (event: Event): void => {
@@ -128,16 +149,20 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
       source = null;
       changeState('lost');
       cancelReopen = schedule(open, FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS);
+      void readSession().then((reading) => {
+        if (reading === 'lost' && following) loseSession();
+      });
     });
   };
 
   return {
     follow: () => {
-      if (following || state === 'page-out-of-date') return;
+      if (following || state === 'page-out-of-date' || state === 'session-lost') return;
       following = true;
       open();
     },
     stop,
+    loseSession,
     state:     () => state,
     subscribe: (listener) => {
       listeners.add(listener);
@@ -153,7 +178,16 @@ function browserSurroundings(): FleetStreamSurroundings {
       const timer = setTimeout(task, delayMilliseconds);
       return () => clearTimeout(timer);
     },
-    reloadPage: () => window.location.reload(),
+    reloadPage:  () => window.location.reload(),
+    readSession: async () => {
+      try {
+        const response = await fetch(SESSION_CHECK_PATH, { credentials: 'same-origin' });
+        void response.body?.cancel();
+        return response.status === NO_SESSION_STATUS ? 'lost' : 'held';
+      } catch {
+        return 'unknown';
+      }
+    },
     reloadMark: {
       read: () => {
         try {
@@ -177,6 +211,7 @@ function browserSurroundings(): FleetStreamSurroundings {
 
 export const FleetStreamClient = {
   EVENTS_PATH,
+  SESSION_CHECK_PATH,
   FLEET_EVENT_NAME,
   FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS,
   create,

@@ -28,6 +28,8 @@ function refusalTextOf(failure: CommandFailure): RefusalText {
       return { code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' };
     case 'answer-not-understood':
       return { code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' };
+    case 'session-lost':
+      return { code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' };
   }
 }
 

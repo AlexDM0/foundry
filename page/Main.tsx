@@ -25,10 +25,12 @@ const fleetStream = FleetStreamClient.create(fleetSource.publish, FleetStreamCli
 const commandSender = CommandSender.create({
   sendRequest:    (path, requestOptions) => fetch(path, requestOptions),
   controlsMayAct: () => FleetStreamClient.controlsMayActIn(fleetStream.state()),
+  sessionWasLost: () => fleetStream.loseSession(),
 });
 
 const rootElement = document.getElementById(ROOT_ELEMENT_ID);
-// The session cookie must be set before anything reads the fleet; a page with no code reads with the cookie it has.
+// The session cookie must be set before anything reads the fleet. A page with no code, or a refused one, reads with the cookie it has, and
+// the stream finds out whether the server still knows it.
 void SessionCodeExchange.exchangeCodeInFragment(
   window.location,
   (address) => window.history.replaceState(null, '', address),

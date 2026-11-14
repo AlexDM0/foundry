@@ -10,13 +10,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocument }     from '../@types/FleetDocument.ts';
-import { FLEET_FIVE_FORGES }      from '../testing/fixtures/fleet-five-forges.ts';
+import type { FleetDocument } from '../@types/FleetDocument.ts';
+import { FLEET_FIVE_FORGES }  from '../testing/fixtures/fleet-five-forges.ts';
 import {
   type FleetEventSource,
   FleetStreamClient,
   type FleetStreamState,
   type FleetStreamSurroundings,
+  type SessionReading,
 } from './FleetStreamClient.ts';
 
 interface StandInSource extends FleetEventSource {
@@ -60,7 +61,14 @@ interface StreamStage {
   readonly latest:    () => StandInSource;
 }
 
-function streamStage(options: { readonly storedMark?: string | null; readonly markCanBeKept?: boolean } = {}): StreamStage {
+interface StreamStageOptions {
+  readonly storedMark?:     string | null;
+  readonly markCanBeKept?:  boolean;
+  /** What the session check answers after each error; held when the spec names nothing. */
+  readonly sessionReading?: SessionReading;
+}
+
+function streamStage(options: StreamStageOptions = {}): StreamStage {
   const published: FleetDocument[] = [];
   const opened: StandInSource[] = [];
   const scheduled: ScheduledTask[] = [];
@@ -80,8 +88,9 @@ function streamStage(options: { readonly storedMark?: string | null; readonly ma
         cancelled = true;
       };
     },
-    reloadPage: () => reloads.push('reloaded'),
-    reloadMark: {
+    reloadPage:  () => reloads.push('reloaded'),
+    readSession: () => Promise.resolve(options.sessionReading ?? 'held'),
+    reloadMark:  {
       read:  () => storedMark,
       write: (fleetVersion) => {
         marks.push(fleetVersion);
@@ -215,6 +224,35 @@ describe('a lost stream and its reopening', () => {
   });
 });
 
+describe('a session the server no longer knows', () => {
+  test('a stream that errs while the session check answers lost reads session-lost, cancels its reopen and opens no stream again', async () => {
+    const stage = followedAndLive(streamStage({ sessionReading: 'lost' }));
+    stage.latest().emit('error');
+    expect(stage.client.state()).toBe('lost');
+    await Promise.resolve();
+    expect(stage.client.state()).toBe('session-lost');
+    expect(stage.scheduled[0]?.isCancelled()).toBe(true);
+    stage.client.follow();
+    expect(stage.opened).toHaveLength(1);
+  });
+
+  test('a session check that is held, or that nothing answered, leaves the stream lost and its reopen due', async () => {
+    for (const sessionReading of ['held', 'unknown'] as const) {
+      const stage = followedAndLive(streamStage({ sessionReading }));
+      stage.latest().emit('error');
+      await Promise.resolve();
+      expect([sessionReading, stage.client.state(), stage.scheduled[0]?.isCancelled()]).toEqual([sessionReading, 'lost', false]);
+    }
+  });
+
+  test('losing the session from a command\'s answer stops the stream at once, and the controls may not act', () => {
+    const stage = followedAndLive(streamStage());
+    stage.client.loseSession();
+    expect([stage.client.state(), stage.latest().isClosed()]).toEqual(['session-lost', true]);
+    expect(FleetStreamClient.controlsMayActIn(stage.client.state())).toBe(false);
+  });
+});
+
 describe('another fleetVersion', () => {
   test('a document of another fleetVersion marks that version, reloads the page once, closes the stream and publishes nothing', () => {
     const stage = followedAndLive(streamStage());
@@ -260,7 +298,7 @@ describe('another fleetVersion', () => {
 
 describe('whether the controls may act', () => {
   test('they may while connecting and live, and may not while the stream is lost or the page is out of date', () => {
-    const states: FleetStreamState[] = ['connecting', 'live', 'lost', 'page-out-of-date'];
-    expect(states.map((state) => FleetStreamClient.controlsMayActIn(state))).toEqual([true, true, false, false]);
+    const states: FleetStreamState[] = ['connecting', 'live', 'lost', 'page-out-of-date', 'session-lost'];
+    expect(states.map((state) => FleetStreamClient.controlsMayActIn(state))).toEqual([true, true, false, false, false]);
   });
 });

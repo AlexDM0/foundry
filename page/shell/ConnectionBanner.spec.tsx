@@ -27,6 +27,13 @@ describe('the connection banner', () => {
     expect(text).not.toContain('Trying again');
   });
 
+  test('a window the server no longer knows says so in Gaia\'s words, claims no retry, and names no command', () => {
+    const text = tree.textOf(bannerOf('session-lost'));
+    expect(text).toBe('Gaia\'s server no longer knows this window, as after it restarted. Close this window and open Gaia again.');
+    expect(text).not.toContain('Trying again');
+    expect(text).not.toMatch(/`|gaia [a-z-]+ /);
+  });
+
   test('a live or connecting stream shows no banner', () => {
     expect([bannerOf('live'), bannerOf('connecting')]).toEqual([[], []]);
   });

@@ -22,5 +22,7 @@ describe('a refusal\'s code and sentence', () => {
       .toEqual({ code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.' });
     expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-start', result: { verdict: 'answer-not-understood' } }))
       .toEqual({ code: 'answer-not-understood', sentence: 'Gaia\'s server gave an answer this page does not understand.' });
+    expect(CommandFailureTextUtil.refusalTextOf({ kind: 'forge-start', result: { verdict: 'session-lost' } }))
+      .toEqual({ code: 'session-lost', sentence: 'Gaia\'s server no longer knows this window.' });
   });
 });
