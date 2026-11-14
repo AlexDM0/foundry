@@ -10,6 +10,7 @@ import { SegmentedControl } from 'design-system/SegmentedControl';
 
 import type { FleetDocument }                                       from '../../@types/FleetDocument.ts';
 import { type CommandSenderInView, useCommandSender }               from '../../api/CommandSender.ts';
+import type { ClockReading }                                        from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                                           from '../../shared/@types/ViewParts.ts';
 import type { SelectedAgent }                                       from '../../shared/HashRouter.ts';
 import type { MachineLoad }                                         from '../../shared/MachineLoadModel.ts';
@@ -111,17 +112,10 @@ export interface AgentsRoute {
   readonly query:         string;
 }
 
-/** The page's clock as the shell reads it: for display only. */
-export interface AgentsClock {
-  readonly nowEpochMilliseconds: number;
-  /** The time zone a clock time is printed in; `undefined` is the browser's own. */
-  readonly timeZone:             string | undefined;
-}
-
 export interface AgentsViewRootProps {
   readonly fleetDocument: FleetDocument;
   readonly route:         AgentsRoute;
-  readonly clock:         AgentsClock;
+  readonly clock:         ClockReading;
   readonly goTo:          (fragment: string) => void;
 }
 
@@ -160,7 +154,7 @@ const TITLE = 'Agents';
 const LEAD = 'Every agent at work on this machine, per forge. Select one to read what its forge reports.';
 
 /** Before the first fleet document the title stands alone. A filter press goes to the fragment that keeps the selected agent. */
-export function agentsViewPartsOf(fleetDocument: FleetDocument | null, route: AgentsRoute, clock: AgentsClock, goTo: (fragment: string) => void): ViewParts {
+export function agentsViewPartsOf(fleetDocument: FleetDocument | null, route: AgentsRoute, clock: ClockReading, goTo: (fragment: string) => void): ViewParts {
   if (fleetDocument === null) {
     return {
       title: TITLE, lead: LEAD, figures: [], actions: null, content: null

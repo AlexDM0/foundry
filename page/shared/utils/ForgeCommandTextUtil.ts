@@ -5,6 +5,7 @@
 import type { CommandKind, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocumentForge }                             from '../../@types/FleetDocument.ts';
 import { CountTextUtil }                                       from './CountTextUtil.ts';
+import { FleetDocumentUtil }                                   from './FleetDocumentUtil.ts';
 
 export interface StopChoice {
   readonly agents:      ForgeStopAgents;
@@ -70,7 +71,7 @@ function stopChoicesOf(agentsRunning: number): StopChoice[] {
 /** The caller decides whether its forge can be stopped at all; this words the question. */
 function stopQuestionOf(forge: FleetDocumentForge): StopQuestion {
   const agentsRunning = forge.concurrency?.agentsInFlight ?? forge.agents.length;
-  const waitingCount = forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
+  const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
   const running = agentsRunning === 0 ? '' : ` ${CountTextUtil.countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`;
   return {
     label:       `Stop ${forge.project}`,
