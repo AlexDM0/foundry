@@ -23,6 +23,7 @@ import { AddRepositoryForm }    from '../../shared/add-repository/AddRepositoryF
 import { ForgeCommandTextUtil } from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }    from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }        from '../../shared/utils/ForgeTextUtil.ts';
+import { PathTextUtil }         from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }        from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }           from '../../shell/HashRouter.ts';
 
@@ -168,6 +169,8 @@ export interface AttentionContent {
 /** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
 export interface NoForgeContent {
   readonly forgeProgramIsMissing: boolean;
+  /** The program Gaia runs, else the one the settings name, from `~`: `~/.bun/bin/forge`; `null` while it is missing. */
+  readonly forgeProgramText:      string | null;
 }
 
 export type AttentionScreen = { readonly kind: 'fleet'; readonly content: AttentionContent } | { readonly kind: 'no-forge'; readonly content: NoForgeContent };
@@ -561,9 +564,17 @@ function titleFiguresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   return fleetDocument.figures.incompleteFor.length > 0 ? [] : figuresOf(fleetDocument);
 }
 
+function noForgeContentOf(fleetDocument: FleetDocument): NoForgeContent {
+  const forgeProgramPath = fleetDocument.gaia.forgeProgramInUse ?? fleetDocument.settings.forgeProgramPath;
+  return {
+    forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument),
+    forgeProgramText:      forgeProgramPath === null ? null : PathTextUtil.homeRelativePathOf(forgeProgramPath, fleetDocument.gaia.homeFolder),
+  };
+}
+
 function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionScreen {
   if (fleetDocument.forges.length === 0) {
-    return { kind: 'no-forge', content: { forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) } };
+    return { kind: 'no-forge', content: noForgeContentOf(fleetDocument) };
   }
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }

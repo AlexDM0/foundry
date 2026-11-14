@@ -6,8 +6,9 @@
  * compares nothing. C2 is its "What notifies" checklist, opened over Forges as the page opens it (the notifications wait for W5.6), and C3
  * is the launcher's own splash file, opened at both its steps and drawing the page's own mark. The restart an update left pending, which no
  * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
- * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4. B1 is painted in
- * each of the five states of its `brain` tweak, each showing exactly its own parts of Flint's brain between Stop and Open in new tab.
+ * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
+ * state, the forge program found. B1 is painted in each of the five states of its `brain` tweak, each showing exactly its own parts of
+ * Flint's brain between Stop and Open in new tab.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`.
@@ -28,6 +29,7 @@ import {
   BRAIN_SCREENS,
   BRAIN_STATE_SCREENS,
   BATON_PASS_FAILED_SENTENCE,
+  FORGE_PROGRAM_FOUND_SCREENS,
   HIDDEN_FORGE_SCREENS,
   MONITOR_WARNING_SCREENS,
   type PageArtboard,
@@ -40,7 +42,6 @@ import {
   SPLASH_SCREENS,
   SPLASH_SIZE_PIXELS,
   splashScreenAddressOf,
-  themesOf,
   WHAT_NOTIFIES_SCREENS,
   whatNotifiesDocumentOf,
   whatNotifiesMarkupOf,
@@ -51,6 +52,17 @@ const STYLESHEETS = ['tokens.css', 'gaia.css'].map((fileName) => readFileSync(jo
 
 /** A colour written as a value: what only tokens.css may hold. */
 const COLOUR_VALUE = /oklch\(|rgba?\(|hsla?\(|#[0-9a-f]{3,8}\b|\bcolor:/i;
+
+/** Every screen painted from the page: each artboard, and each state the owner added over one. */
+const PAINTED_OVER_ARTBOARDS: readonly ArtboardScreen[] = [
+  ...ARTBOARD_SCREENS,
+  ...BRAIN_SCREENS,
+  ...BRAIN_STATE_SCREENS,
+  ...RESTART_PENDING_SCREENS,
+  ...MONITOR_WARNING_SCREENS,
+  ...HIDDEN_FORGE_SCREENS,
+  ...FORGE_PROGRAM_FOUND_SCREENS,
+];
 
 function screenOf(artboard: PageArtboard): ArtboardScreen {
   const screen = ARTBOARD_SCREENS.find((candidate) => candidate.artboard === artboard);
@@ -84,20 +96,18 @@ describe('the screens of the visual pass', () => {
       ['B2', 'ForgeControls.dc.html'],
       ['B3', 'Degraded.dc.html'],
       ['B4', 'Empty.dc.html'],
-      ['C1', 'MainLight.dc.html'],
     ]);
     expect(ARTBOARD_SIZE_PIXELS).toEqual({ width: 1440, height: 1016 });
   });
 
-  test('builds every screen in both themes, but C1, which is drawn in light only', () => {
-    const themesByArtboard = ARTBOARD_SCREENS.map((screen) => [screen.artboard, themesOf(screen)]);
-    expect(themesByArtboard).toEqual(ARTBOARD_SCREENS.map((screen) => [screen.artboard, screen.artboard === 'C1' ? ['light'] : ['dark', 'light']]));
+  test('builds every screen in both themes, light first as the package\'s default, since version 2 designs both', () => {
+    expect(SCREEN_THEMES).toEqual(['light', 'dark']);
   });
 
   test('a screen document names its theme on the root, as the page does before its first paint, and holds every stylesheet whole, the package\'s first', () => {
     const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text()];
     for (const screen of ARTBOARD_SCREENS) {
-      for (const theme of themesOf(screen)) {
+      for (const theme of SCREEN_THEMES) {
         const screenDocument = screenDocumentOf(screen, theme);
         expect(screenDocument).toStartWith(`<!doctype html>\n<html lang="en" data-theme="${theme}" data-motion="ready">`);
         const stylesheetPlaces = [...packageStylesheets, ...STYLESHEETS].map((stylesheet) => screenDocument.indexOf(stylesheet));
@@ -109,15 +119,15 @@ describe('the screens of the visual pass', () => {
   });
 
   test('paints the restart an update left pending over A1 and A4, each from its own artboard source, in both themes', () => {
-    expect(RESTART_PENDING_SCREENS.map((screen) => [screen.artboard, screen.designFile, themesOf(screen)])).toEqual([
-      ['A1', 'Main.dc.html', ['dark', 'light']],
-      ['A4', 'Forges.dc.html', ['dark', 'light']],
+    expect(RESTART_PENDING_SCREENS.map((screen) => [screen.artboard, screen.designFile])).toEqual([
+      ['A1', 'Main.dc.html'],
+      ['A4', 'Forges.dc.html'],
     ]);
   });
 
   test('a screen holds no colour of its own: no style of its markup names one, so every colour comes from the inlined tokens', () => {
-    for (const screen of [...ARTBOARD_SCREENS, ...BRAIN_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS, ...BRAIN_STATE_SCREENS]) {
-      for (const theme of themesOf(screen)) {
+    for (const screen of PAINTED_OVER_ARTBOARDS) {
+      for (const theme of SCREEN_THEMES) {
         const markup = screenMarkupOf(screen, theme);
         expect(markup).not.toContain('<style');
         for (const inlineStyle of inlineStylesOf(markup)) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
@@ -126,9 +136,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the theme button shows', () => {
-    const screensWithTheButton = [...ARTBOARD_SCREENS, ...BRAIN_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS].filter(
-      (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
-    );
+    const screensWithTheButton = PAINTED_OVER_ARTBOARDS.filter((candidate) => candidate.artboard !== 'B1');
     for (const screen of screensWithTheButton) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
@@ -159,9 +167,9 @@ describe('each screen shows the state its artboard draws', () => {
     }
   });
 
-  test('A1 and C1: Attention lists the five entries of the artboard in its order, under the brand bar, beside the rail and under its page title', () => {
-    for (const artboard of ['A1', 'C1'] as const) {
-      const markup = screenMarkupOf(screenOf(artboard), 'light');
+  test('A1: Attention lists the five entries of the artboard in its order, under the brand bar, beside the rail and under its page title', () => {
+    for (const theme of SCREEN_THEMES) {
+      const markup = screenMarkupOf(screenOf('A1'), theme);
       expect(markup.indexOf('<header class="gaia-brand-bar">')).toBeLessThan(markup.indexOf('<nav class="gaia-rail"'));
       expect(textsOfClass(markup, 'gaia-brand-bar-sentence')).toEqual(['1 holds its launches · 1 dormant · 1 repository missing']);
       expect(pageTitleOf(markup)).toEqual(['Attention']);
@@ -181,7 +189,7 @@ describe('each screen shows the state its artboard draws', () => {
   });
 
   test('A2 with the brain selected: its row marked, its panel beside the table with Stop, both themes from its own artboard source', () => {
-    expect(BRAIN_SCREENS.map((screen) => [screen.artboard, screen.designFile, themesOf(screen)])).toEqual([['A2', 'AgentsBrain.dc.html', ['dark', 'light']]]);
+    expect(BRAIN_SCREENS.map((screen) => [screen.artboard, screen.designFile])).toEqual([['A2', 'AgentsBrain.dc.html']]);
     const [brainScreen] = BRAIN_SCREENS;
     if (brainScreen === undefined) throw new Error('No screen paints A2 with the brain selected.');
     const markup = screenMarkupOf(brainScreen, 'dark');
@@ -244,6 +252,18 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
     expect(markup.match(/class="design-system-slot-meter-cell" data-cell="empty"/g)).toHaveLength(12);
   });
+
+  test('B4 found: the forge program named from ~ under the card, beside the one line that says a forge set up elsewhere appears by itself', () => {
+    const [found] = FORGE_PROGRAM_FOUND_SCREENS;
+    if (found === undefined) throw new Error('The forge program found screen is missing.');
+    for (const theme of SCREEN_THEMES) {
+      const markup = screenMarkupOf(found, theme);
+      expect(textsOfClass(markup, 'gaia-attention-no-forge-program')).toEqual(['~/.bun/bin/forge']);
+      expect(textsOfClass(markup, 'gaia-attention-no-forge-elsewhere')).toEqual(['A forge set up elsewhere appears here by itself.']);
+      expect(markup.split('appears here by itself')).toHaveLength(2);
+      expect(markup).not.toContain('gaia-add-repository-program-missing');
+    }
+  });
 });
 
 describe('B1 in each state of its brain tweak', () => {
@@ -256,12 +276,12 @@ describe('B1 in each state of its brain tweak', () => {
   }
 
   test('paints the five states in the tweak\'s order, off being the artboard\'s own, each from B1\'s source in both themes', () => {
-    expect(BRAIN_STATE_SCREENS.map((screen) => [screen.artboard, screen.designFile, screen.brainState, themesOf(screen)])).toEqual([
-      ['B1', 'Forge.dc.html', 'off', ['dark', 'light']],
-      ['B1', 'Forge.dc.html', 'starting', ['dark', 'light']],
-      ['B1', 'Forge.dc.html', 'running', ['dark', 'light']],
-      ['B1', 'Forge.dc.html', 'refused', ['dark', 'light']],
-      ['B1', 'Forge.dc.html', 'ended', ['dark', 'light']],
+    expect(BRAIN_STATE_SCREENS.map((screen) => [screen.artboard, screen.designFile, screen.brainState])).toEqual([
+      ['B1', 'Forge.dc.html', 'off'],
+      ['B1', 'Forge.dc.html', 'starting'],
+      ['B1', 'Forge.dc.html', 'running'],
+      ['B1', 'Forge.dc.html', 'refused'],
+      ['B1', 'Forge.dc.html', 'ended'],
     ]);
     expect(screenMarkupOf(screenOf('B1'), 'dark')).toBe(screenMarkupOf(BRAIN_STATE_SCREENS[0] ?? screenOf('B1'), 'dark'));
   });
@@ -358,10 +378,10 @@ describe('C3, the launcher\'s splash, opened as the file it is', () => {
     expect(SPLASH_SIZE_PIXELS).toEqual({ width: 900, height: 560 });
     const addresses = SPLASH_SCREENS.flatMap((screen) => SCREEN_THEMES.map((theme) => new URL(splashScreenAddressOf(screen, theme))));
     expect(addresses.map((address) => [address.protocol, address.searchParams.get('theme'), address.hash])).toEqual([
-      ['file:', 'dark', '#step=starting'],
       ['file:', 'light', '#step=starting'],
-      ['file:', 'dark', '#step=opening'],
+      ['file:', 'dark', '#step=starting'],
       ['file:', 'light', '#step=opening'],
+      ['file:', 'dark', '#step=opening'],
     ]);
   });
 

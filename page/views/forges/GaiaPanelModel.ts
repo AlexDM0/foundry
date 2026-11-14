@@ -8,7 +8,7 @@ import type { CommandBody }                                                     
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
 import { type CommandResult, CommandSender, type CommandStates }                    from '../../api/CommandSender.ts';
 import { CommandFailureTextUtil }                                                   from '../../shared/utils/CommandFailureTextUtil.ts';
-import { ForgesModel }                                                              from './ForgesModel.ts';
+import { PathTextUtil }                                                             from '../../shared/utils/PathTextUtil.ts';
 
 /** Where a settings checkbox sits: the Gaia panel, or the "What notifies" list over the view. */
 
@@ -126,10 +126,10 @@ function factsOf(fleetDocument: FleetDocument): GaiaFact[] {
   const { knownContracts } = gaia;
   const forgeProgram: GaiaFact = gaia.forgeProgramInUse === null
     ? { label: 'Forge program', value: 'not found', valueFace: 'ui' }
-    : { label: 'Forge program', value: ForgesModel.homeRelativePathOf(gaia.forgeProgramInUse, gaia.homeFolder) };
+    : { label: 'Forge program', value: PathTextUtil.homeRelativePathOf(gaia.forgeProgramInUse, gaia.homeFolder) };
   return [
     forgeProgram,
-    { label: 'Registry', value: ForgesModel.homeRelativePathOf(gaia.registryPath, gaia.homeFolder) },
+    { label: 'Registry', value: PathTextUtil.homeRelativePathOf(gaia.registryPath, gaia.homeFolder) },
     { label: 'Gaia reads', value: [`monitor ${knownContracts.monitor}`, `control ${knownContracts.control}`, `embed ${knownContracts.embed}`].join(FACT_SEPARATOR) },
     { label: 'Gaia', value: `${gaia.gaiaVersion} on ${hostOf(gaia.address)}` },
   ];

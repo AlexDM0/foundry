@@ -22,6 +22,7 @@ import { CommandFailureTextUtil }                                         from '
 import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                                              from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
+import { PathTextUtil }                                                   from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }                                                  from '../../shared/utils/StampTextUtil.ts';
 import { HashRouter }                                                     from '../../shell/HashRouter.ts';
 import { AGENT_LIMITS }                                                   from './constants/AgentLimits.ts';
@@ -221,7 +222,6 @@ export interface ForgesContent {
 const HEAD_SEPARATOR = ' · ';
 const DETAIL_SEPARATOR = ' · ';
 const SHORT_CODE_VERSION_CHARACTERS = 7;
-const HOME_MARK = '~';
 
 /** What the machine panel's limit shows while no forge reports one. */
 const NO_LIMIT_KNOWN = '—';
@@ -257,11 +257,6 @@ function countedPhrase(count: number, singularPhrase: string, pluralPhrase: stri
 
 function clockTextOf(stamp: string | null, clock: ClockReading): string | null {
   return stamp === null ? null : StampTextUtil.clockTextOf(stamp, clock.nowEpochMilliseconds, clock.timeZone);
-}
-
-/** A path under the home folder is printed from `~`, as the artboards print it. */
-function homeRelativePathOf(path: string, homeFolder: string): string {
-  return path === homeFolder || path.startsWith(`${homeFolder}/`) ? `${HOME_MARK}${path.slice(homeFolder.length)}` : path;
 }
 
 function hiddenTrackerIdsOf(fleetDocument: FleetDocument): ReadonlySet<string> {
@@ -537,7 +532,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
   return {
     trackerId:      forge.trackerId,
     project:        forge.project,
-    rootText:       homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
+    rootText:       PathTextUtil.homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder),
     rootPath:       forge.root,
     condition:      ForgeTextUtil.dotConditionOf(shownCondition),
     conditionWord:  ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
@@ -585,7 +580,7 @@ function notFoundEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurround
     project:    forge.project,
     condition:  'missing',
     pillWord:   'Missing',
-    detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}the repository folder is gone`,
+    detailText: `${PathTextUtil.homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}the repository folder is gone`,
     button:     commandButton('hide', 'Hide in Gaia', { kind: 'forge-hide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
     refusal:    refusalOf(forge.trackerId, surroundings, () => true),
@@ -599,7 +594,7 @@ function hiddenEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundin
     project:    forge.project,
     condition:  ForgeTextUtil.dotConditionOf(forge.condition),
     pillWord:   null,
-    detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}${ForgeTextUtil.conditionWordOf(forge.condition)}`,
+    detailText: `${PathTextUtil.homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}${ForgeTextUtil.conditionWordOf(forge.condition)}`,
     button:     commandButton('show-again', 'Show again', { kind: 'forge-unhide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
     refusal:    refusalOf(forge.trackerId, surroundings, () => true),
@@ -719,5 +714,4 @@ function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurro
 export const ForgesModel = {
   forgesContentOf,
   titleFiguresOf,
-  homeRelativePathOf,
 } as const;

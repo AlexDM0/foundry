@@ -6,7 +6,8 @@
  * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and
  * callout name what Gaia last saw,
  * every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers again is
- * read normally. B4: no forge gives its own screen, and the forge program is missing only when neither the settings nor Gaia know one.
+ * read normally. B4: no forge gives its own screen, the forge program is missing only when neither the settings nor Gaia know one, and a
+ * known one is named from ~.
  * Flint's brain (A1, R4.6): a running brain gives its forge's card a line with the model and the time left, and changes nothing else; an
  * ended, refused, off or unreported brain gives no line, and a brain in a forge with no job gives no card.
  */
@@ -388,10 +389,19 @@ describe('forges Gaia cannot fully read (B3)', () => {
 
 describe('no forge yet (B4)', () => {
   test('a fleet with no forge is its own screen, and the forge program is missing when neither the settings nor Gaia know one', () => {
-    expect(noForgeContentOf(FLEET_EMPTY)).toEqual({ forgeProgramIsMissing: true });
+    expect(noForgeContentOf(FLEET_EMPTY)).toEqual({ forgeProgramIsMissing: true, forgeProgramText: null });
     const chosen = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, forgeProgramPath: '/Users/alexexample/.bun/bin/forge' } };
     expect(noForgeContentOf(chosen).forgeProgramIsMissing).toBe(false);
     const found = { ...FLEET_EMPTY, gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: '/Users/alexexample/.bun/bin/forge' } };
     expect(noForgeContentOf(found).forgeProgramIsMissing).toBe(false);
+  });
+
+  test('names the forge program from ~, the one Gaia runs before the one the settings name, and one outside the home folder whole', () => {
+    expect(FLEET_EMPTY.gaia.homeFolder).toBe('/Users/alexexample');
+    const found = { ...FLEET_EMPTY, gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: '/Users/alexexample/.bun/bin/forge' } };
+    expect(noForgeContentOf(found).forgeProgramText).toBe('~/.bun/bin/forge');
+    const chosen = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, forgeProgramPath: '/opt/forge/bin/forge' } };
+    expect(noForgeContentOf(chosen).forgeProgramText).toBe('/opt/forge/bin/forge');
+    expect(noForgeContentOf({ ...found, settings: chosen.settings }).forgeProgramText).toBe('~/.bun/bin/forge');
   });
 });

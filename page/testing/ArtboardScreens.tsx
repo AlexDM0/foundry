@@ -29,14 +29,14 @@ import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_A
 
 export type ScreenTheme = 'dark' | 'light';
 
-/** Dark is the designed theme; both are built and checked. */
-export const SCREEN_THEMES: readonly ScreenTheme[] = ['dark', 'light'];
+/** Both themes are designed, and every screen is built and checked in each; light is the package's default. */
+export const SCREEN_THEMES: readonly ScreenTheme[] = ['light', 'dark'];
 
 /** Every artboard Gaia's page builds is drawn at this size. */
 export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 
 /** The artboards in `designs/canvas.json`, by their mark. C2 waits for notifications (W5.6); C3, the splash, is a file page of its own. */
-export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4' | 'C1';
+export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4';
 
 /** How the view of a screen is set: as the route shows it, with B2's controls in use, or after an update that left a restart pending. */
 type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending';
@@ -49,8 +49,6 @@ export interface ArtboardScreen {
   readonly fleetDocument: FleetDocument;
   readonly fragment:      string;
   readonly viewState:     ScreenViewState;
-  /** The one theme the artboard is drawn in; `null` for an artboard drawn in dark and built in both. */
-  readonly onlyTheme:     ScreenTheme | null;
 }
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
@@ -71,7 +69,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_FIVE_FORGES,
     fragment:      '#attention',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'A2',
@@ -80,7 +77,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_SERVING_THE_BRAIN,
     fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'J4' }, query: '' }),
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'A3',
@@ -89,7 +85,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_FIVE_FORGES,
     fragment:      '#activity',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'A4',
@@ -98,7 +93,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_FIVE_FORGES,
     fragment:      '#forges',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'B1',
@@ -107,7 +101,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: fleetWithStorefrontBrainOf('off'),
     fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'B2',
@@ -116,7 +109,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_AT_LIMIT,
     fragment:      '#forges',
     viewState:     'forge-controls-in-use',
-    onlyTheme:     null,
   },
   {
     artboard:      'B3',
@@ -125,7 +117,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_DEGRADED,
     fragment:      '#attention',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'B4',
@@ -134,16 +125,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_EMPTY,
     fragment:      '#attention',
     viewState:     'as-routed',
-    onlyTheme:     null,
-  },
-  {
-    artboard:      'C1',
-    title:         'Attention, light theme',
-    designFile:    'MainLight.dc.html',
-    fleetDocument: FLEET_FIVE_FORGES,
-    fragment:      '#attention',
-    viewState:     'as-routed',
-    onlyTheme:     'light',
   },
 ];
 
@@ -163,7 +144,6 @@ export const BRAIN_STATE_SCREENS: readonly BrainStateScreen[] = BRAIN_STATES_OF_
   fleetDocument: fleetWithStorefrontBrainOf(brainState),
   fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
   viewState:     'as-routed',
-  onlyTheme:     null,
   brainState,
 }));
 
@@ -176,7 +156,6 @@ export const BRAIN_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_SERVING_THE_BRAIN,
     fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' }, query: '' }),
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
 ];
 
@@ -192,7 +171,6 @@ export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_FIVE_FORGES,
     fragment:      '#attention',
     viewState:     'restart-pending',
-    onlyTheme:     null,
   },
   {
     artboard:      'A4',
@@ -201,7 +179,6 @@ export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_FIVE_FORGES,
     fragment:      '#forges',
     viewState:     'restart-pending',
-    onlyTheme:     null,
   },
 ];
 
@@ -237,7 +214,6 @@ export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_BATON_PASS_FAILED,
     fragment:      '#attention',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
   {
     artboard:      'A4',
@@ -246,7 +222,6 @@ export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_ASSISTANT_DOWN,
     fragment:      '#forges',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
 ];
 
@@ -282,7 +257,6 @@ export const HIDDEN_FORGE_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_WITH_A_HIDDEN_FORGE,
     fragment:      '#forges',
     viewState:     'restart-pending',
-    onlyTheme:     null,
   },
 ];
 
@@ -301,7 +275,6 @@ export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
     fleetDocument: FLEET_EMPTY_FORGE_PROGRAM_FOUND,
     fragment:      '#attention',
     viewState:     'as-routed',
-    onlyTheme:     null,
   },
 ];
 
@@ -419,11 +392,6 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
       />
     </CommandSenderContext>,
   );
-}
-
-/** The themes a screen is checked in: both, unless its artboard is drawn in one only. */
-export function themesOf(screen: ArtboardScreen): readonly ScreenTheme[] {
-  return screen.onlyTheme === null ? SCREEN_THEMES : [screen.onlyTheme];
 }
 
 /**

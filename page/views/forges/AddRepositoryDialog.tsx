@@ -64,7 +64,7 @@ export function AddRepositoryDialogLayout({ onClose, ...bodyProps }: AddReposito
       isOpen
       onDismiss={FormDialogUtil.dismissalOf(onClose)}
       closeLabel="Close Add a repository"
-      width={FormDialogUtil.WIDTH}
+      width={FormDialogUtil.ADD_REPOSITORY_WIDTH}
       foot={<AddRepositoryDialogFoot onClose={onClose} />}
     >
       <AddRepositoryDialogBody {...bodyProps} />

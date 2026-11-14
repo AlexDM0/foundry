@@ -1,7 +1,7 @@
 /**
  * Attention with no forge registered. What matters (SCREENS B4, acceptance 2): the head says why nothing waits; the form adds a repository
  * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program,
- * and with one the line under the card says a forge set up elsewhere appears by itself;
+ * and with one the line under the card names it from ~ and says, once, that a forge set up elsewhere appears by itself;
  * a refused add shows in the form, and a refused Look again under its button at the head of the screen. The command sender is the real one over Gaia's
  * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
@@ -46,7 +46,7 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
   };
   const unfolded = tree.unfolded(
     <NoForgeYetLayout
-      content={{ forgeProgramIsMissing }}
+      content={{ forgeProgramIsMissing, forgeProgramText: forgeProgramIsMissing ? null : '~/.bun/bin/forge' }}
       form={form}
       pathChooser="folder"
       commandStates={commandStates}
@@ -115,10 +115,21 @@ describe('no forge yet', () => {
     expect(pressed.chooseForgeProgram).toBe(1);
   });
 
-  test('only with a forge program does the line under the card say a forge set up elsewhere appears by itself', () => {
-    const elsewhereLines = (forgeProgramIsMissing: boolean) => tree.hostElementsIn(layoutOf(forgeProgramIsMissing).unfolded, tree.withClass('gaia-attention-no-forge-elsewhere'));
-    expect(elsewhereLines(false).map((line) => tree.textOf([line]))).toEqual(['A forge set up elsewhere appears here by itself.']);
-    expect(elsewhereLines(true)).toEqual([]);
+  test('only with a forge program does the line under the card name it from ~ and say a forge set up elsewhere appears by itself', () => {
+    const foundLines = (forgeProgramIsMissing: boolean) => tree.hostElementsIn(layoutOf(forgeProgramIsMissing).unfolded, tree.withClass('gaia-attention-no-forge-found'));
+    const [foundLine] = foundLines(false);
+    if (foundLine === undefined) throw new Error('Expected the found line.');
+    expect(tree.textOf([tree.onlyWithClass([foundLine], 'gaia-attention-no-forge-program')])).toBe('~/.bun/bin/forge');
+    expect(tree.textOf([tree.onlyWithClass([foundLine], 'gaia-attention-no-forge-elsewhere')])).toBe('A forge set up elsewhere appears here by itself.');
+    expect(foundLines(false)).toHaveLength(1);
+    expect(foundLines(true)).toEqual([]);
+  });
+
+  test('says a forge set up elsewhere appears by itself once, under the card, and the form above it never does', () => {
+    const { unfolded } = layoutOf(false);
+    expect(tree.textOf(unfolded).split('A forge set up elsewhere appears here by itself.')).toHaveLength(2);
+    const card = tree.onlyWithClass(unfolded, 'gaia-attention-add');
+    expect(tree.textOf([card])).not.toContain('appears here by itself');
   });
 
   test('a refused add shows in the form with the forge\'s code and sentence', async () => {

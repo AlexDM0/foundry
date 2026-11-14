@@ -14,7 +14,7 @@ describe('a form dialog\'s dismissal', () => {
     expect(closed).toEqual([1, 1]);
   });
 
-  test('is as wide as the boards draw the dialogs', () => {
-    expect(FormDialogUtil.WIDTH).toBe('widest');
+  test('is as wide as each board draws its dialog', () => {
+    expect([FormDialogUtil.ADD_REPOSITORY_WIDTH, FormDialogUtil.WHAT_NOTIFIES_WIDTH]).toEqual(['widest', 'wide']);
   });
 });

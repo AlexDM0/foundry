@@ -1,8 +1,8 @@
 /**
  * Attention with no forge registered (SCREENS B4), one column that heads itself: the welcome with Look again, why nothing waits, the card
  * that adds a repository and starts its forge, and under it either the line that says no forge program is known, with a way to choose one,
- * or that a forge set up elsewhere appears by itself. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form through the shared
- * add-a-repository form and sends its commands.
+ * or the forge program Gaia found and that a forge set up elsewhere appears by itself. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps
+ * the form through the shared add-a-repository form and sends its commands.
  */
 import { Button }         from 'design-system/Button';
 import { Card }           from 'design-system/Card';
@@ -82,7 +82,13 @@ export function NoForgeYetLayout({
           onChooseForgeProgram={handlers.onChooseForgeProgram}
           onDismissFailure={onDismissFailure}
         />
-        {content.forgeProgramIsMissing ? null : <p className="gaia-attention-no-forge-elsewhere">A forge set up elsewhere appears here by itself.</p>}
+        {content.forgeProgramText === null ? null : (
+          <div className="gaia-attention-no-forge-found">
+            <span>Forge program</span>
+            <span className="gaia-attention-no-forge-program">{content.forgeProgramText}</span>
+            <p className="gaia-attention-no-forge-elsewhere">A forge set up elsewhere appears here by itself.</p>
+          </div>
+        )}
       </div>
     </div>
   );

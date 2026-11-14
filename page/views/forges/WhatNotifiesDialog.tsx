@@ -4,11 +4,11 @@
  * notifies while notifications are off, and the refusal of a change it sent. It closes on Done, on its close button and on Escape, never on
  * a stray click beside it. The package's dialog holds the hooks; its body and foot take none, so a spec unfolds them whole.
  */
-import { Button }                   from 'design-system/Button';
-import { Card }                     from 'design-system/Card';
-import { Dialog, type DialogWidth } from 'design-system/Dialog';
-import { Text }                     from 'design-system/Text';
-import { View }                     from 'design-system/View';
+import { Button } from 'design-system/Button';
+import { Card }   from 'design-system/Card';
+import { Dialog } from 'design-system/Dialog';
+import { Text }   from 'design-system/Text';
+import { View }   from 'design-system/View';
 
 import { type GaiaPanelHandlers, SettingsCheckboxView, SettingsRefusalLine } from './GaiaPanel.tsx';
 import type { WhatNotifiesContent }                                          from './GaiaPanelModel.ts';
@@ -19,9 +19,6 @@ export interface WhatNotifiesDialogProps {
   readonly handlers: Pick<GaiaPanelHandlers, 'onSettingsCheckbox' | 'onDismissFailure'>;
   readonly onClose:  () => void;
 }
-
-/** The package's wide dialog is the one whose list comes closest to the width C2 draws. */
-const WHAT_NOTIFIES_WIDTH: DialogWidth = 'wide';
 
 /** "5 of 7 on": the kinds checked, out of every kind the list shows. */
 export function kindsOnLineOf(content: Pick<WhatNotifiesContent, 'kinds'>): string {
@@ -63,7 +60,7 @@ export function WhatNotifiesDialog({ content, handlers, onClose }: WhatNotifiesD
       isOpen
       onDismiss={FormDialogUtil.dismissalOf(onClose)}
       closeLabel="Close What notifies"
-      width={WHAT_NOTIFIES_WIDTH}
+      width={FormDialogUtil.WHAT_NOTIFIES_WIDTH}
       foot={<WhatNotifiesFoot onClose={onClose} />}
     >
       <WhatNotifiesBody content={content} handlers={handlers} />

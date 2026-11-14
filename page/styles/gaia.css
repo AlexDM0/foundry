@@ -1269,7 +1269,16 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-no-forge-title h2 { margin: 0; text-wrap: balance; }
 .gaia-attention-no-forge-intro > p { margin: 0; }
 .gaia-attention-add h3 { margin: 0; }
-.gaia-attention-no-forge-elsewhere { margin: 0 0 0 auto; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--ink-muted); }
+.gaia-attention-no-forge-found {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-tab);
+  color: var(--ink-muted);
+}
+.gaia-attention-no-forge-program { font-family: var(--font-mono); color: var(--ink); }
+.gaia-attention-no-forge-elsewhere { margin: 0 0 0 auto; }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-attention-link:focus-visible,
