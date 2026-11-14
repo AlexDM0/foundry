@@ -280,7 +280,7 @@ export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
 
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',

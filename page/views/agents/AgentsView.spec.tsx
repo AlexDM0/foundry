@@ -412,7 +412,7 @@ describe('Flint\'s brain', () => {
           result: {
             verdict: 'answered',
             answer:  {
-              answerVersion: 2, outcome: 'refused', refusal: 'no-flint', text: 'this forge has no Flint'
+              answerVersion: 3, outcome: 'refused', refusal: 'no-flint', text: 'this forge has no Flint'
             }
           }
         },

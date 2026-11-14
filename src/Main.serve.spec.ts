@@ -118,9 +118,9 @@ describe('gaia serve', () => {
       },
     });
 
-    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }) });
+    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
-      answerVersion: 2, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
 
     const page = await answerOf(address, '/');

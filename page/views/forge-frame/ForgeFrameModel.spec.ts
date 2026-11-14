@@ -268,7 +268,7 @@ describe('where leave goes', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 2, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
   } as const;
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {
@@ -398,7 +398,7 @@ describe('Flint\'s brain in the bar', () => {
       result: {
         verdict: 'answered',
         answer:  {
-          answerVersion: 2, outcome: 'refused', refusal, text: null,
+          answerVersion: 3, outcome: 'refused', refusal, text: null,
         },
       },
     } as const);

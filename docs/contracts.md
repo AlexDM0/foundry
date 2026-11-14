@@ -25,8 +25,8 @@ reads another `fleetVersion` is a stale page and reloads once.
 | `gaiaSettings` | 1 | `version` | `~/.gaia/settings.json` | reads and writes | `src/adapters/gaia-files/@types/StoredSettings.ts`, `SettingsFile.ts`, `SettingsWriter.ts` | Gaia |
 | `gaiaServerRecord` | 1 | `version` | `~/.forge-monitor/gaia/server.json`, which a forge reads to let Gaia's origin frame its Bridge | writes | `src/adapters/gaia-files/ServerRecordWriter.ts` | Gaia; the forge reads it from F5 |
 | `gaiaFleetDocument` | 3 | `fleetVersion` | `GET /api/fleet` and the `fleet` event of `GET /api/events` | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia |
-| `gaiaCommand` | 1 | `commandVersion` | the body of `POST /api/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
-| `gaiaCommandAnswer` | 2 | `answerVersion` | the answer of `POST /api/commands` | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/CommandAnswerMapUtil.ts` | Gaia |
+| `gaiaCommand` | 2 | `commandVersion` | the body of `POST /api/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
+| `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/commands` | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/CommandAnswerMapUtil.ts` | Gaia |
 | `gaiaFrameSession` | 1 | `frameSessionVersion` | the answer of `POST /api/forges/<trackerId>/frame-session` | serves; the page reads | `page/@types/FrameSessionDocument.ts`, mapped out by `src/adapters/page-api/FrameSessionAnswerMapUtil.ts` | Gaia |
 | `gaiaHealth` | 1 | `healthVersion` | the open `GET /api/health` | serves; the launcher and a second `serve` read | `src/adapters/gaia-server/HealthDocument.ts` | Gaia |
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |

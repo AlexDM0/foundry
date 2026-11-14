@@ -30,7 +30,7 @@ const tree = ReactElementTree;
 const IDLE_STATES: CommandStates = senderOver([]).states();
 
 const SETTINGS_UNWRITABLE: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          null,

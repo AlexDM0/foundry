@@ -15,26 +15,26 @@ import { AddRepositoryForm }                              from './AddRepositoryF
 const tree = ReactElementTree;
 
 const ANSWERED_PATH = (path: string): CommandAnswerDocument => ({
-  answerVersion: 2, outcome: 'done', refusal: null, text: path
+  answerVersion: 3, outcome: 'done', refusal: null, text: path
 });
 
 const CANCELLED: CommandAnswerDocument = {
-  answerVersion: 2, outcome: 'nothing-to-do', refusal: null, text: null
+  answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 2, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null
 };
 
 const START_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
 };
 
 const SETTINGS_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          'Gaia could not write its settings.',
@@ -54,8 +54,8 @@ describe('the commands behind its buttons', () => {
     expect(await AddRepositoryCommands.chosenFolderOf(sender.send)).toBe('/Users/alexexample/development/example-storefront');
     expect(await AddRepositoryCommands.chosenFolderOf(sender.send)).toBeNull();
     expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'folder', commandVersion: 1 },
-      { kind: 'path-choose', what: 'folder', commandVersion: 1 },
+      { kind: 'path-choose', what: 'folder', commandVersion: 2 },
+      { kind: 'path-choose', what: 'folder', commandVersion: 2 },
     ]);
   });
 
@@ -69,11 +69,11 @@ describe('the commands behind its buttons', () => {
     await AddRepositoryCommands.chooseAndKeepForgeProgram(sender.send);
     await AddRepositoryCommands.chooseAndKeepForgeProgram(sender.send);
     expect(bodiesOf(sent)).toEqual([
-      { kind: 'path-choose', what: 'file', commandVersion: 1 },
+      { kind: 'path-choose', what: 'file', commandVersion: 2 },
       {
-        kind: 'settings-set', key: 'forgeProgramPath', value: '/Users/alexexample/.bun/bin/forge', commandVersion: 1
+        kind: 'settings-set', key: 'forgeProgramPath', value: '/Users/alexexample/.bun/bin/forge', commandVersion: 2
       },
-      { kind: 'path-choose', what: 'file', commandVersion: 1 },
+      { kind: 'path-choose', what: 'file', commandVersion: 2 },
     ]);
   });
 
@@ -89,7 +89,7 @@ describe('the commands behind its buttons', () => {
     expect(await AddRepositoryCommands.addAndStart(sender.send, form)).toBe(false);
     expect(await AddRepositoryCommands.addAndStart(sender.send, form)).toBe(true);
     expect(bodiesOf(sent)[0]).toEqual({
-      kind: 'forge-add', root: '~/development/example-storefront/', project: 'example-storefront', commandVersion: 1
+      kind: 'forge-add', root: '~/development/example-storefront/', project: 'example-storefront', commandVersion: 2
     });
   });
 });

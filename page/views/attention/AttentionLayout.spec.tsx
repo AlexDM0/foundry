@@ -33,11 +33,11 @@ const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 2, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null
 };
 
 const UPDATE_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'update-in-progress',
   text:          'An update already runs in this repository.',
@@ -131,7 +131,7 @@ describe('a callout\'s command', () => {
     const sends: Promise<unknown>[] = [];
     tree.dispatch(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'), 'onClick');
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([
-      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 1 },
+      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 },
     ]);
     const onItsWay = unfoldedLayout(FLEET_FIVE_FORGES, sender);
     expect(buttonNamed(onItsWay, 'Update forge').props['disabled']).toBe(true);
@@ -159,7 +159,7 @@ describe('a callout\'s command', () => {
 
   test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
     };
     const sent: SentRequest[] = [];
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
@@ -169,7 +169,7 @@ describe('a callout\'s command', () => {
     expect(tree.textOf([tree.onlyWithClass([pendingStep], 'gaia-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
     expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withClass('gaia-pending-step'))).toEqual([]);
     tree.dispatch(buttonNamed([pendingStep], 'Restart'), 'onClick');
-    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 1 });
+    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 });
     const restarting = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'gaia-pending-step');
     expect(buttonNamed([restarting], 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });

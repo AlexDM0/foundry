@@ -22,7 +22,7 @@ const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() }
 const STOREFRONT_BRAIN = { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' };
 
 const USAGE_LIMIT_REFUSAL: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'usage-limit-holds',
   text:          'launches are held until 16:00 (usage limit)',

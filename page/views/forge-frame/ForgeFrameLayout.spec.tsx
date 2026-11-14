@@ -188,7 +188,7 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
       result: {
         verdict: 'answered',
         answer:  {
-          answerVersion: 2, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
+          answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
         }
       },
     } as const;
@@ -304,7 +304,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 2, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
   } as const;
 
   test('shows the forge\'s code and sentence, with no Try again for Stop, and dismisses', () => {

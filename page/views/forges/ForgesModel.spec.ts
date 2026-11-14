@@ -49,33 +49,33 @@ const READINGS = FLEET_FIVE_FORGES_READINGS;
 const ARTBOARD_CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 2, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null
 };
 
 /** SCREENS B2: the refusal under Example Mobile App's row. */
 const STOP_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const START_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
 };
 
 const LIMIT_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'concurrency-above-ceiling',
   text:          'The agent limit is at most 10.',
 };
 
 const RESTART_PENDING: CommandAnswerDocument = {
-  answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
 };
 
 const IDLE_STATES: CommandStates = senderOver([]).states();
@@ -538,7 +538,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
 
   test('a held forge\'s refused update shows on its banner, not under its row', async () => {
     const refusedUpdate: CommandAnswerDocument = {
-      answerVersion: 2, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
+      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(refusedUpdate))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });

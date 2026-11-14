@@ -42,14 +42,14 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const IDLE_STATES: CommandStates = senderOver([]).states();
 
 const STOP_REFUSED: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const ABOVE_THE_CPUS: CommandAnswerDocument = {
-  answerVersion: 2,
+  answerVersion: 3,
   outcome:       'refused',
   refusal:       'machine-agent-limit-above-cpus',
   text:          'The machine limit is at most the 12 CPUs of this machine.',
@@ -278,7 +278,7 @@ describe('the held forge and the forges outside the table', () => {
 describe('an update that left a restart pending', () => {
   test('the held forge\'s banner says it is updated with a restart pending, and its Restart and dismissal reach the view', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -295,7 +295,7 @@ describe('an update that left a restart pending', () => {
 
   test('with a restart pending on the held forge, Restart is the only primary button of its held area (A4 acceptance 3)', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });

@@ -29,7 +29,7 @@ function commandRequestOf(body: string): Request {
   return new Request(`http://127.0.0.1:4790${COMMANDS_PATH}`, { method: 'POST', body });
 }
 
-const LOOK_AGAIN_BODY = JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' });
+const LOOK_AGAIN_BODY = JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' });
 
 describe('a command Gaia can read', () => {
   test('reaches the command port as the internal command, and is answered with its verdict', async () => {
@@ -37,7 +37,7 @@ describe('a command Gaia can read', () => {
     const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand);
     expect(answer.status).toBe(200);
     expect(await answer.json()).toEqual({
-      answerVersion: 2, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -47,10 +47,10 @@ describe('a command Gaia can read', () => {
     const carrier = carrierAnswering({
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
-    const body = JSON.stringify({ commandVersion: 1, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
+    const body = JSON.stringify({ commandVersion: 2, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
     const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
     expect([answer.status, await answer.json()]).toEqual([409, {
-      answerVersion: 2, outcome: 'refused', refusal: 'usage-limit-holds', text,
+      answerVersion: 3, outcome: 'refused', refusal: 'usage-limit-holds', text,
     }]);
     expect(carrier.carriedCommands).toEqual([{ kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' }]);
   });
@@ -77,20 +77,20 @@ describe('a command Gaia can read', () => {
 describe('a command Gaia cannot read', () => {
   test('reaches nothing, and is answered as not supported with the reason as its code', async () => {
     const carrier = carrierAnswering({ verdict: 'done' });
-    const bodies = ['look again', JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }), JSON.stringify({ commandVersion: 1, kind: 'forge-start' })];
+    const bodies = ['look again', JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }), JSON.stringify({ commandVersion: 2, kind: 'forge-start' })];
     const answers = await Promise.all(bodies.map(async (body) => {
       const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
       return [answer.status, await answer.json()] as const;
     }));
     expect(answers).toEqual([
       [400, {
-        answerVersion: 2, outcome: 'not-supported', refusal: 'not-json', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'not-json', text: null
       }],
       [400, {
-        answerVersion: 2, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
       }],
       [400, {
-        answerVersion: 2, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
       }],
     ]);
     expect(carrier.carriedCommands).toEqual([]);
