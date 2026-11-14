@@ -23,6 +23,7 @@ import {
   requestCallShapeOf,
   situationCallShapeOf,
   streamCallShapeOf,
+  type FlintBrainSituation,
   type RecordedOverseerAnswer,
 } from './RecordedAnswers.ts';
 
@@ -114,9 +115,10 @@ describe('the recorded forge contracts', () => {
 });
 
 describe('the recorded states of Flint\'s brain', () => {
-  test('lead every call shape with a state of the brain, once', () => {
+  test('lead every call shape with a situation, once, so the recording taken from a forge holds the brain beside every other situation', () => {
     const callShapes = everyRecordedMonitorThreeAnswerOf().map(({ callShape }) => callShape);
-    for (const callShape of callShapes) expect(FLINT_BRAIN_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))).toBe(true);
+    const situations = [...OVERSEER_SITUATIONS, ...FLINT_BRAIN_SITUATIONS];
+    for (const callShape of callShapes) expect([callShape, situations.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))]).toEqual([callShape, true]);
     expect(new Set(callShapes).size).toBe(callShapes.length);
   });
 
@@ -132,10 +134,21 @@ describe('the recorded states of Flint\'s brain', () => {
   });
 
   test('serve the brain running, ended, refused with usage-limit-holds, and absent as null, each at monitor 3 beside control 2', () => {
-    const brainOf = (situation: typeof FLINT_BRAIN_SITUATIONS[number]): unknown => {
-      const snapshots = documentsAnsweredIn(recordedFlintBrainAnswersOf(situation)).filter((document) => Object.hasOwn(document, 'monitorVersion'));
-      for (const snapshot of snapshots) expect(snapshot['monitorVersion']).toBe(UPCOMING_CONTRACT_VERSIONS.forgeMonitor);
-      return snapshots.map((snapshot) => snapshot['flintBrain']);
+    const brainOf = (situation: FlintBrainSituation): unknown => {
+      const answers = recordedFlintBrainAnswersOf(situation);
+      const answersOfCall = (callShape: string): readonly RecordedOverseerAnswer[] => answers.filter((answer) => answer.callShape === callShape);
+      const [identity] = documentsAnsweredIn(answersOfCall('GET /api/identity'));
+      const [command] = documentsAnsweredIn(answersOfCall('POST /api/commands with bearer'));
+      expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
+        situation,
+        expect.objectContaining({ monitor: UPCOMING_CONTRACT_VERSIONS.forgeMonitor, control: UPCOMING_CONTRACT_VERSIONS.forgeControl }),
+        UPCOMING_CONTRACT_VERSIONS.forgeControl,
+      ]);
+      const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/monitor with bearer'));
+      // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.
+      const lastStreamSnapshot = documentsAnsweredIn(answersOfCall(MONITOR_STREAM_CALL_SHAPE)).at(-1);
+      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(UPCOMING_CONTRACT_VERSIONS.forgeMonitor);
+      return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
     expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);
     expect(brainOf('brain-ended')).toEqual([expect.objectContaining({ state: 'ended', endedReason: 'stopped' }), expect.objectContaining({ state: 'ended' })]);

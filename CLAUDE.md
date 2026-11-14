@@ -74,7 +74,8 @@ for the OS as not finished. Two recordings are stamped `authored`, and verify li
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. The other is `overseer-fetch-monitor-3`, the forge contracts of Flint's brain that no forge serves
 yet (`UPCOMING_CONTRACT_VERSIONS`): its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`),
-which alone lets a forge recording be authored, and verify fails while a recorded one still names them. macOS's programs are stamped with the Darwin release. The forge's version is read only by running it:
+which alone lets a forge recording be authored, and verify fails while a recorded one still names them. macOS's programs are stamped
+with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through
 `src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a
 tracker never reaches a board above the scratch root (an Overseer it starts launches the forge's fake agent). It records the paths, tracker
