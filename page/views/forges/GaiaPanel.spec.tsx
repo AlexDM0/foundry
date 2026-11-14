@@ -145,7 +145,7 @@ describe('the panel', () => {
     const newer = { ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, settingsFile: 'newer-version' as const } };
     const { unfolded } = panelOf(newer);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-facts')])).toBe(
-      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonGaia readsmonitor 3 · control 1 · embed 1Gaia0.1.0 on 127.0.0.1:4790',
+      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonGaia readsmonitor 3 · control 2 · embed 1Gaia0.1.0 on 127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
     expect(tree.hostElementsIn(unfolded, tree.withTag('input')).map((input) => input.props['disabled'])).toEqual([true, true]);
@@ -157,7 +157,7 @@ describe('the panel', () => {
     expect(values.map((value) => [tree.textOf([value]), tree.hostElementsIn([value], tree.withTag('wbr')).length])).toEqual([
       ['~/.bun/bin/forge', 3],
       ['~/.forge-monitor/projects.json', 2],
-      ['monitor 3 · control 1 · embed 1', 0],
+      ['monitor 3 · control 2 · embed 1', 0],
       ['0.1.0 on 127.0.0.1:4790', 0],
     ]);
   });

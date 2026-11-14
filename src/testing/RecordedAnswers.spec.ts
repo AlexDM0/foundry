@@ -3,13 +3,13 @@
  * answer from a recording: a call with no answer, an address the real boundary throws on, a bound of zero, an answer set with two answers
  * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
  * open is counted until it is closed or read to its end, as the real connection stays open. Every number of the monitor and control
- * contracts Gaia knows, reads or builds toward has a recording, and each state of Flint's brain a whole answer set at monitor 3.
+ * contracts Gaia knows, reads or sends has a recording, and each state of Flint's brain a whole answer set at monitor 3.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { OverseerRequest, OverseerStreamRequest } from '../lib/forge-client/OverseerFetch.ts';
 
-import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ, UPCOMING_CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../shared/constants/ContractVersions.ts';
 
 import {
   everyRecordedMonitorOneAnswerOf,
@@ -104,11 +104,11 @@ describe('the recorded forge contracts', () => {
     for (const version of knownVersions) expect([version, monitorVersions.has(version)]).toEqual([version, true]);
   });
 
-  test('hold an identity naming, and a command answered at, every control number Gaia sends or builds toward', () => {
+  test('hold an identity naming, and a command answered at, every control number Gaia sends or still sends', () => {
     const documents = everyDocument();
     const identityControlVersions = new Set(documents.map((document) => (document['contracts'] as { control?: unknown } | undefined)?.control));
     const answerControlVersions = new Set(documents.map((document) => document['controlVersion']));
-    for (const version of [CONTRACT_VERSIONS.forgeControl, UPCOMING_CONTRACT_VERSIONS.forgeControl]) {
+    for (const version of [CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]) {
       expect([version, identityControlVersions.has(version), answerControlVersions.has(version)]).toEqual([version, true, true]);
     }
   });
@@ -141,8 +141,8 @@ describe('the recorded states of Flint\'s brain', () => {
       const [command] = documentsAnsweredIn(answersOfCall('POST /api/commands with bearer'));
       expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
         situation,
-        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: UPCOMING_CONTRACT_VERSIONS.forgeControl }),
-        UPCOMING_CONTRACT_VERSIONS.forgeControl,
+        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl }),
+        CONTRACT_VERSIONS.forgeControl,
       ]);
       const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/monitor with bearer'));
       // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.

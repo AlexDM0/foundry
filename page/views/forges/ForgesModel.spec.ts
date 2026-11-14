@@ -220,7 +220,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   });
 
   test('a forge whose control contract Gaia does not know has Pause, Resume, Stop and its limit off', () => {
-    const unknown = { ...READINGS.exampleStorefront.contracts, control: 2 };
+    const unknown = { ...READINGS.exampleStorefront.contracts, control: 3 };
     const [live] = contentOf(fleetWithOneForgeIn('live', { contracts: unknown })).rows;
     expect(live?.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled])).toEqual([
       ['Pause', true], ['Stop', true], ['Open', false], [OPEN_IN_NEW_TAB, false],

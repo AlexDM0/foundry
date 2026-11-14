@@ -18,7 +18,7 @@ reads another `fleetVersion` is a stale page and reloads once.
 | `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/identity`; its `contracts` names the number of each contract below that the forge serves | reads | `src/adapters/forge-api/@types/IdentityDocument.ts`, `IdentityIngestion.ts` | the forge from F1; before it, no version key and no `contracts` |
 | `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/summary`, polled for a forge without the monitor contract | reads | `src/adapters/forge-api/@types/BoardSummaryDocument.ts`, `BoardSummaryIngestion.ts` | the forge |
 | `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`, with the bearer token | reads | `src/adapters/forge-api/@types/MonitorSnapshotDocument.ts`, `MonitorSnapshotIngestion.ts` | the forge from F2 and F3; monitor 2 adds a kind to each warning and the current usage window; monitor 3 adds `flintBrain`, `null` for a forge without Flint, and an ended brain's activity entry of kind `flint-brain` with its tokens (G1, G2), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
-| `forgeControl` | 1 | `contracts.control` of the identity | an Overseer's `POST /api/commands`, with the bearer token | sends | `src/lib/forge-client/@types/ForgeControlCommand.ts` | the forge from F7 |
+| `forgeControl` | 2 | `contracts.control` of the identity | an Overseer's `POST /api/commands`, with the bearer token | sends | `src/lib/forge-client/@types/ForgeControlCommand.ts` | the forge from F7; control 2 adds `flint-brain-start` and `flint-brain-stop` and their refusals (G3), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
 | `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `page/views/forge-frame/EmbedChannel.ts` | the forge from F5 |
 | `forgeProgramAnswer` | 1 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1 | `version` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
@@ -34,29 +34,20 @@ reads another `fleetVersion` is a stale page and reloads once.
 
 The forge's requirements F1 to F9 and G1 to G4 are the owner's to run on the forge's own board. Every fixture of a forge contract is
 recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`, except
-one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on: monitor 3 and the upcoming control 2 below (G1 to G3).
+one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on: monitor 3 and control 2 (G1 to G3).
 
 ## Older versions Gaia still reads
 
 A forge on older code keeps serving an older contract until it is updated, so Gaia reads these numbers too. Each is migrated on its
-ingestion to the current number's shape, and a mapper only ever sees the current shape. The numbers live once, in
+ingestion to the current number's shape, and a mapper only ever sees the current shape; an older control number, which Gaia sends rather
+than reads, is held instead by the guard that sends it only the commands it carries. The numbers live once, in
 `OLDER_CONTRACT_VERSIONS_READ` (`src/shared/constants/ContractVersions.ts`), and the same spec holds this table to it, both ways.
 
 | Key in `CONTRACT_VERSIONS` | Older version | What the migration does | Migrated by |
 | --- | --- | --- | --- |
 | `forgeMonitor` | 1 | A warning is the forge's sentence alone, so it reads as a warning of no kind, worded only by the command guard and firing no look; the current usage window is unknown, so `null`; then as monitor 2. An identity naming monitor 1, 2 or 3 is read in full. | `src/adapters/forge-api/utils/MonitorSnapshotMigrationUtil.ts`, called by `MonitorSnapshotIngestion.ts` |
 | `forgeMonitor` | 2 | No Flint: `flintBrain` reads as `null`, so the forge's brain is `not-reported` and nothing of a brain shows for it. | `src/adapters/forge-api/utils/MonitorSnapshotMigrationUtil.ts`, called by `MonitorSnapshotIngestion.ts` |
-
-## Upcoming versions Gaia does not read yet
-
-A contract the forge has not shipped is authored from its requirements before Gaia reads it, so the model and the page can be built
-against its answers. Gaia neither reads nor sends it yet: a reading at an upcoming number is refused as newer, and the number moves into
-`CONTRACT_VERSIONS` when its ingestion learns it. The numbers live once, in `UPCOMING_CONTRACT_VERSIONS`
-(`src/shared/constants/ContractVersions.ts`), and the same spec holds this table to it, both ways.
-
-| Key in `CONTRACT_VERSIONS` | Upcoming version | What it adds | Authored answers |
-| --- | --- | --- | --- |
-| `forgeControl` | 2 | the commands `flint-brain-start` and `flint-brain-stop`, and their refusals (G3) | `src/testing/recordings/darwin/overseer-fetch-monitor-3.json`, each command answer in its situation |
+| `forgeControl` | 1 | Nothing to migrate: Gaia sends a control-1 forge every command as at 2, except Flint's brain's two, which Gaia's guard refuses with `brain-not-served` before it sends anything. | `src/features/forge-control/ForgeControl.ts` |
 
 ## The install version
 

@@ -173,7 +173,7 @@ describe('the forges that need a look', () => {
     const look = lookOf(fleetContentOf(fleet), TRACKER_IDS.researchWiki);
     expect([look.word, look.sentence, look.machineLine]).toEqual(['New code', 'The forge code changed on disk.', 'code 3f9a2c1']);
     expect(actionsOf(look)).toEqual([['Restart onto the new code', 'primary', { kind: 'forge-restart', trackerId: TRACKER_IDS.researchWiki }, true]]);
-    const unknownControl = { ...withNewCode, contracts: { ...withNewCode.contracts, control: 2 } };
+    const unknownControl = { ...withNewCode, contracts: { ...withNewCode.contracts, control: 3 } };
     const withUnknownControl = { ...fleet, forges: fleet.forges.map((forge) => (forge.trackerId === TRACKER_IDS.researchWiki ? unknownControl : forge)) };
     const refused = lookOf(fleetContentOf(withUnknownControl), TRACKER_IDS.researchWiki);
     expect(refused.actions.map((action) => action.kind === 'command' && action.forgeAcceptsIt)).toEqual([false]);
@@ -277,7 +277,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'unreadable',
       'Newer than this Gaia',
       'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing. Update Gaia.',
-      'monitor 4 · control 2',
+      'monitor 4 · control 3',
     ]);
     expect(actionsOf(newer)).toEqual([['Open in new tab', 'plain', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
   });

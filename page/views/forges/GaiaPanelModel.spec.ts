@@ -103,7 +103,7 @@ describe('the facts', () => {
     expect(panelOf(FLEET_FIVE_FORGES).facts).toEqual([
       { label: 'Forge program', value: '~/.bun/bin/forge' },
       { label: 'Registry', value: '~/.forge-monitor/projects.json' },
-      { label: 'Gaia reads', value: 'monitor 3 · control 1 · embed 1' },
+      { label: 'Gaia reads', value: 'monitor 3 · control 2 · embed 1' },
       { label: 'Gaia', value: '0.1.0 on 127.0.0.1:4790' },
     ]);
   });

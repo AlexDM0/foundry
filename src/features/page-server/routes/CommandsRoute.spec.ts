@@ -42,6 +42,19 @@ describe('a command Gaia can read', () => {
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
 
+  test('of Flint\'s brain reaches the command port with its tracker id, and a refusal is answered with the forge\'s code and sentence', async () => {
+    const text = 'Flint\'s brain cannot start while the usage limit holds. It resets at 14:00.';
+    const carrier = carrierAnswering({
+      verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
+    });
+    const body = JSON.stringify({ commandVersion: 1, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
+    const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
+    expect([answer.status, await answer.json()]).toEqual([409, {
+      answerVersion: 2, outcome: 'refused', refusal: 'usage-limit-holds', text,
+    }]);
+    expect(carrier.carriedCommands).toEqual([{ kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' }]);
+  });
+
   test('is answered under the status of its verdict', async () => {
     const verdicts: readonly CommandVerdict[] = [
       { verdict: 'done' },

@@ -7,7 +7,7 @@ export const CONTRACT_VERSIONS = {
   forgeIdentity:      1,
   forgeBoardSummary:  1,
   forgeMonitor:       3,
-  forgeControl:       1,
+  forgeControl:       2,
   forgeEmbedChannel:  1,
   forgeProgramAnswer: 1,
   forgeMachineLimits: 1,
@@ -22,11 +22,11 @@ export const CONTRACT_VERSIONS = {
   boundaryRecording:  1,
 } as const;
 
-/** The older numbers of a contract that Gaia still reads, each migrated on its ingestion to the current number's shape. */
-export const OLDER_CONTRACT_VERSIONS_READ: { readonly forgeMonitor: readonly number[] } = { forgeMonitor: [1, 2] };
-
 /**
- * The next number of a forge contract the forge has not shipped: Gaia holds answers at it authored from the forge's requirements, and
- * neither reads nor sends it, so a reading at it is still refused as newer. It moves into `CONTRACT_VERSIONS` when its ingestion learns it.
+ * The older numbers of a contract that Gaia still reads, each migrated on its ingestion to the current number's shape. A control number is
+ * one Gaia still sends: every command but those the later numbers add.
  */
-export const UPCOMING_CONTRACT_VERSIONS: { readonly forgeControl: number } = { forgeControl: 2 };
+export const OLDER_CONTRACT_VERSIONS_READ: { readonly forgeMonitor: readonly number[]; readonly forgeControl: readonly number[] } = {
+  forgeMonitor: [1, 2],
+  forgeControl: [1],
+};

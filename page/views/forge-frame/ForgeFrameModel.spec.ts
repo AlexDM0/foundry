@@ -118,7 +118,7 @@ describe('the bar\'s controls for each condition', () => {
     expect(barOf(READINGS.exampleStorefront).pauseOrResume?.command).toEqual({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
     expect(barOf({ ...READINGS.exampleStorefront, condition: 'paused' }).pauseOrResume?.command)
       .toEqual({ kind: 'forge-resume', trackerId: TRACKER_IDS.exampleStorefront });
-    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 2 } };
+    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 3 } };
     expect(barOf(newerControl).controlContractIsKnown).toBe(false);
   });
 });

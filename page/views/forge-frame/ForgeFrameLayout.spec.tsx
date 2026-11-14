@@ -87,7 +87,7 @@ describe('the bar\'s controls', () => {
   });
 
   test('a forge whose control contract Gaia does not know keeps only Open in new tab', () => {
-    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 2 } };
+    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 3 } };
     const { unfolded } = controlsOf({ bar: barOf(newerControl), stopIsOpen: true });
     expect(buttonsIn(unfolded).map((button) => [tree.textOf([button]), button.props['disabled']])).toEqual([
       ['Pause', true], ['Stop', true], ['Open in new tab', false],

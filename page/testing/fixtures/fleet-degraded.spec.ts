@@ -27,7 +27,7 @@ describe('the fleet-degraded fixture', () => {
     expect(forgeNamed('Analytics Sandbox')?.contracts).toEqual({
       summary: 1,
       monitor: 4,
-      control: 2,
+      control: 3,
       embed:   1,
     });
   });

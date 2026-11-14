@@ -14,7 +14,20 @@ export type SettingsChange = { [Key in keyof FleetDocumentSettings]: { key: Key;
 
 /** A command about one forge, named by its `trackerId`. */
 export type ForgeCommandBody =
-  | { kind: 'forge-start' | 'forge-pause' | 'forge-resume' | 'forge-restart' | 'forge-update' | 'forge-open-in-browser' | 'forge-hide' | 'forge-unhide'; trackerId: string }
+  | {
+    kind:
+      | 'forge-start'
+      | 'forge-pause'
+      | 'forge-resume'
+      | 'forge-restart'
+      | 'forge-update'
+      | 'forge-open-in-browser'
+      | 'forge-hide'
+      | 'forge-unhide'
+      | 'forge-brain-start'
+      | 'forge-brain-stop';
+    trackerId: string;
+  }
   | { kind: 'forge-stop'; trackerId: string; agents: ForgeStopAgents }
   | { kind: 'forge-concurrency-set'; trackerId: string; limit: number };
 

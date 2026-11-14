@@ -1,7 +1,7 @@
 /**
  * What Gaia can do with a forge by its contracts. What matters: a forge opens in place only with the known embed contract and while it is
- * read in full or as last reported, so a forge read through its summary, or of a newer contract, never does; and only the known control
- * contract is sent what an Overseer carries.
+ * read in full or as last reported, so a forge read through its summary, or of a newer contract, never does; and only a control contract
+ * Gaia sends to, the current one or the older one, is sent what an Overseer carries.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,8 +35,10 @@ describe('opening a forge in place', () => {
 });
 
 describe('the control contract', () => {
-  test('is known only at the number this Gaia speaks', () => {
+  test('is known at the number this Gaia speaks and at the older number it still sends to, and at no other', () => {
     expect(ForgeContractUtil.controlContractIsKnown(STOREFRONT)).toBe(true);
+    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 1 } })).toBe(true);
+    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 2 } })).toBe(true);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Research Wiki'))).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });

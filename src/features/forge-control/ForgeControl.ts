@@ -22,8 +22,8 @@ import type {
   GaiaCommand,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
-import type { GaiaSettings } from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS } from '../../shared/constants/ContractVersions.ts';
+import type { GaiaSettings }                               from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
 
 import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
 
@@ -58,11 +58,20 @@ const RUNNING_FOR_LOGIN_ITEMS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFide
 /** The forges whose login item goes when it is switched off: every one Gaia read whose repository is there and whose contract it reads. */
 const LOGIN_ITEM_REMOVED_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'unreachable', 'dormant']);
 
+/** The control contracts Gaia sends to: the current one, and the older ones, which lack only the commands the later ones add. */
+const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]);
+
+/** Control contract 2 adds Flint's brain's two commands; an older one is sent neither. */
+const CONTROL_VERSIONS_SERVING_THE_BRAIN: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl]);
+
 /**
- * `api`: the Overseer answers and speaks the known control contract. `control-unknown`: it answers in another contract or names none.
- * `no-overseer`: no Overseer answered the last read.
+ * `api`: the Overseer answers and speaks a control contract Gaia sends to, named by `controlVersion`. `control-unknown`: it answers in
+ * another contract or names none. `no-overseer`: no Overseer answered the last read.
  */
-type ApiReach = { readonly reach: 'api'; readonly overseer: RegisteredOverseer } | { readonly reach: 'control-unknown' } | { readonly reach: 'no-overseer' };
+type ApiReach =
+  | { readonly reach: 'api'; readonly overseer: RegisteredOverseer; readonly controlVersion: number }
+  | { readonly reach: 'control-unknown' }
+  | { readonly reach: 'no-overseer' };
 
 function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
   return { verdict: 'refused', refusedBy: 'gaia', refusal };
@@ -71,7 +80,8 @@ function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
 function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiReach {
   const { overseer } = forge;
   if (overseer === null || reading === null || reading.url === null || !OVERSEER_ANSWERS_AT.has(reading.fidelity)) return { reach: 'no-overseer' };
-  return reading.contracts.control === CONTRACT_VERSIONS.forgeControl ? { reach: 'api', overseer } : { reach: 'control-unknown' };
+  const controlVersion = reading.contracts.control;
+  return controlVersion !== null && CONTROL_VERSIONS_SENT.has(controlVersion) ? { reach: 'api', overseer, controlVersion } : { reach: 'control-unknown' };
 }
 
 function programTargetOf(forge: RegisteredForge): ForgeProgramTarget {
@@ -193,6 +203,15 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     return sendOverApi(apiReach.overseer, [controlCommand]);
   }
 
+  /** A command of Flint's brain, which only an Overseer at a control contract that serves the brain is sent; Gaia refuses it under an older one. */
+  async function carryBrainCommand(forge: RegisteredForge, reading: ForgeReading | null, controlCommand: ForgeControlCommand): Promise<CommandVerdict> {
+    const apiReach = apiReachOf(forge, reading);
+    if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
+    if (apiReach.reach === 'no-overseer') return { verdict: 'unreachable' };
+    if (!CONTROL_VERSIONS_SERVING_THE_BRAIN.has(apiReach.controlVersion)) return gaiaRefusalOf('brain-not-served');
+    return sendOverApi(apiReach.overseer, [controlCommand]);
+  }
+
   /**
    * The contract check comes before the carrier: an Overseer that answers in a control contract Gaia does not know is sent nothing and
    * left running. With no Overseer answering, or none answering the stop, the forge program stops the forge.
@@ -290,6 +309,10 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
         return ProgramVerdictUtil.verdictOfProgram(forgeProgram.openInBrowser(programTargetOf(forge)), () => 'done');
       case 'forge-hide':
         return verdictOfSettingsUpdate(await settingsStore.update(hiding(command.trackerId)));
+      case 'forge-brain-start':
+        return carryBrainCommand(forge, reading, { kind: 'flint-brain-start' });
+      case 'forge-brain-stop':
+        return carryBrainCommand(forge, reading, { kind: 'flint-brain-stop' });
     }
   }
 

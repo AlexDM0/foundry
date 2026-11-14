@@ -33,7 +33,7 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     knownContracts:    {
       summary: 1,
       monitor: 3,
-      control: 1,
+      control: 2,
       embed:   1,
     },
   },

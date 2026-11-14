@@ -891,7 +891,7 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     knownContracts:    {
       summary: 1,
       monitor: 3,
-      control: 1,
+      control: 2,
       embed:   1,
     },
   },

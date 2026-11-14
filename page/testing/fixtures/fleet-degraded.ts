@@ -100,7 +100,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   contracts: {
     summary: 1,
     monitor: 4,
-    control: 2,
+    control: 3,
     embed:   1,
   },
   codeVersion:       '9c04e5b',

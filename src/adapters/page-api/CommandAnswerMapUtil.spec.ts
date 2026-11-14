@@ -2,9 +2,11 @@
  * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, an update whose Baton pass was not
  * taken answers restart pending, a forge's refusal keeps its code and its sentence unless the sentence names a command (D10), Gaia's own
  * refusal carries its code with no sentence, a chosen path is a done answer's text, and a command Gaia could not read answers not-supported
- * with the reason as its code.
+ * with the reason as its code. Each refusal of Flint's brain recorded at control 2 reaches the page with its code and its sentence.
  */
 import { describe, expect, test } from 'bun:test';
+
+import { recordedFlintBrainAnswersOf } from '../../testing/RecordedAnswers.ts';
 
 import { CommandAnswerMapUtil } from './CommandAnswerMapUtil.ts';
 
@@ -83,6 +85,28 @@ describe('the command answer of a verdict', () => {
       outcome:       'refused',
       refusal:       'command-in-flight',
       text:          null,
+    });
+  });
+});
+
+describe('the command answer of a command of Flint\'s brain', () => {
+  test('carries each recorded refusal of the forge to the page with its code and its sentence', () => {
+    const refusals = (['brain-refused', 'no-flint'] as const).flatMap((situation) => recordedFlintBrainAnswersOf(situation))
+      .filter(({ callShape }) => callShape === 'POST /api/commands with bearer')
+      .flatMap(({ answer }) => (answer.verdict === 'answered' ? [JSON.parse(answer.bodyText) as { refusal: string; text: string }] : []));
+    expect(refusals.map(({ refusal }) => refusal)).toEqual(['usage-limit-holds', 'no-flint']);
+    for (const { refusal, text } of refusals) {
+      expect(CommandAnswerMapUtil.commandAnswerOf({
+        verdict: 'refused', refusedBy: 'forge', refusal, text,
+      })).toEqual({
+        answerVersion: 2, outcome: 'refused', refusal, text,
+      });
+    }
+  });
+
+  test('carries Gaia\'s refusal under control contract 1 as brain-not-served, with no sentence', () => {
+    expect(CommandAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' })).toEqual({
+      answerVersion: 2, outcome: 'refused', refusal: 'brain-not-served', text: null,
     });
   });
 });

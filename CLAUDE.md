@@ -82,7 +82,7 @@ with the system's version. Verify fails on a stale stamp and on a forge recordin
 for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. The other is `overseer-fetch-monitor-3`, the forge contracts of Flint's brain that no forge serves
-yet (`UPCOMING_CONTRACT_VERSIONS`): its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`),
+yet (monitor 3 and control 2): its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`),
 which alone lets a forge recording be authored, and verify fails while a recorded one still names them. macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through

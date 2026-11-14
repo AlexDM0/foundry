@@ -13,7 +13,17 @@ export type SettingsChange = { readonly [Key in keyof GaiaSettings]: { readonly 
 /** A command about one forge, named by its `trackerId`. */
 export type ForgeCommand =
   | {
-    readonly kind:      'forge-start' | 'forge-pause' | 'forge-resume' | 'forge-restart' | 'forge-update' | 'forge-open-in-browser' | 'forge-hide' | 'forge-unhide';
+    readonly kind:
+      | 'forge-start'
+      | 'forge-pause'
+      | 'forge-resume'
+      | 'forge-restart'
+      | 'forge-update'
+      | 'forge-open-in-browser'
+      | 'forge-hide'
+      | 'forge-unhide'
+      | 'forge-brain-start'
+      | 'forge-brain-stop';
     readonly trackerId: string;
   }
   | { readonly kind: 'forge-stop'; readonly trackerId: string; readonly agents: ForgeStopAgents }

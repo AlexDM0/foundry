@@ -10,7 +10,8 @@
  * registry nor the settings name a forge program that runs. `repository-missing`: the forge's root is gone. `token-unreadable`: the
  * Overseer's token file cannot be read. `token-rejected`: the Overseer refused the token. `settings-newer-version`: the settings file is
  * newer than this Gaia and is kept as it is. `settings-unwritable`: the settings file cannot be written. `path-chooser-failed`: the chooser
- * ended without a choice and without being cancelled.
+ * ended without a choice and without being cancelled. `brain-not-served`: the forge's control contract is older than the one that carries
+ * Flint's brain's commands, so Gaia sends it nothing.
  */
 export type GaiaRefusal =
   | 'command-in-flight'
@@ -22,7 +23,8 @@ export type GaiaRefusal =
   | 'token-rejected'
   | 'settings-newer-version'
   | 'settings-unwritable'
-  | 'path-chooser-failed';
+  | 'path-chooser-failed'
+  | 'brain-not-served';
 
 /**
  * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `restart-pending`: a `forge-update` was done, but the

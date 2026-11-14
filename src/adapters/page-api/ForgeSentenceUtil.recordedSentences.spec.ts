@@ -4,20 +4,26 @@
  * refusal reaches the page through the command answer and the frame session answer the page reads; and each recorded monitor snapshot
  * reaches it through the fleet document, its notices and warnings among it. The frozen list of refusal codes whose recorded sentence names
  * a command keeps the spec from passing on nothing; retake it after `bun run record forge-program-refused` or an overseer-fetch recording.
- * The forge at monitor contract 1 worded its notices and refusals with commands, and Gaia still reads it, so its recording is searched too.
+ * The forge at monitor contract 1 worded its notices and refusals with commands, and Gaia still reads it, so its recording is searched too,
+ * as is the monitor-3 recording, whose brain refusals (`usage-limit-holds`, `no-flint`) reach the page through the command answer.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { CONTRACT_VERSIONS }                                                                         from '../../shared/constants/ContractVersions.ts';
-import { everyRecordedMonitorOneAnswerOf, everyRecordedOverseerAnswerOf, type RecordedStreamAnswer } from '../../testing/RecordedAnswers.ts';
-import { recordedRunsOf }                                                                            from '../../testing/RecordedRuns.ts';
-import type { ForgeIdentity, ForgeRegistryFacts }                                                    from '../forge-api/@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion }                                                                  from '../forge-api/MonitorSnapshotIngestion.ts';
-import { CommandAnswerMapUtil }                                                                      from './CommandAnswerMapUtil.ts';
-import { FleetDocumentMapUtil }                                                                      from './FleetDocumentMapUtil.ts';
-import { ForgeSentenceUtil }                                                                         from './ForgeSentenceUtil.ts';
-import { FrameSessionAnswerMapUtil }                                                                 from './FrameSessionAnswerMapUtil.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                                                      from './testing/fleet-snapshot-empty.ts';
+import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
+import {
+  everyRecordedMonitorOneAnswerOf,
+  everyRecordedMonitorThreeAnswerOf,
+  everyRecordedOverseerAnswerOf,
+  type RecordedStreamAnswer,
+} from '../../testing/RecordedAnswers.ts';
+import { recordedRunsOf }                         from '../../testing/RecordedRuns.ts';
+import type { ForgeIdentity, ForgeRegistryFacts } from '../forge-api/@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion }               from '../forge-api/MonitorSnapshotIngestion.ts';
+import { CommandAnswerMapUtil }                   from './CommandAnswerMapUtil.ts';
+import { FleetDocumentMapUtil }                   from './FleetDocumentMapUtil.ts';
+import { ForgeSentenceUtil }                      from './ForgeSentenceUtil.ts';
+import { FrameSessionAnswerMapUtil }              from './FrameSessionAnswerMapUtil.ts';
+import { FLEET_SNAPSHOT_EMPTY }                   from './testing/fleet-snapshot-empty.ts';
 
 const FORGE_PROGRAM_RECORDINGS = ['forge-program', 'forge-program-done', 'forge-program-refused'] as const;
 
@@ -65,7 +71,7 @@ function isStreamAnswer(answer: unknown): answer is Extract<RecordedStreamAnswer
 
 /** Every JSON document the recorded Overseers answered: whole bodies, and each event of a stream. */
 function recordedOverseerDocuments(): unknown[] {
-  return [...everyRecordedOverseerAnswerOf(), ...everyRecordedMonitorOneAnswerOf()].flatMap(({ answer }) => {
+  return [...everyRecordedOverseerAnswerOf(), ...everyRecordedMonitorOneAnswerOf(), ...everyRecordedMonitorThreeAnswerOf()].flatMap(({ answer }) => {
     if (isStreamAnswer(answer)) {
       return answer.chunks.join('').split('\n')
         .filter((line) => line.startsWith(EVENT_DATA_PREFIX))

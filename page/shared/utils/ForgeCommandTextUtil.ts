@@ -30,6 +30,8 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-unhide':          'Show again',
   'forge-stop':            'Stop',
   'forge-concurrency-set': 'the agent limit',
+  'forge-brain-start':     'Wake Flint\'s brain',
+  'forge-brain-stop':      'Stop Flint\'s brain',
 };
 
 /** An update was done and the forge's Overseer did not take the new code: Restart sends `forge-restart`. */

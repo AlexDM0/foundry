@@ -113,7 +113,7 @@ describe('the identity of a forge that serves F1', () => {
       contracts:   {
         summary: 1,
         monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
-        control: 2,
+        control: CONTRACT_VERSIONS.forgeControl + 1,
         embed:   1,
       },
     };
