@@ -26,7 +26,7 @@ const DAIRY_TRACKER_ID    = BOARDS['example-dairy'].trackerId;
 const ESTATE_TRACKER_ID   = BOARDS['example-estate'].trackerId;
 const EXAMPLE_PROGRAM = '/Users/example/.bun/bin/forge';
 
-/** What the recorded registry maps to; retake the stamps from the recording after `bun run record forge-registry`. */
+/** What the recorded registry maps to; retake the stamps and last commands from the recording after `bun run record forge-registry`. */
 const RECORDED_FORGES: readonly RegisteredForge[] = [
   {
     trackerId: AGENCY_TRACKER_ID,
@@ -39,6 +39,8 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
       startedAt: '2026-11-13T09:58:06+01:00',
       tokenPath: `/Users/example/.forge-monitor/watchers/${AGENCY_TRACKER_ID}/token`,
     },
+    lastCommand:   'oversee',
+    lastChangedAt: '2026-11-13T09:58:06+01:00',
   },
   {
     trackerId: BOOKSHOP_TRACKER_ID,
@@ -51,20 +53,26 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
       startedAt: '2026-11-13T09:58:06+01:00',
       tokenPath: `/Users/example/.forge-monitor/watchers/${BOOKSHOP_TRACKER_ID}/token`,
     },
+    lastCommand:   'oversee',
+    lastChangedAt: '2026-11-13T09:58:06+01:00',
   },
   {
-    trackerId: BOARDS['example-clinic'].trackerId,
-    project:   'Example Clinic',
-    root:      BOARDS['example-clinic'].root,
-    program:   EXAMPLE_PROGRAM,
-    overseer:  null,
+    trackerId:     BOARDS['example-clinic'].trackerId,
+    project:       'Example Clinic',
+    root:          BOARDS['example-clinic'].root,
+    program:       EXAMPLE_PROGRAM,
+    overseer:      null,
+    lastCommand:   'oversee',
+    lastChangedAt: '2026-11-13T09:58:08+01:00',
   },
   {
-    trackerId: DAIRY_TRACKER_ID,
-    project:   'Example Dairy',
-    root:      BOARDS['example-dairy'].root,
-    program:   EXAMPLE_PROGRAM,
-    overseer:  null,
+    trackerId:     DAIRY_TRACKER_ID,
+    project:       'Example Dairy',
+    root:          BOARDS['example-dairy'].root,
+    program:       EXAMPLE_PROGRAM,
+    overseer:      null,
+    lastCommand:   'init',
+    lastChangedAt: '2026-11-13T09:58:08+01:00',
   },
   {
     trackerId: ESTATE_TRACKER_ID,
@@ -77,6 +85,8 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
       startedAt: '2026-11-13T09:58:09+01:00',
       tokenPath: `/Users/example/.forge-monitor/watchers/${ESTATE_TRACKER_ID}/token`,
     },
+    lastCommand:   'oversee',
+    lastChangedAt: '2026-11-13T09:58:09+01:00',
   },
 ];
 

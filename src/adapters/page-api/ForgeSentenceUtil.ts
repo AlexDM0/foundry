@@ -35,6 +35,19 @@ const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
   [FORGE_NOTICE_KINDS.assistantDown]: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
 };
 
+/**
+ * The forge verbs a registry entry's last command names that Gaia runs itself, each by the name of Gaia's own command for it. Every other
+ * verb is the forge's own business, and the page shows no last command for it.
+ */
+const LAST_COMMAND_NAMES: Readonly<Record<string, string>> = {
+  'init':         'Add a repository',
+  'update':       'Update forge',
+  'start':        'Start forge',
+  'oversee':      'Start forge',
+  'stop':         'Stop forge',
+  'oversee stop': 'Stop forge',
+};
+
 const NEUTRAL_NOTICE_SENTENCE = 'This forge raised a notice that Gaia does not word yet.';
 
 const NEUTRAL_WARNING_SENTENCE = 'This forge reports a warning that Gaia does not word yet.';
@@ -69,6 +82,11 @@ function sentenceNamingNoCommandOf(text: string): string | null {
   return sentenceNamesACommand(text) ? null : text;
 }
 
+/** A registry entry's last command, as the forge words it, by the name of Gaia's own command for it, or `null` for any other. */
+function lastCommandNameOf(lastCommand: string | null): string | null {
+  return lastCommand === null ? null : ownSentenceOf(LAST_COMMAND_NAMES, lastCommand);
+}
+
 /** Gaia has no words of its own for a warning, of a kind or of none (monitor 1): only the guard words one. */
 function warningSentenceOf(text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_WARNING_SENTENCE : text;
@@ -89,6 +107,7 @@ export const ForgeSentenceUtil = {
   refusalSentenceOf,
   sentenceNamingNoCommandOf,
   noticeSentenceOf,
+  lastCommandNameOf,
   warningSentenceOf,
   activitySentenceOf,
   brainIntentSentenceOf,

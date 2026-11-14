@@ -1,6 +1,7 @@
 /**
  * The readings a forge watch gives a forge it cannot read right now: dormant, its repository missing, starting, or unreachable. Each is
- * built from the registry entry and the last whole reading of this run, so what Gaia read before a stop or a lost connection stays.
+ * built from the registry entry and the last whole reading of this run, so what Gaia read before a stop or a lost connection stays, and
+ * the last command the entry names now replaces the one the reading was taken with.
  */
 import type { ForgeRegistryFacts }                  from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import type { RegisteredForge, RegisteredOverseer } from '../../adapters/forge-registry/@types/RegisteredForge.ts';
@@ -22,9 +23,8 @@ function registryFactsOf(forge: RegisteredForge, overseer: RegisteredOverseer): 
     root:              forge.root,
     overseerUrl:       overseer.url,
     overseerProcessId: overseer.processId,
-    // RegisteredForge carries no last command, so no reading can show one.
-    lastCommand:       null,
-    lastChangedAt:     null,
+    lastCommand:       forge.lastCommand,
+    lastChangedAt:     forge.lastChangedAt,
   };
 }
 
@@ -42,8 +42,8 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
     codeVersion:       null,
     lastReportedAt:    null,
     overseerStartedAt: forge.overseer?.startedAt ?? null,
-    lastCommand:       null,
-    lastChangedAt:     null,
+    lastCommand:       forge.lastCommand,
+    lastChangedAt:     forge.lastChangedAt,
     concurrency:       null,
     readyTicketCount:  null,
     openIncidents:     null,
@@ -77,6 +77,8 @@ function dormantReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading
     url:               null,
     processId:         null,
     overseerStartedAt: null,
+    lastCommand:       forge.lastCommand,
+    lastChangedAt:     forge.lastChangedAt,
     concurrency:       concurrency === null ? null : { ...concurrency, ticketsWaitingForMachineSlot: null },
     attention:         [],
     attentionCount:    null,
@@ -107,7 +109,13 @@ function startingReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReadin
 /** The last whole reading stays, marked unreachable, and its `lastReportedAt` says when the forge last reported it (artboard B3). */
 function unreachableReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading | null): ForgeReading {
   if (lastWholeReading === null) return registryOnlyReadingOf(forge, 'unreachable', 'unreachable');
-  return { ...lastWholeReading, fidelity: 'unreachable', condition: 'unreachable' };
+  return {
+    ...lastWholeReading,
+    fidelity:      'unreachable',
+    condition:     'unreachable',
+    lastCommand:   forge.lastCommand,
+    lastChangedAt: forge.lastChangedAt,
+  };
 }
 
 /**

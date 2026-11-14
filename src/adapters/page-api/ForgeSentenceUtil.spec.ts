@@ -2,7 +2,8 @@
  * Gaia's wording of a forge sentence that tells User to run a command (D10). What matters: a known refusal code or notice kind is worded
  * by Gaia whatever the forge's prose says, so a reworded forge sentence cannot slip through; an unknown sentence that names a command, by
  * a backticked span or by `forge <verb>`, is dropped for a neutral one; and a sentence that names none passes through unchanged, so Gaia
- * does not reword the forge where D10 does not ask it to. The forge's sentences below are worded as the forge words them.
+ * does not reword the forge where D10 does not ask it to. A registry entry's last command reaches the page only as the name of Gaia's own
+ * command for it. The forge's sentences below are worded as the forge words them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -90,5 +91,23 @@ describe('the sentence of an activity entry and of a brain\'s move', () => {
   test('is the forge\'s own, unchanged, when it names no command', () => {
     expect(ForgeSentenceUtil.activitySentenceOf('Flint\'s brain ran 2:00')).toBe('Flint\'s brain ran 2:00');
     expect(ForgeSentenceUtil.brainIntentSentenceOf('walk-to-column')).toBe('walk-to-column');
+  });
+});
+
+describe('the last command of a registry entry', () => {
+  test('is named by Gaia\'s own command for each forge verb Gaia runs itself', () => {
+    expect(ForgeSentenceUtil.lastCommandNameOf('oversee')).toBe('Start forge');
+    expect(ForgeSentenceUtil.lastCommandNameOf('start')).toBe('Start forge');
+    expect(ForgeSentenceUtil.lastCommandNameOf('oversee stop')).toBe('Stop forge');
+    expect(ForgeSentenceUtil.lastCommandNameOf('stop')).toBe('Stop forge');
+    expect(ForgeSentenceUtil.lastCommandNameOf('update')).toBe('Update forge');
+    expect(ForgeSentenceUtil.lastCommandNameOf('init')).toBe('Add a repository');
+  });
+
+  test('is none for any other forge verb, for a key of the object prototype, and for an entry that names none', () => {
+    expect(ForgeSentenceUtil.lastCommandNameOf('ticket ready')).toBeNull();
+    expect(ForgeSentenceUtil.lastCommandNameOf('open')).toBeNull();
+    expect(ForgeSentenceUtil.lastCommandNameOf('constructor')).toBeNull();
+    expect(ForgeSentenceUtil.lastCommandNameOf(null)).toBeNull();
   });
 });

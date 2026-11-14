@@ -134,7 +134,7 @@ function forgeOut(reading: ForgeReading): FleetDocumentForge {
     codeVersion:       reading.codeVersion,
     lastReportedAt:    reading.lastReportedAt,
     overseerStartedAt: reading.overseerStartedAt,
-    lastCommand:       reading.lastCommand,
+    lastCommand:       ForgeSentenceUtil.lastCommandNameOf(reading.lastCommand),
     lastChangedAt:     reading.lastChangedAt,
     concurrency:       concurrency === null ? null : {
       limit:                        concurrency.limit,

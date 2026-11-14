@@ -704,7 +704,7 @@ const DESIGN_SYSTEM: ForgeReading = {
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T12:19:58.000Z',
   overseerStartedAt: null,
-  lastCommand:       'ticket ready',
+  lastCommand:       'oversee stop',
   lastChangedAt:     '2026-11-12T12:20:00.000Z',
   concurrency:       {
     limit:                        2,

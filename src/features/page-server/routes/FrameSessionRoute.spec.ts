@@ -80,6 +80,8 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
       startedAt: '2026-11-12T09:12:00.000Z',
       tokenPath: forgeOptions.tokenPath === undefined ? tokenPath : forgeOptions.tokenPath,
     },
+    lastCommand:   null,
+    lastChangedAt: null,
   };
   const dormantReading = WatchReadingUtil.dormantReadingOf(entry, null);
   if (fidelity === 'dormant') return { entry, reading: dormantReading };

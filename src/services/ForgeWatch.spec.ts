@@ -128,14 +128,20 @@ interface EntryOptions {
   readonly hasOverseer?: boolean;
   readonly processId?:   number;
   readonly tokenPath?:   string | null;
+  readonly lastCommand?: string;
 }
+
+/** When every entry the spec writes was last changed by its forge. */
+const LAST_CHANGED_AT = '2026-11-12T13:19:20.000Z';
 
 function registryEntryOf(entryOptions: EntryOptions = {}): Record<string, unknown> {
   const hasOverseer = entryOptions.hasOverseer ?? true;
   return {
-    project:  'Example Storefront',
-    root:     entryOptions.root ?? repositoryRoot,
-    overseer: hasOverseer ? {
+    project:       'Example Storefront',
+    root:          entryOptions.root ?? repositoryRoot,
+    lastChangedAt: LAST_CHANGED_AT,
+    lastCommand:   entryOptions.lastCommand ?? 'oversee',
+    overseer:      hasOverseer ? {
       url:       'http://127.0.0.1:4951/',
       processId: entryOptions.processId ?? 48_107,
       startedAt: '2026-11-12T09:12:00.000Z',
@@ -416,6 +422,22 @@ describe('the registry', () => {
     writeRegistry([{}]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'STREAM /api/monitor/events with bearer']);
+    expect(overseerFetch.streamsLeftOpen()).toBe(1);
+  });
+
+  test('shows the last command the entry names, and a new one without asking the forge again or closing its stream', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
+    const { watch, timers, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+    const live = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
+    expect(live).toMatchObject({ lastCommand: 'oversee', lastChangedAt: LAST_CHANGED_AT });
+    await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
+
+    writeRegistry([{ lastCommand: 'ticket ready' }]);
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
+    await untilReadings((readings) => readings[0]?.lastCommand === 'ticket ready');
     expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'STREAM /api/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });

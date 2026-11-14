@@ -93,10 +93,23 @@ function contentHashOf(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
+/** The part of an entry a watch follows the forge by; the last command and its stamp change with every forge command and ask nothing again. */
+function followedPartOf(entry: RegisteredForge): Omit<RegisteredForge, 'lastCommand' | 'lastChangedAt'> {
+  return {
+    trackerId: entry.trackerId,
+    project:   entry.project,
+    root:      entry.root,
+    program:   entry.program,
+    overseer:  entry.overseer,
+  };
+}
+
 interface WatchedForge {
   readonly reading:   () => ForgeReading | null;
   readonly entry:     () => RegisteredForge;
   readonly follow:    (entry: RegisteredForge) => void;
+  /** Takes an entry whose followed part is unchanged: its last command reaches the reading without asking the forge again. */
+  readonly keepEntry: (entry: RegisteredForge) => void;
   readonly lookAgain: () => void;
   readonly stop:      () => void;
 }
@@ -124,9 +137,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     let roundTimer: WatchTimer | null = null;
     let monitorFollow: MonitorFollow | null = null;
 
+    /** The last command is always the one the entry names now, whatever round the reading was taken in. */
     function setReading(nextReading: ForgeReading): void {
-      if (reading !== null && contentHashOf(reading) === contentHashOf(nextReading)) return;
-      reading = nextReading;
+      const readingWithLastCommand = { ...nextReading, lastCommand: entry.lastCommand, lastChangedAt: entry.lastChangedAt };
+      if (reading !== null && contentHashOf(reading) === contentHashOf(readingWithLastCommand)) return;
+      reading = readingWithLastCommand;
       options.onReadingsChanged();
     }
 
@@ -258,6 +273,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       launchRound();
     }
 
+    function keepEntry(nextEntry: RegisteredForge): void {
+      entry = nextEntry;
+      if (reading !== null) setReading(reading);
+    }
+
     function lookAgain(): void {
       if (monitorFollow === null) launchRound();
     }
@@ -266,6 +286,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       reading: () => reading,
       entry:   () => entry,
       follow,
+      keepEntry,
       lookAgain,
       stop:    () => {
         beginRound();
@@ -273,7 +294,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     };
   }
 
-  /** A changed entry is followed afresh; an unchanged one is left alone, or looked at again when User asked. */
+  /** An entry whose followed part changed is followed afresh; any other is kept, and looked at again when User asked. */
   function applyEntries(entries: readonly RegisteredForge[], isLookAgain: boolean): void {
     const trackerIds = new Set(entries.map((entry) => entry.trackerId));
     let forgesChanged = false;
@@ -289,10 +310,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
         const newForge = watchedForgeOf(entry);
         watchedForges.set(entry.trackerId, newForge);
         newForge.follow(entry);
-      } else if (contentHashOf(watchedForge.entry()) !== contentHashOf(entry)) {
+      } else if (contentHashOf(followedPartOf(watchedForge.entry())) !== contentHashOf(followedPartOf(entry))) {
         watchedForge.follow(entry);
-      } else if (isLookAgain) {
-        watchedForge.lookAgain();
+      } else {
+        watchedForge.keepEntry(entry);
+        if (isLookAgain) watchedForge.lookAgain();
       }
     }
     const nextTrackerIds = entries.map((entry) => entry.trackerId);

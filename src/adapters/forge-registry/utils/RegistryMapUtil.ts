@@ -76,6 +76,12 @@ function processIdOf(record: JsonObject, problems: RegistryEntryProblem[]): numb
   return value;
 }
 
+/** A fact Gaia only shows: any value but text with something in it reads as `null`, and never leaves the forge out. */
+function shownTextOf(record: JsonObject, field: string): string | null {
+  const value = ownValueOf(record, field);
+  return typeof value === 'string' && value !== '' ? value : null;
+}
+
 /** An absent or `null` overseer is a forge with no live Overseer; one that is present must be whole. */
 function overseerOf(entry: JsonObject, problems: RegistryEntryProblem[]): RegisteredOverseer | null {
   const value = ownValueOf(entry, 'overseer');
@@ -114,6 +120,8 @@ function registeredForgeOf(trackerId: string, entryValue: unknown): { forge: Reg
       root,
       program,
       overseer,
+      lastCommand:   shownTextOf(entry, 'lastCommand'),
+      lastChangedAt: shownTextOf(entry, 'lastChangedAt'),
     },
   };
 }

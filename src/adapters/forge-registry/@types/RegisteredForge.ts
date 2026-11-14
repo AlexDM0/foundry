@@ -10,12 +10,16 @@ export interface RegisteredOverseer {
 }
 
 export interface RegisteredForge {
-  readonly trackerId: string;
-  readonly project:   string;
-  readonly root:      string;
+  readonly trackerId:     string;
+  readonly project:       string;
+  readonly root:          string;
   /** The forge program that last wrote the entry (F9); `null` from a forge that does not write it yet. */
-  readonly program:   string | null;
-  readonly overseer:  RegisteredOverseer | null;
+  readonly program:       string | null;
+  readonly overseer:      RegisteredOverseer | null;
+  /** The forge verb that last wrote the entry, as the forge words it: its command word and subcommand, such as `oversee stop`. */
+  readonly lastCommand:   string | null;
+  /** When the forge last wrote the entry, as the forge stamped it: shown, never compared. */
+  readonly lastChangedAt: string | null;
 }
 
 export type RegistryEntryKey =

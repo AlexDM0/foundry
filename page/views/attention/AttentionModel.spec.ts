@@ -164,7 +164,7 @@ describe('the forges that need a look', () => {
   test('a dormant forge with ready tickets offers Start forge', () => {
     const dormant = lookOf(fleetContentOf(FLEET_FIVE_FORGES), TRACKER_IDS.designSystem);
     expect([dormant.tone, dormant.condition, dormant.word, dormant.sentence, dormant.machineLine]).toEqual([
-      'neutral', 'dormant', 'Dormant', 'This forge is not running. 3 tickets are ready and nothing drives them.', 'last command: ticket ready',
+      'neutral', 'dormant', 'Dormant', 'This forge is not running. 3 tickets are ready and nothing drives them.', 'last command: Stop forge',
     ]);
     expect(actionsOf(dormant)).toEqual([['Start forge', 'primary', { kind: 'forge-start', trackerId: TRACKER_IDS.designSystem }, true]]);
   });

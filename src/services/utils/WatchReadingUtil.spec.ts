@@ -15,13 +15,18 @@ const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
 function entryOf(reading: ForgeReading, overseer: RegisteredForge['overseer']): RegisteredForge {
   return {
-    trackerId: reading.trackerId,
-    project:   reading.project,
-    root:      reading.root,
-    program:   null,
+    trackerId:     reading.trackerId,
+    project:       reading.project,
+    root:          reading.root,
+    program:       null,
     overseer,
+    lastCommand:   reading.lastCommand,
+    lastChangedAt: reading.lastChangedAt,
   };
 }
+
+/** The entry the forge wrote at its stop, after the reading Gaia kept was taken. */
+const STOP_FACTS = { lastCommand: 'oversee stop', lastChangedAt: '2026-11-12T12:40:00.000Z' } as const;
 
 const EXAMPLE_OVERSEER = {
   url:       'http://127.0.0.1:4977/',
@@ -72,6 +77,11 @@ describe('a dormant forge', () => {
     expect(dormant.concurrency).toEqual({ ...LIVE_CONCURRENCY, ticketsWaitingForMachineSlot: null });
   });
 
+  test('names the last command its registry entry names now, not the one its kept reading was taken with', () => {
+    const dormant = WatchReadingUtil.dormantReadingOf({ ...entryOf(READINGS.designSystem, null), ...STOP_FACTS }, DESIGN_SYSTEM_BEFORE_THE_STOP);
+    expect(dormant).toMatchObject(STOP_FACTS);
+  });
+
   test('shows only what the registry says when this run read nothing of it', () => {
     expect(WatchReadingUtil.dormantReadingOf(entryOf(READINGS.designSystem, null), null)).toMatchObject({
       fidelity:  'dormant',
@@ -92,7 +102,7 @@ describe('a dormant forge', () => {
 describe('a forge whose repository is gone', () => {
   test('reads missing with nothing but its place in the registry', () => {
     const legacyEntry = entryOf(READINGS.legacyImporter, null);
-    expect(WatchReadingUtil.repositoryMissingReadingOf(legacyEntry)).toEqual({ ...READINGS.legacyImporter, lastCommand: null, lastChangedAt: null });
+    expect(WatchReadingUtil.repositoryMissingReadingOf(legacyEntry)).toEqual(READINGS.legacyImporter);
   });
 });
 
@@ -133,6 +143,12 @@ describe('an unreachable forge', () => {
     expect(WatchReadingUtil.unreachableReadingOf(storefrontEntry, READINGS.exampleStorefront).brain).toEqual(READINGS.exampleStorefront.brain);
   });
 
+  test('names the last command its registry entry names now, whether this run read it or not', () => {
+    const invoiceEntry = { ...entryOf(READINGS.invoiceService, EXAMPLE_OVERSEER), ...STOP_FACTS };
+    expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, READINGS.invoiceService)).toMatchObject(STOP_FACTS);
+    expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, null)).toMatchObject(STOP_FACTS);
+  });
+
   test('shows the address and process the registry names when this run never read it', () => {
     const unreachable = WatchReadingUtil.unreachableReadingOf(entryOf(READINGS.invoiceService, EXAMPLE_OVERSEER), null);
     expect(unreachable).toMatchObject({
@@ -149,15 +165,15 @@ describe('an unreachable forge', () => {
 });
 
 describe('the registry facts', () => {
-  test('carry the entry and its Overseer, and no last command, which the registry ingestion does not map', () => {
-    expect(WatchReadingUtil.registryFactsOf(entryOf(READINGS.designSystem, EXAMPLE_OVERSEER), EXAMPLE_OVERSEER)).toEqual({
+  test('carry the entry, its Overseer and the last command the entry names', () => {
+    expect(WatchReadingUtil.registryFactsOf({ ...entryOf(READINGS.designSystem, EXAMPLE_OVERSEER), ...STOP_FACTS }, EXAMPLE_OVERSEER)).toEqual({
       trackerId:         READINGS.designSystem.trackerId,
       project:           READINGS.designSystem.project,
       root:              READINGS.designSystem.root,
       overseerUrl:       EXAMPLE_OVERSEER.url,
       overseerProcessId: EXAMPLE_OVERSEER.processId,
-      lastCommand:       null,
-      lastChangedAt:     null,
+      lastCommand:       STOP_FACTS.lastCommand,
+      lastChangedAt:     STOP_FACTS.lastChangedAt,
     });
   });
 });
