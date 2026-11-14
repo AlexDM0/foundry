@@ -162,6 +162,51 @@ export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/** The sentence a forge at monitor contract 2 sends with its warning that a Baton pass failed, which names no command. */
+export const BATON_PASS_FAILED_SENTENCE = 'the Baton pass to code 4c1d9e2 failed at take-baton: the successor did not answer';
+
+/** The notice that Research Wiki's Assistant cannot come up, as the server words it in Gaia's words. */
+export const ASSISTANT_DOWN_SENTENCE = 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.';
+
+/** Invoice Service warns that its Baton pass failed, so A1 shows that look before the two the artboard draws. */
+const FLEET_BATON_PASS_FAILED: FleetDocument = {
+  ...FLEET_FIVE_FORGES,
+  forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService
+    ? { ...forge, warnings: [{ kind: 'baton-pass-failed', text: BATON_PASS_FAILED_SENTENCE }] }
+    : forge)),
+  needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'baton-pass-failed' }, ...FLEET_FIVE_FORGES.needsALook],
+};
+
+/** Research Wiki's Assistant cannot come up: a notice under its row on A4. */
+const FLEET_ASSISTANT_DOWN: FleetDocument = {
+  ...FLEET_FIVE_FORGES,
+  forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.researchWiki
+    ? { ...forge, notices: [{ kind: 'assistant-down', text: ASSISTANT_DOWN_SENTENCE }] }
+    : forge)),
+};
+
+/** D5: the warnings of monitor contract 2, which no artboard draws, each over the artboard that shows it. */
+export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'A1',
+    title:         'Attention, a Baton pass failed',
+    designFile:    'Main.dc.html',
+    fleetDocument: FLEET_BATON_PASS_FAILED,
+    fragment:      '#attention',
+    viewState:     'as-routed',
+    onlyTheme:     null,
+  },
+  {
+    artboard:      'A4',
+    title:         'Forges, an Assistant cannot come up',
+    designFile:    'Forges.dc.html',
+    fleetDocument: FLEET_ASSISTANT_DOWN,
+    fragment:      '#forges',
+    viewState:     'as-routed',
+    onlyTheme:     null,
+  },
+];
+
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 2,

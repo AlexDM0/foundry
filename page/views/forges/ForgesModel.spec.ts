@@ -1,13 +1,12 @@
 /**
- * What the Forges view shows of a fleet document. What matters (SCREENS A4 and B2): each condition shows exactly its buttons, Open only
- * where the forge opens in place; a row reads its root from `~`, its condition word with when it started or stopped, its agents against
- * its limit, what waits and its short code; a forge's limit runs from one agent to the forge's ceiling and the machine's from one to the CPU
- * count, and without F6 the machine panel says no limit is enforced and its stepper is off; the machine at its limit says which forges'
- * tickets wait. B2: Stop asks with two choices and keeps the agents by default, with none when no agent runs; while a command to a forge is
- * on its way that row's controls are off and no other's; a refusal stays on its forge until dismissed or the next success, and offers to
- * send the same command again; a start Gaia sent shows as starting until the forge answers; an update that left a restart pending offers
- * Restart where the update was sent, on a held forge's banner or under its row. Command states come from the real sender over
- * Gaia's server stood in for by authored answers.
+ * What the Forges view shows of a fleet document. What matters (SCREENS A4 and B2): each condition shows exactly its buttons, Open only where the forge
+ * opens in place; a row reads its root from `~`, its condition word with when it started or stopped, its agents against its limit, what waits and its
+ * short code; a forge's limit runs from one agent to the forge's ceiling and the machine's from one to the CPU count, and without F6 the machine panel
+ * says no limit is enforced and its stepper is off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and keeps the
+ * agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a refusal stays on
+ * its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the forge answers;
+ * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner or under its row; a forge whose Assistant
+ * cannot come up says so under its row. Command states come from the real sender over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -169,6 +168,15 @@ describe('a row of the table (A4)', () => {
     expect([wiki.agents, wiki.waitingText]).toEqual([null, '1']);
     const invoice = rowOf(content, TRACKER_IDS.invoiceService);
     expect([invoice.conditionWord, invoice.detailText, invoice.agents]).toEqual(['Unreachable', 'as last reported 13:14', { kind: 'text', text: '3 / 5' }]);
+  });
+
+  test('a forge whose Assistant cannot come up says so under its row, in the words the server gave it, and no other notice does', () => {
+    const assistantDown = { kind: 'assistant-down', text: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.' };
+    const otherNotice = { kind: 'incident-defaulted', text: 'Incident I2 took its default.' };
+    const fleetDocument = fleetWithOneForgeIn('live', { notices: [otherNotice, assistantDown] });
+    expect(rowOf(contentOf(fleetDocument), TRACKER_IDS.exampleStorefront).noticeText).toBe(assistantDown.text);
+    expect(rowOf(contentOf(fleetWithOneForgeIn('live', { notices: [otherNotice] })), TRACKER_IDS.exampleStorefront).noticeText).toBeNull();
+    expect(contentOf(FLEET_FIVE_FORGES).rows.map((row) => row.noticeText)).toEqual([null, null, null, null, null]);
   });
 
   test('the row the route names is in view', () => {

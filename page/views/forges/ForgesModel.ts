@@ -130,6 +130,8 @@ export interface ForgeRow {
   readonly stopDialog:     StopDialog | null;
   readonly refusal:        ShownRefusal | null;
   readonly pendingRestart: PendingRestart | null;
+  /** The forge's notice that its Assistant cannot come up, as the server worded it in Gaia's words. */
+  readonly noticeText:     string | null;
 }
 
 export interface HeldBanner {
@@ -210,6 +212,8 @@ const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly Row
 };
 
 const NOTICE_KIND_OF_HELD_LAUNCHES = 'install-version-changed';
+
+const NOTICE_KIND_OF_ASSISTANT_DOWN = 'assistant-down';
 
 const HELD_SENTENCE_WITHOUT_NOTICE = 'Its install version changed. Nothing launches until this forge is updated.';
 
@@ -486,6 +490,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     stopDialog:     stopDialogOf(forge, surroundings),
     refusal:        refusalOf(forge.trackerId, surroundings, refusalShowsOnTheRow(forge)),
     pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
+    noticeText:     forge.notices.find((notice) => notice.kind === NOTICE_KIND_OF_ASSISTANT_DOWN)?.text ?? null,
   };
 }
 

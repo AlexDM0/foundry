@@ -1,11 +1,11 @@
 /**
- * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop
- * opens its dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open
- * in new tab" is a button that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is
- * off past its ends, the machine's plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of
- * a limit above the CPU count shows in the panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update
- * forge, and once that left a restart pending, Restart and its dismissal; a paused row offers Resume first; a hidden forge folds away with
- * Show again. The command states come from the real sender over Gaia's server stood in for by authored answers.
+ * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop opens its
+ * dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button
+ * that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's plus
+ * at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count shows in the panel; a
+ * row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge, and once that left a restart pending, Restart and its
+ * dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Resume first; a hidden forge folds away with Show again.
+ * The command states come from the real sender over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -223,6 +223,19 @@ describe('a refusal on a row (B2 acceptance 3)', () => {
     tree.dispatch(controlNamed([refusal], 'Dismiss this refusal'), 'onClick');
     expect(handled.commands).toEqual([stop]);
     expect(handled.dismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
+  });
+});
+
+describe('a notice under a row', () => {
+  test('a forge whose Assistant cannot come up says so under its row, as a status, and no other row carries a notice', () => {
+    const sentence = 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.';
+    const forges = FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService
+      ? { ...forge, notices: [{ kind: 'assistant-down', text: sentence }] }
+      : forge));
+    const { unfolded } = layoutOf({ ...FLEET_FIVE_FORGES, forges });
+    const notice = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'gaia-forges-row-notice');
+    expect([tree.textOf([notice]), notice.props['role']]).toEqual([sentence, 'status']);
+    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-forges-row-notice'))).toHaveLength(1);
   });
 });
 

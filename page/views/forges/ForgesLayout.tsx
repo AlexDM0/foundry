@@ -1,7 +1,7 @@
 /**
- * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with the Stop dialog, a refusal and a pending restart
- * under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside them this machine's panel and
- * Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
+ * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with a notice that the Assistant cannot come up, the Stop dialog, a
+ * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and beside
+ * them this machine's panel and Gaia's. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
@@ -191,9 +191,10 @@ function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: Sto
 }
 
 function rowBelowOf(row: ForgeRow, handlers: ForgesHandlers) {
-  if (row.stopDialog === null && row.refusal === null && row.pendingRestart === null) return null;
+  if (row.stopDialog === null && row.refusal === null && row.pendingRestart === null && row.noticeText === null) return null;
   return (
     <div className="gaia-forges-row-below">
+      {row.noticeText === null ? null : <p className="gaia-forges-row-notice" role="status">{row.noticeText}</p>}
       {row.stopDialog === null ? null : <StopDialogPanel dialog={row.stopDialog} trackerId={row.trackerId} handlers={handlers} />}
       <ShownRefusalLine refusal={row.refusal} trackerId={row.trackerId} handlers={handlers} />
       <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} />

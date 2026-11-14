@@ -839,6 +839,7 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 .gaia-forges-code { font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
 .gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
+.gaia-forges-row-notice { margin: 0; color: var(--warn-ink); }
 
 /* A held forge's banner, and the refusal of its Update forge under it */
 .gaia-forges-held-group,

@@ -4,7 +4,8 @@
  * and differ only in the theme the root names and the switch presses (B1 has no switch), so a theme is the tokens' work alone; a screen
  * holds no colour of its own; and each screen shows the state its artboard draws, since a pass that compares an artboard with another state
  * compares nothing. C2 waits for notifications (W5.6), and C3 is the launcher's own splash page, opened as it is. The restart an update left
- * pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks.
+ * pending, which no artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so
+ * are the two warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard.
@@ -16,8 +17,11 @@ import { describe, expect, test } from 'bun:test';
 import {
   ARTBOARD_SCREENS,
   ARTBOARD_SIZE_PIXELS,
+  ASSISTANT_DOWN_SENTENCE,
   type ArtboardScreen,
   B2_STOP_REFUSAL,
+  BATON_PASS_FAILED_SENTENCE,
+  MONITOR_WARNING_SCREENS,
   type PageArtboard,
   RESTART_PENDING_SCREENS,
   screenDocumentOf,
@@ -84,7 +88,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('a screen holds no colour of its own: no style of its markup names one, so every colour comes from the inlined tokens', () => {
-    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS]) {
+    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS]) {
       for (const theme of themesOf(screen)) {
         const markup = screenMarkupOf(screen, theme);
         expect(markup).not.toContain('<style');
@@ -94,7 +98,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the switch presses', () => {
-    const screensWithTheSwitch = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS].filter(
+    const screensWithTheSwitch = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS].filter(
       (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
     );
     for (const screen of screensWithTheSwitch) {
@@ -201,5 +205,32 @@ describe('the restart an update left pending, over the artboard it changes', () 
     const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
     expect(heldGroup).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span>');
     expect(heldGroup).toContain('>Restart</button>');
+  });
+});
+
+describe('the warnings of monitor contract 2, over the artboard that shows each', () => {
+  test('A1: a failed Baton pass is Invoice Service\'s error look, in the forge\'s own sentence with Open, before the two looks A1 draws', () => {
+    const [attention] = MONITOR_WARNING_SCREENS;
+    if (attention === undefined) throw new Error('A monitor warning screen is missing.');
+    const markup = screenMarkupOf(attention, 'dark');
+    expect(textsOfClass(markup, 'gaia-attention-row-id')).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+    const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
+    expect(lookBlocks[0]).toContain('aria-label="Invoice Service: Baton pass failed"');
+    expect(lookBlocks[0]).toContain(BATON_PASS_FAILED_SENTENCE);
+    expect(lookBlocks[0]).toContain('>Open</a>');
+    expect(lookBlocks).toHaveLength(3);
+  });
+
+  test('A4: an Assistant that cannot come up is a notice under Research Wiki\'s row, in Gaia\'s words', () => {
+    const forges = MONITOR_WARNING_SCREENS[1];
+    if (forges === undefined) throw new Error('A monitor warning screen is missing.');
+    const markup = screenMarkupOf(forges, 'dark');
+    expect(textsOfClass(markup, 'gaia-forges-row-notice')).toEqual([ASSISTANT_DOWN_SENTENCE.replace('\'', '&#x27;')]);
+  });
+
+  test('A3: the usage line names when the current window resets, under the limit', () => {
+    const activity = ARTBOARD_SCREENS.find((screen) => screen.artboard === 'A3');
+    if (activity === undefined) throw new Error('No screen paints artboard A3.');
+    expect(textsOfClass(screenMarkupOf(activity, 'dark'), 'gaia-activity-usage-line')).toEqual(['under its limit · window resets 16:00']);
   });
 });
