@@ -1,11 +1,13 @@
 /**
  * Gaia's style contract, read from the stylesheets and the components themselves. What matters: every text pair of COMPONENT_LIBRARY
- * section 4 holds 4.5:1 in both themes, computed from `tokens.css` as WCAG 2 text pairs; every colour token has a light and a dark value;
- * `gaia.css` holds no colour value and reads only tokens that exist; a hover or press rule changes no size or place; and every class a
- * shipping component emits is styled, and every styled class emitted. Each guard is first proved on a planted case, in memory.
+ * section 4, in the design-system package's token names, holds 4.5:1 in both themes as a WCAG 2 text pair, a translucent token composited
+ * over the ground beneath it first, and the primary button's orange is the one exception, held at 3:1 (PLAN V9); every colour token of
+ * Gaia's own `tokens.css` has a light and a dark value; `gaia.css` holds no colour value and reads only tokens that the package's or Gaia's
+ * `tokens.css` defines; a hover or press rule changes no size or place; and every class a shipping component emits is styled, and every
+ * styled class emitted. Each guard is first proved on a planted case, in memory.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { readFileSync }  from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 import typescript                 from 'typescript';
@@ -13,26 +15,52 @@ import typescript                 from 'typescript';
 const PAGE_FOLDER = import.meta.dir;
 const TOKENS_PATH = join(PAGE_FOLDER, 'styles', 'tokens.css');
 const STYLESHEET_PATH = join(PAGE_FOLDER, 'styles', 'gaia.css');
-const SMALLEST_CONTRAST_RATIO = 4.5;
+const SMALLEST_TEXT_CONTRAST_RATIO = 4.5;
+const SMALLEST_PRIMARY_BUTTON_CONTRAST_RATIO = 3;
 const SMALLEST_CLASS_COUNT = 20;
 
-/** COMPONENT_LIBRARY section 4: each text token on each ground it is set on. */
-const TEXT_PAIRS: readonly (readonly [text: string, ground: string])[] = [
-  ['--ink', '--bg'],
-  ['--ink', '--surface'],
-  ['--ink', '--surface-2'],
-  ['--ink', '--surface-selected'],
-  ['--ink-muted', '--bg'],
-  ['--ink-muted', '--surface'],
-  ['--ink-muted', '--surface-2'],
-  ['--ink-muted', '--surface-selected'],
-  ['--link', '--bg'],
-  ['--link', '--surface'],
-  ['--warn-ink', '--warn-tint'],
-  ['--err-ink', '--err-tint'],
-  ['--attn-ink', '--attn-tint'],
-  ['--attn-ink', '--surface'],
-  ['--bg', '--ink'],
+/** A text token on its ground; a translucent ground lies over the next one down, and the last is opaque. */
+interface TextPair {
+  readonly text:          string;
+  readonly grounds:       readonly string[];
+  readonly smallestRatio: number;
+}
+
+function textPair(text: string, ...grounds: string[]): TextPair {
+  return { text, grounds, smallestRatio: SMALLEST_TEXT_CONTRAST_RATIO };
+}
+
+/**
+ * COMPONENT_LIBRARY section 4 in the package's names: `--bg` for its ground, `--lane-bg` for its lane, `--ink-muted` for its ink 72%,
+ * `--ink-4` for its ink 68%, `--link` and `--link-tint` for its orange text and tint, the info and success badges for its teal and pass
+ * pairs, `--err-*` for its fail pairs. The last text pair is the primary button `gaia.css` still draws itself, ground text on ink.
+ */
+const TEXT_PAIRS: readonly TextPair[] = [
+  ...['--ink', '--ink-muted', '--ink-4'].flatMap((text) => [
+    textPair(text, '--bg'),
+    textPair(text, '--surface'),
+    textPair(text, '--lane-bg'),
+    textPair(text, '--wash', '--surface'),
+    textPair(text, '--wash', '--bg'),
+  ]),
+  textPair('--link', '--bg'),
+  textPair('--link', '--surface'),
+  textPair('--link', '--lane-bg'),
+  textPair('--link', '--wash', '--surface'),
+  textPair('--link', '--link-tint'),
+  textPair('--ink', '--link-tint'),
+  textPair('--ink-muted', '--link-tint'),
+  textPair('--badge-info-ink', '--badge-info-tint'),
+  textPair('--badge-info-ink', '--surface'),
+  textPair('--badge-success-ink', '--badge-success-tint'),
+  textPair('--badge-success-ink', '--surface'),
+  textPair('--err-ink', '--err-tint', '--surface'),
+  textPair('--err-ink', '--err-tint', '--bg'),
+  textPair('--err-ink', '--surface'),
+  textPair('--err-ink', '--bg'),
+  textPair('--primary-disabled-ink', '--primary-disabled-fill', '--surface'),
+  textPair('--bg', '--ink'),
+  { text: '--accent-ink-on', grounds: ['--button'], smallestRatio: SMALLEST_PRIMARY_BUTTON_CONTRAST_RATIO },
 ];
 
 /** Properties a hover or a press may change: none of them sizes or places a box. */
@@ -87,7 +115,17 @@ interface Declaration {
 
 type Theme = 'light' | 'dark';
 
-type ColourReading = { readonly verdict: 'readable'; readonly luminance: number } | { readonly verdict: 'unreadable'; readonly reason: string };
+/** A colour as sRGB channels from 0 to 1, gamma-encoded as a browser composites them, with its alpha. */
+interface Colour {
+  readonly red:   number;
+  readonly green: number;
+  readonly blue:  number;
+  readonly alpha: number;
+}
+
+type ColourReading = { readonly verdict: 'readable'; readonly colour: Colour } | { readonly verdict: 'unreadable'; readonly reason: string };
+
+type LuminanceReading = { readonly verdict: 'readable'; readonly luminance: number } | { readonly verdict: 'unreadable'; readonly reason: string };
 
 function withoutComments(stylesheetText: string): string {
   return stylesheetText.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -148,16 +186,30 @@ function resolvedValueOf(tokens: ReadonlyMap<string, string>, tokenName: string,
   return value;
 }
 
+function alphaOf(text: string | undefined): number {
+  if (text === undefined) return 1;
+  return text.endsWith('%') ? Number.parseFloat(text) / 100 : Number.parseFloat(text);
+}
+
 function oklchComponentOf(text: string): number {
   return text.endsWith('%') ? Number.parseFloat(text) / 100 : Number.parseFloat(text);
 }
 
-/** WCAG 2's relative luminance of an opaque `oklch()` colour, through linear sRGB clipped to the gamut. */
-function luminanceOf(colourText: string): ColourReading {
-  const match = /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?))?\s*\)$/.exec(colourText);
-  if (match === null) return { verdict: 'unreadable', reason: `${colourText} is not an oklch() colour` };
+function clippedChannel(channel: number): number {
+  return Math.min(1, Math.max(0, channel));
+}
+
+function encodedChannelOf(linearChannel: number): number {
+  return linearChannel <= 0.0031308 ? 12.92 * linearChannel : 1.055 * linearChannel ** (1 / 2.4) - 0.055;
+}
+
+function linearChannelOf(encodedChannel: number): number {
+  return encodedChannel <= 0.04045 ? encodedChannel / 12.92 : ((encodedChannel + 0.055) / 1.055) ** 2.4;
+}
+
+/** An `oklch()` colour through linear sRGB, clipped to the gamut. */
+function oklchColourOf(match: RegExpExecArray): Colour {
   const [, lightnessText = '', chromaText = '', hueText = '', alphaText] = match;
-  if (alphaText !== undefined && oklchComponentOf(alphaText) < 1) return { verdict: 'unreadable', reason: `${colourText} is not opaque` };
   const lightness = oklchComponentOf(lightnessText);
   const chroma = Number.parseFloat(chromaText);
   const hueRadians = (Number.parseFloat(hueText) * Math.PI) / 180;
@@ -166,32 +218,93 @@ function luminanceOf(colourText: string): ColourReading {
   const longCone = (lightness + 0.3963377774 * greenRedAxis + 0.2158037573 * blueYellowAxis) ** 3;
   const mediumCone = (lightness - 0.1055613458 * greenRedAxis - 0.0638541728 * blueYellowAxis) ** 3;
   const shortCone = (lightness - 0.0894841775 * greenRedAxis - 1.291485548 * blueYellowAxis) ** 3;
-  const clipped = (channel: number) => Math.min(1, Math.max(0, channel));
-  const red = clipped(4.0767416621 * longCone - 3.3077115913 * mediumCone + 0.2309699292 * shortCone);
-  const green = clipped(-1.2684380046 * longCone + 2.6097574011 * mediumCone - 0.3413193965 * shortCone);
-  const blue = clipped(-0.0041960863 * longCone - 0.7034186147 * mediumCone + 1.707614701 * shortCone);
-  return { verdict: 'readable', luminance: 0.2126 * red + 0.7152 * green + 0.0722 * blue };
+  const encoded = (linearChannel: number) => encodedChannelOf(clippedChannel(linearChannel));
+  return {
+    red:   encoded(4.0767416621 * longCone - 3.3077115913 * mediumCone + 0.2309699292 * shortCone),
+    green: encoded(-1.2684380046 * longCone + 2.6097574011 * mediumCone - 0.3413193965 * shortCone),
+    blue:  encoded(-0.0041960863 * longCone - 0.7034186147 * mediumCone + 1.707614701 * shortCone),
+    alpha: alphaOf(alphaText),
+  };
+}
+
+/** A hex, `rgb()`, `rgba()` or `oklch()` colour; any other form is unreadable rather than guessed. */
+function colourOf(colourText: string): ColourReading {
+  const hex = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(colourText);
+  if (hex?.[1] !== undefined) {
+    const digits = hex[1].length <= 4 ? [...hex[1]].map((digit) => digit + digit).join('') : hex[1];
+    const [red = 0, green = 0, blue = 0, alpha = 255] = (digits.match(/../g) ?? []).map((pair) => Number.parseInt(pair, 16));
+    return {
+      verdict: 'readable',
+      colour:  {
+        red: red / 255, green: green / 255, blue: blue / 255, alpha: alpha / 255
+      }
+    };
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+%?)\s*)?\)$/.exec(colourText);
+  if (rgb !== null) {
+    const [, redText = '', greenText = '', blueText = '', alphaText] = rgb;
+    const channel = (text: string) => Number.parseFloat(text) / 255;
+    return {
+      verdict: 'readable',
+      colour:  {
+        red: channel(redText), green: channel(greenText), blue: channel(blueText), alpha: alphaOf(alphaText)
+      }
+    };
+  }
+  const oklch = /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?))?\s*\)$/.exec(colourText);
+  if (oklch !== null) return { verdict: 'readable', colour: oklchColourOf(oklch) };
+  return { verdict: 'unreadable', reason: `${colourText} is not a hex, rgb() or oklch() colour` };
+}
+
+/** A colour laid over an opaque one, as the browser composites them, in the encoded channels. */
+function compositedOver(top: Colour, beneath: Colour): Colour {
+  const mixed = (topChannel: number, beneathChannel: number) => top.alpha * topChannel + (1 - top.alpha) * beneathChannel;
+  return {
+    red: mixed(top.red, beneath.red), green: mixed(top.green, beneath.green), blue: mixed(top.blue, beneath.blue), alpha: 1
+  };
+}
+
+function luminanceOfOpaque(colour: Colour): number {
+  return 0.2126 * linearChannelOf(colour.red) + 0.7152 * linearChannelOf(colour.green) + 0.0722 * linearChannelOf(colour.blue);
+}
+
+/** WCAG 2's relative luminance of one colour, which must be opaque. */
+function luminanceOf(colourText: string): LuminanceReading {
+  const reading = colourOf(colourText);
+  if (reading.verdict === 'unreadable') return reading;
+  if (reading.colour.alpha < 1) return { verdict: 'unreadable', reason: `${colourText} is not opaque` };
+  return { verdict: 'readable', luminance: luminanceOfOpaque(reading.colour) };
 }
 
 function contrastRatioOf(firstLuminance: number, secondLuminance: number): number {
   return (Math.max(firstLuminance, secondLuminance) + 0.05) / (Math.min(firstLuminance, secondLuminance) + 0.05);
 }
 
-function contrastSentencesOf(tokensText: string): string[] {
+/** The text over its grounds, each laid over the one beneath it from the opaque bottom up, or the reason they cannot be read. */
+function textAndGroundOf(tokens: ReadonlyMap<string, string>, pair: TextPair): { readonly text: Colour; readonly ground: Colour } | { readonly reason: string } {
+  const readings = [pair.text, ...pair.grounds].map((tokenName) => {
+    const value = resolvedValueOf(tokens, tokenName);
+    return value === null ? { verdict: 'unreadable', reason: `${tokenName} is not defined` } as const : colourOf(value);
+  });
+  const unreadable = readings.find((reading) => reading.verdict === 'unreadable');
+  if (unreadable !== undefined) return { reason: unreadable.reason };
+  const [text, ...grounds] = readings.flatMap((reading) => (reading.verdict === 'readable' ? [reading.colour] : []));
+  const bottom = grounds.at(-1);
+  if (text === undefined || bottom === undefined || bottom.alpha < 1) return { reason: `${pair.grounds.at(-1) ?? 'its ground'} is not opaque, and nothing lies beneath it` };
+  const ground = grounds.slice(0, -1).reduceRight((beneath, layer) => compositedOver(layer, beneath), bottom);
+  return { text: compositedOver(text, ground), ground };
+}
+
+function contrastSentencesOf(tokensText: string, pairs: readonly TextPair[]): string[] {
   const rules = rulesOf(tokensText);
   return (['light', 'dark'] as const).flatMap((theme) => {
     const tokens = tokensOf(rules, theme);
-    return TEXT_PAIRS.flatMap(([textToken, groundToken]) => {
-      const readings = [textToken, groundToken].map((tokenName) => {
-        const value = resolvedValueOf(tokens, tokenName);
-        return value === null ? { verdict: 'unreadable', reason: `${tokenName} is not defined` } as const : luminanceOf(value);
-      });
-      const [textReading, groundReading] = readings;
-      if (textReading?.verdict !== 'readable' || groundReading?.verdict !== 'readable') {
-        return readings.flatMap((reading) => (reading.verdict === 'unreadable' ? [`${theme}: ${textToken} on ${groundToken} cannot be read: ${reading.reason}`] : []));
-      }
-      const ratio = contrastRatioOf(textReading.luminance, groundReading.luminance);
-      return ratio >= SMALLEST_CONTRAST_RATIO ? [] : [`${theme}: ${textToken} on ${groundToken} is ${ratio.toFixed(2)}:1, under ${SMALLEST_CONTRAST_RATIO}:1`];
+    return pairs.flatMap((pair) => {
+      const site = `${theme}: ${pair.text} on ${pair.grounds.join(' over ')}`;
+      const reading = textAndGroundOf(tokens, pair);
+      if ('reason' in reading) return [`${site} cannot be read: ${reading.reason}`];
+      const ratio = contrastRatioOf(luminanceOfOpaque(reading.text), luminanceOfOpaque(reading.ground));
+      return ratio >= pair.smallestRatio ? [] : [`${site} is ${ratio.toFixed(2)}:1, under ${pair.smallestRatio}:1`];
     });
   });
 }
@@ -215,6 +328,16 @@ function themeGapSentencesOf(tokensText: string): string[] {
   ];
 }
 
+function tokenNamesOf(tokensText: string): ReadonlySet<string> {
+  return new Set(rulesOf(tokensText).flatMap((rule) => rule.declarations).map((declaration) => declaration.property).filter((property) => property.startsWith('--')));
+}
+
+/** Gaia's tokens hold only what the package lacks: a name of the package's, redefined, would change the package's components too. */
+function redefinitionSentencesOf(packageTokensText: string, gaiaTokensText: string): string[] {
+  const packageTokens = tokenNamesOf(packageTokensText);
+  return [...tokenNamesOf(gaiaTokensText)].filter((tokenName) => packageTokens.has(tokenName)).map((tokenName) => `${tokenName} is the package's token, redefined`);
+}
+
 function colourValueSentencesOf(stylesheetText: string, definedTokens: ReadonlySet<string>): string[] {
   return rulesOf(stylesheetText).flatMap((rule) => rule.declarations.flatMap((declaration) => {
     const site = `${rule.selector} { ${declaration.property} }`;
@@ -224,7 +347,7 @@ function colourValueSentencesOf(stylesheetText: string, definedTokens: ReadonlyS
     const namedColours = wordsOutsideTokenNames.filter((word) => NAMED_COLOURS.has(word));
     if (namedColours.length > 0) sentences.push(`${site} names a colour: ${namedColours.join(', ')}`);
     const unknownTokens = [...declaration.value.matchAll(/var\((--[\w-]+)/g)].map(([, tokenName = '']) => tokenName).filter((tokenName) => !definedTokens.has(tokenName));
-    sentences.push(...unknownTokens.map((tokenName) => `${site} reads ${tokenName}, which tokens.css does not define`));
+    sentences.push(...unknownTokens.map((tokenName) => `${site} reads ${tokenName}, which no tokens.css defines`));
     return sentences;
   }));
 }
@@ -303,19 +426,21 @@ function classContractSentencesOf(emitted: EmittedClasses, styled: ReadonlySet<s
   ];
 }
 
+/** The package's tokens sit beside its entry stylesheet, which exports no path to them of its own. */
+const PACKAGE_TOKENS_PATH = join(dirname(Bun.resolveSync('design-system/design-system.css', PAGE_FOLDER)), 'tokens.css');
+const PACKAGE_TOKENS_TEXT = readFileSync(PACKAGE_TOKENS_PATH, 'utf8');
 const TOKENS_TEXT = readFileSync(TOKENS_PATH, 'utf8');
+/** Both token files as the page links them: the package's first, so a token of Gaia's own wins. */
+const LINKED_TOKENS_TEXT = `${PACKAGE_TOKENS_TEXT}\n${TOKENS_TEXT}`;
 const STYLESHEET_TEXT = readFileSync(STYLESHEET_PATH, 'utf8');
-const DEFINED_TOKENS = new Set(rulesOf(TOKENS_TEXT)
-  .flatMap((rule) => rule.declarations)
-  .map((declaration) => declaration.property)
-  .filter((property) => property.startsWith('--')));
+const DEFINED_TOKENS = tokenNamesOf(LINKED_TOKENS_TEXT);
 const SOURCES = shippingComponentSources();
 const EMITTED = emittedClassesOf(SOURCES);
 const STYLED = styledClassesOf(STYLESHEET_TEXT);
 
 describe('the readers, on known and planted values', () => {
   test('white on black is 21:1, and the same colour on itself is 1:1', () => {
-    const [white = Number.NaN, black = Number.NaN] = ['oklch(1 0 0)', 'oklch(0 0 0)'].map((colour) => {
+    const [white = Number.NaN, black = Number.NaN] = ['oklch(1 0 0)', '#000'].map((colour) => {
       const reading = luminanceOf(colour);
       return reading.verdict === 'readable' ? reading.luminance : Number.NaN;
     });
@@ -323,10 +448,30 @@ describe('the readers, on known and planted values', () => {
     expect(contrastRatioOf(black, black)).toBe(1);
   });
 
-  test('a percentage lightness reads as its fraction, and a translucent or foreign colour is unreadable rather than guessed', () => {
+  test('a hex, an rgb() and an oklch() white read alike, a percentage reads as its fraction, and a foreign or translucent colour is unreadable alone', () => {
+    const whites = ['#fff', '#ffffffff', 'rgb(255, 255, 255)', 'rgba(255, 255, 255, 1)', 'oklch(1 0 0)'].map(luminanceOf);
+    for (const white of whites) expect(white.verdict === 'readable' ? white.luminance : Number.NaN).toBeCloseTo(1, 4);
     expect(luminanceOf('oklch(50% 0 0)')).toEqual(luminanceOf('oklch(0.5 0 0)'));
-    expect(luminanceOf('oklch(0 0 0 / 0.45)').verdict).toBe('unreadable');
-    expect(luminanceOf('#ffffff').verdict).toBe('unreadable');
+    expect(colourOf('rgba(0, 0, 0, 50%)')).toEqual(colourOf('rgba(0, 0, 0, 0.5)'));
+    expect(luminanceOf('oklch(0 0 0 / 0.45)')).toEqual({ verdict: 'unreadable', reason: 'oklch(0 0 0 / 0.45) is not opaque' });
+    expect(luminanceOf('color-mix(in oklch, red, blue)').verdict).toBe('unreadable');
+  });
+
+  test('a translucent text or ground is laid over the ground beneath it before the ratio is taken', () => {
+    const halfBlackOnWhite = compositedOver({
+      red: 0, green: 0, blue: 0, alpha: 0.5
+    }, {
+      red: 1, green: 1, blue: 1, alpha: 1
+    });
+    expect(halfBlackOnWhite).toEqual({
+      red: 0.5, green: 0.5, blue: 0.5, alpha: 1
+    });
+    const planted = ':root { --bg: #ffffff; --wash: rgba(0, 0, 0, 0.5); --ink: rgba(0, 0, 0, 0.5); }';
+    expect(contrastSentencesOf(planted, [textPair('--ink', '--wash', '--bg')])).toEqual([
+      'light: --ink on --wash over --bg is 2.62:1, under 4.5:1',
+      'dark: --ink on --wash over --bg is 2.62:1, under 4.5:1',
+    ]);
+    expect(contrastSentencesOf(planted, [textPair('--ink', '--wash')])[0]).toBe('light: --ink on --wash cannot be read: --wash is not opaque, and nothing lies beneath it');
   });
 
   test('a rule inside an at-rule is read with its at-rule, and a dark value overrides only the dark theme', () => {
@@ -341,12 +486,21 @@ describe('the readers, on known and planted values', () => {
     expect(resolvedValueOf(tokensOf(rules, 'light'), '--ink')).toBe('oklch(0 0 0)');
   });
 
-  test('a pair under 4.5:1, a missing token and a translucent token are each named', () => {
-    const planted = ':root { --bg: oklch(1 0 0); --ink: oklch(0.8 0 0); --ink-muted: oklch(0.3 0 0 / 0.5); }';
-    const sentences = contrastSentencesOf(planted);
+  test('a pair under its ratio, a missing token and a foreign colour are each named, and the primary button is held at 3:1 only', () => {
+    const planted = ':root { --bg: oklch(1 0 0); --ink: oklch(0.8 0 0); --ink-muted: hsl(0 0% 30%); --button: #f55a00; --accent-ink-on: #ffffff; }';
+    const sentences = contrastSentencesOf(planted, TEXT_PAIRS);
     expect(sentences).toContain('light: --ink on --bg is 1.87:1, under 4.5:1');
-    expect(sentences).toContain('light: --ink-muted on --bg cannot be read: oklch(0.3 0 0 / 0.5) is not opaque');
+    expect(sentences).toContain('light: --ink-muted on --bg cannot be read: hsl(0 0% 30%) is not a hex, rgb() or oklch() colour');
     expect(sentences).toContain('dark: --link on --surface cannot be read: --link is not defined');
+    expect(sentences.filter((sentence) => sentence.includes('--accent-ink-on'))).toEqual([]);
+    expect(contrastSentencesOf(':root { --button: #ff9a5c; --accent-ink-on: #ffffff; }', TEXT_PAIRS.filter((pair) => pair.text === '--accent-ink-on'))).toEqual([
+      'light: --accent-ink-on on --button is 2.09:1, under 3:1',
+      'dark: --accent-ink-on on --button is 2.09:1, under 3:1',
+    ]);
+  });
+
+  test('a token of Gaia\'s that the package already defines is named', () => {
+    expect(redefinitionSentencesOf(':root { --bg: #fff; --ink: #000; }', ':root { --sp-half: 2px; --bg: #eee; }')).toEqual(['--bg is the package\'s token, redefined']);
   });
 
   test('a colour token missing from a theme is named', () => {
@@ -363,7 +517,7 @@ describe('the readers, on known and planted values', () => {
       '.a { color } holds a colour value: oklch(0.5 0 0)',
       '.b { background } holds a colour value: #fff',
       '.c { border } names a colour: red',
-      '.d { color } reads --nowhere, which tokens.css does not define',
+      '.d { color } reads --nowhere, which no tokens.css defines',
       '.f { color } names a colour: white',
     ]);
   });
@@ -401,18 +555,30 @@ describe('the scan itself', () => {
   });
 });
 
-describe('tokens.css', () => {
-  test('every text pair of COMPONENT_LIBRARY section 4 holds 4.5:1 in the light and the dark theme', () => {
-    expect(contrastSentencesOf(TOKENS_TEXT)).toEqual([]);
+describe('the tokens', () => {
+  test('every text pair of COMPONENT_LIBRARY section 4 holds 4.5:1 in the light and the dark theme, the primary button 3:1', () => {
+    expect(contrastSentencesOf(LINKED_TOKENS_TEXT, TEXT_PAIRS)).toEqual([]);
   });
 
-  test('every colour token has a light value and a dark value', () => {
+  test('the primary button is the one pair under 4.5:1, as PLAN V9 accepts', () => {
+    const pairsAtTheTextRatio = TEXT_PAIRS.map((pair) => ({ ...pair, smallestRatio: SMALLEST_TEXT_CONTRAST_RATIO }));
+    expect(contrastSentencesOf(LINKED_TOKENS_TEXT, pairsAtTheTextRatio).map((sentence) => sentence.replace(/ is .*/, ''))).toEqual([
+      'light: --accent-ink-on on --button',
+      'dark: --accent-ink-on on --button',
+    ]);
+  });
+
+  test('Gaia\'s own tokens.css redefines no token of the package\'s, so no version 1 name stands as an alias', () => {
+    expect(redefinitionSentencesOf(PACKAGE_TOKENS_TEXT, TOKENS_TEXT)).toEqual([]);
+  });
+
+  test('every colour token of Gaia\'s own tokens.css has a light value and a dark value', () => {
     expect(themeGapSentencesOf(TOKENS_TEXT)).toEqual([]);
   });
 });
 
 describe('gaia.css', () => {
-  test('it holds no colour value and reads only tokens that tokens.css defines', () => {
+  test('it holds no colour value and reads only tokens that the package\'s or Gaia\'s tokens.css defines', () => {
     expect(colourValueSentencesOf(STYLESHEET_TEXT, DEFINED_TOKENS)).toEqual([]);
   });
 

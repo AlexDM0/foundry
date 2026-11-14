@@ -28,6 +28,7 @@ import {
   screenMarkupOf,
   themesOf,
 } from './testing/ArtboardScreens.tsx';
+import { DesignSystemStylesheet } from './testing/DesignSystemStylesheet.ts';
 
 const STYLESHEETS = ['tokens.css', 'gaia.css'].map((fileName) => readFileSync(join(import.meta.dir, 'styles', fileName), 'utf8'));
 
@@ -69,12 +70,15 @@ describe('the screens of the visual pass', () => {
     expect(themesByArtboard).toEqual(ARTBOARD_SCREENS.map((screen) => [screen.artboard, screen.artboard === 'C1' ? ['light'] : ['dark', 'light']]));
   });
 
-  test('a screen document names its theme on the root, as the page does before its first paint, and holds both stylesheets whole', () => {
+  test('a screen document names its theme on the root, as the page does before its first paint, and holds every stylesheet whole, the package\'s first', () => {
+    const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text()];
     for (const screen of ARTBOARD_SCREENS) {
       for (const theme of themesOf(screen)) {
         const screenDocument = screenDocumentOf(screen, theme);
         expect(screenDocument).toStartWith(`<!doctype html>\n<html lang="en" data-theme="${theme}" data-motion="ready">`);
-        for (const stylesheet of STYLESHEETS) expect(screenDocument).toContain(stylesheet);
+        const stylesheetPlaces = [...packageStylesheets, ...STYLESHEETS].map((stylesheet) => screenDocument.indexOf(stylesheet));
+        expect(stylesheetPlaces.every((place) => place > 0)).toBe(true);
+        expect(stylesheetPlaces).toEqual([...stylesheetPlaces].sort((a, b) => a - b));
         expect(screenDocument).toContain(`<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
       }
     }

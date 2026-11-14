@@ -5,6 +5,8 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "types": [],
+    // The design-system package is linked with `bun link`: resolve from the link, not its real folder, so the package's React is Gaia's.
+    "preserveSymlinks": true,
     "tsBuildInfoFile": "../node_modules/.cache/typecheck/page.tsbuildinfo"
   },
   // The page's own modules plus exactly the shared files it may reach, named one by one.

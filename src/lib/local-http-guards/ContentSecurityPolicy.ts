@@ -21,6 +21,7 @@ export function pageContentSecurityPolicyFor(options: PageContentSecurityPolicyO
     'script-src \'self\'',
     'style-src \'self\'',
     'connect-src \'self\'',
+    'font-src \'self\'',
     'img-src \'self\' data:',
     'object-src \'none\'',
     'base-uri \'none\'',

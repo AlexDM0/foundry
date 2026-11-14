@@ -1,7 +1,8 @@
 /**
  * `GET /` and the page's files: the page is built by `Bun.build` on its first request, not at start, so the health route answers at once.
  * Every later request shares that one build; a failed build answers its refusal and the next request builds again. The built files stay
- * in memory, `index.html` at `/` and each chunk at its own name, so nothing generated lands in the repository.
+ * in memory, `index.html` at `/` and each chunk at its own name, so nothing generated lands in the repository. The design system's font
+ * files are among them, emitted with their content hash in the name, so a browser keeps each for a year without asking again.
  */
 import { join } from 'node:path';
 
@@ -22,6 +23,12 @@ const PAGE_INDEX_PATH = '/';
 const BUILT_INDEX_FILE_NAME = 'index.html';
 
 const RELATIVE_OUTPUT_PREFIX = /^\.\//;
+
+const FONT_FILE_TYPE = 'font/woff2';
+
+const FONT_FILE_LIFETIME_SECONDS = 31_536_000;
+
+const FONT_FILE_CACHE_CONTROL = `max-age=${FONT_FILE_LIFETIME_SECONDS}, immutable`;
 
 /** The page's HTML entry in this repository. */
 export function pageIndexFilePath(): string {
@@ -64,5 +71,8 @@ export async function pageFileAnswerFor(pageFiles: PageFilesSource, pathname: st
   const buildVerdict = await pageFiles();
   if (buildVerdict.verdict === 'unbuildable') return refusalAnswerOf('page-unbuildable');
   const file = buildVerdict.files.get(pathname);
-  return file === undefined ? refusalAnswerOf('not-found') : new Response(file, { headers: { 'content-type': file.type } });
+  if (file === undefined) return refusalAnswerOf('not-found');
+  const headers = new Headers({ 'content-type': file.type });
+  if (file.type === FONT_FILE_TYPE) headers.set('cache-control', FONT_FILE_CACHE_CONTROL);
+  return new Response(file, { headers });
 }

@@ -25,12 +25,21 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
    Never `--no-verify`.
 9. **Verify** with `bun run verify` (typecheck of `src/` and `page/`, lint, specs, the recording-stamp check), never with ad-hoc compiler
    flags.
-10. **Colour lives only in `page/styles/tokens.css`**, in a light and a dark value. `page/styles/gaia.css` reads only tokens, styles exactly
-    the classes the components emit, and lets a hover or press change no size or place; `page/StyleContract.spec.ts` holds this and 4.5:1
-    on every text pair of both themes. A variant is a `data-*` attribute, never a class. Design-system components take no hooks, so their
-    specs unfold them with `page/testing/ReactElementTree.ts` without a document. The page's specs have no document at all: a component
-    that needs hooks keeps its layout in a hook-free part, and its spec renders the hooked root with `react-dom/server`, which runs the
-    hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does.
+10. **Colour lives only in tokens:** the design-system package's `tokens.css` and, for Gaia's own parts only (the marks, a fill the
+    package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no package token.
+    `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit, and lets a hover or press change no size
+    or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in both themes, and 3:1 on
+    the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class. Gaia's own `page/design-system/`
+    components take no hooks, so their specs unfold them with `page/testing/ReactElementTree.ts`. The page's specs have no document at all:
+    a Gaia component that needs hooks keeps its layout in a hook-free part, and a spec renders a hooked root, or a package component, which
+    may hold hooks, with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and
+    `page/DesignSystemPackage.spec.tsx` do.
+11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system`, never named in
+    `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
+    `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
+    `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts, which the page build emits and
+    Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
+    symlinks and `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run.
 
 ## Map
 
@@ -45,7 +54,7 @@ src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one r
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards
 src/shared/        the internal model's types, app-wide constants, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
-page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach
+page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
 page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `FrameSessionDocument`); the server maps across it in src/adapters/page-api/, and only there
 ```

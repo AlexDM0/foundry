@@ -1,30 +1,17 @@
 /*
- * Gaia's design tokens: every colour, spacing, size, radius, type, shadow and motion value. Light is the default and the light theme; dark
- * sits under :root[data-theme="dark"], which the shell sets before the first paint. `gaia.css` reads only these custom properties.
+ * Gaia's own design tokens: only what the design-system package's `tokens.css` does not hold, which the page links first and whose names
+ * `gaia.css` reads for everything else. Light under :root, dark under :root[data-theme="dark"], which the shell sets before the first paint.
  */
 :root {
-  /* The default values are the light ones, so the browser's own controls and scrollbars are drawn light too, whatever the system theme. */
-  color-scheme: light;
-
   --sp-half: 2px;
-  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
-  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
 
-  --r-1: 4px; --r-2: 6px; --r-3: 10px; --r-pill: 999px;
-
-  --fs-micro: 11px; --fs-small: 12px; --fs-body: 13px;
-  --fs-title: 15px; --fs-figure: 18px; --fs-page: 20px; --fs-splash: 44px;
-  --line-height-body: 1.5;
+  --fs-figure: 18px; --fs-splash: 44px;
   --weight-figure: 500;
   --weight-strong: 600;
   --weight-page-title: 650;
   --weight-brand: 700;
-  --micro-caps-tracking: 0.07em;
   --page-title-tracking: -0.01em;
   --brand-tracking: -0.02em;
-
-  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --control-height:      28px;
   --field-height:        32px;
@@ -89,82 +76,27 @@
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;
 
-  --motion-fast: 120ms;
-  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
-  /* Feedback moves no box: only colours, borders, shadows and opacity change, and the focus outline appears at once. */
-  --feedback-transition: background-color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out),
-                         color var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out),
-                         opacity var(--motion-fast) var(--ease-out);
+  /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
+  --neutral-fill: #8f8f8f;
 
-  --bg:               oklch(0.9875 0.002 265);
-  --surface:          oklch(1 0 0);
-  --surface-2:        oklch(0.955 0.01 240);
-  --surface-selected: oklch(0.93 0.008 262);
-  --ink:              oklch(0.24 0.02 265);
-  --ink-muted:        oklch(0.51 0.02 265);
-  --line:             oklch(0.90 0.012 240);
-  --line-strong:      oklch(0.81 0.018 240);
-  --link:             oklch(0.48 0.13 255);
-  --status-live:      oklch(0.62 0.17 150);
-
-  /* Amber, so a warning never reads as the error tone beside it. */
-  --warn-tint: oklch(0.965 0.05 90);
-  --warn-edge: oklch(0.78 0.13 75);
-  --warn-ink:  oklch(0.49 0.10 65);
-  --err-tint:  oklch(0.962 0.035 25);
-  --err-edge:  oklch(0.80 0.10 25);
-  --err-ink:   oklch(0.46 0.14 25);
-  --attn-tint: oklch(0.96 0.02 15);
-  --attn-ink:  oklch(0.47 0.11 15);
-  --attn-edge: oklch(0.78 0.08 15);
-
-  --build-fill:  oklch(0.77 0.15 69);
-  --review-fill: oklch(0.72 0.135 210);
-  --paused-fill: oklch(0.78 0.045 265);
-  --done-fill:   oklch(0.65 0.145 300);
-
-  --shadow-popover: 0 8px 24px oklch(0 0 0 / 0.14);
-  --shadow-dialog:  0 16px 48px oklch(0 0 0 / 0.18);
-  --backdrop:       oklch(0.24 0.02 265 / 0.32);
+  /* The Gaia mark: the tile's gradient and rim, the ring, the core, and the orange node. */
+  --mark-from:      #ffffff;
+  --mark-to:        #d6d6d6;
+  --mark-rim:       rgba(0, 0, 0, 0.14);
+  --mark-line:      #3d3d3d;
+  --mark-core:      rgba(250, 95, 1, 0.5);
+  --mark-node-ring: #ee5600;
+  --mark-node-core: #ff8d42;
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
+  --neutral-fill: #7f8590;
 
-  --bg:               oklch(0.185 0.012 265);
-  --surface:          oklch(0.232 0.014 265);
-  --surface-2:        oklch(0.275 0.014 265);
-  --surface-selected: oklch(0.25 0.022 262);
-  --ink:              oklch(0.94 0.008 265);
-  --ink-muted:        oklch(0.70 0.015 265);
-  --line:             oklch(0.33 0.014 265);
-  --line-strong:      oklch(0.42 0.016 265);
-  --link:             oklch(0.78 0.10 255);
-  --status-live:      oklch(0.76 0.18 150);
-
-  --warn-tint: oklch(0.31 0.055 80);
-  --warn-edge: oklch(0.50 0.09 80);
-  --warn-ink:  oklch(0.92 0.06 85);
-  --err-tint:  oklch(0.30 0.06 25);
-  --err-edge:  oklch(0.50 0.11 25);
-  --err-ink:   oklch(0.92 0.05 25);
-  --attn-tint: oklch(0.31 0.04 15);
-  --attn-ink:  oklch(0.88 0.06 15);
-  --attn-edge: oklch(0.55 0.08 15);
-
-  --build-fill:  oklch(0.76 0.145 80);
-  --review-fill: oklch(0.72 0.115 205);
-  --paused-fill: oklch(0.62 0.045 265);
-  --done-fill:   oklch(0.68 0.145 300);
-
-  --shadow-popover: 0 10px 28px oklch(0 0 0 / 0.45);
-  --shadow-dialog:  0 16px 48px oklch(0 0 0 / 0.5);
-  --backdrop:       oklch(0 0 0 / 0.5);
-}
-
-/* A first render shows its final state at once: motion waits until the shell marks the first fleet document as painted. */
-:root:not([data-motion="ready"]) { --motion-fast: 0ms; }
-
-@media (prefers-reduced-motion: reduce) {
-  :root { --motion-fast: 0ms; }
+  --mark-from:      #343434;
+  --mark-to:        #121212;
+  --mark-rim:       rgba(255, 255, 255, 0.12);
+  --mark-line:      #dcdcdc;
+  --mark-core:      rgba(255, 148, 80, 0.85);
+  --mark-node-ring: #ee5600;
+  --mark-node-core: #ff8d42;
 }

@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia</title>
   <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../node_modules/design-system/styles/tokens.css">
   <link rel="stylesheet" href="../../page/styles/tokens.css">
   <!--
     The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
     health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
     this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
-    the window to Gaia's page. Every colour is a token of tokens.css.
+    the window to Gaia's page. Every colour is a token: the design-system package's, linked by its file because a file page resolves no
+    package export, and Gaia's own.
   -->
   <style>
     body {

@@ -17,6 +17,7 @@ import { WindowTitle }                                                          
 import { ForgesLayout }                                                             from '../views/forges/ForgesLayout.tsx';
 import { ForgesModel, type StopDialogState }                                        from '../views/forges/ForgesModel.ts';
 import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';
+import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
 import { forgeFrameSurroundingsAt }                                                 from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
@@ -329,9 +330,17 @@ export function themesOf(screen: ArtboardScreen): readonly ScreenTheme[] {
   return screen.onlyTheme === null ? SCREEN_THEMES : [screen.onlyTheme];
 }
 
-/** A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion ready, Gaia's stylesheets inline. */
+/**
+ * A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion ready, and the stylesheets
+ * inline in the page's order, the design system's fonts and stylesheet before Gaia's.
+ */
 export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): string {
-  const stylesheets = STYLESHEET_PATHS.map((stylesheetPath) => `<style>\n${readFileSync(stylesheetPath, 'utf8')}</style>`).join('\n');
+  const stylesheetTexts = [
+    DesignSystemStylesheet.fontFaceRules(),
+    DesignSystemStylesheet.text(),
+    ...STYLESHEET_PATHS.map((stylesheetPath) => readFileSync(stylesheetPath, 'utf8')),
+  ];
+  const stylesheets = stylesheetTexts.map((stylesheetText) => `<style>\n${stylesheetText}</style>`).join('\n');
   return [
     '<!doctype html>',
     `<html lang="en" data-theme="${theme}" data-motion="ready">`,

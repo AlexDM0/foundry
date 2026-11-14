@@ -1,8 +1,8 @@
 /**
- * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only and reads no token that
- * `tokens.css` lacks, it says what SCREENS C3 says and tells User to run nothing, and it knows every step and fragment key the launcher
- * moves it with. Its own script runs against a stand-in document at each step the launcher moves it to, since specs have no document; the
- * browser window watch's recording shows it in a real browser at a step.
+ * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only, the design-system package's
+ * and Gaia's, and reads no token that both lack; it says what SCREENS C3 says and tells User to run nothing; and it knows every step and
+ * fragment key the launcher moves it with. Its own script runs against a stand-in document at each step the launcher moves it to, since
+ * specs have no document; the browser window watch's recording shows it in a real browser at a step.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -15,10 +15,14 @@ const SPLASH_PATH = join(repositoryRoot(), 'resources', 'page', 'loading.html');
 const COLOUR_VALUE = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\(/i;
 const TOKEN_READ = /var\((--[\w-]+)\)/g;
 const TOKEN_DEFINITION = /(--[\w-]+)\s*:/g;
-const STYLESHEET_LINK = /<link rel="stylesheet" href="([^"]+)">/;
+const STYLESHEET_LINK = /<link rel="stylesheet" href="([^"]+)">/g;
 
 function splashText(): string {
   return readFileSync(SPLASH_PATH, 'utf8');
+}
+
+function linkedStylesheetsOf(html: string): string[] {
+  return [...html.matchAll(STYLESHEET_LINK)].map((link) => link[1] ?? '');
 }
 
 function styleOf(html: string): string {
@@ -74,15 +78,15 @@ function renderedSplashAt(address: string, systemPrefersDark = false): RenderedS
 }
 
 describe('the splash', () => {
-  test('links the page\'s tokens by a path that reaches them from the splash\'s folder', () => {
-    const linked = STYLESHEET_LINK.exec(splashText())?.[1] ?? '';
-    expect(linked).toBe('../../page/styles/tokens.css');
-    expect(existsSync(join(dirname(SPLASH_PATH), linked))).toBe(true);
+  test('links the package\'s tokens and then Gaia\'s, by paths that reach them from the splash\'s folder', () => {
+    const linked = linkedStylesheetsOf(splashText());
+    expect(linked).toEqual(['../../node_modules/design-system/styles/tokens.css', '../../page/styles/tokens.css']);
+    for (const stylesheet of linked) expect(existsSync(join(dirname(SPLASH_PATH), stylesheet))).toBe(true);
   });
 
-  test('holds no colour value and reads only tokens that tokens.css defines', () => {
+  test('holds no colour value and reads only tokens that the linked tokens define', () => {
     const style = styleOf(splashText());
-    const tokensText = readFileSync(join(repositoryRoot(), 'page', 'styles', 'tokens.css'), 'utf8');
+    const tokensText = linkedStylesheetsOf(splashText()).map((stylesheet) => readFileSync(join(dirname(SPLASH_PATH), stylesheet), 'utf8')).join('\n');
     const definedTokens = new Set([...tokensText.matchAll(TOKEN_DEFINITION)].map((match) => match[1]));
     const readTokens = [...style.matchAll(TOKEN_READ)].map((match) => match[1]);
     expect(style).not.toMatch(COLOUR_VALUE);

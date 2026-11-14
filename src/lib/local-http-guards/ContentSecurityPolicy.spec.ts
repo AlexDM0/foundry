@@ -1,6 +1,7 @@
 /**
  * The page's content security policy: frames only from the sources named, none when none is named, never framed itself, every other
- * resource from its own origin. An answer keeps a policy of its own and gets the page's otherwise, a guard's refusal included.
+ * resource from its own origin, fonts in a directive of their own rather than left to the default. An answer keeps a policy of its own
+ * and gets the page's otherwise, a guard's refusal included.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -29,17 +30,18 @@ describe('the page policy', () => {
     expect(directivesOf(pageContentSecurityPolicyFor({ frameSources: [] })).get('frame-ancestors')).toBe('\'none\'');
   });
 
-  test('takes scripts, styles and connections from the page\'s own origin only, and no plugin', () => {
+  test('takes scripts, styles, connections and fonts from the page\'s own origin only, and no plugin', () => {
     const directives = directivesOf(pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] }));
     expect([
       directives.get('default-src'),
       directives.get('script-src'),
       directives.get('style-src'),
       directives.get('connect-src'),
+      directives.get('font-src'),
       directives.get('object-src'),
       directives.get('base-uri'),
       directives.get('form-action'),
-    ]).toEqual(['\'self\'', '\'self\'', '\'self\'', '\'self\'', '\'none\'', '\'none\'', '\'none\'']);
+    ]).toEqual(['\'self\'', '\'self\'', '\'self\'', '\'self\'', '\'self\'', '\'none\'', '\'none\'', '\'none\'']);
   });
 });
 
