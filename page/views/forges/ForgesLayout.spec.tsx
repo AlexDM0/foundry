@@ -283,6 +283,18 @@ describe('an update that left a restart pending', () => {
     expect(handled.restartsDismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
   });
 
+  test('with a restart pending on the held forge, Restart is the only primary button of its held area (A4 acceptance 3)', async () => {
+    const restartPending: CommandAnswerDocument = {
+      answerVersion: 2, outcome: 'restart-pending', refusal: null, text: null
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
+    await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
+    const group = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, 'gaia-forges-held-group');
+    const primaries = tree.hostElementsIn([group], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary');
+    expect(primaries.map((button) => tree.textOf([button]))).toEqual(['Restart']);
+    expect(PackageButtons.emphasisOf(controlNamed([group], 'Update forge'))).toBe('quiet');
+  });
+
   test('without a pending restart no pending step shows anywhere', () => {
     expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-pending-step'))).toEqual([]);
   });

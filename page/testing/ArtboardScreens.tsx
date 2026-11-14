@@ -208,6 +208,42 @@ export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/** A4 draws a seventh forge, Old Prototype, hidden in Gaia: dormant since 3 November, its row folded under "Hidden in Gaia". */
+export const OLD_PROTOTYPE_TRACKER_ID = 'old-prototype-5a21';
+
+function oldPrototypeOf(fleetDocument: FleetDocument): FleetDocument['forges'][number] {
+  const dormant = fleetDocument.forges.find((forge) => forge.trackerId === TRACKER_IDS.designSystem);
+  if (dormant === undefined) throw new Error('The fixture holds no dormant forge to draw Old Prototype from.');
+  return {
+    ...dormant,
+    trackerId:     OLD_PROTOTYPE_TRACKER_ID,
+    project:       'Old Prototype',
+    root:          '/Users/alexexample/development/old-prototype',
+    lastChangedAt: '2026-11-03T16:05:00.000Z',
+    attention:     [],
+    agents:        [],
+  };
+}
+
+const FLEET_WITH_A_HIDDEN_FORGE: FleetDocument = {
+  ...FLEET_FIVE_FORGES,
+  forges:   [...FLEET_FIVE_FORGES.forges, oldPrototypeOf(FLEET_FIVE_FORGES)],
+  settings: { ...FLEET_FIVE_FORGES.settings, hiddenTrackerIds: [OLD_PROTOTYPE_TRACKER_ID] },
+};
+
+/** A4's hidden forge, which the five forges' fixture does not hold: its figure and its folded group, over the artboard that draws them. */
+export const HIDDEN_FORGE_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'A4',
+    title:         'Forges, a forge hidden in Gaia',
+    designFile:    'Forges.dc.html',
+    fleetDocument: FLEET_WITH_A_HIDDEN_FORGE,
+    fragment:      '#forges',
+    viewState:     'restart-pending',
+    onlyTheme:     null,
+  },
+];
+
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 2,

@@ -396,8 +396,20 @@ body {
 
 /* ── Add a repository (B4, and A4's dialog) ─────────────────────────────────────────────────────────────────────────────────── */
 
-.gaia-add-repository-line { display: flex; align-items: center; gap: var(--sp-3); }
-.gaia-add-repository-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+/* The folder with its button, the name with its hint, then under a hairline what Add and start does beside it */
+.gaia-add-repository { display: flex; flex-direction: column; gap: var(--space-14); }
+.gaia-add-repository-line { display: flex; align-items: flex-end; gap: var(--sp-2); }
+.gaia-add-repository-field { display: flex; flex-direction: column; gap: var(--space-6); }
+.gaia-add-repository-hint { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
+.gaia-add-repository-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--space-14);
+  border-top: var(--hairline) solid var(--line);
+}
+.gaia-add-repository-note { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--ink-muted); }
+/* The forge program not found: a dashed card with a dashed dot, its title over why, and the way to choose one */
 .gaia-add-repository-program-missing {
   display: flex;
   align-items: center;
@@ -405,8 +417,9 @@ body {
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) dashed var(--line-strong);
   border-radius: var(--r-3);
+  background: var(--surface);
 }
-.gaia-add-repository-program-missing-text { flex: 1; min-width: 0; }
+.gaia-add-repository-program-missing-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .gaia-add-repository-program-missing-title { font-weight: var(--weight-strong); }
 .gaia-add-repository-program-missing-why { color: var(--ink-muted); }
 
@@ -752,40 +765,59 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 .gaia-forges {
   display: flex;
-  gap: var(--sp-6);
+  gap: var(--space-20);
   box-sizing: border-box;
-  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+  padding: var(--space-18) var(--sp-5) var(--space-20) var(--space-28);
 }
 /* The table keeps its width while the aside can give way; in a window too narrow for both, the Forge column gives way instead. */
 .gaia-forges-main {
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
-  gap: var(--sp-4);
-  min-width: min(var(--forges-table-width), 100% - var(--forges-aside-least-width) - var(--sp-6));
+  gap: var(--space-18);
+  min-width: min(var(--forges-table-width), 100% - var(--forges-aside-least-width) - var(--space-20));
 }
 .gaia-forges-aside {
   display: flex;
   flex: 0 1 var(--forges-aside-width);
   flex-direction: column;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   min-width: var(--forges-aside-least-width);
 }
 .gaia-forges-empty { margin: 0; color: var(--ink-muted); }
 
+/* The table: rows of the artboard's height, and the controls' head named for a screen reader only */
+.gaia-forges-main .gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--forges-row-height); }
+.gaia-forges-main .gaia-table-row[data-head] .gaia-table-cell[data-align="end"] {
+  position: absolute;
+  overflow: hidden;
+  width: var(--hairline);
+  height: var(--hairline);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */
 .gaia-forges-forge,
-.gaia-forges-condition { display: flex; flex-direction: column; min-width: 0; }
-.gaia-forges-forge-name-line { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
-.gaia-forges-forge-name { min-width: 0; font-weight: var(--weight-strong); overflow-wrap: anywhere; }
-.gaia-forges-condition-detail { font-family: var(--font-mono); font-size: var(--fs-micro); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-forges-condition { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.gaia-forges-forge-name-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.gaia-forges-forge-name { overflow: hidden; min-width: 0; font-weight: var(--weight-strong); text-overflow: ellipsis; white-space: nowrap; }
+.gaia-forges-condition-detail {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: var(--line-height-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-4);
+}
+.gaia-forges-condition-detail[data-face="ui"] { font-family: var(--font-ui); }
 .gaia-forges-forge-root,
 .gaia-forges-entry-detail {
   overflow: hidden;
   font-family: var(--font-mono);
   font-size: var(--fs-micro);
+  line-height: var(--line-height-micro);
   font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
+  color: var(--ink-4);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -793,17 +825,19 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-condition-word[data-tone="warn"] { color: var(--link); }
 .gaia-forges-condition-word[data-tone="muted"] { color: var(--ink-muted); }
 .gaia-forges-agents,
-.gaia-forges-waiting,
 .gaia-forges-code { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.gaia-forges-waiting { color: var(--link); }
-.gaia-forges-code { font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
-.gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.gaia-forges-agents { font-size: var(--fs-tab); }
+.gaia-forges-waiting { display: inline-flex; }
+.gaia-forges-code { font-size: var(--fs-pill); color: var(--ink-4); }
+.gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
+.gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .gaia-forges-icon-button { display: inline-flex; }
-.gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
+/* What shows under a row, indented to the forge's name: its notice, the Stop question, a refusal, a pending restart */
+.gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-4); }
 .gaia-forges-row-notice { margin: 0; color: var(--link); }
 
-/* A held forge's banner, and the refusal of its Update forge under it */
+/* A held forge's banner: the orange tint with a 4 px left edge, its dot, name and word over the notice; under it, indented, the pending
+   restart and the refusal of its Update forge */
 .gaia-forges-held-group,
 .gaia-forges-entry-group { display: flex; flex-direction: column; gap: var(--sp-2); }
 .gaia-forges-held {
@@ -812,73 +846,137 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   gap: var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--accent-edge);
-  border-radius: var(--r-3);
+  border-left-width: var(--banner-edge-width);
+  border-radius: var(--r-2);
   background: var(--link-tint);
-  color: var(--link);
+  color: var(--ink);
 }
 .gaia-forges-held-text { flex: 1; min-width: 0; margin: 0; }
-.gaia-forges-held-project { font-weight: var(--weight-strong); }
+.gaia-forges-held-project { display: block; margin-bottom: var(--space-3); }
+.gaia-forges-held-name { font-weight: var(--weight-strong); }
+.gaia-forges-held-word { font-weight: var(--weight-strong); color: var(--link); }
+.gaia-forges-held-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-5); }
 
 /* The forges outside the table: their repository is gone, or User hid them in Gaia */
-.gaia-forges-group { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-forges-group { display: flex; flex-direction: column; gap: var(--space-10); }
 .gaia-forges-entry {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--line);
-  border-radius: var(--r-3);
+  border-radius: var(--r-2);
+  background: var(--surface);
 }
 .gaia-forges-entry[data-place="not-found"] { border-style: dashed; border-color: var(--line-strong); }
+.gaia-forges-entry[data-place="hidden"] { background: var(--lane-bg); }
+.gaia-forges-entry[data-place="hidden"] .gaia-forges-forge-name { color: var(--ink-muted); }
 .gaia-forges-entry[data-in-view] { background: var(--wash); }
-.gaia-forges-entry-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.gaia-forges-hidden { display: flex; flex-direction: column; gap: var(--sp-3); }
+.gaia-forges-entry-text { display: flex; flex: 1; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.gaia-forges-hidden { display: flex; flex-direction: column; gap: var(--space-10); }
 .gaia-forges-hidden-summary {
-  margin-bottom: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+  list-style: none;
   font-size: var(--fs-micro);
+  line-height: var(--line-height-micro);
   font-weight: var(--weight-strong);
   letter-spacing: var(--letter-spacing-micro);
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: var(--ink-4);
   cursor: pointer;
 }
 
-/* This machine: its agent limit, at most the CPU count, and the warn tone once the limit is reached; Gaia's panel is the same card */
+/* The fold's chevron after its head, pointing down while folded and up while open */
+.gaia-forges-hidden-summary::-webkit-details-marker { display: none; }
+.gaia-forges-hidden-summary::after {
+  content: "";
+  width: var(--space-5);
+  height: var(--space-5);
+  margin-top: calc(-1 * var(--space-3));
+  border-right: var(--dot-ring-width) solid currentColor;
+  border-bottom: var(--dot-ring-width) solid currentColor;
+  transform: rotate(45deg);
+}
+.gaia-forges-hidden[open] .gaia-forges-hidden-summary::after { margin-top: var(--space-3); transform: rotate(-135deg); }
+
+/* "Add a repository" over the view: B4's form, and the line of a missing forge program under it */
+.gaia-forges-add-dialog-body { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+/* This machine and Gaia: cards with a Newsreader title; this machine's agent limit, at most the CPU count, its slots and facts, and the
+   orange edge, pill and figure once the limit is reached */
 .gaia-forges-machine,
 .gaia-forges-gaia {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-4);
-  border: var(--hairline) solid var(--line);
+  padding: var(--space-14) var(--sp-4) var(--sp-4);
+  border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-3);
   background: var(--surface);
 }
 .gaia-forges-machine[data-at-the-limit] { border-color: var(--accent-edge); }
-.gaia-forges-machine-limit { display: flex; align-items: center; gap: var(--sp-3); }
+.gaia-forges-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.gaia-forges-machine-limit { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-forges-machine-limit-label { flex: 1; font-weight: var(--weight-strong); }
 .gaia-forges-machine-limit-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
-.gaia-forges-machine-facts { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; font-size: var(--fs-small); }
-.gaia-forges-machine-fact { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.gaia-forges-machine-sentence { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-4); }
+.gaia-forges-machine-usage { display: flex; flex-direction: column; gap: var(--space-6); padding-top: var(--space-2); }
+.gaia-forges-machine-agents { display: flex; align-items: baseline; gap: var(--space-6); }
+.gaia-forges-machine-figure {
+  font-family: var(--font-mono);
+  font-size: var(--fs-figure);
+  line-height: var(--line-height-figure);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-figure);
+}
+.gaia-forges-machine[data-at-the-limit] .gaia-forges-machine-figure { color: var(--link); }
+.gaia-forges-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-forges-machine-at-the-limit { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); font-weight: var(--weight-strong); color: var(--link); }
+.gaia-forges-machine-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: 0;
+  padding-top: var(--space-10);
+  border-top: var(--hairline) solid var(--line);
+  font-size: var(--fs-small);
+}
+.gaia-forges-machine-fact { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
 .gaia-forges-machine-fact dt { color: var(--ink-muted); }
 .gaia-forges-machine-fact dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
-.gaia-forges-machine-sentence { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
-.gaia-forges-machine-at-the-limit { margin: 0; color: var(--link); }
+.gaia-forges-machine-fact[data-attention] dd { color: var(--link); }
 
-/* Gaia: its settings, "What notifies" at the end of the second checkbox's line, and its facts */
+/* Gaia: its settings as switches, "What notifies" under the second's label, and its facts */
 .gaia-forges-gaia-settings-file { margin: 0; font-size: var(--fs-small); color: var(--link); }
-.gaia-forges-gaia-notify { display: flex; align-items: flex-start; gap: var(--sp-3); }
-.gaia-forges-gaia-notify > .gaia-checkbox { flex: 1; min-width: 0; }
+.gaia-forges-gaia-notify { display: flex; flex-direction: column; }
+.gaia-forges-gaia-setting { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-forges-gaia-setting-text { display: flex; flex: 1; flex-direction: column; align-items: flex-start; min-width: 0; }
+.gaia-forges-gaia-setting-label { color: var(--ink); }
 .gaia-forges-gaia-what-notifies {
   flex: none;
   padding: 0;
   border: 0;
   background: none;
   color: var(--link);
-  font: var(--fs-small) var(--font-ui);
+  font: var(--fs-small) / var(--line-height-small) var(--font-ui);
   cursor: pointer;
 }
 .gaia-forges-gaia-what-notifies:hover { text-decoration: underline; }
+.gaia-forges-gaia-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding-top: var(--space-10);
+  border-top: var(--hairline) solid var(--line);
+  font-size: var(--fs-small);
+  line-height: var(--line-height-small);
+}
+.gaia-forges-gaia-fact dt { color: var(--ink-muted); }
+.gaia-forges-gaia-fact dd { margin: 0; overflow-wrap: anywhere; }
 .gaia-forges-what-notifies-off { margin: 0 0 var(--sp-3); font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-forges-what-notifies-kinds { display: flex; flex-direction: column; gap: var(--sp-3); }
 

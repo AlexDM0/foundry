@@ -33,7 +33,7 @@ export function AddRepositoryDialogBody({
   forgeProgramIsMissing, form, pathChooser, commandStates, handlers, onDismissFailure
 }: Omit<AddRepositoryDialogLayoutProps, 'onClose'>) {
   return (
-    <>
+    <div className="gaia-forges-add-dialog-body">
       <AddRepositoryFields
         form={form}
         pathChooser={pathChooser}
@@ -49,7 +49,7 @@ export function AddRepositoryDialogBody({
         onChooseForgeProgram={handlers.onChooseForgeProgram}
         onDismissFailure={onDismissFailure}
       />
-    </>
+    </div>
   );
 }
 

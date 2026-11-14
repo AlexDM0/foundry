@@ -60,7 +60,7 @@ describe('the Gaia panel in the view', () => {
   test('a setting changed elsewhere shows in the panel without a reload', () => {
     const source = sourceHolding(FLEET_FIVE_FORGES);
     const app = appAt(source, '#forges');
-    const tickedStartAtLogin = /<input class="gaia-checkbox-input" type="checkbox" checked=""[^>]*\/><span class="gaia-checkbox-text"><span class="gaia-checkbox-label">Start/;
+    const tickedStartAtLogin = /<button class="design-system-switch" type="button" role="switch" aria-checked="true" aria-labelledby="gaia-forges-gaia-start-at-login">/;
     const startAtLoginIsTicked = () => tickedStartAtLogin.test(renderToStaticMarkup(app));
     expect(startAtLoginIsTicked()).toBe(false);
     source.publish({ ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, startForgesAtLogin: true } });

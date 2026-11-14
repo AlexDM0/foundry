@@ -262,7 +262,7 @@ describe('the held forge, the forges not found and the hidden ones', () => {
     const [banner] = contentOf(FLEET_FIVE_FORGES).heldBanners;
     expect(banner?.project).toBe('Example Mobile App');
     expect(banner?.sentence).toBe('The install version changed. Nothing launches until this forge is updated. Its 2 agents keep running.');
-    expect(banner?.updateButton).toMatchObject({ label: 'Update forge', emphasis: 'primary', command: { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp } });
+    expect(banner?.updateButton).toMatchObject({ label: 'Update forge', emphasis: 'quiet', command: { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp } });
   });
 
   test('a forge whose repository is gone is listed apart, with Hide in Gaia', () => {

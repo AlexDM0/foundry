@@ -71,21 +71,23 @@
   --agents-role-tracking: 0.08em;
   --fs-agents-panel-kind: 14px;
   --line-height-agents-last-line: 18px;
-  /* The artboard's 148 116 64 96 284 px tracks leave its Forge column no room at 1440 px: these fit each column's content, and the aside
-     gives way, down to its least width, until a forge's name and root path fit on their lines. */
-  --forges-forge-column-width:     216px;
-  --forges-condition-column-width: 92px;
-  --forges-agents-column-width:    156px;
+  /* The artboard's tracks would leave the Forge column too little room for a name, Flint's brain beside it and the root path on their
+     lines, since Agents holds the package's number stepper after the agents in flight: Overseer and Code are a little narrower, and so is
+     the aside, which gives way, down to its least width, before the Forge column does. */
+  --forges-forge-column-width:     228px;
+  --forges-condition-column-width: 96px;
+  --forges-agents-column-width:    145px;
   --forges-waiting-column-width:   56px;
-  --forges-code-column-width:      52px;
-  --forges-controls-column-width:  240px;
+  --forges-code-column-width:      50px;
+  --forges-controls-column-width:  229px;
   --forges-table-columns:          minmax(0, 1fr) var(--forges-condition-column-width) var(--forges-agents-column-width)
                                    var(--forges-waiting-column-width) var(--forges-code-column-width) var(--forges-controls-column-width);
   --forges-table-width:            calc(var(--forges-forge-column-width) + var(--forges-condition-column-width) + var(--forges-agents-column-width)
                                    + var(--forges-waiting-column-width) + var(--forges-code-column-width) + var(--forges-controls-column-width)
                                    + 5 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
-  --forges-aside-width:            336px;
-  --forges-aside-least-width:      272px;
+  --forges-row-height:             58px;
+  --forges-aside-width:            258px;
+  --forges-aside-least-width:      240px;
   --hairline:            1px;
   --focus-ring-width:    2px;
 

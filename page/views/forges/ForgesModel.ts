@@ -86,6 +86,9 @@ export type ForgeAgentsCell =
 
 export type ConditionTone = 'warn' | 'muted';
 
+/** A detail that is a machine value, a clock time or a path, is set in mono; one that is words, in the interface face. */
+export type DetailFace = 'mono' | 'ui';
+
 export interface ShownRefusal {
   readonly commandLabel: string;
   readonly code:         string;
@@ -126,8 +129,11 @@ export interface ForgeRow {
   readonly conditionWord:  string;
   readonly conditionTone:  ConditionTone | null;
   readonly detailText:     string | null;
+  readonly detailFace:     DetailFace;
   readonly agents:         ForgeAgentsCell | null;
   readonly waitingText:    string | null;
+  /** What waits on User in this forge, counted for its badge; `null` where nothing waits or the count is not known. */
+  readonly waitingCount:   number | null;
   readonly codeText:       string | null;
   readonly buttons:        readonly ForgeButton[];
   readonly isInView:       boolean;
@@ -152,6 +158,8 @@ export interface ForgeEntry {
   readonly trackerId:  string;
   readonly project:    string;
   readonly condition:  DotCondition;
+  /** The word in the pill beside the name, such as "Missing"; `null` where the detail line already names the condition. */
+  readonly pillWord:   string | null;
   readonly detailText: string;
   readonly button:     ForgeButton;
   readonly isInView:   boolean;
@@ -159,8 +167,10 @@ export interface ForgeEntry {
 }
 
 export interface MachineFact {
-  readonly label: string;
-  readonly value: string;
+  readonly label:      string;
+  readonly value:      string;
+  /** Set only on the fact that stands at the machine's limit: the ready tickets that wait for a slot. */
+  readonly attention?: true;
 }
 
 export interface MachinePanel {
@@ -259,7 +269,7 @@ function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   return [
     { value: String(forges.length), label: 'registered' },
     { value: String(running), label: 'running' },
-    ...(starting === 0 ? [] : [{ value: String(starting), label: 'starting' }]),
+    ...(starting === 0 ? [] : [{ value: String(starting), label: 'starting', attention: true }]),
     ...(hidden === 0 ? [] : [{ value: String(hidden), label: 'hidden' }]),
   ];
 }
@@ -377,10 +387,16 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: FleetDocumentCo
   }
 }
 
+/** B2: held and starting read in orange, a paused, dormant or missing forge in the secondary ink. */
 function conditionToneOf(condition: FleetDocumentCondition): ConditionTone | null {
-  if (condition === 'held') return 'warn';
-  if (condition === 'dormant' || condition === 'missing') return 'muted';
+  if (condition === 'held' || condition === 'starting') return 'warn';
+  if (condition === 'paused' || condition === 'dormant' || condition === 'missing') return 'muted';
   return null;
+}
+
+function detailFaceOf(condition: FleetDocumentCondition, forgeProgramIsMissing: boolean): DetailFace {
+  if (condition === 'paused' || condition === 'starting' || condition === 'unreadable' || condition === 'missing') return 'ui';
+  return condition === 'dormant' && forgeProgramIsMissing ? 'ui' : 'mono';
 }
 
 /** The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Overseer runs and is read in full. */
@@ -404,9 +420,14 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   };
 }
 
-function waitingTextOf(forge: FleetDocumentForge): string | null {
+function waitingCountOf(forge: FleetDocumentForge): number | null {
   const count = forge.fidelity === 'counts-only' ? forge.attentionCount : forge.attention.length;
-  return count === null || count === 0 ? null : String(count);
+  return count === null || count === 0 ? null : count;
+}
+
+function waitingTextOf(forge: FleetDocumentForge): string | null {
+  const count = waitingCountOf(forge);
+  return count === null ? null : String(count);
 }
 
 /** A command that names only its forge can be sent again from its kind alone; any other only as this view last sent it. */
@@ -495,8 +516,10 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     conditionWord:  ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone:  conditionToneOf(shownCondition),
     detailText:     detailTextOf(forge, shownCondition, rowSurroundings),
+    detailFace:     detailFaceOf(shownCondition, rowSurroundings.forgeProgramIsMissing),
     agents:         agentsCellOf(forge, rowSurroundings),
     waitingText:    waitingTextOf(forge),
+    waitingCount:   waitingCountOf(forge),
     codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:        buttonsOf(forge, rowSurroundings),
     isInView:       surroundings.forgeInView === forge.trackerId,
@@ -520,7 +543,8 @@ function heldBannerOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
     trackerId,
     project:        forge.project,
     sentence:       [noticeSentenceOf(forge), keepRunning].filter((part) => part !== null).join(' '),
-    updateButton:   commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings), 'primary'),
+    // A4: Update forge is secondary, so a pending restart's Restart is the held area's one primary.
+    updateButton:   commandButton('update', 'Update forge', { kind: 'forge-update', trackerId }, forgeIsBusy(forge, rowSurroundings)),
     refusal:        refusalOf(trackerId, rowSurroundings.surroundings, (kind) => kind === 'forge-update'),
     pendingRestart: pendingRestartOf(forge, rowSurroundings),
   };
@@ -532,6 +556,7 @@ function notFoundEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurround
     trackerId:  forge.trackerId,
     project:    forge.project,
     condition:  'missing',
+    pillWord:   'Missing',
     detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}the repository folder is gone`,
     button:     commandButton('hide', 'Hide in Gaia', { kind: 'forge-hide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
@@ -545,6 +570,7 @@ function hiddenEntryOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundin
     trackerId:  forge.trackerId,
     project:    forge.project,
     condition:  ForgeTextUtil.dotConditionOf(forge.condition),
+    pillWord:   null,
     detailText: `${homeRelativePathOf(forge.root, fleetDocument.gaia.homeFolder)}${DETAIL_SEPARATOR}${ForgeTextUtil.conditionWordOf(forge.condition)}`,
     button:     commandButton('show-again', 'Show again', { kind: 'forge-unhide', trackerId: forge.trackerId }, forgeIsBusy(forge, rowSurroundings)),
     isInView:   surroundings.forgeInView === forge.trackerId,
@@ -573,12 +599,14 @@ function atTheLimitTextOf(fleetDocument: FleetDocument): string {
   return `The machine is at its limit. ${waitingText}${byForge === null ? '.' : `: ${byForge}.`}`;
 }
 
-function machineFactsOf(fleetDocument: FleetDocument): MachineFact[] {
+function machineFactsOf(fleetDocument: FleetDocument, isAtTheLimit: boolean): MachineFact[] {
   const { figures, machine } = fleetDocument;
+  const waiting = machine.ticketsWaitingForMachineSlot;
+  const ticketsWaitAtTheLimit = isAtTheLimit && waiting !== null && waiting > 0;
   return [
     { label: 'Agents running', value: String(figures.agentsInFlight) },
     { label: 'Asked for by the forges\' own limits', value: String(machine.agentsAskedForByForgeLimits) },
-    ...(machine.ticketsWaitingForMachineSlot === null ? [] : [{ label: 'Tickets waiting for a machine slot', value: String(machine.ticketsWaitingForMachineSlot) }]),
+    ...(waiting === null ? [] : [{ label: 'Tickets waiting for a machine slot', value: String(waiting), ...(ticketsWaitAtTheLimit ? { attention: true as const } : {}) }]),
   ];
 }
 
@@ -598,7 +626,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
       meter:          null,
       isAtTheLimit:   false,
       atTheLimitText: null,
-      facts:          machineFactsOf(fleetDocument),
+      facts:          machineFactsOf(fleetDocument, false),
     };
   }
   const isAtTheLimit = agentsInFlight >= machineLimit;
@@ -612,7 +640,7 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
     meter:          { used: agentsInFlight, whole: machineLimit, label: `${agentsInFlight} of ${machineLimit} agents` },
     isAtTheLimit,
     atTheLimitText: isAtTheLimit ? atTheLimitTextOf(fleetDocument) : null,
-    facts:          machineFactsOf(fleetDocument),
+    facts:          machineFactsOf(fleetDocument, isAtTheLimit),
   };
 }
 

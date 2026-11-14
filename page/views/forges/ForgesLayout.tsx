@@ -5,8 +5,10 @@
  */
 import { Button }        from 'design-system/Button';
 import { ChoiceOption }  from 'design-system/ChoiceOption';
-import { FillMeter }     from 'design-system/FillMeter';
+import { CountBadge }    from 'design-system/CountBadge';
 import { NumberStepper } from 'design-system/NumberStepper';
+import { SlotMeter }     from 'design-system/SlotMeter';
+import { StatePill }     from 'design-system/StatePill';
 import { Text }          from 'design-system/Text';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
@@ -67,8 +69,6 @@ const COLUMN_WIDTHS = 'var(--forges-table-columns)';
 const NOT_FOUND_HEAD_ID = 'gaia-forges-not-found-head';
 const MACHINE_HEAD_ID = 'gaia-forges-machine-head';
 
-const FIRST_CHOICE_LETTER_CODE = 'A'.charCodeAt(0);
-
 const LOOK_AGAIN_SUBJECT: CommandSubject = { fleetCommand: 'fleet-look-again' };
 const MACHINE_LIMIT_SUBJECT: CommandSubject = { fleetCommand: 'machine-agent-limit-set' };
 
@@ -77,7 +77,21 @@ export function forgeAnchorIdOf(trackerId: string): string {
   return `gaia-forges-forge-${trackerId}`;
 }
 
-function ForgeButtonView({ button, trackerId, handlers }: { readonly button: ForgeButton; readonly trackerId: string; readonly handlers: ForgesHandlers }) {
+interface ForgeButtonViewProps {
+  readonly button:      ForgeButton;
+  readonly trackerId:   string;
+  readonly handlers:    ForgesHandlers;
+  /** A row's and an entry's buttons are compact; a banner's stands at the full height. */
+  readonly fullHeight?: boolean;
+}
+
+function ForgeButtonView({
+  button, trackerId, handlers, fullHeight = false
+}: ForgeButtonViewProps) {
+  if (fullHeight && button.kind === 'command' && !button.iconOnly) {
+    const { command } = button;
+    return <Button label={button.label} emphasis={button.emphasis} disabled={button.disabled} onPress={() => handlers.onCommand(command)} />;
+  }
   switch (button.kind) {
     case 'command': {
       const { command } = button;
@@ -137,11 +151,14 @@ function PendingRestartLine({ pendingRestart, trackerId, handlers }: PendingRest
   );
 }
 
-function ForgeName({ trackerId, project, condition }: Pick<ForgeRow, 'trackerId' | 'project' | 'condition'>) {
+function ForgeName({
+  trackerId, project, condition, pillWord = null
+}: Pick<ForgeRow, 'trackerId' | 'project' | 'condition'> & { readonly pillWord?: string | null }) {
   return (
     <span className="gaia-forges-forge-name-line" id={forgeAnchorIdOf(trackerId)}>
       <ConditionDot condition={condition} />
       <span className="gaia-forges-forge-name">{project}</span>
+      {pillWord === null ? null : <StatePill label={pillWord} tone="neutral" width="fit" />}
     </span>
   );
 }
@@ -204,10 +221,9 @@ function AgentsCell({ project, agents, handlers }: { readonly project: string; r
 }
 
 function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: StopDialog; readonly trackerId: string; readonly handlers: ForgesHandlers }) {
-  const choices = dialog.choices.map((choice, i) => (
+  const choices = dialog.choices.map((choice) => (
     <ChoiceOption
       key={choice.agents}
-      letter={String.fromCharCode(FIRST_CHOICE_LETTER_CODE + i)}
       label={choice.title}
       description={choice.consequence}
       chosen={choice.chosen}
@@ -265,11 +281,11 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
       condition: (
         <span className="gaia-forges-condition">
           <span className="gaia-forges-condition-word" data-tone={row.conditionTone ?? undefined}>{row.conditionWord}</span>
-          {row.detailText === null ? null : <span className="gaia-forges-condition-detail">{row.detailText}</span>}
+          {row.detailText === null ? null : <span className="gaia-forges-condition-detail" data-face={row.detailFace}>{row.detailText}</span>}
         </span>
       ),
       agents:   <AgentsCell project={row.project} agents={row.agents} handlers={handlers} />,
-      waiting:  row.waitingText === null ? null : <span className="gaia-forges-waiting">{row.waitingText}</span>,
+      waiting:  row.waitingCount === null ? null : <span className="gaia-forges-waiting"><CountBadge count={row.waitingCount} tone="warn" /></span>,
       code:     row.codeText === null ? null : <span className="gaia-forges-code">{row.codeText}</span>,
       controls: (
         <span className="gaia-forges-controls">
@@ -285,14 +301,20 @@ function HeldBannerCard({ banner, handlers }: { readonly banner: HeldBanner; rea
   return (
     <div className="gaia-forges-held-group">
       <section className="gaia-forges-held" aria-label={`${banner.project} holds its launches`}>
+        <ConditionDot condition="held" />
         <p className="gaia-forges-held-text">
-          <span className="gaia-forges-held-project">{`${banner.project} holds its launches.`}</span>
+          <span className="gaia-forges-held-project">
+            <span className="gaia-forges-held-name">{banner.project}</span>
+            <span className="gaia-forges-held-word">{' holds its launches.'}</span>
+          </span>
           {` ${banner.sentence}`}
         </p>
-        <ForgeButtonView button={banner.updateButton} trackerId={banner.trackerId} handlers={handlers} />
+        <ForgeButtonView button={banner.updateButton} trackerId={banner.trackerId} handlers={handlers} fullHeight />
       </section>
-      <ShownRefusalLine refusal={banner.refusal} trackerId={banner.trackerId} handlers={handlers} />
-      <PendingRestartLine pendingRestart={banner.pendingRestart} trackerId={banner.trackerId} handlers={handlers} />
+      <div className="gaia-forges-held-below">
+        <ShownRefusalLine refusal={banner.refusal} trackerId={banner.trackerId} handlers={handlers} />
+        <PendingRestartLine pendingRestart={banner.pendingRestart} trackerId={banner.trackerId} handlers={handlers} />
+      </div>
     </div>
   );
 }
@@ -302,7 +324,7 @@ function ForgeEntryCard({ entry, place, handlers }: { readonly entry: ForgeEntry
     <div className="gaia-forges-entry-group">
       <div className="gaia-forges-entry" data-place={place} data-in-view={entry.isInView ? '' : undefined}>
         <span className="gaia-forges-entry-text">
-          <ForgeName trackerId={entry.trackerId} project={entry.project} condition={entry.condition} />
+          <ForgeName trackerId={entry.trackerId} project={entry.project} condition={entry.condition} pillWord={entry.pillWord} />
           <span className="gaia-forges-entry-detail">{entry.detailText}</span>
         </span>
         <ForgeButtonView button={entry.button} trackerId={entry.trackerId} handlers={handlers} />
@@ -312,10 +334,25 @@ function ForgeEntryCard({ entry, place, handlers }: { readonly entry: ForgeEntry
   );
 }
 
+function MachineUsage({ meter }: { readonly meter: NonNullable<MachinePanel['meter']> }) {
+  return (
+    <div className="gaia-forges-machine-usage">
+      <span className="gaia-forges-machine-agents">
+        <span className="gaia-forges-machine-figure">{`${meter.used} / ${meter.whole}`}</span>
+        <span className="gaia-forges-machine-unit">agents</span>
+      </span>
+      <SlotMeter label={meter.label} filled={meter.used} limit={meter.whole} tone="accent" />
+    </div>
+  );
+}
+
 function MachinePanelCard({ machine, commandStates, handlers }: { readonly machine: MachinePanel; readonly commandStates: CommandStates; readonly handlers: ForgesHandlers }) {
   return (
     <section className="gaia-forges-machine" aria-labelledby={MACHINE_HEAD_ID} data-at-the-limit={machine.isAtTheLimit ? '' : undefined}>
-      <Text typeRole="micro" element="h2" id={MACHINE_HEAD_ID}>This machine</Text>
+      <span className="gaia-forges-panel-head">
+        <Text typeRole="page" element="h2" id={MACHINE_HEAD_ID}>This machine</Text>
+        {machine.isAtTheLimit ? <StatePill label="At the limit" tone="accent" width="fit" /> : null}
+      </span>
       <div className="gaia-forges-machine-limit">
         <span className="gaia-forges-machine-limit-label">Agent limit</span>
         {machine.limit === null ? <span className="gaia-forges-machine-limit-value">{machine.limitText}</span> : (
@@ -332,13 +369,11 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
         )}
       </div>
       <p className="gaia-forges-machine-sentence">{machine.sentence}</p>
-      {machine.meter === null ? null : (
-        <FillMeter label={machine.meter.label} used={machine.meter.used} limit={machine.meter.whole} near={machine.meter.used >= machine.meter.whole} tone="neutral" />
-      )}
+      {machine.meter === null ? null : <MachineUsage meter={machine.meter} />}
       {machine.atTheLimitText === null ? null : <p className="gaia-forges-machine-at-the-limit">{machine.atTheLimitText}</p>}
       <dl className="gaia-forges-machine-facts">
         {machine.facts.map((fact) => (
-          <div key={fact.label} className="gaia-forges-machine-fact">
+          <div key={fact.label} className="gaia-forges-machine-fact" data-attention={fact.attention === true ? '' : undefined}>
             <dt>{fact.label}</dt>
             <dd>{fact.value}</dd>
           </div>

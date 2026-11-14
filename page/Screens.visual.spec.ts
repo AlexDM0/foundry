@@ -25,6 +25,7 @@ import {
   type ArtboardScreen,
   B2_STOP_REFUSAL,
   BATON_PASS_FAILED_SENTENCE,
+  HIDDEN_FORGE_SCREENS,
   MONITOR_WARNING_SCREENS,
   type PageArtboard,
   RESTART_PENDING_SCREENS,
@@ -109,7 +110,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('a screen holds no colour of its own: no style of its markup names one, so every colour comes from the inlined tokens', () => {
-    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS]) {
+    for (const screen of [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS]) {
       for (const theme of themesOf(screen)) {
         const markup = screenMarkupOf(screen, theme);
         expect(markup).not.toContain('<style');
@@ -119,7 +120,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('the two themes paint the same markup, but for the theme the theme button shows', () => {
-    const screensWithTheButton = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS].filter(
+    const screensWithTheButton = [...ARTBOARD_SCREENS, ...RESTART_PENDING_SCREENS, ...MONITOR_WARNING_SCREENS, ...HIDDEN_FORGE_SCREENS].filter(
       (candidate) => themesOf(candidate).length === 2 && candidate.artboard !== 'B1',
     );
     for (const screen of screensWithTheButton) {
@@ -235,6 +236,19 @@ describe('the restart an update left pending, over the artboard it changes', () 
     const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
     expect(heldGroup).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span>');
     expect(heldGroup).toContain('>Restart</button>');
+  });
+});
+
+describe('A4 as drawn, with the forge hidden in Gaia that the five forges\' fixture does not hold', () => {
+  test('counts seven registered and one hidden, folds Old Prototype under its head, and keeps Restart the held area\'s one primary', () => {
+    const [forges] = HIDDEN_FORGE_SCREENS;
+    if (forges === undefined) throw new Error('The hidden forge screen is missing.');
+    const markup = screenMarkupOf(forges, 'dark');
+    expect(textsOfClass(markup, 'gaia-forges-hidden-summary')).toEqual(['Hidden in Gaia · 1']);
+    expect(markup).toContain('>Old Prototype<');
+    const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'), markup.indexOf('class="gaia-forges-group"'));
+    expect(heldGroup.match(/data-primary=""/g)).toHaveLength(1);
+    expect(heldGroup).toMatch(/data-primary=""[^>]*>Restart<\/button>/);
   });
 });
 

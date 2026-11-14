@@ -1,8 +1,9 @@
 /**
  * The form that adds a repository and starts its forge, on B4 and in A4's dialog alike: the folder with "Choose a folder", the project name
- * with "Add and start", a refusal of either beside them, and, when no forge program is known, the dashed line that says so with a way to
- * choose one. `AddRepositoryFields` and `ForgeProgramMissingLine` take no hooks; `useAddRepositoryForm` keeps the form and sends its
- * commands: a folder chosen through `path-choose`, `forge-add`, and the program's path chosen and kept through `settings-set`.
+ * with its hint, then under a hairline what "Add and start" does, or why it waits, beside it; a refusal of either under them; and, when no
+ * forge program is known, the dashed line that says so with a way to choose one. `AddRepositoryFields` and `ForgeProgramMissingLine` take
+ * no hooks; `useAddRepositoryForm` keeps the form and sends its commands: a folder chosen through `path-choose`, `forge-add`, and the
+ * program's path chosen and kept through `settings-set`.
  */
 import { Button }   from 'design-system/Button';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import {
   type CommandStates,
   type CommandSubject
 } from '../../api/CommandSender.ts';
+import { ConditionDot }          from '../../design-system/ConditionDot.tsx';
 import { TextField }             from '../../design-system/TextField.tsx';
 import { CommandFailureRefusal } from '../CommandFailureRefusal.tsx';
 import { AddRepositoryForm }     from './AddRepositoryForm.ts';
@@ -50,6 +52,9 @@ const PATH_CHOOSE: CommandSubject = { fleetCommand: 'path-choose' };
 const FORGE_ADD: CommandSubject = { fleetCommand: 'forge-add' };
 const SETTINGS_SET: CommandSubject = { fleetCommand: 'settings-set' };
 
+const ADD_AND_START_SENTENCE = 'Gaia sets up the board in that repository and starts its Overseer.';
+const ADD_AND_START_WAITS_SENTENCE = 'Add and start waits for the forge program. Choose it below.';
+
 function isOnItsWay(commandStates: CommandStates, subject: CommandSubject): boolean {
   return CommandSender.stateOf(commandStates, subject).onItsWay !== null;
 }
@@ -59,16 +64,19 @@ export function AddRepositoryFields({
 }: AddRepositoryFieldsProps) {
   const addAndStartCanBeSent = AddRepositoryForm.addAndStartCanBeSent(form, { forgeProgramIsMissing, addIsOnItsWay: isOnItsWay(commandStates, FORGE_ADD) });
   return (
-    <>
+    <div className="gaia-add-repository">
       <div className="gaia-add-repository-line">
-        <TextField label="Repository folder" labelHidden face="mono" value={form.folder} onChange={handlers.onFolderTyped} placeholder="~/development/example-storefront" />
+        <TextField label="Repository folder" face="mono" value={form.folder} onChange={handlers.onFolderTyped} placeholder="~/development/example-storefront" />
         <Button label="Choose a folder" disabled={isOnItsWay(commandStates, PATH_CHOOSE)} onPress={handlers.onChooseFolder} />
       </div>
-      <div className="gaia-add-repository-line">
-        <TextField label="Project name" labelHidden value={form.project} onChange={handlers.onProjectTyped} placeholder="Example Storefront" />
+      <div className="gaia-add-repository-field">
+        <TextField label="Project name" value={form.project} onChange={handlers.onProjectTyped} placeholder="Example Storefront" />
+        <p className="gaia-add-repository-hint">Starts as the folder&apos;s name.</p>
+      </div>
+      <div className="gaia-add-repository-foot">
+        <p className="gaia-add-repository-note">{forgeProgramIsMissing ? ADD_AND_START_WAITS_SENTENCE : ADD_AND_START_SENTENCE}</p>
         <Button label="Add and start" emphasis="primary" disabled={!addAndStartCanBeSent} onPress={handlers.onAddAndStart} />
       </div>
-      <p className="gaia-add-repository-note">Gaia sets up the board in that repository and starts its Overseer. A forge set up elsewhere appears here by itself.</p>
       {pathChooser === 'folder' ? (
         <CommandFailureRefusal
           commandStates={commandStates}
@@ -85,7 +93,7 @@ export function AddRepositoryFields({
         onDismissFailure={onDismissFailure}
         onTryAgain={handlers.onAddAndStart}
       />
-    </>
+    </div>
   );
 }
 
@@ -97,6 +105,7 @@ export function ForgeProgramMissingLine({
     <>
       {forgeProgramIsMissing ? (
         <div className="gaia-add-repository-program-missing" role="status">
+          <ConditionDot condition="missing" />
           <span className="gaia-add-repository-program-missing-text">
             <span className="gaia-add-repository-program-missing-title">The forge program was not found.</span>
             {' '}
@@ -104,7 +113,6 @@ export function ForgeProgramMissingLine({
           </span>
           <Button
             label="Choose the forge program"
-            compact
             disabled={isOnItsWay(commandStates, PATH_CHOOSE) || isOnItsWay(commandStates, SETTINGS_SET)}
             onPress={onChooseForgeProgram}
           />
