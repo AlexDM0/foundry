@@ -412,15 +412,24 @@ body {
 
 /* ── Activity (A3) ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
+/* The filters across the top, then the table beside the 320 px column of today's cards and the usage line */
 .gaia-activity {
   display: flex;
-  gap: var(--sp-6);
+  flex-direction: column;
+  gap: var(--space-14);
   box-sizing: border-box;
-  padding: var(--view-top-padding) var(--sp-6) var(--sp-5);
+  padding: var(--space-14) var(--sp-5) var(--space-20) var(--space-28);
 }
-.gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
-.gaia-activity-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4); }
-.gaia-activity-at { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.gaia-activity-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.gaia-activity-columns { display: flex; gap: var(--space-28); }
+.gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
+
+/* The table's rows are the artboard's: 36 px under a 32 px head, each with its hairline, 18 px in from the card's edges; a link ringed on hover. */
+.gaia-activity .gaia-table-cells { min-height: calc(var(--activity-row-height) - var(--hairline)); padding: 0 var(--space-18); }
+.gaia-activity .gaia-table-row[data-head] .gaia-table-cells { min-height: calc(var(--activity-head-height) - var(--hairline)); }
+.gaia-activity .gaia-table-row { position: relative; transition: var(--feedback-transition); }
+.gaia-activity .gaia-table-row:not([data-head]):has(a.gaia-activity-text):hover { box-shadow: 0 0 0 var(--focus-ring-width) var(--shadow-card-lift); }
+.gaia-activity-at { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 .gaia-activity-forge {
   display: block;
   overflow: hidden;
@@ -438,29 +447,37 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-a.gaia-activity-text:hover { text-decoration: underline; }
+/* A row with a route goes there as a whole: its text's link stretches over the row. */
+a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-activity-empty,
 .gaia-activity-side-empty { margin: 0; color: var(--ink-muted); }
-.gaia-activity-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-activity-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 
-/* The forges past the first three: one more segment and a menu that floats under it, one of the two places a shadow is drawn */
+/* The forges past the first three: one more segment, in a tray of its own beside the package's, and a menu that floats under it, one of the
+   two places a shadow is drawn */
 .gaia-activity-forge-filter { display: inline-flex; align-items: flex-start; gap: var(--sp-1); }
-.gaia-activity-more-forges { position: relative; display: inline-flex; }
-/* The menu's trigger reads as one more segment of the package's control beside it. */
-.gaia-activity-more-forges-button {
+.gaia-activity-more-forges {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--segment-padding-vertical) var(--segment-padding-horizontal);
+  padding: var(--space-2);
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-3);
   background: var(--wash);
+}
+.gaia-activity-more-forges-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: calc(var(--segment-padding-vertical) + var(--hairline)) calc(var(--segment-padding-horizontal) + var(--hairline));
+  border: 0;
+  border-radius: var(--r-2);
+  background: none;
   color: var(--ink-muted);
   font: var(--weight-label) var(--fs-small)/1 var(--font-ui);
   cursor: pointer;
 }
 .gaia-activity-more-forges-button:hover { color: var(--ink); }
-.gaia-activity-more-forges-button[aria-pressed="true"] { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.gaia-activity-more-forges-button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 var(--hairline) var(--line-strong); }
 .gaia-activity-menu-mark { font-size: var(--fs-micro); }
 .gaia-activity-forge-menu {
   position: absolute;
@@ -494,27 +511,26 @@ a.gaia-activity-text:hover { text-decoration: underline; }
 .gaia-activity-forge-menu-item[aria-pressed="true"] { color: var(--ink); }
 .gaia-activity-forge-menu-item:disabled { cursor: default; }
 
-.gaia-activity-side { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--view-side-width); }
-.gaia-activity-side-section { display: flex; flex-direction: column; gap: var(--sp-3); }
+/* Today's cards: per forge its name and value over a 6 px bar; then the usage line, its dot beside its words */
+.gaia-activity-side { display: flex; flex: none; flex-direction: column; gap: var(--space-22); width: var(--view-side-width); }
+.gaia-activity-side-section { display: flex; flex-direction: column; }
 .gaia-activity-today-list { display: flex; flex-direction: column; gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
 .gaia-activity-today-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--activity-today-value-width);
   align-items: center;
-  row-gap: var(--sp-1);
+  row-gap: var(--space-5);
   column-gap: var(--sp-2);
+  font-size: var(--fs-tab);
 }
 .gaia-activity-today-meter { display: flex; grid-column: 1 / -1; }
 .gaia-activity-today-project { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gaia-activity-today-value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: end; }
-.gaia-activity-usage {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sp-1) + var(--sp-half));
-  padding-top: var(--sp-4);
-  border-top: var(--hairline) solid var(--line);
-}
-.gaia-activity-usage-line { margin: 0; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-activity-usage { display: flex; flex-direction: column; gap: var(--space-6); padding: 0 var(--space-2); }
+.gaia-activity-usage-reading { display: flex; align-items: center; gap: var(--sp-2); }
+.gaia-activity-usage-line { margin: 0; font-size: var(--fs-tab); }
+/* The forge words its usage as a clause; here it leads its line. */
+.gaia-activity-usage-line::first-letter { text-transform: uppercase; }
 
 .gaia-activity-text:focus-visible,
 .gaia-activity-more-forges-button:focus-visible,

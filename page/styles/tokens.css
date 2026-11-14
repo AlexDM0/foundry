@@ -51,9 +51,12 @@
   --forge-bar-height:    56px;
   --view-top-padding:    20px;
   --view-side-width:     320px;
-  --activity-at-width:   48px;
+  --activity-at-width:   52px;
   --activity-forge-width: 168px;
-  --activity-kind-width: 104px;
+  --activity-kind-width: 112px;
+  --activity-head-height: 32px;
+  --activity-row-height: 36px;
+  --activity-today-value-width: 56px;
   --agents-table-columns: 160px 44px 72px minmax(0, 1fr) 196px 72px 132px 76px 208px;
   --agents-calls-meter-width: 64px;
   --agents-panel-facts-width: 320px;

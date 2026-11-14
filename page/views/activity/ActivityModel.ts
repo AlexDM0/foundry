@@ -1,17 +1,20 @@
 /**
  * What the Activity view shows of a fleet document under its two filters: the entries in the document's own order, newest first, each with
  * its forge, its category and the forge's text unedited; the forge choices, the first three as segments and the rest in a menu; today's
- * landings and tokens per forge that reports them; and the usage line the forges report. A value no forge reports is absent, never zero.
+ * landings and tokens per forge that reports them; the usage line the forges report; and the page title's figures. A value no forge reports
+ * is absent, never zero.
  */
 import type {
   FleetDocument,
   FleetDocumentActivityCategory,
   FleetDocumentFleetActivityEntry,
   FleetDocumentForge,
+  FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { DotRole }  from '../../design-system/RoleDot.tsx';
-import { ForgeTextUtil } from '../../shared/utils/ForgeTextUtil.ts';
-import { HashRouter }    from '../../shell/HashRouter.ts';
+import type { PageFigure } from '../../design-system/PageTitle.tsx';
+import type { DotRole }    from '../../design-system/RoleDot.tsx';
+import { ForgeTextUtil }   from '../../shared/utils/ForgeTextUtil.ts';
+import { HashRouter }      from '../../shell/HashRouter.ts';
 
 export type ActivityKindFilter = 'everything' | FleetDocumentActivityCategory;
 
@@ -60,15 +63,22 @@ export interface TodayList {
   readonly rows:      readonly TodayRow[];
 }
 
+/** The kinds whose segment counts its entries, as the artboard counts them. */
+export type CountedKind = 'needs-user' | 'landed';
+
 export interface ActivityContent {
-  readonly rows:          readonly ActivityRow[];
+  readonly rows:                 readonly ActivityRow[];
+  /** The entries of each counted kind under the chosen forge, whatever kind is chosen. */
+  readonly kindCounts:           Readonly<Record<CountedKind, number>>;
   /** What the table's place says when it holds no row; `null` when it holds one. */
-  readonly emptySentence: string | null;
-  readonly forgeChoices:  ForgeChoices;
-  readonly landedToday:   TodayList;
-  readonly tokensToday:   TodayList;
+  readonly emptySentence:        string | null;
+  readonly forgeChoices:         ForgeChoices;
+  readonly landedToday:          TodayList;
+  readonly tokensToday:          TodayList;
   /** One line per distinct usage reading; the usage limit is the machine's, so every forge normally reports the same. */
-  readonly usageLines:    readonly string[];
+  readonly usageLines:           readonly string[];
+  /** The lines of a forge that hit its limit, so their dot can say so beside the words. */
+  readonly usageLinesAtTheLimit: readonly string[];
 }
 
 export const EVERY_ENTRY: ActivityFilters = { kind: 'everything', trackerId: null };
@@ -198,9 +208,21 @@ function todayListOf(
   };
 }
 
-function usageLinesOf(fleetDocument: FleetDocument, clockFormat: Intl.DateTimeFormat): string[] {
-  const lines = fleetDocument.forges.flatMap((forge) => (forge.usage === null ? [] : [ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTimeOf(stamp, clockFormat))]));
+function usageLinesOf(fleetDocument: FleetDocument, clockFormat: Intl.DateTimeFormat, usageIsKept: (usage: FleetDocumentUsage) => boolean): string[] {
+  const lines = fleetDocument.forges.flatMap((forge) => (forge.usage === null || !usageIsKept(forge.usage)
+    ? []
+    : [ForgeTextUtil.usageTextOf(forge.usage, (stamp) => clockTimeOf(stamp, clockFormat))]));
   return [...new Set(lines)];
+}
+
+/** A forge reports a reset time only for the window that hit its limit. */
+function limitIsHit(usage: FleetDocumentUsage): boolean {
+  return usage.resetsAt !== null;
+}
+
+function kindCountsOf(fleetDocument: FleetDocument, trackerId: string | null): Record<CountedKind, number> {
+  const countOf = (kind: CountedKind) => fleetDocument.activity.filter((entry) => entryIsKept(entry, kind, trackerId)).length;
+  return { 'needs-user': countOf('needs-user'), 'landed': countOf('landed') };
 }
 
 function emptySentenceOf(fleetDocument: FleetDocument, rows: readonly ActivityRow[]): string | null {
@@ -214,15 +236,38 @@ function activityContentOf(fleetDocument: FleetDocument, filters: ActivityFilter
   const rows = rowsOf(fleetDocument, filters.kind, forgeChoices.chosen, clockFormat);
   return {
     rows,
-    emptySentence: emptySentenceOf(fleetDocument, rows),
+    kindCounts:           kindCountsOf(fleetDocument, forgeChoices.chosen),
+    emptySentence:        emptySentenceOf(fleetDocument, rows),
     forgeChoices,
-    landedToday:   todayListOf(fleetDocument, (today) => today.deliveredTickets, String, (project, valueText) => `${project}: ${valueText} landed today`),
-    tokensToday:   todayListOf(fleetDocument, (today) => today.tokens, tokenCountTextOf, (project, valueText) => `${project}: ${valueText} tokens today`),
-    usageLines:    usageLinesOf(fleetDocument, clockFormat),
+    landedToday:          landedTodayOf(fleetDocument),
+    tokensToday:          tokensTodayOf(fleetDocument),
+    usageLines:           usageLinesOf(fleetDocument, clockFormat, () => true),
+    usageLinesAtTheLimit: usageLinesOf(fleetDocument, clockFormat, limitIsHit),
   };
+}
+
+function landedTodayOf(fleetDocument: FleetDocument): TodayList {
+  return todayListOf(fleetDocument, (today) => today.deliveredTickets, String, (project, valueText) => `${project}: ${valueText} landed today`);
+}
+
+function tokensTodayOf(fleetDocument: FleetDocument): TodayList {
+  return todayListOf(fleetDocument, (today) => today.tokens, tokenCountTextOf, (project, valueText) => `${project}: ${valueText} tokens today`);
+}
+
+/** What waits on User, with `+` while a forge is not fully read, then today's landings and tokens, each only when a forge reports today. */
+function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
+  const { waitingOnUser, incompleteFor } = fleetDocument.figures;
+  const landedTotal = landedTodayOf(fleetDocument).totalText;
+  const tokensTotal = tokensTodayOf(fleetDocument).totalText;
+  return [
+    { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'need you', attention: true },
+    ...(landedTotal === null ? [] : [{ value: landedTotal, label: 'landed today' }]),
+    ...(tokensTotal === null ? [] : [{ value: tokensTotal, label: 'tokens today' }]),
+  ];
 }
 
 export const ActivityModel = {
   activityContentOf,
+  titleFiguresOf,
   tokenCountTextOf,
 } as const;

@@ -2,8 +2,9 @@
  * The Activity view (SCREENS A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the artboard's sixteen rows,
  * interleaved across forges newest first, each with its clock time, forge, category and the forge's own text (acceptance 1); the side lists
  * hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from a menu that
- * names the chosen one and closes on Escape and when focus leaves it; a row links into its forge only when it has a route; and every empty
- * place says so in its own words.
+ * names the chosen one and closes on Escape and when focus leaves it; a row links into its forge only when it has a route; every empty
+ * place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts, the side lists are cards with
+ * a mono total, the usage dot says under or at the limit beside the words, and the page title carries the view's figures.
  *
  * `ActivityLayout` takes no hooks and unfolds to its host elements; `ActivityView`, which keeps the filters, is rendered with React's own
  * server renderer, which runs its hooks without a document.
@@ -22,7 +23,12 @@ import {
   ActivityModel,
   EVERY_ENTRY,
 } from './ActivityModel.ts';
-import { ActivityLayout, type ActivityLayoutProps, ActivityView } from './ActivityView.tsx';
+import {
+  ActivityLayout,
+  type ActivityLayoutProps,
+  ActivityView,
+  activityViewPartsOf,
+} from './ActivityView.tsx';
 
 const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
@@ -35,20 +41,23 @@ interface Handled {
   readonly menuCloses:  number[];
 }
 
+function layoutPropsOf(fleetDocument: FleetDocument, filters: ActivityFilters, menuIsOpen = false, handled?: Handled): ActivityLayoutProps {
+  return {
+    content:       ActivityModel.activityContentOf(fleetDocument, filters, FIXTURE_TIME_ZONE),
+    kindFilter:    filters.kind,
+    menuIsOpen,
+    onKindFilter:  (kind) => handled?.kinds.push(kind),
+    onForgeChoice: (trackerId) => handled?.forges.push(trackerId),
+    onMenuToggle:  () => handled?.menuToggles.push(1),
+    onMenuClose:   () => handled?.menuCloses.push(1),
+  };
+}
+
 function layoutOf(fleetDocument: FleetDocument, filters: ActivityFilters = EVERY_ENTRY, menuIsOpen = false) {
   const handled: Handled = {
     kinds: [], forges: [], menuToggles: [], menuCloses: [],
   };
-  const props: ActivityLayoutProps = {
-    content:       ActivityModel.activityContentOf(fleetDocument, filters, FIXTURE_TIME_ZONE),
-    kindFilter:    filters.kind,
-    menuIsOpen,
-    onKindFilter:  (kind) => handled.kinds.push(kind),
-    onForgeChoice: (trackerId) => handled.forges.push(trackerId),
-    onMenuToggle:  () => handled.menuToggles.push(1),
-    onMenuClose:   () => handled.menuCloses.push(1),
-  };
-  return { unfolded: tree.unfolded(<ActivityLayout {...props} />), handled };
+  return { unfolded: tree.unfolded(<ActivityLayout {...layoutPropsOf(fleetDocument, filters, menuIsOpen, handled)} />), handled };
 }
 
 /** The package's segmented control is a group named by the label element it points at. */
@@ -126,7 +135,7 @@ describe('the filters', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { kind: 'needs-user', trackerId: null });
     const kinds = buttonsIn(groupNamed(unfolded, 'Kind'));
     expect(kinds.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
-      ['Everything', false], ['Needs you', true], ['Landed', false], ['Agents', false], ['Forge', false],
+      ['Everything', false], ['Needs you 5', true], ['Landed 6', false], ['Agents', false], ['Forge', false],
     ]);
     const landed = kinds[2];
     if (landed === undefined) throw new Error('The Landed segment is missing.');
@@ -225,6 +234,33 @@ describe('the side lists', () => {
     const sideSentences = tree.hostElementsIn(empty, tree.withClass('gaia-activity-side-empty')).map((sentence) => tree.textOf([sentence]));
     expect(sideSentences).toEqual(['No forge reports it.', 'No forge reports it.']);
     expect(tree.hostElementsIn(empty, tree.withClass('gaia-activity-usage'))).toEqual([]);
+  });
+});
+
+describe('the look of the parts', () => {
+  test('each side list is a card, its total in mono, and the usage reading has a neutral dot under the limit and an orange one at it', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    const sections = tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-side-section'));
+    expect(sections.map((section) => tree.hostElementsIn([section], tree.withClass('design-system-card')).length)).toEqual([1, 1]);
+    const totals = sections.map((section) => tree.onlyHostElementIn([section], (element) => element.props['data-mono'] === ''));
+    expect(totals.map((total) => tree.textOf([total]))).toEqual(['6', '1.24M']);
+    const toneOfReading = (filters: ActivityFilters, fleetDocument: FleetDocument) => {
+      const usage = tree.onlyWithClass(tree.unfolded(<ActivityLayout {...layoutPropsOf(fleetDocument, filters)} />), 'gaia-activity-usage');
+      return tree.onlyHostElementIn([usage], tree.withClass('design-system-state-dot')).props['data-state-tone'];
+    };
+    expect(toneOfReading(EVERY_ENTRY, FLEET_FIVE_FORGES)).toBe('neutral');
+    const hitUsage = {
+      window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z', currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
+    };
+    const limitHit = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: hitUsage })) };
+    expect(toneOfReading(EVERY_ENTRY, limitHit)).toBe('accent');
+  });
+
+  test('the page title carries the view\'s figures once the first fleet document is in', () => {
+    expect(activityViewPartsOf(null).figures).toEqual([]);
+    expect(activityViewPartsOf(FLEET_FIVE_FORGES).figures.map((figure) => [figure.value, figure.label])).toEqual([
+      ['5', 'need you'], ['6', 'landed today'], ['1.24M', 'tokens today'],
+    ]);
   });
 });
 

@@ -1,12 +1,15 @@
 /**
- * The Activity view (artboard A3): what happened across the fleet, newest first, filtered by kind and by forge, beside today's landings and
- * tokens per forge and the usage line. `ActivityView` keeps the filters and whether the forge menu is open; `ActivityLayout` takes no hooks
- * and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the page title's parts with the view.
+ * The Activity view (artboard A3): the two filters across the top, then what happened across the fleet, newest first, beside the cards of
+ * today's landings and tokens per forge and the usage line. `ActivityView` keeps the filters and whether the forge menu is open;
+ * `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the page
+ * title's parts with the view.
  */
-import { FillMeter }        from 'design-system/FillMeter';
-import { SegmentedControl } from 'design-system/SegmentedControl';
-import type { StateTone }   from 'design-system/StateTone';
-import { Text }             from 'design-system/Text';
+import { Card }                                 from 'design-system/Card';
+import { FillMeter }                            from 'design-system/FillMeter';
+import { type SegmentOption, SegmentedControl } from 'design-system/SegmentedControl';
+import { StateDot }                             from 'design-system/StateDot';
+import type { StateTone }                       from 'design-system/StateTone';
+import { Text }                                 from 'design-system/Text';
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -25,6 +28,7 @@ import {
   type ActivityKindFilter,
   ActivityModel,
   type ActivityRow,
+  type CountedKind,
   EVERY_ENTRY,
   type ForgeChoices,
   KIND_FILTER_LABELS,
@@ -47,7 +51,15 @@ const COLUMNS: readonly DataTableColumn<ActivityColumn>[] = [
 
 const COLUMN_WIDTHS = 'var(--activity-at-width) var(--activity-forge-width) var(--activity-kind-width) minmax(0, 1fr)';
 
-const KIND_OPTIONS = KIND_FILTERS.map((kind) => ({ value: kind, label: KIND_FILTER_LABELS[kind] }));
+function kindIsCounted(kind: ActivityKindFilter): kind is CountedKind {
+  return kind === 'needs-user' || kind === 'landed';
+}
+
+function kindOptionsOf(kindCounts: ActivityContent['kindCounts']): SegmentOption<ActivityKindFilter>[] {
+  return KIND_FILTERS.map((kind) => (kindIsCounted(kind)
+    ? { value: kind, label: KIND_FILTER_LABELS[kind], count: kindCounts[kind] }
+    : { value: kind, label: KIND_FILTER_LABELS[kind] }));
+}
 
 /** A tracker id is never empty, so the empty value stands for every forge. */
 const EVERY_FORGE_VALUE = '';
@@ -59,6 +71,8 @@ const FORGE_LABEL_ID = 'gaia-activity-forge-label';
 const FOOTNOTE = 'A dormant forge shows its entries up to its stop. Older entries are in each forge\'s own log.';
 
 const NOTHING_REPORTED_SENTENCE = 'No forge reports it.';
+
+const USAGE_SOURCE_SENTENCE = 'As the forges report it.';
 
 export interface ActivityLayoutProps {
   readonly content:       ActivityContent;
@@ -158,32 +172,48 @@ interface TodaySectionProps {
 function TodaySection({ head, list, tone }: TodaySectionProps) {
   return (
     <section className="gaia-activity-side-section">
-      <Text typeRole="micro" element="h2">{list.totalText === null ? head : `${head} · ${list.totalText}`}</Text>
-      {list.rows.length === 0 ? <p className="gaia-activity-side-empty">{NOTHING_REPORTED_SENTENCE}</p> : (
-        <ul className="gaia-activity-today-list">
-          {list.rows.map((row) => (
-            <li key={row.trackerId} className="gaia-activity-today-row">
-              <span className="gaia-activity-today-project">{row.project}</span>
-              <span className="gaia-activity-today-value">{row.valueText}</span>
-              {row.meter === null ? null : (
-                <span className="gaia-activity-today-meter">
-                  <FillMeter label={row.meter.label} used={row.meter.used} limit={row.meter.whole} near={false} tone={tone} />
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <Card paddingTop="fourteen" paddingHorizontal="eighteen" paddingBottom="sixteen" gap="twelve">
+        <Text typeRole="micro" element="h2">
+          {list.totalText === null ? head : <>{head} · <Text typeRole="micro" mono>{list.totalText}</Text></>}
+        </Text>
+        {list.rows.length === 0 ? <p className="gaia-activity-side-empty">{NOTHING_REPORTED_SENTENCE}</p> : (
+          <ul className="gaia-activity-today-list">
+            {list.rows.map((row) => (
+              <li key={row.trackerId} className="gaia-activity-today-row">
+                <span className="gaia-activity-today-project">{row.project}</span>
+                <span className="gaia-activity-today-value">{row.valueText}</span>
+                {row.meter === null ? null : (
+                  <span className="gaia-activity-today-meter">
+                    <FillMeter label={row.meter.label} used={row.meter.used} limit={row.meter.whole} near={false} tone={tone} />
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </section>
   );
 }
 
-function UsageSection({ lines }: { readonly lines: readonly string[] }) {
+interface UsageSectionProps {
+  readonly lines:           readonly string[];
+  readonly linesAtTheLimit: readonly string[];
+}
+
+/** A neutral dot under the limit and an orange one at it, each beside its words. */
+function UsageSection({ lines, linesAtTheLimit }: UsageSectionProps) {
   if (lines.length === 0) return null;
   return (
     <section className="gaia-activity-usage">
       <Text typeRole="micro" element="h2">Usage</Text>
-      {lines.map((line) => <p key={line} className="gaia-activity-usage-line">{line}</p>)}
+      {lines.map((line) => (
+        <div key={line} className="gaia-activity-usage-reading">
+          <StateDot tone={linesAtTheLimit.includes(line) ? 'accent' : 'neutral'} small />
+          <p className="gaia-activity-usage-line">{line}</p>
+        </div>
+      ))}
+      <Text typeRole="small" element="p" subtle>{USAGE_SOURCE_SENTENCE}</Text>
     </section>
   );
 }
@@ -198,31 +228,33 @@ export function ActivityLayout({
   ];
   return (
     <div className="gaia-activity">
-      <section className="gaia-activity-entries" aria-label="Entries">
-        <div className="gaia-activity-filters">
-          <span className="gaia-visually-hidden" id={KIND_LABEL_ID}>Kind</span>
-          <SegmentedControl<ActivityKindFilter> labelledBy={KIND_LABEL_ID} options={KIND_OPTIONS} selected={kindFilter} onSelect={onKindFilter} />
-          <span className="gaia-activity-forge-filter">
-            <span className="gaia-visually-hidden" id={FORGE_LABEL_ID}>Forge</span>
-            <SegmentedControl
-              labelledBy={FORGE_LABEL_ID}
-              options={forgeOptions}
-              selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
-              onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
-            />
-            <ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuToggle={onMenuToggle} onMenuClose={onMenuClose} />
-          </span>
-        </div>
-        {content.emptySentence === null
-          ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} />
-          : <p className="gaia-activity-empty">{content.emptySentence}</p>}
-        <p className="gaia-activity-footnote">{FOOTNOTE}</p>
-      </section>
-      <aside className="gaia-activity-side" aria-label="Today">
-        <TodaySection head="Landed today" list={content.landedToday} tone="success" />
-        <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" />
-        <UsageSection lines={content.usageLines} />
-      </aside>
+      <div className="gaia-activity-filters">
+        <span className="gaia-visually-hidden" id={KIND_LABEL_ID}>Kind</span>
+        <SegmentedControl<ActivityKindFilter> labelledBy={KIND_LABEL_ID} options={kindOptionsOf(content.kindCounts)} selected={kindFilter} onSelect={onKindFilter} />
+        <span className="gaia-activity-forge-filter">
+          <span className="gaia-visually-hidden" id={FORGE_LABEL_ID}>Forge</span>
+          <SegmentedControl
+            labelledBy={FORGE_LABEL_ID}
+            options={forgeOptions}
+            selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
+            onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
+          />
+          <ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuToggle={onMenuToggle} onMenuClose={onMenuClose} />
+        </span>
+      </div>
+      <div className="gaia-activity-columns">
+        <section className="gaia-activity-entries" aria-label="Entries">
+          {content.emptySentence === null
+            ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} />
+            : <p className="gaia-activity-empty">{content.emptySentence}</p>}
+          <p className="gaia-activity-footnote">{FOOTNOTE}</p>
+        </section>
+        <aside className="gaia-activity-side" aria-label="Today">
+          <TodaySection head="Landed today" list={content.landedToday} tone="success" />
+          <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" />
+          <UsageSection lines={content.usageLines} linesAtTheLimit={content.usageLinesAtTheLimit} />
+        </aside>
+      </div>
     </div>
   );
 }
@@ -258,7 +290,7 @@ export function activityViewPartsOf(fleetDocument: FleetDocument | null): ViewPa
   return {
     title:   TITLE,
     lead:    LEAD,
-    figures: [],
+    figures: fleetDocument === null ? [] : ActivityModel.titleFiguresOf(fleetDocument),
     actions: null,
     content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} />,
   };

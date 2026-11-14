@@ -2,7 +2,8 @@
  * The Activity view's model (SCREENS A3). What matters: the rows from several forges keep the server's interleaving by `at`, newest first,
  * and the page compares no stamp to reorder them (acceptance 1); a forge that reports no `today` is absent from both side lists, not shown as
  * 0 (acceptance 2); each filter keeps exactly its rows; past three forges the rest sit in the menu; a row links into its forge only when the
- * forge gave it a route; the text is the forge's, unedited; and every value no forge reports stays absent. Clock times are read in UTC, the
+ * forge gave it a route; the text is the forge's, unedited; every value no forge reports stays absent; and, for version 2's look (SCREENS
+ * A3), the kind counts follow the chosen forge and the page title's figures total what the side lists show. Clock times are read in UTC, the
  * fixtures' own zone, so the specs do not depend on the machine's.
  */
 import { describe, expect, test } from 'bun:test';
@@ -127,6 +128,30 @@ describe('the filters', () => {
   });
 });
 
+describe('the counts on the kind filter', () => {
+  test('Needs you and Landed count their entries under the chosen forge, whatever kind is chosen', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).kindCounts).toEqual({ 'needs-user': 5, 'landed': 6 });
+    expect(contentOf(FLEET_FIVE_FORGES, { kind: 'agent', trackerId: TRACKER_IDS.exampleStorefront }).kindCounts).toEqual({ 'needs-user': 2, 'landed': 3 });
+  });
+});
+
+describe('the page title\'s figures', () => {
+  test('what needs User leads in orange, then today\'s landings and tokens as the side lists total them', () => {
+    expect(ActivityModel.titleFiguresOf(FLEET_FIVE_FORGES)).toEqual([
+      { value: '5', label: 'need you', attention: true },
+      { value: '6', label: 'landed today' },
+      { value: '1.24M', label: 'tokens today' },
+    ]);
+  });
+
+  test('what needs User takes a + while a forge is not fully read, and with no forge reporting today only it stands', () => {
+    const notFullyRead = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, incompleteFor: [TRACKER_IDS.researchWiki] } };
+    expect(ActivityModel.titleFiguresOf(notFullyRead)[0]?.value).toBe('5+');
+    const nobodyReports = withForges(FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, today: null })));
+    expect(ActivityModel.titleFiguresOf(nobodyReports).map((figure) => figure.label)).toEqual(['need you']);
+  });
+});
+
 describe('landed today and tokens today', () => {
   test('each lists the forges that report today, in registry order, with a bar relative to the largest', () => {
     const { landedToday, tokensToday } = contentOf(FLEET_FIVE_FORGES);
@@ -190,6 +215,16 @@ describe('the usage line', () => {
     expect(contentOf(limitHit).usageLines).toEqual(['five-hour limit hit · resets 16:00']);
     const noWindow = withForges([{ ...READINGS.exampleStorefront, usage: { ...hitUsage, window: null }, }]);
     expect(contentOf(noWindow).usageLines).toEqual(['limit hit · resets 16:00']);
+  });
+
+  test('only the line of a forge that hit its limit is at the limit', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).usageLinesAtTheLimit).toEqual([]);
+    const hitUsage = {
+      window: 'five-hour', resetsAt: '2026-11-12T16:00:00.000Z', currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
+    };
+    const oneHit = withForges([READINGS.exampleStorefront, { ...READINGS.invoiceService, usage: hitUsage }]);
+    expect(contentOf(oneHit).usageLines).toEqual(['under its limit · window resets 16:00', 'five-hour limit hit · resets 16:00']);
+    expect(contentOf(oneHit).usageLinesAtTheLimit).toEqual(['five-hour limit hit · resets 16:00']);
   });
 
   test('when no forge reports usage there is no line', () => {
