@@ -35,7 +35,7 @@ export const SCREEN_THEMES: readonly ScreenTheme[] = ['light', 'dark'];
 /** Every artboard Gaia's page builds is drawn at this size. */
 export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 
-/** The artboards in `designs/canvas.json`, by their mark. C2 waits for notifications (W5.6); C3, the splash, is a file page of its own. */
+/** The artboards in `designs/canvas.json`, by their mark. C2 is a dialog painted over A4 below; C3, the splash, is a file page of its own. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4';
 
 /** How the view of a screen is set: as the route shows it, with B2's controls in use, or after an update that left a restart pending. */
