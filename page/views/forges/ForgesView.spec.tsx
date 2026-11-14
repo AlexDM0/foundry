@@ -2,8 +2,8 @@
  * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A4, B4): the page title
  * carries the registered and running counts, Look again and "Add a repository", which goes to `#forges/add`; that route opens the dialog
  * over the view; with no forge registered the table says so and the dialog's "Add and start" is off while no forge program is known; a
- * forge that registers appears without a reload; `#forges?forge=` selects that forge's row; the Gaia panel sits under this machine's and
- * follows the document's settings.
+ * render reads the source's newest document, so a newly registered forge and a changed setting show; `#forges?forge=` selects that forge's
+ * row; the Gaia panel sits under this machine's.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
  * would paint for the source's current document.
@@ -57,7 +57,7 @@ describe('the Gaia panel in the view', () => {
     expect(markup).not.toContain('<dialog');
   });
 
-  test('a setting changed elsewhere shows in the panel without a reload', () => {
+  test('renders the source\'s newest document, with a setting changed elsewhere', () => {
     const source = sourceHolding(FLEET_FIVE_FORGES);
     const app = appAt(source, '#forges');
     const tickedStartAtLogin = /<button class="design-system-switch" type="button" role="switch" aria-checked="true" aria-labelledby="gaia-forges-gaia-start-at-login">/;
@@ -84,7 +84,7 @@ describe('the view follows the route and the fleet source', () => {
     expect(markup).toContain('The forge program was not found.');
   });
 
-  test('a forge that registers appears in the table without a reload', () => {
+  test('renders a newly registered forge from the source\'s newest document', () => {
     const source = sourceHolding(FLEET_EMPTY);
     const app = appAt(source, '#forges');
     expect(forgeNamesIn(renderToStaticMarkup(app))).toEqual([]);
