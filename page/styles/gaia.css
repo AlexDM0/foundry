@@ -1133,7 +1133,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-recent-forge { font-weight: var(--weight-strong); }
 .gaia-attention-recent-text { color: var(--ink-muted); }
 
-/* No forge yet */
+/* No forge yet (B4): one column centred in the main area: the welcome, the card that adds a repository and the line under it */
 .gaia-attention-no-forge {
   display: flex;
   box-sizing: border-box;
@@ -1142,20 +1142,23 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   justify-content: center;
   padding: var(--sp-6);
 }
-.gaia-attention-no-forge-column { display: flex; flex-direction: column; gap: var(--sp-5); width: var(--attention-no-forge-width); max-width: 100%; }
-.gaia-attention-no-forge-actions { display: flex; justify-content: flex-end; }
-.gaia-attention-no-forge-intro { display: flex; flex-direction: column; gap: var(--sp-2); }
-.gaia-attention-no-forge-title { margin: 0; font-size: var(--fs-page); font-weight: var(--weight-page-title); letter-spacing: var(--page-title-tracking); }
-.gaia-attention-no-forge-line { margin: 0; color: var(--ink-muted); }
-.gaia-attention-add {
+/* The column sits a little above the middle, as the board lifts it. */
+.gaia-attention-no-forge-column {
   display: flex;
   flex-direction: column;
-  gap: var(--attention-head-gap);
-  padding: var(--sp-4);
-  border: var(--hairline) solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--surface);
+  gap: var(--space-22);
+  width: var(--attention-no-forge-width);
+  max-width: 100%;
+  margin-top: calc(-2 * var(--space-20));
 }
+.gaia-attention-no-forge-intro { display: flex; flex-direction: column; gap: var(--space-8); }
+/* Look again stands beside the welcome on its line's height, so the head keeps the board's spacing. */
+.gaia-attention-no-forge-welcome { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); height: var(--line-height-micro); }
+.gaia-attention-no-forge-actions { display: flex; justify-content: flex-end; }
+.gaia-attention-no-forge-title h2 { margin: 0; text-wrap: balance; }
+.gaia-attention-no-forge-intro > p { margin: 0; }
+.gaia-attention-add h3 { margin: 0; }
+.gaia-attention-no-forge-elsewhere { margin: 0 0 0 auto; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--ink-muted); }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-attention-link:focus-visible,

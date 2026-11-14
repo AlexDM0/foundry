@@ -1,11 +1,13 @@
 /**
- * Attention with no forge registered (SCREENS B4), which heads itself: Look again, since a forge set up elsewhere appears by itself, why
- * nothing waits, the form that adds a repository and starts its forge, and, when no forge program is known, a line that says so with a way
- * to choose one. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form through the shared add-a-repository form and sends its
- * commands.
+ * Attention with no forge registered (SCREENS B4), one column that heads itself: the welcome with Look again, why nothing waits, the card
+ * that adds a repository and starts its forge, and under it either the line that says no forge program is known, with a way to choose one,
+ * or that a forge set up elsewhere appears by itself. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps the form through the shared
+ * add-a-repository form and sends its commands.
  */
 import { Button }         from 'design-system/Button';
+import { Card }           from 'design-system/Card';
 import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
+import { Text }           from 'design-system/Text';
 
 import {
   CommandSender,
@@ -45,26 +47,33 @@ export function NoForgeYetLayout({
   return (
     <div className="gaia-attention-no-forge">
       <div className="gaia-attention-no-forge-column">
-        <div className="gaia-attention-no-forge-actions">
-          <Button label="Look again" compact disabled={CommandSender.stateOf(commandStates, LOOK_AGAIN).onItsWay !== null} onPress={onLookAgain} />
-        </div>
-        <CommandFailureRefusal commandStates={commandStates} subject={LOOK_AGAIN} commandLabel="Look again" onDismissFailure={onDismissFailure} onTryAgain={onLookAgain} />
         <div className="gaia-attention-no-forge-intro">
-          <h2 className="gaia-attention-no-forge-title">Nothing waits on you, because no forge is registered.</h2>
-          <p className="gaia-attention-no-forge-line">
+          <div className="gaia-attention-no-forge-welcome">
+            <MicroCapsLabel text="Welcome to Gaia" />
+            <div className="gaia-attention-no-forge-actions">
+              <Button label="Look again" compact disabled={CommandSender.stateOf(commandStates, LOOK_AGAIN).onItsWay !== null} onPress={onLookAgain} />
+            </div>
+          </div>
+          <CommandFailureRefusal commandStates={commandStates} subject={LOOK_AGAIN} commandLabel="Look again" onDismissFailure={onDismissFailure} onTryAgain={onLookAgain} />
+          <div className="gaia-attention-no-forge-title">
+            <Text typeRole="display" element="h2">Nothing waits on you, because no forge is registered.</Text>
+          </div>
+          <Text typeRole="lead" element="p" muted>
             Gaia runs no agents of its own. It shows the forges on this machine, and a forge appears here the first time it is set up in a repository.
-          </p>
+          </Text>
         </div>
         <section className="gaia-attention-add" aria-labelledby={ADD_HEAD_ID}>
-          <MicroCapsLabel element="h3" id={ADD_HEAD_ID} text="Add a repository" />
-          <AddRepositoryFields
-            form={form}
-            pathChooser={pathChooser}
-            forgeProgramIsMissing={content.forgeProgramIsMissing}
-            commandStates={commandStates}
-            handlers={handlers}
-            onDismissFailure={onDismissFailure}
-          />
+          <Card padding="eighteen" paddingTop="sixteen" gap="sixteen">
+            <Text typeRole="page" element="h3" id={ADD_HEAD_ID}>Add a repository</Text>
+            <AddRepositoryFields
+              form={form}
+              pathChooser={pathChooser}
+              forgeProgramIsMissing={content.forgeProgramIsMissing}
+              commandStates={commandStates}
+              handlers={handlers}
+              onDismissFailure={onDismissFailure}
+            />
+          </Card>
         </section>
         <ForgeProgramMissingLine
           forgeProgramIsMissing={content.forgeProgramIsMissing}
@@ -73,6 +82,7 @@ export function NoForgeYetLayout({
           onChooseForgeProgram={handlers.onChooseForgeProgram}
           onDismissFailure={onDismissFailure}
         />
+        {content.forgeProgramIsMissing ? null : <p className="gaia-attention-no-forge-elsewhere">A forge set up elsewhere appears here by itself.</p>}
       </div>
     </div>
   );

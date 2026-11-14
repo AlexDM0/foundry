@@ -244,6 +244,25 @@ export const HIDDEN_FORGE_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/** B4 with the forge program found where Gaia looks for it, the state the board's `forgeProgram` tweak calls `found`. */
+const FLEET_EMPTY_FORGE_PROGRAM_FOUND: FleetDocument = {
+  ...FLEET_EMPTY,
+  gaia: { ...FLEET_EMPTY.gaia, forgeProgramInUse: `${FLEET_EMPTY.gaia.homeFolder}/.bun/bin/forge` },
+};
+
+/** B4's second state: the artboard paints the forge program missing, as `ARTBOARD_SCREENS` does, and found. */
+export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'B4',
+    title:         'No forge yet, the forge program found',
+    designFile:    'Empty.dc.html',
+    fleetDocument: FLEET_EMPTY_FORGE_PROGRAM_FOUND,
+    fragment:      '#attention',
+    viewState:     'as-routed',
+    onlyTheme:     null,
+  },
+];
+
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 2,

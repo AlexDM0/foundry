@@ -1,6 +1,7 @@
 /**
  * Attention with no forge registered. What matters (SCREENS B4, acceptance 2): the head says why nothing waits; the form adds a repository
- * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program;
+ * and starts it; with no forge program "Add and start" is disabled and the dashed status line says why, with a way to choose the program,
+ * and with one the line under the card says a forge set up elsewhere appears by itself;
  * a refused add shows in the form, and a refused Look again under its button at the head of the screen. The command sender is the real one over Gaia's
  * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
@@ -112,6 +113,12 @@ describe('no forge yet', () => {
     );
     tree.dispatch(buttonNamed([line], 'Choose the forge program'), 'onClick');
     expect(pressed.chooseForgeProgram).toBe(1);
+  });
+
+  test('only with a forge program does the line under the card say a forge set up elsewhere appears by itself', () => {
+    const elsewhereLines = (forgeProgramIsMissing: boolean) => tree.hostElementsIn(layoutOf(forgeProgramIsMissing).unfolded, tree.withClass('gaia-attention-no-forge-elsewhere'));
+    expect(elsewhereLines(false).map((line) => tree.textOf([line]))).toEqual(['A forge set up elsewhere appears here by itself.']);
+    expect(elsewhereLines(true)).toEqual([]);
   });
 
   test('a refused add shows in the form with the forge\'s code and sentence', async () => {
