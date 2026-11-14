@@ -594,10 +594,13 @@ function machineLimitCommand(limit: number): CommandBody {
   return { kind: 'machine-agent-limit-set', limit };
 }
 
-/** The forges whose ready tickets wait for a machine slot, by name, in registry order: `2 in Invoice Service, 1 in Research Wiki`. */
+/**
+ * The forges whose ready tickets wait for a machine slot, by name, in registry order: `2 in Invoice Service, 1 in Research Wiki`. Only a
+ * forge read in full counts, as in the machine's own count; any other keeps what waited before it went out of reach.
+ */
 function waitingByForgeOf(fleetDocument: FleetDocument): string | null {
   const parts = fleetDocument.forges.flatMap((forge) => {
-    const waiting = forge.concurrency?.ticketsWaitingForMachineSlot ?? null;
+    const waiting = forge.fidelity === 'full' ? forge.concurrency?.ticketsWaitingForMachineSlot ?? null : null;
     return waiting === null || waiting === 0 ? [] : [`${waiting} in ${forge.project}`];
   });
   return parts.length === 0 ? null : parts.join(', ');

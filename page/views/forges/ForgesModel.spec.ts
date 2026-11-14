@@ -337,6 +337,14 @@ describe('this machine (A4 acceptance 2 and 3, B2)', () => {
     expect(contentOf(FLEET_FIVE_FORGES).machine.atTheLimitText).toBeNull();
   });
 
+  test('at its limit the panel names no forge whose waiting tickets were read before it went out of reach, as the machine\'s count leaves them out', () => {
+    const researchWikiOutOfReach = FLEET_AT_LIMIT.forges.map((forge) => (
+      forge.trackerId === TRACKER_IDS.researchWiki ? { ...forge, fidelity: 'unreachable' as const, condition: 'unreachable' as const } : forge
+    ));
+    const fleetDocument = { ...FLEET_AT_LIMIT, forges: researchWikiOutOfReach, machine: { ...FLEET_AT_LIMIT.machine, ticketsWaitingForMachineSlot: 2 } };
+    expect(contentOf(fleetDocument).machine.atTheLimitText).toBe('The machine is at its limit. 2 ready tickets wait for a slot: 2 in Invoice Service.');
+  });
+
   test('without F6 the panel says the forge does not enforce a machine limit, and its stepper is off', () => {
     const withoutF6 = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, machineLimit: null } };
     const { machine } = contentOf(withoutF6);
