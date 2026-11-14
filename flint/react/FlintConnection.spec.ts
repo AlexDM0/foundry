@@ -1,7 +1,8 @@
 /**
  * The connection between `<Flint>` and its habitats, on a recording fake of the handle. What matters: a habitat registered before Flint
  * exists reaches it once it attaches; a removed habitat leaves Flint; a detach removes every habitat from the old Flint and keeps them
- * for the next; a cue reaches only an attached Flint.
+ * for the next; a cue reaches only an attached Flint; and a perform reaches the attached Flint with its element, and answers `no-flint`
+ * while none is attached.
  */
 import { expect, test } from 'bun:test';
 
@@ -14,14 +15,19 @@ const CHAT_HABITAT: SpriteHabitat = { kind: 'chat', description: 'The conversati
 function recordingHandle(): { readonly handle: FlintHandle; readonly events: string[] } {
   const events: string[] = [];
   const handle: FlintHandle = {
-    contractVersion: 1,
+    contractVersion: 3,
     registerHabitat: (element, habitat) => {
       events.push(`register ${element.id} ${habitat.kind}`);
       return () => events.push(`remove ${element.id}`);
     },
-    cue:        (element, cueName) => events.push(`cue ${element.id} ${cueName}`),
-    perform:    () => 'performed',
+    cue:     (element, cueName) => events.push(`cue ${element.id} ${cueName}`),
+    perform: (intent, toward) => {
+      events.push(`perform ${intent}${toward === undefined ? '' : ` ${(toward as HTMLElement).id}`}`);
+      return 'performed';
+    },
     steer:      () => 'steered',
+    livesIn:    () => null,
+    attend:     () => 'attended',
     startBrain: () => undefined,
     stopBrain:  () => undefined,
     destroy:    () => undefined,
@@ -60,4 +66,15 @@ test('a cue reaches only an attached Flint', () => {
   connection.attach(handle);
   connection.cue(CHAT_ELEMENT, 'agent-is-writing');
   expect(events).toEqual(['cue chat agent-is-writing']);
+});
+
+test('a perform reaches the attached Flint with its element, and answers no-flint while none is attached', () => {
+  const connection = createFlintConnection();
+  expect(connection.perform('chase-bug', CHAT_ELEMENT)).toBe('no-flint');
+  const { handle, events } = recordingHandle();
+  connection.attach(handle);
+  expect([connection.perform('chase-bug', CHAT_ELEMENT), connection.perform('wave')]).toEqual(['performed', 'performed']);
+  expect(events).toEqual(['perform chase-bug chat', 'perform wave']);
+  connection.detach();
+  expect(connection.perform('wave')).toBe('no-flint');
 });

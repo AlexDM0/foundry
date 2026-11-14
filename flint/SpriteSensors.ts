@@ -10,15 +10,17 @@ import type {
   VisitTargetPolicy
 } from './SpriteHabitat.ts';
 import { isSpriteIntent }              from './SpriteHabitat.ts';
-import type { StandingPlace }          from './SpriteMind.ts';
 import { HABITAT_MINIMUM_SIDE_PIXELS } from './constants/Overlay.ts';
+import type { StandingPlace }          from './mind/MindState.ts';
 import type {
   PerceivedCopyTarget,
   PerceivedHabitat,
+  PerceivedTarget,
   Perception,
   PlaceBox,
   PointerHappening
 } from './mind/Perception.ts';
+import { NO_TARGET }                                from './mind/Perception.ts';
 import type { HabitatRecord }                       from './sensors/HabitatRegistry.ts';
 import { createHabitatRegistry }                    from './sensors/HabitatRegistry.ts';
 import type { ClientPoint, SensedPointerHappening } from './sensors/PointerSensor.ts';
@@ -43,8 +45,8 @@ export interface PerceptionRequest {
   /** The kind the host's storage remembers, while Flint may still move there. */
   readonly storedHabitatKind:   string | null;
   readonly reducedMotion:       boolean;
-  /** The element the host aimed a grab at; its centre is perceived. */
-  readonly reachElement:        Element | null;
+  /** The element the host gave with its intent, to a gesture that aims or to a behaviour; its box is perceived on each frame. */
+  readonly targetElement:       Element | null;
 }
 
 export interface SpriteSensors {
@@ -117,7 +119,10 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
       if (sensed.kind !== 'dropped') return sensed;
       return { kind: 'dropped', habitatId: sensed.at === null ? null : roomyHabitatAt(measured, sensed.at)?.id ?? null };
     };
-    const reachRectangle = request.reachElement?.getBoundingClientRect() ?? null;
+    const targetOf = (element: Element | null): PerceivedTarget => {
+      if (element === null) return NO_TARGET;
+      return element.isConnected ? { kind: 'on-the-page', box: boxOf(element.getBoundingClientRect()) } : { kind: 'gone' };
+    };
     const stored = request.storedHabitatKind === null ? undefined : habitats.find((habitat) => habitat.isRoomy && habitat.kind === request.storedHabitatKind);
     return {
       home:    boxOf(home.getBoundingClientRect()),
@@ -129,13 +134,8 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
       cues:            registry.drainCues(),
       storedHabitatId: stored?.id ?? null,
       stageWidthUnits: overlayRectangle.width / pixelsForOneUnit,
-      reachTarget:     reachRectangle === null
-        ? null
-        : {
-          x: ((reachRectangle.left + reachRectangle.right) / 2 - overlayRectangle.left) / pixelsForOneUnit,
-          y: ((reachRectangle.top + reachRectangle.bottom) / 2 - overlayRectangle.top) / pixelsForOneUnit,
-        },
-      reducedMotion: request.reducedMotion,
+      target:          targetOf(request.targetElement),
+      reducedMotion:   request.reducedMotion,
     };
   };
 

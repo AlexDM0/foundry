@@ -15,6 +15,7 @@ import type {
   ConcurrencyDocument,
   IdentifiedRecord,
   LaunchSlotsDocument,
+  OverseerFactsDocument,
   PageTicketDocument
 } from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                                        from '../../api/TranscriptStreamClient.ts';
@@ -22,6 +23,7 @@ import { Pane }                                                          from '.
 import { TitledBlock }                                                   from '../../design-system/TitledBlock.tsx';
 import type { BridgeClock }                                              from '../../shell/BridgeClock.ts';
 import type { TimestampSlices }                                          from '../../utils/TimeUtil.ts';
+import type { EndedAgentJobDocument }                                    from './AgentJobDocument.ts';
 import { AgentsModel }                                                   from './AgentsModel.ts';
 import { JobControls }                                                   from './JobControls.tsx';
 import { SessionCard }                                                   from './SessionCard.tsx';
@@ -44,7 +46,13 @@ export interface AgentsViewProps {
   /** How a full stamp is sliced; `null` on a board that serves no slices. */
   readonly timestampSlices:   TimestampSlices | null;
   readonly followTranscript?: FollowTranscript;
+  /** The board's `endedJobs`, which Flint answers a landing from; without them it shows none. */
+  readonly endedJobs?:        readonly EndedAgentJobDocument[];
+  /** Without the Overseer's state, Flint is never told that every agent is idle. */
+  readonly overseer?:         OverseerFactsDocument | null;
 }
+
+const NO_ENDED_JOBS: readonly EndedAgentJobDocument[] = Object.freeze([]);
 
 function useNowEverySecond(clock: BridgeClock): Date {
   const [now, setNow] = useState(() => clock.now());
@@ -53,7 +61,8 @@ function useNowEverySecond(clock: BridgeClock): Date {
 }
 
 export function AgentsView({
-  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow
+  project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow,
+  endedJobs = NO_ENDED_JOBS, overseer = null
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -64,7 +73,9 @@ export function AgentsView({
   const sessionJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
   const viewElement = useRef<HTMLDivElement>(null);
-  useAgentPanelHabitat(viewElement, jobs, selectedJobId);
+  useAgentPanelHabitat(viewElement, {
+    jobs, endedJobs, concurrency, overseer
+  }, selectedJobId);
 
   return (
     <div className="agents-view" ref={viewElement}>

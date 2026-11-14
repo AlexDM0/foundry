@@ -1,13 +1,15 @@
 /**
  * `createFlint` in a happy-dom document, driven by a manual frame source so no spec waits on real frames; every box is a stubbed client
  * rectangle. What matters: the overlay is mounted in the root, fixed over the page and blind to the pointer; there is one Flint per
- * document; each frame draws; `perform` takes only an intent of the fixed list, and a grab given an element turns to it; `steer` walks
+ * document; each frame draws; `perform` takes only an intent of the fixed list, and a grab given an element turns to it; a behaviour
+ * that must have an element is refused without one, a chase is refused while one runs, and a behaviour given an element draws its page
+ * shapes from that element's box until the element leaves the page; `steer` walks
  * Flint and takes only a steering of its list; reduced motion holds the hover still; the theme sets the
  * custom properties; a press that moves past the threshold carries Flint and a shorter one is a click; the habitat below a carried Flint
  * is marked as the drop target, and a drop there lands Flint and stores it; a habitat smaller than 100 by 100 pixels is never a drop
  * target nor visited; Flint stops while the tab is hidden or its place is off the screen; a brain answers in place of the rule director
  * for its maximum time only, never while Flint sleeps, never twice at once, and an answer off the list is answered by the rule director;
- * `destroy` stops everything, after which a new Flint may be made.
+ * the handle tells the kind of the habitat Flint lives in; `destroy` stops everything, after which a new Flint may be made.
  */
 import {
   afterEach,
@@ -92,13 +94,13 @@ function overlayOf(root: HTMLElement): SVGSVGElement {
 }
 
 function bodyOf(root: HTMLElement): Element {
-  const body = overlayOf(root).querySelector(`path[d="${BODY_PATH}"]`);
+  const body = overlayOf(root).querySelector(`path[d="${BODY_PATH}"][pointer-events]`);
   if (body === null) throw new Error('no body in the overlay');
   return body;
 }
 
 function figureTransformOf(root: HTMLElement): string | null {
-  return overlayOf(root).querySelector(`path[d="${BODY_PATH}"]`)?.parentElement?.parentElement?.parentElement?.getAttribute('transform') ?? null;
+  return overlayOf(root).querySelector(`path[d="${BODY_PATH}"][pointer-events]`)?.parentElement?.parentElement?.parentElement?.getAttribute('transform') ?? null;
 }
 
 function figurePositionOf(root: HTMLElement): { readonly x: number; readonly y: number } {
@@ -106,8 +108,9 @@ function figurePositionOf(root: HTMLElement): { readonly x: number; readonly y: 
   return { x: Number(match?.groups?.['x']), y: Number(match?.groups?.['y']) };
 }
 
+/** The group that holds all of Flint, after the page's own group behind it. */
 function occlusionOf(root: HTMLElement): string | null {
-  return overlayOf(root).querySelector(':scope > g > g')?.getAttribute('clip-path') ?? null;
+  return overlayOf(root).querySelector(':scope > g > g:not([data-flint-part])')?.getAttribute('clip-path') ?? null;
 }
 
 function advanceFor(frames: ManualFrameSource, milliseconds: number): void {
@@ -207,6 +210,43 @@ describe('perform', () => {
     expect(handle.perform('wave')).toBe('destroyed');
   });
 
+  test('a behaviour that must have an element is refused without one, and changes nothing', () => {
+    const { handle, root, frames } = madeOnPage();
+    frames.advance(16);
+    expect(handle.perform('lay-bar-along')).toBe('needs-an-element');
+    advanceFor(frames, 200);
+    expect(figurePositionOf(root).x).toBe(1000);
+  });
+
+  test('a chase is refused while one runs; its bug is drawn on the page until the element it came from leaves the page', () => {
+    const { handle, root, frames } = madeOnPage();
+    const row = document.createElement('div');
+    root.appendChild(row);
+    placeAt(row, 920, 640, 160, 10);
+    frames.advance(16);
+    expect(handle.perform('chase-bug', row)).toBe('performed');
+    expect(handle.perform('chase-bug', row)).toBe('already-running');
+    advanceFor(frames, 100);
+    expect(handle.perform('chase-bug')).toBe('already-running');
+    const page = overlayOf(root).querySelector('g[data-flint-part="page"]');
+    expect(page?.querySelector('polygon')?.getAttribute('fill')).toBe('var(--flint-alarm, #b7014d)');
+    row.remove();
+    advanceFor(frames, 400);
+    expect(page?.getAttribute('display')).toBe('none');
+    expect(handle.perform('chase-bug')).toBe('performed');
+  });
+
+  test('a bar given to the lay is walked to and risen to, from its box on the page', () => {
+    const { handle, root, frames } = madeOnPage();
+    const bar = document.createElement('div');
+    root.appendChild(bar);
+    placeAt(bar, 920, 640, 160, 10);
+    frames.advance(16);
+    expect(handle.perform('lay-bar-along', bar)).toBe('performed');
+    advanceFor(frames, 2000);
+    expect(figurePositionOf(root).y).toBeLessThan(650);
+  });
+
   test('a visit goes to the habitat the user last focused, around its corner', () => {
     const {
       handle, root, frames, chat
@@ -217,6 +257,23 @@ describe('perform', () => {
     frames.advance(16);
     expect(occlusionOf(root)).toBe('url(#flint-occlusion)');
     expect(figurePositionOf(root).x).toBe(570);
+  });
+});
+
+describe('attend', () => {
+  test('an attendant of the list stays with Flint at the count given, held to its maximum; anything off the list is refused', () => {
+    const { handle, root, frames } = madeOnPage();
+    frames.advance(16);
+    expect(handle.attend('watcher-spark', 9)).toBe('attended');
+    advanceFor(frames, 300);
+    const sparksOf = (): number => root.querySelectorAll('g[data-flint-part="watcher-spark"] rect[width="4"][height="4"][transform^="translate("]').length;
+    expect(sparksOf()).toBe(4);
+    handle.perform('type-angry');
+    advanceFor(frames, 300);
+    expect(sparksOf()).toBe(4);
+    expect(handle.attend('moth', 1)).toBe('unknown-attendant');
+    handle.destroy();
+    expect(handle.attend('watcher-spark', 1)).toBe('destroyed');
   });
 });
 
@@ -329,6 +386,18 @@ describe('the stored habitat', () => {
     const { root, frames } = madeOnPage({ storage: recordingStorage('1:chat') });
     frames.advance(16);
     expect(figurePositionOf(root).x).toBe(400);
+  });
+
+  test('the handle tells the kind of the habitat Flint lives in: none at home, the stored one once Flint is in it, none after destroy', () => {
+    const atHome = madeOnPage();
+    atHome.frames.advance(16);
+    expect(atHome.handle.livesIn()).toBeNull();
+    atHome.handle.destroy();
+    const inChat = madeOnPage({ storage: recordingStorage('1:chat') });
+    inChat.frames.advance(16);
+    expect(inChat.handle.livesIn()).toBe('chat');
+    inChat.handle.destroy();
+    expect(inChat.handle.livesIn()).toBeNull();
   });
 });
 

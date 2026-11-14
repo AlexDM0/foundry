@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { EmoteMarkName }                               from './SpritePose.ts';
-import { emoteMarkAtRest, EMOTE_MARK_PLACES, NEUTRAL_POSE } from './SpritePose.ts';
+import { NEUTRAL_POSE, emoteMarkAtRest } from './SpritePose.ts';
+import { MARK_CATALOG }                  from './marks/MarkCatalog.ts';
 
 describe('the neutral pose', () => {
   test('the eyes are 8 high, shifted 2 to the side Flint faces, level and not happy', () => {
@@ -21,10 +21,11 @@ describe('the neutral pose', () => {
     });
   });
 
-  test('no hand, no shown prop, no mark, no glow and no ember', () => {
+  test('no tint, a full fill, no hand, no shown prop, no mark, no glow, no ember and no attendant', () => {
+    expect([NEUTRAL_POSE.body.tint.amount, NEUTRAL_POSE.body.fillOpacity, NEUTRAL_POSE.attendants]).toEqual([0, 1, []]);
     expect(NEUTRAL_POSE.nearHand).toBeNull();
     expect(NEUTRAL_POSE.farHand).toBeNull();
-    expect(Object.values(NEUTRAL_POSE.props).map((prop) => prop.shown)).toEqual(Array.from({ length: 10 }, () => 0));
+    expect(Object.values(NEUTRAL_POSE.props).every((prop) => prop.shown === 0)).toBe(true);
     expect(NEUTRAL_POSE.emoteMark).toBeNull();
     expect(NEUTRAL_POSE.sleep).toEqual({ glowOpacity: 0, embers: [] });
   });
@@ -47,9 +48,10 @@ describe('the emote marks at rest', () => {
     });
   });
 
-  test('every mark name has a place', () => {
-    expect(Object.keys(EMOTE_MARK_PLACES).sort()).toEqual(([
+  test('the mark catalog holds the nine marks of the character sheet', () => {
+    const names: readonly string[] = MARK_CATALOG.map((mark) => mark.name);
+    expect([...names].sort()).toEqual([
       'anger-vein', 'sweat-drop', 'exclamation', 'question', 'thinking-dots', 'lightbulb', 'happy-glints', 'sweat-beads', 'greeting',
-    ] satisfies EmoteMarkName[]).sort());
+    ].sort());
   });
 });

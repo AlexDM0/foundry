@@ -17,3 +17,6 @@ export const HAND_SHRINK_STEP_MULTIPLIER = 2;
 export const MAXIMUM_FRAME_STEP_MILLISECONDS = 33;
 
 export const MILLISECONDS_PER_SECOND = 1000;
+
+/** An attendant member the host took away is gone once the easing has shrunk it below this scale. */
+export const VANISHED_ATTENDANT_SCALE = 0.02;

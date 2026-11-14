@@ -8,7 +8,8 @@
     ".": "./CreateFlint.ts",
     "./SpriteHabitat": "./SpriteHabitat.ts",
     "./react": "./react/Flint.tsx",
-    "./react/UseFlintHabitat": "./react/UseFlintHabitat.ts"
+    "./react/UseFlintHabitat": "./react/UseFlintHabitat.ts",
+    "./react/UseFlintPerform": "./react/UseFlintPerform.ts"
   },
   "peerDependencies": {
     "react": ">=19"

@@ -2,6 +2,7 @@
  * The Merge queue detail in a happy-dom document. What matters: with merge approval on, the tickets waiting for merge show in a list of
  * their own, apart from the queued candidates, each with its forecast pill and a link to its detail panel; with merge approval off no such
  * list shows.
+ * The view is a workplace of Flint.
  */
 import {
   cleanup,
@@ -64,4 +65,9 @@ describe('merge approval off', () => {
     expect(screen.queryByRole('region', { name: /Waiting for merge/u })).toBeNull();
     expect(screen.queryByText('Waiting for merge')).toBeNull();
   });
+});
+
+test('the view is a workplace of Flint', () => {
+  renderedTarget(QUEUED_TARGET);
+  expect(screen.getByRole('region', { name: 'Merge queue' }).hasAttribute('data-flint-workplace')).toBe(true);
 });

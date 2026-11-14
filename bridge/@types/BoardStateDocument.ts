@@ -147,6 +147,8 @@ export interface BoardStateDocument {
   readonly confinement?: 'confined' | 'unavailable' | 'unconfined-by-design';
   readonly page?:        PageDocument;
   readonly mergeQueue?:  MergeQueueDocument;
+  /** The newest jobs that left the board, oldest first, each with how it ended. */
+  readonly endedJobs?:   readonly (IdentifiedRecord & { readonly outcome: string })[];
 }
 
 /** `GET /api/identity`: what the Bridge needs to key its preferences and to notice new code behind the same port. */

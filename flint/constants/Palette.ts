@@ -21,6 +21,8 @@ export const FLINT_COLOURS = {
   graphite:          { property: '--flint-graphite', fallback: '#454545' },
   lens:              { property: '--flint-lens', fallback: '#eef6f8' },
   keyboard:          { property: '--flint-keyboard', fallback: '#e6e6e6' },
+  /** The light grey of every other device: a crate, a wall, a rail, a socket. */
+  hardware:          { property: '--flint-hardware', fallback: '#e6e6e6' },
   bolt:              { property: '--flint-bolt', fallback: '#a8a8a8' },
   thinking:          { property: '--flint-thinking', fallback: '#8a8a8a' },
   bulbGlassLight:    { property: '--flint-bulb-glass-light', fallback: '#ffedb8' },
@@ -33,6 +35,8 @@ export const FLINT_COLOURS = {
   bulbFittingMiddle: { property: '--flint-bulb-fitting-middle', fallback: '#9a9a9a' },
   bulbFittingShadow: { property: '--flint-bulb-fitting-shadow', fallback: '#5c5c5c' },
   bulbContact:       { property: '--flint-bulb-contact', fallback: '#5c5c5c' },
+  husk:              { property: '--flint-husk', fallback: '#f3c9a8' },
+  ribbon:            { property: '--flint-ribbon', fallback: '#8cc7d0' },
 } as const satisfies Readonly<Record<string, { readonly property: `--flint-${string}`; readonly fallback: `#${string}` }>>;
 
 export type FlintColourRole = keyof typeof FLINT_COLOURS;

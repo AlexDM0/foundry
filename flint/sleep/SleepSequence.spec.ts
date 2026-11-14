@@ -152,6 +152,7 @@ describe('the embers', () => {
       sleep:   (incoming) => sleepPartOf({
         state: asleep, elapsedMilliseconds, incomingEyeHeight: incoming.eyes.height, reducedMotion: false
       }),
+      attendants:    [],
       reducedMotion: false,
     }).sleep.embers;
     expect(embersFacing(-1)).toEqual(embersFacing(1));

@@ -23,3 +23,10 @@ export const EYE_SHAPE = {
   HAPPY_EYES_PATH:         'M-6 -22 q2.5 -6 5 0 M4 -22 q2.5 -6 5 0',
   HAPPY_EYES_STROKE_UNITS: 2.5,
 } as const;
+
+/** The dashed outline of `06-more-animations.md`, "New channels of the pose", that the body shows while its fill fades. */
+export const BODY_OUTLINE = {
+  STROKE_UNITS: 1.5,
+  DASH_UNITS:   3,
+  GAP_UNITS:    2,
+} as const;

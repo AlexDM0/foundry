@@ -18,8 +18,10 @@ h1{font-size:18px;margin:0 0 12px}
 .card .title{top:14px;width:56px;height:6px;background:var(--card-title)}
 .card .button{left:12px;top:80px;width:34px;height:14px;border-radius:3px;background:var(--accent)}
 .floating-target{position:absolute;left:474px;top:94px;width:12px;height:12px;background:var(--accent)}
+.timeline-bar{position:absolute;left:300px;top:168px;width:220px;height:10px;border-radius:3px;background:var(--card-edge)}
 .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
 .controls strong{font-weight:600;color:var(--muted);min-width:64px}
+.controls input[type="number"]{width:48px;font:inherit}
 button{font:inherit;padding:6px 12px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;cursor:pointer}
 button:hover{border-color:#a8a8a8}
 label{display:inline-flex;gap:4px;align-items:center}
@@ -30,11 +32,12 @@ p{color:var(--muted);font-size:13px;margin:12px 0 0}
 <body>
 <main>
 <h1>Flint</h1>
-<div id="stage" class="stage" tabindex="0" role="application" aria-label="Flint demo stage. Arrow keys move, space jumps, P points, T and R cycle typing and reviewing, G grabs, F fastens, S sleeps, M merges, E researches, K makes a ticket, H waves, O pops in, 1 to 8 show emotes, Escape rests.">
+<div id="stage" class="stage" tabindex="0" role="application" aria-label="Flint demo stage. Arrow keys move, space jumps, Escape rests; the buttons below carry out every intent.">
 <div class="floor"></div>
 <div id="home" class="home"></div>
 <div id="card" class="card"><span class="title"></span><span style="top:30px;width:94px"></span><span style="top:40px;width:80px"></span><span style="top:50px;width:88px"></span><span class="button"></span></div>
 <div id="floating-target" class="floating-target"></div>
+<div id="timeline-bar" class="timeline-bar"></div>
 </div>
 <div class="controls">
 <strong>Move</strong>
@@ -45,38 +48,10 @@ p{color:var(--muted);font-size:13px;margin:12px 0 0}
 <button data-steering="face-right">Face right</button>
 <button data-steering="rest">Idle</button>
 </div>
-<div class="controls">
-<strong>Work</strong>
-<button data-intent="type">Type</button>
-<button data-intent="type-busy">Type busily</button>
-<button data-intent="type-angry">Type angrily</button>
-<button data-intent="review">Review</button>
-<button data-intent="review-busy">Review busily</button>
-<button data-intent="review-angry">Review angrily</button>
-<button data-intent="research">Research</button>
-<button data-intent="make-ticket">Make ticket</button>
-<button data-intent="merge">Merge</button>
-<button data-intent="fasten">Fasten</button>
-<button data-intent="point">Point</button>
-<button data-intent="grab">Grab</button>
-</div>
-<div class="controls">
-<strong>Social</strong>
-<button data-intent="wave">Wave</button>
-<button data-intent="visit">Pop in</button>
-<button data-intent="sleep">Sleep</button>
-</div>
-<div class="controls">
-<strong>Emotes</strong>
-<button data-intent="annoyed">1 Annoyed</button>
-<button data-intent="sweatdrop">2 Sweatdrop</button>
-<button data-intent="surprised">3 Surprised</button>
-<button data-intent="doubt">4 Doubt</button>
-<button data-intent="thinking">5 Thinking</button>
-<button data-intent="idea">6 Idea</button>
-<button data-intent="happy">7 Happy</button>
-<button data-intent="nervous">8 Nervous</button>
-</div>
+<div id="gesture-controls" class="controls"><strong>Gestures</strong></div>
+<div id="emote-controls" class="controls"><strong>Emotes</strong></div>
+<div id="behaviour-controls" class="controls"><strong>Behaviours</strong></div>
+<div id="attendant-controls" class="controls"><strong>Attendants</strong></div>
 <div class="controls">
 <strong>Options</strong>
 <label><input type="radio" name="size" value="1" checked> 1 pixel for one unit</label>
@@ -85,7 +60,7 @@ p{color:var(--muted);font-size:13px;margin:12px 0 0}
 <label><input type="radio" name="ground" value="light" checked> Light ground</label>
 <label><input type="radio" name="ground" value="dark"> Dark ground</label>
 </div>
-<p>Click Flint to play with the pointer. Drag Flint to carry it; drop it on the card, or anywhere else to see it doubt and go back. Pop in sends Flint around the corner of the card and into it; Sleep sends it home. Last: <span id="readout">nothing yet</span></p>
+<p>Click Flint to play with the pointer. Drag Flint to carry it; drop it on the card, or anywhere else to see it doubt and go back. The controls come from the catalogs: visit sends Flint around the corner of the card and into it; sleep sends it home; a gesture that aims, as grab, reaches for the orange square; a behaviour that takes an element, as chase-bug and lay-bar-along, is given the grey bar of a ticket. Last: <span id="readout">nothing yet</span></p>
 </main>
 <script type="module" src="./DemoEntry.ts"></script>
 </body>

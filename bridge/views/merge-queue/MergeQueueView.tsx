@@ -1,14 +1,19 @@
 /**
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
- * waiting for merge links to its detail panel, which holds Accept and Update branch.
+ * waiting for merge links to its detail panel, which holds Accept and Update branch. It is the merge-queue habitat of Flint.
  */
+import { useRef } from 'react';
+
 import { PriorityMark }                                                         from '../../chips/TicketMarks.tsx';
 import { EmptyState }                                                           from '../../design-system/ListSection.tsx';
 import { IdLink }                                                               from '../../design-system/MonoId.tsx';
 import { StateBadge }                                                           from '../../design-system/StateBadge.tsx';
+import { useHabitatCues }                                                       from '../../flint/UseHabitatHappenings.ts';
 import { DetailRoute }                                                          from '../../shell/DetailRoute.ts';
 import { HashRouter }                                                           from '../../shell/HashRouter.ts';
 import { FIVE_KEY_ORDER_TEXT, type MergeQueueTarget, type WaitingForMergeLine } from './MergeQueueModel.ts';
+import { MERGE_QUEUE_SPRITE_HABITAT }                                           from './MergeQueueSpriteHabitat.ts';
+import { MergeQueueSpriteModel }                                                from './MergeQueueSpriteModel.ts';
 
 const NOTHING_QUEUED_TEXT = 'Nothing is queued to merge.';
 
@@ -28,8 +33,10 @@ function ForecastParts({ line }: { readonly line: WaitingForMergeLine }) {
 }
 
 export function MergeQueueView({ targets }: MergeQueueViewProps) {
+  const viewElement = useRef<HTMLElement>(null);
+  useHabitatCues(viewElement, MERGE_QUEUE_SPRITE_HABITAT, targets, MergeQueueSpriteModel.cuesBetween);
   return (
-    <section className="bridge-merge-queue" aria-label="Merge queue">
+    <section className="bridge-merge-queue" aria-label="Merge queue" ref={viewElement} data-flint-workplace="">
       <p className="bridge-merge-order">{FIVE_KEY_ORDER_TEXT}</p>
       {targets.length === 0 ? <EmptyState text={NOTHING_QUEUED_TEXT} /> : null}
       {targets.map((target) => (

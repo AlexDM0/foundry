@@ -1,7 +1,8 @@
 /**
  * The order of the layers and how a part lays over the pose below it. What matters: the order is behaviour, gesture, emote, sleep,
- * reduced motion; an emote's mark hides a gesture's; added offsets add and factors multiply, so a hop rides on a busy bob; a hand given
- * as null goes and an absent one stays; sleep reads the eye height the emote left; reduced motion stops every bob, shake, squash and swing.
+ * attendants, reduced motion; no part removes the attendants; an emote's mark hides a gesture's; a tint and a fill replace the body's;
+ * added offsets add and factors multiply, so a hop rides on a busy bob; a hand given as null goes and an absent one stays; sleep reads
+ * the eye height the emote left; reduced motion stops every bob, shake, squash and swing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -12,15 +13,38 @@ import {
   poseWithPart
 } from './PoseComposition.ts';
 import type { HandPose, PosePart }       from './SpritePose.ts';
-import { emoteMarkAtRest, NEUTRAL_POSE } from './SpritePose.ts';
+import { NEUTRAL_POSE, emoteMarkAtRest } from './SpritePose.ts';
 
 const SQUARE_HAND: HandPose = {
   cornerCount: 4, centreX: 22, centreY: -10, radius: 6.4, turnDegrees: 45, placement: 'eased',
 };
 
 describe('the composition order', () => {
-  test('is behaviour, gesture, emote, sleep, then reduced motion', () => {
-    expect(POSE_COMPOSITION_ORDER).toEqual(['behaviour', 'gesture', 'emote', 'sleep', 'reduced-motion']);
+  test('is behaviour, gesture, emote, sleep, the attendants, then reduced motion', () => {
+    expect(POSE_COMPOSITION_ORDER).toEqual(['behaviour', 'gesture', 'emote', 'sleep-sequence', 'attendants', 'reduced-motion']);
+  });
+
+  test('the attendants come after every part, so no gesture, emote or sleep removes them, also under reduced motion', () => {
+    const member = {
+      name: 'watcher-spark', index: 0, x: -26, y: -44, turnDegrees: 45, scale: 1,
+    } as const;
+    for (const reducedMotion of [false, true]) {
+      const pose = composedTargetPose({
+        base:       NEUTRAL_POSE,
+        gesture:    () => ({ nearHand: null, emoteMark: null }),
+        emote:      () => ({ eyes: { happiness: 1 } }),
+        sleep:      () => ({ sleep: { glowOpacity: 1, embers: [] } }),
+        attendants: [member],
+        reducedMotion,
+      });
+      expect(pose.attendants).toEqual([member]);
+    }
+  });
+
+  test('a tint and a fill opacity replace those of the layers below', () => {
+    const tinted = poseWithPart(NEUTRAL_POSE, { body: { tint: { role: 'emberDark', amount: 0.85 }, fillOpacity: 0.4 } });
+    expect([tinted.body.tint, tinted.body.fillOpacity]).toEqual([{ role: 'emberDark', amount: 0.85 }, 0.4]);
+    expect(poseWithPart(tinted, { body: { addedLift: 1 } }).body.tint).toEqual({ role: 'emberDark', amount: 0.85 });
   });
 
   test('an emote\'s mark hides the gesture\'s greeting', () => {
@@ -29,6 +53,7 @@ describe('the composition order', () => {
       gesture:       () => ({ emoteMark: emoteMarkAtRest('greeting') }),
       emote:         () => ({ emoteMark: emoteMarkAtRest('question') }),
       sleep:         NO_LAYER,
+      attendants:    [],
       reducedMotion: false,
     });
     expect(pose.emoteMark?.name).toBe('question');
@@ -44,6 +69,7 @@ describe('the composition order', () => {
         seenEyeHeights.push(incoming.eyes.height);
         return null;
       },
+      attendants:    [],
       reducedMotion: false,
     });
     expect(seenEyeHeights).toEqual([10]);
@@ -90,6 +116,7 @@ describe('reduced motion', () => {
       }),
       emote:         () => ({ eyes: { height: 10 } }),
       sleep:         NO_LAYER,
+      attendants:    [],
       reducedMotion: true,
     });
     expect(pose.body).toMatchObject({
@@ -100,7 +127,7 @@ describe('reduced motion', () => {
 
   test('keeps a hover that sleep has landed', () => {
     const pose = composedTargetPose({
-      base: NEUTRAL_POSE, gesture: NO_LAYER, emote: NO_LAYER, sleep: () => ({ body: { hover: 0 } }), reducedMotion: true,
+      base: NEUTRAL_POSE, gesture: NO_LAYER, emote: NO_LAYER, sleep: () => ({ body: { hover: 0 } }), attendants: [], reducedMotion: true,
     });
     expect(pose.body.hover).toBe(0);
   });

@@ -13,6 +13,7 @@ export const CHAT_CUES = Object.freeze({
   AGENT_FAILED:          'agent-failed',
   AGENT_IS_DONE:         'agent-is-done',
   USER_IS_TYPING:        'user-is-typing',
+  DRAFT_IS_RESEARCHING:  'draft-is-researching',
 } satisfies Readonly<Record<string, SpriteCue>>);
 
 export const CHAT_SPRITE_HABITAT: SpriteHabitat = Object.freeze({
@@ -26,5 +27,6 @@ export const CHAT_SPRITE_HABITAT: SpriteHabitat = Object.freeze({
     { when: CHAT_CUES.AGENT_ASKS_A_QUESTION, respond: 'doubt', note: 'Then look at the composer, where User answers.' },
     { when: CHAT_CUES.AGENT_FAILED, respond: 'sweatdrop' },
     { when: CHAT_CUES.AGENT_IS_DONE, respond: 'happy' },
+    { when: CHAT_CUES.DRAFT_IS_RESEARCHING, respond: 'research', note: 'A filing draft is researched: no question of it waits on User.' },
   ]),
 });

@@ -4,8 +4,8 @@
  */
 import { expect, test } from 'bun:test';
 
+import { INITIAL_MIND_STATE }               from '../../SpriteMind.ts';
 import { CHAT_BOX, HOME_BOX, perceptionOf } from '../../testing/MindRun.ts';
-import { INITIAL_MIND_STATE }               from '../MindState.ts';
 import { PlaceUtil }                        from './PlaceUtil.ts';
 
 const NARROW = {

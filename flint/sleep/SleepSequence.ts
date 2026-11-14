@@ -3,10 +3,10 @@
  * keeps a `SleepState` and changes it only through the transitions here, so this module owns the state's shape. The level is a pure
  * function of the state and the time: it rises at the falling-asleep rate and drops at the waking rate.
  */
-import { easingFractionOf }                                 from '../PoseEasing.ts';
 import type { EmberPose, PosePart }                         from '../SpritePose.ts';
 import { EASING_RATES_PER_SECOND, MILLISECONDS_PER_SECOND } from '../constants/Easing.ts';
 import { SLEEP_LEVELS, SLEEP_POSE }                         from '../constants/SleepMotion.ts';
+import { AnimationCurveUtil }                               from '../utils/AnimationCurveUtil.ts';
 import type { FadingEmbers }                                from './Embers.ts';
 import { emberFadeAt, embersOf }                            from './Embers.ts';
 
@@ -38,10 +38,10 @@ export function sleepLevelAt(state: SleepState, elapsedMilliseconds: number): nu
   if (state.phase === 'awake') return 0;
   const sincePhaseStart = Math.max(0, elapsedMilliseconds - state.sinceMilliseconds);
   if (state.phase === 'asleep') {
-    const risen = easingFractionOf(EASING_RATES_PER_SECOND.FALLING_ASLEEP, sincePhaseStart);
+    const risen = AnimationCurveUtil.easingFractionOf(EASING_RATES_PER_SECOND.FALLING_ASLEEP, sincePhaseStart);
     return state.levelAtStart + ((1 - state.levelAtStart) * risen);
   }
-  return state.levelAtStart * (1 - easingFractionOf(EASING_RATES_PER_SECOND.WAKING, sincePhaseStart));
+  return state.levelAtStart * (1 - AnimationCurveUtil.easingFractionOf(EASING_RATES_PER_SECOND.WAKING, sincePhaseStart));
 }
 
 /** Flint lies down; a Flint that already sleeps keeps its sleep, and embers of an earlier sleep go on fading. */
@@ -106,7 +106,7 @@ export function sleepIsActive(state: SleepState): boolean {
 
 /**
  * Sleep's part of the target pose. While asleep the hover and the lean change at once and the body easing makes the move; the eyes, the
- * breath and the glow follow the level, also while Flint wakes.
+ * breath and the glow follow the level, also while Flint wakes. The glow is set exactly, since the level already times it.
  */
 export function sleepPartOf(input: SleepInput): PosePart | null {
   const {
@@ -122,8 +122,9 @@ export function sleepPartOf(input: SleepInput): PosePart | null {
   const lyingDown = state.phase === 'asleep' ? { hover: SLEEP_POSE.HOVER_UNITS, leanDegrees: SLEEP_POSE.LEAN_DEGREES } : {};
   const brightness = SLEEP_POSE.GLOW_BASE_OPACITY + (SLEEP_POSE.GLOW_BREATH_OPACITY * ((1 + breath) / 2));
   return {
-    body:  { ...breathing, ...lyingDown },
-    eyes:  { height: incomingEyeHeight + ((SLEEP_POSE.CLOSED_EYE_HEIGHT_UNITS - incomingEyeHeight) * level) },
-    sleep: { glowOpacity: level * brightness, embers: reducedMotion ? [] : visibleEmbersOf(state, elapsedMilliseconds) },
+    body:        { ...breathing, ...lyingDown },
+    eyes:        { height: incomingEyeHeight + ((SLEEP_POSE.CLOSED_EYE_HEIGHT_UNITS - incomingEyeHeight) * level) },
+    sleep:       { glowOpacity: level * brightness, embers: reducedMotion ? [] : visibleEmbersOf(state, elapsedMilliseconds) },
+    exactFields: ['inner-glow'],
   };
 }

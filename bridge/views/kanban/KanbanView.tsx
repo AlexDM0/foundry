@@ -4,6 +4,7 @@
  * panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains scroll room
  * the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header figure
  * points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per board.
+ * The Kanban is the tickets habitat of Flint (`bridge/flint/UseTicketsHabitat.ts`).
  */
 import {
   Fragment,
@@ -22,6 +23,7 @@ import { PriorityMark, TypeMark, WaitingOnMark }                          from '
 import { TextButton }                                                     from '../../design-system/Button.tsx';
 import { MonoId }                                                         from '../../design-system/MonoId.tsx';
 import { Tag }                                                            from '../../design-system/Tag.tsx';
+import { useTicketsHabitat }                                              from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
 import { CommandButton }                                                  from '../../shell/CommandButton.tsx';
@@ -480,6 +482,8 @@ export function KanbanView({
   const clock = useBridgeClock();
   const routing = useDetailRouting();
   const finishedWork = useFinishedWorkWindow();
+  const viewElement = useRef<HTMLElement>(null);
+  useTicketsHabitat(viewElement, boardState.page.tickets);
   const [selectedTicketIds, setSelectedTicketIds] = useState<readonly string[]>([]);
   const [shownBoardState, setShownBoardState] = useState(boardState);
   const [shownFilters, setShownFilters] = useState(filters);
@@ -644,7 +648,7 @@ export function KanbanView({
   };
 
   return (
-    <section className="bridge-kanban" aria-label="Kanban">
+    <section className="bridge-kanban" aria-label="Kanban" ref={viewElement} data-flint-workplace="">
       <div
         className="bridge-kanban-frame"
         ref={frameReference}

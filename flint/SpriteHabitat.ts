@@ -1,52 +1,54 @@
 /**
  * The contracts between Flint and its host (`03-behaviour-and-architecture.md`, "The sprite field"): the habitat a host component
  * declares, the fixed list of intents Flint can carry out, and the director that picks the next intent. Habitat kinds and cue names are
- * the host's own strings; Flint knows no host component.
+ * the host's own strings; Flint knows no host component. The intents and the attendants come from the catalogs, the behaviour intents
+ * from the behaviour catalog.
  */
+import type { AttendantName }              from './attendants/AttendantCatalog.ts';
+import { ATTENDANT_CATALOG }               from './attendants/AttendantCatalog.ts';
+import type { BehaviourIntent }            from './behaviours/BehaviourCatalog.ts';
+import { BEHAVIOUR_INTENTS }               from './behaviours/BehaviourCatalog.ts';
+import { ARRIVED_CUE as ARRIVED_CUE_NAME } from './constants/Mind.ts';
+import type { EmoteName }                  from './emotes/EmoteCatalog.ts';
+import { EMOTE_NAMES }                     from './emotes/EmoteCatalog.ts';
+import type { GestureIntent }              from './gestures/GestureCatalog.ts';
+import { GESTURE_INTENTS }                 from './gestures/GestureCatalog.ts';
 
 /** The attribute that marks Flint's overlay in the host's document: a host reads it to tell a press on Flint from a press on its page. */
 export const FLINT_OVERLAY_ATTRIBUTE = 'data-flint';
 
 /** Each contract carries its own version; a change of shape or meaning raises it. */
 export const FLINT_CONTRACT_VERSIONS = Object.freeze({
-  spriteHabitat: 1,
-  spriteIntents: 1,
-  storedHabitat: 1,
+  spriteHabitat:    3,
+  spriteIntents:    3,
+  spriteAttendants: 1,
+  storedHabitat:    1,
 });
 
-/** Every move Flint knows. A suggestion, a director and `perform` pick from this list only; anything else is refused. */
-export const SPRITE_INTENTS = Object.freeze([
-  'wander',
-  'visit',
-  'copy',
-  'sleep',
-  'wave',
-  'point',
-  'type',
-  'type-busy',
-  'type-angry',
-  'review',
-  'review-busy',
-  'review-angry',
-  'research',
-  'make-ticket',
-  'merge',
-  'fasten',
-  'grab',
-  'annoyed',
-  'sweatdrop',
-  'surprised',
-  'doubt',
-  'thinking',
-  'idea',
-  'happy',
-  'nervous',
-] as const);
+export type { BehaviourIntent };
 
-export type SpriteIntent = typeof SPRITE_INTENTS[number];
+/** The intents that ask for a behaviour of the mind rather than an animation, from the behaviour catalog. */
+export { BEHAVIOUR_INTENTS };
+
+export type SpriteIntent = BehaviourIntent | GestureIntent | EmoteName;
+
+/**
+ * Every move Flint knows: the behaviour intents, then the intents of every gesture and emote of the catalogs. A suggestion, a director and
+ * `perform` pick from this list only; anything else is refused.
+ */
+export const SPRITE_INTENTS: readonly SpriteIntent[] = Object.freeze([...BEHAVIOUR_INTENTS, ...GESTURE_INTENTS, ...EMOTE_NAMES]);
 
 export function isSpriteIntent(value: string): value is SpriteIntent {
   return (SPRITE_INTENTS as readonly string[]).includes(value);
+}
+
+export type SpriteAttendant = AttendantName;
+
+/** Every attendant the host can give `attend`, from the attendant catalog. */
+export const SPRITE_ATTENDANTS: readonly SpriteAttendant[] = Object.freeze(ATTENDANT_CATALOG.map((definition) => definition.name));
+
+export function isSpriteAttendant(value: string): value is SpriteAttendant {
+  return (SPRITE_ATTENDANTS as readonly string[]).includes(value);
 }
 
 /**
@@ -65,7 +67,7 @@ export function isFlintSteering(value: string): value is FlintSteering {
 export type SpriteCue = string;
 
 /** The one cue Flint raises itself: it arrived in a habitat, after a visit or a drop. A suggestion answers it like a host's cue. */
-export const ARRIVED_CUE: SpriteCue = 'arrived';
+export const ARRIVED_CUE: SpriteCue = ARRIVED_CUE_NAME;
 
 export interface SpriteSuggestion {
   readonly when:    SpriteCue;

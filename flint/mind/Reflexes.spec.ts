@@ -1,13 +1,14 @@
 /**
  * The reflexes that run before any intent. What matters: on its first floor Flint stands in the middle, and a stored habitat on the page
  * takes Flint in while it may still move there; any cue wakes Flint and ends the quiet, but only the cues of the habitat it lives in wait
- * for the director, up to the limit of recent cues; a habitat that leaves the page or becomes too small sends Flint home, still asleep if
- * it slept, while a visit, a drag, a landing or a stranding goes on; a drag carries Flint and its drop lands or strands it; and a click
- * starts cursor play only where a click interrupts.
+ * for the director, up to the limit of recent cues; a habitat that leaves the page or becomes too small sends Flint home to rest, while
+ * sleep, which stands at home, a visit, a drag, a landing or a stranding goes on; a drag carries Flint and its drop lands or strands it;
+ * and a click starts cursor play only where a click interrupts.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { DIRECTOR }                from '../constants/Behaviours.ts';
+import { INITIAL_MIND_STATE }      from '../SpriteMind.ts';
+import { DIRECTOR }                from '../constants/Mind.ts';
 import { sleepStateFallingAsleep } from '../sleep/SleepSequence.ts';
 import {
   AGENTS,
@@ -17,7 +18,6 @@ import {
   perceptionOf
 } from '../testing/MindRun.ts';
 import type { SpriteMindState } from './MindState.ts';
-import { INITIAL_MIND_STATE }   from './MindState.ts';
 import {
   mindStateAfterCues,
   mindStateAfterHappenings,
@@ -62,7 +62,7 @@ describe('cues', () => {
   test('a cue of another habitat wakes Flint and ends the quiet, and does not wait for the director', () => {
     const sleeping = { ...IN_CHAT, behaviour: { name: 'sleep' } as const, sleep: sleepStateFallingAsleep(IN_CHAT.sleep, 0) };
     const heard = mindStateAfterCues(sleeping, perceptionOf({ cues: [{ habitatId: 'agents', cue: 'agent-works' }] }), 5000);
-    expect([heard.behaviour.name, heard.sleep.phase, heard.quietSinceMilliseconds, heard.directorInbox]).toEqual(['wander', 'waking', 5000, []]);
+    expect([heard.behaviour.name, heard.sleep.phase, heard.quietSinceMilliseconds, heard.directorInbox]).toEqual(['sleep', 'waking', 5000, []]);
   });
 
   test('the cues of the habitat Flint lives in wait for the director, and the recent cues keep only the newest', () => {
@@ -79,7 +79,7 @@ describe('keeping its place', () => {
       ...IN_CHAT,
       directorInbox: ['agent-is-done'],
       gesture:       {
-        name: 'type', mood: 'normal', startedAtMilliseconds: 0, target: null, verdict: null
+        intent: 'type', startedAtMilliseconds: 0, target: null, verdict: null
       } as const
     };
     for (const habitats of [[AGENTS], [{ ...CHAT, isRoomy: false }, AGENTS]]) {
@@ -88,7 +88,7 @@ describe('keeping its place', () => {
     }
   });
 
-  test('a sleeping Flint goes home still asleep', () => {
+  test('a sleeping Flint, which stands at home, sleeps on', () => {
     const sleeping = { ...IN_CHAT, behaviour: { name: 'sleep' } as const };
     expect(mindStateKeepingItsPlace(sleeping, perceptionOf({ habitats: [AGENTS] }), 5000).behaviour.name).toBe('sleep');
   });
@@ -111,7 +111,7 @@ describe('the pointer', () => {
     const carried = mindStateAfterHappenings(IN_CHAT, perceptionOf({ happenings: [{ kind: 'drag-started' }] }), 5000);
     const onAgents = mindStateAfterHappenings(carried, perceptionOf({ happenings: [{ kind: 'dropped', habitatId: 'agents' }] }), 6000);
     const onNothing = mindStateAfterHappenings(carried, perceptionOf({ happenings: [{ kind: 'dropped', habitatId: null }] }), 6000);
-    expect([onAgents.behaviour.name, onNothing.behaviour.name]).toEqual(['dropped', 'stranded']);
+    expect([onAgents.behaviour.name, onNothing.behaviour.name]).toEqual(['landing', 'stranded']);
     expect(mindStateAfterHappenings(IN_CHAT, perceptionOf({ happenings: [{ kind: 'dropped', habitatId: 'agents' }] }), 6000)).toBe(IN_CHAT);
   });
 

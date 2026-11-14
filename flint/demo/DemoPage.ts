@@ -1,44 +1,27 @@
 /**
  * The demo page: the playground of the design handoff rebuilt on the package. It is a host like any other: it gives Flint a home, a card
- * as a habitat and a visit-target policy, and it drives every animation through `perform` and `steer`. Its controls are in
- * `flint/demo/index.html`, each naming its intent or steering in a `data-` attribute.
+ * as a habitat and a visit-target policy, and it drives every animation through `perform`, `attend` and `steer`. It makes one control
+ * for each intent and each attendant from the catalogs, so a new animation shows here with no change: a gesture that aims is given the
+ * floating square, and a behaviour that takes an element the grey bar of a ticket. The movement controls are in `flint/demo/index.html`,
+ * each naming its steering in a `data-` attribute.
  */
 import type { FlintHandle }                        from '../CreateFlint.ts';
 import { createFlint }                             from '../CreateFlint.ts';
 import { animationFrameSourceOf }                  from '../FrameSource.ts';
+import { intentAimsAtElement }                     from '../IntentMeaning.ts';
 import type { RegisteredHabitat, SpriteHabitat }   from '../SpriteHabitat.ts';
+import { isSpriteIntent }                          from '../SpriteHabitat.ts';
+import { ATTENDANT_CATALOG }                       from '../attendants/AttendantCatalog.ts';
+import { BEHAVIOUR_INTENTS }                       from '../behaviours/BehaviourCatalog.ts';
+import { EMOTE_NAMES }                             from '../emotes/EmoteCatalog.ts';
+import { GESTURE_INTENTS }                         from '../gestures/GestureCatalog.ts';
+import { elementUseOf }                            from '../mind/IntentApplication.ts';
 import { DEMO_CARD_HABITAT_KIND, FLOATING_TARGET } from './constants/DemoStage.ts';
 
 const CARD_HABITAT: SpriteHabitat = Object.freeze({
   kind:        DEMO_CARD_HABITAT_KIND,
   description: 'A card of the demo page that Flint pops in around.',
   suggestions: [],
-});
-
-/** The playground's keys: each press of T or R goes to the next mood, and after the angry mood Flint rests. */
-const MOOD_CYCLE_KEYS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  t: ['type', 'type-busy', 'type-angry'],
-  r: ['review', 'review-busy', 'review-angry'],
-});
-
-const INTENT_KEYS: Readonly<Record<string, string>> = Object.freeze({
-  p: 'point',
-  g: 'grab',
-  f: 'fasten',
-  s: 'sleep',
-  m: 'merge',
-  e: 'research',
-  k: 'make-ticket',
-  h: 'wave',
-  o: 'visit',
-  1: 'annoyed',
-  2: 'sweatdrop',
-  3: 'surprised',
-  4: 'doubt',
-  5: 'thinking',
-  6: 'idea',
-  7: 'happy',
-  8: 'nervous',
 });
 
 const STEERING_KEYS: Readonly<Record<string, string>> = Object.freeze({
@@ -59,6 +42,32 @@ function keyOf(event: KeyboardEvent): string {
   return event.key.length === 1 ? event.key.toLowerCase() : event.key;
 }
 
+/** One button for each intent, in the order of the catalog, under the group's heading. */
+function addIntentButtons(page: Document, group: HTMLElement, intents: readonly string[], perform: (intent: string) => void): void {
+  for (const intent of intents) {
+    const button = page.createElement('button');
+    button.type = 'button';
+    button.textContent = intent;
+    button.addEventListener('click', () => perform(intent));
+    group.appendChild(button);
+  }
+}
+
+/** One count for each attendant, from 0 to its maximum. */
+function addAttendantCounts(page: Document, group: HTMLElement, attend: (attendant: string, count: number) => void): void {
+  for (const attendant of ATTENDANT_CATALOG) {
+    const label = page.createElement('label');
+    const count = page.createElement('input');
+    count.type = 'number';
+    count.min = '0';
+    count.max = String(attendant.maximumCount);
+    count.value = '0';
+    count.addEventListener('change', () => attend(attendant.name, Number(count.value)));
+    label.append(count, ` ${attendant.name}`);
+    group.appendChild(label);
+  }
+}
+
 export function startDemoPage(page: Document): void {
   const view = page.defaultView;
   if (view === null) return;
@@ -66,11 +75,11 @@ export function startDemoPage(page: Document): void {
   const home = requiredElement(page, 'home');
   const card = requiredElement(page, 'card');
   const floatingTarget = requiredElement(page, 'floating-target');
+  const timelineBar = requiredElement(page, 'timeline-bar');
   const readout = requiredElement(page, 'readout');
   const reducedMotionToggle = requiredElement(page, 'reduced-motion') as HTMLInputElement;
   let flint: FlintHandle | null = null;
   let popInIsArmed = false;
-  const moodCyclePlaces = new Map<string, number>();
 
   const pickCard = (habitats: readonly RegisteredHabitat[]): RegisteredHabitat | null => {
     if (!popInIsArmed) return null;
@@ -92,7 +101,10 @@ export function startDemoPage(page: Document): void {
   const perform = (intent: string): void => {
     if (flint === null) return;
     popInIsArmed = intent === 'visit';
-    const verdict = intent === 'grab' ? flint.perform(intent, floatingTarget) : flint.perform(intent);
+    const aims = isSpriteIntent(intent) && intentAimsAtElement(intent);
+    const takesElement = isSpriteIntent(intent) && elementUseOf(intent) !== 'none';
+    const toward = aims ? floatingTarget : timelineBar;
+    const verdict = takesElement ? flint.perform(intent, toward) : flint.perform(intent);
     popInIsArmed = false;
     readout.textContent = `${intent}: ${verdict}`;
   };
@@ -102,17 +114,15 @@ export function startDemoPage(page: Document): void {
     readout.textContent = `${steering}: ${flint.steer(steering)}`;
   };
 
-  const cycleMood = (cycleKey: string, intents: readonly string[]): void => {
-    const place = ((moodCyclePlaces.get(cycleKey) ?? -1) + 1) % (intents.length + 1);
-    moodCyclePlaces.set(cycleKey, place);
-    const intent = intents[place];
-    if (intent === undefined) steer('rest');
-    else perform(intent);
+  const attend = (attendant: string, count: number): void => {
+    if (flint === null) return;
+    readout.textContent = `${attendant} ${count}: ${flint.attend(attendant, count)}`;
   };
 
-  for (const button of page.querySelectorAll<HTMLElement>('[data-intent]')) {
-    button.addEventListener('click', () => perform(button.dataset['intent'] ?? ''));
-  }
+  addIntentButtons(page, requiredElement(page, 'gesture-controls'), GESTURE_INTENTS, perform);
+  addIntentButtons(page, requiredElement(page, 'emote-controls'), EMOTE_NAMES, perform);
+  addIntentButtons(page, requiredElement(page, 'behaviour-controls'), BEHAVIOUR_INTENTS, perform);
+  addAttendantCounts(page, requiredElement(page, 'attendant-controls'), attend);
   for (const button of page.querySelectorAll<HTMLElement>('[data-steering]')) {
     button.addEventListener('click', () => steer(button.dataset['steering'] ?? ''));
   }
@@ -133,12 +143,8 @@ export function startDemoPage(page: Document): void {
     const key = keyOf(event);
     if (Object.hasOwn(HELD_WALK_KEYS, key)) {
       if (!event.repeat) steer(HELD_WALK_KEYS[key] ?? '');
-    } else if (Object.hasOwn(MOOD_CYCLE_KEYS, key)) {
-      if (!event.repeat) cycleMood(key, MOOD_CYCLE_KEYS[key] ?? []);
     } else if (Object.hasOwn(STEERING_KEYS, key)) {
       if (!event.repeat) steer(STEERING_KEYS[key] ?? '');
-    } else if (Object.hasOwn(INTENT_KEYS, key)) {
-      if (!event.repeat) perform(INTENT_KEYS[key] ?? '');
     } else {
       return;
     }

@@ -1,0 +1,86 @@
+/**
+ * Copy (`03-behaviour-and-architecture.md`, "The mind"): Flint walks below the element the habitat's `copyTargetFor` names, an agent's row,
+ * and copies that agent's state with the gesture of its intent. A new intent of the target changes the gesture; a target that is gone, or
+ * an intent that is not a gesture, ends the copy, and so does a gesture the host or a director asks for.
+ */
+import { gestureIntentOf }      from '../../IntentMeaning.ts';
+import { WALK }                 from '../../constants/Motion.ts';
+import type { BehaviourPart }   from '../../mind/BehaviourPart.ts';
+import { PLAIN_BEHAVIOUR_PART } from '../../mind/BehaviourPart.ts';
+import type { SpriteMindState } from '../../mind/MindState.ts';
+import {
+  withGesture,
+  withoutGesture,
+  withWalking,
+  withWokenUp
+} from '../../mind/MindTransitions.ts';
+import type { FrameTime, Perception }           from '../../mind/Perception.ts';
+import { MovementUtil }                         from '../../mind/utils/MovementUtil.ts';
+import { PlaceUtil }                            from '../../mind/utils/PlaceUtil.ts';
+import type { BehaviourStart, NothingNewFacts } from '../BehaviourDefinition.ts';
+import { behaviourDefinition }                  from '../BehaviourDefinition.ts';
+import { wanderAtRest }                         from '../wander/WanderBehaviour.ts';
+import { COPY }                                 from './constants/CopyValues.ts';
+
+export interface CopyState {
+  readonly name:      'copy';
+  readonly habitatId: string;
+}
+
+/** The habitat Flint lives in offers something to copy; otherwise the copy does not start. */
+export function copyStarted(state: SpriteMindState, start: BehaviourStart): SpriteMindState {
+  const habitat = PlaceUtil.habitatById(start.perception, state.livesIn);
+  if (habitat === null || habitat.copyTarget === null) return state;
+  const copy: CopyState = { name: 'copy', habitatId: habitat.id };
+  return { ...withWokenUp(state, start.elapsedMilliseconds), behaviour: copy };
+}
+
+function copyEnded(state: SpriteMindState, elapsedMilliseconds: number): SpriteMindState {
+  return withWalking(withoutGesture({ ...state, behaviour: wanderAtRest(elapsedMilliseconds) }), 0);
+}
+
+export function copyAfterFrame(state: SpriteMindState, copy: CopyState, perception: Perception, time: FrameTime): SpriteMindState {
+  const habitat = PlaceUtil.habitatById(perception, copy.habitatId);
+  if (habitat === null || state.livesIn !== copy.habitatId || habitat.copyTarget === null) return copyEnded(state, time.elapsedMilliseconds);
+  const gestureIntent = gestureIntentOf(habitat.copyTarget.intent);
+  if (gestureIntent === null) return copyEnded(state, time.elapsedMilliseconds);
+  const standX = PlaceUtil.clampedToFloor(habitat.copyTarget.centreX, habitat.box);
+  const { positionX } = state.motion;
+  const floored = { ...state, motion: { ...state.motion, floorY: habitat.box.floorY } };
+  const isThere = Math.abs(standX - positionX) <= COPY.STANDING_TOLERANCE_UNITS;
+  if (isThere || perception.reducedMotion) {
+    const standing = withWalking({ ...floored, motion: { ...floored.motion, positionX: isThere ? positionX : standX } }, 0);
+    return withGesture(standing, gestureIntent, time.elapsedMilliseconds);
+  }
+  const walking = withWalking(floored, MovementUtil.directionToward(positionX, standX));
+  return { ...walking, motion: { ...walking.motion, positionX: MovementUtil.stepToward(positionX, standX, WALK.SPEED_UNITS_PER_SECOND, time.deltaMilliseconds) } };
+}
+
+export function copyPartOf(): BehaviourPart {
+  return PLAIN_BEHAVIOUR_PART;
+}
+
+/** An awake Flint copies what its habitat offers, when it has nowhere to visit. */
+function copyIsChosen(facts: NothingNewFacts): boolean {
+  return !facts.isAsleep && facts.copyIsOffered;
+}
+
+export const COPY_BEHAVIOUR = behaviourDefinition({
+  name:                   'copy',
+  intents:                ['copy'],
+  role:                   null,
+  intentWhileRunning:     'gesture-ends-it',
+  refusesItsOwnIntent:    false,
+  intentKeepsTheQuiet:    false,
+  asksDirector:           true,
+  takesClicks:            true,
+  takesSteering:          true,
+  element:                'none',
+  aimsItsOwnGestures:     false,
+  chosenWhenNothingIsNew: copyIsChosen,
+  atRest:                 null,
+  started:                copyStarted,
+  standingPlaceOf:        () => null,
+  afterFrame:             copyAfterFrame,
+  partOf:                 copyPartOf,
+});

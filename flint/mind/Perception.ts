@@ -2,7 +2,7 @@
  * What the sensors give the mind on one frame, as plain data in overlay units (pixels divided by the size of one unit). The mind reads
  * nothing else of the page: a habitat is its id, its kind and its box.
  */
-import type { SpriteCue, SpriteIntent } from '../SpriteHabitat.ts';
+import type { CueName, IntentName } from './MindState.ts';
 
 /** A component's box; Flint's floor is its bottom edge, inside it. */
 export interface PlaceBox {
@@ -14,7 +14,7 @@ export interface PlaceBox {
 
 export interface PerceivedCopyTarget {
   readonly centreX: number;
-  readonly intent:  SpriteIntent;
+  readonly intent:  IntentName;
 }
 
 export interface PerceivedHabitat {
@@ -45,9 +45,17 @@ export type PointerHappening =
   /** The habitat below the pointer at the drop, when it is roomy; null is a drop on no habitat. */
   | { readonly kind: 'dropped'; readonly habitatId: string | null };
 
+/** The host's element of an intent: none given, its box on this frame, or gone from the page since it was given. */
+export type PerceivedTarget =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'on-the-page'; readonly box: PlaceBox }
+  | { readonly kind: 'gone' };
+
+export const NO_TARGET: PerceivedTarget = Object.freeze({ kind: 'none' });
+
 export interface PerceivedCue {
   readonly habitatId: string;
-  readonly cue:       SpriteCue;
+  readonly cue:       CueName;
 }
 
 export interface Perception {
@@ -61,8 +69,8 @@ export interface Perception {
   /** The roomy habitat of the kind the host's storage remembers, while Flint may still move there; null otherwise. */
   readonly storedHabitatId: string | null;
   readonly stageWidthUnits: number;
-  /** The centre of the element the host aimed a grab at (`perform('grab', element)`); null when it aimed none. */
-  readonly reachTarget:     PerceivedPoint | null;
+  /** The element the host gave with its intent (`perform(intent, element)`), to a gesture that aims or to a behaviour. */
+  readonly target:          PerceivedTarget;
   readonly reducedMotion:   boolean;
 }
 

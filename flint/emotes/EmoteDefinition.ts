@@ -1,12 +1,10 @@
 /**
  * The contract of an emote (`02-animations.md`, Emotes): a short mark with one move of the body and one change of the eyes, as a pure
- * function of its age. An emote is a layer over the behaviour and the gesture, and its mark hides a gesture's vein or "Hi!".
+ * function of its age. An emote is a layer over the behaviour and the gesture, and its mark hides the mark a gesture shows. Its name is
+ * its intent on the fixed intent list.
  */
-import type { Facing, PosePart } from '../SpritePose.ts';
-
-export type EmoteName = 'annoyed' | 'sweatdrop' | 'surprised' | 'doubt' | 'thinking' | 'idea' | 'happy' | 'nervous';
-
-export const EMOTE_NAMES: readonly EmoteName[] = Object.freeze(['annoyed', 'sweatdrop', 'surprised', 'doubt', 'thinking', 'idea', 'happy', 'nervous']);
+import type { Facing }   from '../SpriteGeometry.ts';
+import type { PosePart } from '../SpritePose.ts';
 
 export interface EmoteInput {
   /** The handoff's `age`: milliseconds since the emote started. Use it also where the handoff writes `t`. */
@@ -16,8 +14,13 @@ export interface EmoteInput {
   readonly reducedMotion:   boolean;
 }
 
-export interface EmoteDefinition {
-  readonly name:                 EmoteName;
+export interface EmoteDefinition<Name extends string = string> {
+  readonly name:                 Name;
   readonly durationMilliseconds: number;
-  readonly targetPose:           (input: EmoteInput) => PosePart;
+  targetPose(input: EmoteInput): PosePart;
+}
+
+/** Keeps the literal name of an emote definition, so the catalog can derive the emote intents from it. */
+export function emoteDefinition<const Name extends string>(definition: EmoteDefinition<Name>): EmoteDefinition<Name> {
+  return Object.freeze(definition);
 }

@@ -19,6 +19,10 @@ export interface TicketsTicketDocument {
   readonly commit?:        string;
   readonly reason?:        string;
   readonly network?:       readonly string[];
+  /** Read only by Flint's tickets habitat (`bridge/flint/TicketsSpriteModel.ts`), as are `introducedBy` and `foundInReview`. */
+  readonly dependsOn?:     readonly string[];
+  readonly introducedBy?:  string;
+  readonly foundInReview?: string;
   readonly task:           number | null;
   readonly filed:          string;
   readonly started:        string | null;

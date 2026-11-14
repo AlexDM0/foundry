@@ -1,15 +1,15 @@
 /**
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
- * its control and an unreachable Overseer is said there too, a refused session code or a lost session raises the session banner in place
- * of an empty board, a reconnect to an Overseer running new code reloads the page, each tab routes to its view, the root says whether the
- * board is live so every live animation follows the stream, a header chip links to its job on the Agents tab and its flag opens that
- * tab, the Waiting on User pill and the tab counts read the board the stream sends, the question panel shows over every tab, hides
- * behind a routed detail and closes on Esc only after it, `#questions/<id>` points it at that question, an embedded page's Esc leaves the
- * board on any route no panel takes it on, Gaia's frame hears `ready`, each route, `leave` and `session-lost` in the versioned channel's
- * shape and is followed on `navigate`, a message of another channel version is answered by nothing, a board control in Gaia's frame
- * shows the Overseer's refusal verbatim and posts `session-lost` when its session token answers 401, and a view that throws leaves the
- * error banner, not a blank page.
+ * its control and an unreachable Overseer is said there too, each refused command has Flint refuse, a refused session code or a lost
+ * session raises the session banner in place of an empty board, a reconnect to an Overseer running new code reloads the page, each tab
+ * routes to its view, the root says whether the board is live so every live animation follows the stream, a header chip links to its job
+ * on the Agents tab and its flag opens that tab, the Waiting on User pill and the tab counts read the board the stream sends, the question
+ * panel shows over every tab, hides behind a routed detail and closes on Esc only after it, `#questions/<id>` points it at that question,
+ * an embedded page's Esc leaves the board on any route no panel takes it on, Gaia's frame hears `ready`, each route, `leave` and
+ * `session-lost` in the versioned channel's shape and is followed on `navigate`, a message of another channel version is answered by
+ * nothing, a board control in Gaia's frame shows the Overseer's refusal verbatim and posts `session-lost` when its session token answers
+ * 401, and a view that throws leaves the error banner, not a blank page.
  */
 import {
   act,
@@ -26,6 +26,7 @@ import {
   test
 } from 'bun:test';
 
+import type { FlintHandle }                                        from '../../flint/CreateFlint.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';
@@ -188,6 +189,35 @@ describe('the shell\'s controls', () => {
       await Promise.resolve();
     });
     expect(screen.getByText('Ticket 042 is not ready: it has no Brief.').getAttribute('role')).toBe('status');
+  });
+
+  test('each command the Overseer refuses has Flint refuse, once for each refusal', async () => {
+    const bridge = fakeBridge();
+    const performed: string[] = [];
+    const recordingFlint = (handle: FlintHandle | null): void => {
+      if (handle === null) return;
+      const carryOut = handle.perform;
+      Object.assign(handle, {
+        perform: (intent: string, toward?: Element) => {
+          performed.push(intent);
+          return toward === undefined ? carryOut(intent) : carryOut(intent, toward);
+        },
+      });
+    };
+    render(<BridgeApp services={{ ...bridge.services, onFlintHandle: recordingFlint }} />);
+    await act(async () => {
+      bridge.stream().onConnection('live');
+      bridge.stream().onEvent('board', BOARD);
+      await Promise.resolve();
+    });
+    bridge.answerWith({ verdict: 'refused', refusal: 'Ticket 042 is not ready: it has no Brief.' });
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        fireEvent.click(pauseButton());
+        await Promise.resolve();
+      });
+    }
+    expect(performed).toEqual(['refuse', 'refuse']);
   });
 
   test('a command that reaches no Overseer says so beside its control', async () => {

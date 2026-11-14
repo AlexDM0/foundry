@@ -3,19 +3,12 @@
  * its stored habitat, hears cues, leaves a habitat that is gone or too small, and answers the pointer. A reflex never waits for a director
  * and wins over it.
  */
-import { carriedDropped, carriedStarted }              from '../behaviours/CarriedBehaviour.ts';
-import { cursorPlayStarted }                           from '../behaviours/CursorPlayBehaviour.ts';
-import { DIRECTOR }                                    from '../constants/Behaviours.ts';
-import type { BehaviourName, SpriteMindState }         from './MindState.ts';
-import { wanderAtRest, withPlacedAtHome, withWokenUp } from './MindTransitions.ts';
-import type { Perception }                             from './Perception.ts';
-import { PlaceUtil }                                   from './utils/PlaceUtil.ts';
-
-/** Where a click starts cursor play; elsewhere (a visit, a landing, a drag) the click is ignored. */
-const BEHAVIOURS_A_CLICK_INTERRUPTS: readonly BehaviourName[] = ['wander', 'sleep', 'copy', 'cursor-play'];
-
-/** The behaviours that keep Flint where it is although the habitat it lives in is gone: it is not standing there. */
-const BEHAVIOURS_AWAY_FROM_HOME_FLOOR: readonly BehaviourName[] = ['visit', 'carried', 'dropped', 'stranded'];
+import { behaviourDefinitionOf, behaviourOfRole, restingBehaviourAt } from '../behaviours/BehaviourCatalog.ts';
+import { DIRECTOR }                                                   from '../constants/Mind.ts';
+import type { SpriteMindState }                                       from './MindState.ts';
+import { withPlacedAtHome, withWokenUp }                              from './MindTransitions.ts';
+import type { Perception }                                            from './Perception.ts';
+import { PlaceUtil }                                                  from './utils/PlaceUtil.ts';
 
 function lastOf<Item>(items: readonly Item[], count: number): readonly Item[] {
   return items.length <= count ? items : items.slice(items.length - count);
@@ -51,27 +44,34 @@ export function mindStateAfterCues(state: SpriteMindState, perception: Perceptio
   };
 }
 
-/** A habitat that left the page or became smaller than the minimum sends Flint home. */
+/**
+ * A habitat that left the page or became smaller than the minimum sends Flint home to rest; a behaviour that stands elsewhere (a visit,
+ * a landing, in the air) keeps Flint where it is, since it is not standing there.
+ */
 export function mindStateKeepingItsPlace(state: SpriteMindState, perception: Perception, elapsedMilliseconds: number): SpriteMindState {
-  if (state.livesIn === null || BEHAVIOURS_AWAY_FROM_HOME_FLOOR.includes(state.behaviour.name)) return state;
+  const { behaviour } = state;
+  if (state.livesIn === null || behaviourDefinitionOf(behaviour.name).standingPlaceOf(behaviour) !== null) return state;
   const habitat = PlaceUtil.habitatById(perception, state.livesIn);
   if (habitat !== null && habitat.isRoomy) return state;
-  const behaviour = state.behaviour.name === 'sleep' ? state.behaviour : wanderAtRest(elapsedMilliseconds);
   return {
-    ...withPlacedAtHome(state, perception.home), behaviour, gesture: null, directorInbox: [], recentCues: [],
+    ...withPlacedAtHome(state, perception.home), behaviour: restingBehaviourAt(elapsedMilliseconds), gesture: null, directorInbox: [], recentCues: [],
   };
 }
 
+/** Starts the behaviour of a role; the drag and the click behaviours always start, so a missing `started` is a defect of the catalog. */
+function startedByRole(state: SpriteMindState, role: 'drag' | 'click', perception: Perception, elapsedMilliseconds: number): SpriteMindState {
+  const { started } = behaviourOfRole(role);
+  if (started === null) throw new RangeError(`the ${role} behaviour of the catalog gives no start`);
+  return { ...started(state, { perception, elapsedMilliseconds, visitTargetId: null }), quietSinceMilliseconds: elapsedMilliseconds };
+}
+
+/** A drag starts the drag behaviour wherever Flint is, and its drop is that behaviour's; a click starts the click behaviour where it may. */
 export function mindStateAfterHappenings(state: SpriteMindState, perception: Perception, elapsedMilliseconds: number): SpriteMindState {
   return perception.happenings.reduce((current: SpriteMindState, happening): SpriteMindState => {
     const { behaviour } = current;
-    if (happening.kind === 'drag-started') {
-      return behaviour.name === 'carried' ? current : { ...carriedStarted(current, elapsedMilliseconds), quietSinceMilliseconds: elapsedMilliseconds };
-    }
-    if (happening.kind === 'dropped') {
-      return behaviour.name === 'carried' ? carriedDropped(current, behaviour, happening.habitatId, perception, elapsedMilliseconds) : current;
-    }
-    if (!BEHAVIOURS_A_CLICK_INTERRUPTS.includes(behaviour.name)) return current;
-    return { ...cursorPlayStarted(current, elapsedMilliseconds), quietSinceMilliseconds: elapsedMilliseconds };
+    const running = behaviourDefinitionOf(behaviour.name);
+    if (happening.kind === 'drag-started') return running.role === 'drag' ? current : startedByRole(current, 'drag', perception, elapsedMilliseconds);
+    if (happening.kind === 'dropped') return running.droppedOn?.(current, behaviour, happening.habitatId, perception, elapsedMilliseconds) ?? current;
+    return running.takesClicks ? startedByRole(current, 'click', perception, elapsedMilliseconds) : current;
   }, state);
 }

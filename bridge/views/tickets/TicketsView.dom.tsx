@@ -4,7 +4,7 @@
  * until something narrows; typing a search narrows the table and marks the match, an id query marking nothing; the type, epic and status
  * chips narrow as OR inside a group and AND across, with their counts; the empty table says what was asked and its Clear restores every
  * row and returns to the search; a header sorts and reverses; grouping by epic is stored under its key; a planted title stays text; after a
- * board update a moved or new row is marked changed once, until its highlight has played.
+ * board update a moved or new row is marked changed once, until its highlight has played; and the view is a workplace of Flint.
  */
 import {
   act,
@@ -260,4 +260,9 @@ describe('the change highlight', () => {
     expect(movedRow.hasAttribute('data-changed')).toBe(false);
     expect(document.querySelector('tr[data-ticket-id="005"]')?.hasAttribute('data-changed')).toBe(true);
   });
+});
+
+test('the view is a workplace of Flint', () => {
+  renderTickets();
+  expect(screen.getByRole('region', { name: 'Tickets' }).hasAttribute('data-flint-workplace')).toBe(true);
 });

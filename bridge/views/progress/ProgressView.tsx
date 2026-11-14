@@ -2,7 +2,8 @@
  * The Progress tab: one card holding the Gantt chart of `ProgressModel`, its sticky head carrying the range menu and the row options in the
  * pinned cell and the axis ticks on the track, its rows grouped by epic on a board with epics. Bars, ticks, spans and the now line are
  * placed through the `style` prop. The range, the name column, the folded groups and the review-rows choice are kept per viewer under
- * their keys. A row opens its row detail in place; its number links to its ticket on Tickets, an epic head's name to that epic.
+ * their keys. A row opens its row detail in place; its number links to its ticket on Tickets, an epic head's name to that epic. The tab is
+ * the timeline habitat of Flint (`bridge/views/progress/UseTimelineHabitat.ts`).
  */
 import {
   useCallback,
@@ -34,6 +35,7 @@ import { CustomRangePopover }                                          from './C
 import { EpicRowGrouping, type EpicGroupHeadModel, type EpicRowGroup } from './EpicRowGrouping.ts';
 import { ProgressModel, type ProgressBarModel, type ProgressRowModel } from './ProgressModel.ts';
 import { progressPreferencesOf }                                       from './ProgressPreferences.ts';
+import { useTimelineHabitat }                                          from './UseTimelineHabitat.ts';
 import {
   CUSTOM_RANGE_PRESET,
   FIT_RANGE_PRESET,
@@ -313,6 +315,8 @@ export function ProgressView({
   const [customRangeIsOpen, setCustomRangeIsOpen] = useState(false);
   const rangeButtonRef = useRef<HTMLButtonElement | null>(null);
   const chartRef = useRef<HTMLElement | null>(null);
+  const viewElement = useRef<HTMLDivElement | null>(null);
+  useTimelineHabitat(viewElement, boardState);
   const axisTrackRef = useRef<HTMLDivElement | null>(null);
   const trackWidthPixels = useTrackWidthPixels(axisTrackRef);
 
@@ -360,7 +364,7 @@ export function ProgressView({
   const toggleGroup = (groupKey: string): void => chooseFoldedGroupKeys(EpicRowGrouping.foldedGroupKeysAfterToggle(foldedGroupKeys, groupKey));
 
   return (
-    <div className="bridge-progress-view" data-name-column={nameColumnWidth}>
+    <div className="bridge-progress-view" data-name-column={nameColumnWidth} ref={viewElement} data-flint-workplace="">
       <section ref={chartRef} className="bridge-progress-chart" aria-label="Progress chart" style={chartStyle}>
         <div className="bridge-progress-row bridge-progress-chart-head">
           <div className="bridge-progress-name">

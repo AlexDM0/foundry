@@ -8,6 +8,7 @@
  * it until a range is chosen again, even when they change back; after a board update a moved or new row is marked changed once, until its
  * highlight has played; a planted title shows as text; Save as the board's range posts the range shown, Fit as the automatic span; and
  * Clear… asks first, posts the scope chosen, and Cancel sends nothing.
+ * The tab is a workplace of Flint.
  */
 import {
   act,
@@ -419,4 +420,9 @@ describe('the board range and clear controls', () => {
     await clicked(screen.getByRole('button', { name: /^Clear everything/u }));
     expect(fake.sent).toEqual([{ kind: 'tracker-clear', scope: 'tasks-and-log' }, { kind: 'tracker-clear', scope: 'everything' }]);
   });
+});
+
+test('the tab is a workplace of Flint', () => {
+  const { container } = renderProgress();
+  expect(container.querySelector('.bridge-progress-view')?.hasAttribute('data-flint-workplace')).toBe(true);
 });

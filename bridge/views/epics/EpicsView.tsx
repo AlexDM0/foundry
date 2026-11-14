@@ -2,7 +2,7 @@
  * The Epics view: a grid of epic cards, each with its head (title, key, done mark), its summary, roll-up bar, legend and facts, the Waits
  * on, waves and Frees rows, and its tickets newest first. A ticket opens its ticket form in the detail panel over this tab; an epic's link
  * points the tab at that epic's card, which scrolls into view marked. The whole description, agent-written HTML, shows only in its
- * sandboxed frame, behind a disclosure.
+ * sandboxed frame, behind a disclosure. The view is the epics habitat of Flint.
  */
 import {
   useEffect,
@@ -16,12 +16,15 @@ import { TicketIdMark }                                   from '../../chips/Tick
 import { SegmentMeter }                                   from '../../design-system/Meter.tsx';
 import { StateBadge }                                     from '../../design-system/StateBadge.tsx';
 import { StateDot }                                       from '../../design-system/StateDot.tsx';
+import { useHabitatCues }                                 from '../../flint/UseHabitatHappenings.ts';
 import { SandboxedHtmlFrame }                             from '../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { DetailRoute }                                    from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                               from '../../shell/DetailRouting.ts';
 import { useFinishedWorkWindow }                          from '../../shell/FinishedWorkWindow.ts';
 import { HashRouter }                                     from '../../shell/HashRouter.ts';
 import { EpicsModel, type EpicCard, type EpicWaveColumn } from './EpicsModel.ts';
+import { EPICS_SPRITE_HABITAT }                           from './EpicsSpriteHabitat.ts';
+import { EpicsSpriteModel }                               from './EpicsSpriteModel.ts';
 
 export interface EpicsViewProps {
   readonly boardState:     EpicsBoardState;
@@ -201,8 +204,10 @@ function EpicCardView({ card, isPointed }: { readonly card: EpicCard; readonly i
 export function EpicsView({ boardState, pointedEpicKey }: EpicsViewProps) {
   const finishedWorkWindow = useFinishedWorkWindow();
   const model = EpicsModel.epicsModelOf(boardState, finishedWorkWindow);
+  const viewElement = useRef<HTMLElement>(null);
+  useHabitatCues(viewElement, EPICS_SPRITE_HABITAT, boardState.page.tickets, EpicsSpriteModel.cuesBetween);
   return (
-    <section className="bridge-epics" aria-label="Epics">
+    <section className="bridge-epics" aria-label="Epics" ref={viewElement} data-flint-workplace="">
       {model.emptyText === null
         ? model.cards.map((card) => <EpicCardView key={card.key} card={card} isPointed={card.key === pointedEpicKey} />)
         : <div className="bridge-epics-empty">{model.emptyText}</div>}

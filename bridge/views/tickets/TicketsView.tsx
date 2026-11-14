@@ -1,7 +1,7 @@
 /**
  * The Tickets view: its head (title, count, Group by epic), the toolbar (search, the type, epic and status chips), and the sortable table
  * of `TicketsModel`, a click, Enter or Space on a row opening its row form in the detail panel. The search and the chips live in the view;
- * the grouping by epic is kept per board.
+ * the grouping by epic is kept per board. The view is the tickets habitat of Flint (`bridge/flint/UseTicketsHabitat.ts`).
  */
 import {
   useRef,
@@ -20,6 +20,7 @@ import { PriorityMark, TypeMark, WaitingOnMark } from '../../chips/TicketMarks.t
 import { TextButton }                            from '../../design-system/Button.tsx';
 import { SegmentMeter }                          from '../../design-system/Meter.tsx';
 import { StateBadge }                            from '../../design-system/StateBadge.tsx';
+import { useTicketsHabitat }                     from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                  from '../../preferences/PreferenceStore.ts';
 import { useChangedKeys }                        from '../../shell/ChangeHighlight.ts';
 import { DetailRoute }                           from '../../shell/DetailRoute.ts';
@@ -194,6 +195,8 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   const finishedWorkWindow = useFinishedWorkWindow();
   const [changedTicketIds, clearChange] = useChangedKeys(boardState, TicketsModel.changedTicketIdsBetween);
   const searchInput = useRef<HTMLInputElement>(null);
+  const viewElement = useRef<HTMLElement>(null);
+  useTicketsHabitat(viewElement, boardState.page.tickets);
   const [view, setView] = useState<TicketView>(DEFAULT_TICKET_VIEW);
   const [groupedChoice, setGroupedChoice] = useState<boolean | null>(null);
   const groupedByEpic = groupedChoice ?? boardStore?.readChoice(TICKET_GROUPING_CHOICE_NAME) === TICKETS_GROUPED_BY_EPIC_CHOICE;
@@ -224,7 +227,7 @@ export function TicketsView({ boardState, boardStore }: TicketsViewProps) {
   };
 
   return (
-    <section className="bridge-tickets" aria-label="Tickets">
+    <section className="bridge-tickets" aria-label="Tickets" ref={viewElement} data-flint-workplace="">
       <div className="bridge-tickets-head">
         <span className="bridge-tickets-title">Tickets</span>
         <span className="bridge-tickets-count" aria-live="polite">{model.countText}</span>

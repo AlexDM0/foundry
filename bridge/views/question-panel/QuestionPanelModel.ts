@@ -78,6 +78,8 @@ export interface QuestionPanelBoard {
   readonly jobs:             readonly QuestionPanelJob[];
   readonly decisions:        readonly DecisionDocument[];
   readonly questionHistory?: readonly HistoryRecordDocument[];
+  /** Read only by Flint's questions habitat (`bridge/flint/QuestionsSpriteModel.ts`). */
+  readonly incidents?:       readonly { readonly id: string; readonly defaultMove: string }[];
   readonly page?: {
     readonly tickets: readonly QuestionPanelTicket[];
     readonly payload: {

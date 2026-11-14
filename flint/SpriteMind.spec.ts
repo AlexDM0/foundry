@@ -4,12 +4,19 @@
  * that leaves the page or becomes too small sends Flint home; a click starts cursor play and a drag carries Flint, and both win over the
  * director; an intent starts its gesture, emote or behaviour, keeps a gesture that already runs, and is dropped while a reflex or a
  * visit runs; the pop-in's wave stands for the arrival's wave; an emote shows over a running gesture; sleep goes home; Flint blinks only
- * while it does nothing else; and the place Flint stands on is what the sensors watch.
+ * while it does nothing else; an attendant the host gives stays through every gesture, emote and sleep; and the place Flint stands on is
+ * what the sensors watch.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { mindStateAfterDirectorAsked, standingPlaceOf, targetPoseOfMind } from './SpriteMind.ts';
-import { INITIAL_MIND_STATE }                                             from './mind/MindState.ts';
+import {
+  INITIAL_MIND_STATE,
+  mindStateAfterDirectorAsked,
+  mindStateAttended,
+  standingPlaceOf,
+  targetPoseOfMind
+} from './SpriteMind.ts';
+import type { WanderState } from './behaviours/wander/WanderBehaviour.ts';
 import {
   AGENTS,
   CHAT,
@@ -96,22 +103,26 @@ describe('the pointer reflexes', () => {
 });
 
 describe('intents', () => {
-  test('a gesture intent starts its gesture in that mood, and the same intent keeps the running gesture', () => {
+  test('a gesture intent starts its gesture in the form it names, and the same intent keeps the running gesture', () => {
     const run = createMindRun();
     run.frame();
     run.give('type-busy');
     const started = run.frame().gesture;
-    expect([started?.name, started?.mood]).toEqual(['type', 'busy']);
+    expect(started?.intent).toBe('type-busy');
     run.runFor(500);
     run.give('type-busy');
     expect(run.frame().gesture?.startedAtMilliseconds).toBe(started?.startedAtMilliseconds);
   });
 
-  test('a mood the gesture does not have falls back to normal', () => {
+  test('another form of the same gesture starts it again in that form', () => {
     const run = createMindRun();
     run.frame();
-    run.give('merge');
-    expect(run.frame().gesture?.mood).toBe('normal');
+    run.give('type');
+    const typing = run.frame().gesture;
+    run.runFor(500);
+    run.give('type-angry');
+    const angry = run.frame().gesture;
+    expect([angry?.intent, angry?.startedAtMilliseconds === typing?.startedAtMilliseconds]).toEqual(['type-angry', false]);
   });
 
   test('an emote shows over a gesture that has no end of its own, and the gesture goes on', () => {
@@ -120,7 +131,7 @@ describe('intents', () => {
     run.give('type');
     run.frame();
     run.give('happy');
-    expect([run.frame().emote?.name, run.state().gesture?.name]).toEqual(['happy', 'type']);
+    expect([run.frame().emote?.name, run.state().gesture?.intent]).toEqual(['happy', 'type']);
   });
 
   test('an emote ends after its time', () => {
@@ -152,11 +163,11 @@ describe('intents', () => {
   test('the first wave after a pop-in is skipped, since the pop-in waved; the next one waves', () => {
     const run = createMindRun();
     run.frame();
-    run.change((state) => ({ ...state, greetedOnArrival: true }));
+    run.change((state) => ({ ...state, arrivalGreeting: 'wave' }));
     run.give('wave');
-    expect([run.frame().gesture, run.state().greetedOnArrival]).toEqual([null, false]);
+    expect([run.frame().gesture, run.state().arrivalGreeting]).toEqual([null, null]);
     run.give('wave');
-    expect(run.frame().gesture?.name).toBe('wave');
+    expect(run.frame().gesture?.intent).toBe('wave');
   });
 
   test('a visit with no target, or to where Flint lives, changes nothing; copy with nothing to copy changes nothing', () => {
@@ -185,7 +196,8 @@ describe('the target pose', () => {
   test('Flint blinks only while it does nothing else', () => {
     const run = createMindRun();
     run.frame();
-    const idle = { ...run.state(), behaviour: { name: 'wander' as const, walkToX: null, restUntilMilliseconds: Infinity } };
+    const resting: WanderState = { name: 'wander', walkToX: null, restUntilMilliseconds: Infinity };
+    const idle = { ...run.state(), behaviour: resting };
     expect(targetPoseOfMind(idle, 4050, false).eyes.height).toBe(1);
     run.give('point');
     run.frame();
@@ -196,6 +208,17 @@ describe('the target pose', () => {
     const run = createMindRun();
     run.frame();
     expect(targetPoseOfMind(run.state(), 1234, true).body.hover).toBe(6);
+  });
+
+  test('an attendant the host gives stays through a gesture, an emote and sleep, and is placed at the time asked', () => {
+    const run = createMindRun();
+    run.frame();
+    run.change((state) => mindStateAttended(state, 'watcher-spark', 2, run.elapsedMilliseconds()));
+    for (const intent of ['merge', 'happy', 'sleep'] as const) {
+      run.give(intent);
+      run.runFor(500);
+      expect(targetPoseOfMind(run.state(), run.elapsedMilliseconds(), false).attendants.map((member) => member.index)).toEqual([0, 1]);
+    }
   });
 });
 

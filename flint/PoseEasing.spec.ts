@@ -1,14 +1,18 @@
 /**
  * The one easing step against `02-animations.md`, "Rules for all animations". What matters: easing is exponential at the rate of each
- * value; a hand that changes shape shrinks first at twice the hand step and only then appears from the body in its new shape; the hand of
- * the looking glass sits at a fixed offset from the drawn lens on every frame; a prop fades and keeps its last look while it goes; an
- * exact field snaps, as a blink does.
+ * value; a hand that changes shape shrinks first at twice the hand step and only then appears from the body in its new shape; a hand held
+ * to a prop sits on that prop's drawn grip, as the looking glass's hand at a fixed offset from the drawn lens; a prop fades and keeps its
+ * last look while it goes; an exact field snaps, as a blink does; the tint, the fill opacity and the inner glow ease at the eye rate or the
+ * tint's own rate, a fading tint keeps its colour, and a glow a gesture set fades back to 0 when its part is gone; an attendant member the
+ * target lost shrinks away at the hand rate, then is gone; a behaviour's page shapes are drawn as given, never eased, and once the target
+ * gives none they fade out over the behaviour's fade time, then are gone.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { easedPoseOf, easingFractionOf } from './PoseEasing.ts';
-import type { HandPose, Pose }           from './SpritePose.ts';
-import { NEUTRAL_POSE }                  from './SpritePose.ts';
+import { easedPoseOf }                   from './PoseEasing.ts';
+import type { HandPose, PagePose, Pose } from './SpritePose.ts';
+import { EMPTY_PAGE, NEUTRAL_POSE }      from './SpritePose.ts';
+import { AnimationCurveUtil }            from './utils/AnimationCurveUtil.ts';
 
 const FRAME_MILLISECONDS = 16;
 
@@ -25,7 +29,7 @@ function withNearHand(hand: HandPose | null): Pose {
 
 describe('exponential easing', () => {
   test('one step covers 1 - exp(-rate × seconds) of the distance', () => {
-    expect(easingFractionOf(7, 100)).toBeCloseTo(1 - Math.exp(-0.7));
+    expect(AnimationCurveUtil.easingFractionOf(7, 100)).toBeCloseTo(1 - Math.exp(-0.7));
   });
 
   test('the lean moves at the body rate and the eye height at the eye rate', () => {
@@ -60,7 +64,7 @@ describe('exponential easing', () => {
 describe('hands', () => {
   test('a new hand appears from the body at (10, -22) and grows to its place', () => {
     const eased = easedPoseOf(NEUTRAL_POSE, withNearHand(TRIANGLE), FRAME_MILLISECONDS);
-    const fraction = easingFractionOf(18, FRAME_MILLISECONDS);
+    const fraction = AnimationCurveUtil.easingFractionOf(18, FRAME_MILLISECONDS);
     expect(eased.nearHand).toMatchObject({ cornerCount: 3, radius: 7 * fraction });
     expect(eased.nearHand?.centreX).toBeCloseTo(10 + (19 * fraction));
     expect(eased.nearHand?.centreY).toBeCloseTo(-22 - (3 * fraction));
@@ -69,7 +73,7 @@ describe('hands', () => {
   test('a hand that changes its shape first shrinks in its old shape, at twice the hand step', () => {
     const eased = easedPoseOf(withNearHand(TRIANGLE), withNearHand(HEXAGON), FRAME_MILLISECONDS);
     expect(eased.nearHand).toMatchObject({ cornerCount: 3, centreX: 29, centreY: -25 });
-    expect(eased.nearHand?.radius).toBeCloseTo(7 * (1 - Math.min(1, 2 * easingFractionOf(18, FRAME_MILLISECONDS))));
+    expect(eased.nearHand?.radius).toBeCloseTo(7 * (1 - Math.min(1, 2 * AnimationCurveUtil.easingFractionOf(18, FRAME_MILLISECONDS))));
   });
 
   test('once the old hand is gone, the new shape appears from the body', () => {
@@ -91,9 +95,9 @@ describe('hands', () => {
     expect(eased.nearHand?.radius).toBeLessThan(7);
   });
 
-  test('the hand of the looking glass sits at (-8, +8) from the drawn lens on every frame', () => {
+  test('a hand held to a prop sits on that prop\'s drawn grip point on every frame: the looking glass at (-8, +8) from the lens', () => {
     const glassHand: HandPose = {
-      cornerCount: 5, centreX: 0, centreY: 0, radius: 5, turnDegrees: 0, placement: 'held-to-lens',
+      cornerCount: 5, centreX: 0, centreY: 0, radius: 5, turnDegrees: 0, placement: { heldTo: 'lookingGlass' },
     };
     const target: Pose = {
       ...withNearHand(glassHand),
@@ -122,7 +126,7 @@ describe('props', () => {
   test('a prop fades in at the hand rate', () => {
     const target: Pose = { ...NEUTRAL_POSE, props: { ...NEUTRAL_POSE.props, keyboard: { shown: 1, drop: 1.6 } } };
     const eased = easedPoseOf(NEUTRAL_POSE, target, FRAME_MILLISECONDS);
-    expect(eased.props.keyboard.shown).toBeCloseTo(easingFractionOf(18, FRAME_MILLISECONDS));
+    expect(eased.props.keyboard.shown).toBeCloseTo(AnimationCurveUtil.easingFractionOf(18, FRAME_MILLISECONDS));
     expect(eased.props.keyboard.drop).toBe(1.6);
   });
 
@@ -139,5 +143,84 @@ describe('props', () => {
     const eased = easedPoseOf(drawn, NEUTRAL_POSE, FRAME_MILLISECONDS);
     expect(eased.props.ticket).toMatchObject({ writtenLengths: [12, 12, 6], sealShown: true, offsetX: 3 });
     expect(eased.props.ticket.shown).toBeLessThan(1);
+  });
+});
+
+describe('the new channels of the body', () => {
+  const withBody = (body: Partial<Pose['body']>): Pose => ({ ...NEUTRAL_POSE, body: { ...NEUTRAL_POSE.body, ...body } });
+
+  test('the tint amount and the fill opacity ease at the eye rate', () => {
+    const eased = easedPoseOf(NEUTRAL_POSE, withBody({ tint: { role: 'alarm', amount: 1 }, fillOpacity: 0 }), FRAME_MILLISECONDS);
+    expect(eased.body.tint.amount).toBeCloseTo(AnimationCurveUtil.easingFractionOf(22, FRAME_MILLISECONDS));
+    expect(eased.body.tint.role).toBe('alarm');
+    expect(eased.body.fillOpacity).toBeCloseTo(1 - AnimationCurveUtil.easingFractionOf(22, FRAME_MILLISECONDS));
+  });
+
+  test('a tint with its own rate eases at that rate, and a fading tint keeps its colour', () => {
+    const slow = easedPoseOf(NEUTRAL_POSE, withBody({ tint: { role: 'emberDark', amount: 0.85, ratePerSecond: 2.2 } }), FRAME_MILLISECONDS);
+    expect(slow.body.tint.amount).toBeCloseTo(0.85 * AnimationCurveUtil.easingFractionOf(2.2, FRAME_MILLISECONDS));
+    const fading = easedPoseOf(withBody({ tint: { role: 'alarm', amount: 1 } }), NEUTRAL_POSE, FRAME_MILLISECONDS);
+    expect([fading.body.tint.role, fading.body.tint.amount < 1]).toEqual(['alarm', true]);
+  });
+
+  test('an exact tint and fill are set on this frame', () => {
+    const exact = easedPoseOf(NEUTRAL_POSE, { ...withBody({ tint: { role: 'alarm', amount: 1 }, fillOpacity: 0.55 }), exactFields: ['tint', 'fill-opacity'] }, FRAME_MILLISECONDS);
+    expect([exact.body.tint.amount, exact.body.fillOpacity]).toEqual([1, 0.55]);
+  });
+
+  test('a glow the gesture part no longer gives eases back to 0 at the eye rate, and keeps the target\'s embers', () => {
+    const glowing: Pose = { ...NEUTRAL_POSE, sleep: { glowOpacity: 0.6, embers: [] } };
+    const firstFrame = easedPoseOf(glowing, NEUTRAL_POSE, FRAME_MILLISECONDS);
+    expect(firstFrame.sleep.glowOpacity).toBeCloseTo(0.6 * (1 - AnimationCurveUtil.easingFractionOf(22, FRAME_MILLISECONDS)));
+    let drawn = firstFrame;
+    for (let i = 0; i < 30; i++) drawn = easedPoseOf(drawn, NEUTRAL_POSE, FRAME_MILLISECONDS);
+    expect(drawn.sleep.glowOpacity).toBeLessThan(0.001);
+    expect(drawn.sleep.embers).toBe(NEUTRAL_POSE.sleep.embers);
+  });
+
+  test('an exact inner glow, as sleep gives, is set on this frame', () => {
+    const exact = easedPoseOf(NEUTRAL_POSE, { ...NEUTRAL_POSE, sleep: { glowOpacity: 0.4, embers: [] }, exactFields: ['inner-glow'] }, FRAME_MILLISECONDS);
+    expect(exact.sleep.glowOpacity).toBe(0.4);
+  });
+});
+
+describe('attendants', () => {
+  const SPARK = {
+    name: 'watcher-spark', index: 0, x: -26, y: -44, turnDegrees: 45, scale: 1,
+  } as const;
+
+  test('a member the target has is drawn as the target places it', () => {
+    expect(easedPoseOf(NEUTRAL_POSE, { ...NEUTRAL_POSE, attendants: [SPARK] }, FRAME_MILLISECONDS).attendants).toEqual([SPARK]);
+  });
+
+  test('a member the target lost shrinks away at the hand rate, and is gone once it is too small to see', () => {
+    let drawn: Pose = { ...NEUTRAL_POSE, attendants: [SPARK] };
+    drawn = easedPoseOf(drawn, NEUTRAL_POSE, FRAME_MILLISECONDS);
+    expect(drawn.attendants[0]?.scale).toBeCloseTo(1 - AnimationCurveUtil.easingFractionOf(18, FRAME_MILLISECONDS));
+    for (let i = 0; i < 40; i++) drawn = easedPoseOf(drawn, NEUTRAL_POSE, FRAME_MILLISECONDS);
+    expect(drawn.attendants).toEqual([]);
+  });
+});
+
+describe('the page shapes of a behaviour', () => {
+  const PAGE: PagePose = {
+    shapes: [{
+      kind: 'circle', key: 'bug', centreX: 300, centreY: 600, radius: 3, fill: 'alarm',
+    }],
+    opacity:             1,
+    fadeOutMilliseconds: 200,
+  };
+
+  test('the shapes a behaviour gives are drawn as given, never eased', () => {
+    const moved: PagePose = { ...PAGE, shapes: [{ ...PAGE.shapes[0], centreX: 500 } as PagePose['shapes'][number]] };
+    expect(easedPoseOf({ ...NEUTRAL_POSE, page: PAGE }, { ...NEUTRAL_POSE, page: moved }, FRAME_MILLISECONDS).page).toEqual(moved);
+  });
+
+  test('once the behaviour gives none, the last shapes fade out over its fade time, and then are gone', () => {
+    let drawn: Pose = easedPoseOf(NEUTRAL_POSE, { ...NEUTRAL_POSE, page: PAGE }, FRAME_MILLISECONDS);
+    drawn = easedPoseOf(drawn, NEUTRAL_POSE, 100);
+    expect([drawn.page.shapes, drawn.page.opacity]).toEqual([PAGE.shapes, 0.5]);
+    drawn = easedPoseOf(drawn, NEUTRAL_POSE, 100);
+    expect(drawn.page).toEqual(EMPTY_PAGE);
   });
 });

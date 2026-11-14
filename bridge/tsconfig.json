@@ -15,6 +15,7 @@
     "../flint/SpriteHabitat.ts",
     "../flint/react/Flint.tsx",
     "../flint/react/UseFlintHabitat.ts",
+    "../flint/react/UseFlintPerform.ts",
     "../src/shared/constants/OverseerApiContracts.ts",
     "../src/shared/constants/ProductNames.ts",
     "../src/shared/constants/TimestampSlices.ts",

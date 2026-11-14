@@ -2,43 +2,30 @@
  * The small changes every behaviour and reflex makes to the mind, kept in one place so each holds `02-animations.md`, "Rules between
  * animations": walking stops a gesture unless it is point or grab, jumping stops a gesture unless it is point, and an emote stops sleep.
  */
-import { ARRIVED_CUE }                       from '../SpriteHabitat.ts';
-import type { Point }                        from '../SpritePose.ts';
-import { WANDER }                            from '../constants/Behaviours.ts';
-import type { EmoteName }                    from '../emotes/EmoteDefinition.ts';
-import { GESTURE_CATALOG }                   from '../gestures/GestureCatalog.ts';
-import type { GestureName, Mood }            from '../gestures/GestureDefinition.ts';
-import { sleepStateWaking }                  from '../sleep/SleepSequence.ts';
-import { GROUNDED, JumpMotionUtil }          from '../utils/JumpMotionUtil.ts';
-import type { WalkDirection }                from '../utils/WalkMotionUtil.ts';
-import type { SpriteMindState, WanderState } from './MindState.ts';
-import type { PlaceBox }                     from './Perception.ts';
-import { PlaceUtil }                         from './utils/PlaceUtil.ts';
+import { intendedGestureOf }        from '../IntentMeaning.ts';
+import type { Point }               from '../SpriteGeometry.ts';
+import type { EmoteName }           from '../emotes/EmoteCatalog.ts';
+import type { GestureIntent }       from '../gestures/GestureCatalog.ts';
+import { sleepStateWaking }         from '../sleep/SleepSequence.ts';
+import { GROUNDED, JumpMotionUtil } from '../utils/JumpMotionUtil.ts';
+import type { WalkDirection }       from '../utils/WalkMotionUtil.ts';
+import type { SpriteMindState }     from './MindState.ts';
+import type { PlaceBox }            from './Perception.ts';
+import { PlaceUtil }                from './utils/PlaceUtil.ts';
 
-/** A wander that rests first, for the shortest rest. */
-export function wanderAtRest(elapsedMilliseconds: number): WanderState {
-  return { name: 'wander', walkToX: null, restUntilMilliseconds: elapsedMilliseconds + WANDER.REST_SHORTEST_MILLISECONDS };
-}
-
-/** Sleep ends with its wake; a sleeping Flint wanders again. */
+/** Sleep ends with its wake; the sleep behaviour sees the wake on its next frame and hands Flint to the rest. */
 export function withWokenUp(state: SpriteMindState, elapsedMilliseconds: number): SpriteMindState {
-  return {
-    ...state,
-    sleep:     sleepStateWaking(state.sleep, elapsedMilliseconds),
-    behaviour: state.behaviour.name === 'sleep' ? wanderAtRest(elapsedMilliseconds) : state.behaviour,
-  };
+  return { ...state, sleep: sleepStateWaking(state.sleep, elapsedMilliseconds) };
 }
 
-/** Starts a gesture in a mood it has, or the normal mood; the same gesture in the same mood goes on, with only its target changed. */
-export function withGesture(state: SpriteMindState, name: GestureName, mood: Mood, elapsedMilliseconds: number, target: Point | null = null): SpriteMindState {
-  const definition = GESTURE_CATALOG[name];
-  const moodItHas = definition.moods.includes(mood) ? mood : 'normal';
+/** Starts the gesture of an intent; the gesture of the same intent goes on, with only its target changed. */
+export function withGesture(state: SpriteMindState, intent: GestureIntent, elapsedMilliseconds: number, target: Point | null = null): SpriteMindState {
   const woken = withWokenUp(state, elapsedMilliseconds);
-  if (state.gesture !== null && state.gesture.name === name && state.gesture.mood === moodItHas) return { ...woken, gesture: { ...state.gesture, target } };
+  if (state.gesture !== null && state.gesture.intent === intent) return { ...woken, gesture: { ...state.gesture, target } };
   return {
     ...woken,
     gesture: {
-      name, mood: moodItHas, startedAtMilliseconds: elapsedMilliseconds, target, verdict: null,
+      intent, startedAtMilliseconds: elapsedMilliseconds, target, verdict: null,
     },
   };
 }
@@ -54,7 +41,7 @@ export function withEmote(state: SpriteMindState, name: EmoteName, elapsedMillis
 
 /** Sets the walk of this frame, which drives the wobble and the facing; a walk stops the gesture unless the gesture goes on through it. */
 export function withWalking(state: SpriteMindState, direction: WalkDirection): SpriteMindState {
-  const keepsGesture = direction === 0 || state.gesture === null || GESTURE_CATALOG[state.gesture.name].continuesWhileWalking;
+  const keepsGesture = direction === 0 || state.gesture === null || intendedGestureOf(state.gesture.intent).definition.continuesWhileWalking;
   return {
     ...state,
     gesture: keepsGesture ? state.gesture : null,
@@ -65,7 +52,7 @@ export function withWalking(state: SpriteMindState, direction: WalkDirection): S
 /** A jump starts only from the floor, and stops the gesture unless the gesture goes on through it. */
 export function withJump(state: SpriteMindState): SpriteMindState {
   if (JumpMotionUtil.isAirborne(state.motion.jump)) return state;
-  const keepsGesture = state.gesture === null || GESTURE_CATALOG[state.gesture.name].continuesWhileJumping;
+  const keepsGesture = state.gesture === null || intendedGestureOf(state.gesture.intent).definition.continuesWhileJumping;
   return { ...state, gesture: keepsGesture ? state.gesture : null, motion: { ...state.motion, jump: JumpMotionUtil.launched(state.motion.jump) } };
 }
 
@@ -79,21 +66,5 @@ export function withPlacedAtHome(state: SpriteMindState, home: PlaceBox | null):
     motion:   {
       ...state.motion, positionX: PlaceUtil.clampedToFloor(state.motion.positionX, home), floorY: home.floorY, walkDirection: 0, jump: GROUNDED,
     },
-  };
-}
-
-/**
- * Flint now lives in the habitat and wanders there; the habitat hears `arrived` in place of the cues of the place it left. `greeted` is
- * true after a pop-in, whose own wave is the greeting.
- */
-export function withArrival(state: SpriteMindState, habitatId: string, elapsedMilliseconds: number, greeted: boolean): SpriteMindState {
-  return {
-    ...state,
-    livesIn:                 habitatId,
-    behaviour:               wanderAtRest(elapsedMilliseconds),
-    directorInbox:           [ARRIVED_CUE],
-    recentCues:              [ARRIVED_CUE],
-    greetedOnArrival:        greeted,
-    mayRestoreStoredHabitat: false,
   };
 }

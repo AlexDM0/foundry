@@ -2,15 +2,11 @@
  * Writing on paper, shared by the notes study and the ticket (`02-animations.md`, "Reading and writing direction", "Ticket and notes"):
  * lines fill one after the other, each grows from its left end on the screen, and the pen follows the end that grows.
  */
-import type {
-  EyesPose,
-  Facing,
-  HandPose,
-  Point
-} from '../SpritePose.ts';
-import { PEN, WRITING_EYES }  from '../constants/PenMotion.ts';
-import { PAPER_SLOPE }        from '../constants/PropShapes.ts';
-import { AnimationCurveUtil } from '../utils/AnimationCurveUtil.ts';
+import type { Facing, Point }      from '../SpriteGeometry.ts';
+import type { EyesPose, HandPose } from '../SpritePose.ts';
+import { PAPER_SHAPE }             from '../props/shapes/constants/SharedShapes.ts';
+import { AnimationCurveUtil }      from '../utils/AnimationCurveUtil.ts';
+import { PEN, WRITING_EYES }       from './constants/PenMotion.ts';
 
 /** The lines of one paper, in Flint's own units, and how long one line takes to write. */
 export interface WritingPaper {
@@ -29,7 +25,7 @@ export interface WritingMoment {
 /** The growing end of a line in Flint's own units: facing left, a line grows from the far end of the paper. */
 function writtenEndOf(paper: WritingPaper, lineY: number, writtenLength: number, facing: Facing): Point {
   const along = facing === 1 ? writtenLength : paper.fullLineUnits - writtenLength;
-  return { x: paper.lineStartX + along, y: lineY + (PAPER_SLOPE * along) };
+  return { x: paper.lineStartX + along, y: lineY + (PAPER_SHAPE.SLOPE * along) };
 }
 
 /**

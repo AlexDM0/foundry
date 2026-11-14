@@ -2,11 +2,11 @@
  * Drives the pure mind frame by frame for a spec, with no page: a base perception that holds until a spec changes it, extras (a cue, a
  * click, a drop) for one frame only, and a frame length, so no spec waits on real time.
  */
-import type { SpriteIntent }                               from '../SpriteHabitat.ts';
-import { mindStateAfterFrame, mindStateWithPendingIntent } from '../SpriteMind.ts';
-import type { SpriteMindState }                            from '../mind/MindState.ts';
-import { INITIAL_MIND_STATE }                              from '../mind/MindState.ts';
-import type { PerceivedHabitat, Perception, PlaceBox }     from '../mind/Perception.ts';
+import type { SpriteIntent }                                                   from '../SpriteHabitat.ts';
+import { INITIAL_MIND_STATE, mindStateAfterFrame, mindStateWithPendingIntent } from '../SpriteMind.ts';
+import type { SpriteMindState }                                                from '../mind/MindState.ts';
+import type { PerceivedHabitat, Perception, PlaceBox }                         from '../mind/Perception.ts';
+import { NO_TARGET }                                                           from '../mind/Perception.ts';
 
 export const FRAME_MILLISECONDS = 16;
 
@@ -39,7 +39,7 @@ export function perceptionOf(changes: Partial<Perception> = {}): Perception {
     cues:            [],
     storedHabitatId: null,
     stageWidthUnits: 1200,
-    reachTarget:     null,
+    target:          NO_TARGET,
     reducedMotion:   false,
     ...changes,
   };

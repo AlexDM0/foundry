@@ -1,7 +1,10 @@
 /**
  * The Questions view: every open decision, each of which opens beside the board in the question panel, the answered ones below, and the
- * open notices, which have no answer. Notifications are allowed from a click here, never asked for on load.
+ * open notices, which have no answer. Notifications are allowed from a click here, never asked for on load. The view is the questions
+ * habitat of Flint (`bridge/flint/UseQuestionsHabitat.ts`).
  */
+import { useMemo, useRef } from 'react';
+
 import type { ConversationBoardDocument }                              from '../../@types/ConversationDocuments.ts';
 import { CardHead, MetaLine, type CardPill }                           from '../../conversation/ConversationParts.tsx';
 import { DecisionCard }                                                from '../../conversation/DecisionCard.tsx';
@@ -9,14 +12,18 @@ import { Button }                                                      from '../
 import { ListSection }                                                 from '../../design-system/ListSection.tsx';
 import { MonoId }                                                      from '../../design-system/MonoId.tsx';
 import { Stamp }                                                       from '../../design-system/Stamp.tsx';
+import type { QuestionsFacts }                                         from '../../flint/QuestionsSpriteModel.ts';
+import { useQuestionsHabitat }                                         from '../../flint/UseQuestionsHabitat.ts';
 import { useQuestionPanelOpener }                                      from '../../shell/QuestionPanelOpener.ts';
 import { NotificationAllowanceControl }                                from './NotificationAllowanceControl.tsx';
 import type { QuestionNotifier }                                       from './QuestionAlerts.ts';
 import { QuestionsModelUtil, type AnsweredDecision, type NoticeEntry } from './QuestionsModel.ts';
 
 export interface QuestionsViewProps {
-  readonly board:    ConversationBoardDocument;
-  readonly notifier: QuestionNotifier;
+  readonly board:               ConversationBoardDocument;
+  readonly notifier:            QuestionNotifier;
+  /** The decision the question panel shows; absent or `null` while it shows none. */
+  readonly selectedDecisionId?: string | null;
 }
 
 const ANSWERED_PILL: CardPill = { state: 'reviewed', label: 'answered' };
@@ -43,11 +50,16 @@ function NoticeItem({ notice }: { readonly notice: NoticeEntry }) {
   );
 }
 
-export function QuestionsView({ board, notifier }: QuestionsViewProps) {
+export function QuestionsView({ board, notifier, selectedDecisionId = null }: QuestionsViewProps) {
   const model = QuestionsModelUtil.questionsModelOf(board);
   const openQuestionPanel = useQuestionPanelOpener();
+  const viewElement = useRef<HTMLDivElement>(null);
+  const questionsFacts = useMemo<QuestionsFacts>(() => ({
+    decisions: board.decisions, selectedDecisionId, incidents: board.incidents, history: board.questionHistory ?? [],
+  }), [board, selectedDecisionId]);
+  useQuestionsHabitat(viewElement, questionsFacts);
   return (
-    <div className="bridge-view">
+    <div className="bridge-view" ref={viewElement} data-flint-workplace="">
       <ListSection
         label="Open questions"
         title="Open questions"

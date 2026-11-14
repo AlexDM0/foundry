@@ -43,10 +43,17 @@ export interface AgentJobDocument extends IdentifiedRecord {
   /** The stamp of the job's newest launch record, only ever shown; `null` while launching or when the log lost it. */
   readonly launchedAt:      string | null;
   readonly airlock?:        { readonly phase: string };
+  /** The cause of the job's last interruption; it stays once the job resumes. */
+  readonly interruption?:   string;
   readonly stopRequest?:    string;
   /** A product-owner job's request, and the short title the product owner gave it once it ran `intake title`. */
   readonly intake?:         { readonly text: string; readonly title?: string };
   readonly live:            JobLiveFactsDocument;
+}
+
+/** A job that left the board, as the board's `endedJobs` serves it, newest last. */
+export interface EndedAgentJobDocument extends IdentifiedRecord {
+  readonly outcome: string;
 }
 
 export interface JobDecisionDocument extends IdentifiedRecord {

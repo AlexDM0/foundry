@@ -1,5 +1,5 @@
 /**
- * The sensors on a happy-dom page with stubbed boxes. What matters: every box, the pointer and the reach target are in overlay units,
+ * The sensors on a happy-dom page with stubbed boxes. What matters: every box, the pointer and the target element are in overlay units,
  * measured from the overlay's corner and divided by the size of one unit, so Flint is placed alike at half size and at full size; a
  * habitat narrower or lower than 100 pixels is not roomy, so Flint never goes into it, is never stored there and never drops there; the
  * copy target is read only for the habitat Flint lives in, at the centre of the element the host names, and an intent off the fixed list
@@ -72,7 +72,7 @@ function page(pixelsForOneUnit: number): Page {
 }
 
 const NO_REQUEST: PerceptionRequest = {
-  copyTargetHabitatId: null, storedHabitatKind: null, reducedMotion: false, reachElement: null,
+  copyTargetHabitatId: null, storedHabitatKind: null, reducedMotion: false, targetElement: null,
 };
 
 function pointer(type: string, target: EventTarget, clientX: number, clientY: number): void {
@@ -97,15 +97,30 @@ describe('units', () => {
     expect(perception.stageWidthUnits).toBe(unitsOf(1200));
   });
 
-  test('at half size, the pointer and the reach target are in units too', () => {
+  test('at half size, the pointer and the target element\'s box are in units too', () => {
     const { sensors, habitat } = page(0.5);
     const chat = habitat(habitatOf('chat'), 210, 120, 400, 300);
-    const reachElement = document.createElement('button');
-    placeAt(reachElement, 110, 220, 20, 40);
+    const targetElement = document.createElement('button');
+    document.body.appendChild(targetElement);
+    placeAt(targetElement, 110, 220, 20, 40);
     pointer('pointermove', chat, 310, 220);
-    const perception = sensors.perceive({ ...NO_REQUEST, reachElement });
+    const perception = sensors.perceive({ ...NO_REQUEST, targetElement });
     expect(perception.pointer).toEqual({ x: 600, y: 400, hasMoved: true });
-    expect(perception.reachTarget).toEqual({ x: 220, y: 440 });
+    expect(perception.target).toEqual({
+      kind: 'on-the-page',
+      box:  {
+        leftX: 200, rightX: 240, topY: 400, floorY: 480,
+      },
+    });
+  });
+
+  test('a target element that left the page is gone, and no element is none', () => {
+    const { sensors } = page(1);
+    const targetElement = document.createElement('button');
+    document.body.appendChild(targetElement);
+    targetElement.remove();
+    expect(sensors.perceive({ ...NO_REQUEST, targetElement }).target).toEqual({ kind: 'gone' });
+    expect(sensors.perceive(NO_REQUEST).target).toEqual({ kind: 'none' });
   });
 });
 

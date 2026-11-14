@@ -1,5 +1,5 @@
 /** Where Flint can stand: the habitat or home it lives in, and the stretch of that floor it fits on. */
-import type { Facing }                                 from '../../SpritePose.ts';
+import type { Facing }                                 from '../../SpriteGeometry.ts';
 import { BODY_SHAPE }                                  from '../../constants/BodyShape.ts';
 import type { SpriteMindState }                        from '../MindState.ts';
 import type { PerceivedHabitat, Perception, PlaceBox } from '../Perception.ts';

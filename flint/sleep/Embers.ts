@@ -2,12 +2,10 @@
  * Implements `02-animations.md`, "Sleep", "Embers": four squares that rise behind Flint, one after another, each on its own repeating
  * cycle. They are never mirrored; `flint/sleep/SleepSequence.ts` decides when they rise and when they fade out.
  */
-import { easingFractionOf }        from '../PoseEasing.ts';
-import type { EmberPose }          from '../SpritePose.ts';
-import { EASING_RATES_PER_SECOND } from '../constants/Easing.ts';
-import { EMBER_SHAPES }            from '../constants/EmoteMarkShapes.ts';
-import { EMBER_RISE }              from '../constants/SleepMotion.ts';
-import { AnimationCurveUtil }      from '../utils/AnimationCurveUtil.ts';
+import type { EmberPose }           from '../SpritePose.ts';
+import { EASING_RATES_PER_SECOND }  from '../constants/Easing.ts';
+import { EMBER_RISE, EMBER_SHAPES } from '../constants/SleepMotion.ts';
+import { AnimationCurveUtil }       from '../utils/AnimationCurveUtil.ts';
 
 /** Embers that rose since one moment and fade out, at the waking rate, since a later one. */
 export interface FadingEmbers {
@@ -17,7 +15,7 @@ export interface FadingEmbers {
 
 /** What is left of fading embers' opacity, from 1 when they start to fade towards 0. */
 export function emberFadeAt(embers: FadingEmbers, elapsedMilliseconds: number): number {
-  return 1 - easingFractionOf(EASING_RATES_PER_SECOND.WAKING, Math.max(0, elapsedMilliseconds - embers.fadingSinceMilliseconds));
+  return 1 - AnimationCurveUtil.easingFractionOf(EASING_RATES_PER_SECOND.WAKING, Math.max(0, elapsedMilliseconds - embers.fadingSinceMilliseconds));
 }
 
 function emberOpacityAt(progress: number): number {

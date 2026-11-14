@@ -18,6 +18,8 @@ export interface ControlSurroundings {
   readonly onInstallHeld:        (refusal: string) => void;
   /** A command found the page with no session; absent where no shell shows the session banner. */
   readonly onSessionLost?:       () => void;
+  /** The Overseer refused a command, with the refusal the control shows; absent where nothing follows refusals. */
+  readonly onRefused?:           (refusal: string) => void;
 }
 
 function availabilityOf(streamIsDown: boolean, installIsHeld: boolean): ControlAvailability {

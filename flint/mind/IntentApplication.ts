@@ -1,67 +1,67 @@
 /**
- * How an intent of the fixed list changes the mind, from a director or the host's `perform`. Only a behaviour that can be interrupted takes
- * one: wander, sleep and copy. A reflex (cursor play, carried) and a visit or a landing finish first, and an intent given then is dropped.
+ * How an intent of the fixed list changes the mind, from a director or the host's `perform`. The running behaviour says what an intent
+ * does while it runs (`intentWhileRunning` of `flint/behaviours/BehaviourDefinition.ts`): a reflex, a visit or a landing finishes first
+ * and drops it; the rest and sleep take a gesture or an emote over them; the copy ends on a gesture; a behaviour the host started with an
+ * element ends on any intent. An intent that ends the running behaviour starts from the rest, and a gesture that behaviour aimed itself ends
+ * with it.
  */
-import { intentMeaningOf }                                    from '../IntentMeaning.ts';
-import { copyStarted }                                        from '../behaviours/CopyBehaviour.ts';
-import { sleepStarted }                                       from '../behaviours/SleepBehaviour.ts';
-import { visitStarted }                                       from '../behaviours/VisitBehaviour.ts';
-import type { BehaviourName, PendingIntent, SpriteMindState } from './MindState.ts';
-import {
-  wanderAtRest,
-  withEmote,
-  withGesture,
-  withWokenUp
-} from './MindTransitions.ts';
-import type { Perception } from './Perception.ts';
-import { PlaceUtil }       from './utils/PlaceUtil.ts';
+import { intentAimsAtElement, intentMeaningOf }                         from '../IntentMeaning.ts';
+import type { CatalogBehaviour }                                        from '../behaviours/BehaviourCatalog.ts';
+import { behaviourDefinitionOf, behaviourOfIntent, restingBehaviourAt } from '../behaviours/BehaviourCatalog.ts';
+import type { ElementUse }                                              from '../behaviours/BehaviourDefinition.ts';
+import type { IntentName, PendingIntent, SpriteMindState }              from './MindState.ts';
+import { withEmote, withGesture, withoutGesture }                       from './MindTransitions.ts';
+import type { Perception }                                              from './Perception.ts';
 
-const BEHAVIOURS_THAT_TAKE_INTENTS: readonly BehaviourName[] = ['wander', 'sleep', 'copy'];
+export function behaviourTakesIntents(name: string): boolean {
+  return behaviourDefinitionOf(name).intentWhileRunning !== 'dropped';
+}
 
-export function behaviourTakesIntents(name: BehaviourName): boolean {
-  return BEHAVIOURS_THAT_TAKE_INTENTS.includes(name);
+/** A behaviour that runs one at a time refuses its own intent while it runs, or while its intent already waits. */
+export function intentIsRefused(state: SpriteMindState, intent: IntentName): boolean {
+  const running = behaviourDefinitionOf(state.behaviour.name);
+  const isRunning = running.refusesItsOwnIntent && running.intents.includes(intent);
+  const intended = behaviourOfIntent(intent);
+  const isWaiting = intended !== null && intended.refusesItsOwnIntent && state.pendingIntent?.intent === intent;
+  return isRunning || isWaiting;
+}
+
+/** Whether `perform(intent, element)` gives the intent its element: a gesture that aims may take one, a behaviour as its definition says. */
+export function elementUseOf(intent: IntentName): ElementUse {
+  if (intentAimsAtElement(intent)) return 'optional';
+  return behaviourOfIntent(intent)?.element ?? 'none';
+}
+
+function endsTheRunningBehaviour(running: CatalogBehaviour, intentStartsAGesture: boolean): boolean {
+  return running.intentWhileRunning === 'ends-it' || (running.intentWhileRunning === 'gesture-ends-it' && intentStartsAGesture);
 }
 
 /**
  * An intent that asks for a behaviour Flint cannot start here (no visit target, nothing to copy) changes nothing but is remembered. Only
- * `wander`, which the rule director answers when nothing is new, keeps a stored habitat that has not registered yet.
+ * the rest's intent, which the rule director answers when nothing is new, keeps a stored habitat that has not registered yet.
  */
 export function mindStateWithIntentApplied(state: SpriteMindState, pending: PendingIntent, perception: Perception, elapsedMilliseconds: number): SpriteMindState {
   const cleared = { ...state, pendingIntent: null };
-  if (!behaviourTakesIntents(state.behaviour.name)) return cleared;
+  const running = behaviourDefinitionOf(state.behaviour.name);
   const { intent } = pending;
-  if (intent === 'wave' && state.greetedOnArrival) return { ...cleared, greetedOnArrival: false };
-  const isIdleIntent = intent === 'wander' || intent === 'sleep';
+  if (running.intentWhileRunning === 'dropped' || intentIsRefused(cleared, intent)) return cleared;
+  if (state.arrivalGreeting === intent) return { ...cleared, arrivalGreeting: null };
+  const meaning = intentMeaningOf(intent);
+  const intended = meaning.kind === 'behaviour' ? behaviourOfIntent(intent) : null;
+  if (meaning.kind === 'behaviour' && intended === null) return cleared;
+  const keepsTheQuiet = intended?.intentKeepsTheQuiet ?? false;
   const remembered: SpriteMindState = {
     ...cleared,
     lastIntent:              intent,
-    greetedOnArrival:        false,
-    mayRestoreStoredHabitat: intent === 'wander' && state.mayRestoreStoredHabitat,
-    quietSinceMilliseconds:  isIdleIntent ? state.quietSinceMilliseconds : elapsedMilliseconds,
+    arrivalGreeting:         null,
+    mayRestoreStoredHabitat: intended?.role === 'rest' && state.mayRestoreStoredHabitat,
+    quietSinceMilliseconds:  keepsTheQuiet ? state.quietSinceMilliseconds : elapsedMilliseconds,
   };
-  const meaning = intentMeaningOf(intent);
-  const stillBehaviour = remembered.behaviour.name === 'wander' ? { ...remembered, behaviour: { ...remembered.behaviour, walkToX: null } } : remembered;
+  const rested = { ...remembered, behaviour: restingBehaviourAt(elapsedMilliseconds) };
+  const base = endsTheRunningBehaviour(running, meaning.kind === 'gesture') ? (running.aimsItsOwnGestures ? withoutGesture(rested) : rested) : remembered;
 
-  if (meaning.kind === 'gesture') {
-    const leftCopy = remembered.behaviour.name === 'copy' ? { ...stillBehaviour, behaviour: wanderAtRest(elapsedMilliseconds) } : stillBehaviour;
-    return withGesture(leftCopy, meaning.gesture, meaning.mood, elapsedMilliseconds);
-  }
-  if (meaning.kind === 'emote') return withEmote(stillBehaviour, meaning.emote, elapsedMilliseconds);
-  switch (meaning.behaviour) {
-    case 'wander':
-      // The rule director answers `wander` whenever nothing is new, so it only wakes Flint; a copy and a gesture go on.
-      return withWokenUp(remembered, elapsedMilliseconds);
-    case 'sleep':
-      return sleepStarted(remembered, perception, elapsedMilliseconds);
-    case 'visit': {
-      const target = PlaceUtil.habitatById(perception, pending.visitTargetId);
-      if (target === null || !target.isRoomy || target.id === remembered.livesIn) return remembered;
-      return visitStarted(remembered, target, perception, elapsedMilliseconds);
-    }
-    case 'copy': {
-      const habitat = PlaceUtil.habitatById(perception, remembered.livesIn);
-      if (habitat?.copyTarget === null || habitat === null) return remembered;
-      return copyStarted(remembered, habitat.id, elapsedMilliseconds);
-    }
-  }
+  if (meaning.kind === 'gesture') return withGesture(base, meaning.intent, elapsedMilliseconds);
+  if (meaning.kind === 'emote') return withEmote(base, meaning.emote, elapsedMilliseconds);
+  if (intended?.started === null || intended === null) return base;
+  return intended.started(base, { perception, elapsedMilliseconds, visitTargetId: pending.visitTargetId });
 }

@@ -1,6 +1,6 @@
 /**
  * When the mind asks a director, which one, and what it tells it. The director is asked every few seconds, and at once when a cue waits,
- * but only while the behaviour takes intents. A host's brain answers in place of the rule director until its maximum time ends, except
+ * but only while the running behaviour asks it. A host's brain answers in place of the rule director until its maximum time ends, except
  * while Flint sleeps.
  */
 import type {
@@ -9,9 +9,10 @@ import type {
   SpriteContent,
   SpriteHabitat
 } from '../SpriteHabitat.ts';
-import { DIRECTOR }              from '../constants/Behaviours.ts';
+import { isSpriteIntent }        from '../SpriteHabitat.ts';
+import { behaviourDefinitionOf } from '../behaviours/BehaviourCatalog.ts';
+import { DIRECTOR }              from '../constants/Mind.ts';
 import { sleepIsActive }         from '../sleep/SleepSequence.ts';
-import { behaviourTakesIntents } from './IntentApplication.ts';
 import type { SpriteMindState }  from './MindState.ts';
 
 export interface BrainSession {
@@ -31,7 +32,7 @@ export function brainSessionAt(session: BrainSession | null, elapsedMilliseconds
 }
 
 export function directorIsDue(state: SpriteMindState, elapsedMilliseconds: number): boolean {
-  if (!behaviourTakesIntents(state.behaviour.name) || state.pendingIntent !== null) return false;
+  if (!behaviourDefinitionOf(state.behaviour.name).asksDirector || state.pendingIntent !== null) return false;
   return state.directorInbox.length > 0 || elapsedMilliseconds - state.lastDirectorAskMilliseconds >= DIRECTOR.ASK_INTERVAL_MILLISECONDS;
 }
 
@@ -59,7 +60,7 @@ export function perceptionDigestOf(input: DigestInput): PerceptionDigest {
     recentCues:        state.recentCues,
     newCues:           state.directorInbox,
     content:           input.content,
-    lastIntent:        state.lastIntent,
+    lastIntent:        state.lastIntent !== null && isSpriteIntent(state.lastIntent) ? state.lastIntent : null,
     isAsleep:          sleepIsActive(state.sleep),
     visitTargetKind:   input.visitTargetKind,
     copyIsOffered:     input.copyIsOffered,

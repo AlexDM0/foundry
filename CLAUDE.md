@@ -257,7 +257,7 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM, `flint/demo/DemoEntry.ts` starts the demo page. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM, `flint/demo/DemoEntry.ts` starts the demo page, `flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
 | Only `src/shared/Environment.ts` reads the environment. | `watcher.ts` reads `SystemRoot` and gives it to `runWatcher`, with a reader of any other variable, for the variables that a launch copies. | The Watcher bundle cannot reach `src/shared/`. |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/overseer/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
@@ -387,21 +387,27 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
 - There is one Flint on a document. A second `createFlint` on the same document is refused.
 - Flint knows no component of the host. It knows only the cue names that the host sends and its own list of intents.
   The host gives the home element, the habitats and the policy that selects the habitat to visit.
-- A behaviour, a gesture, an emote and sleep each give only a part of the target pose. `flint/PoseComposition.ts` puts
-  the parts together in one order: behaviour, gesture, emote, sleep, reduced motion. Only `flint/PoseEasing.ts` eases.
-  The renderer knows nothing about behaviour.
+- A behaviour, a gesture, an emote, sleep and the attendants each give only a part of the target pose.
+  `flint/PoseComposition.ts` puts the parts together in one order: behaviour, gesture, emote, sleep, attendants, reduced
+  motion. Only `flint/PoseEasing.ts` eases. The renderer knows nothing about behaviour.
+- The core names no animation and no behaviour: it reaches each through its catalog. One more animation or behaviour is
+  one more folder and one more catalog line. `flint/AnimationModules.spec.ts` holds this.
 - The mind and the pose are pure, with plain `.spec.ts` specs. The renderer and `createFlint` have `.dom.tsx` specs. A
   spec gives a manual frame source (`flint/testing/ManualFrameSource.ts`) and never waits for real time.
-- Each value of the design handoff is a named constant in `flint/constants/`, with its unit in its name.
-- `flint/demo/index.html` shows each animation of the design handoff through `createFlint`, `perform` and `steer`. The
-  command in `flint/README.md` builds it into one file in `flint/demo/build/`. Git ignores this folder.
+- Each value of the design handoff is a named constant with its unit in its name: a value of the core in
+  `flint/constants/`, a value of one animation or behaviour in `constants/<Name>Values.ts` in its own folder.
+- `flint/demo/index.html` shows each animation of the design handoff through `createFlint`, `perform`, `attend` and
+  `steer`. The command in `flint/README.md` builds it into one file in `flint/demo/build/`. Git ignores this folder.
 - `bridge/flint/` is the host of Flint in the Bridge. `bridge/flint/BridgeFlint.tsx` gives the home corner at the
-  bottom right, the storage port on `bridge/preferences/PreferenceStore.ts` for each board, and the visit target. The
-  visit target is the habitat that User last focused or clicked. An element with `data-flint-workplace` around a
-  habitat, such as the chat card, counts as part of that habitat.
-- The habitats of the Bridge are the chat thread (`bridge/conversation/ChatThread.tsx`) and the Agents view
-  (`bridge/views/agents/`). A habitat makes its cues from the data that its component gets. It never reads text from
-  the page and never calls a model. `bridge/flint/BridgeFlint.dom.tsx` holds the host.
+  bottom right, the storage port on `bridge/preferences/PreferenceStore.ts` for each board, the visit target and the
+  board occasions. The visit target is the habitat that User last focused or clicked. An element with
+  `data-flint-workplace` around a habitat, such as the chat card, counts as part of that habitat. The Bridge learns
+  where Flint lives only from the handle's `livesIn`.
+- The habitats of the Bridge are the chat thread (`bridge/conversation/`), the Agents view, the Questions view and the
+  question panel, the Tickets and Kanban views, the merge queue, the Epics view and the Progress timeline. A habitat
+  makes its cues from the data that its component gets, through a pure model with a plain spec. It never reads text
+  from the page and never calls a model. One change of the board has one answer of Flint, not a cue and an occasion
+  that replace each other. `bridge/flint/BridgeFlint.dom.tsx` holds the host.
 
 ### Skills
 

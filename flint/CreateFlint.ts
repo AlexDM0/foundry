@@ -4,6 +4,7 @@
  */
 import type { FrameSource }       from './FrameSource.ts';
 import { animationFrameSourceOf } from './FrameSource.ts';
+import { intendedGestureOf }      from './IntentMeaning.ts';
 import { easedPoseOf }            from './PoseEasing.ts';
 import type {
   Director,
@@ -12,10 +13,17 @@ import type {
   SpriteIntent,
   VisitTargetPolicy
 } from './SpriteHabitat.ts';
-import { FLINT_CONTRACT_VERSIONS, isFlintSteering, isSpriteIntent } from './SpriteHabitat.ts';
 import {
+  FLINT_CONTRACT_VERSIONS,
+  isFlintSteering,
+  isSpriteAttendant,
+  isSpriteIntent
+} from './SpriteHabitat.ts';
+import {
+  INITIAL_MIND_STATE,
   mindStateAfterDirectorAsked,
   mindStateAfterFrame,
+  mindStateAttended,
   mindStateWithPendingIntent,
   standingPlaceOf,
   targetPoseOfMind
@@ -23,6 +31,7 @@ import {
 import type { Pose }                                                        from './SpritePose.ts';
 import { createSpriteRenderer }                                             from './SpriteRenderer.ts';
 import { createSpriteSensors }                                              from './SpriteSensors.ts';
+import { behaviourDefinitionOf }                                            from './behaviours/BehaviourCatalog.ts';
 import { MAXIMUM_FRAME_STEP_MILLISECONDS }                                  from './constants/Easing.ts';
 import { DEFAULT_PIXELS_FOR_ONE_UNIT, OVERLAY, REDUCED_MOTION_MEDIA_QUERY } from './constants/Overlay.ts';
 import { FLINT_COLOURS }                                                    from './constants/Palette.ts';
@@ -35,11 +44,11 @@ import {
   directorIsDue,
   perceptionDigestOf
 } from './mind/DirectorAsk.ts';
-import type { SpriteMindState } from './mind/MindState.ts';
-import { INITIAL_MIND_STATE }   from './mind/MindState.ts';
-import { ruleDirectorIntentOf } from './mind/RuleDirector.ts';
-import { mindStateSteered }     from './mind/Steering.ts';
-import { StoredHabitatUtil }    from './mind/utils/StoredHabitatUtil.ts';
+import { elementUseOf, intentIsRefused } from './mind/IntentApplication.ts';
+import type { SpriteMindState }          from './mind/MindState.ts';
+import { ruleDirectorIntentOf }          from './mind/RuleDirector.ts';
+import { mindStateSteered }              from './mind/Steering.ts';
+import { StoredHabitatUtil }             from './mind/utils/StoredHabitatUtil.ts';
 
 /**
  * The host's store of the habitat Flint lives in. The value is the package's own (`flint/mind/utils/StoredHabitatUtil.ts`): it carries
@@ -69,11 +78,18 @@ export interface FlintOptions {
   readonly visitTarget?:      VisitTargetPolicy;
 }
 
-/** `unknown-intent` when the value is not on the fixed intent list, `destroyed` after `destroy`. */
-export type PerformVerdict = 'performed' | 'unknown-intent' | 'destroyed';
+/**
+ * `unknown-intent` when the value is not on the fixed intent list; `needs-an-element` for a behaviour that takes one (`lay-bar-along`)
+ * given none; `already-running` for a behaviour that runs one at a time (`chase-bug`) while it runs or its intent waits; `destroyed` after
+ * `destroy`. A refused intent changes nothing.
+ */
+export type PerformVerdict = 'performed' | 'unknown-intent' | 'needs-an-element' | 'already-running' | 'destroyed';
 
 /** `unknown-steering` when the value is not one of `FLINT_STEERINGS`, `destroyed` after `destroy`. */
 export type SteerVerdict = 'steered' | 'unknown-steering' | 'destroyed';
+
+/** `unknown-attendant` when the value is not one of `SPRITE_ATTENDANTS`, `destroyed` after `destroy`. */
+export type AttendVerdict = 'attended' | 'unknown-attendant' | 'destroyed';
 
 export interface FlintHandle {
   readonly contractVersion: number;
@@ -83,12 +99,23 @@ export interface FlintHandle {
   readonly cue:             (element: HTMLElement, cueName: SpriteCue) => void;
   /**
    * Carries out an intent on the next frame, as a director's answer is; a reflex, a visit or a landing that runs then drops it. A `visit`
-   * goes to the habitat the visit-target policy picks now. A `grab` given an element turns Flint to it and reaches for its centre on
-   * each frame, also while it moves.
+   * goes to the habitat the visit-target policy picks now. A gesture that aims, such as `grab`, given an element turns Flint to it and
+   * reaches for its centre on each frame, also while it moves. A behaviour that takes an element (`chase-bug`, `lay-bar-along`) reads its
+   * box on each frame, and ends once it is gone from the page.
    */
   readonly perform:         (intent: string, toward?: Element) => PerformVerdict;
   /** Steers Flint on the next frames, as a held arrow key or the space bar does; a visit, a drag or a landing ignores it. */
   readonly steer:           (steering: string) => SteerVerdict;
+  /**
+   * The kind of the habitat Flint lives in now, as its host registered it; null at home, before its first frame and after `destroy`. A
+   * host reads it to start a behaviour on the floor of its own habitat, or to leave an answer to a habitat Flint lives in.
+   */
+  readonly livesIn:         () => string | null;
+  /**
+   * Sets how many members of an attendant of `SPRITE_ATTENDANTS` stay with Flint, held between 0 and its maximum; 0 takes it away. No
+   * gesture, emote, walk, jump, drag or sleep removes one.
+   */
+  readonly attend:          (attendant: string, count: number) => AttendVerdict;
   /** A brain answers in place of the rule director, except while Flint sleeps, until this much frame time has passed or `stopBrain`. */
   readonly startBrain:      (director: Director, maximumMilliseconds: number) => void;
   readonly stopBrain:       () => void;
@@ -117,11 +144,16 @@ interface FlintRuntime {
   awaitedAskNumber:        number | null;
   askCount:                number;
   isDestroyed:             boolean;
-  /** The element a host's grab reaches for; it is let go once no grab runs or waits. */
-  reachElement:            Element | null;
+  /** The element a host gave with its intent; it is let go once no aimed gesture or behaviour that takes it runs, and no intent waits. */
+  targetElement:           Element | null;
 }
 
 const NO_STORAGE: FlintStorage = Object.freeze({ readHabitatKind: () => null, writeHabitatKind: () => undefined });
+
+function mindHoldsItsElement(mind: SpriteMindState): boolean {
+  const gestureAims = mind.gesture !== null && intendedGestureOf(mind.gesture.intent).definition.aimsAtElement;
+  return gestureAims || behaviourDefinitionOf(mind.behaviour.name).element !== 'none' || mind.pendingIntent !== null;
+}
 
 function placeOverlay(overlay: SVGSVGElement, theme: Partial<FlintTheme>): void {
   const { style } = overlay;
@@ -169,7 +201,7 @@ export function createFlint(options: FlintOptions): FlintHandle {
     awaitedAskNumber:        null,
     askCount:                0,
     isDestroyed:             false,
-    reachElement:            null,
+    targetElement:           null,
   };
 
   const giveIntent = (intent: SpriteIntent, visitTargetId: string | null): void => {
@@ -231,10 +263,10 @@ export function createFlint(options: FlintOptions): FlintHandle {
       copyTargetHabitatId: before.livesIn,
       storedHabitatKind:   before.mayRestoreStoredHabitat ? storedHabitatKind : null,
       reducedMotion:       isReducedMotion,
-      reachElement:        runtime.reachElement,
+      targetElement:       runtime.targetElement,
     });
     runtime.mind = mindStateAfterFrame(before, perception, { elapsedMilliseconds, deltaMilliseconds });
-    if (runtime.mind.gesture?.name !== 'grab' && runtime.mind.pendingIntent === null) runtime.reachElement = null;
+    if (!mindHoldsItsElement(runtime.mind)) runtime.targetElement = null;
     if (runtime.mind.livesIn !== before.livesIn) rememberWhereFlintLives(runtime.mind.livesIn);
     if (runtime.awaitedAskNumber === null && directorIsDue(runtime.mind, elapsedMilliseconds)) askDirector(elapsedMilliseconds);
     const targetPose = targetPoseOfMind(runtime.mind, elapsedMilliseconds, isReducedMotion);
@@ -252,8 +284,11 @@ export function createFlint(options: FlintOptions): FlintHandle {
     perform: (intent, toward) => {
       if (runtime.isDestroyed) return 'destroyed';
       if (!isSpriteIntent(intent)) return 'unknown-intent';
-      giveIntent(intent, intent === 'visit' ? sensors.visitTargetIdFor(runtime.mind.livesIn) : null);
-      runtime.reachElement = intent === 'grab' ? toward ?? null : null;
+      const elementUse = elementUseOf(intent);
+      if (elementUse === 'required' && toward === undefined) return 'needs-an-element';
+      if (intentIsRefused(runtime.mind, intent)) return 'already-running';
+      giveIntent(intent, sensors.visitTargetIdFor(runtime.mind.livesIn));
+      runtime.targetElement = elementUse === 'none' ? null : toward ?? null;
       return 'performed';
     },
     steer: (steering) => {
@@ -261,6 +296,17 @@ export function createFlint(options: FlintOptions): FlintHandle {
       if (!isFlintSteering(steering)) return 'unknown-steering';
       runtime.mind = mindStateSteered(runtime.mind, steering, runtime.lastElapsedMilliseconds ?? 0, reducedMotion());
       return 'steered';
+    },
+    livesIn: () => {
+      const { livesIn } = runtime.mind;
+      if (runtime.isDestroyed || livesIn === null) return null;
+      return sensors.registeredOf(livesIn)?.habitat.kind ?? null;
+    },
+    attend: (attendant, count) => {
+      if (runtime.isDestroyed) return 'destroyed';
+      if (!isSpriteAttendant(attendant)) return 'unknown-attendant';
+      runtime.mind = mindStateAttended(runtime.mind, attendant, count, runtime.lastElapsedMilliseconds ?? 0);
+      return 'attended';
     },
     startBrain: (director, maximumMilliseconds) => {
       if (runtime.isDestroyed) return;

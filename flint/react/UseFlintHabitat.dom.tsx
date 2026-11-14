@@ -24,9 +24,10 @@ function recordingConnection(): { readonly connection: FlintConnection; readonly
       events.push(`register ${element.id} ${habitat.kind}`);
       return () => events.push(`remove ${element.id}`);
     },
-    cue:    (element, cueName) => events.push(`cue ${element.id} ${cueName}`),
-    attach: () => undefined,
-    detach: () => undefined,
+    cue:     (element, cueName) => events.push(`cue ${element.id} ${cueName}`),
+    perform: () => 'performed',
+    attach:  () => undefined,
+    detach:  () => undefined,
   };
   return { connection, events };
 }

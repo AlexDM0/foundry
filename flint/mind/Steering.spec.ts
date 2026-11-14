@@ -50,7 +50,7 @@ describe('walking', () => {
     pointing.give('point');
     pointing.frame();
     steered(pointing, 'walk-right');
-    expect(pointing.frame().gesture?.name).toBe('point');
+    expect(pointing.frame().gesture?.intent).toBe('point');
   });
 });
 

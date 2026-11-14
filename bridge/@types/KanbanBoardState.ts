@@ -10,23 +10,26 @@ import type {
 import type { DurationUnits, TimestampSlices } from '../utils/TimeUtil.ts';
 
 export interface KanbanTicketDocument {
-  readonly id:          string;
-  readonly title:       string;
-  readonly type:        TicketType;
-  readonly status:      TicketStatus;
-  readonly priority?:   TicketPriority;
-  readonly size?:       TicketSize;
-  readonly hold?:       string;
-  readonly epics?:      readonly string[];
-  readonly dependsOn?:  readonly string[];
-  readonly filed:       string;
-  readonly updated:     string;
-  readonly started:     string | null;
-  readonly finished:    string | null;
-  readonly delivered:   string | null;
-  readonly abandonedAt: string | null;
+  readonly id:             string;
+  readonly title:          string;
+  readonly type:           TicketType;
+  readonly status:         TicketStatus;
+  readonly priority?:      TicketPriority;
+  readonly size?:          TicketSize;
+  readonly hold?:          string;
+  readonly epics?:         readonly string[];
+  readonly dependsOn?:     readonly string[];
+  /** Read only by Flint's tickets habitat (`bridge/flint/TicketsSpriteModel.ts`), as is `foundInReview`. */
+  readonly introducedBy?:  string;
+  readonly foundInReview?: string;
+  readonly filed:          string;
+  readonly updated:        string;
+  readonly started:        string | null;
+  readonly finished:       string | null;
+  readonly delivered:      string | null;
+  readonly abandonedAt:    string | null;
   /** Why an abandoned ticket was abandoned; absent when no reason was given. */
-  readonly reason?:     string;
+  readonly reason?:        string;
 }
 
 export interface KanbanTicketFacts {

@@ -1,6 +1,7 @@
 /**
  * The shared curves against their own contract: the clamp's default bounds, a cycle that wraps also before zero, and the spring of
- * `02-animations.md` Emotes, which must start at nothing, overshoot, and rest at exactly 1 so a mark never jumps when the spring ends.
+ * `02-animations.md` Emotes, which must start at nothing, overshoot, and rest at exactly 1 so a mark never jumps when the spring ends; and
+ * the one interpolation every gesture and the easing step blend with.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -25,7 +26,16 @@ describe('AnimationCurveUtil', () => {
     expect(AnimationCurveUtil.springScaleAt(1)).toBe(1);
   });
 
+  test('one easing step covers 1 - exp(-rate × seconds) of the distance', () => {
+    expect(AnimationCurveUtil.easingFractionOf(7, 100)).toBeCloseTo(1 - Math.exp(-0.7));
+  });
+
   test('half a turn in degrees is pi radians', () => {
     expect(AnimationCurveUtil.radiansOf(180)).toBeCloseTo(Math.PI);
+  });
+
+  test('an interpolation gives the first value at 0, the second at 1, and goes past them outside that range', () => {
+    expect([0, 0.25, 1, 1.5].map((share) => AnimationCurveUtil.interpolated(10, 30, share))).toEqual([10, 15, 30, 40]);
+    expect(AnimationCurveUtil.interpolatedPoint({ x: 0, y: 10 }, { x: 8, y: -10 }, 0.25)).toEqual({ x: 2, y: 5 });
   });
 });

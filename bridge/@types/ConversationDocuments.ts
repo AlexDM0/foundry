@@ -3,6 +3,8 @@
  * incidents, the session jobs, the tickets, the notices, the picture limits, and `questionHistory`, the log records a settled decision,
  * incident or ended session leaves behind. Written structurally here, since the Bridge's project compiles no tracker-model file.
  */
+import type { PageDraftDocument } from './BoardStateDocument.ts';
+
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface DecisionOptionDocument {
@@ -138,11 +140,15 @@ export interface HistoryRecordDocument {
 }
 
 export interface ConversationBoardDocument {
-  readonly jobs:             readonly SessionJobDocument[];
-  readonly decisions:        readonly DecisionDocument[];
-  readonly incidents:        readonly IncidentDocument[];
-  readonly notices?:         readonly NoticeDocument[];
-  readonly page?:            { readonly tickets: readonly TicketDocument[] };
+  readonly jobs:      readonly SessionJobDocument[];
+  readonly decisions: readonly DecisionDocument[];
+  readonly incidents: readonly IncidentDocument[];
+  readonly notices?:  readonly NoticeDocument[];
+  readonly page?:            {
+    readonly tickets:  readonly TicketDocument[];
+    /** The open filing drafts, as far as the intake chat reads them for Flint. */
+    readonly payload?: { readonly boardFacts: { readonly drafts?: readonly PageDraftDocument[] } };
+  };
   readonly questionHistory?: readonly HistoryRecordDocument[];
   /** `null` or absent: no picture can be sent. */
   readonly pictureLimits?:   PictureLimitsDocument | null;

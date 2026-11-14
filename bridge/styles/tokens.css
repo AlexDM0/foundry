@@ -103,6 +103,7 @@
   --flint-paper-fold:           #d9d9d9;
   --flint-lens:                 #eef6f8;
   --flint-keyboard:             #e6e6e6;
+  --flint-hardware:             #e6e6e6;
   --flint-bolt:                 #a8a8a8;
   --flint-thinking:             #8a8a8a;
   --flint-bulb-glass-light:     #ffedb8;
@@ -115,6 +116,8 @@
   --flint-bulb-fitting-middle:  #9a9a9a;
   --flint-bulb-fitting-shadow:  #5c5c5c;
   --flint-bulb-contact:         #5c5c5c;
+  --flint-husk:                 #f3c9a8;
+  --flint-ribbon:               #8cc7d0;
 }
 
 /* Outline is left out on purpose: a focus ring appears and leaves at once. */

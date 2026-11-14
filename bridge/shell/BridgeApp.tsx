@@ -3,7 +3,8 @@
  * whether controls may act. After the stream comes back it asks `/api/identity` again and reloads when the Overseer runs new code, since
  * the bundle it holds may no longer match the API. A refused session code, or a session the Overseer no longer knows, raises the session
  * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it. Flint,
- * the sprite of the agents, lives over the whole page, its habitat stored with the board's preferences.
+ * the sprite of the agents, lives over the whole page, its habitat stored with the board's preferences, and answers each change of the
+ * board, of the stream and each command the Overseer refuses.
  */
 import {
   useCallback,
@@ -14,6 +15,7 @@ import {
   useState
 } from 'react';
 
+import type { FlintHandle }                                                              from '../../flint/CreateFlint.ts';
 import { OpenDecisionsUtil }                                                             from '../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardStateDocument, OverseerIdentity }                                     from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                                                from '../@types/ConversationDocuments.ts';
@@ -23,6 +25,7 @@ import type { PictureUploadClient }                                             
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import { EmptyState }                                                                    from '../design-system/ListSection.tsx';
+import type { BoardReading }                                                             from '../flint/BoardOccasionModel.ts';
 import { BridgeFlint, type FlintFrameSource }                                            from '../flint/BridgeFlint.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
@@ -94,6 +97,8 @@ export interface BridgeServices {
   readonly questionNotifier:     QuestionNotifier;
   /** The frames Flint moves on; the default is the browser's animation frames. */
   readonly flintFrameSource?:    FlintFrameSource;
+  /** Called with Flint's handle once it exists and with null once it is gone; a DOM spec records what the shell asks of Flint. */
+  readonly onFlintHandle?:       (handle: FlintHandle | null) => void;
 }
 
 export interface BridgeAppProps {
@@ -120,6 +125,9 @@ const PANEL_ENTER_ANIMATION = 'bridge-panel-enter';
 /** The board's preference holding the incident defaults this viewer marked seen. */
 const SEEN_INCIDENT_DEFAULTS_CHOICE_NAME = 'seen-incident-defaults';
 
+/** A board that serves no ended jobs: one constant, so the Agents view sees no change between two such boards. */
+const NO_ENDED_JOBS: NonNullable<BoardStateDocument['endedJobs']> = Object.freeze([]);
+
 export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: BridgeAppProps) {
   const sharedStore = useMemo(() => sharedPreferenceStoreOf(services.storage), [services]);
   const [identity, setIdentity] = useState<OverseerIdentity | null>(null);
@@ -131,6 +139,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   // A refused code stays shown even when an older cookie still opens the stream: another process may hold a session from it.
   const sessionLoss: SessionLoss | null = sessionExchangeOutcome === 'refused' ? 'code-refused' : (sessionIsLost ? 'no-session' : null);
   const loseSession = useCallback(() => setSessionIsLost(true), []);
+  const [refusedCommandCount, setRefusedCommandCount] = useState(0);
+  const countRefusal = useCallback(() => setRefusedCommandCount((counted) => counted + 1), []);
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(() => ThemeBootstrap.themeChoiceOf(sharedStore.readChoice('theme')));
   const knownCodeVersion = useRef<string | null>(null);
   const streamWasDown = useRef(false);
@@ -275,7 +285,9 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     ...(services.pictureUploadClient === undefined ? {} : { pictureUploadClient: services.pictureUploadClient }),
     onInstallHeld: setInstallRefusal,
     onSessionLost: loseSession,
-  }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession]);
+    onRefused:     countRefusal,
+  }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession, countRefusal]);
+  const flintBoardReading = useMemo((): BoardReading => ({ board: boardState, connection, refusedCommandCount }), [boardState, connection, refusedCommandCount]);
 
   const bridgeClock = useMemo((): BridgeClock => ({ ...BROWSER_BRIDGE_CLOCK, now: services.now }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
@@ -389,7 +401,12 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   return (
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <QuestionPanelOpenerContext.Provider value={questionPanel.open}>
-        <BridgeFlint boardStore={boardStore} {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}>
+        <BridgeFlint
+          boardStore={boardStore}
+          boardReading={flintBoardReading}
+          {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
+          {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
+        >
           <div className="bridge-shell">
             <ConnectionBanners
               streamIsDown={streamIsDown}
@@ -440,11 +457,13 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
                     selectedJobId={route.item}
                     clock={bridgeClock}
                     timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
+                    endedJobs={boardState.endedJobs ?? NO_ENDED_JOBS}
+                    overseer={boardState.overseer}
                   />
                 )
                 : null}
               {conversationBoard !== null && route.tab === 'questions'
-                ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} />
+                ? <QuestionsView board={conversationBoard} notifier={services.questionNotifier} selectedDecisionId={questionPanel.shownDecision?.decision.id ?? null} />
                 : null}
               {conversationBoard !== null && route.tab === 'assistant'
                 ? <AssistantView board={conversationBoard} followTranscript={services.followTranscript} />

@@ -36,3 +36,11 @@ export const EMBER_RISE = {
   /** The ember fades in until `p` is this, then fades out as `1 - p`. */
   FADE_IN_PROGRESS:            0.15,
 } as const;
+
+/** The embers of sleep: squares behind Flint that never mirror; each entry is one ember, in rising order. */
+export const EMBER_SHAPES = [
+  { SIDE_UNITS: 5, COLOUR: 'body' },
+  { SIDE_UNITS: 4, COLOUR: 'emberLight' },
+  { SIDE_UNITS: 3.5, COLOUR: 'emberDark' },
+  { SIDE_UNITS: 6, COLOUR: 'body' },
+] as const;

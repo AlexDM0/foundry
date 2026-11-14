@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { Director }                        from '../SpriteHabitat.ts';
+import { INITIAL_MIND_STATE }                   from '../SpriteMind.ts';
 import { sleepStateFallingAsleep, SLEEP_AWAKE } from '../sleep/SleepSequence.ts';
 import {
   brainAnswers,
@@ -15,7 +16,6 @@ import {
   directorIsDue,
   perceptionDigestOf
 } from './DirectorAsk.ts';
-import { INITIAL_MIND_STATE } from './MindState.ts';
 
 const BRAIN: Director = { nextIntent: () => 'wave' };
 

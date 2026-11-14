@@ -4,8 +4,8 @@
  * just right of the growing end on the screen, turned -35 × facing; and the eyes look down at the line being written.
  */
 import { describe, expect, test } from 'bun:test';
+import type { Facing }            from '../SpriteGeometry.ts';
 
-import type { Facing }       from '../SpritePose.ts';
 import type { WritingPaper } from './PenWritingUtil.ts';
 import { PenWritingUtil }    from './PenWritingUtil.ts';
 

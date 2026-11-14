@@ -35,3 +35,9 @@ export const SPRING = {
   PHASE_OFFSET:          0.75,
   ANGULAR_STEP_RADIANS:  2.094,
 } as const;
+
+/** A floor that moves towards a goal at the body rate (a rise, a lift that comes down); a builder decision. */
+export const FLOOR_CHANGE = {
+  /** The floor has come to its goal once it is this close. */
+  ARRIVED_WITHIN_UNITS: 0.5,
+} as const;

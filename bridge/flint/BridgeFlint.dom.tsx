@@ -3,8 +3,10 @@
  * perceives. What matters: one overlay, hidden from assistive technology and blind to the pointer, so Flint blocks no click below it, and
  * the home corner beside it; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
  * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues; a press
- * on the composer makes the thread the habitat Flint visits; and in the Agents view an agent that works is copied, Flint walking below
- * the job column of full-width rows, also when Flint slept at home first and comes back while the agent already works.
+ * on the composer makes the thread the habitat Flint visits; in the Agents view an agent that works is copied, Flint walking below
+ * the job column of full-width rows, also when Flint slept at home first and comes back while the agent already works; a board occasion
+ * reaches Flint wherever it is, and each board shows a watcher spark for each agent in flight, at most 4; and a view below reaches Flint
+ * through `useFlintPerform`, with one of its own elements.
  */
 import {
   act,
@@ -19,10 +21,11 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 import type { FlintHandle }                                from '../../flint/CreateFlint.ts';
 import type { Director, PerceptionDigest, SpriteIntent }   from '../../flint/SpriteHabitat.ts';
+import { useFlintPerform }                                 from '../../flint/react/UseFlintPerform.ts';
 import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
 import type { IdentifiedRecord }                           from '../@types/BoardStateDocument.ts';
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';
@@ -34,6 +37,7 @@ import { exampleAgentJob }                                 from '../testing/Boar
 import { fakeControlSurroundingsOf }                       from '../testing/FakeControlSurroundings.ts';
 import { createManualFlintFrames, type ManualFlintFrames } from '../testing/ManualFlintFrames.ts';
 import { AgentsView }                                      from '../views/agents/AgentsView.tsx';
+import type { BoardReading, OccasionBoard }                from './BoardOccasionModel.ts';
 import { BridgeFlint }                                     from './BridgeFlint.tsx';
 import { FLINT_HABITAT_CHOICE_NAME }                       from './FlintHabitatStorage.ts';
 
@@ -105,11 +109,19 @@ function handle(): FlintHandle {
   return last;
 }
 
-function Host(properties: { readonly boardStore: PreferenceStore | null; readonly frames: ManualFlintFrames; readonly children: ReactNode }) {
+interface HostProperties {
+  readonly boardStore:    PreferenceStore | null;
+  readonly frames:        ManualFlintFrames;
+  readonly boardReading?: BoardReading;
+  readonly children:      ReactNode;
+}
+
+function Host(properties: HostProperties) {
   return (
     <BridgeFlint
       boardStore={properties.boardStore}
       frameSource={properties.frames.frameSource}
+      {...(properties.boardReading === undefined ? {} : { boardReading: properties.boardReading })}
       onHandle={(made) => {
         if (made !== null) handles.push(made);
       }}
@@ -271,7 +283,7 @@ describe('the agent panel habitat', () => {
     expect(Math.abs(figureX() - JOB_CELL_CENTRE_UNITS)).toBeLessThanOrEqual(4);
   });
 
-  test('after all agents were idle and Flint slept at home, an agent that works again is copied once Flint is back', () => {
+  test('after the agents were idle and Flint slept at home, an agent that works again is copied once Flint is back', () => {
     const entries = new Map([[STORED_HABITAT_KEY, '1:agent-panel']]);
     const frames = createManualFlintFrames();
     const boardStore = boardStoreOver(entries);
@@ -282,6 +294,10 @@ describe('the agent panel habitat', () => {
     advanceFor(frames, FRAME_MILLISECONDS);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Agents jobs={[waiting]} /></Host>);
     placeAgents();
+    // Idle agents ask for the playbook now, and only Flint's quiet rule sends it to sleep, so the spec sends it home itself.
+    act(() => {
+      handle().perform('sleep');
+    });
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
     expect(figureX()).toBeGreaterThan(HOME_CORNER_LEFT_UNITS);
     fireEvent.pointerDown(elementOf('.agents-view'));
@@ -289,5 +305,67 @@ describe('the agent panel habitat', () => {
     placeAgents();
     advanceFor(frames, 30000);
     expect(Math.abs(figureX() - JOB_CELL_CENTRE_UNITS)).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('the board occasions', () => {
+  function readingOf(changes: { readonly paused?: boolean; readonly agentsInFlight?: number } = {}): BoardReading {
+    const board: OccasionBoard = {
+      overseer:    { state: 'serving', paused: changes.paused ?? false, generation: 1 },
+      usage:       { resetsAt: null, window: null },
+      jobs:        [],
+      incidents:   [],
+      concurrency: { agentsInFlight: changes.agentsInFlight ?? 0 },
+    };
+    return { board, connection: 'live', refusedCommandCount: 0 };
+  }
+
+  function sparkCount(): number {
+    return overlay().querySelectorAll('g[data-flint-part="watcher-spark"] rect[width="4"][height="4"][transform^="translate("]').length;
+  }
+
+  test('a board that pauses the Overseer makes Flint hold, wherever it is', () => {
+    const frames = createManualFlintFrames();
+    const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
+    placeChat();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    const brain = recordingBrain();
+    handle().startBrain(brain, 60000);
+    page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ paused: true })}><Chat turns={[]} /></Host>);
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(brain.digests[0]?.lastIntent).toBe('hold');
+  });
+
+  test('each board shows a watcher spark for each agent in flight, at most 4', () => {
+    const frames = createManualFlintFrames();
+    const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf({ agentsInFlight: 6 })}><Chat turns={[]} /></Host>);
+    placeChat();
+    advanceFor(frames, 1000);
+    expect(sparkCount()).toBe(4);
+    page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ agentsInFlight: 1 })}><Chat turns={[]} /></Host>);
+    advanceFor(frames, 1000);
+    expect(sparkCount()).toBe(1);
+  });
+});
+
+describe('a view below the host', () => {
+  /** A timeline bar whose button lays a bar along the bar's own element, and then asks for one with no element. */
+  function TimelineBar({ onVerdicts }: { readonly onVerdicts: (verdicts: readonly string[]) => void }) {
+    const bar = useRef<HTMLDivElement>(null);
+    const perform = useFlintPerform();
+    const layBar = (): void => {
+      if (bar.current !== null) onVerdicts([perform('lay-bar-along', bar.current), perform('lay-bar-along')]);
+    };
+    return <div ref={bar}><button type="button" onClick={layBar}>Lay the bar</button></div>;
+  }
+
+  test('reaches Flint with useFlintPerform and one of its own elements', () => {
+    const verdicts: string[] = [];
+    const onVerdicts = (given: readonly string[]): void => {
+      verdicts.push(...given);
+    };
+    render(<Host boardStore={null} frames={createManualFlintFrames()}><TimelineBar onVerdicts={onVerdicts} /></Host>);
+    fireEvent.click(screen.getByRole('button', { name: 'Lay the bar' }));
+    expect(verdicts).toEqual(['performed', 'needs-an-element']);
   });
 });

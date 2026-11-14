@@ -1,21 +1,19 @@
 /**
- * Stacks the layers of the target pose in one fixed order: the behaviour's base pose, then the gesture, the emote, sleep, and last
- * reduced motion. A later layer wins over an earlier one on each field it gives, so an emote's mark hides a gesture's "Hi!" or vein.
+ * Stacks the layers of the target pose in one fixed order: the behaviour's base pose, then the gesture, the emote, sleep, the attendants,
+ * and last reduced motion. A later layer wins over an earlier one on each field it gives, so an emote's mark hides the mark a gesture
+ * shows; no part can give the attendants, so nothing below removes them.
  */
-import type {
-  BodyPart,
-  Pose,
-  PosePart,
-  PropsPose
-} from './SpritePose.ts';
-import { HOVER } from './constants/Motion.ts';
+import type { BodyPart, Pose, PosePart } from './SpritePose.ts';
+import type { AttendantMember }          from './attendants/AttendantRoster.ts';
+import { HOVER }                         from './constants/Motion.ts';
+import type { PropsPose }                from './props/PropCatalog.ts';
 
 /** One layer: given the pose of the layers below, its part, or null when the layer is not active. */
 export type PoseLayer = (incoming: Pose) => PosePart | null;
 
-export type PoseLayerName = 'behaviour' | 'gesture' | 'emote' | 'sleep' | 'reduced-motion';
+export type PoseLayerName = 'behaviour' | 'gesture' | 'emote' | 'sleep-sequence' | 'attendants' | 'reduced-motion';
 
-export const POSE_COMPOSITION_ORDER: readonly PoseLayerName[] = Object.freeze(['behaviour', 'gesture', 'emote', 'sleep', 'reduced-motion']);
+export const POSE_COMPOSITION_ORDER: readonly PoseLayerName[] = Object.freeze(['behaviour', 'gesture', 'emote', 'sleep-sequence', 'attendants', 'reduced-motion']);
 
 export interface PoseLayers {
   /** The behaviour's pose: position, facing, hover, walk, jump and blink. */
@@ -23,6 +21,7 @@ export interface PoseLayers {
   readonly gesture:       PoseLayer;
   readonly emote:         PoseLayer;
   readonly sleep:         PoseLayer;
+  readonly attendants:    readonly AttendantMember[];
   readonly reducedMotion: boolean;
 }
 
@@ -38,6 +37,8 @@ function bodyWithPart(body: Pose['body'], part: BodyPart): Pose['body'] {
     widthFactor:   body.widthFactor * (part.widthFactor ?? 1),
     heightFactor:  body.heightFactor * (part.heightFactor ?? 1),
     sidewaysWidth: part.sidewaysWidth ?? body.sidewaysWidth,
+    tint:          part.tint ?? body.tint,
+    fillOpacity:   part.fillOpacity ?? body.fillOpacity,
   };
 }
 
@@ -53,7 +54,9 @@ export function poseWithPart(pose: Pose, part: PosePart | null): Pose {
     props,
     emoteMark:   part.emoteMark === undefined ? pose.emoteMark : part.emoteMark,
     sleep:       part.sleep === undefined ? pose.sleep : { ...pose.sleep, ...part.sleep },
+    attendants:  pose.attendants,
     occlusion:   pose.occlusion,
+    page:        pose.page,
     exactFields: part.exactFields === undefined ? pose.exactFields : [...pose.exactFields, ...part.exactFields],
   };
 }
@@ -76,5 +79,6 @@ export function composedTargetPose(layers: PoseLayers): Pose {
   const withGesture = poseWithPart(layers.base, layers.gesture(layers.base));
   const withEmote = poseWithPart(withGesture, layers.emote(withGesture));
   const withSleep = poseWithPart(withEmote, layers.sleep(withEmote));
-  return layers.reducedMotion ? stillPoseOf(withSleep) : withSleep;
+  const withAttendants: Pose = { ...withSleep, attendants: layers.attendants };
+  return layers.reducedMotion ? stillPoseOf(withAttendants) : withAttendants;
 }

@@ -8,6 +8,7 @@
  * conversation and no steps; the reading tabs switch by click and arrow keys without losing the answer form, and one a later board drops
  * falls back to the background; the steps are the followed transcript's last top-level calls with the question current; earlier answers
  * keep to the ticket; planted markup stays text; and while the detail panel shows the panel is hidden and leaves Esc alone.
+ * The shown panel is a workplace of Flint.
  */
 import {
   act,
@@ -394,4 +395,9 @@ describe('beside the detail panel', () => {
     });
     expect(panelIsShown()).toBe(true);
   });
+});
+
+test('the shown panel is a workplace of Flint', () => {
+  renderPanel();
+  expect(panel().closest('.bridge-question-panel')?.hasAttribute('data-flint-workplace')).toBe(true);
 });
