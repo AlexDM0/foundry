@@ -233,8 +233,8 @@ interface UsageSectionProps {
   readonly linesAtTheLimit: readonly string[];
 }
 
-/** A forge's usage reading ends at the clock time its window resets, when it names one; that time is set as a stamp. */
-const TRAILING_CLOCK_TIME = /\d{1,2}:\d{2}$/;
+/** A forge's usage reading ends at the clock time its window resets, after its month and day when that is not today; it is set as a stamp. */
+const TRAILING_CLOCK_TIME = /(\d{2}-\d{2} )?\d{1,2}:\d{2}$/;
 
 function UsageLine({ line }: { readonly line: string }) {
   const clockTime = TRAILING_CLOCK_TIME.exec(line)?.[0] ?? null;

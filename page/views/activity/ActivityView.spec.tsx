@@ -286,7 +286,7 @@ describe('the look of the parts', () => {
     expect(toneOfReading(EVERY_ENTRY, limitHit)).toBe('accent');
   });
 
-  test('the usage reading sets the clock time its window resets as a mono stamp, and a reading with no clock time has none', () => {
+  test('the usage reading sets the clock time its window resets as a mono stamp, with its month and day when not today, and a reading with no clock time has none', () => {
     const stampsOf = (fleetDocument: FleetDocument) => {
       const line = tree.onlyWithClass(layoutOf(fleetDocument).unfolded, 'gaia-activity-usage-line');
       return { text: tree.textOf([line]), stamps: tree.hostElementsIn([line], tree.withClass('design-system-stamp')).map((stamp) => tree.textOf([stamp])) };
@@ -300,6 +300,12 @@ describe('the look of the parts', () => {
       forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: noWindowUsage })),
     };
     expect(stampsOf(noClockTime)).toEqual({ text: 'under its limit', stamps: [] });
+    const tomorrowUsage = { ...noWindowUsage, currentWindowResetsAt: '2026-11-13T16:00:00.000Z' };
+    const resetsTomorrow = {
+      ...FLEET_FIVE_FORGES,
+      forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: tomorrowUsage })),
+    };
+    expect(stampsOf(resetsTomorrow)).toEqual({ text: 'under its limit · window resets 11-13 16:00', stamps: ['11-13 16:00'] });
   });
 
   test('the page title carries the view\'s figures once the first fleet document is in', () => {
