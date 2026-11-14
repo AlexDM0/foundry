@@ -7,7 +7,7 @@ import type { WatchTimer, WatchTimers } from '../services/ForgeWatch.ts';
 export interface ManualTimers extends WatchTimers {
   /** The delay of every timer started and neither fired nor cancelled, in the order they were started. */
   readonly pendingDelays: () => readonly number[];
-  /** Fires every pending timer of this delay and answers how many fired; none pending fails the spec, which has lost track of its flow. */
+  /** Fires every pending timer of this delay, skipping one an earlier callback cancelled, and answers how many fired; none pending fails the spec. */
   readonly fire:          (delayMilliseconds: number) => number;
   /** Settles once a timer of this delay is pending, at once when one already is. */
   readonly untilPending:  (delayMilliseconds: number) => Promise<void>;
@@ -44,11 +44,16 @@ export function manualTimers(): ManualTimers {
   function fire(delayMilliseconds: number): number {
     const dueTimers = pendingTimers.filter((pendingTimer) => pendingTimer.delayMilliseconds === delayMilliseconds);
     if (dueTimers.length === 0) throw new Error(`No timer of ${delayMilliseconds} ms is pending; pending: ${JSON.stringify(pendingDelays())}.`);
+    let firedCount = 0;
     for (const dueTimer of dueTimers) {
-      pendingTimers.splice(pendingTimers.indexOf(dueTimer), 1);
+      const index = pendingTimers.indexOf(dueTimer);
+      // An earlier callback may have cancelled this one.
+      if (index === -1) continue;
+      pendingTimers.splice(index, 1);
       dueTimer.callback();
+      firedCount += 1;
     }
-    return dueTimers.length;
+    return firedCount;
   }
 
   function untilPending(delayMilliseconds: number): Promise<void> {
