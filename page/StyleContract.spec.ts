@@ -229,9 +229,9 @@ function oklchColourOf(match: RegExpExecArray): Colour {
 
 /** A hex, `rgb()`, `rgba()` or `oklch()` colour; any other form is unreadable rather than guessed. */
 function colourOf(colourText: string): ColourReading {
-  const hex = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(colourText);
-  if (hex?.[1] !== undefined) {
-    const digits = hex[1].length <= 4 ? [...hex[1]].map((digit) => digit + digit).join('') : hex[1];
+  const hexadecimalMatch = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(colourText);
+  if (hexadecimalMatch?.[1] !== undefined) {
+    const digits = hexadecimalMatch[1].length <= 4 ? [...hexadecimalMatch[1]].map((digit) => digit + digit).join('') : hexadecimalMatch[1];
     const [red = 0, green = 0, blue = 0, alpha = 255] = (digits.match(/../g) ?? []).map((pair) => Number.parseInt(pair, 16));
     return {
       verdict: 'readable',
@@ -240,9 +240,9 @@ function colourOf(colourText: string): ColourReading {
       }
     };
   }
-  const rgb = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+%?)\s*)?\)$/.exec(colourText);
-  if (rgb !== null) {
-    const [, redText = '', greenText = '', blueText = '', alphaText] = rgb;
+  const redGreenBlueMatch = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+%?)\s*)?\)$/.exec(colourText);
+  if (redGreenBlueMatch !== null) {
+    const [, redText = '', greenText = '', blueText = '', alphaText] = redGreenBlueMatch;
     const channel = (text: string) => Number.parseFloat(text) / 255;
     return {
       verdict: 'readable',
@@ -251,8 +251,8 @@ function colourOf(colourText: string): ColourReading {
       }
     };
   }
-  const oklch = /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?))?\s*\)$/.exec(colourText);
-  if (oklch !== null) return { verdict: 'readable', colour: oklchColourOf(oklch) };
+  const lightnessChromaHueMatch = /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+%?))?\s*\)$/.exec(colourText);
+  if (lightnessChromaHueMatch !== null) return { verdict: 'readable', colour: oklchColourOf(lightnessChromaHueMatch) };
   return { verdict: 'unreadable', reason: `${colourText} is not a hex, rgb() or oklch() colour` };
 }
 
