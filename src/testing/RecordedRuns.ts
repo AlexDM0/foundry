@@ -1,7 +1,7 @@
 /**
  * The process-run mock every spec uses in place of the real boundary: it answers each call from recorded runs and fails the spec on a
- * call with no recorded answer. It keeps the real run's demands on the caller: a working directory that exists, and an owned child that
- * ends only by itself or by its stop, as it was recorded. Test-only.
+ * call with no recorded answer. It keeps the real run's demands on the caller: a working directory that exists, unless the answer was
+ * recorded for a missing one, and an owned child that ends only by itself or by its stop, as it was recorded. Test-only.
  */
 import { readFileSync, statSync } from 'node:fs';
 import { join }                   from 'node:path';
@@ -72,6 +72,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNotFoundAnswer(answer: Record<string, unknown>): boolean {
   return answer['verdict'] === 'not-found' && MISSING_VALUES.has(answer['missing']);
+}
+
+function answersAMissingWorkingDirectory(answer: RecordedRun['answer']): boolean {
+  return answer.verdict === 'not-found' && answer.missing === 'working-directory';
 }
 
 function isProgramRunAnswer(answer: unknown): answer is ProgramRunAnswer {
@@ -195,14 +199,19 @@ export function recordedProcessRun(recordedRuns: readonly RecordedRun[]): Record
     };
   }
 
+  /** The real run answers not-found for its working directory exactly when that directory is missing, so a recorded answer must agree. */
   function recordedAnswerFor(callShape: string, workingDirectory: string): RecordedRun['answer'] {
-    if (!directoryExists(workingDirectory)) {
+    const answer = answerByCallShape.get(callShape);
+    const workingDirectoryIsMissing = !directoryExists(workingDirectory);
+    if (workingDirectoryIsMissing && (answer === undefined || !answersAMissingWorkingDirectory(answer))) {
       throw new Error(`${callShape} was asked to run in ${workingDirectory}, which is no directory; the real run answers not-found there.`);
     }
-    const answer = answerByCallShape.get(callShape);
     if (answer === undefined) {
       const recordedShapes = [...answerByCallShape.keys()].map((recordedShape) => `  ${recordedShape}`).join('\n');
       throw new Error(`No recorded answer for ${callShape}. The recorded call shapes are:\n${recordedShapes}`);
+    }
+    if (!workingDirectoryIsMissing && answersAMissingWorkingDirectory(answer)) {
+      throw new Error(`${callShape} was recorded answering a missing working directory, and ${workingDirectory} is a directory; the real run starts the program there.`);
     }
     callShapesAnswered.push(callShape);
     return answer;

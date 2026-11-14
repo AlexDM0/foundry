@@ -1,7 +1,8 @@
 /**
  * The recorded-runs mock must answer exactly what the real process-run recorded, and fail the spec on everything it cannot answer from a
- * recording: a call with no recorded answer, a working directory the real run would refuse, a recording that is absent for an OS, and an
- * answer set that holds two answers or a misfitting answer for one call shape.
+ * recording: a call with no recorded answer, a working directory the real run would refuse or a recorded refusal of one that exists, a
+ * recording that is absent for an OS, and an answer set that holds two answers or a misfitting answer for one call shape. A missing working
+ * directory is answered when its answer was recorded, so a flow spec can drive a root that is gone.
  */
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
@@ -64,6 +65,14 @@ describe('the recorded process run', () => {
     const processRun = recordedProcessRun(recordedRunsOf('process-run'));
     const request    = { ...processRunRequest('bun', ['--version']), workingDirectory: join(homeDirectory(), 'gone') };
     await expect(processRun.run(request)).rejects.toThrow('which is no directory; the real run answers not-found there');
+  });
+
+  test('answers a call recorded for a missing working directory where the directory is missing, and fails it where the directory exists', async () => {
+    const callShape  = runCallShapeOf('forge', ['stop', '--json']);
+    const processRun = recordedProcessRun([{ callShape, answer: { verdict: 'not-found', missing: 'working-directory' } }]);
+    const request    = processRunRequest('forge', ['stop', '--json']);
+    expect(await processRun.run({ ...request, workingDirectory: join(homeDirectory(), 'gone') })).toEqual({ verdict: 'not-found', missing: 'working-directory' });
+    await expect(processRun.run(request)).rejects.toThrow('was recorded answering a missing working directory');
   });
 
   test('lists the call shapes it answered, in order', async () => {
