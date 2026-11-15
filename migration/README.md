@@ -1,9 +1,13 @@
-# Gaia's side of the forge monorepo merge
+# The forge monorepo merge
 
-What Gaia prepared for its import into forge's repository, the steps from Gaia's side in the order of the monorepo design's migration
-(`docs/monorepo-design.md`, Part A), how forge and Gaia release independently, and what that design must still be updated with.
+The one checklist for moving forge and Gaia into forge's repository: every step in order, who does it and where it stands, the
+decisions still open, and how forge and Gaia release apart afterwards. The reasoning behind the layout and Part B (forge in a part of
+a repository) is the monorepo design (`docs/monorepo-design.md`, 2026-11-13); where the two differ, this checklist holds, and the last
+section lists where the design is out of date.
 
-## What was prepared
+Status as checked on 2026-11-15 against forge `main` at `d47ea0e7` and Gaia `main` at `9b04d10`.
+
+## What Gaia prepared
 
 | Path | What it is | Its README |
 | --- | --- | --- |
@@ -18,58 +22,121 @@ The root holds the workspace (`package.json` with `apps/*`, `packages/*` and `mi
 `verify` that runs each workspace's own `verify` in its own folder. Until the merge, forge's design-system package is linked in at the
 root with `bun link design-system`.
 
-## Merge steps from Gaia's side
+## Checklist
 
-Numbered as the monorepo design's migration order.
+Numbered as the design's migration order. Part A (steps 0 to 6) does not wait on Part B (step 7): forge's own tracker stays at the git
+root, with prefix `''` and its gates `in: apps/forge`, until Part B exists.
 
-**Before step 3, in Gaia.**
+### Step 0. Settle both repositories (forge, Gaia)
 
-1. Merge the lanes `prep-lane/brand`, `prep-lane/contracts` and `prep-lane/patches` into `prep/monorepo`. Each conflicts with the
-   contributions lane: brand in `apps/gaia/CLAUDE.md`, `apps/gaia/package.json`, `page/design-system/BrandBar.tsx`, `page/index.html`,
-   `page/styles/gaia.css`, `page/testing/DesignSystemStylesheet.ts`; contracts in `apps/gaia/package.json` and
-   `page/views/attention/AttentionLayout.spec.tsx`; all three in `bun.lock`, which is taken again with `bun install`.
-2. Make `bun run verify` pass against forge's design-system package as it then stands. The linked package moves under Gaia: forge's
-   `CountBadge` now holds a hook, so the specs that unfold it must keep it folded, as they already do for `NumberStepper`, and the rail's
-   count reader must allow the badge's inner number span.
-3. Land `prep/monorepo` on Gaia's `main`. Land or drop every other open Gaia worktree first.
+- [x] Forge: Flint and the design-system package are committed on `main`.
+- [x] Forge: the graphite-and-orange and plugin-enable branches are merged.
+- [ ] Forge: land or drop `claude/project-thread-dw1bcu` (worktree `gaia-read`, 5 commits ahead of `main`, 117 behind).
+- [ ] Forge: land the work uncommitted in the main checkout.
+- [x] Gaia: the `apps/` and `packages/` layout, the contributions, `brand`, `forge-contracts`, `system-versions` and the patches are on
+      `main`, verify green.
+- [x] Gaia: no worktree or branch besides `main`.
+- [ ] Gaia: decide what becomes of the folders the merge does not carry, since they are gitignored or untracked: `design_handoff_gaia/`,
+      `design_handoff_gaia_v2/`, `.claude/.evidence/` and the root `docs/` (the monorepo design, `gaia-strategy.html`).
 
-**Step 2, in forge.** Forge's design-system package moves to `packages/design-system` with the rest of the restructure, so the link
-above is no longer needed.
+### Step 1. Quiesce (forge)
 
-**Step 3: the import.** Gaia's `main` is already in the `apps/` and `packages/` layout, so the step is only `git fetch` of Gaia's `main`
-and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are limited to root files:
+- [ ] No live jobs, the Overseer stopped, the agent worktrees removed.
 
-- `package.json`: forge's, with `migration/*` added to `workspaces` while the patches wait, and Gaia's dev dependencies merged in at one
-  version each.
-- `bun.lock`: taken again with `bun install`.
-- `README.md`, `CLAUDE.md`, `.gitignore`, `.bun-version`: forge's, with Gaia's lines kept where they still say something. Gaia's root
-  `CLAUDE.md` is one line pointing at `apps/gaia/CLAUDE.md`; it goes, and the monorepo's root `CLAUDE.md` names each app's own.
-- Gaia's `README.md` loses its `bun link design-system` step.
+### Step 2. Restructure forge's repository (forge)
 
-`packages/brand`, `packages/forge-contracts` and `packages/system-versions` join here as they are.
+- [ ] `git mv` forge's tree to `apps/forge`, and its `design-system/` to `packages/design-system`. The tracker's `.forge/` stays at the
+      git root: it is gitignored, so `git mv` leaves it anyway.
+- [ ] Root workspace files: `package.json` (workspaces `apps/*`, `packages/*`), `bun.lock`, `.bun-version`, `.githooks/`,
+      `.gitattributes`, `tsconfig.base.json`, and the `typecheck`, `lint` and `verify` scripts that fan out per workspace, which the
+      pre-commit hook runs at the git root. The root never runs `bun test`: a workspace's `bunfig.toml` preload applies only in its folder.
+- [ ] The installed forge (open decision 1): clone it outside the monorepo's working tree, run its `setup.sh` again (it re-points
+      `LAUNCHER_TOOL_DIRECTORY` and `bun link`) and create the login item again, which stores the repository path.
+- [ ] `HooksPathStep` sets `core.hooksPath` from the git toplevel.
+- [ ] `CodeVersion` hashes the workspace packages forge depends on and the root `bun.lock`.
+- [ ] `BunVersionPin` and `LineEndingPolicy` read the workspace root; the guards whose files move along (`ProseWrap`,
+      `DocumentSpecCitations`, `ProductNames`) stay as they are.
+- [ ] `ImportGraph` follows workspace packages, with two new rules: a package imports nothing from `apps/`, and an app imports a package
+      only by its name.
+- [ ] A DOM spec runner for packages, and `TestFileConventions` allows `.dom.tsx` in them.
+- [ ] `eslint.config.js` stays per app; `@types/bun` at `1.4.2` in both apps.
 
-**Step 4: the design system.**
+### Step 3. Import Gaia (forge's repository, both)
 
-1. Move every file of `packages/design-system-contributions` into `packages/design-system`, beside the layer it belongs to, and make its
-   `design-system/<Export>` imports relative. Add its exports to the package's `package.json` and its stylesheet's rules to the package's
-   entry stylesheet; its guard specs are the package's own and go.
-2. Run `bun migration/design-system-patches/CheckPatches.ts packages/design-system`. Make again, against the landed source, each patch it
-   names stale (expect `CountBadge`, `NumberStepper` and the motion tokens). Then apply the series in order:
-   `git am --directory=packages/design-system migration/design-system-patches/*.patch`.
-3. Switch Gaia's call sites: each `design-system-contributions/<Export>` import becomes `design-system/<Export>`; the
-   `design-system-contributions` dependency leaves `apps/gaia/package.json`; its stylesheet link leaves `page/index.html` and
-   `page/testing/DesignSystemStylesheet.ts`; its paragraph in `apps/gaia/CLAUDE.md` goes. Then each patch's "Gaia switches over" list in
-   `migration/design-system-patches/README.md`.
-4. Delete each patch's "Gaia deletes after" list, then `packages/design-system-contributions`, `migration/`, and `migration/*` from the
-   workspaces. Check whether `SingleReactPlugin` in Gaia's page build is still needed once the package is a workspace member rather than a
-   link.
+- [ ] `git fetch` Gaia's `main` and `git merge --allow-unrelated-histories`, signatures intact. Gaia's `main` is already in the
+      `apps/` and `packages/` layout, so only root files conflict:
+  - `package.json`: forge's, with `migration/*` in `workspaces` while the patches wait, and Gaia's dev dependencies merged in at one
+    version each.
+  - `bun.lock`: taken again with `bun install`.
+  - `README.md`, `CLAUDE.md`, `.gitignore`, `.bun-version`: forge's, keeping Gaia's lines where they still say something. Gaia's root
+    `CLAUDE.md` only points at `apps/gaia/CLAUDE.md`; it goes, and the monorepo's root `CLAUDE.md` names each app's own.
+- [ ] The root `README.md` loses Gaia's `bun link design-system` step; the package is now a workspace member.
+- [ ] `apps/gaia/CLAUDE.md` rule 1 (write only in this repository, forge read-only) is restated for one repository: what Gaia may change,
+      and that it still never runs a forge verb in the checkout or talks to a running forge.
+- [ ] `apps/gaia/CLAUDE.md` rule 11 drops the link. Remove what only the link needed, where verify stays green without it: the
+      `DesignSystemPeerPreload` in `bunfig.toml`, `preserveSymlinks` in `page/tsconfig.json`, and the page build's `SingleReactPlugin`.
+- [ ] `packages/brand`, `packages/forge-contracts` and `packages/system-versions` join as they are.
+- [ ] `bun run verify` at the root is green.
 
-**Step 5: Flint.** Nothing from Gaia.
+### Step 4. The design system (both)
 
-**Step 6: the Overseer's contracts.** Already in place since step 3. Forge adopts the package or merges its own types into it, as
-`apps/gaia/docs/forge-requirements.md` V4 and V9 say.
+- [ ] Move every file of `packages/design-system-contributions` into `packages/design-system`, beside the layer it belongs to, and make
+      its `design-system/<Export>` imports relative. Add its exports to the package's `package.json` and its stylesheet's rules to the
+      package's entry stylesheet; its guard specs are the package's own and go.
+- [ ] Run `bun migration/design-system-patches/CheckPatches.ts packages/design-system`, make again against the landed source each
+      patch it names stale, then apply the series in order:
+      `git am --directory=packages/design-system migration/design-system-patches/*.patch`. On forge `d47ea0e7` only patch 01 applies;
+      the other thirteen are stale. Remake them right before this step, once the package has stopped moving, not earlier.
+- [ ] Switch Gaia's call sites: each `design-system-contributions/<Export>` import becomes `design-system/<Export>`; the
+      `design-system-contributions` dependency leaves `apps/gaia/package.json`; its stylesheet link leaves `page/index.html` and
+      `page/testing/DesignSystemStylesheet.ts`; its paragraph in `apps/gaia/CLAUDE.md` goes. Then each patch's "Gaia switches over"
+      list in `migration/design-system-patches/README.md`.
+- [ ] Delete each patch's "Gaia deletes after" list, then `packages/design-system-contributions`, `migration/`, and `migration/*` from
+      the workspaces. This checklist moves to the monorepo's docs first if Part B is still ahead.
 
-`packages/brand` likewise: forge draws its mark from `brand/ForgeMark`, or merges its own drawing into the package.
+### Step 5. Flint (forge)
+
+- [ ] `git mv` `flint/` to `packages/flint`, run by the package DOM spec runner of step 2. Nothing from Gaia: Gaia draws no Flint.
+
+### Step 6. The shared contracts (forge)
+
+- [ ] Forge takes its documents from `forge-contracts` or merges its own types into the package (requirement V9).
+- [ ] Forge draws its mark from `brand/ForgeMark`, or merges its own drawing into the package.
+- [ ] Gaia: drop what `forge-contracts` still holds only for older forges, `OLDER_OVERSEER_CONTRACT_VERSIONS` and the monitor 1 and 2
+      keys in `MonitorSnapshotDocument`, unless forge keeps them for its own registry.
+
+### Step 7. Part B: forge in a part of a repository (forge)
+
+- [ ] Build Part B of the design: the five path names, its rules 1 to 11, and several trackers in one repository (branch namespaces,
+      the scoped foreign-ref check, the shared landing journal and lock), with its fixture-repository specs. Prompts that say "the
+      repository root" (`SessionInstructions.md`, `OnboarderPrompt.md`) get new wording.
+- [ ] Move forge's tracker to `apps/forge/.forge` by hand (ignored files).
+- [ ] A tracker for Gaia, if wanted (open decision 2).
+
+## Forge requirements, apart from the merge
+
+`apps/gaia/docs/forge-requirements.md` asks forge for the version model, naming no client. None is on forge `main` at `d47ea0e7`: it
+serves no `/api/versions` and its Bridge still enters the embed mode on `?embedded=gaia`. Until V1 to V3 land, Gaia reads every released
+forge as older and offers Update forge.
+
+- [ ] V1 to V4 and V6, as forge 1.0: `GET /api/versions`, the system version by interoperability, endpoints versioned by path, the
+      compatibility registry, the host-neutral embed mode.
+- [ ] V5, with them or in the next minor: the system version in the monitor stream and the embed channel.
+- [ ] V7, with Flint's brain (G1 to G3), as forge 1.1: `startedBy: "api"`.
+- [ ] V8, when convenient: the framing host's origin from a host-neutral record.
+- [ ] V9, at step 6.
+
+## Open decisions
+
+1. The installed forge runs from a second clone outside the monorepo's working tree (recommended), or the network-guard rule is scoped
+   so that a program inside the repository does not turn it on for every tracker there.
+2. Whether Gaia gets its own tracker after Part B, or stays built by workflows.
+3. Whether a gate re-run is skipped when a sibling's landing touched nothing in a tracker's home or reach (the first version always
+   re-runs).
+4. Forge's design-system package is `"private": true`. Since Gaia depends on it, it either becomes publishable, with its own semantic
+   version and a `workspace:^` range in both apps, or is bundled into each app's release.
+5. Restart after Update forge, for an older forge, needs a program route forge does not have.
+6. What becomes of Gaia's gitignored and untracked folders (step 0).
 
 ## How forge and Gaia release independently
 
@@ -100,37 +167,21 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
     does not fail, while it is behind forge's current version. Per forge, from its `/api/versions`: current, ahead (Gaia knows less, still
     talks; explains only), newer (Gaia cannot talk to it and needs an update; explains only, names no command) or older (Gaia cannot talk
     to it and the forge needs an update: Update forge).
-  - **On `prep/monorepo`, every released forge reads as older** until forge serves `/api/versions` (V1 to V3): no released forge serves
-    it, a forge that serves none is older, and Gaia reads nothing of an older forge but offers Update forge. Gaia's every answer of a
-    forge it can read is authored from the forge requirements until then (`overseer-fetch-supported-forge`, `overseer-fetch-versions`).
 - A forge system minor bump is a package minor bump of `forge-contracts`; a system major bump, or a removed or changed type, a package
   major bump.
 - Gaia tests what it does with a forge's answers against recordings of forges at the versions it meets
   (`apps/gaia/src/testing/recordings/`), each stamped with the forge's version, or authored from the forge requirements until a released
   forge serves them, never against the forge source beside it in the repository.
-- Forge's design-system package is `"private": true` today. Since Gaia depends on it, it must either become publishable, with its own
-  semantic version and a `workspace:^` range in both apps, or be bundled into each app's release. That is a decision for the owner.
 
-## What forge must do
-
-`apps/gaia/docs/forge-requirements.md`, written as tickets for forge's board and naming no client in any requirement: serve
-`GET /api/versions` (V1); keep the system version by interoperability and raise the minimum only to retire (V2); version each endpoint
-by its path (V3); keep the compatibility registry and raise the minimum by its report (V4); carry the system version in the monitor
-stream and the embed channel (V5); enter the embed mode by the host-neutral `?embedded=frame` (V6); report a brain started through the
-API as `startedBy: "api"` (V7); read the framing host's origin from a host-neutral record (V8); take the documents from
-`forge-contracts`, released on its own version (V9).
-
-## Notes for the monorepo design
+## Where the monorepo design is out of date
 
 - Its `packages/design-system` section predates the decision of 2026-11-14 that Gaia uses forge's design-system package. The package
-  already exists in forge, with its own README and constitution; Gaia's own copies of shared components are gone, and Gaia's additions
-  arrive through `packages/design-system-contributions` and the patches. The "nine shared names, forge's version as base" plan, the
-  `board.css` split and the neutral prefix are done or moot.
-- Its step 3 is now a merge of a repository already in the `apps/` and `packages/` layout; no move commit is left to make in Gaia.
-- It does not yet state the versioning and release rules above: independent releases, a semantic version per app and package,
-  publishable shared packages, `workspace:^` rather than `workspace:*`, and system versions with versioned paths as the only runtime
-  coupling.
-  Its tooling section still names `workspace:*`.
-- `packages/brand` and `packages/system-versions` are not in its layout.
-- `packages/forge-contracts` is no longer only proposed, and holds types, versions and the compatibility registry; the recorded fixtures
-  stay with Gaia, as the reader.
+  exists in forge with its own README and constitution; Gaia's own copies of shared components are gone, and Gaia's additions arrive
+  through `packages/design-system-contributions` and the patches. The "nine shared names, forge's version as base" plan, the `board.css`
+  split and the neutral prefix are done or moot.
+- Its step 0 is largely done (Flint is committed), and its step 3 is a merge of a repository already in the `apps/` and `packages/`
+  layout: no move commit is left to make in Gaia.
+- It does not state the release rules above, and its tooling section still names `workspace:*`.
+- Its layout lacks `packages/brand` and `packages/system-versions`, and names `packages/overseer-contracts`, which is now
+  `packages/forge-contracts`: no longer only proposed, it holds types, versions and the compatibility registry, while the recorded
+  fixtures stay with Gaia, as the reader.
