@@ -444,6 +444,17 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['E2', false, false, 'asked by J3 builder · opened 4m'],
     ]);
   });
+
+  test('a forge newer than this Gaia is a callout that only explains, in its own terms, and offers no update of Gaia', () => {
+    const newer = lookOf(fleetContentOf(FLEET_VERSIONS), FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox);
+    expect([newer.word, newer.sentence, newer.machineLine]).toEqual([
+      'Newer than this Gaia',
+      'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
+        + 'no command. Its own Bridge shows all of it.',
+      'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1',
+    ]);
+    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox }, true]]);
+  });
 });
 
 describe('no forge yet (B4)', () => {
@@ -468,16 +479,5 @@ describe('no forge yet (B4)', () => {
     const chosen = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, forgeProgramPath: '/opt/forge/bin/forge' } };
     expect(noForgeContentOf(chosen).forgeProgramText).toBe('/opt/forge/bin/forge');
     expect(noForgeContentOf({ ...found, settings: chosen.settings }).forgeProgramText).toBe('~/.bun/bin/forge');
-  });
-
-  test('a forge newer than this Gaia is a callout that only explains, in its own terms, and offers no update of Gaia', () => {
-    const newer = lookOf(fleetContentOf(FLEET_VERSIONS), FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox);
-    expect([newer.word, newer.sentence, newer.machineLine]).toEqual([
-      'Newer than this Gaia',
-      'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
-        + 'no command. Its own Bridge shows all of it.',
-      'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1',
-    ]);
-    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox }, true]]);
   });
 });

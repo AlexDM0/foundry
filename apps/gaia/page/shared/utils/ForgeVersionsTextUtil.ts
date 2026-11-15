@@ -84,16 +84,17 @@ const VERSIONS_EXPLANATION = 'Each forge states its version and the oldest forge
   + 'for exactly one forge version. A forge older than that, or one that states no version, needs a forge update; a forge that no longer serves '
   + 'clients built for it needs a newer Gaia. In between, Gaia reads the forge in full and says quietly what is newer.';
 
-/** Update forge, step by step, alike in the callout, the Forges row and the forge bar; the refusal is the forge's own sentence. */
+/**
+ * Update forge, step by step, alike in the callout, the Forges row and the forge bar. The done step's lead word, Restart and its dismiss
+ * label are `ForgeCommandTextUtil.RESTART_PENDING`'s; the refusal is the forge's own sentence.
+ */
 const UPDATE_FORGE_TEXT = {
-  pending:               'Updating the forge…',
-  pendingInCallout:      'Updating the forge… its agents keep running',
-  pendingButton:         'Updating',
-  doneLead:              'Updated; restart pending.',
-  doneStandingAlone:     'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.',
-  doneUnderAControl:     'Gaia reads it after the restart.',
-  doneCalloutSentence:   'This forge stays older than the forge this Gaia is built for until its Overseer restarts.',
-  dismissPendingRestart: 'Dismiss the pending restart',
+  pending:             'Updating the forge…',
+  pendingInCallout:    'Updating the forge… its agents keep running',
+  pendingButton:       'Updating',
+  doneStandingAlone:   'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.',
+  doneUnderAControl:   'Gaia reads it after the restart.',
+  doneCalloutSentence: 'This forge stays older than the forge this Gaia is built for until its Overseer restarts.',
 } as const;
 
 function versionTextOf({ major, minor }: FleetDocumentSystemVersion): string {
