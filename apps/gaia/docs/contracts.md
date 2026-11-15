@@ -33,7 +33,8 @@ its keys.
   `answerVersion` and the like keep their integer and keep being read: released forges send them, and an open page of an older Gaia reads
   them on the unversioned paths. A known version reads with its unknown keys passed over; an older one only where "Older versions Gaia
   still reads" lists it, migrated on its ingestion; a newer one never reaches a mapper. `src/shared/utils/ContractVersionUtil.ts` holds
-  the reading rule once.
+  the reading rule once. So a forge's integer keys stay where forge 1.1 leaves them (V3): an addition raises only the system minor, or an
+  `ahead` forge would read as newer than Gaia can talk to.
 - **Stored files keep their own format version**, major.minor: the integer `version` (or `recordingVersion`) is the major, an optional
   `minor` the minor, absent read as 0. A newer minor of a known major is read, and a file Gaia would rewrite at a newer minor is kept as
   it is (`kept-newer-version`), since the rewrite would drop the keys it adds.

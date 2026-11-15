@@ -79,7 +79,9 @@ document, whether it only adds, and whether it removes something a supported cli
 objects in monitor contract 2). A breaking change to an endpoint adds `v<n + 1>` beside `v<n>`. Today's unversioned paths keep answering
 exactly as now until the minimum is raised past the last client that calls them; the documents keep carrying the integer version key
 they carry today (`monitorVersion`, `identityVersion`, `contracts`, `controlVersion`), which every released Gaia reads, and carry no
-per-endpoint version of their own.
+per-endpoint version of their own. From forge 1.1 on (monitor 3 and control 2, G1 to G3), those integers are not raised again: a change
+that only adds raises the system minor alone, since a Gaia reads a document at a number it knows with its unknown keys passed over and
+reads one at a higher number as newer than it can talk to, which would cut off every Gaia a forge is `ahead` of.
 
 **Reason.** Rule 6: an old Gaia keeps calling the paths it knows while a new one calls the new version, so neither has to be updated for
 the other.
