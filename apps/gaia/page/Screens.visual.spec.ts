@@ -307,8 +307,9 @@ describe('each screen shows the state its artboard draws', () => {
     const banner = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.carries(element, errorTone) && MarkupTree.elementsIn(element).includes(lead));
     expect(MarkupTree.textOf(banner)).toStartWith('Overseer unreachable: Invoice Service.');
     const waitingHead = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('heading')(element) && MarkupTree.textOf(element).startsWith('Waiting on you'));
-    const countTag = MarkupTree.drawnMarkupOf(createElement(Tag, { text: '4 known, more possible', tone: 'warn' }));
-    expect(waitingHead.source).toContain(`>Waiting on you<span class="gaia-visually-hidden"> · </span>${countTag}</h2>`);
+    const countTag = createElement(Tag, { key: 'count', text: '4 known, more possible', tone: 'warn' });
+    const separator = createElement('span', { key: 'separator', className: 'gaia-visually-hidden' }, ' · ');
+    expect(waitingHead.source).toBe(MarkupTree.drawnMarkupOf(createElement(Text, { typeRole: 'page', element: 'h2', children: ['Waiting on you', separator, countTag] })));
     expect(markup).toContain('<div class="gaia-attention-main"><div class="gaia-attention-figures" data-form="line">');
     expect(markup).not.toContain('data-form="stacked"');
   });
