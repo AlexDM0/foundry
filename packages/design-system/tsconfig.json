@@ -4,7 +4,7 @@
   "compilerOptions": {
     "noEmit": true,
     "incremental": true,
-    "tsBuildInfoFile": "../node_modules/.cache/typecheck/design-system.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.cache/typecheck/design-system.tsbuildinfo",
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "Preserve",

@@ -4,6 +4,11 @@
   "description": "Flint, the orange diamond that personifies a host's agents: an SVG sprite with a mind, for any page",
   "type": "module",
   "private": true,
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
+    "test": "bun test",
+    "test:dom": "bun testing/RunDomSpecs.ts"
+  },
   "exports": {
     ".": "./CreateFlint.ts",
     "./SpriteHabitat": "./SpriteHabitat.ts",

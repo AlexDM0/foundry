@@ -1,6 +1,6 @@
 {
   // The package plus Bun types, so the specs and DOM specs beside the modules compile; the DOM-only program above stays the proof.
   "extends": "./tsconfig.json",
-  "compilerOptions": { "types": ["bun"], "tsBuildInfoFile": "../node_modules/.cache/typecheck/flint-specs.tsbuildinfo" },
+  "compilerOptions": { "types": ["bun"], "tsBuildInfoFile": "./node_modules/.cache/typecheck/flint-specs.tsbuildinfo" },
   "exclude": []
 }

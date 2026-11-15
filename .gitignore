@@ -9,6 +9,10 @@ __pycache__/
 design_handoff*
 .forge/
 .forge-worktrees/
-.claude/skills/forge-po/
-.claude/skills/forge-orchestrate/
 storybook-static/
+.turbo/
+.scratch/
+*.tsbuildinfo
+.claude/.evidence/
+**/.claude/skills/forge-po/
+**/.claude/skills/forge-orchestrate/

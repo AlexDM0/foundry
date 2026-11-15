@@ -5,6 +5,9 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 const REPOSITORY_FOLDER = fileURLToPath(new URL('.', import.meta.url));
 
+// The dev tools are devDependencies of the workspace root, so a spec or test helper may import what either manifest names.
+const MANIFEST_FOLDERS = [REPOSITORY_FOLDER, fileURLToPath(new URL('../..', import.meta.url))];
+
 const STORAGE_MESSAGE = 'Browser storage is reached only in bridge/preferences/PreferenceStore.ts.';
 const STORAGE_SITES = ['bridge/preferences/PreferenceStore.ts'];
 
@@ -95,8 +98,9 @@ export default [
       'bridge/testing/**/*.ts',
       'bridge/**/*.dom.tsx',
     ],
-    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true }] },
+    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] },
   },
+  { files: ['**/*.spec.ts'], rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] } },
   {
     // design-system/ has its own package.json with React as its one peer; its specs and stories run on the forge's devDependencies until
     // the split.

@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/turbo/schema.json",
+  "ui": "stream",
+  "noUpdateNotifier": true,
+  "envMode": "strict",
+  "cacheMaxAge": "30d",
+  "cacheMaxSize": "2GB",
+  "globalDependencies": [".bun-version", "bunfig.toml", ".gitattributes"],
+  "globalEnv": ["BUN_RUNTIME_VERSION"],
+  "globalPassThroughEnv": ["TMPDIR"],
+  "tasks": {
+    "transit":   { "dependsOn": ["^transit"] },
+    "typecheck": { "dependsOn": ["transit"], "outputs": [] },
+    "lint":      { "dependsOn": ["transit"], "outputs": [] },
+    "test":      { "dependsOn": ["transit"], "outputs": [] },
+    "test:dom":  { "dependsOn": ["transit"], "outputs": [] },
+    "check":     { "cache": false }
+  }
+}

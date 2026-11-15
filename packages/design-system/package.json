@@ -4,6 +4,13 @@
   "description": "A themed React component library built by composition: atoms, molecules and organisms, with its tokens, fonts and stylesheets",
   "type": "module",
   "private": true,
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
+    "test": "bun test",
+    "test:dom": "bun testing/RunDomSpecs.ts",
+    "storybook": "storybook dev --port 6006 --config-dir .storybook",
+    "storybook:build": "storybook build --config-dir .storybook --output-dir storybook-static"
+  },
   "exports": {
     "./StateTone": "./@types/StateTone.ts",
     "./BusyIndicator": "./atoms/BusyIndicator.tsx",

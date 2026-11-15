@@ -1,0 +1,35 @@
+{
+  "name": "forge-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "engines": { "bun": "1.4.2" },
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "typecheck": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck",
+    "lint": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run lint",
+    "verify": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --continue=dependencies-successful --output-logs=errors-only --log-order=grouped",
+    "verify:forge": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --filter=forge... --output-logs=errors-only --log-order=grouped",
+    "verify:gaia": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --filter=gaia... --output-logs=errors-only --log-order=grouped",
+    "gate:forge": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom --continue=dependencies-successful --output-logs=errors-only --log-order=grouped && TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run check --filter=forge --output-logs=errors-only --log-order=grouped",
+    "gate:gaia": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom --continue=dependencies-successful --output-logs=errors-only --log-order=grouped && TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run check --filter=gaia --output-logs=errors-only --log-order=grouped",
+    "cache:audit": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) bun scripts/CacheAudit.ts"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "21.0.4",
+    "@reliquary/eslint-config": "1.0.1",
+    "@storybook/react-vite": "10.6.7",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/bun": "1.4.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "storybook": "10.6.7",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3",
+    "vite": "8.3.8"
+  }
+}
