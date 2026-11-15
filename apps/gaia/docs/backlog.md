@@ -4,14 +4,15 @@ What is agreed and not started, with the reason it waits.
 
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
-- **Record Flint's brain from a real forge (R5.1).** It waits for the forge to ship G1 to G3 of version 2's forge requirements; until then
-  the brain is complete against authored recordings only. `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` is authored from
-  the forge's requirements G1 to G3 (monitor contract 3 and control contract 2), which no forge serves yet. Once one does, `bun run record
-  overseer-fetch-monitor-3` takes it and `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec reaches a
-  running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or to
-  run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended brain's activity
-  entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'` and
-  `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
+- **Record the forge Gaia supports from a real forge (R5.1).** It waits for the forge to ship V1 to V3 (`/api/versions` and the versioned
+  paths) and G1 to G3 (Flint's brain) as forge 1.1; until then every Overseer answer Gaia reads in its supported version is authored.
+  `src/testing/recordings/darwin/overseer-fetch-supported-forge.json` is authored from those requirements, each situation of a forge at
+  the version Gaia supports, and `overseer-fetch-versions.json` the forges at other versions. Once a forge serves them, `bun run record
+  overseer-fetch-supported-forge` takes it and `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec
+  reaches a running and an ended brain through the brain's own commands, but the requirements name no way to hold a scratch forge's usage
+  limit or to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended
+  brain's activity entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind:
+  'flint-brain'` and `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
 - **Flint's box in the framed Bridge (G4).** B1 frames the Bridge with its "Agents at work" strip, where Flint has its Kanban box; the
   Bridge decides under `embedded=frame` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
   forge and on the owner's answer to Q11.
@@ -22,10 +23,10 @@ What is agreed and not started, with the reason it waits.
   own server's, not the forge's.
 - **The starting monitor's refusals are recorded.** Before its first generation the Overseer answers `GET /api/monitor` with 503
   `starting` and its monitor stream with 404 `not-ready`; the forge watch reads both as starting (`WatchReadingUtil.failureMeansStarting`).
-  Ten starts of a scratch Overseer gave no answer in that window, so `overseer-fetch-every-contract` holds only the identity's 503.
-- **Record the forge before F1 again.** `overseer-fetch` and `forge-program` hold a forge that names no contracts and answers no F8 JSON
-  (install version 27, code 3a6e9e6043da); Gaia reads such a forge through its summary. Their recording specs assert that older shape, so
-  they record again only from a checkout of that forge.
+  Ten starts of a scratch Overseer of a released forge gave no answer in that window, so `overseer-fetch-supported-forge` holds only the
+  identity's 503 for `starting`, as it was authored from that recording.
+- **Record the forge program before F8 again.** `forge-program` holds a forge that answers no F8 JSON (install version 27, code
+  3a6e9e6043da). Its recording spec asserts that older shape, so it records again only from a checkout of that forge.
 - **Notifications (W5.6).** SCREENS C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and

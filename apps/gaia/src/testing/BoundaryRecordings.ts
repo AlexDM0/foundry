@@ -68,12 +68,6 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'macos',
   },
   {
-    recordingName:  'overseer-fetch',
-    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:  'src/lib/forge-client/OverseerFetch.recording.spec.ts',
-    system:         'forge',
-  },
-  {
     recordingName:  'browser-window-watch',
     boundaryModule: 'src/features/launcher/BrowserWindowWatch.ts',
     recordingSpec:  'src/features/launcher/BrowserWindowWatch.recording.spec.ts',
@@ -92,18 +86,6 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'macos',
   },
   {
-    recordingName:  'overseer-fetch-every-contract',
-    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:  'src/lib/forge-client/OverseerFetch.everyContract.recording.spec.ts',
-    system:         'forge',
-  },
-  {
-    recordingName:  'overseer-fetch-monitor-1',
-    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:  'src/lib/forge-client/OverseerFetch.monitorOne.recording.spec.ts',
-    system:         'forge',
-  },
-  {
     recordingName:  'forge-registry',
     boundaryModule: 'src/adapters/forge-registry/RegistryFile.ts',
     recordingSpec:  'src/adapters/forge-registry/RegistryFile.recording.spec.ts',
@@ -116,11 +98,11 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'bun',
   },
   {
-    recordingName:            'overseer-fetch-monitor-3',
+    recordingName:            'overseer-fetch-supported-forge',
     boundaryModule:           'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:            'src/lib/forge-client/OverseerFetch.monitorThree.recording.spec.ts',
+    recordingSpec:            'src/lib/forge-client/OverseerFetch.supportedForge.recording.spec.ts',
     system:                   'forge',
-    forgeRequirementsAwaited: ['G1', 'G2', 'G3'],
+    forgeRequirementsAwaited: ['V1', 'V2', 'V3', 'G1', 'G2', 'G3'],
   },
   {
     recordingName:            'overseer-fetch-versions',

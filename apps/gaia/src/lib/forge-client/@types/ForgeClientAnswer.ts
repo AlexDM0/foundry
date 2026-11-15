@@ -32,16 +32,9 @@ export interface MonitorFollow {
   readonly stop:  () => void;
 }
 
-/**
- * Which paths an Overseer is called at: `versioned`, each endpoint at the version this client knows (`/api/v<n>/<endpoint>`), for a forge
- * that publishes its versions; `unversioned`, the paths of a forge from before them.
- */
-export type OverseerPaths = 'versioned' | 'unversioned';
-
 /** Where one Overseer's open routes are reached. */
 export interface OverseerAddress {
   readonly overseerUrl: string;
-  readonly paths:       OverseerPaths;
 }
 
 /** What a call needs to reach one Overseer's guarded routes; the token travels as a bearer and nowhere else. */

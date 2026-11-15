@@ -1,9 +1,9 @@
 /**
  * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with `?embedded=frame` and
- * the forge's one-time code, asked at the versioned path of a forge that publishes its versions; the token travels only as the bearer of
- * the one request and reaches no answer and no log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported`
- * and is asked for nothing; and every other way a code is not given ends in its own outcome, a registry Gaia cannot read and an Overseer
- * moved since the watch read it among them.
+ * the forge's one-time code, asked at the versioned path of the session codes, of a forge ahead of Gaia too; the token travels only as
+ * the bearer of the one request and reaches no answer and no log line in any outcome; a forge with no embed channel Gaia knows answers
+ * `not-supported` and is asked for nothing; and every other way a code is not given ends in its own outcome, a registry Gaia cannot read
+ * and an Overseer moved since the watch read it among them.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -36,10 +36,10 @@ import { frameSessionAnswerFor, trackerIdOfFrameSessionEndpoint, type FrameSessi
 const STOREFRONT_TRACKER_ID = 'example-storefront-7c41';
 const STOREFRONT_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const SESSION_CODES_CALL_SHAPE = 'POST /api/session-codes with bearer';
+const SESSION_CODES_CALL_SHAPE = 'POST /api/v1/session-codes with bearer';
 
 const EVERY_CONTRACT: ForgeContracts = {
-  summary: 1, monitor: 1, control: 1, embed: 1,
+  summary: 1, monitor: 3, control: 2, embed: 1,
 };
 
 const CONSOLE_METHOD_NAMES = ['log', 'info', 'warn', 'error', 'debug', 'trace'] as const;
@@ -146,13 +146,12 @@ describe('a forge that serves the embed channel', () => {
     expect(overseerFetch.callsAnswered()).toEqual([{ callShape: SESSION_CODES_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null }]);
   });
 
-  test('asks a forge that publishes its versions at the versioned path of the session codes', async () => {
-    const versionedCallShape = 'POST /api/v1/session-codes with bearer';
-    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-current').filter((answer) => answer.callShape === versionedCallShape));
+  test('asks a forge ahead of the one Gaia supports at the versioned path of the session codes Gaia knows', async () => {
+    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === SESSION_CODES_CALL_SHAPE));
     const forge = exampleForgeOf();
-    const versions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
     const exchange = await exchangeOf(sourcesOver({ ...forge, reading: { ...forge.reading, versions } }, overseerFetch));
-    expect([exchange.status, overseerFetch.callsAnswered().map((call) => call.callShape)]).toEqual([200, [versionedCallShape]]);
+    expect([exchange.status, overseerFetch.callsAnswered().map((call) => call.callShape)]).toEqual([200, [SESSION_CODES_CALL_SHAPE]]);
   });
 
   test('reads the token file again at each request, since the Overseer writes a fresh one at each start', async () => {

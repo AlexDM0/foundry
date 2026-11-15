@@ -7,7 +7,6 @@ import { forgeClientOf }            from '../../../lib/forge-client/ForgeClient.
 import type { ForgeReading }        from '../../../shared/@types/ForgeReading.ts';
 import {
   recordedFlintBrainAnswersOf,
-  recordedMonitorOneAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
   type FlintBrainSituation,
@@ -25,7 +24,7 @@ export const EXAMPLE_READ_STAMP = '2026-11-12T13:19:22.000Z';
 
 async function documentAnsweredOf(answers: readonly RecordedOverseerAnswer[], route: ForgeDocumentRoute, overseerUrl: string): Promise<ForgeDocumentAnswer> {
   const client = forgeClientOf({ overseerFetch: recordedOverseerFetch(answers) });
-  const address = { overseerUrl, paths: 'unversioned' } as const;
+  const address = { overseerUrl } as const;
   if (route === 'identity') return client.identityOf(address);
   if (route === 'summary') return client.summaryOf(address);
   return client.monitorOf({ ...address, bearerToken: EXAMPLE_TOKEN });
@@ -38,17 +37,10 @@ export async function recordedDocumentOf(situation: OverseerSituation, route: Fo
   return answer.document;
 }
 
-/** The same, from the forge recorded at monitor contract 1. */
-export async function recordedMonitorOneDocumentOf(situation: OverseerSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
-  const answer = await documentAnsweredOf(recordedMonitorOneAnswersOf(situation), route, overseerUrl);
-  if (answer.verdict !== 'answered') throw new Error(`The monitor-1 ${situation} answers hold no ${route} document: ${answer.verdict}.`);
-  return answer.document;
-}
-
-/** The same, from the forge at monitor contract 3 in one state of Flint's brain. */
+/** The same, from the forge in one state of Flint's brain. */
 export async function recordedFlintBrainDocumentOf(situation: FlintBrainSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
   const answer = await documentAnsweredOf(recordedFlintBrainAnswersOf(situation), route, overseerUrl);
-  if (answer.verdict !== 'answered') throw new Error(`The monitor-3 ${situation} answers hold no ${route} document: ${answer.verdict}.`);
+  if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no ${route} document: ${answer.verdict}.`);
   return answer.document;
 }
 

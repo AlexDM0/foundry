@@ -69,11 +69,10 @@ export interface KnownContracts {
   embed:   number;
 }
 
-/** This Gaia's own system version, the forge version it is built for, and the oldest forge version it still talks to. */
+/** This Gaia's own system version and the one forge version it supports. */
 export interface GaiaVersions {
   systemVersion:         SystemVersion;
   supportedForgeVersion: SystemVersion;
-  minimumForgeVersion:   SystemVersion;
 }
 
 /** What the Forges view and the empty screen say about Gaia itself. */

@@ -2,7 +2,7 @@
  * The assembly of one `FleetSnapshot` from every forge's reading. What matters: the readings behind each artboard's fixture assemble to
  * exactly that fixture's model; the attention order of A1 holds whatever order the forges come in; a hidden forge is absent from everything
  * but the settings that hide it; agents and activity keep the orders PLAN 7.4 states; a forge's activity is cut at its newest 50; and
- * Flint's brain (PLAN 7.5), read from the authored monitor-3 answers: running, it adds one agent row of role `brain` that counts in no
+ * Flint's brain (PLAN 7.5), read from the authored answers of the forge Gaia supports: running, it adds one agent row of role `brain` that counts in no
  * figure or limit; ended, it leaves one activity entry with its tokens.
  */
 import { describe, expect, test } from 'bun:test';
@@ -139,8 +139,8 @@ describe('agents', () => {
 
 const STOREFRONT = READINGS.exampleStorefront;
 
-/** The identity of the forge the monitor-3 answers were authored for: Example Storefront at monitor 3 and control 2. */
-const MONITOR_THREE_IDENTITY: ForgeIdentity = {
+/** The identity of the forge the brain's answers were authored for: Example Storefront at monitor 3 and control 2. */
+const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   trackerId:      STOREFRONT.trackerId,
   project:        STOREFRONT.project,
   codeVersion:    '3f9a2c1',
@@ -154,12 +154,12 @@ const MONITOR_THREE_IDENTITY: ForgeIdentity = {
   },
 };
 
-/** Example Storefront as the recorded monitor-3 snapshot of one state of its brain reads, through the ingestion. */
+/** Example Storefront as the authored snapshot of one state of its brain reads, through the ingestion. */
 async function recordedBrainReadingOf(situation: FlintBrainSituation): Promise<ForgeReading> {
   const facts = registryFactsOf(STOREFRONT);
   const snapshot = await recordedFlintBrainDocumentOf(situation, 'monitor', facts.overseerUrl);
-  const reading = new MonitorSnapshotIngestion(facts, MONITOR_THREE_IDENTITY).readingOf(snapshot, EXAMPLE_READ_STAMP);
-  if (reading.verdict !== 'readable') throw new Error(`The monitor-3 ${situation} snapshot does not read: ${reading.verdict}.`);
+  const reading = new MonitorSnapshotIngestion(facts, BRAIN_FORGE_IDENTITY).readingOf(snapshot, EXAMPLE_READ_STAMP);
+  if (reading.verdict !== 'readable') throw new Error(`The ${situation} snapshot does not read: ${reading.verdict}.`);
   return reading.reading;
 }
 

@@ -25,8 +25,8 @@ import {
 } from './BoundaryRecordings.ts';
 
 /**
- * The state of the forge a set of answers was taken in. `serving` and `stopped` are recorded from a forge before F1;
- * `serving-every-contract` is a forge that serves F1 to F8; `port-held-by-another-program`, `snapshot-unreadable` and
+ * The state of a forge at the version Gaia supports that a set of answers was taken in. `serving` is Example Project, whose summary Gaia
+ * polls; `serving-every-contract` is Example Storefront at work; `port-held-by-another-program`, `snapshot-unreadable` and
  * `stream-cut-inside-event` are programs that are no forge; the rest name the one outcome they hold.
  */
 export const OVERSEER_SITUATIONS = [
@@ -49,7 +49,7 @@ export const OVERSEER_SITUATIONS = [
 
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];
 
-/** The states of Flint's brain on a forge at monitor contract 3 and control contract 2, each with the command answer that brought it there. */
+/** The states of Flint's brain on a forge at the version Gaia supports, each with the command answer that brought it there. */
 export const FLINT_BRAIN_SITUATIONS = [
   'brain-running',
   'brain-ended',
@@ -60,15 +60,14 @@ export const FLINT_BRAIN_SITUATIONS = [
 export type FlintBrainSituation = typeof FLINT_BRAIN_SITUATIONS[number];
 
 /**
- * Forges that publish their system version (V1 to V3), each called at its versioned paths: at the forge version this Gaia is built for,
- * ahead of it, behind it, too new to talk to, and one whose versions document cannot be read, which is then read as before versions.
+ * Forges at another system version than the one Gaia supports: one ahead of it that still serves it, called at its versioned paths; one
+ * too new to talk to; one older; and one that serves no `/api/versions`, as every released forge, which is older too.
  */
 export const VERSIONS_SITUATIONS = [
-  'versions-current',
   'versions-ahead',
-  'versions-behind',
   'versions-newer',
-  'versions-unreadable',
+  'versions-older',
+  'versions-absent',
 ] as const;
 
 export type VersionsSituation = typeof VERSIONS_SITUATIONS[number];
@@ -99,28 +98,12 @@ export interface RecordedOverseerFetch extends OverseerFetch {
 }
 
 /**
- * The recordings taken from a forge before F1, from a forge that serves every contract at monitor contract 2, and from programs that are
- * no forge. Each situation's call shapes are unique across them.
+ * The recordings of a forge at the version Gaia supports, its brain's states included, and of programs that are no forge. Each situation's
+ * call shapes are unique across them.
  */
-export const OVERSEER_RECORDING_NAMES = ['overseer-fetch', 'overseer-fetch-every-contract', 'overseer-fetch-other-programs'] as const;
+export const OVERSEER_RECORDING_NAMES = ['overseer-fetch-supported-forge', 'overseer-fetch-other-programs'] as const;
 
-/**
- * The recording of a forge that serves every contract at monitor contract 1, which Gaia still reads: the same situations as
- * `overseer-fetch-every-contract`, so it is read apart from the recordings above.
- */
-export const MONITOR_ONE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-1';
-
-/**
- * The recording of a forge that serves monitor contract 3 and control contract 2, authored from the forge's requirements G1 to G3 until a
- * forge serves them: the states of Flint's brain, read apart from the recordings above.
- */
-export const MONITOR_THREE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-3';
-
-/**
- * The recording of `GET /api/versions`, authored from the forge requirements V1 to V3 until a forge serves them: what forges that publish
- * their versions answer (`VERSIONS_SITUATIONS`), and what a forge before them answers in each situation of the recordings above, which
- * the situation's answers take in.
- */
+/** The recording of forges at another system version than the one Gaia supports, authored from the forge requirements V1 to V3. */
 export const VERSIONS_OVERSEER_RECORDING_NAME = 'overseer-fetch-versions';
 
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';
@@ -189,16 +172,6 @@ export function everyRecordedOverseerAnswerOf(operatingSystem: string = process.
   return OVERSEER_RECORDING_NAMES.flatMap((recordingName) => answersOfRecording(recordingName, operatingSystem));
 }
 
-/** Every answer of the monitor-1 recording for an OS, each call shape still led by its situation. */
-export function everyRecordedMonitorOneAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfRecording(MONITOR_ONE_OVERSEER_RECORDING_NAME, operatingSystem);
-}
-
-/** Every answer of the monitor-3 recording for an OS, each call shape still led by its situation. */
-export function everyRecordedMonitorThreeAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfRecording(MONITOR_THREE_OVERSEER_RECORDING_NAME, operatingSystem);
-}
-
 /** Every answer of the versions recording for an OS, each call shape still led by its situation. */
 export function everyRecordedVersionsAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfRecording(VERSIONS_OVERSEER_RECORDING_NAME, operatingSystem);
@@ -213,20 +186,15 @@ function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situatio
 
 /** The answers of one situation, from every recording `OVERSEER_RECORDING_NAMES` names, each call shape without its situation. */
 export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation([...everyRecordedOverseerAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
+  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }
 
-/** The answers of one situation of the forge at monitor contract 1, each call shape without its situation. */
-export function recordedMonitorOneAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation([...everyRecordedMonitorOneAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
-}
-
-/** The answers of one state of Flint's brain on a forge at monitor contract 3, each call shape without its situation. */
+/** The answers of one state of Flint's brain on a forge at the version Gaia supports, each call shape without its situation. */
 export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation([...everyRecordedMonitorThreeAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
+  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }
 
-/** The answers of one forge that publishes its versions, each call shape without its situation. */
+/** The answers of one forge at another system version, each call shape without its situation. */
 export function recordedVersionsAnswersOf(situation: VersionsSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfSituation(everyRecordedVersionsAnswerOf(operatingSystem), situation);
 }

@@ -24,7 +24,6 @@ import type {
   ForgeReading,
 } from '../../../shared/@types/ForgeReading.ts';
 import { FORGE_NOTICE_KINDS }                     from '../../../shared/constants/ForgeNoticeKinds.ts';
-import { ForgeVersionsUtil }                      from '../../../shared/utils/ForgeVersionsUtil.ts';
 import type { ForgeIdentity, ForgeRegistryFacts } from '../@types/ForgeDocumentReading.ts';
 
 const NO_CONTRACTS: ForgeContracts = {
@@ -226,7 +225,7 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
     brain:    brainOf(snapshot.flintBrain),
-    versions: ForgeVersionsUtil.NOT_REPORTED,
+    versions: null,
   };
 }
 
@@ -266,7 +265,7 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
       currentWindowResetsAt: null,
     },
     brain:    'not-reported',
-    versions: ForgeVersionsUtil.NOT_REPORTED,
+    versions: null,
   };
 }
 
@@ -315,7 +314,7 @@ function unreadReadingOf(
     today:             null,
     usage:             null,
     brain:             'not-reported',
-    versions:          ForgeVersionsUtil.NOT_REPORTED,
+    versions:          null,
   };
 }
 

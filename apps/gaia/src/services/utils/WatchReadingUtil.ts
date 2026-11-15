@@ -7,7 +7,6 @@ import type { ForgeRegistryFacts }                  from '../../adapters/forge-a
 import type { RegisteredForge, RegisteredOverseer } from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { ForgeClientFailure }                  from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeContracts, ForgeReading }        from '../../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }                        from '../../shared/utils/ForgeVersionsUtil.ts';
 
 const NO_CONTRACTS: ForgeContracts = {
   summary: null,
@@ -57,7 +56,7 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
     today:             null,
     usage:             null,
     brain:             'not-reported',
-    versions:          ForgeVersionsUtil.NOT_REPORTED,
+    versions:          null,
   };
 }
 

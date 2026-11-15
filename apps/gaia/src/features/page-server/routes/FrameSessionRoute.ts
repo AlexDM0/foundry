@@ -6,17 +6,16 @@
  */
 import { EMBED_MODE_QUERY } from 'forge-contracts/EmbedMode';
 
-import { OverseerTokenFile }                          from '../../../adapters/forge-api/OverseerTokenFile.ts';
-import type { RegisteredOverseer }                    from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
-import { registeredForgesOf, type RegistryReading }   from '../../../adapters/forge-registry/RegistryFile.ts';
-import { PageAnswerMapUtil }                          from '../../../adapters/page-api/PageAnswerMapUtil.ts';
-import type { ForgeSessionCodeAnswer, OverseerPaths } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeClient }                           from '../../../lib/forge-client/ForgeClient.ts';
-import type { ForgeReading }                          from '../../../shared/@types/ForgeReading.ts';
-import type { FrameSessionVerdict }                   from '../../../shared/@types/FrameSessionVerdict.ts';
-import { CONTRACT_VERSIONS }                          from '../../../shared/constants/ContractVersions.ts';
-import { OVERSEER_ANSWERED_FIDELITIES }               from '../../../shared/constants/ForgeFidelities.ts';
-import { ForgeVersionsUtil }                          from '../../../shared/utils/ForgeVersionsUtil.ts';
+import { OverseerTokenFile }                        from '../../../adapters/forge-api/OverseerTokenFile.ts';
+import type { RegisteredOverseer }                  from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
+import { registeredForgesOf, type RegistryReading } from '../../../adapters/forge-registry/RegistryFile.ts';
+import { PageAnswerMapUtil }                        from '../../../adapters/page-api/PageAnswerMapUtil.ts';
+import type { ForgeSessionCodeAnswer }              from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeClient }                         from '../../../lib/forge-client/ForgeClient.ts';
+import type { ForgeReading }                        from '../../../shared/@types/ForgeReading.ts';
+import type { FrameSessionVerdict }                 from '../../../shared/@types/FrameSessionVerdict.ts';
+import { CONTRACT_VERSIONS }                        from '../../../shared/constants/ContractVersions.ts';
+import { OVERSEER_ANSWERED_FIDELITIES }             from '../../../shared/constants/ForgeFidelities.ts';
 
 export interface FrameSessionSources {
   /** Read at each request, so the Overseer's address and token file are the ones the registry names now. */
@@ -76,10 +75,10 @@ function verdictOfSessionCodeAnswer(overseerUrl: string, answer: ForgeSessionCod
   }
 }
 
-async function sessionCodeVerdictOf(overseer: RegisteredOverseer, paths: OverseerPaths, forgeClient: ForgeClient): Promise<FrameSessionVerdict> {
+async function sessionCodeVerdictOf(overseer: RegisteredOverseer, forgeClient: ForgeClient): Promise<FrameSessionVerdict> {
   const bearerToken = overseer.tokenPath === null ? null : await new OverseerTokenFile(overseer.tokenPath).read();
   if (bearerToken === null) return { verdict: 'refused', refusedBy: 'gaia', refusal: 'token-unreadable' };
-  return verdictOfSessionCodeAnswer(overseer.url, await forgeClient.sessionCodeOf({ overseerUrl: overseer.url, paths, bearerToken }));
+  return verdictOfSessionCodeAnswer(overseer.url, await forgeClient.sessionCodeOf({ overseerUrl: overseer.url, bearerToken }));
 }
 
 /**
@@ -95,7 +94,7 @@ export async function frameSessionVerdictFor(trackerId: string, sources: FrameSe
   const overseerAnswered = reading !== undefined && OVERSEER_ANSWERED_FIDELITIES.has(reading.fidelity);
   if (forge.overseer === null || reading === undefined || reading.url !== forge.overseer.url || !overseerAnswered) return { verdict: 'unreachable' };
   if (reading.contracts.embed !== CONTRACT_VERSIONS.forgeEmbedChannel) return { verdict: 'not-supported' };
-  return sessionCodeVerdictOf(forge.overseer, ForgeVersionsUtil.overseerPathsOf(reading.versions), sources.forgeClient);
+  return sessionCodeVerdictOf(forge.overseer, sources.forgeClient);
 }
 
 export async function frameSessionAnswerFor(trackerId: string, sources: FrameSessionSources): Promise<Response> {

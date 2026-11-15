@@ -1,12 +1,12 @@
 /**
- * The real-system suite of overseer-fetch against a forge that serves every contract (F1 to F7) at one monitor contract, which a recording
- * spec runs: `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` with the program of such a forge. It starts that
- * forge under a scratch home in a scratch repository as Example Storefront, and records what the boundary answers in each situation a
- * running forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered,
- * a board file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. From
- * control contract 2 it also records the states of Flint's brain that the brain's commands bring it into. The values the run draws (paths,
- * tracker id, port, process ids) are recorded as the Storefront's example values; the forge's install version stamps the recording.
- * Test-only.
+ * The real-system suite of overseer-fetch against a forge at the one system version Gaia supports, which the recording spec of
+ * `overseer-fetch-supported-forge` runs: `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record overseer-fetch-supported-forge` with the
+ * program of such a forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each
+ * endpoint at the versioned path Gaia calls. As Example Project: serving, a token it refuses, and stopped. As Example Storefront, each
+ * situation a running forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine
+ * limit lowered, a board file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream,
+ * starting, and the states of Flint's brain that the brain's commands bring it into. The values the run draws (paths, tracker ids, ports,
+ * process ids) are recorded as example values; the forge's install and code versions stamp the recording. Test-only.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -18,8 +18,9 @@ import {
   expect,
   test
 } from 'bun:test';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 
+import { ApiPathUtil }                                       from '../lib/api-paths/ApiPathUtil.ts';
+import { forgeEndpointVersionOf, type OverseerEndpointName } from '../lib/forge-client/ForgeClient.ts';
 import {
   realOverseerFetch,
   type OverseerAnswer,
@@ -27,6 +28,7 @@ import {
   type OverseerStream,
   type OverseerStreamRequest,
 } from '../lib/forge-client/OverseerFetch.ts';
+import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { recordAnswer, recordSystemVersion } from './BoundaryRecordings.ts';
 import {
@@ -50,6 +52,15 @@ const STOREFRONT = {
   overseerAddress: '127.0.0.1:4951',
   firstProcessId:  48_107,
 } as const;
+const EXAMPLE_PROJECT = {
+  root:            '/Users/alexexample/development/example-project',
+  trackerId:       '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
+  overseerAddress: '127.0.0.1:54795',
+  processId:       21_008,
+} as const;
+const EXAMPLE_TOKEN = 'example-token';
+const UNAUTHORIZED_STATUS = 401;
+const SUCCESS_STATUS = 200;
 const RAISED_CONCURRENCY_LIMIT = 3;
 const LOWERED_MACHINE_LIMIT = 4;
 const MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT = 64;
@@ -69,15 +80,23 @@ interface KeptAnswer {
   readonly answer:    OverseerAnswer | RecordedStreamAnswer;
 }
 
-export interface EveryContractRecording {
-  readonly recordingName:  string;
-  /** The monitor contract the forge recorded from serves: the identity names it and every snapshot carries it. */
-  readonly monitorVersion: number;
-  /** The control contract the forge recorded from serves, which the identity names. */
-  readonly controlVersion: number;
+/** The path Gaia calls an endpoint at: the version forge's registry serves the supported forge version. */
+function pathOf(endpointName: OverseerEndpointName, endpoint: string): string {
+  return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName));
 }
 
-export function describeEveryContractRecording({ recordingName, monitorVersion, controlVersion }: EveryContractRecording): void {
+const PATHS = {
+  identity:      pathOf('identity', 'identity'),
+  summary:       pathOf('summary', 'summary'),
+  monitor:       pathOf('monitor', 'monitor'),
+  monitorEvents: pathOf('monitorEvents', 'monitor/events'),
+  commands:      pathOf('commands', 'commands'),
+  sessionCodes:  pathOf('sessionCodes', 'session-codes'),
+} as const;
+
+export function describeSupportedForgeRecording(recordingName: string): void {
+  const monitorVersion = CONTRACT_VERSIONS.forgeMonitor;
+  const controlVersion = CONTRACT_VERSIONS.forgeControl;
   let scratchForge: ScratchForge;
   let repository = '';
   let overseerUrl = '';
@@ -101,12 +120,20 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
 
   function streamRequestOf(token: string, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): OverseerStreamRequest {
     return {
-      overseerUrl, path: '/api/monitor/events', bearerToken: token, timeoutMilliseconds,
+      overseerUrl, path: PATHS.monitorEvents, bearerToken: token, timeoutMilliseconds,
     };
   }
 
+  /** Keeps what the forge answers at `/api/versions` in a situation, which Gaia asks before anything else. */
+  async function keepVersions(situation: OverseerSituation | FlintBrainSituation, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): Promise<OverseerAnswer> {
+    const versionsRequest = { ...requestOf('GET', ApiPathUtil.VERSIONS_PATH, null), timeoutMilliseconds };
+    const answer = await realOverseerFetch().request(versionsRequest);
+    keep(situation, requestCallShapeOf(versionsRequest), answer);
+    return answer;
+  }
+
   async function sendCommand(command: Record<string, unknown>): Promise<OverseerAnswer> {
-    return realOverseerFetch().request(requestOf('POST', '/api/commands', bearerToken, JSON.stringify(command)));
+    return realOverseerFetch().request(requestOf('POST', PATHS.commands, bearerToken, JSON.stringify(command)));
   }
 
   /** Reads the Overseer the registry names now: its address, process and token, each run-drawn value given its example. */
@@ -183,10 +210,11 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       stream.close();
     }
     keep(situation, streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending: 'stays-open' });
-    const monitorRequest = requestOf('GET', '/api/monitor', bearerToken);
+    const monitorRequest = requestOf('GET', PATHS.monitor, bearerToken);
     keep(situation, requestCallShapeOf(monitorRequest), await realOverseerFetch().request(monitorRequest));
-    const identityRequest = requestOf('GET', '/api/identity', null);
+    const identityRequest = requestOf('GET', PATHS.identity, null);
     keep(situation, requestCallShapeOf(identityRequest), await realOverseerFetch().request(identityRequest));
+    await keepVersions(situation);
   }
 
   function exampleAnswerOf(answer: OverseerAnswer | RecordedStreamAnswer): OverseerAnswer | RecordedStreamAnswer {
@@ -219,9 +247,74 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
     if (scratchPathsLeft.length > 0) throw new Error(`A scratch path is left in ${scratchPathsLeft.map(({ callShape }) => callShape).join(', ')}: nothing is recorded.`);
   }, SETUP_TIMEOUT_MILLISECONDS);
 
-  describe('a forge that serves every contract', () => {
-    test(`answers its identity with identityVersion 1, monitor contract ${monitorVersion}, control contract ${controlVersion} and every other contract at 1`, async () => {
-      const identityRequest = requestOf('GET', '/api/identity', null);
+  describe('Example Project, a second forge', () => {
+    let projectRepository = '';
+    let projectOverseerUrl = '';
+
+    function projectRequestOf(method: OverseerRequest['method'], path: string, token: string | null, jsonBody: string | null = null): OverseerRequest {
+      return {
+        overseerUrl: projectOverseerUrl, method, path, bearerToken: token, jsonBody, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+      };
+    }
+
+    async function keepProjectAnswer(situation: OverseerSituation, request: OverseerRequest): Promise<OverseerAnswer> {
+      const answer = await realOverseerFetch().request(request);
+      keep(situation, requestCallShapeOf(request), answer);
+      return answer;
+    }
+
+    beforeAll(async () => {
+      projectRepository = await scratchForge.createRepository('example-project');
+      scratchForge.exampleValueFor({ drawn: projectRepository, example: EXAMPLE_PROJECT.root });
+      const initialised = await scratchForge.runForDocument(projectRepository, ['init', '--project', 'Example Project', '--no-hooks', '--json']);
+      const projectTrackerId = String(initialised['trackerId']);
+      scratchForge.exampleValueFor({ drawn: projectTrackerId, example: EXAMPLE_PROJECT.trackerId });
+      await scratchForge.runForDocument(projectRepository, ['start', '--json']);
+      const overseer = scratchForge.registryEntryOf(projectTrackerId)?.['overseer'] as { url: string; processId: number } | undefined;
+      if (overseer === undefined) throw new Error('the registry names no live Overseer of Example Project');
+      projectOverseerUrl = overseer.url;
+      scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: EXAMPLE_PROJECT.overseerAddress });
+      scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${EXAMPLE_PROJECT.processId}` });
+    }, SETUP_TIMEOUT_MILLISECONDS);
+
+    test('answers its versions, its identity and its board summary while it serves', async () => {
+      for (const path of [ApiPathUtil.VERSIONS_PATH, PATHS.identity, PATHS.summary]) {
+        const servingRequest = projectRequestOf('GET', path, null);
+        expect(await keepProjectAnswer('serving', servingRequest)).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
+      }
+    });
+
+    test('answers 401 to a session code and a command asked with another Overseer\'s token', async () => {
+      const commandBody = JSON.stringify({ kind: 'overseer-pause' });
+      for (const refusedRequest of [projectRequestOf('POST', PATHS.sessionCodes, WRONG_TOKEN), projectRequestOf('POST', PATHS.commands, WRONG_TOKEN, commandBody)]) {
+        expect(await keepProjectAnswer('token-rejected', refusedRequest)).toMatchObject({ verdict: 'answered', status: UNAUTHORIZED_STATUS });
+      }
+    });
+
+    test('answers unreachable for every request and the monitor stream once it has stopped', async () => {
+      await scratchForge.runForDocument(projectRepository, ['stop', '--now', '--json']);
+      const requests = [
+        projectRequestOf('GET', ApiPathUtil.VERSIONS_PATH, null),
+        projectRequestOf('GET', PATHS.identity, null),
+        projectRequestOf('GET', PATHS.summary, null),
+        projectRequestOf('GET', PATHS.monitor, EXAMPLE_TOKEN),
+        projectRequestOf('POST', PATHS.sessionCodes, EXAMPLE_TOKEN),
+        projectRequestOf('POST', PATHS.commands, EXAMPLE_TOKEN, JSON.stringify({ kind: 'overseer-pause' })),
+      ];
+      for (const stoppedRequest of requests) expect(await keepProjectAnswer('stopped', stoppedRequest)).toEqual({ verdict: 'unreachable' });
+      const streamRequest = {
+        overseerUrl: projectOverseerUrl, path: PATHS.monitorEvents, bearerToken: EXAMPLE_TOKEN, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS
+      };
+      const streamAnswer = await realOverseerFetch().openStream(streamRequest);
+      expect(streamAnswer).toEqual({ verdict: 'unreachable' });
+      if (streamAnswer.verdict !== 'streaming') keep('stopped', streamCallShapeOf(streamRequest), streamAnswer);
+    }, SETUP_TIMEOUT_MILLISECONDS);
+  });
+
+  describe('Example Storefront, a forge at work', () => {
+    test(`answers its versions, and its identity with monitor contract ${monitorVersion}, control contract ${controlVersion} and every other at 1`, async () => {
+      expect(await keepVersions('serving-every-contract')).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
+      const identityRequest = requestOf('GET', PATHS.identity, null);
       const answer = await realOverseerFetch().request(identityRequest);
       expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
       const identity = answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as Record<string, unknown> : {};
@@ -236,12 +329,12 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
     });
 
     test(`answers its monitor snapshot at monitor version ${monitorVersion} and a session code`, async () => {
-      const monitorRequest = requestOf('GET', '/api/monitor', bearerToken);
+      const monitorRequest = requestOf('GET', PATHS.monitor, bearerToken);
       const monitorAnswer  = await realOverseerFetch().request(monitorRequest);
       expect(monitorAnswer).toMatchObject({ verdict: 'answered', status: 200 });
       expect(monitorAnswer.verdict === 'answered' ? JSON.parse(monitorAnswer.bodyText) as unknown : null).toMatchObject({ monitorVersion });
       keep('serving-every-contract', requestCallShapeOf(monitorRequest), monitorAnswer);
-      const sessionCodeRequest = requestOf('POST', '/api/session-codes', bearerToken);
+      const sessionCodeRequest = requestOf('POST', PATHS.sessionCodes, bearerToken);
       const sessionCodeAnswer  = await realOverseerFetch().request(sessionCodeRequest);
       expect(sessionCodeAnswer).toMatchObject({ verdict: 'answered', status: 200 });
       keep('serving-every-contract', requestCallShapeOf(sessionCodeRequest), sessionCodeAnswer);
@@ -252,7 +345,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       const first  = await chunksUntil(stream, 1);
       const commandAnswer = await sendCommand({ kind: 'concurrency-set', limit: RAISED_CONCURRENCY_LIMIT });
       expect(commandAnswer).toMatchObject({ verdict: 'answered', status: 200 });
-      keep('serving-every-contract', requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken)), commandAnswer);
+      keep('serving-every-contract', requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken)), commandAnswer);
       const second = await chunksUntil(stream, 1);
       stream.close();
       const chunks = [...first.chunks, ...second.chunks];
@@ -261,7 +354,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
     });
 
     test('answers 401 to the monitor and its stream asked with another Overseer\'s token', async () => {
-      const monitorRequest = requestOf('GET', '/api/monitor', WRONG_TOKEN);
+      const monitorRequest = requestOf('GET', PATHS.monitor, WRONG_TOKEN);
       const monitorAnswer  = await realOverseerFetch().request(monitorRequest);
       expect(monitorAnswer).toMatchObject({ verdict: 'answered', status: 401 });
       keep('token-rejected', requestCallShapeOf(monitorRequest), monitorAnswer);
@@ -273,16 +366,16 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
     test('refuses a machine limit above the CPU count in its own words', async () => {
       const answer = await sendCommand({ kind: 'machine-agent-limit-set', limit: MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT });
       expect(answer).toMatchObject({ verdict: 'answered', status: 409 });
-      keep('command-refused', requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken)), answer);
+      keep('command-refused', requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken)), answer);
     });
 
     test('answers nothing-to-do to a machine limit it already holds, and streams the lowered limit', async () => {
-      const monitorAnswer = await realOverseerFetch().request(requestOf('GET', '/api/monitor', bearerToken));
+      const monitorAnswer = await realOverseerFetch().request(requestOf('GET', PATHS.monitor, bearerToken));
       const cpuCount = monitorAnswer.verdict === 'answered' ? (JSON.parse(monitorAnswer.bodyText) as { concurrency: { machineLimit: number } }).concurrency.machineLimit : 0;
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT })).toMatchObject({ verdict: 'answered', status: 200 });
       const repeated = await sendCommand({ kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT });
       expect(repeated.verdict === 'answered' ? JSON.parse(repeated.bodyText) as unknown : repeated).toMatchObject({ outcome: 'nothing-to-do' });
-      keep('nothing-to-change', requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken)), repeated);
+      keep('nothing-to-change', requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken)), repeated);
       const stream = await openedStream(bearerToken);
       const { chunks } = await chunksUntil(stream, 1);
       stream.close();
@@ -292,8 +385,8 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: cpuCount })).toMatchObject({ verdict: 'answered', status: 200 });
     });
 
-    describe.if(controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.control)('Flint\'s brain', () => {
-      const commandShape = (): string => requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken));
+    describe('Flint\'s brain', () => {
+      const commandShape = (): string => requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken));
 
       test('answers a start of the brain done, and serves the brain running', async () => {
         const answer = await sendCommand({ kind: 'flint-brain-start' });
@@ -324,7 +417,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       const boardFile = readFileSync(boardFilePath, 'utf8');
       writeFileSync(boardFilePath, '{"version": 2, "trackerId": ');
       try {
-        for (const unreadableRequest of [requestOf('GET', '/api/summary', null), requestOf('GET', '/api/monitor', bearerToken)]) {
+        for (const unreadableRequest of [requestOf('GET', PATHS.summary, null), requestOf('GET', PATHS.monitor, bearerToken)]) {
           const answer = await realOverseerFetch().request(unreadableRequest);
           expect(answer).toMatchObject({ verdict: 'answered', status: 500 });
           keep('board-unreadable', requestCallShapeOf(unreadableRequest), answer);
@@ -346,7 +439,8 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       suspendedProcessId = overseerProcessId;
       process.kill(overseerProcessId, 'SIGSTOP');
       try {
-        const identityRequest = { ...requestOf('GET', '/api/identity', null), timeoutMilliseconds: SUSPENDED_BOUND_MILLISECONDS };
+        expect(await keepVersions('not-answering', SUSPENDED_BOUND_MILLISECONDS)).toEqual({ verdict: 'timed-out' });
+        const identityRequest = { ...requestOf('GET', PATHS.identity, null), timeoutMilliseconds: SUSPENDED_BOUND_MILLISECONDS };
         const identityAnswer = await realOverseerFetch().request(identityRequest);
         expect(identityAnswer).toEqual({ verdict: 'timed-out' });
         keep('not-answering', requestCallShapeOf(identityRequest), identityAnswer);
@@ -379,23 +473,26 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       keep('connection-broken', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending });
     });
 
-    test('answers 503 starting to its identity while its Overseer starts, and to its monitor until it took its generation', async () => {
+    test('answers its versions and 503 starting to its identity while its Overseer starts, and to its monitor until it took its generation', async () => {
       const { port } = new URL(overseerUrl);
-      const caught: { identity: OverseerAnswer | null; monitor: OverseerAnswer | null; stream: OverseerAnswer | null } = { identity: null, monitor: null, stream: null };
+      const caught: { versions: OverseerAnswer | null; identity: OverseerAnswer | null; monitor: OverseerAnswer | null; stream: OverseerAnswer | null } = {
+        versions: null, identity: null, monitor: null, stream: null,
+      };
       for (let start = 0; start < STARTS_TRIED_FOR_THE_STARTING_WINDOW && (caught.identity === null || caught.monitor === null); start += 1) {
         const programArguments = ['oversee', '--port', port];
         const owned = scratchForge.processRun.startOwned({ program: forgeProgramToRun(recordingName), programArguments, workingDirectory: repository });
         if (owned.verdict !== 'started') throw new Error(`oversee answered ${JSON.stringify(owned)}`);
         for (let look = 0; look < STARTING_LOOKS_PER_START; look += 1) {
-          const answer = await realOverseerFetch().request({ ...requestOf('GET', '/api/identity', null), timeoutMilliseconds: SUSPENDED_BOUND_MILLISECONDS });
+          const answer = await realOverseerFetch().request({ ...requestOf('GET', PATHS.identity, null), timeoutMilliseconds: SUSPENDED_BOUND_MILLISECONDS });
           if (answer.verdict !== 'answered') continue;
           if (answer.status !== 503) break;
+          if (caught.identity === null) caught.versions = await realOverseerFetch().request(requestOf('GET', ApiPathUtil.VERSIONS_PATH, null));
           caught.identity ??= answer;
         }
         for (let look = 0; look < STARTING_LOOKS_PER_START && caught.monitor === null; look += 1) {
           const startingToken = readFileSync(tokenPath, 'utf8').trim();
           const [monitorAnswer, streamAnswer] = await Promise.all([
-            realOverseerFetch().request(requestOf('GET', '/api/monitor', startingToken)),
+            realOverseerFetch().request(requestOf('GET', PATHS.monitor, startingToken)),
             realOverseerFetch().openStream(streamRequestOf(startingToken)),
           ]);
           if (streamAnswer.verdict === 'streaming') streamAnswer.stream.close();
@@ -408,8 +505,9 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
         await owned.child.exited;
       }
       if (caught.identity === null) throw new Error(`No identity answered 503 within ${STARTS_TRIED_FOR_THE_STARTING_WINDOW} starts.`);
-      keep('starting', requestCallShapeOf(requestOf('GET', '/api/identity', null)), caught.identity);
-      if (caught.monitor !== null) keep('starting', requestCallShapeOf(requestOf('GET', '/api/monitor', bearerToken)), caught.monitor);
+      keep('starting', requestCallShapeOf(requestOf('GET', PATHS.identity, null)), caught.identity);
+      if (caught.versions !== null) keep('starting', requestCallShapeOf(requestOf('GET', ApiPathUtil.VERSIONS_PATH, null)), caught.versions);
+      if (caught.monitor !== null) keep('starting', requestCallShapeOf(requestOf('GET', PATHS.monitor, bearerToken)), caught.monitor);
       if (caught.stream !== null) keep('starting', streamCallShapeOf(streamRequestOf(bearerToken)), caught.stream);
       console.log(`The starting window gave: ${JSON.stringify(caught)}`);
     }, SETUP_TIMEOUT_MILLISECONDS);

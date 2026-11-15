@@ -17,8 +17,8 @@ import type {
 /** The page clock the artboards were drawn at. */
 export const FLEET_FIXTURES_READ_AT = '2026-11-12T13:19:30.000Z';
 
-/** Every forge released today publishes no system version, so this Gaia reads each as before versions. */
-export const NOT_REPORTED_VERSIONS: FleetDocumentForgeVersions = { verdict: 'not-reported', current: null, minimumSupported: null };
+/** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
+export const CURRENT_FORGE_VERSIONS: FleetDocumentForgeVersions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } };
 
 export const FLEET_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -34,7 +34,7 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
   monitor: 3,
-  control: 1,
+  control: 2,
   embed:   1,
 };
 
@@ -526,7 +526,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   today:    { deliveredTickets: 3, tokens: 512_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    STOREFRONT_BRAIN_RUNNING,
-  versions: NOT_REPORTED_VERSIONS,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const INVOICE_SERVICE: FleetDocumentForge = {
@@ -616,7 +616,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
   today:    { deliveredTickets: 2, tokens: 418_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: NOT_REPORTED_VERSIONS,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const RESEARCH_WIKI: FleetDocumentForge = {
@@ -670,7 +670,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   today:    { deliveredTickets: 1, tokens: 164_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: NOT_REPORTED_VERSIONS,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
@@ -724,7 +724,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
   today:    { deliveredTickets: 0, tokens: 146_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: NOT_REPORTED_VERSIONS,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -768,7 +768,7 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
   today:    null,
   usage:    null,
   brain:    'not-reported',
-  versions: NOT_REPORTED_VERSIONS,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const LEGACY_IMPORTER: FleetDocumentForge = {
@@ -802,7 +802,7 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
-  versions:          NOT_REPORTED_VERSIONS,
+  versions:          null,
 };
 
 /** A brain in each state the forge reports, for the specs that put one in Example Storefront's place. */
@@ -954,7 +954,6 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     versions: {
       systemVersion:         { major: 1, minor: 0 },
       supportedForgeVersion: { major: 1, minor: 1 },
-      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

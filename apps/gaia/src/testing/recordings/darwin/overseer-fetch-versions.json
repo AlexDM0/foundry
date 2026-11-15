@@ -8,79 +8,11 @@
   },
   "answers": [
     {
-      "callShape": "brain-ended: GET /api/versions",
+      "callShape": "versions-absent: GET /api/versions",
       "answer": {
         "verdict": "answered",
         "status": 404,
         "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "brain-refused: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "brain-running: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "no-flint: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "not-answering: GET /api/versions",
-      "answer": {
-        "verdict": "timed-out"
-      }
-    },
-    {
-      "callShape": "port-held-by-another-program: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
-      }
-    },
-    {
-      "callShape": "serving-every-contract: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "serving: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "starting: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 404,
-        "bodyText": "{\"refusal\":\"not-found\"}"
-      }
-    },
-    {
-      "callShape": "stopped: GET /api/versions",
-      "answer": {
-        "verdict": "unreachable"
       }
     },
     {
@@ -134,107 +66,6 @@
       }
     },
     {
-      "callShape": "versions-behind: GET /api/v1/identity",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"identityVersion\":1,\"application\":\"forge\",\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"codeVersion\":\"2b47322f0984\",\"installVersion\":27,\"processId\":48107,\"watcherProtocolVersion\":2,\"contracts\":{\"summary\":1,\"monitor\":2,\"control\":1,\"embed\":1}}"
-      }
-    },
-    {
-      "callShape": "versions-behind: GET /api/v2/monitor with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}]}"
-      }
-    },
-    {
-      "callShape": "versions-behind: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"current\":{\"major\":1,\"minor\":0},\"minimumSupported\":{\"major\":1,\"minor\":0}}"
-      }
-    },
-    {
-      "callShape": "versions-behind: POST /api/v1/commands with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"controlVersion\":1,\"outcome\":\"done\",\"result\":{\"logged\":[{\"at\":\"2026-11-13T09:57:14+01:00\",\"kind\":\"concurrency-limit-set\",\"fields\":{\"limit\":3}}],\"previousLimit\":2,\"concurrency\":{\"limit\":3,\"agentsInFlight\":0,\"freeSlots\":3}}}"
-      }
-    },
-    {
-      "callShape": "versions-behind: POST /api/v1/session-codes with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"code\":\"543eae89e456b36fda03921349bea3749ed9f3d0a2af4c64de26f8ffa10b50c3\"}"
-      }
-    },
-    {
-      "callShape": "versions-behind: STREAM /api/v2/monitor/events with bearer",
-      "answer": {
-        "verdict": "streaming",
-        "chunks": [
-          "event: monitor\ndata: {\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}]}\n\n",
-          "event: monitor\ndata: {\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":3,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"},{\"logPosition\":6,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Concurrency limit set to 3\",\"route\":null}]}\n\n"
-        ],
-        "ending": "stays-open"
-      }
-    },
-    {
-      "callShape": "versions-current: GET /api/v1/identity",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"identityVersion\":1,\"application\":\"forge\",\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"codeVersion\":\"3f9a2c1\",\"installVersion\":28,\"processId\":48107,\"watcherProtocolVersion\":2,\"contracts\":{\"summary\":1,\"monitor\":3,\"control\":2,\"embed\":1}}"
-      }
-    },
-    {
-      "callShape": "versions-current: GET /api/v2/monitor with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"monitorVersion\":3,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"3f9a2c1\",\"codeVersionOnDisk\":\"3f9a2c1\",\"installVersion\":28},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":1840},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 3f9a2c1, install version 28\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}],\"flintBrain\":{\"state\":\"running\",\"startedAt\":\"2026-11-13T09:58:02+01:00\",\"endsAt\":\"2026-11-13T10:00:02+01:00\",\"startedBy\":\"api\",\"model\":\"haiku\",\"effort\":\"low\",\"tokens\":1840,\"calls\":3,\"recentMoves\":[{\"at\":\"2026-11-13T09:58:31+01:00\",\"intent\":\"watch-agent\",\"emote\":null},{\"at\":\"2026-11-13T09:58:17+01:00\",\"intent\":\"walk-to-column\",\"emote\":\"wave\"},{\"at\":\"2026-11-13T09:58:05+01:00\",\"intent\":\"look-around\",\"emote\":null}],\"endedAt\":null,\"endedReason\":null,\"sentence\":\"Flint's brain is running until 10:00\",\"refusal\":null}}"
-      }
-    },
-    {
-      "callShape": "versions-current: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"current\":{\"major\":1,\"minor\":1},\"minimumSupported\":{\"major\":1,\"minor\":0}}"
-      }
-    },
-    {
-      "callShape": "versions-current: POST /api/v1/commands with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"controlVersion\":2,\"outcome\":\"done\",\"result\":{\"logged\":[{\"at\":\"2026-11-13T09:58:02+01:00\",\"kind\":\"flint-brain-started\",\"fields\":{\"startedBy\":\"api\"}}]}}"
-      }
-    },
-    {
-      "callShape": "versions-current: POST /api/v1/session-codes with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"code\":\"543eae89e456b36fda03921349bea3749ed9f3d0a2af4c64de26f8ffa10b50c3\"}"
-      }
-    },
-    {
-      "callShape": "versions-current: STREAM /api/v2/monitor/events with bearer",
-      "answer": {
-        "verdict": "streaming",
-        "chunks": [
-          "event: monitor\ndata: {\"monitorVersion\":3,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"3f9a2c1\",\"codeVersionOnDisk\":\"3f9a2c1\",\"installVersion\":28},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":1840},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 3f9a2c1, install version 28\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}],\"flintBrain\":{\"state\":\"running\",\"startedAt\":\"2026-11-13T09:58:02+01:00\",\"endsAt\":\"2026-11-13T10:00:02+01:00\",\"startedBy\":\"api\",\"model\":\"haiku\",\"effort\":\"low\",\"tokens\":1840,\"calls\":3,\"recentMoves\":[{\"at\":\"2026-11-13T09:58:31+01:00\",\"intent\":\"watch-agent\",\"emote\":null},{\"at\":\"2026-11-13T09:58:17+01:00\",\"intent\":\"walk-to-column\",\"emote\":\"wave\"},{\"at\":\"2026-11-13T09:58:05+01:00\",\"intent\":\"look-around\",\"emote\":null}],\"endedAt\":null,\"endedReason\":null,\"sentence\":\"Flint's brain is running until 10:00\",\"refusal\":null}}\n\n"
-        ],
-        "ending": "stays-open"
-      }
-    },
-    {
       "callShape": "versions-newer: GET /api/versions",
       "answer": {
         "verdict": "answered",
@@ -243,38 +74,11 @@
       }
     },
     {
-      "callShape": "versions-unreadable: GET /api/identity",
+      "callShape": "versions-older: GET /api/versions",
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "{\"identityVersion\":1,\"application\":\"forge\",\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"codeVersion\":\"2b47322f0984\",\"installVersion\":27,\"processId\":48107,\"watcherProtocolVersion\":2,\"contracts\":{\"summary\":1,\"monitor\":2,\"control\":1,\"embed\":1}}"
-      }
-    },
-    {
-      "callShape": "versions-unreadable: GET /api/monitor with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}]}"
-      }
-    },
-    {
-      "callShape": "versions-unreadable: GET /api/versions",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "bodyText": "{\"current\":{\"major\":1,\"minor\":0},\"minimumSupported\":{\"major\":1,\"minor\":2}}"
-      }
-    },
-    {
-      "callShape": "versions-unreadable: STREAM /api/monitor/events with bearer",
-      "answer": {
-        "verdict": "streaming",
-        "chunks": [
-          "event: monitor\ndata: {\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"}]}\n\n",
-          "event: monitor\ndata: {\"monitorVersion\":2,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"overseer\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"generation\":1,\"codeVersion\":\"2b47322f0984\",\"codeVersionOnDisk\":\"2b47322f0984\",\"installVersion\":27},\"concurrency\":{\"limit\":3,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":1,\"ready-for-review\":0,\"pending\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"The Overseer needs a decision (checks-not-set) about the board.\",\"jobId\":null,\"askedBy\":\"overseer\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"route\":\"#questions/E1\"},{\"ticketIds\":[],\"jobId\":null,\"askedBy\":null,\"decisionKind\":null,\"escalatedFromIncidentId\":null,\"metaText\":\"draft ticket, no row yet\",\"key\":\"ticket:001\",\"kind\":\"draft-ticket\",\"idText\":\"#001\",\"subject\":\"Search suggestions\",\"stamp\":\"2026-11-13T09:57:13+01:00\",\"stampWord\":\"filed\",\"actionLabel\":\"Ready\",\"route\":\"#kanban/ticket/001\"}],\"jobs\":[{\"id\":\"J1\",\"kind\":\"assistant\",\"role\":\"assistant\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:13+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J1\"},{\"id\":\"J2\",\"kind\":\"onboarder\",\"role\":\"onboarder\",\"state\":\"launching\",\"ticketIds\":[],\"ticketTitle\":null,\"attempt\":1,\"startedAt\":\"2026-11-13T09:57:14+01:00\",\"calls\":0,\"callBudget\":null,\"tokens\":0,\"toolCalls\":0,\"lastToolCall\":null,\"runningSubagents\":0,\"silentSweeps\":0,\"quiet\":false,\"turn\":null,\"messagesWaiting\":0,\"lastLine\":null,\"waitingOnDecisionId\":null,\"route\":\"#agents/J2\"}],\"notices\":[{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock\"},{\"kind\":\"watcher-endpoint-does-not-fit\",\"text\":\"job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock\"}],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Ticket #001 filed: Search suggestions\",\"route\":\"#kanban/ticket/001\"},{\"logPosition\":1,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"forge\",\"text\":\"Overseer started on code 2b47322f0984, install version 27\",\"route\":null},{\"logPosition\":2,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"route\":\"#questions/E1\"},{\"logPosition\":3,\"at\":\"2026-11-13T09:57:13+01:00\",\"category\":\"agent\",\"text\":\"Job J1 launched: assistant (assistant), attempt 1\",\"route\":\"#agents/J1\"},{\"logPosition\":4,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Overseer set to running\",\"route\":null},{\"logPosition\":5,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"agent\",\"text\":\"Job J2 launched: onboarder (onboarder), attempt 1\",\"route\":\"#agents/J2\"},{\"logPosition\":6,\"at\":\"2026-11-13T09:57:14+01:00\",\"category\":\"forge\",\"text\":\"Concurrency limit set to 3\",\"route\":null}]}\n\n"
-        ],
-        "ending": "stays-open"
+        "bodyText": "{\"current\":{\"major\":1,\"minor\":0},\"minimumSupported\":{\"major\":0,\"minor\":0}}"
       }
     }
   ]

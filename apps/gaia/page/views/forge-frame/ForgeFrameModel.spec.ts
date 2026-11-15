@@ -433,11 +433,11 @@ describe('Flint\'s brain in the bar', () => {
     const usageLimit = {
       state: 'refused', refusedBy: 'forge', code: 'usage-limit-holds', sentence: 'launches are held until the usage limit resets'
     } as const;
-    const notServed = {
-      state: 'refused', refusedBy: 'forge', code: 'brain-not-served', sentence: 'Flint\'s brain did not wake'
+    const exampleRefusal = {
+      state: 'refused', refusedBy: 'forge', code: 'example-refusal', sentence: 'Flint\'s brain did not wake'
     } as const;
     expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
-    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('brain-not-served'))).toEqual(notServed);
+    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('example-refusal'))).toEqual(exampleRefusal);
   });
 
   test('the mark wakes the brain only where Wake shows, and its title says so or says how the brain is', () => {

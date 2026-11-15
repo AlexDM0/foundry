@@ -24,13 +24,13 @@ export interface FleetDocumentSystemVersion {
 }
 
 /**
- * How the forge's system version stands to the forge versions this Gaia knows (`FleetDocumentGaia`). `newer` and `older`: they cannot
- * talk, and this Gaia or the forge needs an update. `ahead`: read in full with what this Gaia knows; `behind`: read in full without this
- * Gaia's newest features for it. `not-reported`: the forge publishes no versions and is read as before them.
+ * How the forge's system version stands to the one forge version this Gaia supports (`FleetDocumentGaia`). `newer` and `older`: they
+ * cannot talk, and this Gaia or the forge needs an update; a forge that serves no versions is `older`. `ahead`: read with what this Gaia
+ * knows, while full use of the forge needs a newer Gaia. `current`: the supported version.
  */
-export type FleetDocumentVersionsVerdict = 'newer' | 'older' | 'ahead' | 'behind' | 'current' | 'not-reported';
+export type FleetDocumentVersionsVerdict = 'newer' | 'older' | 'ahead' | 'current';
 
-/** The forge's own versions, both `null` when it reported none. */
+/** The forge's own versions, both `null` for a forge that serves no versions. */
 export interface FleetDocumentForgeVersions {
   verdict:          FleetDocumentVersionsVerdict;
   current:          FleetDocumentSystemVersion | null;
@@ -189,7 +189,8 @@ export interface FleetDocumentForge {
   usage:             FleetDocumentUsage | null;
   /** `not-reported` under a monitor older than contract 3 and for a forge without Flint: the brain is then absent, not empty. */
   brain:             FleetDocumentBrain | 'not-reported';
-  versions:          FleetDocumentForgeVersions;
+  /** `null` for a forge read without its versions, such as a dormant or an unreachable one. */
+  versions:          FleetDocumentForgeVersions | null;
 }
 
 export interface FleetDocumentFleetAttentionItem extends FleetDocumentAttentionItem {
@@ -268,8 +269,8 @@ export interface FleetDocumentGaia {
   forgeProgramInUse: string | null;
   settingsFile:      FleetDocumentSettingsFileState;
   knownContracts:    { summary: number; monitor: number; control: number; embed: number };
-  /** This Gaia's own system version, the forge version it is built for, and the oldest forge version it still talks to. */
-  versions:          { systemVersion: FleetDocumentSystemVersion; supportedForgeVersion: FleetDocumentSystemVersion; minimumForgeVersion: FleetDocumentSystemVersion };
+  /** This Gaia's own system version and the one forge version it supports. */
+  versions:          { systemVersion: FleetDocumentSystemVersion; supportedForgeVersion: FleetDocumentSystemVersion };
 }
 
 /** The first event of `GET /api/events`, before any document: the system version of the Gaia that serves the stream. */

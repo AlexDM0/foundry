@@ -1,11 +1,13 @@
 /**
  * Finds and reads every forge the registry names (PLAN 7.1): one watch per forge asks its Overseer's versions, identifies it, follows its
  * monitor stream or polls its summary, and opens a lost stream again. The forge's system version decides whether Gaia can talk to it at
- * all and at which paths; a forge that publishes none is read as before versions. A forge that is down is an ordinary reading, never a
- * throw. Every interval is a schedule on injected timers, never a decision.
+ * all; a forge that serves no versions is older than Gaia supports. A forge that is down is an ordinary reading, never a throw. Every
+ * interval is a schedule on injected timers, never a decision.
  */
 import { createHash } from 'node:crypto';
 import { stat }       from 'node:fs/promises';
+
+import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import type { ForgeIdentity, ForgeRegistryFacts }                   from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { BoardSummaryIngestion }                                    from '../adapters/forge-api/BoardSummaryIngestion.ts';
@@ -17,9 +19,9 @@ import type { RegisteredForge }                                     from '../ada
 import type { RegistryReading }                                     from '../adapters/forge-registry/RegistryFile.ts';
 import type { ForgeDocumentAnswer, MonitorFollow, OverseerAddress } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                         from '../lib/forge-client/ForgeClient.ts';
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }           from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                                  from '../lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ForgeReading, ForgeVersions }                         from '../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil, type KnownForgeVersions }               from '../shared/utils/ForgeVersionsUtil.ts';
+import { ForgeVersionsUtil }                                        from '../shared/utils/ForgeVersionsUtil.ts';
 import { SystemVersionUtil }                                        from '../shared/utils/SystemVersionUtil.ts';
 import type { ClockTimer, ClockTimers }                             from './Clock.ts';
 import { WatchReadingUtil }                                         from './utils/WatchReadingUtil.ts';
@@ -32,17 +34,17 @@ export interface ForgeWatchIntervals {
 }
 
 export interface ForgeWatchOptions {
-  readonly readRegistry:        () => Promise<RegistryReading>;
-  readonly forgeClient:         ForgeClient;
+  readonly readRegistry:           () => Promise<RegistryReading>;
+  readonly forgeClient:            ForgeClient;
   /** Read at each registry check, so a forge hidden or shown again counts from the next check on. */
-  readonly hiddenTrackerIds:    () => readonly string[];
-  readonly timers:              ClockTimers;
+  readonly hiddenTrackerIds:       () => readonly string[];
+  readonly timers:                 ClockTimers;
   /** The stamp a reading is taken at: recorded and shown, never compared. */
-  readonly now:                 () => string;
-  readonly onReadingsChanged:   () => void;
-  readonly intervals?:          Partial<ForgeWatchIntervals>;
-  /** The forge versions this Gaia is built for and still talks to; `forge-contracts`' when not given, and planted by a spec. */
-  readonly knownForgeVersions?: KnownForgeVersions;
+  readonly now:                    () => string;
+  readonly onReadingsChanged:      () => void;
+  readonly intervals?:             Partial<ForgeWatchIntervals>;
+  /** The one forge version this Gaia supports; `SUPPORTED_FORGE_VERSION` when not given, and planted by a spec. */
+  readonly supportedForgeVersion?: SystemVersion;
 }
 
 export interface ForgeWatch {
@@ -63,8 +65,6 @@ const STREAM_RECONNECT_INTERVAL_MILLISECONDS = 3_000;
 const SUMMARY_POLL_INTERVAL_MILLISECONDS = 5_000;
 const UNREACHABLE_AFTER_FAILED_TRIES = 3;
 
-const KNOWN_FORGE_VERSIONS: KnownForgeVersions = { supported: SUPPORTED_FORGE_VERSION, minimum: MINIMUM_FORGE_VERSION };
-
 const DEFAULT_INTERVALS: ForgeWatchIntervals = {
   registryCheckIntervalMilliseconds:   REGISTRY_CHECK_INTERVAL_MILLISECONDS,
   streamReconnectIntervalMilliseconds: STREAM_RECONNECT_INTERVAL_MILLISECONDS,
@@ -81,14 +81,18 @@ async function rootIsAFolder(root: string): Promise<boolean> {
 }
 
 /**
- * The forge's versions, or `null` when its Overseer does not answer. A forge from before versions answers `/api/versions` as any unknown
- * path, and a program that is no forge as it answers anything: both publish no versions, and the identity then decides as before versions,
- * a starting Overseer included.
+ * What a forge's `/api/versions` answer says. `starting`: its Overseer is not up yet. `unanswered`: it does not answer, or answers what no
+ * forge would, as a program that is no forge does, so the try fails. A refusal is a forge from before versions, which answers the path as
+ * any unknown one: older than Gaia supports.
  */
-function forgeVersionsOfAnswer(answer: ForgeDocumentAnswer, knownForgeVersions: KnownForgeVersions): ForgeVersions | null {
-  if (answer.verdict === 'unreachable') return null;
-  if (answer.verdict !== 'answered') return ForgeVersionsUtil.NOT_REPORTED;
-  return ForgeVersionsUtil.forgeVersionsOf(SystemVersionUtil.versionsDocumentOf(answer.document), knownForgeVersions);
+type VersionsAnswerReading = { readonly verdict: 'versions'; readonly versions: ForgeVersions } | { readonly verdict: 'starting' } | { readonly verdict: 'unanswered' };
+
+function versionsAnswerReadingOf(answer: ForgeDocumentAnswer, supportedForgeVersion: SystemVersion): VersionsAnswerReading {
+  if (answer.verdict !== 'answered' && WatchReadingUtil.failureMeansStarting(answer)) return { verdict: 'starting' };
+  if (answer.verdict === 'refused') return { verdict: 'versions', versions: ForgeVersionsUtil.NO_VERSIONS_SERVED };
+  if (answer.verdict !== 'answered') return { verdict: 'unanswered' };
+  const document = SystemVersionUtil.versionsDocumentOf(answer.document);
+  return document === null ? { verdict: 'unanswered' } : { verdict: 'versions', versions: ForgeVersionsUtil.forgeVersionsOf(document, supportedForgeVersion) };
 }
 
 function contentHashOf(value: unknown): string {
@@ -120,7 +124,7 @@ interface WatchRound {
   readonly isCurrent: () => boolean;
 }
 
-/** One round's way to the forge: what the registry holds of it, the paths its versions call for, and those versions, which every reading carries. */
+/** One round's way to the forge: what the registry holds of it, its address, and its versions, which every reading carries. */
 interface ForgeAddress {
   readonly registryFacts: ForgeRegistryFacts;
   readonly address:       OverseerAddress;
@@ -130,7 +134,7 @@ interface ForgeAddress {
 export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
   const intervals = { ...DEFAULT_INTERVALS, ...options.intervals };
   const { forgeClient, timers } = options;
-  const knownForgeVersions = options.knownForgeVersions ?? KNOWN_FORGE_VERSIONS;
+  const supportedForgeVersion = options.supportedForgeVersion ?? SUPPORTED_FORGE_VERSION;
   const watchedForges = new Map<string, WatchedForge>();
   let trackerIdsInRegistryOrder: readonly string[] = [];
   let lastRegistryHash: string | null = null;
@@ -272,11 +276,13 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       const { overseer } = entry;
       if (overseer === null) return decideWithoutOverseer(round);
       const registryFacts = WatchReadingUtil.registryFactsOf(entry, overseer);
-      const versions = forgeVersionsOfAnswer(await forgeClient.versionsOf(overseer.url), knownForgeVersions);
+      const versionsReading = versionsAnswerReadingOf(await forgeClient.versionsOf(overseer.url), supportedForgeVersion);
       if (!round.isCurrent()) return;
-      if (versions === null) return failedTry();
+      if (versionsReading.verdict === 'starting') return readStarting();
+      if (versionsReading.verdict === 'unanswered') return failedTry();
+      const { versions } = versionsReading;
       if (!ForgeVersionsUtil.canTalk(versions)) return readCannotTalk(registryFacts, versions);
-      const forgeAddress: ForgeAddress = { registryFacts, address: { overseerUrl: overseer.url, paths: ForgeVersionsUtil.overseerPathsOf(versions) }, versions };
+      const forgeAddress: ForgeAddress = { registryFacts, address: { overseerUrl: overseer.url }, versions };
       const answer = await forgeClient.identityOf(forgeAddress.address);
       if (!round.isCurrent()) return;
       if (answer.verdict !== 'answered' && WatchReadingUtil.failureMeansStarting(answer)) return readStarting();
@@ -287,9 +293,9 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
         return setReading({ ...identityReading.reading, versions });
       }
       if (identityReading.verdict !== 'readable') return failedTry();
-      const { identity, fidelity } = identityReading;
+      const { identity } = identityReading;
       // A forge that names no token file cannot be followed; its open summary still gives its counts.
-      if (fidelity === 'full' && overseer.tokenPath !== null) return followMonitor(round, forgeAddress, identity, overseer.tokenPath);
+      if (overseer.tokenPath !== null) return followMonitor(round, forgeAddress, identity, overseer.tokenPath);
       return readSummary(round, forgeAddress, identity);
     }
 

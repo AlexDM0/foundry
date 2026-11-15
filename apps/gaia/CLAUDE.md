@@ -17,23 +17,25 @@ its own; the dev tools every workspace shares are the root's.
    child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
    without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. Forge and Gaia are released
-   apart, so any two versions may meet, and they meet through system versions. Each system has one, major.minor by interoperability (a
-   minor only adds; a major may break a client of an older major), never its package version: Gaia's and the routes' endpoint versions
-   are in `src/shared/constants/GaiaSystemVersions.ts`, and the forge versions Gaia is built for and still talks to in
-   `src/lib/forge-client/constants/SupportedForgeVersions.ts`, each with what raises it; the forge endpoint versions Gaia calls are derived
-   from forge's compatibility registry (`forge-contracts/ForgeCompatibilityRegistry`) at the supported version, never listed by Gaia.
-   Forge never knows Gaia: nothing in `forge-contracts` names Gaia, and Gaia sends forge client-neutral values only, such as the embed
-   mode (`docs/forge-requirements.md`). A server answers its system version and its minimum supported at `GET /api/versions`,
-   unversioned and never removed, and serves each route at `/api/v<n>/<endpoint>`; Gaia's routes keep answering at their unversioned
-   paths too, so a window open across an upgrade keeps working. Gaia asks every forge's `/api/versions` first and
-   decides one verdict per forge (`src/shared/utils/ForgeVersionsUtil.ts`): it cannot talk to a `newer` or `older` forge, reads an
-   `ahead`, `behind` or `current` one at the versioned paths, and a forge that publishes none exactly as before versions. The fleet stream
-   and the embed channel carry the system version in their handshake and every message. A REST answer carries no version of its own
-   beyond the integer key it has always carried (`monitorVersion`, `fleetVersion`), which released forges and open pages still read; a
-   stored file keeps its format version, the integer `version` its major and an optional `minor`. `CONTRACT_VERSIONS`
-   (`src/shared/constants/ContractVersions.ts`) holds every known version, and `src/shared/utils/ContractVersionUtil.ts` is the one
-   reading rule: a known version reads with its unknown keys passed over; an older one only where `OLDER_CONTRACT_VERSIONS_READ` names
-   it, migrated to the current shape first; a newer one never reaches a mapper. `docs/contracts.md` holds the tables and the verdicts.
+   apart and meet only through system versions; `docs/contracts.md` holds the model, the tables and the verdicts. Forge never knows Gaia:
+   nothing forge serves, and nothing in a package forge depends on (`forge-contracts`, `brand`, the design system), names Gaia, and Gaia
+   sends forge client-neutral values only, such as the embed mode (`docs/forge-requirements.md`). Each system has one system version,
+   major.minor by interoperability (a minor only adds; a major may break a client of an older major), never its package version. A server
+   answers its current version and its minimum supported, which it alone decides, at `GET /api/versions`, unversioned and never removed;
+   serves each REST route at `/api/v<n>/<endpoint>`, side by side, with no per-endpoint version in its answers; carries the system version
+   in a message protocol's handshake and every message; and keeps a compatibility registry of what it serves for older clients, through
+   `system-versions`' logic, with a raise-the-minimum dry run (`bun run versions:raise-minimum <major.minor>`). Forge's is
+   `forge-contracts/ForgeCompatibilityRegistry`; Gaia's own, toward its page and launcher, is `src/shared/constants/GaiaCompatibilityRegistry.ts`,
+   beside `GAIA_SYSTEM_VERSION` and the routes' versions in `src/shared/constants/GaiaSystemVersions.ts`. **Gaia supports exactly one
+   forge version**, `SUPPORTED_FORGE_VERSION` (`src/lib/forge-client/constants/SupportedForgeVersions.ts`), and keeps no backward
+   compatibility for any other: no migration of an older forge document, no unversioned forge path, no recording of an older forge read.
+   The forge endpoint versions it calls are derived from forge's registry at that version, never listed by Gaia; verify warns while it is
+   behind forge's current version in `forge-contracts`. Gaia asks every forge's `/api/versions` first and decides one verdict per forge
+   (`src/shared/utils/ForgeVersionsUtil.ts`): `current` and `ahead` it reads; `newer` (Gaia needs an update) and `older` (the forge needs
+   one, as does a forge that serves no `/api/versions`, every released forge today) it cannot talk to. A document's integer key
+   (`monitorVersion`, `fleetVersion`) and a stored file's format version (`version` and an optional `minor`) stay: `CONTRACT_VERSIONS`
+   (`src/shared/constants/ContractVersions.ts`) holds the one version Gaia knows of each, and `src/shared/utils/ContractVersionUtil.ts` is
+   the one reading rule: the known version reads with its unknown keys passed over; an older or a newer one never reaches a mapper.
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself. A forge sentence that names a command
    leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its refusal code or notice kind, and otherwise for
    a neutral sentence.
@@ -122,9 +124,9 @@ A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORD
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
 for the OS as not finished. Three recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
-recording stays authored beside its spec. The others await forge requirements: `overseer-fetch-monitor-3`, the forge contracts of Flint's
-brain that no forge serves yet (monitor 3 and control 2), and `overseer-fetch-versions`, `/api/versions` and the versioned paths (V1 to
-V3), with what a forge before them answers at `/api/versions` in each situation the other recordings hold. Each one's entry in
+recording stays authored beside its spec. The others await forge requirements, since no released forge serves the version Gaia supports:
+`overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, Flint's brain's included (V1 to V3, G1 to G3),
+and `overseer-fetch-versions`, forges ahead of it, newer, older and serving no `/api/versions` (V1 to V3). Each one's entry in
 `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored,
 and verify fails while a recorded one still names them. macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:

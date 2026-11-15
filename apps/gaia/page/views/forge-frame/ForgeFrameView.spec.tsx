@@ -107,7 +107,7 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${wholeReading}">${line}</span>`);
     expect(markup).toContain('<header class="gaia-forge-frame-bar"><svg class="brand-forge-mark" role="img" aria-label="Forge" width="22" height="22"');
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
     expect(/<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0]).toContain('<svg class="gaia-open-in-new-tab-glyph" aria-hidden="true"');
     expect(markup).not.toContain('aria-label="Theme: ');
     expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
@@ -151,7 +151,7 @@ describe('the bar\'s commands', () => {
   test('while a command to the forge is on its way, every control of its bar is disabled', () => {
     const sender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
-    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender))).toEqual(['Pause (disabled)', 'Stop (disabled)', 'Open in new tab (disabled)']);
+    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender))).toEqual(['Pause (disabled)', 'Stop (disabled)', 'Stop (disabled)', 'Open in new tab (disabled)']);
   });
 
   test('the forge\'s refusal shows under the bar with its own code and sentence', async () => {
@@ -164,21 +164,18 @@ describe('the bar\'s commands', () => {
     const { markup } = rendered;
     const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="overseer-still-live" sentence="The Overseer did not stop within its tries." onDismiss={doNothing} />;
     expect(markup).toContain(`<div class="gaia-forge-frame-refusal">${renderToStaticMarkup(refusal)}</div>`);
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
   });
 });
 
 describe('Flint\'s brain in the bar', () => {
   const BRAIN_OFF = fleetWithStorefrontBrainOf('off');
 
-  test('a running brain at control contract 1 shows its chip with no Stop, as the five forges\' fixture publishes it', () => {
-    const rendered = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
-    const { markup } = rendered;
-    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="running"><span class="gaia-brain-chip">');
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
+  test('a running brain shows its chip, as the five forges\' fixture publishes it', () => {
+    expect(markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES).markup).toContain('<span class="gaia-brain-chip-group" data-state="running"><span class="gaia-brain-chip">');
   });
 
-  test('at control contract 2 the running brain\'s Stop sits between the forge\'s Stop and Open in new tab', () => {
+  test('the running brain\'s Stop sits between the forge\'s Stop and Open in new tab', () => {
     expect(buttonsIn(markupAt(STOREFRONT_ON_E2, fleetWithStorefrontBrainOf('running')))).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
   });
 

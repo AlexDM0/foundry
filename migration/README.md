@@ -90,18 +90,24 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
     message. Stored files keep their own format version.
   - A server's compatibility registry names everything it keeps for clients of older versions, each with the version that introduced it
     and the last that still needs it; a raise-the-minimum dry run lists what becomes removable, and a guard spec fails after a raise until
-    it is removed. Forge's is `forge-contracts/ForgeCompatibilityRegistry` (`bun run versions:raise-minimum <major.minor>` in the
-    package); the logic is `system-versions`', which Gaia's own server is to use for its own clients too.
+    it is removed. The logic is `system-versions`'. Forge's registry is `forge-contracts/ForgeCompatibilityRegistry`; Gaia's own, toward
+    its page and launcher, is `apps/gaia/src/shared/constants/GaiaCompatibilityRegistry.ts`. Each has its dry run, `bun run
+    versions:raise-minimum <major.minor>`, in its own folder.
   - Gaia supports exactly one forge version, `SUPPORTED_FORGE_VERSION`
-    (`apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts`), and calls each forge endpoint at the version forge's registry
-    serves it. In the monorepo it strives for the latest: Gaia's verify warns while it is behind forge's current version. Per forge,
-    from its `/api/versions`: current, ahead (Gaia knows less, still talks), newer (Gaia needs an update) or older (the forge needs one,
-    as does a forge that serves no `/api/versions`). Gaia's verdicts still follow the earlier model, with `MINIMUM_FORGE_VERSION`,
-    `behind` and `not-reported`, until they move to this one; so do Gaia's own registry and the end of its older-forge migrations.
+    (`apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts`), and keeps no backward compatibility for any other: no
+    migration of an older forge document, no unversioned forge path, no recording of an older forge read. It calls each forge endpoint
+    at the version forge's registry serves its supported version. In the monorepo it strives for the latest: Gaia's verify warns, and
+    does not fail, while it is behind forge's current version. Per forge, from its `/api/versions`: current, ahead (Gaia knows less, still
+    talks; explains only), newer (Gaia cannot talk to it and needs an update; explains only, names no command) or older (Gaia cannot talk
+    to it and the forge needs an update: Update forge).
+  - **On `prep/monorepo`, every released forge reads as older** until forge serves `/api/versions` (V1 to V3): no released forge serves
+    it, a forge that serves none is older, and Gaia reads nothing of an older forge but offers Update forge. Gaia's every answer of a
+    forge it can read is authored from the forge requirements until then (`overseer-fetch-supported-forge`, `overseer-fetch-versions`).
 - A forge system minor bump is a package minor bump of `forge-contracts`; a system major bump, or a removed or changed type, a package
   major bump.
-- Gaia tests what it does with a forge's answers against recordings of released forges (`apps/gaia/src/testing/recordings/`), stamped
-  with each forge's version, never against the forge source beside it in the repository.
+- Gaia tests what it does with a forge's answers against recordings of forges at the versions it meets
+  (`apps/gaia/src/testing/recordings/`), each stamped with the forge's version, or authored from the forge requirements until a released
+  forge serves them, never against the forge source beside it in the repository.
 - Forge's design-system package is `"private": true` today. Since Gaia depends on it, it must either become publishable, with its own
   semantic version and a `workspace:^` range in both apps, or be bundled into each app's release. That is a decision for the owner.
 

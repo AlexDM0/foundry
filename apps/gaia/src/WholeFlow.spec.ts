@@ -34,7 +34,7 @@ import { startPageServer, type PageServer }                                     
 import { eventStreamParserOf, type ServerSentEvent }                                                 from './lib/event-stream/EventStreamParser.ts';
 import { forgeClientOf }                                                                             from './lib/forge-client/ForgeClient.ts';
 import type { OverseerFetch }                                                                        from './lib/forge-client/OverseerFetch.ts';
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }                                            from './lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                                                                   from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ProcessRun }                                                                           from './lib/process-run/ProcessRun.ts';
 import { createFleetStore }                                                                          from './services/FleetStore.ts';
 import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals }                               from './services/ForgeWatch.ts';
@@ -88,7 +88,7 @@ function answersOf(situation: OverseerSituation, callShape: string | null = null
 
 /** What a watch asks a forge before anything else: its versions, then its identity. */
 function identityAnswersOf(situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
-  return [...answersOf(situation, 'GET /api/versions'), ...answersOf(situation, 'GET /api/identity')];
+  return [...answersOf(situation, 'GET /api/versions'), ...answersOf(situation, 'GET /api/v1/identity')];
 }
 
 const STOREFRONT_STAGES = {
@@ -97,7 +97,7 @@ const STOREFRONT_STAGES = {
   live:     [
     ...identityAnswersOf('serving-every-contract'),
     ...answersOf('connection-broken'),
-    ...answersOf('serving-every-contract', 'POST /api/commands with bearer'),
+    ...answersOf('serving-every-contract', 'POST /api/v1/commands with bearer'),
   ],
   limitLowered: [
     ...identityAnswersOf('serving-every-contract'),
@@ -188,12 +188,15 @@ function tokenPathOf(forge: FlowForge): string {
   return join(home, '.forge-monitor', 'watchers', FORGES[forge].trackerId, 'token');
 }
 
-/** What `forge init` and `forge start` write for a forge; an Overseer the registry names is one that runs or ran. */
+/**
+ * What `forge init` and `forge start` write for a forge; an Overseer the registry names is one that runs or ran. Example Project's entry
+ * names no token file, so Gaia reads it through its open summary.
+ */
 function registryEntryOf(forge: FlowForge, overseerIsNamed: boolean): Record<string, unknown> {
   const { project, overseerOrigin } = FORGES[forge];
   const overseer = overseerIsNamed && overseerOrigin !== null
     ? {
-      url: `${overseerOrigin}/`, processId: 48_107, startedAt: '2026-11-12T09:12:00.000Z', tokenPath: tokenPathOf(forge)
+      url: `${overseerOrigin}/`, processId: 48_107, startedAt: '2026-11-12T09:12:00.000Z', tokenPath: forge === 'exampleProject' ? null : tokenPathOf(forge)
     }
     : null;
   return {
@@ -277,7 +280,6 @@ async function startGaia(): Promise<RunningGaia> {
       versions: {
         systemVersion:         GAIA_SYSTEM_VERSION,
         supportedForgeVersion: SUPPORTED_FORGE_VERSION,
-        minimumForgeVersion:   MINIMUM_FORGE_VERSION,
       },
     },
   });
@@ -389,7 +391,7 @@ describe('Gaia from the registry to the page', () => {
     const fleet = await followFleet(gaia.pageServer, cookie);
 
     const fiveForges = await fleet.untilFleet((fleetDocument) => fleetDocument.forges.length === 5);
-    // Example Project is read through its summary only, and its recorded Overseer reports itself paused.
+    // Example Project, whose entry names no token file, is read through its summary only, and its Overseer reports itself paused.
     expect(conditionsOf(fiveForges)).toEqual([
       ['Example Storefront', 'dormant', 'dormant'],
       ['Example Project', 'paused', 'counts-only'],

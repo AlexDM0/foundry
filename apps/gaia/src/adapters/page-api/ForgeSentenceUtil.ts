@@ -87,7 +87,7 @@ function lastCommandNameOf(lastCommand: string | null): string | null {
   return lastCommand === null ? null : ownSentenceOf(LAST_COMMAND_NAMES, lastCommand);
 }
 
-/** Gaia has no words of its own for a warning, of a kind or of none (monitor 1): only the guard words one. */
+/** Gaia has no words of its own for a warning, of any kind: only the guard words one. */
 function warningSentenceOf(text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_WARNING_SENTENCE : text;
 }

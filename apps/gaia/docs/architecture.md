@@ -32,11 +32,13 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
 
 1. `services/ForgeWatch.ts` reads the registry through `adapters/forge-registry/`, and again when its content hash changes. A hidden forge
    is left out.
-2. A registry entry that names no Overseer is dormant, or missing when its folder is gone. For the others it asks the Overseer's identity
-   through `lib/forge-client/`; no answer, or an answer as another forge, is unreachable. The identity's `contracts` decide the
-   fidelity: a known monitor contract is followed as a stream of snapshots, a forge with only the summary is polled, and a newer monitor
-   contract is shown as one Gaia cannot read in full. Every document passes its ingestion in `adapters/forge-api/` and becomes a
-   `ForgeReading`.
+2. A registry entry that names no Overseer is dormant, or missing when its folder is gone. For the others it asks the Overseer's
+   `/api/versions` through `lib/forge-client/`, and its verdict against the one forge version Gaia supports decides whether Gaia talks to
+   it at all (`docs/contracts.md`): a newer or an older forge, one that serves no versions included, is asked nothing more. Of the others
+   it asks the identity at its versioned path; no answer, or an answer as another forge, is unreachable. The identity's `contracts`
+   decide the fidelity: the known monitor contract is followed as a stream of snapshots, or its summary polled where the registry names no
+   token file, and any other monitor contract is shown as one Gaia cannot read. Every document passes its ingestion in
+   `adapters/forge-api/` and becomes a `ForgeReading`.
 3. `features/fleet/FleetAssembly.ts` turns the readings, the machine's facts and the settings into one `FleetSnapshot`, purely: attention
    across forges, the forges that need a look, agents, activity and the figures.
 4. `services/FleetStore.ts` keeps the latest snapshot. `features/page-server/FleetBroker.ts` maps it out through `adapters/page-api/` as a
@@ -67,12 +69,12 @@ origin frame it because Gaia writes `~/.forge-monitor/gaia/server.json` while it
 
 ## Flint's brain
 
-Each forge runs its own Flint and its brain; Gaia runs none and calls no model. A forge at monitor contract 3 reports `flintBrain`, which
-its ingestion maps into the reading's `brain` (`'not-reported'` under monitor 1 and 2, or for a forge without Flint). The fleet adds a
-running brain as an agent row of role `brain` that counts in no figure, limit or slot, and shows an ended run as the forge's one activity
-entry for it. Wake and Stop are the commands `forge-brain-start` and `forge-brain-stop`, sent as control contract 2's `flint-brain-start`
-and `flint-brain-stop`; under control 1 Gaia refuses them itself with `brain-not-served`, and the page offers neither. The page counts the
-forge's `endsAt` down for display only: the brain leaves when the forge reports it ended.
+Each forge runs its own Flint and its brain; Gaia runs none and calls no model. A forge at the version Gaia supports reports
+`flintBrain` in its monitor snapshot, which its ingestion maps into the reading's `brain` (`'not-reported'` for a forge without Flint).
+The fleet adds a running brain as an agent row of role `brain` that counts in no figure, limit or slot, and shows an ended run as the
+forge's one activity entry for it. Wake and Stop are the commands `forge-brain-start` and `forge-brain-stop`, sent as the control
+contract's `flint-brain-start` and `flint-brain-stop`. The page counts the forge's `endsAt` down for display only: the brain leaves when
+the forge reports it ended.
 
 ## Guards and sessions
 

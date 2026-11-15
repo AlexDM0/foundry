@@ -24,7 +24,7 @@ import { startPageServer, type PageServerStartVerdict }                  from '.
 import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
 import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
 import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }                from './lib/forge-client/constants/SupportedForgeVersions.ts';
+import { SUPPORTED_FORGE_VERSION }                                       from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
 import { realClockTimers, stampOfNow }                                   from './services/Clock.ts';
 import { environmentCopy, gaiaPort, homeDirectory }                      from './services/Environment.ts';
@@ -156,7 +156,6 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
       versions: {
         systemVersion:         GAIA_SYSTEM_VERSION,
         supportedForgeVersion: SUPPORTED_FORGE_VERSION,
-        minimumForgeVersion:   MINIMUM_FORGE_VERSION,
       },
     },
   });

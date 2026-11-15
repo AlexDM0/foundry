@@ -1,35 +1,43 @@
 /**
- * `docs/contracts.md` names every versioned contract with its version (a whole number, or a stored format's major.minor) and the older
- * versions Gaia still reads, and `CONTRACT_VERSIONS` and `OLDER_CONTRACT_VERSIONS_READ` hold them; it names each of Gaia's routes at its
- * endpoint version, which `GAIA_ENDPOINT_VERSIONS` holds. What matters: each of the reference's three tables and its constant agree both
- * ways, a key or a version missing from either side, a version that differs in its number or its form and a key listed twice each named.
- * The reading first proves it found each table, and each disagreement is planted to prove the comparison names it.
+ * `docs/contracts.md` names every versioned contract with its one version (a whole number, or a stored format's major.minor), which
+ * `CONTRACT_VERSIONS` holds; each of Gaia's routes at its endpoint version, which `GAIA_ENDPOINT_VERSIONS` holds; and the verdicts on a
+ * forge, exactly those of `ForgeVersionsVerdict`. What matters: each table and its source agree both ways, a key or a version missing from
+ * either side, a version that differs in its number or its form and a key listed twice each named. The reading first proves it found each
+ * table, and each disagreement is planted to prove the comparison names it.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { FormatVersion }                              from '../utils/ContractVersionUtil.ts';
-import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from './ContractVersions.ts';
-import { GAIA_ENDPOINT_VERSIONS }                          from './GaiaSystemVersions.ts';
+import type { ForgeVersionsVerdict } from '../@types/ForgeReading.ts';
+import type { FormatVersion }        from '../utils/ContractVersionUtil.ts';
+import { CONTRACT_VERSIONS }         from './ContractVersions.ts';
+import { GAIA_ENDPOINT_VERSIONS }    from './GaiaSystemVersions.ts';
 
 const CONTRACTS_REFERENCE_PATH = join(import.meta.dir, '..', '..', '..', 'docs', 'contracts.md');
 const VERSIONED_CONTRACTS_HEADING = '## Versioned contracts';
-const OLDER_VERSIONS_HEADING = '## Older versions Gaia still reads';
 const ENDPOINTS_HEADING = '## Gaia\'s endpoints';
+const VERDICTS_HEADING = '## The verdict on a forge';
+const VERDICT_ROW = /^\|\s*`(?<verdict>[a-z-]+)`\s*\|/;
+
+/** Keyed by the verdict union, so a verdict added to or removed from it fails the typecheck here until the reference follows. */
+const VERDICTS_GAIA_DECIDES: Readonly<Record<ForgeVersionsVerdict, true>> = {
+  current: true,
+  ahead:   true,
+  newer:   true,
+  older:   true,
+};
 const NEXT_SECTION_HEADING = /^## /;
 const CONTRACT_ROW = /^\|\s*`(?<contractKey>[A-Za-z]+)`\s*\|\s*(?<version>\d+(?:\.\d+)?)\s*\|/;
 
-/** `version` is the row's text: `3`, or a stored format's `1.0`, in the versioned contracts' table; a bare older version such as `1` in the other. */
+/** `version` is the row's text: `3`, or a stored format's `1.0`. */
 interface ReferenceRow {
   readonly contractKey: string;
   readonly version:     string;
 }
 
 type KnownVersions = Readonly<Record<string, number | FormatVersion>>;
-
-type ListedVersions = Readonly<Record<string, readonly number[]>>;
 
 function sectionOf(reference: string, heading: string): readonly string[] {
   const lines = reference.split('\n');
@@ -72,17 +80,6 @@ function disagreementsBetween(rows: readonly ReferenceRow[], knownVersions: Know
     if (!listedKeys.has(contractKey)) disagreements.push(`${contractKey} is missing from the reference`);
   }
   return disagreements;
-}
-
-/** Each older number is named once on each side: `forgeMonitor 1`. */
-function listedVersionDisagreementsBetween(rows: readonly ReferenceRow[], listedVersions: ListedVersions, constantName: string): readonly string[] {
-  const listed = rows.map(({ contractKey, version }) => `${contractKey} ${version}`);
-  const known = Object.entries(listedVersions).flatMap(([contractKey, versions]) => versions.map((version) => `${contractKey} ${version}`));
-  return [
-    ...listed.filter((entry, index) => listed.indexOf(entry) !== index).map((entry) => `${entry} is listed more than once`),
-    ...listed.filter((entry) => !known.includes(entry)).map((entry) => `${entry} is not in ${constantName}`),
-    ...known.filter((entry) => !listed.includes(entry)).map((entry) => `${entry} is missing from the reference`),
-  ];
 }
 
 function referenceWithRows(rowLines: readonly string[]): string {
@@ -167,29 +164,6 @@ describe('the comparison of the reference with the known versions', () => {
   });
 });
 
-describe('the comparison of the older versions the reference lists with those Gaia reads', () => {
-  const PLANTED_OLDER_VERSIONS: ListedVersions = { exampleMonitor: [1] };
-  const olderVersionDisagreementsBetween = (rows: readonly ReferenceRow[], olderVersions: ListedVersions): readonly string[] => (
-    listedVersionDisagreementsBetween(rows, olderVersions, 'OLDER_CONTRACT_VERSIONS_READ')
-  );
-  const olderRowsOf = (rowLines: readonly string[]): readonly ReferenceRow[] => referenceRowsOf(
-    ['# Contracts', '', OLDER_VERSIONS_HEADING, '', '| Key | Older version |', '| --- | --- |', ...rowLines].join('\n'),
-    OLDER_VERSIONS_HEADING,
-  );
-
-  test('finds no disagreement when every older number is listed once', () => {
-    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |']), PLANTED_OLDER_VERSIONS)).toEqual([]);
-  });
-
-  test('names an older number the reference leaves out, one it lists that Gaia does not read, and one it lists twice', () => {
-    expect(olderVersionDisagreementsBetween(olderRowsOf([]), PLANTED_OLDER_VERSIONS)).toEqual(['exampleMonitor 1 is missing from the reference']);
-    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |', '| `exampleMonitor` | 0 |']), PLANTED_OLDER_VERSIONS))
-      .toEqual(['exampleMonitor 0 is not in OLDER_CONTRACT_VERSIONS_READ']);
-    expect(olderVersionDisagreementsBetween(olderRowsOf(['| `exampleMonitor` | 1 |', '| `exampleMonitor` | 1 |']), PLANTED_OLDER_VERSIONS))
-      .toEqual(['exampleMonitor 1 is listed more than once']);
-  });
-});
-
 describe('docs/contracts.md', () => {
   const contractsReferenceRows = (): readonly ReferenceRow[] => referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'));
 
@@ -201,18 +175,13 @@ describe('docs/contracts.md', () => {
     expect(disagreementsBetween(contractsReferenceRows(), CONTRACT_VERSIONS)).toEqual([]);
   });
 
-  test('lists the older versions Gaia still reads, and agrees with OLDER_CONTRACT_VERSIONS_READ on each, both ways', () => {
-    const olderRows = referenceRowsOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'), OLDER_VERSIONS_HEADING);
-    expect(olderRows.length).toBeGreaterThan(0);
-    expect(listedVersionDisagreementsBetween(olderRows, OLDER_CONTRACT_VERSIONS_READ, 'OLDER_CONTRACT_VERSIONS_READ')).toEqual([]);
+  test('names no older version Gaia still reads: it reads only the contracts of the one forge version it supports', () => {
+    expect(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8')).not.toContain('## Older versions');
   });
 
-  test('names every older version below its contract\'s current one', () => {
-    for (const [contractKey, versions] of Object.entries(OLDER_CONTRACT_VERSIONS_READ)) {
-      const current = Object.hasOwn(CONTRACT_VERSIONS, contractKey) ? CONTRACT_VERSIONS[contractKey as keyof typeof CONTRACT_VERSIONS] : 0;
-      const currentVersion = typeof current === 'number' ? current : current.major;
-      for (const version of versions) expect(version).toBeLessThan(currentVersion);
-    }
+  test('lists exactly the four verdicts on a forge, each once', () => {
+    const verdicts = sectionOf(readFileSync(CONTRACTS_REFERENCE_PATH, 'utf8'), VERDICTS_HEADING).flatMap((line) => VERDICT_ROW.exec(line)?.groups?.['verdict'] ?? []);
+    expect([...verdicts].sort()).toEqual(Object.keys(VERDICTS_GAIA_DECIDES).sort());
   });
 
   test('names each of Gaia\'s routes at its endpoint version, and agrees with GAIA_ENDPOINT_VERSIONS on each, both ways', () => {

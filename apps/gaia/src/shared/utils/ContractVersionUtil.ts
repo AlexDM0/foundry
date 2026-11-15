@@ -1,7 +1,7 @@
 /**
  * The one reading rule of every versioned contract. A document carries its version in the integer key it has always carried, read as its
  * major; a stored file adds its format's minor in an optional sibling key, absent read as 0. A known major reads at any minor, its unknown
- * keys passed over; an older major reads only where its ingestion still migrates it; a newer major is refused.
+ * keys passed over; an older or a newer major is refused.
  */
 
 /** A stored file's format version: a minor only adds keys, which a reader of the same major passes over. */
@@ -22,10 +22,8 @@ export type ContractVersionReading =
   | { readonly verdict: 'unversioned' }
   | { readonly verdict: 'malformed'; readonly invalidKey: string };
 
-/** `known`: the major the reader knows, at any minor. `older-read`: an older major its ingestion migrates. `older` and `newer` are refused. */
-export type MajorVerdict = 'known' | 'older-read' | 'older' | 'newer';
-
-const NO_OLDER_MAJORS: readonly number[] = [];
+/** `known`: the major the reader knows, at any minor. `older` and `newer` are refused. */
+export type MajorVerdict = 'known' | 'older' | 'newer';
 
 function isWholeNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -46,18 +44,16 @@ function versionOf(document: unknown, { majorKey, minorKey }: ContractVersionKey
   return { verdict: 'versioned', version: { major, minor } };
 }
 
-function majorVerdictOf(major: number, knownMajor: number, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): MajorVerdict {
+function majorVerdictOf(major: number, knownMajor: number): MajorVerdict {
   if (major === knownMajor) return 'known';
-  if (major > knownMajor) return 'newer';
-  return olderMajorsRead.includes(major) ? 'older-read' : 'older';
+  return major > knownMajor ? 'newer' : 'older';
 }
 
 /** The major of a document at a major this reader reads, at any minor; `null` for any other, unversioned or malformed document. */
-function readMajorOf(document: unknown, keys: ContractVersionKeys, knownMajor: number, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): number | null {
+function readMajorOf(document: unknown, keys: ContractVersionKeys, knownMajor: number): number | null {
   const reading = versionOf(document, keys);
   if (reading.verdict !== 'versioned') return null;
-  const verdict = majorVerdictOf(reading.version.major, knownMajor, olderMajorsRead);
-  return verdict === 'known' || verdict === 'older-read' ? reading.version.major : null;
+  return majorVerdictOf(reading.version.major, knownMajor) === 'known' ? reading.version.major : null;
 }
 
 export const ContractVersionUtil = {

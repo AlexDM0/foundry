@@ -1,5 +1,6 @@
 {
   "recordingVersion": 1,
+  "recordingMinor": 0,
   "stamp": {
     "recordingName": "overseer-fetch-other-programs",
     "operatingSystem": "darwin",
@@ -9,7 +10,7 @@
   },
   "answers": [
     {
-      "callShape": "port-held-by-another-program: GET /api/identity",
+      "callShape": "port-held-by-another-program: GET /api/v1/identity",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -17,7 +18,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: GET /api/monitor with bearer",
+      "callShape": "port-held-by-another-program: GET /api/v1/summary",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -25,7 +26,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: GET /api/summary",
+      "callShape": "port-held-by-another-program: GET /api/v2/monitor with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -33,7 +34,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: POST /api/commands with bearer",
+      "callShape": "port-held-by-another-program: GET /api/versions",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -41,7 +42,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: POST /api/session-codes with bearer",
+      "callShape": "port-held-by-another-program: POST /api/v1/commands with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -49,7 +50,7 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: STREAM /api/monitor/events with bearer",
+      "callShape": "port-held-by-another-program: POST /api/v1/session-codes with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
@@ -57,7 +58,15 @@
       }
     },
     {
-      "callShape": "snapshot-unreadable: STREAM /api/monitor/events with bearer",
+      "callShape": "port-held-by-another-program: STREAM /api/v2/monitor/events with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "snapshot-unreadable: STREAM /api/v2/monitor/events with bearer",
       "answer": {
         "verdict": "streaming",
         "chunks": [
@@ -67,7 +76,7 @@
       }
     },
     {
-      "callShape": "stream-cut-inside-event: STREAM /api/monitor/events with bearer",
+      "callShape": "stream-cut-inside-event: STREAM /api/v2/monitor/events with bearer",
       "answer": {
         "verdict": "streaming",
         "chunks": [

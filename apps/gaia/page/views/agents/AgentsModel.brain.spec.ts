@@ -2,13 +2,12 @@
  * Flint's brain in what the Agents view shows (SCREENS A2, R4.5). What matters: the brain's row stands last in its forge's group and
  * outside the group's "4 / 5", the machine's "10 / 12" and every count but All and its own segment; selecting it gives the brain's panel,
  * which survives a new document and says when the forge has dropped the brain; Stop names that forge only; Wake shows on a live forge whose
- * brain is off or ended, and nowhere the brain's commands are not served (a control contract below 2, a brain not reported, a held forge);
+ * brain is off or ended, and nowhere the brain's commands are not served (another control contract, a brain not reported, a held forge);
  * the head shows the starting note and the forge's refusal in Wake's place; and a brain command's refusal from Gaia's answer stays under its
  * forge until dismissed, unless the forge's own refused state already says it.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'forge-contracts/OverseerContractVersions';
 import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge }               from '../../@types/FleetDocument.ts';
 import type { CommandState, CommandStates }                                         from '../../api/CommandSender.ts';
@@ -40,16 +39,13 @@ function contentOf(fleetDocument: FleetDocument, overrides: Partial<Omit<AgentsM
   });
 }
 
-/** Every forge at the control contract that carries the brain's commands; the fixture's forges serve control 1. */
-function servingTheBrain(fleetDocument: FleetDocument): FleetDocument {
-  return {
-    ...fleetDocument,
-    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } })),
-  };
-}
-
 function withForge(fleetDocument: FleetDocument, trackerId: string, change: (forge: FleetDocumentForge) => FleetDocumentForge): FleetDocument {
   return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => (forge.trackerId === trackerId ? change(forge) : forge)) };
+}
+
+/** Every forge at a control contract Gaia does not send, so none is sent a command. */
+function atAnUnknownControlContract(fleetDocument: FleetDocument): FleetDocument {
+  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })) };
 }
 
 function withBrain(fleetDocument: FleetDocument, trackerId: string, brain: Partial<FleetDocumentBrain> | 'not-reported'): FleetDocument {
@@ -91,7 +87,7 @@ describe('the brain\'s row', () => {
       effort:         'low',
       calls:          9,
       tokensText:     '3.1k',
-      stop:           null,
+      stop:           { command: { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }, disabled: false },
     });
   });
 
@@ -102,12 +98,12 @@ describe('the brain\'s row', () => {
   });
 
   test('its Stop sends forge-brain-stop to its own forge only, once the forge serves the brain\'s commands', () => {
-    const { brainRow } = groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront);
+    const { brainRow } = groupOf(FLEET_FIVE_FORGES, TRACKER_IDS.exampleStorefront);
     expect(brainRow?.stop).toEqual({ command: { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }, disabled: false });
   });
 
   test('an unreachable forge\'s last-reported brain shows on its row and in its panel with no Stop, since no Overseer answers it', () => {
-    const unreachable = withForge(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront, (forge) => ({ ...forge, fidelity: 'unreachable' }));
+    const unreachable = withForge(FLEET_FIVE_FORGES, TRACKER_IDS.exampleStorefront, (forge) => ({ ...forge, fidelity: 'unreachable' }));
     const content = contentOf(unreachable, { selectedAgent: STOREFRONT_BRAIN });
     const storefront = content.groups.find((group) => group.trackerId === TRACKER_IDS.exampleStorefront);
     expect([storefront?.brainRow?.project, storefront?.brainRow?.stop]).toEqual(['Example Storefront', null]);
@@ -116,7 +112,7 @@ describe('the brain\'s row', () => {
 
   test('its Stop is disabled while a command to its forge is on its way', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.exampleStorefront, { onItsWay: 'forge-brain-stop', failure: null, restartPending: false });
-    expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront, { commandStates }).brainRow?.stop?.disabled).toBe(true);
+    expect(groupOf(FLEET_FIVE_FORGES, TRACKER_IDS.exampleStorefront, { commandStates }).brainRow?.stop?.disabled).toBe(true);
   });
 
   test('its time left stops at 0:00 and decides nothing: the row stays until the forge drops it', () => {
@@ -146,8 +142,8 @@ describe('the brain\'s row', () => {
 });
 
 describe('the brain\'s part of its forge\'s head', () => {
-  test('under control 2 a running brain is the "+ brain" pill, a live forge whose brain is off offers Wake, and a held forge offers none', () => {
-    const { groups } = contentOf(servingTheBrain(FLEET_FIVE_FORGES));
+  test('a running brain is the "+ brain" pill, a live forge whose brain is off offers Wake, and a held forge offers none', () => {
+    const { groups } = contentOf(FLEET_FIVE_FORGES);
     expect(groups.map((group) => [group.project, group.brain])).toEqual([
       ['Example Storefront', { kind: 'running' }],
       ['Invoice Service', { kind: 'off', wake: { command: { kind: 'forge-brain-start', trackerId: TRACKER_IDS.invoiceService }, disabled: false } }],
@@ -156,29 +152,29 @@ describe('the brain\'s part of its forge\'s head', () => {
     ]);
   });
 
-  test('under control 1 the running brain still shows, and no forge offers Wake', () => {
-    expect(contentOf(FLEET_FIVE_FORGES).groups.map((group) => group.brain.kind)).toEqual(['running', 'none', 'none', 'none']);
+  test('at a control contract Gaia does not send, the running brain still shows, and no forge offers Wake', () => {
+    expect(contentOf(atAnUnknownControlContract(FLEET_FIVE_FORGES)).groups.map((group) => group.brain.kind)).toEqual(['running', 'none', 'none', 'none']);
   });
 
-  test('a forge whose brain is not reported offers no Wake, even under control 2', () => {
-    const notReported = withBrain(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, 'not-reported');
+  test('a forge whose brain is not reported offers no Wake, even at the control contract Gaia sends', () => {
+    const notReported = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, 'not-reported');
     expect(groupOf(notReported, TRACKER_IDS.invoiceService).brain).toEqual({ kind: 'none' });
   });
 
   test('an ended brain offers Wake again, and a paused forge offers none', () => {
-    const ended = withBrain(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { state: 'ended', sentence: 'Flint\'s brain stopped after 2:00' });
+    const ended = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { state: 'ended', sentence: 'Flint\'s brain stopped after 2:00' });
     expect(groupOf(ended, TRACKER_IDS.invoiceService).brain.kind).toBe('off');
     const paused = withForge(ended, TRACKER_IDS.invoiceService, (forge) => ({ ...forge, condition: 'paused' }));
     expect(groupOf(paused, TRACKER_IDS.invoiceService).brain).toEqual({ kind: 'none' });
   });
 
   test('while the forge reports starting, Wake\'s place shows the starting note', () => {
-    const starting = withBrain(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { state: 'starting' });
+    const starting = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { state: 'starting' });
     expect(groupOf(starting, TRACKER_IDS.invoiceService).brain).toEqual({ kind: 'starting' });
   });
 
   test('a refused start shows the forge\'s sentence and code beside Wake, and its code alone where the forge\'s sentence names a command', () => {
-    const refused = withBrain(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, {
+    const refused = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, {
       state:   'refused',
       refusal: { code: 'usage-limit-holds', sentence: 'launches are held until 16:00 (usage limit)' },
     });
@@ -195,7 +191,7 @@ describe('the brain\'s part of its forge\'s head', () => {
 
   test('Wake is disabled while a command to its forge is on its way', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.invoiceService, { onItsWay: 'forge-brain-start', failure: null, restartPending: false });
-    expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { commandStates }).brain).toMatchObject({ wake: { disabled: true } });
+    expect(groupOf(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { commandStates }).brain).toMatchObject({ wake: { disabled: true } });
   });
 });
 
@@ -208,7 +204,7 @@ describe('a refused brain command', () => {
 
   test('shows under its forge\'s head with the command\'s name, the forge\'s code and its sentence', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.invoiceService, refusedWake);
-    expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { commandStates }).brainRefusal).toEqual({
+    expect(groupOf(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { commandStates }).brainRefusal).toEqual({
       refusedBy:    'forge',
       commandLabel: 'Wake Flint\'s brain',
       code:         'usage-limit-holds',
@@ -218,16 +214,16 @@ describe('a refused brain command', () => {
 
   test('gives way to the forge\'s own refused state, and another command\'s refusal is not the brain\'s', () => {
     const commandStates = forgeStatesOf(TRACKER_IDS.invoiceService, refusedWake);
-    const refused = withBrain(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { state: 'refused', refusal: { code: 'usage-limit-holds', sentence: 'held' } });
+    const refused = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { state: 'refused', refusal: { code: 'usage-limit-holds', sentence: 'held' } });
     expect(groupOf(refused, TRACKER_IDS.invoiceService, { commandStates }).brainRefusal).toBeNull();
     const pauseRefused = forgeStatesOf(TRACKER_IDS.invoiceService, { ...refusedWake, failure: { kind: 'forge-pause', result: { verdict: 'server-unreachable' } } });
-    expect(groupOf(servingTheBrain(FLEET_FIVE_FORGES), TRACKER_IDS.invoiceService, { commandStates: pauseRefused }).brainRefusal).toBeNull();
+    expect(groupOf(FLEET_FIVE_FORGES, TRACKER_IDS.invoiceService, { commandStates: pauseRefused }).brainRefusal).toBeNull();
   });
 });
 
 describe('the selected brain', () => {
   test('marks its row and gives the brain\'s panel: time left, model and effort, what the forge reports, its moves and the way to its forge', () => {
-    const content = contentOf(servingTheBrain(FLEET_FIVE_FORGES), { selectedAgent: STOREFRONT_BRAIN });
+    const content = contentOf(FLEET_FIVE_FORGES, { selectedAgent: STOREFRONT_BRAIN });
     expect(content.groups[0]?.brainRow?.isSelected).toBe(true);
     expect(content.rows.filter((row) => row.isSelected)).toEqual([]);
     expect(content.selected).toEqual({
@@ -257,8 +253,8 @@ describe('the selected brain', () => {
     });
   });
 
-  test('a brain woken from the Bridge says so by place, and under control 1 the panel has no Stop', () => {
-    const fromTheBridge = withBrain(FLEET_FIVE_FORGES, TRACKER_IDS.exampleStorefront, { startedBy: 'bridge' });
+  test('a brain woken from the Bridge says so by place, and at a control contract Gaia does not send the panel has no Stop', () => {
+    const fromTheBridge = withBrain(atAnUnknownControlContract(FLEET_FIVE_FORGES), TRACKER_IDS.exampleStorefront, { startedBy: 'bridge' });
     const { selected } = contentOf(fromTheBridge, { selectedAgent: STOREFRONT_BRAIN });
     expect(selected.kind === 'brain-running' ? [selected.facts[0], selected.stop] : null).toEqual([{ label: 'Started', machineValue: '13:18', words: 'from the Bridge' }, null]);
   });

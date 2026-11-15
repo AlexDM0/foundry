@@ -4,11 +4,10 @@
  * the artboard shows mid-use, such as B2's Stop dialog, refusal and start on their way, is set in the view's own state, not drawn apart.
  * A state no artboard draws, which a later decision of the owner added, is painted over the artboard it changes, for the same pass.
  */
-import { readFileSync }                  from 'node:fs';
-import { join }                          from 'node:path';
-import { pathToFileURL }                 from 'node:url';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
-import { renderToStaticMarkup }          from 'react-dom/server';
+import { readFileSync }         from 'node:fs';
+import { join }                 from 'node:path';
+import { pathToFileURL }        from 'node:url';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
@@ -54,12 +53,6 @@ export interface ArtboardScreen {
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
-/** The fixture's forges serve control 1; A2 draws Wake and Stop, which a forge offers only at the control contract that carries them (G3). */
-const FLEET_SERVING_THE_BRAIN: FleetDocument = {
-  ...FLEET_FIVE_FORGES,
-  forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } })),
-};
-
 const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';
 
 const STYLESHEET_PATHS = [join(import.meta.dir, '..', 'styles', 'tokens.css'), join(import.meta.dir, '..', 'styles', 'gaia.css')];
@@ -77,7 +70,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     artboard:      'A2',
     title:         'Agents, a job selected',
     designFile:    'Agents.dc.html',
-    fleetDocument: FLEET_SERVING_THE_BRAIN,
+    fleetDocument: FLEET_FIVE_FORGES,
     fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'J4' }, query: '' }),
     viewState:     'as-routed',
   },
@@ -156,7 +149,7 @@ export const BRAIN_SCREENS: readonly ArtboardScreen[] = [
     artboard:      'A2',
     title:         'Agents, Flint\'s brain selected',
     designFile:    'AgentsBrain.dc.html',
-    fleetDocument: FLEET_SERVING_THE_BRAIN,
+    fleetDocument: FLEET_FIVE_FORGES,
     fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' }, query: '' }),
     viewState:     'as-routed',
   },

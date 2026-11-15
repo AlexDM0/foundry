@@ -56,7 +56,6 @@ export const FLEET_EMPTY: FleetDocument = {
     versions: {
       systemVersion:         { major: 1, minor: 0 },
       supportedForgeVersion: { major: 1, minor: 1 },
-      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

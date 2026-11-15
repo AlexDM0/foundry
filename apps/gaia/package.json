@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "test": "bun test",
     "record": "bun src/testing/RecordBoundary.ts",
+    "versions:raise-minimum": "bun src/testing/RaiseGaiaMinimum.ts",
     "verify": "bun run typecheck && bun run lint && bun test && bun src/testing/CheckRecordingStamps.ts && bun src/testing/CheckSupportedForgeVersion.ts"
   },
   "dependencies": {

@@ -48,9 +48,18 @@ describe('the fleet document mapper', () => {
   test('carries a forge\'s system versions and their verdict to the page as the watch read them', () => {
     const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
     if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
-    const versions = { verdict: 'behind', current: { major: 1, minor: 0 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
     const document = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [{ ...storefront, versions }] });
     expect(document.forges[0]?.versions).toEqual(versions);
+  });
+
+  test('carries a forge that serves no versions as older with neither version, and one read without its versions as none', () => {
+    const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
+    if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
+    const noVersionsServed = { verdict: 'older', current: null, minimumSupported: null } as const;
+    const forges = [{ ...storefront, versions: noVersionsServed }, { ...storefront, versions: null }];
+    const document = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges });
+    expect(document.forges.map((forge) => forge.versions)).toEqual([noVersionsServed, null]);
   });
 
   test('keeps what a counts-only forge does not report as null, not zero', () => {

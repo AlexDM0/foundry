@@ -2,9 +2,13 @@
 import type { AgentRow }                 from '../../../shared/@types/AgentRow.ts';
 import type { FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading, ForgeUsage } from '../../../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }             from '../../../shared/utils/ForgeVersionsUtil.ts';
 
-import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS, FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS } from './fleet-snapshot-five-forges.ts';
+import {
+  CURRENT_FORGE_VERSIONS,
+  FLEET_SNAPSHOT_FIVE_FORGES,
+  FLEET_SNAPSHOT_FIVE_FORGES_READINGS,
+  FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS,
+} from './fleet-snapshot-five-forges.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
@@ -81,7 +85,7 @@ const RESEARCH_WIKI: ForgeReading = {
   today:             null,
   usage:             USAGE_OF_A_SUMMARY,
   brain:             'not-reported',
-  versions:          ForgeVersionsUtil.NOT_REPORTED,
+  versions:          CURRENT_FORGE_VERSIONS,
 };
 
 const ANALYTICS_SANDBOX: ForgeReading = {
@@ -115,7 +119,7 @@ const ANALYTICS_SANDBOX: ForgeReading = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
-  versions:          ForgeVersionsUtil.NOT_REPORTED,
+  versions:          CURRENT_FORGE_VERSIONS,
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

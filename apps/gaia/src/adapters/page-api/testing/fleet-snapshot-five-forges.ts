@@ -1,10 +1,9 @@
 /** The internal model of the fleet that `page/testing/fixtures/fleet-five-forges.ts` shows: what the page mapper is held against. */
-import type { AgentRow }                     from '../../../shared/@types/AgentRow.ts';
-import type { AttentionItem }                from '../../../shared/@types/AttentionItem.ts';
-import type { FleetAgentRow, FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrain }                   from '../../../shared/@types/ForgeBrain.ts';
-import type { ForgeReading, ForgeUsage }     from '../../../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }                 from '../../../shared/utils/ForgeVersionsUtil.ts';
+import type { AgentRow }                                from '../../../shared/@types/AgentRow.ts';
+import type { AttentionItem }                           from '../../../shared/@types/AttentionItem.ts';
+import type { FleetAgentRow, FleetSnapshot }            from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrain }                              from '../../../shared/@types/ForgeBrain.ts';
+import type { ForgeReading, ForgeUsage, ForgeVersions } from '../../../shared/@types/ForgeReading.ts';
 
 export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -20,9 +19,12 @@ const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
   monitor: 3,
-  control: 1,
+  control: 2,
   embed:   1,
 };
+
+/** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
+export const CURRENT_FORGE_VERSIONS: ForgeVersions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } };
 
 /** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
 const USAGE_UNDER_THE_LIMIT: ForgeUsage = {
@@ -494,7 +496,7 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
   today:    { deliveredTickets: 3, tokens: 512_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    STOREFRONT_BRAIN_RUNNING,
-  versions: ForgeVersionsUtil.NOT_REPORTED,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const INVOICE_SERVICE: ForgeReading = {
@@ -584,7 +586,7 @@ const INVOICE_SERVICE: ForgeReading = {
   today:    { deliveredTickets: 2, tokens: 418_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: ForgeVersionsUtil.NOT_REPORTED,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const RESEARCH_WIKI: ForgeReading = {
@@ -638,7 +640,7 @@ const RESEARCH_WIKI: ForgeReading = {
   today:    { deliveredTickets: 1, tokens: 164_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: ForgeVersionsUtil.NOT_REPORTED,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const EXAMPLE_MOBILE_APP: ForgeReading = {
@@ -693,7 +695,7 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
   today:    { deliveredTickets: 0, tokens: 146_000 },
   usage:    USAGE_UNDER_THE_LIMIT,
   brain:    BRAIN_OFF,
-  versions: ForgeVersionsUtil.NOT_REPORTED,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -737,7 +739,7 @@ const DESIGN_SYSTEM: ForgeReading = {
   today:    null,
   usage:    null,
   brain:    'not-reported',
-  versions: ForgeVersionsUtil.NOT_REPORTED,
+  versions: CURRENT_FORGE_VERSIONS,
 };
 
 const LEGACY_IMPORTER: ForgeReading = {
@@ -771,7 +773,7 @@ const LEGACY_IMPORTER: ForgeReading = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
-  versions:          ForgeVersionsUtil.NOT_REPORTED,
+  versions:          null,
 };
 
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
@@ -914,7 +916,6 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     versions: {
       systemVersion:         { major: 1, minor: 0 },
       supportedForgeVersion: { major: 1, minor: 1 },
-      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

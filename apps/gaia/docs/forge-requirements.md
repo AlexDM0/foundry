@@ -136,6 +136,9 @@ version rule.
 
 ## 3. What Gaia does while a requirement is missing
 
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`) and keeps nothing for an older forge: until a forge serves V1
+to V3 with Flint's brain (G1 to G3), every forge Gaia meets reads as older, and Gaia offers Update forge.
+
 | Missing | Gaia shows |
 | --- | --- |
 | V1 | The forge as older than Gaia can talk to: it serves no `/api/versions`, as every released forge today. Gaia offers Update forge. |

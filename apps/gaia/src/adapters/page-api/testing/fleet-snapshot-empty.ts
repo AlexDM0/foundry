@@ -39,7 +39,6 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     versions: {
       systemVersion:         { major: 1, minor: 0 },
       supportedForgeVersion: { major: 1, minor: 1 },
-      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

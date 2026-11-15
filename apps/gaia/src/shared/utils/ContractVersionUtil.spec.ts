@@ -48,14 +48,10 @@ describe('majorVerdictOf', () => {
     expect(ContractVersionUtil.majorVerdictOf(3, EXAMPLE_KNOWN_MAJOR)).toBe('known');
   });
 
-  test('answers newer for a major above the known one, and older for one below it that is not listed', () => {
-    expect(ContractVersionUtil.majorVerdictOf(4, EXAMPLE_KNOWN_MAJOR, [1, 2])).toBe('newer');
-    expect(ContractVersionUtil.majorVerdictOf(1, EXAMPLE_KNOWN_MAJOR, [2])).toBe('older');
+  test('answers newer for a major above the known one, and older for any one below it', () => {
+    expect(ContractVersionUtil.majorVerdictOf(4, EXAMPLE_KNOWN_MAJOR)).toBe('newer');
+    expect(ContractVersionUtil.majorVerdictOf(2, EXAMPLE_KNOWN_MAJOR)).toBe('older');
     expect(ContractVersionUtil.majorVerdictOf(1, EXAMPLE_KNOWN_MAJOR)).toBe('older');
-  });
-
-  test('answers older-read for an older major that is listed', () => {
-    expect(ContractVersionUtil.majorVerdictOf(2, EXAMPLE_KNOWN_MAJOR, [1, 2])).toBe('older-read');
   });
 });
 
@@ -65,8 +61,7 @@ describe('readMajorOf', () => {
     expect(ContractVersionUtil.readMajorOf({ exampleVersion: 3, exampleMinor: 9, exampleAddedKey: true }, EXAMPLE_KEYS, EXAMPLE_KNOWN_MAJOR)).toBe(3);
   });
 
-  test('answers the major of a listed older major, and null for a newer major, an unlisted older one, an unversioned or a malformed document', () => {
-    expect(ContractVersionUtil.readMajorOf({ exampleVersion: 2 }, EXAMPLE_KEYS, EXAMPLE_KNOWN_MAJOR, [2])).toBe(2);
+  test('answers null for a newer major, an older one, an unversioned or a malformed document', () => {
     for (const document of [{ exampleVersion: 4 }, { exampleVersion: 2 }, {}, { exampleVersion: 3, exampleMinor: '1' }]) {
       expect(ContractVersionUtil.readMajorOf(document, EXAMPLE_KEYS, EXAMPLE_KNOWN_MAJOR)).toBeNull();
     }

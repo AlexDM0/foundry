@@ -121,7 +121,8 @@ function systemVersionOut({ major, minor }: SystemVersion): FleetDocumentSystemV
   return { major, minor };
 }
 
-function forgeVersionsOut(versions: ForgeVersions): FleetDocumentForgeVersions {
+function forgeVersionsOut(versions: ForgeVersions | null): FleetDocumentForgeVersions | null {
+  if (versions === null) return null;
   const { current, minimumSupported } = versions;
   return {
     verdict:          versions.verdict,
@@ -220,7 +221,6 @@ function gaiaOut(gaia: GaiaFacts): FleetDocumentGaia {
     versions: {
       systemVersion:         systemVersionOut(versions.systemVersion),
       supportedForgeVersion: systemVersionOut(versions.supportedForgeVersion),
-      minimumForgeVersion:   systemVersionOut(versions.minimumForgeVersion),
     },
   };
 }

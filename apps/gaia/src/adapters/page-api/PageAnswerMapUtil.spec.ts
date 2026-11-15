@@ -92,7 +92,7 @@ describe('the command answer of a verdict', () => {
 describe('the command answer of a command of Flint\'s brain', () => {
   test('carries each recorded refusal of the forge to the page with its code and its sentence', () => {
     const refusals = (['brain-refused', 'no-flint'] as const).flatMap((situation) => recordedFlintBrainAnswersOf(situation))
-      .filter(({ callShape }) => callShape === 'POST /api/commands with bearer')
+      .filter(({ callShape }) => callShape === 'POST /api/v1/commands with bearer')
       .flatMap(({ answer }) => (answer.verdict === 'answered' ? [JSON.parse(answer.bodyText) as { refusal: string; text: string }] : []));
     expect(refusals.map(({ refusal }) => refusal)).toEqual(['usage-limit-holds', 'no-flint']);
     for (const { refusal, text } of refusals) {
@@ -104,11 +104,6 @@ describe('the command answer of a command of Flint\'s brain', () => {
     }
   });
 
-  test('carries Gaia\'s refusal under control contract 1 as brain-not-served, with no sentence', () => {
-    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' })).toEqual({
-      answerVersion: 3, outcome: 'refused', refusal: 'brain-not-served', text: null,
-    });
-  });
 });
 
 describe('the command answer of a command Gaia could not read', () => {

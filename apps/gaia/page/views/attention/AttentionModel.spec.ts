@@ -387,13 +387,28 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(olderDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia talks to 1.0 and newer']);
+    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia supports 1.1']);
     expect(actionsOf(older)).toEqual([
       ['Update forge', 'primary', { kind: 'forge-update', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
       ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
     ]);
     expect(fleetContentOf(olderDocument).readings?.find((reading) => reading.trackerId === ANALYTICS_SANDBOX_TRACKER_ID)?.readingText)
       .toBe('Nothing until the forge is updated. Its version is older than this Gaia talks to.');
+  });
+
+  test('a forge that serves no versions, as every released forge, is the same callout with no machine line', () => {
+    const unversionedSandbox = {
+      ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
+      fidelity: 'older-contract',
+      versions: { verdict: 'older', current: null, minimumSupported: null },
+    } as FleetDocument['forges'][number];
+    const unversionedDocument: FleetDocument = {
+      ...FLEET_DEGRADED,
+      forges:     FLEET_DEGRADED.forges.map((forge) => (forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? unversionedSandbox : forge)),
+      needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
+    };
+    const older = lookOf(fleetContentOf(unversionedDocument), ANALYTICS_SANDBOX_TRACKER_ID);
+    expect([older.tone, older.word, older.machineLine, actionsOf(older)[0]?.[0]]).toEqual(['warn', 'Older than this Gaia', null, 'Update forge']);
   });
 
   test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {

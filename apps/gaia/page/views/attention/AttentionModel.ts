@@ -327,16 +327,16 @@ function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
   };
 }
 
-/** The forge's system version is older than this Gaia still talks to: Gaia reads nothing of it, and Update forge brings it level. */
+/** The forge's system version is older than the one this Gaia supports, or it serves none: Gaia reads nothing of it, and Update forge brings it level. */
 function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
-  const { current } = forge.versions;
-  const { minimumForgeVersion } = fleetDocument.gaia.versions;
+  const current = forge.versions?.current ?? null;
+  const { supportedForgeVersion } = fleetDocument.gaia.versions;
   return {
     tone:     'warn' as const,
     word:     'Older than this Gaia',
     sentence: 'Its version is older than this Gaia talks to. Gaia shows nothing of its work and sends it no command until the forge is updated. '
       + 'Its agents keep running.',
-    machineLine: current === null ? null : `forge ${versionTextOf(current)}${META_SEPARATOR}this Gaia talks to ${versionTextOf(minimumForgeVersion)} and newer`,
+    machineLine: current === null ? null : `forge ${versionTextOf(current)}${META_SEPARATOR}this Gaia supports ${versionTextOf(supportedForgeVersion)}`,
     actions:     [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
   };
 }

@@ -2,8 +2,8 @@
  * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
  * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
  * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
- * know, the guard that sends Flint's brain's commands only at control 2 and refuses them with brain-not-served under 1, a forge that
- * publishes its versions sent to at the versioned path, a stop and a machine limit that fall back to the program, or the next live forge,
+ * know, Flint's brain's commands sent at the control contract Gaia knows, every command sent at the versioned path of the commands, also
+ * to a forge ahead of the one Gaia supports, a stop and a machine limit that fall back to the program, or the next live forge,
  * when no Overseer answers or no token can be read, a command sent only to the Overseer at the address the watch read, a registry Gaia
  * cannot read refused with its reason, an add that runs `init`, then `start`, and stops at the first refusal, settings changed one key at
  * a time, "Start at login" written as each forge's login item before the setting is kept and turned back when a forge or the settings
@@ -62,7 +62,7 @@ const WIKI_TRACKER_ID = 'research-wiki-2b90';
 const STOREFRONT_URL = 'http://127.0.0.1:4951/';
 const WIKI_URL = 'http://127.0.0.1:4952/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const COMMANDS_CALL_SHAPE = 'POST /api/commands with bearer';
+const COMMANDS_CALL_SHAPE = 'POST /api/v1/commands with bearer';
 
 type ForgeState = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
@@ -74,10 +74,10 @@ interface ReadFacts {
 
 /** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 2, control: 1 },
+  'full':           { condition: 'live', monitor: 3, control: 2 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
   'newer-contract': { condition: 'unreadable', monitor: 4, control: 3 },
-  'unreachable':    { condition: 'unreachable', monitor: 2, control: 1 },
+  'unreachable':    { condition: 'unreachable', monitor: 3, control: 2 },
 };
 
 let scratchFolder = '';
@@ -230,12 +230,12 @@ function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch 
   return recordedOverseerFetch(recordedOverseerAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
 }
 
-/** The forge at monitor 3 and control 2 answering a command as it was authored for one state of Flint's brain. */
+/** The forge answering a command as it was authored for one state of Flint's brain. */
 function overseerAnsweringTheBrain(situation: FlintBrainSituation): RecordedOverseerFetch {
   return recordedOverseerFetch(recordedFlintBrainAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
 }
 
-/** The forge's refusal of a brain command, read from the monitor-3 recording itself. */
+/** The forge's refusal of a brain command, read from the recording itself. */
 function recordedBrainRefusal(situation: FlintBrainSituation): { readonly refusal: string; readonly text: string } {
   const [recorded] = recordedFlintBrainAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE);
   if (recorded?.answer.verdict !== 'answered') throw new Error(`The ${situation} situation holds no answered command.`);
@@ -441,7 +441,7 @@ describe('forge-pause, forge-resume and forge-restart, carried by the API', () =
 const BRAIN_START: GaiaCommand = { kind: 'forge-brain-start', trackerId: STOREFRONT_TRACKER_ID };
 const BRAIN_STOP: GaiaCommand = { kind: 'forge-brain-stop', trackerId: STOREFRONT_TRACKER_ID };
 
-describe('forge-brain-start and forge-brain-stop, carried by the API of a forge at control contract 2', () => {
+describe('forge-brain-start and forge-brain-stop, carried by the API of a forge at the control contract Gaia knows', () => {
   test('a start sends `flint-brain-start` with the token as the bearer, and answers done', async () => {
     const overseerFetch = overseerAnsweringTheBrain('brain-running');
     expect(await controlOver({ forges: [liveForgeAtControl(2)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
@@ -449,14 +449,13 @@ describe('forge-brain-start and forge-brain-stop, carried by the API of a forge 
     expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
   });
 
-  test('a start to a forge that publishes its versions goes to the versioned path of the commands', async () => {
-    const versionedCommandsCallShape = 'POST /api/v1/commands with bearer';
-    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-current').filter((answer) => answer.callShape === versionedCommandsCallShape));
+  test('a start to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
+    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
     const forge = liveForgeAtControl(2);
-    const versions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
     const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
     expect(await controlOver({ forges, overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
-    expect(overseerFetch.callsAnswered().map((call) => call.callShape)).toEqual([versionedCommandsCallShape]);
+    expect(overseerFetch.callsAnswered().map((call) => call.callShape)).toEqual([COMMANDS_CALL_SHAPE]);
   });
 
   test('a stop sends `flint-brain-stop`, and answers done', async () => {
@@ -473,24 +472,13 @@ describe('forge-brain-start and forge-brain-stop, carried by the API of a forge 
     expect([recordedBrainRefusal('brain-refused').refusal, recordedBrainRefusal('no-flint').refusal]).toEqual(['usage-limit-holds', 'no-flint']);
   });
 
-  test('under control contract 1, refuses both with brain-not-served and sends the forge nothing', async () => {
+  test('sends nothing to a forge whose control contract Gaia does not know, older or newer, and answers unreachable for a dormant one', async () => {
     const overseerFetch = recordedOverseerFetch([]);
-    const control = controlOver({ forges: [liveForgeAtControl(1)], overseerFetch });
-    expect(await control.carry(BRAIN_START)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' });
-    expect(await control.carry(BRAIN_STOP)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' });
+    for (const controlVersion of [1, 3]) {
+      expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'not-supported' });
+      expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
+    }
     expect(overseerFetch.callsAnswered()).toEqual([]);
-  });
-
-  test('under control contract 1, still sends every other command the Overseer carries', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    const control = controlOver({ forges: [liveForgeAtControl(1)], overseerFetch });
-    expect(await control.carry(PAUSE)).toEqual({ verdict: 'done' });
-    expect(await control.carry({ kind: 'forge-concurrency-set', trackerId: STOREFRONT_TRACKER_ID, limit: 2 })).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-pause' }, { kind: 'concurrency-set', limit: 2 }]);
-  });
-
-  test('sends nothing to a forge whose control contract Gaia does not know, and answers unreachable for a dormant one', async () => {
-    expect(await controlOver({ forges: [liveForgeAtControl(3)] }).carry(BRAIN_START)).toEqual({ verdict: 'not-supported' });
     expect(await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })] }).carry(BRAIN_STOP)).toEqual({ verdict: 'not-supported' });
     expect(await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] }).carry(BRAIN_START)).toEqual({ verdict: 'unreachable' });
   });

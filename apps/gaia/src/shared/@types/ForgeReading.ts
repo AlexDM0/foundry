@@ -6,7 +6,7 @@ import type { AgentRow }          from './AgentRow.ts';
 import type { AttentionItem }     from './AttentionItem.ts';
 import type { ForgeBrainReading } from './ForgeBrain.ts';
 
-/** `older-contract`: the forge's system version is older than Gaia still talks to, so Gaia reads nothing of it until it is updated. */
+/** `older-contract`: the forge's system version is older than the one Gaia supports, so Gaia reads nothing of it until it is updated. */
 export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
 export type ForgeCondition = 'live' | 'paused' | 'held' | 'passing-baton' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
@@ -20,14 +20,14 @@ export interface ForgeContracts {
 }
 
 /**
- * How the forge's system version stands to the forge versions Gaia knows. `newer`: its minimum is above the version Gaia is built for, so
- * they cannot talk and Gaia needs an update. `older`: it is below the oldest Gaia talks to, so they cannot talk and the forge needs an
- * update. `ahead`: above the version Gaia is built for, read in full with what Gaia knows. `behind`: below it, read in full without
- * Gaia's newest features. `current`: the version Gaia is built for. `not-reported`: the forge publishes no versions, read as before them.
+ * How the forge's system version stands to the one forge version Gaia supports. `newer`: its minimum is above the supported version, so
+ * they cannot talk and Gaia needs an update. `older`: it is below the supported version, or serves no `/api/versions` at all, so they
+ * cannot talk and the forge needs an update. `ahead`: above the supported version and still serving it, read with what Gaia knows.
+ * `current`: the supported version.
  */
-export type ForgeVersionsVerdict = 'newer' | 'older' | 'ahead' | 'behind' | 'current' | 'not-reported';
+export type ForgeVersionsVerdict = 'newer' | 'older' | 'ahead' | 'current';
 
-/** The forge's own versions, both `null` when it reported none. */
+/** The forge's own versions, both `null` for a forge that serves no `/api/versions`. */
 export interface ForgeVersions {
   verdict:          ForgeVersionsVerdict;
   current:          SystemVersion | null;
@@ -91,5 +91,6 @@ export interface ForgeReading {
   today:             ForgeToday | null;
   usage:             ForgeUsage | null;
   brain:             ForgeBrainReading;
-  versions:          ForgeVersions;
+  /** `null` for a reading taken without the forge's `/api/versions`, such as a dormant or an unreachable forge's. */
+  versions:          ForgeVersions | null;
 }
