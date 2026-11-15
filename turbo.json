@@ -13,7 +13,7 @@
     "typecheck": { "dependsOn": ["transit"], "outputs": [] },
     "lint":      { "dependsOn": ["transit"], "outputs": [] },
     "test":      { "dependsOn": ["transit"], "outputs": [] },
-    "test:dom":  { "dependsOn": ["transit"], "outputs": [] },
+    "test:dom":  { "dependsOn": ["transit", "test"], "outputs": [] },
     "check":     { "cache": false }
   }
 }
