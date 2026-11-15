@@ -87,6 +87,8 @@ function buttonsIn({
       onOpenStop={doNothing}
       onChooseStop={doNothing}
       onCancelStop={doNothing}
+      updateStep={ForgeFrameModel.updateStepOf(commandState)}
+      onDismissUpdate={doNothing}
     />
   );
   expect(markup).toContain(`<span class="gaia-forge-frame-bar-controls">${renderToStaticMarkup(controls)}</span></header>`);

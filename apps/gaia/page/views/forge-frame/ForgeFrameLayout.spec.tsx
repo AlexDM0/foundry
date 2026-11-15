@@ -65,6 +65,8 @@ function controlsOf(overrides: Partial<ForgeBarControlsProps> = {}) {
     onOpenStop:        () => events.push('open stop'),
     onChooseStop:      (agents) => events.push(`choose ${agents}`),
     onCancelStop:      () => events.push('cancel stop'),
+    updateStep:        { step: 'idle' },
+    onDismissUpdate:   () => events.push('dismiss update'),
     ...overrides,
   };
   return { unfolded: tree.unfolded(<ForgeBarControls {...props} />), sent, events };

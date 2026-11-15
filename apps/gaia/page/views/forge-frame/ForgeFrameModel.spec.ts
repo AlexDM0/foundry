@@ -54,11 +54,11 @@ function withForge(forge: FleetDocumentForge): FleetDocument {
 }
 
 function words(text: string) {
-  return { text, isFigure: false };
+  return { text, look: 'words' as const };
 }
 
 function figure(text: string) {
-  return { text, isFigure: true };
+  return { text, look: 'figure' as const };
 }
 
 function barOf(forge: FleetDocumentForge) {

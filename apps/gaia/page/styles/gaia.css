@@ -1268,6 +1268,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-bar-name { flex: none; margin: 0; font-size: var(--fs-title); line-height: var(--line-height-lead); font-weight: var(--weight-strong); white-space: nowrap; }
 .gaia-forge-frame-bar-status { display: inline-flex; flex: 0 1 auto; align-items: center; gap: var(--space-7); min-width: 0; }
 .gaia-forge-frame-bar-word { flex: none; font-weight: var(--weight-strong); white-space: nowrap; }
+.gaia-forge-frame-bar-word[data-condition="outdated"] { color: var(--link); }
 .gaia-forge-frame-bar-line {
   min-width: 0;
   margin-left: var(--space-2);
@@ -1329,6 +1330,52 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-notice-refusal { align-self: stretch; }
 .gaia-forge-frame-notice-text { margin: 0; }
 .gaia-forge-frame-notice-id { margin: 0; }
+
+/* A forge Gaia cannot talk to: the frame waits dashed, its notice centred, with the versions pair and Open in new tab. */
+.gaia-forge-frame-area[data-cannot-talk] {
+  justify-content: center;
+  padding: var(--sp-6);
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+.gaia-forge-frame-versions-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: center;
+  gap: var(--space-10);
+  width: var(--forge-frame-notice-width);
+  max-width: 100%;
+}
+.gaia-forge-frame-versions-word { display: inline-flex; align-items: center; gap: var(--sp-2); font-weight: var(--weight-strong); color: var(--ink); }
+.gaia-forge-frame-versions-word[data-verdict="older"] { color: var(--link); }
+.gaia-forge-frame-versions-notice > .gaia-versions-pair { align-self: stretch; margin-top: var(--sp-1); }
+.gaia-forge-frame-versions-actions { display: flex; padding-top: var(--sp-1); }
+
+/* A control Gaia cannot send, and the steps of an older forge's Update forge, each on the bar's one line. */
+.gaia-forge-frame-unsent { display: inline-flex; }
+.gaia-forge-frame-bar-note {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-7);
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-small);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.gaia-forge-frame-bar-restart { font-size: var(--fs-tab); line-height: var(--line-height-small); color: var(--ink-muted); white-space: nowrap; }
+.gaia-forge-frame-bar-restart-word { font-weight: var(--weight-strong); color: var(--link); }
+.gaia-forge-frame-bar-update-refusal {
+  min-width: 0;
+  max-width: var(--forge-bar-update-refusal-width);
+  overflow: hidden;
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-small);
+  color: var(--err-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gaia-forge-frame-bar-update-refusal-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: var(--weight-strong); }
 
 /* Stop's question floats under its button, so it draws a shadow. */
 .gaia-forge-frame-stop { position: relative; display: inline-flex; }

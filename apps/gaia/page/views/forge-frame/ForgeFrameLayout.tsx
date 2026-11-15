@@ -1,12 +1,14 @@
 /**
  * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
- * question as a popover under its button and Flint's brain between Stop and Open in new tab; a refusal under the bar; and the framed area:
- * "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, or why the forge cannot be shown here. It takes no
- * hooks: the states and the handlers come in as props, so a spec unfolds it whole.
+ * question as a popover under its button and Flint's brain between Stop and Open in new tab, or, for a forge Gaia cannot talk to, the
+ * controls it cannot send disabled and an older forge's Update forge step by step; a refusal under the bar; and the framed area:
+ * "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, the versions notice of a forge Gaia cannot talk to, or
+ * why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
 import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
 import { Button }                         from 'design-system/Button';
 import { ChoiceInput, ChoiceOption }      from 'design-system/ChoiceOption';
+import { IconButton }                     from 'design-system/IconButton';
 import { MonoId }                         from 'design-system/MonoId';
 import { Text }                           from 'design-system/Text';
 import type { ReactNode, Ref }            from 'react';
@@ -18,13 +20,18 @@ import { ConditionDot }                                      from '../../design-
 import { ConfirmPanel }                                      from '../../design-system/ConfirmPanel.tsx';
 import { OpenInNewTabGlyph }                                 from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                           from '../../design-system/Refusal.tsx';
+import { VersionsPair }                                      from '../../shared/VersionsPair.tsx';
+import { VersionsText }                                      from '../../shared/VersionsText.tsx';
 import type { RefusalText }                                  from '../../shared/utils/CommandFailureTextUtil.ts';
-import type { StopQuestion }                                 from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeCommandTextUtil, type StopQuestion }           from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeVersionsTextUtil }                             from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import type {
   BarBrainShown,
+  BarCannotTalk,
   BarLineSegment,
   BarMarkWake,
   BarRefusal,
+  BarUpdateStep,
   ForgeBar,
   ForgeBarStatus,
   ForgeFrameArea,
@@ -42,9 +49,19 @@ export interface ForgeBarControlsProps {
   readonly onOpenStop:        () => void;
   readonly onChooseStop:      (agents: ForgeStopAgents) => void;
   readonly onCancelStop:      () => void;
+  /** Where an older forge's Update forge stands; only an older forge's bar shows it. */
+  readonly updateStep:        BarUpdateStep;
+  /** Dismisses a refused Update forge, or the restart a done one left pending. */
+  readonly onDismissUpdate:   () => void;
 }
 
 const OPEN_IN_NEW_TAB_LABEL = 'Open in new tab';
+
+const UPDATE_FORGE_LABEL = 'Update forge';
+
+const TRY_AGAIN_LABEL = 'Try again';
+
+const DISMISS_REFUSAL_LABEL = 'Dismiss this refusal';
 
 const FIRST_CHOICE_LETTER_CODE = 'A'.charCodeAt(0);
 
@@ -113,14 +130,90 @@ function brainChipPropsOf({
   }
 }
 
+type UpdateForgeStepProps = Pick<ForgeBarControlsProps, 'bar' | 'updateStep' | 'commandIsOnItsWay' | 'onCommand' | 'onDismissUpdate'>;
+
+/** Update forge, then "Updating the forge…", then the pending restart with Restart, or the forge's refusal in one line with Try again. */
+function UpdateForgeStep({
+  bar, updateStep, commandIsOnItsWay, onCommand, onDismissUpdate
+}: UpdateForgeStepProps) {
+  const { trackerId } = bar;
+  const sendUpdate = (): void => onCommand({ kind: 'forge-update', trackerId });
+  const { UPDATE_FORGE_TEXT } = ForgeVersionsTextUtil;
+  const { RESTART_PENDING } = ForgeCommandTextUtil;
+  switch (updateStep.step) {
+    case 'idle':
+      return <Button label={UPDATE_FORGE_LABEL} emphasis="primary" compact disabled={commandIsOnItsWay} onPress={sendUpdate} />;
+    case 'pending':
+      return (
+        <span className="gaia-forge-frame-bar-note" role="status">
+          <ConditionDot condition="starting" />
+          {UPDATE_FORGE_TEXT.pending}
+        </span>
+      );
+    case 'done':
+      return (
+        <>
+          <span className="gaia-forge-frame-bar-restart" role="status">
+            <strong className="gaia-forge-frame-bar-restart-word">{RESTART_PENDING.word}</strong>
+            {` ${UPDATE_FORGE_TEXT.doneUnderAControl}`}
+          </span>
+          <Button
+            label={RESTART_PENDING.restartLabel}
+            emphasis="primary"
+            compact
+            disabled={commandIsOnItsWay}
+            onPress={() => onCommand({ kind: 'forge-restart', trackerId })}
+          />
+          <IconButton glyph="close" accessibleName={RESTART_PENDING.dismissLabel} title={RESTART_PENDING.dismissLabel} onPress={onDismissUpdate} />
+        </>
+      );
+    case 'refused':
+      return (
+        <>
+          <span className="gaia-forge-frame-bar-update-refusal" role="alert" title={updateStep.wholeSentence}>
+            {updateStep.lead}
+            <span className="gaia-forge-frame-bar-update-refusal-code">{updateStep.code}</span>
+            {`. ${updateStep.sentence}`}
+          </span>
+          <Button label={TRY_AGAIN_LABEL} compact disabled={commandIsOnItsWay} onPress={sendUpdate} />
+          <IconButton glyph="close" accessibleName={DISMISS_REFUSAL_LABEL} title={DISMISS_REFUSAL_LABEL} onPress={onDismissUpdate} />
+        </>
+      );
+  }
+}
+
+/** A control Gaia cannot send shows disabled; its title, on the span since a disabled button takes no pointer, names both versions. */
+function UnsentControl({ label, cannotTalk }: { readonly label: string; readonly cannotTalk: BarCannotTalk }) {
+  return (
+    <span className="gaia-forge-frame-unsent" title={cannotTalk.unsentControlTitle}>
+      <Button label={label} compact disabled />
+    </span>
+  );
+}
+
+/** For a forge Gaia cannot talk to: an older forge's Update forge, the controls Gaia cannot send, and Open in new tab. */
+function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk: BarCannotTalk }) {
+  const {
+    bar, cannotTalk, commandIsOnItsWay, onCommand
+  } = props;
+  return (
+    <>
+      {cannotTalk.verdict === 'older' ? <UpdateForgeStep {...props} /> : null}
+      {cannotTalk.unsentControls.map((label) => <UnsentControl key={label} label={label} cannotTalk={cannotTalk} />)}
+      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+    </>
+  );
+}
+
 /**
  * Pause or Resume, Stop with its question, Flint's brain, and Open in new tab; a forge whose control contract Gaia does not know takes only
- * the last.
+ * the last, and a forge Gaia cannot talk to its own controls.
  */
 export function ForgeBarControls(props: ForgeBarControlsProps) {
   const {
     bar, commandIsOnItsWay, stopIsOpen, onCommand, onOpenStop
   } = props;
+  if (bar.cannotTalk !== null) return <CannotTalkControls {...props} cannotTalk={bar.cannotTalk} />;
   const brainChip = brainChipPropsOf(props);
   const controlsMayAct = bar.controlContractIsKnown && !commandIsOnItsWay;
   const { pauseOrResume, stop } = bar;
@@ -159,8 +252,19 @@ export function forgeMarkPropsOf(markWake: BarMarkWake, commandIsOnItsWay: boole
   };
 }
 
+function BarLineSegmentText({ segment }: { readonly segment: BarLineSegment }) {
+  switch (segment.look) {
+    case 'words':
+      return segment.text;
+    case 'figure':
+      return <Text typeRole="small" mono>{segment.text}</Text>;
+    case 'version':
+      return <VersionsText text={[{ kind: 'version', text: segment.text }]} />;
+  }
+}
+
 function BarLine({ line }: { readonly line: readonly BarLineSegment[] }) {
-  return line.map((segment, i) => (segment.isFigure ? <Text key={i} typeRole="small" mono>{segment.text}</Text> : segment.text));
+  return line.map((segment, i) => <BarLineSegmentText key={i} segment={segment} />);
 }
 
 /** The bar heads the view, since a forge in place has no page title; its line keeps to one line, the whole reading in its tooltip. */
@@ -174,7 +278,7 @@ export function ForgeBarLayout({
       {status === null ? null : (
         <span className="gaia-forge-frame-bar-status">
           <ConditionDot condition={status.condition} />
-          <span className="gaia-forge-frame-bar-word">{status.word}</span>
+          <span className="gaia-forge-frame-bar-word" data-condition={status.condition === 'outdated' ? status.condition : undefined}>{status.word}</span>
           <span className="gaia-forge-frame-bar-line" title={status.text}><BarLine line={status.line} /></span>
         </span>
       )}
@@ -241,6 +345,34 @@ function CannotShow({ onOpenInNewTab, commandIsOnItsWay }: Pick<ForgeFrameAreaPr
     <div className="gaia-forge-frame-notice">
       <p className="gaia-forge-frame-notice-text">This forge cannot be shown inside Gaia yet.</p>
       <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
+    </div>
+  );
+}
+
+/** Why the frame holds no Bridge for a forge at a version this Gaia cannot talk to, with the versions pair and Open in new tab. */
+type CannotTalkNoticeProps = { readonly area: Extract<ForgeFrameArea, { kind: 'cannot-talk' }> } & Pick<ForgeFrameAreaProps, 'onOpenInNewTab' | 'commandIsOnItsWay'>;
+
+function CannotTalkNotice({ area, onOpenInNewTab, commandIsOnItsWay }: CannotTalkNoticeProps) {
+  const { notice, verdict } = area;
+  return (
+    <div className="gaia-forge-frame-versions-notice">
+      <span className="gaia-forge-frame-versions-word" data-verdict={verdict}>
+        <ConditionDot condition={verdict === 'older' ? 'outdated' : 'unreadable'} />
+        {notice.word}
+      </span>
+      <Text typeRole="phase" element="h2">{notice.heading}</Text>
+      <Text typeRole="lead" element="p" muted>{notice.sentence}</Text>
+      <VersionsPair pair={area.pair} />
+      <span className="gaia-forge-frame-versions-actions">
+        <Button
+          label={OPEN_IN_NEW_TAB_LABEL}
+          leading={<OpenInNewTabGlyph />}
+          // An older forge's primary is Update forge in the bar; a newer one offers nothing but its own Bridge.
+          emphasis={verdict === 'newer' ? 'primary' : 'quiet'}
+          disabled={commandIsOnItsWay}
+          onPress={onOpenInNewTab}
+        />
+      </span>
     </div>
   );
 }
@@ -324,6 +456,8 @@ function areaContentOf(props: ForgeFrameAreaProps) {
       return <Unreachable area={area} onLookAgain={onLookAgain} />;
     case 'cannot-show':
       return <CannotShow onOpenInNewTab={props.onOpenInNewTab} commandIsOnItsWay={props.commandIsOnItsWay} />;
+    case 'cannot-talk':
+      return <CannotTalkNotice area={area} onOpenInNewTab={props.onOpenInNewTab} commandIsOnItsWay={props.commandIsOnItsWay} />;
     case 'not-registered':
       return (
         <div className="gaia-forge-frame-notice">
@@ -335,5 +469,15 @@ function areaContentOf(props: ForgeFrameAreaProps) {
 }
 
 export function ForgeFrameAreaLayout(props: ForgeFrameAreaProps) {
-  return <section className="gaia-forge-frame-area" aria-label="The forge's own Bridge">{areaContentOf(props)}</section>;
+  const { area } = props;
+  const cannotTalk = area.kind === 'cannot-talk';
+  return (
+    <section
+      className="gaia-forge-frame-area"
+      aria-label={cannotTalk ? `${area.project}: Gaia cannot frame its Bridge` : 'The forge\'s own Bridge'}
+      data-cannot-talk={cannotTalk ? '' : undefined}
+    >
+      {areaContentOf(props)}
+    </section>
+  );
 }

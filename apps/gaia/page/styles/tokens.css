@@ -99,6 +99,8 @@
 
   --forge-frame-notice-width:        640px;
   --forge-frame-stop-popover-width:  560px;
+  /* Wider than the brain's refusal, so the forge's code stays whole beside Try again. */
+  --forge-bar-update-refusal-width:  340px;
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;
 

@@ -67,7 +67,9 @@ function shownOf(state: ForgeFrameState): FrameAreaShown {
 }
 
 function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
-  const { send, dismissFailure, states } = useCommandSender();
+  const {
+    send, dismissFailure, dismissRestartPending, states
+  } = useCommandSender();
   const [stopIsOpen, setStopIsOpen] = useState(false);
   const [stopAgents, setStopAgents] = useState<ForgeStopAgents>('keep');
   const commandState = CommandSender.stateOf(states, { trackerId: bar.trackerId });
@@ -79,6 +81,8 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
   }, [wakeRefusalIsOutOfDate, dismissFailure, bar.trackerId]);
   const markWake = ForgeFrameModel.markWakeOf(bar.brain, brainShown);
   const wakeBrain = (): void => void send({ kind: 'forge-brain-start', trackerId: bar.trackerId });
+  const updateStep = ForgeFrameModel.updateStepOf(commandState);
+  const subject = { trackerId: bar.trackerId };
   return (
     <ForgeBarLayout
       name={bar.project}
@@ -101,6 +105,8 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
           }}
           onChooseStop={setStopAgents}
           onCancelStop={() => setStopIsOpen(false)}
+          updateStep={updateStep}
+          onDismissUpdate={() => (updateStep.step === 'refused' ? dismissFailure(subject) : dismissRestartPending(subject))}
         />
       )}
     />
@@ -162,7 +168,7 @@ function ForgeFrameContentView({ content, bridgeFragment, surroundings }: ForgeF
   const { area } = content;
   const subject = { trackerId: area.trackerId };
   const commandState = CommandSender.stateOf(states, subject);
-  const refusal = ForgeFrameModel.barRefusalOf(area.trackerId, commandState.failure);
+  const refusal = ForgeFrameModel.barRefusalOf(area.trackerId, commandState.failure, content.bar?.cannotTalk?.verdict === 'older');
   const commandIsOnItsWay = commandState.onItsWay !== null;
   const sendCommand = (command: CommandBody): void => void send(command);
   const openInNewTab = (): void => sendCommand({ kind: 'forge-open-in-browser', trackerId: area.trackerId });

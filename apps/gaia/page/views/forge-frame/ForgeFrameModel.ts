@@ -1,8 +1,9 @@
 /**
  * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the frame, with the forge's name, its condition, one short
  * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
- * callout for an Overseer that stopped answering, or the sentence for a forge that cannot be shown inside Gaia. Also Flint's brain in the bar,
- * in the state the forge reports, with a wake refused here in its place, and where `leave` goes.
+ * callout for an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
+ * that cannot be shown inside Gaia. Also Flint's brain in the bar, in the state the forge reports, with a wake refused here in its place,
+ * the steps of an older forge's Update forge, and where `leave` goes.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
@@ -15,7 +16,7 @@ import type {
   FleetDocumentFidelity,
   FleetDocumentForge,
 } from '../../@types/FleetDocument.ts';
-import type { CommandFailure }                        from '../../api/CommandSender.ts';
+import type { CommandFailure, CommandState }          from '../../api/CommandSender.ts';
 import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
 import type { RefusedBy }                             from '../../design-system/Refusal.tsx';
 import type { ClockReading }                          from '../../shared/@types/ClockReading.ts';
@@ -26,8 +27,16 @@ import { FleetDocumentUtil }                          from '../../shared/utils/F
 import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
-import { StampTextUtil }                              from '../../shared/utils/StampTextUtil.ts';
-import { SESSION_LOST_WHILE_OPENING }                 from './ForgeFrameSession.ts';
+import {
+  ForgeVersionsTextUtil,
+  type ForgeWithVersions,
+  type GaiaVersions,
+  type VersionsNoticeText,
+  type VersionsPairText,
+  type VersionsText,
+} from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { StampTextUtil }              from '../../shared/utils/StampTextUtil.ts';
+import { SESSION_LOST_WHILE_OPENING } from './ForgeFrameSession.ts';
 
 export interface BarCommand {
   readonly label:    string;
@@ -35,10 +44,10 @@ export interface BarCommand {
   readonly command:  ForgeCommandBody;
 }
 
-/** A run of the bar's line: words, or a figure the forge reported, which is set in mono. */
+/** A run of the bar's line: words, a figure the forge reported, set in mono, or a system version, set in mono in ink as everywhere. */
 export interface BarLineSegment {
-  readonly text:     string;
-  readonly isFigure: boolean;
+  readonly text: string;
+  readonly look: 'words' | 'figure' | 'version';
 }
 
 /**
@@ -72,6 +81,21 @@ export interface BarBrain {
   readonly controlsAreServed: boolean;
 }
 
+/** The verdicts at which Gaia cannot talk to a forge: newer than this Gaia, or older and waiting on Update forge. */
+export type CannotTalkVerdict = 'newer' | 'older';
+
+/** A forge Gaia cannot talk to: the controls it cannot send show disabled, their title naming both versions; an older one offers Update forge. */
+export interface BarCannotTalk {
+  readonly verdict:            CannotTalkVerdict;
+  readonly unsentControls:     readonly string[];
+  readonly unsentControlTitle: string;
+}
+
+/** Update forge, step by step, in the bar of an older forge; a refusal shows there in one line, its whole sentence in `wholeSentence`. */
+export type BarUpdateStep =
+  | { readonly step: 'idle' | 'pending' | 'done' }
+  | { readonly step: 'refused'; readonly lead: string; readonly code: string; readonly sentence: string; readonly wholeSentence: string };
+
 export interface ForgeBar {
   readonly trackerId:              string;
   readonly project:                string;
@@ -83,6 +107,8 @@ export interface ForgeBar {
   readonly controlContractIsKnown: boolean;
   /** `null` for a forge that reports no brain: its monitor is older than contract 3, or it has no Flint. */
   readonly brain:                  BarBrain | null;
+  /** `null` for a forge Gaia talks to; then Pause, Resume, Stop and the brain follow the forge's condition. */
+  readonly cannotTalk:             BarCannotTalk | null;
 }
 
 export type ForgeFrameArea =
@@ -99,6 +125,14 @@ export type ForgeFrameArea =
     readonly trackerId: string;
     readonly project:   string;
     readonly callout:   UnreachableCalloutText;
+  }
+  | {
+    readonly kind:      'cannot-talk';
+    readonly trackerId: string;
+    readonly project:   string;
+    readonly verdict:   CannotTalkVerdict;
+    readonly notice:    VersionsNoticeText;
+    readonly pair:      VersionsPairText;
   }
   | { readonly kind: 'cannot-show'; readonly trackerId: string; readonly project: string }
   | { readonly kind: 'not-registered'; readonly trackerId: string };
@@ -173,6 +207,17 @@ const FRAME_SESSION_REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
 
 const FRAME_SESSION_REFUSED_SENTENCE = 'Gaia could not open a session in this forge.';
 
+/** Pause and Stop for a newer forge, Stop alone beside an older forge's Update forge, as the Versions boards draw them. */
+const UNSENT_CONTROLS: Readonly<Record<CannotTalkVerdict, readonly string[]>> = {
+  newer: ['Pause', 'Stop'],
+  older: ['Stop'],
+};
+
+const UPDATE_REFUSAL_LEADS: Readonly<Record<RefusedBy, string>> = {
+  forge: 'The forge refused Update: ',
+  gaia:  'Gaia could not update the forge: ',
+};
+
 const PAUSABLE: ReadonlySet<FleetDocumentCondition> = new Set(['live']);
 const RESUMABLE: ReadonlySet<FleetDocumentCondition> = new Set(['paused']);
 const STOPPABLE: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'unreachable']);
@@ -215,11 +260,11 @@ function statusTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
 }
 
 function wordsOf(text: string): BarLineSegment {
-  return { text, isFigure: false };
+  return { text, look: 'words' };
 }
 
 function figureOf(text: string): BarLineSegment {
-  return { text, isFigure: true };
+  return { text, look: 'figure' };
 }
 
 function agentsLineOf(forge: FleetDocumentForge): readonly BarLineSegment[] | null {
@@ -299,22 +344,76 @@ function barBrainOf(forge: FleetDocumentForge, clock: ClockReading): BarBrain | 
   return { shown: brainShownOf(brain, clock), controlsAreServed: ForgeContractUtil.brainCommandsAreServed(forge) };
 }
 
-function barOf(forge: FleetDocumentForge, clock: ClockReading): ForgeBar {
+function withVersionsOf(forge: FleetDocumentForge): ForgeWithVersions | null {
+  return forge.versions === null ? null : { project: forge.project, versions: forge.versions };
+}
+
+function cannotTalkVerdictOf(forge: FleetDocumentForge): CannotTalkVerdict | null {
+  const verdict = forge.versions?.verdict;
+  return verdict === 'newer' || verdict === 'older' ? verdict : null;
+}
+
+function lineOfVersionsText(versionsText: VersionsText): BarLineSegment[] {
+  return versionsText.map((part) => (part.kind === 'version' ? { text: part.text, look: 'version' } : wordsOf(part.text)));
+}
+
+/**
+ * The condition shown, an older forge's "Needs update" included, and the line: for an ahead forge its agents and the version clause after
+ * them, which truncates first; for a forge Gaia cannot talk to the version clause alone. A version clause's whole sentence is the title.
+ */
+function barStatusOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: ClockReading): ForgeBarStatus {
+  const shownCondition = ForgeTextUtil.shownConditionOf(forge);
+  const forgeWithVersions = withVersionsOf(forge);
+  const versionsBar = forgeWithVersions === null ? null : ForgeVersionsTextUtil.barTextOf(forgeWithVersions, gaiaVersions);
+  const statusLine = statusLineOf(forge, clock);
+  const versionsLine = versionsBar === null ? [] : lineOfVersionsText(versionsBar.line);
   return {
-    trackerId: forge.trackerId,
-    project:   forge.project,
-    status:    {
-      condition: ForgeTextUtil.dotConditionOf(forge.condition),
-      word:      ForgeTextUtil.conditionWordInSentenceCaseOf(forge.condition),
-      line:      statusLineOf(forge, clock),
-      text:      statusTextOf(forge, clock),
-    },
-    pauseOrResume:          pauseOrResumeOf(forge),
-    stop:                   stopQuestionOf(forge),
+    condition: ForgeTextUtil.dotConditionOf(shownCondition),
+    word:      ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
+    line:      statusLine.length === 0 || versionsLine.length === 0 ? [...statusLine, ...versionsLine] : [...statusLine, wordsOf(LINE_SEPARATOR), ...versionsLine],
+    text:      versionsBar?.title ?? statusTextOf(forge, clock),
+  };
+}
+
+function barCannotTalkOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions): BarCannotTalk | null {
+  const verdict = cannotTalkVerdictOf(forge);
+  const forgeWithVersions = withVersionsOf(forge);
+  if (verdict === null || forgeWithVersions === null) return null;
+  return {
+    verdict,
+    unsentControls:     UNSENT_CONTROLS[verdict],
+    unsentControlTitle: ForgeVersionsTextUtil.unsentControlTitleOf(forgeWithVersions, gaiaVersions) ?? '',
+  };
+}
+
+function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: ClockReading): ForgeBar {
+  const cannotTalk = barCannotTalkOf(forge, gaiaVersions);
+  const talks = cannotTalk === null;
+  return {
+    trackerId:              forge.trackerId,
+    project:                forge.project,
+    status:                 barStatusOf(forge, gaiaVersions, clock),
+    pauseOrResume:          talks ? pauseOrResumeOf(forge) : null,
+    stop:                   talks ? stopQuestionOf(forge) : null,
     openInNewTab:           { kind: 'forge-open-in-browser', trackerId: forge.trackerId },
     controlContractIsKnown: ForgeContractUtil.controlContractIsKnown(forge),
-    brain:                  barBrainOf(forge, clock),
+    brain:                  talks ? barBrainOf(forge, clock) : null,
+    cannotTalk,
   };
+}
+
+/** The step Update forge is at, from the forge's command state: on its way, done with its restart pending, or refused. */
+function updateStepOf(commandState: CommandState): BarUpdateStep {
+  if (commandState.onItsWay === 'forge-update') return { step: 'pending' };
+  const { failure } = commandState;
+  if (failure !== null && failure.kind === 'forge-update') {
+    const { refusedBy, code, sentence } = CommandFailureTextUtil.refusalTextOf(failure);
+    const lead = UPDATE_REFUSAL_LEADS[refusedBy];
+    return {
+      step: 'refused', lead, code, sentence, wholeSentence: `${lead}${code}. ${sentence}`,
+    };
+  }
+  return commandState.restartPending ? { step: 'done' } : { step: 'idle' };
 }
 
 /** The Overseer the frame's session belongs to: a new address or a new start is a new Overseer, which needs a new frame session. */
@@ -323,9 +422,15 @@ function overseerKeyOf(forge: FleetDocumentForge): string {
 }
 
 /** An Overseer that stopped answering shows B3's callout first: its last reading may still name an embed channel it no longer serves. */
-function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock: ClockReading): ForgeFrameArea {
+function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVersions: GaiaVersions, clock: ClockReading): ForgeFrameArea {
   if (forge === undefined) return { kind: 'not-registered', trackerId };
   const { project } = forge;
+  const verdict = cannotTalkVerdictOf(forge);
+  const forgeWithVersions = withVersionsOf(forge);
+  const notice = forgeWithVersions === null ? null : ForgeVersionsTextUtil.noticeTextOf(forgeWithVersions, gaiaVersions);
+  if (verdict !== null && forgeWithVersions !== null && notice !== null) return {
+    kind: 'cannot-talk', trackerId, project, verdict, notice, pair: ForgeVersionsTextUtil.pairTextOf(forgeWithVersions, gaiaVersions),
+  };
   const callout = ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock));
   if (forge.fidelity === 'unreachable') return {
     kind: 'unreachable', trackerId, project, callout,
@@ -338,16 +443,19 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, clock:
 
 function forgeFrameContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ClockReading): ForgeFrameContent {
   const forge = fleetDocument.forges.find((candidate) => candidate.trackerId === trackerId);
-  return { bar: forge === undefined ? null : barOf(forge, clock), area: areaOf(trackerId, forge, clock) };
+  const gaiaVersions = fleetDocument.gaia.versions;
+  return { bar: forge === undefined ? null : barOf(forge, gaiaVersions, clock), area: areaOf(trackerId, forge, gaiaVersions, clock) };
 }
 
 function kindIsSentAgainAsItWas(kind: CommandKind): kind is KindSentAgainAsItWas {
   return SENT_AGAIN_AS_THEY_WERE.has(kind);
 }
 
-function barRefusalOf(trackerId: string, failure: CommandFailure | null): BarRefusal | null {
+/** A refused Update forge of an older forge shows in the bar, beside where Update forge was, not under it as well. */
+function barRefusalOf(trackerId: string, failure: CommandFailure | null, updateIsInTheBar = false): BarRefusal | null {
   const commandLabel = failure === null ? null : ForgeCommandTextUtil.commandLabelOf(failure.kind);
   if (failure === null || commandLabel === null || SHOWN_IN_THE_BRAIN_GROUP.has(failure.kind)) return null;
+  if (updateIsInTheBar && failure.kind === 'forge-update') return null;
   const { kind } = failure;
   return {
     commandLabel,
@@ -410,6 +518,7 @@ function leaveTargetAfter(target: LeaveTarget, route: GaiaRoute): LeaveTarget {
 export const ForgeFrameModel = {
   forgeFrameContentOf,
   barRefusalOf,
+  updateStepOf,
   brainShownAfter,
   brainWakeRefusalIsOutOfDate,
   markWakeOf,
