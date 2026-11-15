@@ -1,8 +1,9 @@
 /**
  * The live flow's activity model. What matters: a node's chips are exactly the occupants the facts place on it, each linking to its
  * ticket or draft detail, a draft read as drafting and a ticket on the merge before review as catching up; the "Now" rows equal the
- * occupants in the facts' order, with a meter only on a step an agent runs; the panel head counts the working rows; the "Earlier" lines
- * keep the facts' order, cut the stamp only when the page carries the slices, and leave out a record kind they have no line for.
+ * occupants in the facts' order, with a meter only on a step an agent runs; the panel head counts the working rows; a ticket in flight is a
+ * chip linking to its detail; the "Earlier" lines keep the facts' order, cut the stamp only when the page carries the slices, and leave out
+ * a record kind they have no line for.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -37,6 +38,19 @@ describe('occupantChipsOf', () => {
 
   test('a ticket on the merge before review is catching up with main', () => {
     expect(FlowActivityPanelModel.occupantChipsOf(liveFlow(), 'merge-before-review').map((chip) => chip.text)).toEqual(['15 · catching up']);
+  });
+});
+
+describe('inFlightChipsOf', () => {
+  test('a ticket in flight is a chip in the in-progress colours that links to its detail, in the facts\' order', () => {
+    expect(FlowActivityPanelModel.inFlightChipsOf(['14', '9'])).toEqual([
+      {
+        key: 'ticket-14', text: '14', href: '#kanban/ticket/14', state: 'in-progress'
+      },
+      {
+        key: 'ticket-9', text: '9', href: '#kanban/ticket/9', state: 'in-progress'
+      },
+    ]);
   });
 });
 

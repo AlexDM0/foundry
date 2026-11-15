@@ -2,7 +2,7 @@
  * Apply on a running board (A6bApplyChanges) in a happy-dom document, opened from the editing flow's footer against fake controls. What
  * matters: one row per change, changed, new or removed, each naming where it is and its kind, a removed one struck through, and a changed
  * constitution as committed to main on Apply; the title counts the changes and the version line names the applied revision and the next;
- * the in-flight note lists the tickets in flight; Apply N changes sends `pipeline-apply` that never resumes the board; a
+ * the in-flight note lists the tickets in flight as chips; Apply N changes sends `pipeline-apply` that never resumes the board; a
  * `pipeline-moved` or `constitution-moved` refusal shows verbatim with nothing else offered; Back closes it; with a constitution change,
  * the committing, held and refused states show as in the first Apply, with Cancel apply.
  */
@@ -78,11 +78,14 @@ describe('the rows', () => {
     expect(within(applyChangesDialog()).getByText('Version 2 becomes version 3. Everything else stays as it is.')).toBeDefined();
   });
 
-  test('the in-flight note lists the tickets in flight', async () => {
+  test('the in-flight note lists the tickets in flight as chips linking to their detail', async () => {
     await openApplyChanges();
     expect(within(applyChangesDialog()).getByText('2 tickets are in flight.')).toBeDefined();
     const tickets = within(applyChangesDialog()).getByRole('list', { name: 'Tickets in flight' });
     expect(within(tickets).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['14', '15']);
+    expect(within(tickets).getAllByRole('link').map((chip) => [chip.className, chip.getAttribute('href')])).toEqual([
+      ['design-system-tag', '#kanban/ticket/14'], ['design-system-tag', '#kanban/ticket/15'],
+    ]);
   });
 });
 

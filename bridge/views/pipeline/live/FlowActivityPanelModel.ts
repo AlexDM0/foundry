@@ -60,14 +60,14 @@ const SETUP_OPENED_TEXTS: Readonly<Record<PipelineSetupMode, string>> = Object.f
   advise: 'Pipeline agent asked for advice',
 });
 
-function detailItemOf(occupant: PipelineOccupant): DetailItem {
+function detailItemOf(occupant: Pick<PipelineOccupant, 'occupantKind' | 'occupantId'>): DetailItem {
   return occupant.occupantKind === 'draft'
     ? { form: 'draft', draftId: occupant.occupantId }
     : { form: 'ticket', ticketId: occupant.occupantId };
 }
 
 /** The detail panel of the ticket or the filing draft, over Kanban. */
-function occupantHrefOf(occupant: PipelineOccupant): string {
+function occupantHrefOf(occupant: Pick<PipelineOccupant, 'occupantKind' | 'occupantId'>): string {
   return HashRouter.fragmentOf({ tab: DETAIL_TAB, item: DetailRoute.itemTextOf(detailItemOf(occupant)) });
 }
 
@@ -79,6 +79,16 @@ function isMergeBeforeReview(node: PipelineFlowNode | undefined): boolean {
 function occupantChipTextOf(occupant: PipelineOccupant, node: PipelineFlowNode | undefined): string {
   if (occupant.occupantKind === 'draft') return `${occupant.occupantId} drafting`;
   return isMergeBeforeReview(node) ? `${occupant.occupantId} · catching up` : occupant.occupantId;
+}
+
+/** A chip per ticket in flight while the pipeline changes, in the facts' order, each linking to its detail like a ticket on the flow. */
+function inFlightChipsOf(ticketIds: readonly string[]): OccupantChipView[] {
+  return ticketIds.map((ticketId) => ({
+    key:   `ticket-${ticketId}`,
+    text:  ticketId,
+    href:  occupantHrefOf({ occupantKind: 'ticket', occupantId: ticketId }),
+    state: 'in-progress',
+  }));
 }
 
 /** The chips of the occupants standing on one node, in the facts' order. */
@@ -172,6 +182,7 @@ function historyLinesOf(records: readonly LogRecord[], stampFormat: StampFormat 
 
 export const FlowActivityPanelModel = Object.freeze({
   occupantChipsOf,
+  inFlightChipsOf,
   activityRowsOf,
   nowHeadingOf,
   flowStatusOf,

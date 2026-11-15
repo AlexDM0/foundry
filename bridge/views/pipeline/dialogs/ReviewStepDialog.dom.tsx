@@ -3,7 +3,8 @@
  * two tabs of one form, so a change on one tab survives a visit to the other and Save sends both; switching the re-review off hides its
  * settings and shows the off note, and Save then drops `review.reReview`; the threshold steps by 50 and stops at 50; Reset puts back the
  * defaults (re-review on at 750, the constitution in both briefs); Remove review asks first and then sends one `null` edit; both tabs
- * offer every model and effort; and opened from the re-review node it opens on the Re-review tab, its switch focused.
+ * offer every model and effort; every brief the re-review reads offers Open; and opened from the re-review node it opens on the Re-review
+ * tab, its switch focused.
  */
 import {
   act,
@@ -75,6 +76,15 @@ describe('the re-review', () => {
     expect(controls.sent).toHaveLength(1);
     expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'role:reviewer' }, { field: 'review', value: { name: 'review' } }] });
     expect(JSON.stringify(controls.sent[0])).not.toContain('reReview');
+  });
+
+  test('every brief the re-review reads offers Open, its own reReviewer.md too', () => {
+    renderDialog();
+    openTab('Re-review');
+    const instructions = within(dialog()).getByRole('group', { name: 'Re-review brief' });
+    const rows = [...instructions.querySelectorAll<HTMLElement>('.design-system-listed-file')];
+    expect(rows.map((row) => [row.querySelector('.design-system-listed-file-name')?.textContent, within(row).queryByRole('button', { name: 'Open' }) !== null]))
+      .toEqual([['constitution.md', false], ['reviewer.md', true], ['reReviewer.md', true]]);
   });
 
   test('the threshold steps by 50 and stops at 50', () => {

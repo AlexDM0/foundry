@@ -1,8 +1,14 @@
 /**
  * The "About this pipeline" note's model, pure: whether the flow is the smallest kind (no review step), whether the warning that nothing
- * checks a commit shows (no phase has a gate), and one "WHERE STEPS GO" line per + slot the facts name, worded from its offered steps.
+ * checks a commit shows (no phase has a gate the draft keeps), and one "WHERE STEPS GO" line per + slot the facts name, worded from its
+ * offered steps.
  */
-import type { PipelineFlowFacts, PipelineInsertSlot, PipelineInsertableStep } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type {
+  PipelineFlowFacts,
+  PipelineGateRow,
+  PipelineInsertSlot,
+  PipelineInsertableStep
+} from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 
 export interface MinimalPipelineNoteView {
   readonly warningIsShown: boolean;
@@ -36,10 +42,15 @@ function noteIsShownFor(flow: Pick<PipelineFlowFacts, 'nodes'>): boolean {
   return !flow.nodes.some((node) => node.nodeKind === 'review');
 }
 
+/** A gate row the draft keeps: a prepare step judges nothing, and a removed gate row is drawn only until Apply. */
+function rowIsKeptGate(row: PipelineGateRow): boolean {
+  return row.rowKind === 'gate' && row.mark !== 'removed';
+}
+
 function noteOf(flow: Pick<PipelineFlowFacts, 'insertSlots' | 'gateRows'>): MinimalPipelineNoteView {
-  const gateCount = flow.gateRows.build.length + flow.gateRows.review.length + flow.gateRows.merge.length;
+  const { build, review, merge } = flow.gateRows;
   return {
-    warningIsShown: gateCount === 0,
+    warningIsShown: ![...build, ...review, ...merge].some(rowIsKeptGate),
     stepLines:      flow.insertSlots.map((slot) => ({
       key:  slot.slotId,
       text: `${placeTextOf(slot)}: ${choiceListOf(slot.offeredSteps.map((step) => OFFERED_STEP_WORDS[step]))}.`,

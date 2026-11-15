@@ -1,12 +1,15 @@
 /**
  * The note that tickets are in flight while the pipeline changes: a live dot, how many, what version each runs on, and each ticket as a
- * chip. The caller words the lead and the text from the applied revision.
+ * chip linking to its detail. The caller words the lead and the text from the applied revision.
  */
-import { Card }   from 'design-system/Card';
-import { MonoId } from 'design-system/MonoId';
-import { Row }    from 'design-system/Row';
-import { Text }   from 'design-system/Text';
-import { View }   from 'design-system/View';
+import { Card } from 'design-system/Card';
+import { Row }  from 'design-system/Row';
+import { Tag }  from 'design-system/Tag';
+import { Text } from 'design-system/Text';
+import { View } from 'design-system/View';
+
+import { StateToneUtil }          from '../../../utils/StateToneUtil.ts';
+import { FlowActivityPanelModel } from '../live/FlowActivityPanelModel.ts';
 
 export interface InFlightNoteProps {
   readonly ticketIds: readonly string[];
@@ -27,7 +30,11 @@ export function InFlightNote({ ticketIds, lead, text }: InFlightNoteProps) {
             <Text muted>{text}</Text>
           </Text>
           <ul className="bridge-pipeline-in-flight-tickets" aria-label="Tickets in flight">
-            {ticketIds.map((ticketId) => <li key={ticketId} className="bridge-pipeline-in-flight-ticket"><MonoId text={ticketId} /></li>)}
+            {FlowActivityPanelModel.inFlightChipsOf(ticketIds).map((chip) => (
+              <li key={chip.key} className="bridge-pipeline-in-flight-ticket">
+                <Tag text={chip.text} {...StateToneUtil.tagLookOf(chip.state)} dot href={chip.href} />
+              </li>
+            ))}
           </ul>
         </View>
       </Row>

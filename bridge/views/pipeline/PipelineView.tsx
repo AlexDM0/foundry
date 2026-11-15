@@ -7,9 +7,9 @@
  * phase, the stage's panel in its right column and its footer under both). While an applied pipeline is edited, the panel is the editing
  * panel (the smallest pipeline's About panel instead), and the footer counts the changes, or names the smallest pipeline's removed
  * steps, and the version the board runs on until Apply, beside Discard, which returns to `#pipeline`, and Apply, which opens the apply
- * dialog. Once a setup is applied, the live flow takes back the bare `#pipeline` route, with the activity panel (About first on the
- * smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast once the facts carry the version it made. A
- * gate dialog on any screen reads a profile's output through the follower the view provides.
+ * dialog; one modal dialog is open at a time. Once a setup is applied, the live flow takes back the bare `#pipeline` route, with the
+ * activity panel (About first on the smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast once the
+ * facts carry the version it made. A gate dialog on any screen reads a profile's output through the follower the view provides.
  */
 import { ActionBar }           from 'design-system/ActionBar';
 import { Banner }              from 'design-system/Banner';
@@ -119,9 +119,9 @@ function FlowScreen({
   facts, followTranscript, clock, onApplySent
 }: FlowScreenProps) {
   const now = useTickingNow(clock, false);
-  const selection = useFlowSelection();
   const setup = facts.pipelineSetup ?? null;
-  const [applyChangesIsAsked, setApplyChangesIsAsked] = useState((setup?.applyState ?? null) !== null);
+  const selection = useFlowSelection(setup?.applyState === null || setup === null ? null : setup.record.setupId);
+  const applyChangesIsAsked = setup !== null && selection.applyIsAskedFor(setup.record.setupId);
   const flow = facts.pipelineFlow ?? null;
   if (flow === null) return null;
   const minimal = MinimalPipelineNoteModel.noteIsShownFor(flow);
@@ -158,7 +158,7 @@ function FlowScreen({
             setupId={setup.record.setupId}
             minimal={minimal}
             applyIsAsked={applyChangesIsAsked}
-            onApplyAsked={() => setApplyChangesIsAsked(true)}
+            onApplyAsked={() => selection.askApply(setup.record.setupId)}
           />
         )}
       />
@@ -168,7 +168,7 @@ function FlowScreen({
             setup={setup}
             flow={flow}
             pipeline={facts.pipeline}
-            onClose={() => setApplyChangesIsAsked(false)}
+            onClose={selection.closeApply}
             onApplySent={() => onApplySent(false)}
           />
         )

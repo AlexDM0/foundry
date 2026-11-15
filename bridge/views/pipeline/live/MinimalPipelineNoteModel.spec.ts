@@ -1,6 +1,7 @@
 /**
  * The smallest pipeline's note. What matters: it belongs to a flow with no review step only; its warning shows while no phase has a gate
- * and goes once one has; its "WHERE STEPS GO" lines follow the + slots in the facts, one line each, worded from the steps offered there.
+ * the draft keeps (a removed gate row drawn until Apply and a prepare step do not count) and goes once one has; its "WHERE STEPS GO"
+ * lines follow the + slots in the facts, one line each, worded from the steps offered there.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -46,5 +47,19 @@ describe('noteOf', () => {
     });
     expect(note.warningIsShown).toBe(false);
     expect(note.stepLines).toEqual([{ key: 'airlock', text: 'In the merge train, before the fast-forward: a conditional re-review.' }]);
+  });
+
+  test('gate rows the draft removes and prepare steps keep the warning, as Apply will leave no gate', () => {
+    const flow = minimalFlow();
+    const row = {
+      rowKind: 'gate' as const, name: 'lint', run: 'bun run lint', fix: null, in: null, network: [], alsoInPhases: [], mark: 'removed' as const,
+    };
+    const prepareRow = {
+      ...row, rowKind: 'prepare' as const, name: 'install', mark: 'unchanged' as const
+    };
+    const gateRows = { build: [prepareRow, row], review: [prepareRow, { ...row, name: 'typecheck' }], merge: [] };
+    expect(MinimalPipelineNoteModel.noteOf({ gateRows, insertSlots: flow.insertSlots }).warningIsShown).toBe(true);
+    const keptGateRows = { ...gateRows, merge: [{ ...row, name: 'e2e', mark: 'unchanged' as const }] };
+    expect(MinimalPipelineNoteModel.noteOf({ gateRows: keptGateRows, insertSlots: flow.insertSlots }).warningIsShown).toBe(false);
   });
 });

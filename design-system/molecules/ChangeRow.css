@@ -15,10 +15,11 @@
 .design-system-change-row[data-change="changed"] .design-system-change-row-edge { background: var(--change-changed-dot); }
 .design-system-change-row[data-change="new"] .design-system-change-row-edge { background: var(--tone-success); }
 .design-system-change-row[data-change="removed"] .design-system-change-row-edge { background: var(--change-removed-row-edge); }
-.design-system-change-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+/* The actions take a line of their own, at the end, before they squeeze the title, as a benchmark beside Undo would. */
+.design-system-change-row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
 .design-system-change-row-title { font-weight: 600; }
 .design-system-change-row-location { color: var(--ink-muted); }
-.design-system-change-row-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); }
+.design-system-change-row-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); margin-left: auto; font-size: var(--fs-small); }
 .design-system-change-row-values { display: flex; flex-direction: column; gap: var(--space-6); font: 11.5px/1.45 var(--font-mono); }
 .design-system-change-row-before { color: var(--ink-muted); text-decoration: line-through; }
 .design-system-change-row[data-change="changed"] .design-system-change-row-after { color: var(--change-changed-ink); }

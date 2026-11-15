@@ -34,14 +34,17 @@ afterEach(cleanup);
 
 function selectionAt(openPhase: PipelinePhase, opened: FlowWorkspaceOpenRequest[], phasesOpened: PipelinePhase[]): FlowSelection {
   return {
-    openRequest:   null,
+    openRequest:     null,
     openPhase,
-    shownItem:     null,
-    scrollRequest: null,
-    open:          (request) => opened.push(request),
-    close:         () => undefined,
-    openPhaseOf:   (phase) => phasesOpened.push(phase),
-    showOnFlow:    () => undefined,
+    shownItem:       null,
+    scrollRequest:   null,
+    open:            (request) => opened.push(request),
+    close:           () => undefined,
+    openPhaseOf:     (phase) => phasesOpened.push(phase),
+    showOnFlow:      () => undefined,
+    applyIsAskedFor: () => false,
+    askApply:        () => undefined,
+    closeApply:      () => undefined,
   };
 }
 

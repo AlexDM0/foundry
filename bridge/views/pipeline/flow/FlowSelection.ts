@@ -1,7 +1,8 @@
 /**
  * The Focus layout's selection: the open phase, what is shown selected in it, the dialog a step, a gate row or an add choice asked for,
  * and what to scroll into view next. It is a hook, so the screen holding the layout can also show a step: "Show <step>" opens the phase
- * that holds it, selects its card or gate row and scrolls it into view.
+ * that holds it, selects its card or gate row and scrolls it into view. The selection also holds the screen's Apply dialog, asked for one
+ * setup record: one modal dialog is open at a time, and an Apply asked for an earlier record never opens over a later one.
  */
 import { useState } from 'react';
 
@@ -30,21 +31,28 @@ export interface FlowScrollRequest {
 export type FlowWorkspaceOpenRequest = FlowOpenRequest | GatesOpenRequest;
 
 export interface FlowSelection {
-  readonly openRequest:   FlowWorkspaceOpenRequest | null;
-  readonly openPhase:     PipelinePhase;
-  readonly shownItem:     FlowShownItem | null;
-  readonly scrollRequest: FlowScrollRequest | null;
-  readonly open:          (request: FlowWorkspaceOpenRequest) => void;
-  readonly close:         () => void;
-  readonly openPhaseOf:   (phase: PipelinePhase) => void;
-  readonly showOnFlow:    (target: FlowShowTarget) => void;
+  readonly openRequest:     FlowWorkspaceOpenRequest | null;
+  readonly openPhase:       PipelinePhase;
+  readonly shownItem:       FlowShownItem | null;
+  readonly scrollRequest:   FlowScrollRequest | null;
+  readonly open:            (request: FlowWorkspaceOpenRequest) => void;
+  readonly close:           () => void;
+  readonly openPhaseOf:     (phase: PipelinePhase) => void;
+  readonly showOnFlow:      (target: FlowShowTarget) => void;
+  /** Whether the Apply dialog is open for this setup record. */
+  readonly applyIsAskedFor: (setupId: string) => boolean;
+  /** Opens the Apply dialog for a setup record, and closes the dialog a step, a gate row or an add choice opened. */
+  readonly askApply:        (setupId: string) => void;
+  readonly closeApply:      () => void;
 }
 
 /** The phase the boards open on. */
 const FIRST_OPEN_PHASE: PipelinePhase = 'build';
 
-export function useFlowSelection(): FlowSelection {
+/** `applyAskedFor` opens the Apply dialog at once, for a record whose Apply is still pending. */
+export function useFlowSelection(applyAskedFor: string | null = null): FlowSelection {
   const [openRequest, setOpenRequest] = useState<FlowWorkspaceOpenRequest | null>(null);
+  const [applySetupId, setApplySetupId] = useState<string | null>(applyAskedFor);
   const [openPhase, setOpenPhase] = useState<PipelinePhase>(FIRST_OPEN_PHASE);
   const [shownItem, setShownItem] = useState<FlowShownItem | null>(null);
   const [scrollRequest, setScrollRequest] = useState<FlowScrollRequest | null>(null);
@@ -55,6 +63,7 @@ export function useFlowSelection(): FlowSelection {
     shownItem,
     scrollRequest,
     open: (request) => {
+      setApplySetupId(null);
       setOpenRequest(request);
       setShownItem(null);
       if (request.kind !== 'node' || request.action.kind !== 'gates-tab') return;
@@ -71,6 +80,12 @@ export function useFlowSelection(): FlowSelection {
       setShownItem(target.item);
       scrollTo(target.item);
     },
+    applyIsAskedFor: (setupId) => applySetupId === setupId,
+    askApply:        (setupId) => {
+      setOpenRequest(null);
+      setApplySetupId(setupId);
+    },
+    closeApply: () => setApplySetupId(null),
   };
 }
 
