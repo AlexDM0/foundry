@@ -430,6 +430,23 @@ describe('forges Gaia cannot fully read (B3)', () => {
       .toEqual(['warn', 'Older than this Gaia', 'forge states no version · this Gaia is built for forge 1.1', 'Update forge']);
   });
 
+  test('an older forge read without its versions is named in the side panel as its callout names it, a forge that states no version', () => {
+    const olderSandbox = {
+      ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
+      fidelity: 'older-contract',
+      versions: null,
+    } as FleetDocument['forges'][number];
+    const olderDocument: FleetDocument = {
+      ...FLEET_DEGRADED,
+      forges: FLEET_DEGRADED.forges.map((forge) => (forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? olderSandbox : forge)),
+    };
+    const reading = fleetContentOf(olderDocument).readings?.find((line) => line.trackerId === ANALYTICS_SANDBOX_TRACKER_ID);
+    expect(reading === undefined ? null : [rightTextOf(reading), reading.readingText]).toEqual([
+      'states no version · older',
+      'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.',
+    ]);
+  });
+
   test('the side panel names a forge read in full by its version, any other by its contract, and marks the forges figures.incompleteFor names', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, rightTextOf(reading), reading.readingText, reading.totalsCannotVouchForIt])).toEqual([

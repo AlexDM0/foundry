@@ -631,7 +631,7 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
     case 'newer-contract':
       return 'Nothing. Its contract is newer than this Gaia.';
     case 'older-contract':
-      return 'Nothing until the forge is updated. Its version is older than this Gaia talks to.';
+      return ForgeVersionsTextUtil.readingTextOf({ project: forge.project, versions: forge.versions ?? ForgeVersionsTextUtil.NO_VERSIONS_SERVED }).reading;
     case 'dormant':
       return 'Nothing while its Overseer is not running.';
     case 'repository-missing':
@@ -650,11 +650,13 @@ function readingLineOf(forge: FleetDocumentForge, totalsCannotVouchForIt: boolea
     condition: ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
     totalsCannotVouchForIt,
   };
-  const namedByItsVersion = forge.fidelity === 'full' || FleetDocumentUtil.cannotTalkAtItsVersion(forge);
-  if (forge.versions === null || !namedByItsVersion) {
+  // An older forge read without its versions is named as its callout names it: one that states no version.
+  const versions = forge.versions ?? (forge.fidelity === 'older-contract' ? ForgeVersionsTextUtil.NO_VERSIONS_SERVED : null);
+  const namedByItsVersion = forge.fidelity === 'full' || versions?.verdict === 'newer' || versions?.verdict === 'older';
+  if (versions === null || !namedByItsVersion) {
     return { ...facts, rightText: { kind: 'contract', text: contractTextOf(forge) }, readingText: readingTextOf(forge, clock) };
   }
-  const { versionsText, isWork, reading } = ForgeVersionsTextUtil.readingTextOf({ project: forge.project, versions: forge.versions });
+  const { versionsText, isWork, reading } = ForgeVersionsTextUtil.readingTextOf({ project: forge.project, versions });
   return { ...facts, rightText: { kind: 'versions', text: versionsText, isWork }, readingText: reading };
 }
 
