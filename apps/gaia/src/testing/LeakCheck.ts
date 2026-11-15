@@ -1,6 +1,6 @@
 /**
  * What a test run leaves behind, found after its last spec: an entry in the run's scratch folder, its scratch home or its scratch temporary
- * folder, an entry put straight in the scratch root, a new line in the repository's git status, a child process still running, and a Gaia
+ * folder, an entry put straight in the scratch root, a new line in the git status of Gaia's folder, a child process still running, and a Gaia
  * or forge path that appeared in the account's real home. A change inside a guarded home path that was already there is only a warning,
  * since a live Gaia or forge on the machine writes there too.
  */
@@ -31,7 +31,7 @@ export interface RunningChildProcess {
   readonly command:   string;
 }
 
-/** The repository's `git status --porcelain` lines, or null when git cannot answer. */
+/** The `git status --porcelain` lines of Gaia's folder, or null when git cannot answer. */
 export type GitStatusReader = () => readonly string[] | null;
 
 /** The test run's own child processes still running, or null when the machine cannot answer. */
@@ -51,11 +51,16 @@ export interface TestRunBaseline {
   readonly guardedHomeEntriesBefore: ReadonlyMap<string, string>;
 }
 
-export function spawnedGitStatusLines(): readonly string[] | null {
+/** Only the lines at or below the folder: in a repository that holds other apps, their runs' files are no leak of Gaia's. */
+export function gitStatusLinesBelow(folder: string): readonly string[] | null {
   if (Bun.which('git') === null) return null;
-  const finished = Bun.spawnSync(['git', 'status', '--porcelain', '--untracked-files=all'], { cwd: join(import.meta.dir, '..', '..'), stdout: 'pipe', stderr: 'ignore' });
+  const finished = Bun.spawnSync(['git', 'status', '--porcelain', '--untracked-files=all', '--', '.'], { cwd: folder, stdout: 'pipe', stderr: 'ignore' });
   if (finished.exitCode !== 0) return null;
   return finished.stdout.toString().split('\n').filter((line) => line !== '');
+}
+
+export function spawnedGitStatusLines(): readonly string[] | null {
+  return gitStatusLinesBelow(join(import.meta.dir, '..', '..'));
 }
 
 /** The children of this process that have not ended, leaving out the listing's own `ps` and a child that ended and waits to be reaped. */

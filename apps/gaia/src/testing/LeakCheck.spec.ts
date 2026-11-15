@@ -3,13 +3,15 @@
  * there, fail a run that leaves a child process running, and pass a run that cleans up. A change inside a guarded home folder that was
  * already there is named as a warning and fails no run, since a live Gaia or forge on the machine writes there too. Each case runs a planted
  * spec in a child `bun test` under the same preload, since the check judges a whole run and this run must stay clean. The child's real home
- * is this run's scratch home, so the real-home cases never reach the real one.
+ * is this run's scratch home, so the real-home cases never reach the real one. Gaia shares its repository with forge, so the git status
+ * it judges is its own folder's: a file a forge run leaves beside it is no leak of Gaia's, planted in a scratch repository of the same shape.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 import { describe, expect, test }   from 'bun:test';
 
 import { environmentCopy, homeDirectory } from '../services/Environment.ts';
+import { gitStatusLinesBelow }            from './LeakCheck.ts';
 import {
   createScratchDirectory,
   pathLiesInsideScratchRoot,
@@ -138,4 +140,29 @@ describe('the leak check after a run', () => {
     expect(result.standardError).not.toContain('The test run left');
     expect(result.exitCode).toBe(0);
   }, CHILD_RUN_TIMEOUT_MILLISECONDS);
+});
+
+describe('the git status the leak check judges', () => {
+  test('holds a file left in Gaia\'s folder and passes over one left beside it in the same repository', () => {
+    const repositoryFolder = createScratchDirectory('planted-repository');
+    try {
+      const gaiaFolder  = join(repositoryFolder, 'apps', 'gaia');
+      const forgeFolder = join(repositoryFolder, 'apps', 'forge');
+      mkdirSync(gaiaFolder, { recursive: true });
+      mkdirSync(forgeFolder, { recursive: true });
+      const initialized = Bun.spawnSync(['git', 'init', '--quiet'], {
+        cwd:    repositoryFolder,
+        env:    environmentCopy(),
+        stdout: 'ignore',
+        stderr: 'ignore',
+      });
+      expect(initialized.exitCode).toBe(0);
+      writeFileSync(join(forgeFolder, 'left-by-forge.txt'), 'planted');
+      expect(gitStatusLinesBelow(gaiaFolder)).toEqual([]);
+      writeFileSync(join(gaiaFolder, 'left-by-gaia.txt'), 'planted');
+      expect(gitStatusLinesBelow(gaiaFolder)).toEqual(['?? apps/gaia/left-by-gaia.txt']);
+    } finally {
+      removeScratchPath(repositoryFolder);
+    }
+  });
 });
