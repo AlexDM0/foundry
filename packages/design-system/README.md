@@ -127,9 +127,10 @@ content security policy without `font-src data:` blocks it. In a spec, pass a fa
 
 ## Use it from a host
 
-Add the folder to the host as a workspace package. In the host's `package.json`, set `"workspaces": ["design-system"]`
-and the dependency `"design-system": "workspace:*"`, then run `bun install`: it links `node_modules/design-system` to
-the folder.
+Add the folder to the host as a workspace package. In this repository it is `packages/design-system/`: the root
+`package.json` sets `"workspaces": ["apps/*", "packages/*"]`, and a host app declares the dependency
+`"design-system": "workspace:^"`. `bun install` at the repository root links `node_modules/design-system` to the
+folder.
 
 The `exports` map of `package.json` names each entry a host may import: each component, the helpers a host uses,
 `StateTone`, `FontLoader` and the entry stylesheet. Import each one by its name, never by a file path:
@@ -172,7 +173,7 @@ The package has its own Storybook 10 (React on Vite), configured in `.storybook/
 beside it, `<Component>.stories.tsx`, titled `<Layer>/<Component>`, with a story for each meaningful flag or variant.
 The Theme menu of the toolbar sets `data-theme` on the `html` element: light, dark, or auto, which follows the system.
 
-From the repository root, run `bun run storybook` to start it on port 6006, or `bun run storybook:build` to build it
+In `packages/design-system/`, run `bun run storybook` to start it on port 6006, or `bun run storybook:build` to build it
 into the git-ignored `storybook-static/`. The stories compile with the specs, under `tsconfig.spec.json`, and
 `StoryCoverage.spec.ts` holds that every exported component has its story.
 
@@ -185,12 +186,12 @@ with Bun types). The guard specs at the root of the package are listed in the co
 
 The folder can go to its own repository with no change to a source file:
 
-1. Move `design-system/` to the new repository.
+1. Move `packages/design-system/` to the new repository.
 2. Add the devDependencies of the specs to `package.json`: `typescript`, `@types/react`, `@types/bun`,
    `@testing-library/react` and `@happy-dom/global-registrator`, and a preload that registers the DOM for the
    `.dom.tsx` specs.
 3. In the host, remove the folder from `workspaces` and point the dependency `design-system` at the new repository
-   or a published version instead of `workspace:*`. The host's imports, such as `design-system/Button`, do not change.
+   or a published version instead of `workspace:^`. The host's imports, such as `design-system/Button`, do not change.
 4. The host's style guards (`ThemeTokens.spec.ts`, `ReducedMotionStopsEveryAnimation.spec.ts`,
    `HoverMovesNothing.spec.ts` and `StyleBraceBalance.spec.ts`) read the stylesheets of the package. Copy the checks
    of the package's stylesheets into the package before the split.

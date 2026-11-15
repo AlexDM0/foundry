@@ -18,7 +18,7 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 
 ```sh
 git clone git@github.com:AlexDM0/forge.git && cd forge
-./setup.sh                                  # once per machine; setup.ps1 on Windows
+apps/forge/setup.sh                         # once per machine; apps/forge/setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
 forge open                                  # starts the Overseer when none runs
@@ -37,7 +37,7 @@ the first sign of a missing one is a failing session.
 | You need | Why | Check |
 | --- | --- | --- |
 | macOS, Linux or Windows | macOS is the one platform it has run on; the others are built and never run ([Platforms](../cli.md#platforms)) | `uname` prints `Darwin` on macOS |
-| Bun at `.bun-version` or later | Runs the program; the bootstrap offers Bun's installer when Bun is missing, and the setup offers `bun upgrade` below `.bun-version` | `bun --version` |
+| Bun at the clone's `.bun-version` or later | Runs the program; the bootstrap offers Bun's installer when Bun is missing, and the setup offers `bun upgrade` below `.bun-version` | `bun --version` |
 | git | Worktrees, branches and [landings](../glossary.md#landing) | `git --version` |
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
 | A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
@@ -55,23 +55,25 @@ names ([Reading names](../glossary.md#reading-names)).
 ```sh
 git clone git@github.com:AlexDM0/forge.git
 cd forge
-./setup.sh
+apps/forge/setup.sh
 ```
 
-The setup is `setup.ts`, with its steps in `cli/setup/`. Two bootstraps start it: `setup.sh` on macOS and Linux, and
-`setup.ps1` on Windows (`powershell -ExecutionPolicy Bypass -File .\setup.ps1`). Each only finds Bun, offering Bun's
+The clone is a Bun workspace: the program is the app in `apps/forge/`, beside the packages it uses in `packages/`.
+The setup is `apps/forge/setup.ts`, with its steps in `apps/forge/cli/setup/`. Two bootstraps start it:
+`apps/forge/setup.sh` on macOS and Linux, and `apps/forge/setup.ps1` on Windows
+(`powershell -ExecutionPolicy Bypass -File .\apps\forge\setup.ps1`). Each only finds Bun, offering Bun's
 official installer when it is missing, and then starts `setup.ts`. With Bun installed, `bun run setup` starts it
-directly.
+directly in `apps/forge/`.
 
 | Step | What it does | Touches |
 | --- | --- | --- |
-| 1/4 Bun | Checks Bun against `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
-| 2/4 Dependencies | Runs `bun install` and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
+| 1/4 Bun | Checks Bun against the clone's `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
+| 2/4 Dependencies | Runs `bun install` for the whole workspace and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
 | 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your forge clone | `~/.claude/skills/` |
 | 4/4 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
 
-`./setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your repositories:
-adoption is the job of `init`.
+`apps/forge/setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your
+repositories: adoption is the job of `init`.
 
 Check the install yourself:
 
@@ -87,7 +89,7 @@ when they start, so it must be on your `PATH`.
 | --- | --- | --- |
 | Empty `command -v` | `~/.bun/bin` is not on your `PATH` | Add it to your `PATH` |
 
-After a `git pull`, run `./setup.sh` in your forge clone, then `forge update` in each tracked
+After a `git pull`, run `apps/forge/setup.sh` in your forge clone, then `forge update` in each tracked
 repository: the setup brings the dependencies up to date, and `update` refreshes the files `init` installed there.
 
 ## Adopt a repository
@@ -346,14 +348,14 @@ The Overseer does not come back after a reboot on its own. On macOS, an optional
 
 ```sh
 cd <your forge clone>
-./setup.sh --login-overseer ~/code/example-storefront
+apps/forge/setup.sh --login-overseer ~/code/example-storefront
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.overseer.plist
 ```
 
 The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginOverseer.ts`, through the Autostart port)
 writes one file, `~/Library/LaunchAgents/com.forge.overseer.plist`, which runs `oversee --detach` in that
-repository at login. On Linux it writes a systemd user unit, and on Windows (`setup.ps1 --login-overseer`) a `Run`
-registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
+repository at login. On Linux it writes a systemd user unit, and on Windows (`apps/forge/setup.ps1 --login-overseer`) a
+`Run` registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
 out and back in.
 
 A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores

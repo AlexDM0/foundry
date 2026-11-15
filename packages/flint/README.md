@@ -164,8 +164,8 @@ needs one only when it has values); and when a prop is not in the prop catalog.
    `flint/props/PropCatalog.ts`. A prop is a key of the pose type, which the pose module derives from that list, and a
    gesture's module depends on the pose type, so the prop catalog cannot be derived from the gestures without an import
    cycle.
-7. Look at it with the frame capture ("Look at an animation"), then run `bun run typecheck`, `bun run lint`,
-   `bun test --path-ignore-patterns='.claude/**' ./flint/gestures/<name>` and `bun run verify`.
+7. Look at it with the frame capture ("Look at an animation"), then run `bun test ./gestures/<name>` in
+   `packages/flint/`, and `bun run typecheck`, `bun run lint` and `bun run verify` at the repository root.
 
 ### What a behaviour gives
 
@@ -422,14 +422,14 @@ still moment under reduced motion and at each moment given (by default 160, 640,
 
 ```sh
 # Every intent, idle and every attendant:
-bun flint/testing/CaptureFlintFrames.ts capture <label>
+bun packages/flint/testing/CaptureFlintFrames.ts capture <label>
 # Some intents and attendants, at some moments:
-bun flint/testing/CaptureFlintFrames.ts capture <label> --intent hand-over --attendant watcher-spark --moments 300,900
+bun packages/flint/testing/CaptureFlintFrames.ts capture <label> --intent hand-over --attendant watcher-spark --moments 300,900
 # A gesture and its prop before they are registered: the bundle adds them to the catalogs, and the capture shows their intents:
-bun flint/testing/CaptureFlintFrames.ts capture <label> --gesture-module flint/gestures/hand-over/HandOverGesture.ts \
-  --prop-module flint/gestures/hand-over/ParcelProp.ts
+bun packages/flint/testing/CaptureFlintFrames.ts capture <label> \
+  --gesture-module packages/flint/gestures/hand-over/HandOverGesture.ts --prop-module packages/flint/gestures/hand-over/ParcelProp.ts
 # Compare two labels pixel by pixel; it exits 1 on a difference beyond anti-aliasing noise, or a missing picture:
-bun flint/testing/CaptureFlintFrames.ts compare <first label> <second label>
+bun packages/flint/testing/CaptureFlintFrames.ts compare <first label> <second label>
 ```
 
 `--emote-module`, `--attendant-module` and `--behaviour-module` add an emote, an attendant or a behaviour the same way; `--chrome <path>`
@@ -446,7 +446,7 @@ given the floating square, and a behaviour that takes an element the grey bar of
 into one file that opens in a browser with no server; `demo/build/` is git-ignored:
 
 ```sh
-bun build --compile --target=browser ./flint/demo/index.html --outdir=./flint/demo/build
+bun build --compile --target=browser ./packages/flint/demo/index.html --outdir=./packages/flint/demo/build
 ```
 
-Then open `flint/demo/build/index.html`.
+Then open `packages/flint/demo/build/index.html`.

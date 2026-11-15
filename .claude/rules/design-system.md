@@ -1,26 +1,28 @@
 ---
 paths:
-  - "design-system/**"
-  - "bridge/**"
+  - "packages/design-system/**"
+  - "apps/forge/bridge/**"
 ---
 
-# The design-system/ package
+# The design-system package
 
-- `design-system/` is the design system of the Bridge, as a portable package with its own `package.json`,
-  `tsconfig.json`, `tsconfig.spec.json` and `README.md`. Its rules are in `design-system/CONSTITUTION.md`: read it
-  before you change `design-system/`.
-- The root `package.json` makes `design-system/` a workspace package: `"workspaces": ["design-system"]` and the
-  dependency `"design-system": "workspace:*"`. `bun install` links `node_modules/design-system` to the folder, and
-  `bunfig.toml` keeps the hoisted linker. Bun, `Bun.build` and TypeScript resolve `design-system/<entry>` through the
-  `exports` of `design-system/package.json`.
-- `src/ImportDirection.spec.ts` holds that `design-system/` imports no file of the forge, and that a file outside it
-  imports it only as `design-system/<entry>`, with an entry that `design-system/package.json` exports. A relative or
-  absolute path into the folder, and an entry that the exports do not list, are findings.
-- `bun run typecheck` checks `design-system/tsconfig.json` (only the DOM library, no Bun or Node types) and
-  `design-system/tsconfig.spec.json` (the specs, the stories and `.storybook/`). `src/ProjectIncludeLists.spec.ts` holds
-  that its `include` list names only its own folder.
-- `bun run storybook` runs the package's Storybook 10; `design-system/StoryCoverage.spec.ts` holds a story per export.
-- `bridge/testing/RunDomSpecs.ts` runs the DOM specs of `design-system/` with those of the Bridge.
+- `packages/design-system/` is the design system of the Bridge, as a portable package with its own `package.json`,
+  `tsconfig.json`, `tsconfig.spec.json`, `eslint.config.js` and `README.md`. Its rules are in
+  `packages/design-system/CONSTITUTION.md`: read it before you change the package.
+- The root `package.json` makes each folder of `packages/` a workspace package, and `apps/forge/package.json` declares
+  the dependency `"design-system": "workspace:^"`. `bun install` at the repository root links
+  `node_modules/design-system` to the folder, and the root `bunfig.toml` keeps the hoisted linker. Bun, `Bun.build` and
+  TypeScript resolve `design-system/<entry>` through the `exports` of `packages/design-system/package.json`.
+- `src/ImportDirection.spec.ts` holds that the package imports no file of an app, and that forge imports it only by its
+  name, as `design-system/<entry>`, with an entry that `packages/design-system/package.json` exports, and only while
+  `apps/forge/package.json` declares it. A relative or absolute path into the folder, and an entry that the exports do
+  not list, are findings.
+- The package's `bun run typecheck` checks its `tsconfig.json` (only the DOM library, no Bun or Node types) and its
+  `tsconfig.spec.json` (the specs, the stories and `.storybook/`). `packages/design-system/ProjectIncludeList.spec.ts`
+  holds that its `include` list names only its own folder.
+- `bun run storybook` in `packages/design-system/` runs the package's Storybook 10;
+  `packages/design-system/StoryCoverage.spec.ts` holds a story per export.
+- `packages/design-system/testing/RunDomSpecs.ts`, the package's `test:dom` task, runs the DOM specs of the package.
 - The package knows no state of the board: a component takes a `StateTone` and shape flags.
   `bridge/utils/StateToneUtil.ts` maps each `DisplayState` and job state to its tone and flags, over a `Record` of every
   `DisplayState`, and every state-coloured element of the Bridge takes its look from it.

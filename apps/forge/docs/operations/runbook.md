@@ -418,7 +418,7 @@ A login item is optional and restarts nothing after a crash, only at login. From
 checkout, passing the tracked repository:
 
 ```bash
-./setup.sh --login-overseer /path/to/repository
+apps/forge/setup.sh --login-overseer /path/to/repository
 ```
 
 ### Starting the Overseer is refused

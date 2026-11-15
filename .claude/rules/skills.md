@@ -1,9 +1,9 @@
 ---
 paths:
-  - "skills/**"
-  - "resources/prompts/**"
-  - "resources/templates/**"
-  - "cli/adoption/**"
+  - "apps/forge/skills/**"
+  - "apps/forge/resources/prompts/**"
+  - "apps/forge/resources/templates/**"
+  - "apps/forge/cli/adoption/**"
 ---
 
 # Skills

@@ -1,6 +1,6 @@
 ---
 paths:
-  - "bridge/**"
+  - "apps/forge/bridge/**"
 ---
 
 # The Bridge
@@ -20,8 +20,8 @@ paths:
 - A visual change leaves the README screenshots stale: once it lands, run `.readme-graphics/regenerate.sh` in the
   long-lived checkout holding that code: the script shoots its own checkout.
 - `bridge/index.html` links the package's entry stylesheet, `design-system/design-system.css`, first, then
-  `bridge/styles/tokens.css`, then `bridge/styles/board.css`. `design-system/styles/tokens.css` holds every token of
-  the theme.
+  `bridge/styles/tokens.css`, then `bridge/styles/board.css`. `packages/design-system/styles/tokens.css` holds every
+  token of the theme.
   `bridge/styles/tokens.css` holds only the tokens that only the Bridge's classes read. `bridge/styles/board.css` holds
   every class of the Bridge. All of them are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every
   class a Bridge component emits is styled and every styled class is emitted. It also holds that no Bridge component
@@ -33,11 +33,11 @@ paths:
   animation outside `prefers-reduced-motion: no-preference`. The reduce rule must win: a higher specificity, or the same
   specificity later in the file. A scroll timeline is not motion.
 - `bridge/StyleBraceBalance.spec.ts` holds that each stylesheet closes each brace that it opens.
-- These three guards and `bridge/ThemeTokens.spec.ts` read the stylesheets of `bridge/styles/` and of `design-system/`.
+- These three guards and `bridge/ThemeTokens.spec.ts` read the stylesheets of `bridge/styles/` and of
+  `packages/design-system/`.
 - React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
-  entities. `eslint.config.js` bans
-  `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/` and `design-system/`; agent-written
-  HTML reaches the DOM
+  entities. `eslint.config.js` bans `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/`,
+  and `packages/design-system/eslint.config.js` bans them in the package; agent-written HTML reaches the DOM
   only as a sandboxed iframe's `srcdoc`, whose fixed markup is the one place `escapeHtml` is used, for its title, theme
   and stylesheet addresses.
 - A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
@@ -50,8 +50,8 @@ paths:
 - While the board has no readable `pipeline.json`, the Bridge shows only the Pipeline tab
   (`bridge/shell/HashRouter.ts`). The header then shows the setup stepper in place of the statistics, the Overseer
   controls and the tabs (`setupSteps` in `bridge/shell/HeaderModel.ts`). A done step links back to its route.
-- The reusable components of the Bridge are in `design-system/` (see `.claude/rules/design-system.md`). A component that
-  only the Bridge uses is in `bridge/`.
+- The reusable components of the Bridge are in `packages/design-system/` (see `.claude/rules/design-system.md`). A
+  component that only the Bridge uses is in `bridge/`.
 - `bridge/shell/` holds what the entry starts with: the hash router, the theme bootstrap, the embedded channel (theme in
   and Esc out by `postMessage`, only with the framing parent's origin), the banners and the error boundary.
   `bridge/api/` holds the clients of the Overseer's API. Every control sends its `ControlCommand` through

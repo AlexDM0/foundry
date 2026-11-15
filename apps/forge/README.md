@@ -145,18 +145,20 @@ Linux and Windows have adapters for every OS-dependent part, proved only over fa
 
 ```sh
 git clone https://github.com/AlexDM0/forge.git && cd forge
-./setup.sh
+apps/forge/setup.sh
 ```
 
-On Windows, in PowerShell, run `setup.ps1` in place of `setup.sh`. It needs no administrator rights and no bash:
+The clone is a Bun workspace: forge is the app in `apps/forge/`, and the packages it uses are in `packages/`. On
+Windows, in PowerShell, run `apps\forge\setup.ps1` in place of `apps/forge/setup.sh`. It needs no administrator rights
+and no bash:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\apps\forge\setup.ps1
 ```
 
 Both scripts only make sure Bun is installed, offering Bun's own installer, and then hand over to `setup.ts`, which runs
-the same four steps on every system. With Bun already installed, `bun run setup` starts `setup.ts` directly. Setup
-refuses a Bun older than the version `.bun-version` pins, and offers `bun upgrade`. On Windows, step 2 offers to add
+the same four steps on every system. With Bun already installed, `bun run setup` in `apps/forge/` starts `setup.ts`
+directly. Setup refuses a Bun older than the version the clone's `.bun-version` pins, and offers `bun upgrade`. On Windows, step 2 offers to add
 Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
 
 <p align="center">

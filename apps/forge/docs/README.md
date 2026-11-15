@@ -76,5 +76,5 @@ reasons a released spelling still appears.
 | --- | --- | --- | --- |
 | Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | Component names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
-| Flint, the sprite | `flint/CreateFlint.ts` | `createFlint` | `flint/CreateFlint.dom.tsx` |
+| Flint, the sprite | `packages/flint/CreateFlint.ts` | `createFlint` | `packages/flint/CreateFlint.dom.tsx` |
 | Flint in the Bridge | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |

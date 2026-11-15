@@ -49,8 +49,8 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 
 ## Flint parts not built
 
-The build of Flint (`flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff. Two parts
-of the handoff are agreed and not built.
+The build of Flint (`packages/flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff. Two
+parts of the handoff are agreed and not built.
 
 | Part | Why it waits | Waits for |
 | --- | --- | --- |
