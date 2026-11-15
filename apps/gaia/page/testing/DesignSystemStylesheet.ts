@@ -44,7 +44,7 @@ let fontFaceRulesText: string | null = null;
 
 export const DesignSystemStylesheet = {
   /** The entry stylesheets as a bundler links them: every imported stylesheet in place of its import, in order. */
-
+  text(): string {
     return ENTRY_STYLESHEET_EXPORTS.map((entryExport) => PackageStylesheet.inlinedText(entryExport)).join('\n');
   },
 
