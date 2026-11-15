@@ -1,14 +1,25 @@
 # Forge and Gaia in one monorepo, and forge in a part of a repository
 
-Status: design, 2026-11-13, revised after an independent review against the code. Nothing is built.
+Status: design of 2026-11-13, revised on 2026-11-15 against forge `db64ed0a` and Gaia `1418f76` and to the owner's decisions of that
+day. Part A is being built; Part B is designed and not built. The steps, their owners and their status are the migration checklist,
+`docs/monorepo/migration.md`; where the two differ, the checklist holds.
 
-Decisions taken by Alex on 2026-11-13:
+Decisions taken by the owner on 2026-11-13:
 
 1. Several forge trackers must be able to live side by side in one git repository.
 2. A tracker's agents may change their home folder plus folders the tracker declares; nothing else.
 3. Forge's repository becomes the monorepo; Gaia's history is imported into it.
 
-Open decisions are listed at the end.
+Decisions taken on 2026-11-14 and 2026-11-15:
+
+4. Gaia uses forge's design-system package. Gaia's contributions, its fourteen patches and its requirements list merge into that
+   package.
+5. Turborepo runs the repository's tasks and caches them, tests included, in one cache folder for the whole repository.
+6. Two trackers run in the repository: forge's at `apps/forge`, Gaia's at `apps/gaia`. So Part B is required.
+7. The installed forge runs from a second clone outside the monorepo, updated by pulling. Forge's network guard is unchanged.
+8. Forge and Gaia are released apart and meet only through system versions (below).
+9. Monorepo concerns are monorepo infrastructure. A forge change leaves forge's behaviour in every other project unchanged (a tracker
+   at a git root behaves exactly as today), or is a deliberate, opt-in feature.
 
 ## Part A. The monorepo
 
@@ -16,238 +27,261 @@ Open decisions are listed at the end.
 
 ```
 <forge repository, git root>
-  package.json            workspaces apps/*, packages/*; catalog for shared versions;
-                          scripts lint, typecheck, verify that fan out per package
-  bun.lock  .bun-version  .githooks/  .gitattributes  tsconfig.base.json
-  apps/forge/             today's forge root, moved as is (cli, src, bridge, skills, resources,
-                          setup.*, launcher.ts, bunfig.toml, tsconfig.json, eslint.config.js,
-                          CLAUDE.md, README.md, docs/)
-  apps/gaia/              today's gaia main (src, page, bunfig.toml, tsconfig.json)
-  packages/design-system/ tokens, shared components, their CSS, style contract spec
-  packages/flint/         forge's flint/ folder
-  packages/overseer-contracts/   (proposed) contract types and recorded fixtures
+  package.json            workspaces apps/*, packages/* (and migration/* until the design-system merge);
+                          scripts typecheck, lint, verify, verify:<app>, gate:<app>, cache:audit, each through turbo
+  turbo.json              the tasks typecheck, lint, test, test:dom (cached) and check (uncached)
+  bun.lock  .bun-version  bunfig.toml  .githooks/  .gitattributes  scripts/CacheAudit.ts
+  CLAUDE.md  README.md    which rules govern what; how to set up and verify
+  docs/monorepo/          this design and the migration checklist
+  apps/forge/             forge's former root, moved as is (cli, src, bridge, skills, resources, setup.*, launcher.ts,
+                          bunfig.toml, tsconfig.json, eslint.config.js, turbo.json, CLAUDE.md, README.md, docs/)
+  apps/gaia/              Gaia (src, page, resources, docs, bunfig.toml, tsconfigs, eslint.config.js, CLAUDE.md)
+  packages/design-system/ the design system both apps draw with, under its CONSTITUTION.md
+  packages/flint/         forge's Flint
+  packages/forge-contracts/  forge's contract with any client: documents, system versions, compatibility registry
+  packages/brand/         forge's mark, its tokens and the geometry a host's mark may draw alike
+  packages/system-versions/  the version model and the compatibility registry's logic, naming no server
+  packages/design-system-contributions/  Gaia's parts for the design system, until the merge moves them in
+  migration/design-system-patches/       Gaia's patches against the design system, until the merge applies them
 ```
 
-### Tooling: Bun workspaces, nothing else
+### Tooling: Bun workspaces and Turborepo
 
-No Turborepo or Nx: two apps, three packages, no build step. Checked on Bun 1.4.2 in a scratch
-repository, by the design and again by the review:
+Turborepo 2.11.10, pinned at the root, runs each workspace's own scripts in its own folder. No Nx, no build step: packages export
+TypeScript source directly.
 
-- One `bun.lock` at the root; `workspace:*` resolves; each package gets its own `node_modules`
-  with links. `catalog:` resolved in the design's check only.
-- Packages export TypeScript source directly; no build step.
-- `Bun.build` on an HTML entrypoint inlines `@import "@forge/design-system/tokens.css"` from a
-  workspace package, so forge's runtime bundle on first `GET /` keeps working.
-- `bun test` from the monorepo root does NOT apply a package's `bunfig.toml` preload, and both
-  apps depend on theirs (HOME moved to scratch, leak check). The root never runs `bun test`; root
-  `verify` is `bun run --filter '*' verify`.
-
-Forge's `@types/bun ^1.3.14` is aligned to Gaia's exact `1.4.2` pin.
+- One `bun.lock` at the root and the hoisted linker. A consumer declares each package it imports at `workspace:^`, never `workspace:*`,
+  so Turborepo reruns it when the package changes and a release names a version range. There is no `catalog:` and no
+  `tsconfig.base.json`.
+- Every workspace has the task names `typecheck`, `lint`, `test`, `test:dom` and `check`. `check` reads the machine (installed versions,
+  recording stamps), so it is never cached.
+- `bun test` from the root does not apply a workspace's `bunfig.toml` preload, and every app depends on its own (`HOME` moved to
+  scratch, the leak check). The root never runs `bun test`; root `verify` is `turbo run typecheck lint test test:dom check`.
+- `Bun.build` on an HTML entrypoint inlines a stylesheet from a workspace package, so forge's Bridge bundle and Gaia's page build keep
+  working.
+- **One cache folder,** turbo's default `.turbo/cache` in the main checkout. Every linked worktree, a person's
+  `.claude/worktrees/<name>` and a tracker's ticket worktree alike, finds it through git's common directory. No `cacheDir`,
+  `--cache-dir` or `TURBO_CACHE_DIR`, any of which turns that off. A task's key is its inputs' content, so a change to `apps/gaia` leaves
+  forge's entries valid and the reverse: the isolation per project is in the hashes, not in folders. Strict environment mode hashes
+  `BUN_RUNTIME_VERSION`; files a task reads outside its package are declared as `$TURBO_ROOT$` inputs.
+- **The cache is monorepo infrastructure only; it changes no forge or Gaia code.** Each tracker's gate is configuration with forge's
+  existing flags: `gate add verify --writes <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by
+  /bun.lock -- bun run gate:<app>`. `gate:<app>` runs every workspace's `typecheck lint test test:dom`, then `check` for that app only,
+  so one app's stale recording stamp never turns the other tracker's gate red. Forge copies a gate's `--writes` into its agents'
+  sandboxes, which is the intended shared read-write cache.
+- **Trust:** agents can write the cache, so a planted pass is possible. An Overseer-only merge gate audits it:
+  `gate add cache-audit --overseer-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
+  past the cache, the tasks of every package changed since the target and of their dependents; on red it removes those tasks' entries
+  and exits non-zero, so forge refuses the landing.
+- A cached indicator for gate runs is a forge feature, stack-neutral and opt-in: forge hands every gate run a report path, a gate may
+  write whether its run was a cache hit, partial or a miss, and the Bridge's pipeline view marks it. The `gate:*` and `cache:audit`
+  scripts write it from turbo's run summary.
 
 ### What changes in forge because it is no longer at the git root
 
-- Install: `setup.ts` passes `import.meta.dir`, so re-running `apps/forge/setup.sh` re-points the
-  compiled launcher (`LAUNCHER_TOOL_DIRECTORY`) and `bun link`. The login item stores the
-  repository path (`cli/setup/LoginOverseer.ts:72-79`) and must be re-created too.
-- `HooksPathStep` must set `core.hooksPath` from the git toplevel. `.githooks/pre-commit` runs
-  `bun run lint` and `typecheck` at the toplevel, so the root `package.json` needs those scripts.
-- `CodeVersion` hashes `cli, src, bridge, resources, skills` under the program root and drops
-  `bun.lock`. It must hash the workspace packages forge depends on and the root lockfile.
-- Guards that read the program root keep working after the move because their files move along
-  (`ProseWrap`, `DocumentSpecCitations`, `ProductNames`). Guards that need the workspace root:
-  `BunVersionPin` (`bun.lock`, `.bun-version`), `LineEndingPolicy` (`.gitattributes`).
-- `eslint.config.js` stays per app (its `allowedIn` paths and ignores are relative to it).
-- Package boundary rules are new work, not a rename: `ImportGraph.ts:59-63` treats package
-  specifiers as opaque, so `ImportDirection` and the Bridge's DOM-safety proof stop at a package.
-  The graph must follow workspace packages; rules added: packages import nothing from `apps/`,
-  apps import a package only by name.
-- DOM specs: `bridge/testing/RunDomSpecs.ts` globs `bridge/**/*.dom.tsx` with forge preloads, and
-  `TestFileConventions` allows `.dom.tsx` only under `bridge/`. Packages get their own DOM spec
-  runner and one spec suffix (forge's `.dom.tsx`; Gaia's `.spec.tsx` component specs are renamed
-  when they move).
-- Network guard: `GuardCommand` refuses an entry script inside the repository, and such a job's
-  Bash and WebFetch are denied (`ClaudeCodeAdapter.ts:111`). With forge's program living in
-  `apps/forge`, every tracker in the monorepo would inherit that restriction, which today only
-  forge-on-forge has. Therefore: the installed forge runs from a second clone outside the
-  monorepo's working tree (the tool is not the development checkout). See open decision 1.
+- **Install:** the installed forge runs from a second clone outside the monorepo, updated by pulling. Its `setup.sh` re-points the
+  compiled launcher (`LAUNCHER_TOOL_DIRECTORY`) and `bun link`, and the login items are created again from there, since a login item
+  stores the repository path. So no program a job can write guards it, and the network guard stays as it is.
+- **Hooks:** setup's `HooksPathStep` needs no change: it writes the relative `.githooks`, which git resolves from each worktree's root.
+  `.githooks/pre-commit` runs the root's `bun run lint` and `typecheck`. Agents' forced hooks path is another matter (Part B rule 10).
+- **`CodeVersion`** hashes the program folders, each workspace package forge depends on, and the root `bun.lock`. A landing into a
+  shared package therefore shows both trackers' Overseers newer code on disk; the restart notice says so.
+- **Guards:** those that read the program root keep working because their files moved along (`ProseWrap`, `DocumentSpecCitations`,
+  `ProductNames`). `BunVersionPin`, `LineEndingPolicy` and the `.claude/rules/` readers read the workspace root. The guards that walk the
+  program root also walk each workspace package forge declares, each asserting it found files. The source walk skips `.forge/` and
+  `.forge-worktrees/` at any depth, since a project tracker's ticket worktrees sit under its program root.
+- **Package boundaries:** `ImportGraph` already resolved workspace packages from the program root's `package.json`; it now reads each
+  package forge declares, under a folder named after it. Rules: a package imports nothing from `apps/`; an app imports a package only by
+  its name and only while its `package.json` declares it.
+- **DOM specs:** each package has its own DOM spec runner and preload; one spec suffix, forge's `.dom.tsx`.
+- **Lint:** `eslint.config.js` per workspace; no root config.
 
 ### packages/flint
 
-`flint/` is pure UI (its only outside imports are `react`, `bun:test` and
-`@testing-library/react`), 75 files on disk. It exists only as untracked files in forge worktree
-`flint-design-handoff-build-5122bd`, with zero commits: commit it before anything else. Moving it
-needs a package manifest and the package DOM runner above; the sources move unchanged.
-
-Only forge consumes it. Gaia v2 decision V2 (Gaia draws no Flint) stands and the brain stays in
-the forge's Overseer. The package buys a boundary, not reuse by Gaia.
+Pure UI, committed and a workspace package that only forge declares. The Bridge imports it by name (`flint`, `flint/react`, ...). Gaia
+draws no Flint, and the brain stays in the forge's Overseer: the package buys a boundary, not reuse by Gaia.
 
 ### packages/design-system
 
-This reverses Gaia decisions D8/V8 ("own copy, drift accepted") and D12 ("the build writes only in
-the Gaia repository"). Contents:
+Forge's design-system package, with its own README and constitution, is the design system both apps draw with. This reverses Gaia's
+decisions D8/V8 ("own copy, drift accepted") and D12 ("the build writes only in the Gaia repository"); Gaia's own copies of shared
+components are gone. Gaia's additions arrive through the design-system merge: the parts of `packages/design-system-contributions` move
+into the package beside the layer they belong to, each of the fourteen patches is implemented in the package with the patch as its
+specification, Gaia switches its call sites over, and `packages/design-system-contributions` and `migration/` are deleted. The design
+of 2026-11-13's "nine shared names, forge's version as base", the `board.css` split and the neutral prefix are done or moot.
 
-- `tokens.css`: graphite-and-orange lands here once, for both apps.
-- Fonts: the files live in the package; each app serves that folder at `/fonts/<file>` as Gaia
-  v2 section 8 specifies, and `@font-face` uses those absolute URLs. Not bundled: `Bun.build`
-  turns bundled fonts into hashed chunks.
-- Components: only nine names exist in both apps (Button, Meter, ChoiceOption, Tag,
-  SegmentedControl, Callout, Banner, MicroCapsLabel, FactList), each diverged by 30 to 118 lines.
-  Those nine move first, forge's version as the base, each Gaia difference kept or dropped
-  deliberately. The other forge and Gaia components move when the second app needs them.
-- `design-system.css` with only those components' classes, split out of forge's `board.css`
-  (2,688 lines) and Gaia's `gaia.css`. Forge's classes are prefixed `bridge-`; the package needs
-  one neutral prefix.
-- The style contract spec, split: the package pins its components against its CSS; each app pins
-  its own classes.
-- Seven forge components import `DisplayState` from the tracker model. The package owns its own
-  state-tone type; forge asserts at type level that `DisplayState` fits.
+### The shared contracts
 
-### packages/overseer-contracts (proposed, not asked for)
+`packages/forge-contracts` (the design's proposed `overseer-contracts`) exists: forge's documents as types, forge's system versions and
+its compatibility registry, with the raise-the-minimum report and guard. `packages/system-versions` holds the version model any server
+and client share. `packages/brand` holds forge's mark. None names Gaia. The recorded fixtures stay with Gaia, the reader, because a
+recording is of a released forge, never of the source beside it.
 
-Gaia's largest recurring cost so far was contract drift (W7.2 re-record, D5 monitor contract 2),
-not styling. A package with the summary, monitor, control and embed types, version constants and
-recorded fixtures, produced by forge and consumed by Gaia, removes the copy. Recorded fixtures
-stay, because Gaia must talk to forges of other versions.
+Not shared: `ProductNames`, `Limits`, `AtomicFile`, the recording harness. Small and diverged; sharing them adds coupling for little gain.
 
-Not proposed: sharing `ProductNames`, `Limits`, `AtomicFile`, the recording harness. Small and
-diverged; sharing them adds coupling for little gain.
+### How forge and Gaia release apart
 
-### Migration order
-
-Part A does not need Part B: forge's own tracker can stay at the git root (prefix `''`, gates with
-`in: apps/forge`) until Part B exists. That keeps Gaia v2's look work from waiting on Part B.
-
-0. Commit Flint in its worktree. Land or rebase the open forge branches; three are 104 to 107
-   commits ahead of main in files this work touches.
-1. Quiesce: no live jobs, Overseer stopped, agent worktrees removed.
-2. Restructure forge's repository: `git mv` to `apps/forge`, root workspace files; tracker
-   `.forge/` stays at the git root (it is gitignored, so `git mv` would not move it anyway).
-   Clone the install checkout (open decision 1), re-run setup and the login item.
-3. Import Gaia with signatures intact: in Gaia, one commit that moves everything under
-   `apps/gaia`; in forge, fetch Gaia's `main` and `git merge --allow-unrelated-histories`. No
-   history rewrite, no extra tool. Land or drop Gaia's D5 worktree first.
-4. `packages/design-system` (tokens and the nine components), then graphite-and-orange in it. This
-   is Gaia v2's "design-system section lands first".
-5. `packages/flint`.
-6. `packages/overseer-contracts`.
-7. When Part B is built: move forge's tracker to `apps/forge/.forge` by hand (ignored files),
-   add a tracker for Gaia if wanted.
+- Each app and each shared package carries its own semantic version. The shared packages are publishable, not private.
+- `workspace:^` becomes a version range such as `^0.1.0` on release, so an app's release names the oldest package version it builds
+  with, not the repository's commit.
+- At runtime a forge and a Gaia meet only on the wire, through system versions:
+  - Forge never knows Gaia. Nothing forge serves, and nothing in a package forge depends on, names Gaia; `forge-contracts` and `brand`
+    each hold this with a guard spec.
+  - Each system has one system version, major.minor by interoperability, never its package version: a minor only adds; a major may break
+    a client of an older major.
+  - A server answers its current system version and its minimum supported, which it alone decides, at `GET /api/versions`, unversioned
+    and never removed. REST endpoints are versioned by path, `/api/v<n>/<endpoint>`, side by side, with no per-endpoint version in their
+    answers. A message protocol carries the system version in its handshake and every message. Stored files keep their own format
+    version.
+  - A server's compatibility registry names everything it keeps for clients of older versions, each with the version that introduced it
+    and the last that still needs it; a raise-the-minimum dry run (`bun run versions:raise-minimum <major.minor>`, in its own folder)
+    lists what becomes removable, and a guard spec fails after a raise until it is removed. Forge's is
+    `forge-contracts/ForgeCompatibilityRegistry`; Gaia's own, toward its page and launcher, is
+    `apps/gaia/src/shared/constants/GaiaCompatibilityRegistry.ts`.
+  - Gaia supports exactly one forge version, `SUPPORTED_FORGE_VERSION`, and keeps no backward compatibility for any other. In the
+    monorepo it strives for the latest: its `check` warns while it is behind forge's current version. Per forge, from its
+    `/api/versions`: current, ahead (Gaia still talks), newer (Gaia needs an update) or older (the forge needs one: Update forge).
+- A forge system minor bump is a package minor bump of `forge-contracts`; a system major bump, or a removed or changed type, a package
+  major bump.
+- Gaia tests what it does with a forge's answers against recordings of forges at the versions it meets, each stamped with the forge's
+  version, or authored from the forge requirements until a released forge serves them, never against the forge source beside it.
 
 ## Part B. Forge in a part of a repository
 
+Line numbers below are forge's at `db64ed0a`, under `apps/forge/` since the move.
+
 ### Finding
 
-Forge can already put a tracker in a subdirectory (`init --root`; `findWorkspace` walks up to the
-nearest `.forge/progress.json`). What fails is that the single `Workspace.rootDirectory` is then
-used as several different things. Agent worktrees are whole-repository checkouts and git reports
-paths relative to the git toplevel, so with a subdirectory tracker these silently stop matching:
-the `.claude/` and `.forge/` patterns in Customs (`Customs.ts:266-268,284`), `definedBy` globs,
-`git show <rev>:path` (`InstructionFiles.ts:74`, `DrivePass.ts:350`), the sandbox's `.claude` deny
-(`WorkerProfiles.ts:141,156`) and the CLAUDE.md exclusion (`ClaudeCodeAdapter.ts:121-128`).
+Forge can already put a tracker in a subdirectory (`init --root`; `findWorkspace` walks up to the nearest `.forge/progress.json`). What
+fails is that the single `Workspace.rootDirectory` is then used as several different things: the git directory, the main checkout, the
+project folder, the session's working directory and the instructions root, about 250 uses in 43 non-spec files. Agent worktrees are
+whole-repository checkouts and git reports paths relative to the toplevel, so with a subdirectory tracker these silently stop matching:
+the `.claude/`, `.mcp.json` and `.forge/` patterns in Customs (`Customs.ts:288-294,475`), `definedBy` globs (`Customs.ts:366-382`),
+`git show <rev>:path` (`InstructionFiles.ts:97,156,160`, `DrivePass.ts:383-386`), the sandbox's `.claude` deny
+(`WorkerProfiles.ts:142,157`) and the CLAUDE.md exclusion (`ClaudeCodeAdapter.ts:120-128`).
+
+Three things the first design missed are load-bearing:
+
+- **The git ceiling.** `GitWorktrees.ceilingOf(path)` is `dirname(path)` (`GitWorktrees.ts:44-46`), passed as `GIT_CEILING_DIRECTORIES`
+  (`GitProcess.ts:42`) at 36 call sites. Git run in a project folder with its parent as the ceiling is "not a git repository", so, for
+  one, a held target's cleanliness check fails and the target never clears.
+- **Root-anchored paths:** the constitution (`InstructionFiles.ts:32`, committed by `ConstitutionCommits.ts:90-103`, landed by
+  `Airlocks.ts:1099`), the managed block's `${target}:CLAUDE.md` (`DrivePass.ts:383-386`) and agents' forced hooks path
+  `join(rootDirectory, '.githooks')` (`WorkerProfiles.ts:356`, `DrivePass.ts:654`): with a project tracker the last points at a folder
+  that does not exist, and agent commits silently skip the pre-commit hook.
+- **The foreign-ref check fails with one tracker already.** `refsOf` reads every ref and every detached worktree HEAD
+  (`Customs.ts:561-578`), and the main line is not exempt, so a person's commit in `.claude/worktrees`, a new branch, a `git stash`, a tag
+  or a fetch during a job fails it with `foreign-ref-moved`.
 
 ### Five names instead of one
 
 | Name | Meaning | Root tracker | Tracker in `apps/forge` |
 |---|---|---|---|
-| `repositoryRoot` | git toplevel of the main checkout | `/r` | `/r` |
+| `repositoryRoot` | the main checkout's root | `/r` | `/r` |
 | `projectDirectory` | folder that holds `.forge/` | `/r` | `/r/apps/forge` |
 | `projectPrefix` | project relative to repository | `''` | `apps/forge` |
 | `worktreeRoot` | toplevel of one agent checkout | `…/ticket-7` | `…/ticket-7` |
 | `projectDirectoryInWorktree` | `worktreeRoot` + `projectPrefix` | `…/ticket-7` | `…/ticket-7/apps/forge` |
 
-`projectPrefix` is computed at start, never stored, so moving a package needs no migration. With
-prefix `''` every rule reduces to today's behaviour.
+`projectPrefix` is computed at start, never stored, so moving a package needs no migration. With prefix `''` every rule reduces to
+today's behaviour.
 
 ### Rules
 
-1. Tracker and worktrees stay with the project: `<projectDirectory>/.forge/` and
-   `<projectDirectory>/.forge-worktrees/`. The nested `.gitignore` forge writes already works.
-2. Tracker lookup: the walk-up stays (it reaches the owning tracker from inside an agent
-   worktree, because `.forge` is ignored and so absent from worktrees). The git fallback
-   (`Workspace.ts:82-84`) only tests the main toplevel today; it must take the current directory's
-   path relative to its own toplevel, apply it to the main checkout, and walk up from there.
-   Without this, `.claude/worktrees/<name>/apps/forge` finds no tracker.
-3. An agent session starts in `projectDirectoryInWorktree`; gate `in` and the transcript slug use
-   it too. Prepare steps get an `in`. A leading `/` in `in` means the repository root, needed for
-   `bun install` at the workspace root.
-4. The agent's write root and Edit/Write scope is `worktreeRoot`, not its working directory
-   (today both are the same value: `WorkerProfiles.ts:236-247`, `ClaudeCodeAdapter.ts:100-101`).
-   Otherwise reach folders and a root install are not writable. The sandbox denies `.claude` at
-   the worktree root and at the prefix.
+1. Tracker and worktrees stay with the project: `<projectDirectory>/.forge/` and `<projectDirectory>/.forge-worktrees/`. The nested
+   `.gitignore` forge writes already works.
+2. Tracker lookup: the walk-up stays (it reaches the owning tracker from inside an agent worktree, because `.forge` is ignored and so
+   absent from worktrees). The git fallback (`Workspace.ts:88-90`) takes the current directory's path relative to its own toplevel,
+   applies it to the main checkout's root, and walks up from there. Without this, `.claude/worktrees/<name>/apps/forge` finds no
+   tracker. `init` without `--root` chooses the main checkout's root (`RepositoryRoot.ts:43-50`), not the current worktree's toplevel, and
+   says so. A session at the root of a repository whose trackers all sit in projects gets no tracker's instructions.
+3. An agent session starts in `projectDirectoryInWorktree`, and gate `in` resolves from it (`GateRun.ts:211-213`, `JobLaunch.ts:1634`).
+   Prepare steps get an `in`, and a leading `/` in `in` means the repository root, needed for `bun install` at the workspace root. Both
+   change the pipeline file's format, a version bump: a forge refuses a pipeline file of another version (`older-pipeline`), and nothing
+   migrates. The pipeline agent's snapshot, gate profiling and pipeline checking each add a detached worktree of the whole repository and
+   run there at `projectDirectoryInWorktree` too; tree portability findings are scoped to the project. The transcript slug needs no
+   change: a job's transcripts are found by session id.
+4. The agent's write root and Edit/Write scope is `worktreeRoot`, not its working directory (today both are the same value:
+   `WorkerProfiles.ts:237-249`, `ClaudeCodeAdapter.ts:100-101`). Otherwise reach folders and a root install are not writable. The sandbox
+   denies `.claude` at the worktree root and at the prefix.
 5. Reach: the tracker declares repository paths besides its home, for example
-   `"reach": ["/packages/design-system", "/bun.lock", "/package.json"]`. Customs rejects a change
-   outside home plus reach. The sandbox cannot enforce this (installs write `node_modules` across
-   the workspace), so Customs is the enforcement point and rule 4's denies are the early guard.
-6. A landing that changes anything in reach outside home also runs a repository gate (`in: /`,
-   the workspace `verify`), so a forge ticket cannot turn Gaia red through a shared package.
-7. Git path mapping in one place: `toRepositoryPath(projectPath)`, `toProjectPath(repositoryPath)`.
-   Everything git hands back is mapped before comparison; everything handed to git is mapped on
-   the way in. Paths in tickets, `definedBy` and the pipeline are project-relative; a leading `/`
-   is repository-relative.
+   `"reach": ["/packages/design-system", "/bun.lock", "/package.json", "/turbo.json"]`. Customs rejects a change outside home plus
+   reach. The sandbox cannot enforce this (installs write `node_modules` across the workspace), so Customs is the enforcement point and
+   rule 4's denies are the early guard.
+6. Every tracker's gate is a whole-repository gate (`bun run gate:<app>`, at `in: /`), so a forge ticket cannot turn Gaia red through a
+   shared package, and Turborepo makes the untouched workspaces a cache replay. No separate repository gate is needed.
+7. Git runs at a toplevel only: `repositoryRoot` for the main checkout, `worktreeRoot` for a job. The project prefix is applied to
+   paths, never to the directory git runs in, which also keeps cwd-relative forms (`git checkout -- .`, `git ls-files`) honest. Path
+   mapping lives in one place: `toRepositoryPath(projectPath)`, `toProjectPath(repositoryPath)`. Everything git hands back is mapped
+   before comparison; everything handed to git is mapped on the way in. Paths in tickets, `definedBy` and the pipeline are
+   project-relative; a leading `/` is repository-relative. That covers the constitution (`<prefix>/CONSTITUTION.md`), the managed block
+   (`<target>:<prefix>/CLAUDE.md`), `definedBy` (a pattern with an inner `/` anchors at the project, a bare name matches within the
+   project only, a `/` pattern at the repository) and the ticket body's naming of a path (`Customs.ts:414`).
 8. Protected paths match at any depth: `(^|/)\.claude/`, `(^|/)\.mcp\.json$`, any `.forge/`.
-9. Instruction files: exclude CLAUDE.md above `repositoryRoot`, not above the project, so the
-   monorepo's root CLAUDE.md applies. Nested worktrees sit under the main checkout's CLAUDE.md
-   files; those main-line copies must be excluded so only the branch's own load.
-10. `core.hooksPath` is resolved from `repositoryRoot`.
-11. Installed files (`.claude/skills`, settings hooks, briefs) go under `projectDirectory`, and
-    the orchestrator session starts there. Unverified: that Claude Code loads
-    `<project>/.claude/settings.json` hooks when started in a subfolder of a repository.
+9. Instruction files: exclude CLAUDE.md above `repositoryRoot`, not above the project, so the monorepo's root CLAUDE.md applies. Nested
+   worktrees sit under the main checkout's CLAUDE.md files; those main-line copies are excluded so only the branch's own load. An
+   ancestor's unscoped `.claude/rules/*.md` load in a subfolder session too, and `claudeMdExcludes` excludes them by an absolute path or
+   a glob, never by a bare folder path (probe P20 in `apps/forge/docs/development/overseer-claude-probe.md`).
+10. `core.hooksPath` is resolved from `repositoryRoot`, for setup and for agents' forced hooks path alike, ideally by reading the main
+    checkout's configured `core.hooksPath`.
+11. Installed files (`.claude/skills`, settings hooks, briefs) go under `projectDirectory`, and the orchestrator session starts there.
+    Probed (P18, P19): a session started in a subfolder loads that subfolder's `.claude/settings.json` hooks and its own and every
+    ancestor's skills, but not the root's `.claude/settings.json`; `$CLAUDE_PROJECT_DIR` is the folder the session started in, so a hook
+    script that must run from both finds itself by its own path.
+12. Gate sandboxes may reach localhost in every project; the outside network stays denied (Gaia's specs fetch `127.0.0.1`).
 
 ### Several trackers in one repository
 
-The review showed that a lock and separate branch names are not enough: today each tracker treats
-any ref it did not move itself as foreign. Customs snapshots every ref and every detached worktree
-HEAD and fails the job with `foreign-ref-moved` (`Customs.ts:489-538`, `JobLaunch.ts:617`); a moved
-main tip is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:83-92`,
-`Airlocks.ts:801-816`). Two Overseers would fail and park each other's work continuously.
+A lock and separate branch names are not enough: today each tracker treats any ref it did not move itself as foreign. A moved main tip
+is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93`, `Airlocks.ts:899-915`).
 
-- Branch namespace: each tracker gets a `branchNamespace` in `progress.json`, set by `init`:
-  `forge/<namespace>/ticket-<id>`, `…/group-<name>`. A tracker without the field keeps today's
-  bare names. The sandbox's ref denies (`WorkerProfiles.ts:335,347`, hard-coded `ticket-` and group
-  prefixes) become: deny `refs/heads/forge/` except the tracker's own namespace.
-- Foreign-ref check: scoped to the tracker's own namespace, its own worktrees and the main line.
-  Other namespaces and other trackers' detached HEADs (refresh worktree, onboarder snapshot) are
-  ignored.
-- Shared landing journal in the git common directory (shared by every worktree and tracker, no
-  registry needed): each landing appends tracker id, old tip, new tip. A tracker that finds the
-  main line moved looks the move up in the journal; a recorded sibling landing is a silent requeue
-  that does not count toward parking. A move not in the journal stays what it is today.
-- Lock: a lock file beside the journal, held only for the tip check plus the fast-forward, not
-  across gates and agent fixes.
-- A held target clears only when the whole main checkout is clean (`Airlocks.ts:705`); with
-  siblings, "clean" is judged over the paths the fast-forward changes.
-- `init` refuses a tracker above (today) and also below a new one: at a root above registered
-  package trackers it fails. `init` without `--root` keeps choosing the git toplevel and says so.
-- Identity: `trackerId` is random; the port and login-item label derive from it. The registry
-  entry and `MonitorSnapshot` keep `root` as the project directory and gain `repositoryRoot` and
-  `projectPrefix`, in monitor contract version 4 (version 3 is reserved for Flint's brain state),
-  so Gaia can group forges by repository.
+- **Branch namespace:** each tracker gets a `branchNamespace` in `progress.json`, set by `init`: `forge/<namespace>/ticket-<id>`,
+  `…/group-<name>`. A tracker without the field keeps today's bare names; a tracker whose prefix is not `''` must have one. The names are
+  spelled in the sandbox's ref denies (`WorkerProfiles.ts:336,351`), the wording, merge forecasting and the installed prompts and briefs,
+  so the change raises forge's install version and every tracker runs `update`. No namespace may equal an existing branch name.
+- **Foreign-ref check:** scoped to the tracker's own namespace (or `ticket-*` and `group-*` for a bare-name tracker), its group branches,
+  the main line, the job's own worktree HEAD and the detached HEADs under its own worktrees root. Every other branch, `refs/stash`,
+  `refs/tags`, `refs/remotes`, and detached HEADs elsewhere are ignored. This is needed with one tracker, since people work beside it.
+- **Shared landing journal** in the git common directory, `<common>/forge/landings.jsonl`, versioned, appended atomically by each
+  landing. Forge already refuses `target-moved-by-a-recorded-landing` and requeues from the branch tip without counting it toward parking
+  (`Landing.ts:60,91`); today its recorded landings are the tracker's own. The journal's entries for the target are added to them, for
+  the landing and for Customs. A move not in the journal stays what it is today.
+- **Lock:** a lock file beside the journal, held only for the tip check plus the fast-forward (`Landing.ts:99-110`), not across gates
+  and agent fixes.
+- **Held targets:** a held target clears when the paths the fast-forward changes are clean in the main checkout, judged at
+  `repositoryRoot` (`Airlocks.ts:799-805`), not when the whole checkout is clean.
+- **`init`** refuses a tracker above (today) and below a new one. Forge's tracker therefore leaves the git root for `apps/forge/.forge`
+  before Gaia's tracker exists. For "below", `init` keeps a tracker list beside the journal, `<common>/forge/trackers.json` (tracker id,
+  prefix, namespace), which also gives namespace uniqueness without the machine registry.
+- **Identity:** `trackerId` is random; the port and login-item label derive from it. The registry entry and the monitor snapshot keep
+  `root` as the project directory and gain `repositoryRoot` and `projectPrefix`. The keys only add, so they ship as a forge system minor
+  (after Flint's brain), at the same versioned path, and the registry file as format 1.1, never as a new integer contract version. They
+  wait for `/api/versions` and the reconciled monitor contract.
 
 ### Rejected
 
 - One tracker at the git root with a package scope per ticket: no per-package Overseer or Bridge.
-- Sparse-checkout worktrees limited to home plus reach: a workspace install needs every package
-  manifest; revisit only if checkout time hurts.
-- All worktrees in one folder at the repository root: possible once rule 2 exists, but a tracker
-  owning its own folder needs no coordination between trackers.
+- Sparse-checkout worktrees limited to home plus reach: a workspace install needs every package manifest; revisit only if checkout time
+  hurts.
+- All worktrees in one folder at the repository root: possible once rule 2 exists, but a tracker owning its own folder needs no
+  coordination between trackers.
 - `git filter-repo` for the Gaia import: rewrites commits, dropping their signatures.
+- A turbo cache folder per tracker: the same correctness, but each tracker would re-run the other app's tasks once after each change
+  to it, and people's own runs would share with neither.
 
 ### Specs
 
-A fixture repository with two sibling trackers and a shared package: path mapping both ways;
-lookup from an agent worktree and from a `.claude/worktrees` checkout; Customs accepts home and
-reach, rejects the sibling's files and any nested `.claude/`; a sibling's branch, refresh worktree
-and landing fail no job and park no merge; two landings in a row both end on the main line; `init`
-refuses above and below; a tracker with prefix `''` produces the same commands as today.
+A fixture repository with two sibling trackers and a shared package: path mapping both ways; lookup from an agent worktree and from a
+`.claude/worktrees` checkout; git calls from a project folder run at the toplevel; Customs accepts home and reach, rejects the sibling's
+files and any nested `.claude/`; a sibling's branch, refresh worktree and landing, and a person's branch, stash or tag, fail no job and
+park no merge; two landings in a row both end on the main line; `init` refuses above and below; a tracker with prefix `''` produces the
+same commands as today.
 
-### Open decisions
+### Decided
 
-1. Installed forge in a second clone outside the monorepo working tree (recommended), or scope the
-   network-guard rule so a program inside the repository does not disable it.
-2. Whether Gaia gets its own tracker after Part B, or stays built by workflows.
-3. Skipping gate re-runs when a sibling's landing touched nothing in home or reach (first version
-   always re-runs).
+1. The installed forge runs from a second clone outside the monorepo, and the network guard is unchanged (decision 7).
+2. Gaia gets its own tracker at `apps/gaia` (decision 6).
+3. A gate always re-runs after a sibling's landing; Turborepo makes an unrelated landing a cache replay.
 
-Unverified: rule 11's Claude Code behaviour; `catalog:` beyond one scratch check. Prompts and
-skills that say "the repository root" (`SessionInstructions.md`, `OnboarderPrompt.md`) need new
-wording.
+Not yet probed: whether a path-scoped `.claude/rules` file loads once a subfolder session reads a file under its path, and whether
+`sandbox.network.allowLocalBinding` lets a sandboxed Bash reach `127.0.0.1`. Both need a logged-in model turn.
