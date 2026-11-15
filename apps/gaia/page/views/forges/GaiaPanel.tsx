@@ -1,8 +1,8 @@
 /**
  * The Forges view's Gaia panel (SCREENS A4), beside this machine's: the two settings as switches, "What notifies" under the second's label, the line of a
- * settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash. It takes no hooks: the
- * content and the handlers come in as props, so a spec unfolds it whole. `SettingsCheckboxView` and `SettingsRefusalLine` are shared with the "What
- * notifies" list.
+ * settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash, then this Gaia's own. It
+ * takes no hooks: the content and the handlers come in as props, so a spec unfolds it whole. `SettingsCheckboxView` and `SettingsRefusalLine` are shared
+ * with the "What notifies" list.
  */
 
 import { Switch }                   from 'design-system/Switch';
@@ -40,6 +40,8 @@ const SETTINGS_SUBJECT: CommandSubject = { fleetCommand: 'settings-set' };
 
 const PATH_SEPARATOR = '/';
 
+const THIS_GAIA_LABEL = 'This Gaia';
+
 /** The aside narrows to give the Forges table room, so a path may break after a slash rather than inside a name. */
 function withBreaksAfterSlashes(value: string): ReactNode {
   if (!value.includes(PATH_SEPARATOR)) return value;
@@ -48,8 +50,11 @@ function withBreaksAfterSlashes(value: string): ReactNode {
   return [...segments.map((segment, i) => <Fragment key={i}>{segment}{PATH_SEPARATOR}<wbr /></Fragment>), lastSegment];
 }
 
-/** A4 sets each fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. */
-function GaiaFacts({ facts }: { readonly facts: readonly GaiaFact[] }) {
+/**
+ * A4 sets each fact's label over its value, which the package's fact list does not; a machine value carries its own mono face. This Gaia's
+ * facts close the list, each a label and its value on one line.
+ */
+function GaiaFacts({ facts, thisGaiaFacts }: { readonly facts: readonly GaiaFact[]; readonly thisGaiaFacts: readonly GaiaFact[] }) {
   return (
     <dl className="gaia-forges-gaia-facts">
       {facts.map((fact) => (
@@ -58,6 +63,19 @@ function GaiaFacts({ facts }: { readonly facts: readonly GaiaFact[] }) {
           <dd><Text typeRole="small" mono={fact.valueFace !== 'ui'}>{withBreaksAfterSlashes(fact.value)}</Text></dd>
         </div>
       ))}
+      <div className="gaia-forges-gaia-fact">
+        <dt>{THIS_GAIA_LABEL}</dt>
+        <dd>
+          <dl className="gaia-forges-gaia-this-gaia">
+            {thisGaiaFacts.map((fact) => (
+              <div key={fact.label} className="gaia-forges-gaia-this-gaia-fact">
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </dd>
+      </div>
     </dl>
   );
 }
@@ -136,7 +154,7 @@ export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
         />
       </div>
       <SettingsRefusalLine refusal={content.refusal} handlers={handlers} />
-      <GaiaFacts facts={content.facts} />
+      <GaiaFacts facts={content.facts} thisGaiaFacts={content.thisGaiaFacts} />
     </section>
   );
 }

@@ -12,6 +12,7 @@ interface RowAsHanded {
   readonly key:          unknown;
   readonly selected?:    unknown;
   readonly interactive?: unknown;
+  readonly expanded?:    unknown;
   readonly cells:        Readonly<Record<string, ReactNode>>;
   readonly below?:       ReactNode;
 }
@@ -23,7 +24,13 @@ function rowElementOf(row: RowAsHanded, columnKeys: readonly string[]): HostElem
     children: ReactElementTree.unfolded(Object.hasOwn(row.cells, columnKey) ? row.cells[columnKey] : null),
   }));
   const below: HostElement[] = row.below === undefined ? [] : [{ tag: 'DataTableBelow', props: {}, children: ReactElementTree.unfolded(row.below) }];
-  return { tag: 'DataTableRow', props: { key: row.key, selected: row.selected, interactive: row.interactive }, children: [...cells, ...below] };
+  return {
+    tag:   'DataTableRow',
+    props: {
+      key: row.key, selected: row.selected, interactive: row.interactive, expanded: row.expanded
+    },
+    children: [...cells, ...below]
+  };
 }
 
 export const DataTableRows = {

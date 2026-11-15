@@ -1,7 +1,8 @@
 /**
  * The Gaia panel's content and its "What notifies" list. What matters (SCREENS A4 and C2): each checkbox shows the setting and sends
  * `settings-set` with that one setting turned over, the kinds' checkbox only its own kind; the facts read the document's paths from `~`,
- * the contracts Gaia reads and its version on its address, and say in words when no forge program is known; a settings change on its way
+ * and this Gaia's system version, the one forge version it is built for and its address, never a package version or the contracts it
+ * reads, and say in words when no forge program is known; a settings change on its way
  * or a settings file newer than this Gaia leaves every checkbox off, and the second is said; a refusal shows only where this view's own
  * send came from, with the code and sentence of the answer. The command states come from the real sender over authored answers.
  */
@@ -99,13 +100,23 @@ describe('Gaia\'s settings file', () => {
 });
 
 describe('the facts', () => {
-  test('name the forge program and the registry from ~, the contracts Gaia reads, and Gaia\'s version on its address', () => {
-    expect(panelOf(FLEET_FIVE_FORGES).facts).toEqual([
+  test('name the forge program and the registry from ~, and this Gaia\'s system version, the forge version it is built for and its address', () => {
+    const panel = panelOf(FLEET_FIVE_FORGES);
+    expect(panel.facts).toEqual([
       { label: 'Forge program', value: '~/.bun/bin/forge' },
       { label: 'Registry', value: '~/.forge-monitor/projects.json' },
-      { label: 'Gaia reads', value: 'monitor 3 · control 2 · embed 1' },
-      { label: 'Gaia', value: '0.1.0 on 127.0.0.1:4790' },
     ]);
+    expect(panel.thisGaiaFacts).toEqual([
+      { label: 'version', value: '1.0' },
+      { label: 'built for forge', value: '1.1' },
+      { label: 'address', value: '127.0.0.1:4790' },
+    ]);
+  });
+
+  test('name no package version and no contract Gaia reads', () => {
+    const panel = panelOf(FLEET_FIVE_FORGES);
+    const printed = [...panel.facts, ...panel.thisGaiaFacts].flatMap((fact) => [fact.label, fact.value]).join(' ');
+    expect([printed.includes(FLEET_FIVE_FORGES.gaia.gaiaVersion), printed.includes('monitor 3'), printed.includes('Gaia reads')]).toEqual([false, false, false]);
   });
 
   test('say in words that no forge program was found, and print a path outside the home folder whole', () => {

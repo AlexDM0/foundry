@@ -7,7 +7,11 @@
  * its dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Resume first; a hidden forge folds away with Show
  * again. Flint's brain (R4.6): a running brain's mark sits after its forge's name, the diamond, "BRAIN" and the time left, read aloud as one sentence;
  * no other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command states
- * come from the real sender over Gaia's server stood in for by authored answers.
+ * come from the real sender over Gaia's server stood in for by authored answers. Versions (U2): a forge at another version opens its pair under
+ * its row from the disclosure under its condition, the row expanded, never selected; a current forge has no disclosure; a forge Gaia cannot
+ * talk to reads "not read" for its agents and what waits, and a control it cannot send says why in its title; an ahead forge's quiet line
+ * stands under its row until the pair is shown; Update forge on its way says so under the row, and its restart pending stands without an
+ * edge; this machine names the forges it leaves out of its figure.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
@@ -39,9 +43,10 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
-import { ForgesLayout, forgeAnchorIdOf }        from './ForgesLayout.tsx';
-import { ForgesModel, type ForgesSurroundings } from './ForgesModel.ts';
-import { GaiaPanelModel }                       from './GaiaPanelModel.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
+import { ForgesLayout, forgeAnchorIdOf }              from './ForgesLayout.tsx';
+import { ForgesModel, type ForgesSurroundings }       from './ForgesModel.ts';
+import { GaiaPanelModel }                             from './GaiaPanelModel.ts';
 
 const tree = ReactElementTree;
 
@@ -71,19 +76,21 @@ interface Handled {
   readonly stopsConfirmed:    ForgeCommandBody[];
   readonly dismissed:         CommandSubject[];
   readonly restartsDismissed: CommandSubject[];
+  readonly versionsToggled:   string[];
 }
 
 function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurroundings> = {}) {
   const handled: Handled = {
-    commands: [], stopsOpened: [], stopChoices: [], stopsCancelled: [], stopsConfirmed: [], dismissed: [], restartsDismissed: []
+    commands: [], stopsOpened: [], stopChoices: [], stopsCancelled: [], stopsConfirmed: [], dismissed: [], restartsDismissed: [], versionsToggled: []
   };
   const commandStates = surroundings.commandStates ?? IDLE_STATES;
   const content = ForgesModel.forgesContentOf(fleetDocument, {
-    clock:       { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
+    clock:            { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
     commandStates,
-    stopDialog:  null,
-    forgeInView: null,
-    lastSent:    new Map(),
+    stopDialog:       null,
+    forgeInView:      null,
+    lastSent:         new Map(),
+    versionsShownFor: null,
     ...surroundings,
   });
   const unfolded = tree.unfolded(
@@ -101,6 +108,7 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
         onDismissRestartPending: (subject) => handled.restartsDismissed.push(subject),
         onSettingsCheckbox:      () => undefined,
         onOpenWhatNotifies:      () => undefined,
+        onToggleVersions:        (trackerId) => handled.versionsToggled.push(trackerId),
       }}
     />,
   );
@@ -195,6 +203,7 @@ describe('a row\'s controls', () => {
       stopsConfirmed:    [],
       dismissed:         [],
       restartsDismissed: [],
+      versionsToggled:   [],
     });
   });
 
@@ -416,5 +425,87 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-at-the-limit')])).toBe(
       'The machine is at its limit. 3 ready tickets wait for a slot: 2 in Invoice Service, 1 in Research Wiki.',
     );
+  });
+});
+
+const VERSIONS_IDS = FLEET_VERSIONS_TRACKER_IDS;
+
+function disclosureIn(row: HostElement): HostElement | null {
+  const disclosures = tree.hostElementsIn([row], tree.withClass('gaia-forges-versions-disclosure'));
+  return disclosures[0] ?? null;
+}
+
+function belowOf(row: HostElement): HostElement[] {
+  return row.children.filter((child): child is HostElement => typeof child !== 'string' && child.tag === 'DataTableBelow');
+}
+
+describe('a forge at another version than this Gaia is built for (U2)', () => {
+  test('its disclosure under the condition names the forge, says whether it is open, and asks the view to show its versions', () => {
+    const { unfolded, handled } = layoutOf(FLEET_VERSIONS);
+    const disclosure = disclosureIn(rowOf(unfolded, VERSIONS_IDS.exampleBilling));
+    expect([disclosure?.tag, disclosure?.props['aria-expanded'], disclosure?.props['aria-label']]).toEqual([
+      'button', false, 'Example Billing, its version beside this Gaia’s',
+    ]);
+    expect(tree.textOf(disclosure === null ? [] : [disclosure])).toBe('1.8 · older');
+    if (disclosure !== null) tree.dispatch(disclosure, 'onClick');
+    expect(handled.versionsToggled).toEqual([VERSIONS_IDS.exampleBilling]);
+    expect(disclosureIn(rowOf(unfolded, VERSIONS_IDS.invoiceService))).toBeNull();
+    expect(DataTableRows.cellTextsOf(rowOf(unfolded, VERSIONS_IDS.invoiceService))[1]).toBe('Liveforge 3.1');
+  });
+
+  test('the versions shown lie under their row, expanded and not selected, as the pair and its sentence', () => {
+    const { unfolded } = layoutOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.analyticsSandbox });
+    const row = rowOf(unfolded, VERSIONS_IDS.analyticsSandbox);
+    expect([row.props['expanded'], row.props['selected'], disclosureIn(row)?.props['aria-expanded']]).toEqual([true, false, true]);
+    expect(rowsIn(unfolded).map((candidate) => candidate.props['expanded'])).toEqual([false, false, false, false, true]);
+    const shown = tree.onlyWithClass(belowOf(row), 'gaia-forges-versions');
+    expect([shown.props['role'], shown.props['aria-label']]).toEqual(['region', 'Analytics Sandbox, its version beside this Gaia’s']);
+    expect(tree.hostElementsIn([shown], tree.withClass('gaia-versions-pair'))).toHaveLength(1);
+    expect(tree.textOf([tree.onlyWithClass([shown], 'gaia-forges-versions-sentence')])).toBe(
+      'Gaia shows that Analytics Sandbox runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command. A newer Gaia shows it here.',
+    );
+  });
+
+  test('an ahead forge\'s quiet line stands under its row until its pair is shown', () => {
+    const quietLineIn = (nodes: readonly RenderedNode[]) => tree.hostElementsIn(belowOf(rowOf(nodes, VERSIONS_IDS.exampleStorefront)), tree.withClass('gaia-forges-quiet-line'));
+    expect(quietLineIn(layoutOf(FLEET_VERSIONS).unfolded).map((line) => tree.textOf([line]))).toEqual([
+      'Forge 3.4 is ahead of this Gaia, built for 3.1. All Gaia shows works; what 3.4 added shows in its Bridge.',
+    ]);
+    expect(quietLineIn(layoutOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.exampleStorefront }).unfolded)).toEqual([]);
+  });
+
+  test('a forge Gaia cannot talk to reads "not read" for its agents and what waits, and a control it cannot send says why in its title', () => {
+    const { unfolded } = layoutOf(FLEET_VERSIONS);
+    const row = rowOf(unfolded, VERSIONS_IDS.analyticsSandbox);
+    expect(DataTableRows.cellTextsOf(row).slice(2, 4)).toEqual(['not read', 'not read']);
+    expect(tree.hostElementsIn([row], tree.withClass('gaia-forges-button-title')).map((holder) => holder.props['title'])).toEqual([
+      'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.',
+      'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.',
+    ]);
+  });
+
+  test('Update forge on its way says so under its row beside a starting ring, and a restart it left pending stands there without an edge', () => {
+    const forgeState = (onItsWay: 'forge-update' | null, restartPending: boolean): CommandStates => ({
+      forges: new Map([[VERSIONS_IDS.exampleBilling, { onItsWay, failure: null, restartPending }]]),
+      fleet:  new Map(),
+    });
+    const pending = belowOf(rowOf(layoutOf(FLEET_VERSIONS, { commandStates: forgeState('forge-update', false) }).unfolded, VERSIONS_IDS.exampleBilling));
+    const status = tree.onlyWithClass(pending, 'gaia-forges-update-status');
+    expect([status.props['role'], tree.textOf([status]), tree.hostElementsIn([status], DrawnDots.isDot).map(DrawnDots.conditionOf)]).toEqual([
+      'status', 'Updating the forge…', ['starting'],
+    ]);
+    const done = belowOf(rowOf(layoutOf(FLEET_VERSIONS, { commandStates: forgeState(null, true) }).unfolded, VERSIONS_IDS.exampleBilling));
+    const step = tree.onlyOfComponent(done, PendingStep);
+    expect([step.props['sentence'], step.props['edgeless']]).toEqual(['Gaia reads it after the restart.', true]);
+  });
+
+  test('this machine prints its figure as a floor and names the forges it leaves out, and the note under the table says what the verdicts mean', () => {
+    const { unfolded } = layoutOf(FLEET_VERSIONS);
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-machine-figure')])).toBe('8+ / 12');
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-machine-not-counted')])).toBe(
+      'Example Billing and Analytics Sandbox are not counted: this Gaia cannot read their agents.',
+    );
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-versions-note')])).toStartWith('Each forge states its version');
+    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-forges-versions-note'))).toEqual([]);
   });
 });

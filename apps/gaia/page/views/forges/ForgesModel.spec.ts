@@ -5,11 +5,13 @@
  * says why no limit is known, its stepper off; the machine at its limit says which forges' tickets wait. B2: Stop asks with two choices and keeps the
  * agents by default, with none when no agent runs; while a command to a forge is on its way that row's controls are off and no other's; a refusal stays on
  * its forge until dismissed or the next success, and offers to send the same command again; a start Gaia sent shows as starting until the forge answers;
- * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner, with its refusal, or under its row;
- * a forge whose Assistant cannot come up says so under its row. Flint's brain (R4.6): only a forge whose brain runs marks it on its row,
- * with the time left and a name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine
- * panel says the brain runs outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender
- * over Gaia's server stood in for by authored answers.
+ * an update that left a restart pending offers Restart where the update was sent, on a held forge's banner, with its refusal, or under its row; a forge
+ * whose Assistant cannot come up says so under its row. Versions (U2): a forge Gaia cannot talk to runs, is not read, shows nothing of its work and offers
+ * only what Gaia can send, Update forge for an older one; an ahead forge keeps every control and says quietly what differs; each verdict but current opens
+ * its pair, one row at a time; a count that leaves a forge out says so. Flint's brain (R4.6): only a forge whose brain runs marks it on its row, with the
+ * time left and a name that says it is outside the agent limit, while the machine's figure and slots stay 10 / 12; the machine panel says the brain runs
+ * outside the limit once a forge reports a brain, and where one runs now. Command states come from the real sender over Gaia's server stood in for by
+ * authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,6 +35,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_STATING_NO_VERSION, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
 import {
   type ForgeButton,
   type ForgeRow,
@@ -82,11 +85,12 @@ const IDLE_STATES: CommandStates = senderOver([]).states();
 
 function contentOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurroundings> = {}): ForgesContent {
   return ForgesModel.forgesContentOf(fleetDocument, {
-    clock:         ARTBOARD_CLOCK,
-    commandStates: IDLE_STATES,
-    stopDialog:    null,
-    forgeInView:   null,
-    lastSent:      new Map(),
+    clock:            ARTBOARD_CLOCK,
+    commandStates:    IDLE_STATES,
+    stopDialog:       null,
+    forgeInView:      null,
+    lastSent:         new Map(),
+    versionsShownFor: null,
     ...surroundings,
   });
 }
@@ -141,17 +145,20 @@ describe('a row of the table (A4)', () => {
     expect(content.emptySentence).toBeNull();
   });
 
-  test('reads the root from ~, the condition word with when it started or stopped, the agents against the limit, what waits and the code', () => {
+  test('reads the root from ~, the condition word with the current version or when it stopped, the agents against the limit, what waits and the code', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
-    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText, row.waitingCount, row.codeText];
+    const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText ?? row.versions?.subline?.text, row.waitingCount, row.codeText];
     expect(content.rows.map(cellsOf)).toEqual([
-      ['~/development/example-storefront', 'Live', null, 'since 09:12', 2, '3f9a2c1'],
-      ['~/development/invoice-service', 'Live', null, 'since 08:40', 2, '3f9a2c1'],
-      ['~/development/research-wiki', 'Live', null, 'since 11:02', 1, '3f9a2c1'],
-      ['~/development/example-mobile-app', 'Launches held', 'warn', 'since 12:40', null, 'b81e07d'],
+      ['~/development/example-storefront', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
+      ['~/development/invoice-service', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
+      ['~/development/research-wiki', 'Live', null, 'forge 1.1', 1, '3f9a2c1'],
+      ['~/development/example-mobile-app', 'Launches held', 'warn', 'forge 1.1', null, 'b81e07d'],
       ['~/development/design-system', 'Dormant', 'muted', 'stopped 12:20', null, '3f9a2c1'],
     ]);
-    const agentsCellOf = ({ agents }: ForgeRow) => (agents === null ? null : [agents.kind, agents.kind === 'text' ? agents.text : [agents.inFlight, agents.limit]]);
+    const agentsCellOf = ({ agents }: ForgeRow) => {
+      if (agents === null || agents.kind === 'not-read') return agents;
+      return [agents.kind, agents.kind === 'text' ? agents.text : [agents.inFlight, agents.limit]];
+    };
     expect(content.rows.map(agentsCellOf)).toEqual([
       ['stepper', [4, 5]],
       ['stepper', [3, 5]],
@@ -338,7 +345,9 @@ describe('this machine (A4 acceptance 2 and 3, B2)', () => {
 
   test('at its limit the panel says so, and which forges\' ready tickets wait for a slot', () => {
     const { machine } = contentOf(FLEET_AT_LIMIT);
-    expect([machine.isAtTheLimit, machine.meter]).toEqual([true, { used: 10, whole: 10, label: '10 of 10 agents' }]);
+    expect([machine.isAtTheLimit, machine.meter]).toEqual([true, {
+      used: 10, usedText: '10', whole: 10, label: '10 of 10 agents'
+    }]);
     expect(machine.sentence).toBe('At most the number of CPUs, which is 12 here.');
     expect(machine.atTheLimitText).toBe('The machine is at its limit. 3 ready tickets wait for a slot: 2 in Invoice Service, 1 in Research Wiki.');
     expect(contentOf(FLEET_FIVE_FORGES).machine.atTheLimitText).toBeNull();
@@ -407,7 +416,9 @@ describe('Flint\'s brain on A4', () => {
   test('a running brain leaves the machine\'s figure, slots and facts at 10 / 12, as without it', () => {
     const withBrain = contentOf(FLEET_FIVE_FORGES).machine;
     const withoutBrain = contentOf(withBrainOn(TRACKER_IDS.exampleStorefront, FLEET_FIVE_FORGES_BRAINS.off)).machine;
-    expect(withBrain.meter).toEqual({ used: 10, whole: 12, label: '10 of 12 agents' });
+    expect(withBrain.meter).toEqual({
+      used: 10, usedText: '10', whole: 12, label: '10 of 12 agents'
+    });
     expect([withBrain.meter, withBrain.facts, withBrain.isAtTheLimit]).toEqual([withoutBrain.meter, withoutBrain.facts, withoutBrain.isAtTheLimit]);
   });
 
@@ -668,5 +679,141 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     await sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
     const refused = rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }), TRACKER_IDS.designSystem);
     expect([refused.conditionWord, refused.buttons.map(labelOf), refused.refusal?.code]).toEqual(['Dormant', ['Start'], 'overseer-did-not-answer']);
+  });
+});
+
+const VERSIONS_IDS = FLEET_VERSIONS_TRACKER_IDS;
+
+const UPDATE_REFUSED: CommandAnswerDocument = {
+  answerVersion: 3,
+  outcome:       'refused',
+  refusal:       'repository-busy',
+  text:          'Another forge command holds the repository.',
+};
+
+/** Example Billing's Update forge at one step, as the command sender holds it. */
+function billingUpdateStates(state: { readonly onItsWay: 'forge-update' | null; readonly restartPending: boolean; readonly refused: boolean }): CommandStates {
+  const failure = state.refused ? { kind: 'forge-update' as const, result: { verdict: 'answered' as const, answer: UPDATE_REFUSED } } : null;
+  return {
+    forges: new Map([[VERSIONS_IDS.exampleBilling, { onItsWay: state.onItsWay, failure, restartPending: state.restartPending }]]),
+    fleet:  new Map(),
+  };
+}
+
+function buttonFactsOf(row: ForgeRow): (string | boolean | null)[][] {
+  return row.buttons.map((button) => [
+    button.label,
+    button.kind === 'command' ? button.emphasis : null,
+    button.kind === 'waiting' || button.disabled,
+    button.kind === 'command' || button.kind === 'stop' ? button.title ?? null : null,
+  ]);
+}
+
+describe('a forge at another version than this Gaia is built for (U2)', () => {
+  test('one Gaia cannot talk to runs, and the title counts it as not read', () => {
+    expect(ForgesModel.titleFiguresOf(FLEET_VERSIONS)).toEqual([
+      { value: '5', label: 'registered' },
+      { value: '5', label: 'running' },
+      { value: '2', label: 'not read' },
+    ]);
+    expect(ForgesModel.titleFiguresOf(FLEET_FIVE_FORGES).map((figure) => figure.label)).not.toContain('not read');
+  });
+
+  test('an older forge reads "Needs update" in orange, its version and verdict a disclosure, and nothing of its work', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.exampleBilling);
+    expect([row.condition, row.conditionWord, row.conditionTone, row.detailText, row.versions?.subline]).toEqual([
+      'outdated', 'Needs update', 'warn', null, { opensVersions: true, text: '1.8 · older' },
+    ]);
+    expect([row.agents, row.waitingCount, row.workIsRead, row.brain]).toEqual([{ kind: 'not-read' }, null, false, null]);
+  });
+
+  test('a newer forge reads "Not readable" in the secondary ink, its version and verdict a disclosure, and nothing of its work', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.analyticsSandbox);
+    expect([row.condition, row.conditionWord, row.conditionTone, row.detailText, row.versions?.subline]).toEqual([
+      'unreadable', 'Not readable', 'muted', null, { opensVersions: true, text: '4.1 · newer' },
+    ]);
+    expect([row.agents, row.waitingCount, row.workIsRead]).toEqual([{ kind: 'not-read' }, null, false]);
+  });
+
+  test('a forge that states no version reads as older and its disclosure says only "older"', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS_STATING_NO_VERSION), VERSIONS_IDS.exampleDocs);
+    expect([row.conditionWord, row.versions?.subline]).toEqual(['Needs update', { opensVersions: true, text: 'older' }]);
+    expect(buttonFactsOf(row)[0]).toEqual(['Update forge', 'primary', false, null]);
+  });
+
+  test('an older forge offers Update forge as its one primary, Stop off naming both versions, and Open in new tab, never Open in place', () => {
+    expect(buttonFactsOf(rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.exampleBilling))).toEqual([
+      ['Update forge', 'primary', false, null],
+      ['Stop', null, true, 'Example Billing is forge 1.8; this Gaia is built for forge 3.1.'],
+      ['Open Example Billing in a new tab', 'quiet', false, null],
+    ]);
+  });
+
+  test('a newer forge offers Pause and Stop off, each naming both versions, and Open in new tab; no Update forge and no Open in place', () => {
+    const title = 'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.';
+    expect(buttonFactsOf(rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.analyticsSandbox))).toEqual([
+      ['Pause', 'quiet', true, title],
+      ['Stop', null, true, title],
+      ['Open Analytics Sandbox in a new tab', 'quiet', false, null],
+    ]);
+  });
+
+  test('an ahead forge keeps its condition, its counts and every control, and says quietly what differs, with no action', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.exampleStorefront);
+    expect([row.conditionWord, row.conditionTone, row.waitingCount, row.workIsRead, row.agents?.kind]).toEqual(['Live', null, 2, true, 'stepper']);
+    expect(row.buttons.map(labelOf)).toEqual(['Pause', 'Stop', 'Open', 'Open Example Storefront in a new tab']);
+    expect(row.versions?.subline).toEqual({ opensVersions: true, text: '3.4 · ahead' });
+    expect(row.versions?.quietLine).toBe('Forge 3.4 is ahead of this Gaia, built for 3.1. All Gaia shows works; what 3.4 added shows in its Bridge.');
+  });
+
+  test('a current forge names its version in place of when it started, opening nothing; a paused one keeps its own detail', () => {
+    const current = rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.invoiceService);
+    expect([current.detailText, current.versions?.subline, current.versions?.quietLine]).toEqual([null, { opensVersions: false, text: 'forge 3.1' }, null]);
+    const paused = rowOf(contentOf(fleetWithOneForgeIn('paused')), TRACKER_IDS.exampleStorefront);
+    expect([paused.detailText, paused.versions?.subline]).toEqual(['4 agents finishing · starts no new job', null]);
+  });
+
+  test('the versions shown are one row\'s pair and its sentence, the ahead line hiding behind them, and a current forge opens none', () => {
+    const storefront = rowOf(contentOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.exampleStorefront }), VERSIONS_IDS.exampleStorefront).versions;
+    expect([storefront?.isShown, storefront?.pair?.verdict, storefront?.quietLine]).toEqual([true, 'ahead', null]);
+    expect(storefront?.pairSentence).toBe('Gaia reads all it knows of Example Storefront and frames its Bridge. What forge 3.4 added since 3.1 shows only in its '
+      + 'Bridge; a newer Gaia shows it here too. Nothing waits on you.');
+    const billingShown = contentOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.exampleBilling });
+    expect(billingShown.rows.map((row) => row.versions?.isShown ?? null)).toEqual([false, false, false, true, false]);
+    expect(rowOf(billingShown, VERSIONS_IDS.exampleBilling).versions?.disclosureLabel).toBe('Example Billing, its version beside this Gaia’s');
+    const invoice = rowOf(contentOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.invoiceService }), VERSIONS_IDS.invoiceService).versions;
+    expect([invoice?.isShown, invoice?.pair]).toEqual([false, null]);
+  });
+
+  test('the note on what the verdicts mean stands under the table while a row can open its versions, and not over current forges alone', () => {
+    expect(contentOf(FLEET_VERSIONS).versionsNote).toStartWith('Each forge states its version and the oldest forge version a client may be built for');
+    expect(contentOf(FLEET_FIVE_FORGES).versionsNote).toBeNull();
+  });
+
+  test('Update forge on its way says so under the row, its button off as "Updating"', () => {
+    const commandStates = billingUpdateStates({ onItsWay: 'forge-update', restartPending: false, refused: false });
+    const row = rowOf(contentOf(FLEET_VERSIONS, { commandStates }), VERSIONS_IDS.exampleBilling);
+    expect([buttonFactsOf(row)[0], row.updateStatus]).toEqual([['Updating', 'primary', true, null], 'Updating the forge…']);
+  });
+
+  test('an update that left a restart pending says Gaia reads the forge after it, and Update forge steps back so Restart is the one primary', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS, { commandStates: billingUpdateStates({ onItsWay: null, restartPending: true, refused: false }) }), VERSIONS_IDS.exampleBilling);
+    expect([row.pendingRestart?.word, row.pendingRestart?.sentence]).toEqual(['Updated; restart pending.', 'Gaia reads it after the restart.']);
+    expect(buttonFactsOf(row)[0]).toEqual(['Update forge', 'quiet', false, null]);
+    expect([row.updateStatus]).toEqual([null]);
+  });
+
+  test('a refused update shows the forge\'s code and sentence under the row and offers the same update again', () => {
+    const row = rowOf(contentOf(FLEET_VERSIONS, { commandStates: billingUpdateStates({ onItsWay: null, restartPending: false, refused: true }) }), VERSIONS_IDS.exampleBilling);
+    expect([row.refusal?.commandLabel, row.refusal?.code, row.refusal?.sentence, row.refusal?.retryCommand]).toEqual([
+      'Update forge', 'repository-busy', 'Another forge command holds the repository.', { kind: 'forge-update', trackerId: VERSIONS_IDS.exampleBilling },
+    ]);
+  });
+
+  test('this machine\'s figure is a floor while a forge is not counted, and the panel names the forges it leaves out', () => {
+    const { machine } = contentOf(FLEET_VERSIONS);
+    expect([machine.meter?.usedText, machine.meter?.label, machine.facts[0]?.value]).toEqual(['8+', '8+ of 12 agents', '8+']);
+    expect(machine.notCountedText).toBe('Example Billing and Analytics Sandbox are not counted: this Gaia cannot read their agents.');
+    expect([contentOf(FLEET_FIVE_FORGES).machine.notCountedText, contentOf(FLEET_FIVE_FORGES).machine.meter?.usedText]).toEqual([null, '10']);
   });
 });

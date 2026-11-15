@@ -48,7 +48,7 @@ const doNothing = () => undefined;
 function layoutMarkupWith(fleetDocument: FleetDocument, forgeInView: string | null): string {
   const commandStates = IDLE_SENDER.states();
   const content = ForgesModel.forgesContentOf(fleetDocument, {
-    clock: { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' }, commandStates, stopDialog: null, forgeInView, lastSent: new Map(),
+    clock: { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' }, commandStates, stopDialog: null, forgeInView, lastSent: new Map(), versionsShownFor: null,
   });
   const handlers = {
     onCommand:               doNothing,
@@ -60,6 +60,7 @@ function layoutMarkupWith(fleetDocument: FleetDocument, forgeInView: string | nu
     onDismissRestartPending: doNothing,
     onSettingsCheckbox:      doNothing,
     onOpenWhatNotifies:      doNothing,
+    onToggleVersions:        doNothing,
   };
   return renderToStaticMarkup(
     <CommandSenderContext value={IDLE_SENDER}>
@@ -109,7 +110,7 @@ describe('the Gaia panel in the view', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
     expect(markup).toMatch(/<section class="gaia-forges-machine".*<\/section><section class="gaia-forges-gaia" aria-labelledby="gaia-forges-gaia-head">/);
     expect(markup).toContain('Start the running forges at login');
-    expect(markup).toContain('0.1.0 on 127.0.0.1:4790');
+    expect(markup).toContain('127.0.0.1:4790');
     expect(markup).not.toContain('gaia-forges-what-notifies-count');
   });
 

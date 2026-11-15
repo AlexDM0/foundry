@@ -2,7 +2,8 @@
  * The Forges view laid out from its content (SCREENS A4 and B2): the table of forges with a notice that the Assistant cannot come up, the Stop dialog, a
  * refusal and a pending restart under their row, a held forge's banner, the forges whose repository is gone, the folded group of hidden forges, and
  * beside them this machine's panel and Gaia's. A forge whose brain runs marks it after its name, and this machine's panel says the brain runs outside
- * its limit. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
+ * its limit. A forge at another version than this Gaia is built for opens its versions pair under its row from the disclosure under its condition,
+ * and the table's note says what the verdicts mean. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import { Button }                                             from 'design-system/Button';
 import { ChoiceInput, ChoiceOption }                          from 'design-system/ChoiceOption';
@@ -24,12 +25,14 @@ import { ConfirmPanel }                                        from '../../desig
 import { OpenInNewTabGlyph }                                   from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
+import { VersionsPair }                                        from '../../shared/VersionsPair.tsx';
 import type {
   ForgeAgentsCell,
   ForgeButton,
   ForgeEntry,
   ForgeRow,
   ForgeRowBrain,
+  ForgeRowVersions,
   ForgesContent,
   HeldBanner,
   MachinePanel,
@@ -48,6 +51,7 @@ export interface ForgesHandlers extends GaiaPanelHandlers {
   readonly onConfirmStop:           (command: ForgeCommandBody) => void;
   readonly onDismissFailure:        (subject: CommandSubject) => void;
   readonly onDismissRestartPending: (subject: CommandSubject) => void;
+  readonly onToggleVersions:        (trackerId: string) => void;
 }
 
 export interface ForgesLayoutProps {
@@ -75,6 +79,8 @@ const COLUMN_WIDTHS = 'var(--forges-table-columns)';
 
 const MACHINE_HEAD_ID = 'gaia-forges-machine-head';
 
+const NOT_READ = 'not read';
+
 const LOOK_AGAIN_SUBJECT: CommandSubject = { fleetCommand: 'fleet-look-again' };
 const MACHINE_LIMIT_SUBJECT: CommandSubject = { fleetCommand: 'machine-agent-limit-set' };
 
@@ -91,7 +97,15 @@ interface ForgeButtonViewProps {
   readonly fullHeight?: boolean;
 }
 
-function ForgeButtonView({
+/** The package's button takes no title, so a control Gaia cannot send says why on a wrapper. */
+function ForgeButtonView(props: ForgeButtonViewProps) {
+  const { button } = props;
+  const title = button.kind === 'command' || button.kind === 'stop' ? button.title : undefined;
+  if (title === undefined) return <ForgeButtonControl {...props} />;
+  return <span className="gaia-forges-button-title" title={title}><ForgeButtonControl {...props} /></span>;
+}
+
+function ForgeButtonControl({
   button, trackerId, handlers, fullHeight = false
 }: ForgeButtonViewProps) {
   if (fullHeight && button.kind === 'command' && !button.iconOnly) {
@@ -229,6 +243,7 @@ function LimitStepper({
 
 function AgentsCell({ project, agents, handlers }: { readonly project: string; readonly agents: ForgeAgentsCell | null; readonly handlers: ForgesHandlers }) {
   if (agents === null) return null;
+  if (agents.kind === 'not-read') return <span className="gaia-forges-not-read">{NOT_READ}</span>;
   if (agents.kind === 'text') return <span className="gaia-forges-agents">{agents.text}</span>;
   return (
     <span className="gaia-forges-agents-stepper">
@@ -283,20 +298,72 @@ function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: Sto
   );
 }
 
+/** The second line under the condition: a current forge's version as plain text, any other verdict's as the disclosure of its pair. */
+function VersionsSubline({ versions, trackerId, handlers }: { readonly versions: ForgeRowVersions; readonly trackerId: string; readonly handlers: ForgesHandlers }) {
+  const { subline } = versions;
+  if (subline === null) return null;
+  if (!subline.opensVersions) return <span className="gaia-forges-condition-detail" data-face="mono">{subline.text}</span>;
+  return (
+    <button
+      type="button"
+      className="gaia-forges-versions-disclosure"
+      aria-expanded={versions.isShown}
+      aria-label={versions.disclosureLabel}
+      onClick={() => handlers.onToggleVersions(trackerId)}
+    >
+      {subline.text}
+      <svg className="gaia-forges-versions-chevron" width="10" height="10" viewBox="0 0 12 12" aria-hidden="true" data-open={versions.isShown ? '' : undefined}>
+        <path d="M3 4.5 L6 7.5 L9 4.5" />
+      </svg>
+    </button>
+  );
+}
+
+function VersionsShown({ versions }: { readonly versions: ForgeRowVersions }) {
+  if (versions.pair === null) return null;
+  return (
+    <div className="gaia-forges-versions" role="region" aria-label={versions.disclosureLabel}>
+      <VersionsPair pair={versions.pair} />
+      {versions.pairSentence === null ? null : <p className="gaia-forges-versions-sentence">{versions.pairSentence}</p>}
+    </div>
+  );
+}
+
+function UpdateStatusLine({ status }: { readonly status: string | null }) {
+  if (status === null) return null;
+  return (
+    <p className="gaia-forges-update-status" role="status">
+      <ConditionDot condition="starting" />
+      {status}
+    </p>
+  );
+}
+
 function rowBelowOf(row: ForgeRow, handlers: ForgesHandlers) {
-  if (row.stopDialog === null && row.refusal === null && row.pendingRestart === null && row.noticeText === null) return null;
+  const quietLine = row.versions?.quietLine ?? null;
+  const versionsAreShown = row.versions?.isShown === true;
+  const nothingBelow = row.stopDialog === null && row.refusal === null && row.pendingRestart === null && row.noticeText === null && row.updateStatus === null;
+  if (nothingBelow && quietLine === null && !versionsAreShown) return null;
   return (
     <div className="gaia-forges-row-below">
+      {quietLine === null ? null : <p className="gaia-forges-quiet-line">{quietLine}</p>}
+      {row.versions === null ? null : <VersionsShown versions={row.versions} />}
       {row.noticeText === null ? null : <p className="gaia-forges-row-notice" role="status">{row.noticeText}</p>}
       {row.stopDialog === null ? null : <StopDialogPanel dialog={row.stopDialog} trackerId={row.trackerId} handlers={handlers} />}
-      {row.refusal === null && row.pendingRestart === null ? null : (
+      {row.refusal === null && row.pendingRestart === null && row.updateStatus === null ? null : (
         <div className="gaia-forges-row-indented">
+          <UpdateStatusLine status={row.updateStatus} />
           <ShownRefusalLine refusal={row.refusal} trackerId={row.trackerId} handlers={handlers} />
-          <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} />
+          <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} edgeless />
         </div>
       )}
     </div>
   );
+}
+
+function waitingCellOf(row: ForgeRow) {
+  if (!row.workIsRead) return <span className="gaia-forges-not-read">{NOT_READ}</span>;
+  return row.waitingCount === null ? null : <span className="gaia-forges-waiting"><CountBadge count={row.waitingCount} tone="warn" /></span>;
 }
 
 function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<ForgeColumn> {
@@ -304,6 +371,7 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
   return {
     key:      row.trackerId,
     selected: row.isInView || row.stopDialog !== null,
+    expanded: row.versions?.isShown === true,
     cells:    {
       forge: (
         <span className="gaia-forges-forge">
@@ -315,10 +383,11 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
         <span className="gaia-forges-condition">
           <span className="gaia-forges-condition-word" data-tone={row.conditionTone ?? undefined}>{row.conditionWord}</span>
           {row.detailText === null ? null : <span className="gaia-forges-condition-detail" data-face={row.detailFace}>{row.detailText}</span>}
+          {row.versions === null ? null : <VersionsSubline versions={row.versions} trackerId={row.trackerId} handlers={handlers} />}
         </span>
       ),
       agents:   <AgentsCell project={row.project} agents={row.agents} handlers={handlers} />,
-      waiting:  row.waitingCount === null ? null : <span className="gaia-forges-waiting"><CountBadge count={row.waitingCount} tone="warn" /></span>,
+      waiting:  waitingCellOf(row),
       code:     row.codeText === null ? null : <span className="gaia-forges-code">{row.codeText}</span>,
       controls: (
         <span className="gaia-forges-controls">
@@ -371,7 +440,7 @@ function MachineUsage({ meter }: { readonly meter: NonNullable<MachinePanel['met
   return (
     <div className="gaia-forges-machine-usage">
       <span className="gaia-forges-machine-agents">
-        <span className="gaia-forges-machine-figure">{`${meter.used} / ${meter.whole}`}</span>
+        <span className="gaia-forges-machine-figure">{`${meter.usedText} / ${meter.whole}`}</span>
         <span className="gaia-forges-machine-unit">agents</span>
       </span>
       <SlotMeter label={meter.label} filled={meter.used} limit={meter.whole} tone="accent" />
@@ -403,6 +472,7 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
       </div>
       <p className="gaia-forges-machine-sentence">{machine.sentence}</p>
       {machine.meter === null ? null : <MachineUsage meter={machine.meter} />}
+      {machine.notCountedText === null ? null : <p className="gaia-forges-machine-not-counted">{machine.notCountedText}</p>}
       {machine.atTheLimitText === null ? null : <p className="gaia-forges-machine-at-the-limit">{machine.atTheLimitText}</p>}
       <dl className="gaia-forges-machine-facts">
         {machine.facts.map((fact) => (
@@ -453,6 +523,7 @@ export function ForgesLayout({
             />
           )
           : <EmptyState text={content.emptySentence} />}
+        {content.versionsNote === null ? null : <p className="gaia-forges-versions-note">{content.versionsNote}</p>}
         {content.controlsNote === null ? null : <p className="gaia-forges-controls-note">{content.controlsNote}</p>}
         {content.heldBanners.map((banner) => <HeldBannerCard key={banner.trackerId} banner={banner} handlers={handlers} />)}
         {content.notFound.length === 0 ? null : (

@@ -1,8 +1,8 @@
 /**
  * The Forges view's root (`#forges`, `#forges/add`). It reads the command sender, keeps which row's Stop dialog is open with its choice,
- * the last command it sent each forge, the last settings change and whether "What notifies" is open, builds the content from the fleet
- * document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the shell the page title's
- * parts with it, so a new fleet document changes both at once, with no reload.
+ * which row's versions are shown, the last command it sent each forge, the last settings change and whether "What notifies" is open, builds
+ * the content from the fleet document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the
+ * shell the page title's parts with it, so a new fleet document changes both at once, with no reload.
  */
 import { Button }              from 'design-system/Button';
 import { useEffect, useState } from 'react';
@@ -50,6 +50,7 @@ export function ForgesView({
   const [lastSent, setLastSent] = useState<ReadonlyMap<string, ForgeCommandBody>>(() => new Map());
   const [sentSettingsChange, setSentSettingsChange] = useState<SentSettingsChange | null>(null);
   const [whatNotifiesIsOpen, setWhatNotifiesIsOpen] = useState(false);
+  const [versionsShownFor, setVersionsShownFor] = useState<string | null>(null);
   const { forgeInView } = route;
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export function ForgesView({
 
   const gaiaPanelSurroundings = { commandStates: states, sentSettingsChange };
   const content = ForgesModel.forgesContentOf(fleetDocument, {
-    clock, commandStates: states, stopDialog, forgeInView, lastSent
+    clock, commandStates: states, stopDialog, forgeInView, lastSent, versionsShownFor
   });
   // A forge stopped from elsewhere drops its dialog, so it does not open again by itself once the forge runs again.
   if (stopDialog !== null && content.rows.every((row) => row.stopDialog === null)) setStopDialog(null);
@@ -91,6 +92,7 @@ export function ForgesView({
           onDismissRestartPending: dismissRestartPending,
           onSettingsCheckbox:      sendSettingsCheckbox,
           onOpenWhatNotifies:      () => setWhatNotifiesIsOpen(true),
+          onToggleVersions:        (trackerId) => setVersionsShownFor((current) => (current === trackerId ? null : trackerId)),
         }}
       />
       {whatNotifiesIsOpen

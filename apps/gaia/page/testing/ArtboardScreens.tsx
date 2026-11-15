@@ -426,19 +426,30 @@ function senderHolding(commandStates: CommandStates): CommandSender {
   };
 }
 
-function forgeControlsInUse(fleetDocument: FleetDocument) {
+interface ForgesLaidOut {
+  readonly commandStates:    CommandStates;
+  readonly stopDialog:       StopDialogState | null;
+  readonly lastSent:         ReadonlyMap<string, ForgeCommandBody>;
+  readonly versionsShownFor: string | null;
+}
+
+/** The Forges view as its root lays it out, with the state the root keeps set as the screen needs it. */
+function forgesLaidOut(fleetDocument: FleetDocument, {
+  commandStates, stopDialog, lastSent, versionsShownFor
+}: ForgesLaidOut) {
   const content = ForgesModel.forgesContentOf(fleetDocument, {
-    clock:         { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
-    commandStates: B2_COMMAND_STATES,
-    stopDialog:    B2_STOP_DIALOG,
-    forgeInView:   null,
-    lastSent:      B2_LAST_SENT,
+    clock:       { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
+    commandStates,
+    stopDialog,
+    forgeInView: null,
+    lastSent,
+    versionsShownFor,
   });
   return (
     <ForgesLayout
       content={content}
-      gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates: B2_COMMAND_STATES, sentSettingsChange: null })}
-      commandStates={B2_COMMAND_STATES}
+      gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates, sentSettingsChange: null })}
+      commandStates={commandStates}
       handlers={{
         onCommand:               doNothing,
         onOpenStopDialog:        doNothing,
@@ -449,9 +460,24 @@ function forgeControlsInUse(fleetDocument: FleetDocument) {
         onDismissRestartPending: doNothing,
         onSettingsCheckbox:      doNothing,
         onOpenWhatNotifies:      doNothing,
+        onToggleVersions:        doNothing,
       }}
     />
   );
+}
+
+/** The view's own state for a screen whose root keeps more than the route says: B2's controls in use, or a row's versions shown. */
+function viewContentOf(screen: ArtboardScreen, fleetDocument: FleetDocument) {
+  if (screen.viewState === 'forge-controls-in-use') {
+    return forgesLaidOut(fleetDocument, {
+      commandStates: B2_COMMAND_STATES, stopDialog: B2_STOP_DIALOG, lastSent: B2_LAST_SENT, versionsShownFor: null
+    });
+  }
+  const versionsShownFor = 'versionsShownFor' in screen && typeof screen.versionsShownFor === 'string' ? screen.versionsShownFor : null;
+  if (versionsShownFor === null) return null;
+  return forgesLaidOut(fleetDocument, {
+    commandStates: commandStatesOf(screen.viewState), stopDialog: null, lastSent: new Map(), versionsShownFor
+  });
 }
 
 function commandStatesOf(viewState: ScreenViewState): CommandStates {
@@ -486,8 +512,8 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
     goTo:               doNothing,
     forgeFrame:         forgeFrameSurroundingsAt(),
   });
-  const inUse = screen.viewState === 'forge-controls-in-use';
-  const view = inUse ? { ...routedParts, content: forgeControlsInUse(fleetDocument) } : routedParts;
+  const viewContent = viewContentOf(screen, fleetDocument);
+  const view = viewContent === null ? routedParts : { ...routedParts, content: viewContent };
   return renderToStaticMarkup(
     <CommandSenderContext value={senderHolding(commandStatesOf(screen.viewState))}>
       <GaiaShell

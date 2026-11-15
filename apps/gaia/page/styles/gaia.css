@@ -880,13 +880,64 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-code { font-size: var(--fs-pill); color: var(--ink-4); }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
 .gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
-.gaia-forges-icon-button { display: inline-flex; }
+.gaia-forges-icon-button,
+.gaia-forges-button-title { display: inline-flex; }
+/* A forge Gaia cannot talk to: its agents and what waits in it are not read */
+.gaia-forges-not-read { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-4); white-space: nowrap; }
+/* The versions disclosure under the condition: the forge's version and verdict in mono with a chevron, down while closed and up while open */
+.gaia-forges-versions-disclosure {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  line-height: var(--line-height-micro);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+.gaia-forges-versions-disclosure:hover { color: var(--ink); }
+.gaia-forges-versions-disclosure:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.gaia-forges-versions-chevron {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--glyph-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gaia-forges-versions-chevron[data-open] { transform: rotate(180deg); }
 /* The line under the table, while a control is in use (B2) */
 .gaia-forges-controls-note { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
 /* The Stop dialog spans the row from its dot; a notice, a refusal and a pending restart are indented to the name (B2) */
 .gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
 .gaia-forges-row-notice { margin: 0 0 0 var(--sp-4); color: var(--link); }
 .gaia-forges-row-indented { display: flex; flex-direction: column; gap: var(--sp-2); margin-left: var(--sp-4); }
+/* Under a row: an ahead forge's quiet line, its versions pair with the sentence under it, and Update forge on its way, indented to the name */
+.gaia-forges-quiet-line,
+.gaia-forges-versions-sentence {
+  margin: 0;
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-tab);
+  color: var(--ink-muted);
+}
+.gaia-forges-quiet-line { margin-left: var(--sp-4); }
+.gaia-forges-versions { display: flex; flex-direction: column; gap: var(--space-10); margin-left: var(--sp-4); padding-top: var(--space-2); }
+.gaia-forges-update-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-small);
+  color: var(--ink-muted);
+}
+/* What the verdicts mean, under the table while a row opens its versions */
+.gaia-forges-versions-note { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-versions-line); color: var(--ink-4); }
 
 /* A held forge's banner: the orange tint with a 4 px left edge, its dot, name and word over the notice; under it, indented, the pending
    restart and the refusal of its Update forge */
@@ -994,6 +1045,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forges-machine[data-at-the-limit] .gaia-forges-machine-figure { color: var(--link); }
 .gaia-forges-machine-unit { font-size: var(--fs-small); color: var(--ink-muted); }
+.gaia-forges-machine-not-counted { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
 .gaia-forges-machine-at-the-limit { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); font-weight: var(--weight-strong); color: var(--link); }
 .gaia-forges-machine-facts {
   display: flex;
@@ -1038,6 +1090,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forges-gaia-fact dt { color: var(--ink-muted); }
 .gaia-forges-gaia-fact dd { margin: 0; overflow-wrap: anywhere; }
+/* This Gaia's facts under their label: each a label and its mono value at the far end, on one line */
+.gaia-forges-gaia-this-gaia { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+.gaia-forges-gaia-this-gaia-fact { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.gaia-forges-gaia-this-gaia-fact dt { color: var(--ink-muted); }
+.gaia-forges-gaia-this-gaia-fact dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 
 /* What notifies (C2): the count at the head's end, then the kinds in a card, a hairline between each two */
 .gaia-forges-what-notifies-count { margin-left: auto; }

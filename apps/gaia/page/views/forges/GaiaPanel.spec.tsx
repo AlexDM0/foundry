@@ -89,11 +89,12 @@ describe('the panel in the Forges view (A4)', () => {
   test('sits in the aside under this machine\'s panel', () => {
     const commandStates = IDLE_STATES;
     const content = ForgesModel.forgesContentOf(FLEET_FIVE_FORGES, {
-      clock:       { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
+      clock:            { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' },
       commandStates,
-      stopDialog:  null,
-      forgeInView: null,
-      lastSent:    new Map(),
+      stopDialog:       null,
+      forgeInView:      null,
+      lastSent:         new Map(),
+      versionsShownFor: null,
     });
     const { handlers } = handledAndHandlers();
     const unfolded = tree.unfolded(
@@ -109,6 +110,7 @@ describe('the panel in the Forges view (A4)', () => {
           onCancelStop:            () => undefined,
           onConfirmStop:           () => undefined,
           onDismissRestartPending: () => undefined,
+          onToggleVersions:        () => undefined,
         }}
       />,
     );
@@ -152,7 +154,7 @@ describe('the panel', () => {
     const newer = { ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, settingsFile: 'newer-version' as const } };
     const { unfolded } = panelOf(newer);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-facts')])).toBe(
-      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonGaia readsmonitor 3 · control 2 · embed 1Gaia0.1.0 on 127.0.0.1:4790',
+      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonThis Gaiaversion1.0built for forge1.1address127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
     expect(tree.hostElementsIn(unfolded, tree.withComponent(Switch)).map((setting) => setting.props['disabled'])).toEqual([true, true]);
@@ -164,16 +166,28 @@ describe('the panel', () => {
     expect(values.map((value) => [tree.textOf([value]), tree.hostElementsIn([value], tree.withTag('wbr')).length])).toEqual([
       ['~/.bun/bin/forge', 3],
       ['~/.forge-monitor/projects.json', 2],
-      ['monitor 3 · control 2 · embed 1', 0],
-      ['0.1.0 on 127.0.0.1:4790', 0],
+      ['version1.0built for forge1.1address127.0.0.1:4790', 0],
+      ['1.0', 0],
+      ['1.1', 0],
+      ['127.0.0.1:4790', 0],
     ]);
   });
 
   test('each fact\'s value is set in mono, but a value that is words, as a forge program not found, in the interface face', () => {
-    const monoOf = (fleetDocument: FleetDocument) => tree.hostElementsIn(panelOf(fleetDocument).unfolded, tree.withTag('dd'))
+    const monoOf = (fleetDocument: FleetDocument) => tree.hostElementsIn(panelOf(fleetDocument).unfolded, tree.withTag('dd')).slice(0, 2)
       .map((value) => tree.onlyOfComponent([value], Text).props['mono']);
-    expect(monoOf(FLEET_FIVE_FORGES)).toEqual([true, true, true, true]);
-    expect(monoOf({ ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, forgeProgramInUse: null } })).toEqual([false, true, true, true]);
+    expect(monoOf(FLEET_FIVE_FORGES)).toEqual([true, true]);
+    expect(monoOf({ ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, forgeProgramInUse: null } })).toEqual([false, true]);
+  });
+
+  test('this Gaia\'s facts close the list under one label, each a label and its value on a line of its own', () => {
+    const { unfolded } = panelOf(FLEET_FIVE_FORGES);
+    const thisGaia = tree.onlyWithClass(unfolded, 'gaia-forges-gaia-this-gaia');
+    expect(tree.hostElementsIn([thisGaia], tree.withClass('gaia-forges-gaia-this-gaia-fact')).map((fact) => tree.textOf([fact]))).toEqual([
+      'version1.0',
+      'built for forge1.1',
+      'address127.0.0.1:4790',
+    ]);
   });
 
   test('a refused change shows its code and sentence under the switches, with Try again and its dismissal', async () => {

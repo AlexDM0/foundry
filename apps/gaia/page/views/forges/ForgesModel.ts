@@ -3,7 +3,8 @@
  * the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
  * machine's agent limit. A row marks Flint's brain while its forge reports it running, and the machine panel says the brain runs outside
  * the limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
- * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero.
+ * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at
+ * another version than this Gaia is built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
@@ -13,22 +14,34 @@ import type {
   ForgeCommandBody,
   ForgeStopAgents,
 } from '../../@types/CommandDocument.ts';
-import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import { CommandSender, type CommandStates }                              from '../../api/CommandSender.ts';
-import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
-import type { ClockReading }                                              from '../../shared/@types/ClockReading.ts';
-import type { PageFigure }                                                from '../../shared/@types/ViewParts.ts';
-import { HashRouter }                                                     from '../../shared/HashRouter.ts';
-import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
-import { CommandFailureTextUtil, type RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';
-import { CountTextUtil }                                                  from '../../shared/utils/CountTextUtil.ts';
-import { FleetDocumentUtil }                                              from '../../shared/utils/FleetDocumentUtil.ts';
-import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice }    from '../../shared/utils/ForgeCommandTextUtil.ts';
-import { ForgeContractUtil }                                              from '../../shared/utils/ForgeContractUtil.ts';
-import { ForgeTextUtil }                                                  from '../../shared/utils/ForgeTextUtil.ts';
-import { PathTextUtil }                                                   from '../../shared/utils/PathTextUtil.ts';
-import { StampTextUtil }                                                  from '../../shared/utils/StampTextUtil.ts';
-import { AGENT_LIMITS }                                                   from './constants/AgentLimits.ts';
+import type {
+  FleetDocument,
+  FleetDocumentCondition,
+  FleetDocumentForge,
+  FleetDocumentForgeVersions,
+} from '../../@types/FleetDocument.ts';
+import { CommandSender, type CommandStates }                           from '../../api/CommandSender.ts';
+import type { DotCondition }                                           from '../../design-system/ConditionDot.tsx';
+import type { ClockReading }                                           from '../../shared/@types/ClockReading.ts';
+import type { PageFigure }                                             from '../../shared/@types/ViewParts.ts';
+import { HashRouter }                                                  from '../../shared/HashRouter.ts';
+import { AddRepositoryForm }                                           from '../../shared/add-repository/AddRepositoryForm.ts';
+import { CommandFailureTextUtil, type RefusalText }                    from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                                               from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                                           from '../../shared/utils/FleetDocumentUtil.ts';
+import { ForgeCommandTextUtil, type StopChoice as StopQuestionChoice } from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeContractUtil }                                           from '../../shared/utils/ForgeContractUtil.ts';
+import { ForgeTextUtil, type ShownCondition }                          from '../../shared/utils/ForgeTextUtil.ts';
+import {
+  type ForgeWithVersions,
+  ForgeVersionsTextUtil,
+  type GaiaVersions,
+  type VersionsPairText,
+  type VersionsSublineText,
+} from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { PathTextUtil }  from '../../shared/utils/PathTextUtil.ts';
+import { StampTextUtil } from '../../shared/utils/StampTextUtil.ts';
+import { AGENT_LIMITS }  from './constants/AgentLimits.ts';
 
 /** The Stop dialog open under one row, and the choice it holds. */
 export interface StopDialogState {
@@ -37,13 +50,15 @@ export interface StopDialogState {
 }
 
 export interface ForgesSurroundings {
-  readonly clock:         ClockReading;
-  readonly commandStates: CommandStates;
-  readonly stopDialog:    StopDialogState | null;
+  readonly clock:            ClockReading;
+  readonly commandStates:    CommandStates;
+  readonly stopDialog:       StopDialogState | null;
   /** The row the route names, shown selected and scrolled into view. */
-  readonly forgeInView:   string | null;
+  readonly forgeInView:      string | null;
   /** The last command this view sent to each forge, so "Try again" sends the same limit or the same Stop again. */
-  readonly lastSent:      ReadonlyMap<string, ForgeCommandBody>;
+  readonly lastSent:         ReadonlyMap<string, ForgeCommandBody>;
+  /** The row whose versions disclosure is open; one at a time. */
+  readonly versionsShownFor: string | null;
 }
 
 /** The buttons a row may show, by its condition. */
@@ -61,8 +76,10 @@ export type ForgeButton =
     readonly iconOnly: boolean;
     readonly command:  CommandBody;
     readonly disabled: boolean;
+    /** Why a control Gaia cannot send is off, naming both versions. */
+    readonly title?:   string;
   }
-  | { readonly kind: 'stop'; readonly button: 'stop'; readonly label: string; readonly disabled: boolean }
+  | { readonly kind: 'stop'; readonly button: 'stop'; readonly label: string; readonly disabled: boolean; readonly title?: string }
   | { readonly kind: 'link'; readonly button: 'open'; readonly label: string; readonly href: string; readonly disabled: boolean }
   /** B2: Gaia's own `forge start` is on its way, and its one button says so. */
   | { readonly kind: 'waiting'; readonly label: string };
@@ -80,7 +97,9 @@ export type ForgeAgentsCell =
     readonly raiseCommand: ForgeCommandBody | null;
     readonly disabled:     boolean;
   }
-  | { readonly kind: 'text'; readonly text: string };
+  | { readonly kind: 'text'; readonly text: string }
+  /** A forge Gaia cannot talk to: nothing of its work is read. */
+  | { readonly kind: 'not-read' };
 
 export type ConditionTone = 'warn' | 'muted';
 
@@ -115,6 +134,21 @@ export interface StopDialog {
   readonly isOnItsWay:  boolean;
 }
 
+/**
+ * A forge's versions on its row: the subline under its condition, which for any verdict but current opens the versions pair under the row
+ * with its sentence, and an ahead forge's quiet line, hidden while the pair, which says the same, is open.
+ */
+export interface ForgeRowVersions {
+  /** `null` where the condition's own detail says more than a current version, such as a paused forge's. */
+  readonly subline:         VersionsSublineText | null;
+  readonly disclosureLabel: string;
+  readonly isShown:         boolean;
+  /** `null` while the pair is closed. */
+  readonly pair:            VersionsPairText | null;
+  readonly pairSentence:    string | null;
+  readonly quietLine:       string | null;
+}
+
 /** Flint's brain running in a forge, as its row marks it after the name. */
 export interface ForgeRowBrain {
   /** Counted from the forge's `endsAt` for display, `1:24`; the mark leaves when the forge reports the brain ended, never by this count. */
@@ -136,6 +170,8 @@ export interface ForgeRow {
   readonly agents:         ForgeAgentsCell | null;
   /** What waits on User in this forge, counted for its badge; `null` where nothing waits or the count is not known. */
   readonly waitingCount:   number | null;
+  /** `false` for a forge Gaia cannot talk to: its agents and what waits in it are not read. */
+  readonly workIsRead:     boolean;
   readonly codeText:       string | null;
   readonly buttons:        readonly ForgeButton[];
   readonly isInView:       boolean;
@@ -146,6 +182,10 @@ export interface ForgeRow {
   readonly noticeText:     string | null;
   /** `null` unless the forge reports its brain running. */
   readonly brain:          ForgeRowBrain | null;
+  /** `null` for a forge read without its versions. */
+  readonly versions:       ForgeRowVersions | null;
+  /** While an Update forge Gaia sent this forge is on its way, said under the row. */
+  readonly updateStatus:   string | null;
 }
 
 export interface HeldBanner {
@@ -186,12 +226,15 @@ export interface MachinePanel {
   /** Off when no forge enforces a limit, and while a limit is on its way. */
   readonly stepperIsOff:   boolean;
   readonly sentence:       string;
-  readonly meter:          { readonly used: number; readonly whole: number; readonly label: string } | null;
+  /** `usedText` is the figure as printed: `8+` while a forge is not counted. */
+  readonly meter:          { readonly used: number; readonly usedText: string; readonly whole: number; readonly label: string } | null;
   readonly isAtTheLimit:   boolean;
   readonly atTheLimitText: string | null;
   readonly facts:          readonly MachineFact[];
   /** That Flint's brain runs outside the limit, and where one runs now; `null` while no forge reports a brain or no limit is known. */
   readonly brainLine:      MachineBrainLine | null;
+  /** The forges whose agents this Gaia cannot read, so the figure leaves them out; `null` while every forge is counted. */
+  readonly notCountedText: string | null;
 }
 
 export interface MachineBrainLine {
@@ -212,6 +255,8 @@ export interface ForgesContent {
   readonly hiddenHead:    string;
   readonly hidden:        readonly ForgeEntry[];
   readonly machine:       MachinePanel;
+  /** What the verdicts mean, under the table while a row opens its versions. */
+  readonly versionsNote:  string | null;
 }
 
 const HEAD_SEPARATOR = ' · ';
@@ -255,22 +300,36 @@ function onItsWayFor(commandStates: CommandStates, trackerId: string): CommandKi
 }
 
 /** Gaia's own `forge start` on its way shows a dormant forge as starting until the document reports what came of it. */
-function shownConditionOf(forge: FleetDocumentForge, commandStates: CommandStates): FleetDocumentCondition {
-  return forge.condition === 'dormant' && onItsWayFor(commandStates, forge.trackerId) === 'forge-start' ? 'starting' : forge.condition;
+function shownConditionOf(forge: FleetDocumentForge, commandStates: CommandStates): ShownCondition {
+  return forge.condition === 'dormant' && onItsWayFor(commandStates, forge.trackerId) === 'forge-start' ? 'starting' : ForgeTextUtil.shownConditionOf(forge);
 }
 
-/** The page title's figures: every registered forge, hidden ones too, how many run, and how many start or are hidden when any are. */
+/** A forge whose versions say Gaia cannot talk to it: Gaia shows that it runs and nothing of its work, and sends it no command. */
+function cannotTalkTo(forge: FleetDocumentForge): forge is FleetDocumentForge & { readonly versions: FleetDocumentForgeVersions } {
+  return forge.versions?.verdict === 'older' || forge.versions?.verdict === 'newer';
+}
+
+function withVersionsOf(forge: FleetDocumentForge): ForgeWithVersions | null {
+  return forge.versions === null ? null : { project: forge.project, versions: forge.versions };
+}
+
+/**
+ * The page title's figures: every registered forge, hidden ones too, how many run, how many start or are hidden when any are, and how many
+ * this Gaia cannot read; a forge Gaia cannot talk to answered its versions, so it runs.
+ */
 function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
   const { forges } = fleetDocument;
-  const running = forges.filter((forge) => RUNNING_CONDITIONS.has(forge.condition)).length;
+  const running = forges.filter((forge) => RUNNING_CONDITIONS.has(forge.condition) || cannotTalkTo(forge)).length;
   const starting = forges.filter((forge) => forge.condition === 'starting').length;
   const hiddenTrackerIds = hiddenTrackerIdsOf(fleetDocument);
   const hidden = forges.filter((forge) => hiddenTrackerIds.has(forge.trackerId)).length;
+  const notRead = forges.filter(cannotTalkTo).length;
   return [
     { value: String(forges.length), label: 'registered' },
     { value: String(running), label: 'running' },
     ...(starting === 0 ? [] : [{ value: String(starting), label: 'starting', attention: true }]),
     ...(hidden === 0 ? [] : [{ value: String(hidden), label: 'hidden' }]),
+    ...(notRead === 0 ? [] : [{ value: String(notRead), label: 'not read' }]),
   ];
 }
 
@@ -344,8 +403,35 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
   }
 }
 
+function withTitle(button: ForgeButton, title: string): ForgeButton {
+  return button.kind === 'command' || button.kind === 'stop' ? { ...button, title } : button;
+}
+
+/** Update forge is the row's one primary, until a restart it left pending takes that place; it says so while it is on its way. */
+function updateButtonOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton {
+  const { trackerId } = forge;
+  const command: CommandBody = { kind: 'forge-update', trackerId };
+  const { commandStates } = rowSurroundings.surroundings;
+  if (onItsWayFor(commandStates, trackerId) === 'forge-update') return commandButton('update', ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pendingButton, command, true, 'primary');
+  const restartIsPending = CommandSender.stateOf(commandStates, { trackerId }).restartPending;
+  return commandButton('update', 'Update forge', command, forgeIsBusy(forge, rowSurroundings), restartIsPending ? 'quiet' : 'primary');
+}
+
+/** An older forge offers Update forge; a newer one only what it would offer, off. Neither opens in place, and each opens in a new tab. */
+function buttonsOfAForgeGaiaCannotTalkTo(forge: FleetDocumentForge & { readonly versions: FleetDocumentForgeVersions }, rowSurroundings: RowSurroundings): ForgeButton[] {
+  const title = ForgeVersionsTextUtil.unsentControlTitleOf(forge, rowSurroundings.fleetDocument.gaia.versions) ?? '';
+  const stop = withTitle({
+    kind: 'stop', button: 'stop', label: 'Stop', disabled: true
+  }, title);
+  const openInNewTabCommand: CommandBody = { kind: 'forge-open-in-browser', trackerId: forge.trackerId };
+  const openInNewTab = commandButton('open-in-new-tab', `Open ${forge.project} in a new tab`, openInNewTabCommand, forgeIsBusy(forge, rowSurroundings));
+  if (forge.versions.verdict === 'older') return [updateButtonOf(forge, rowSurroundings), stop, openInNewTab];
+  return [withTitle(commandButton('pause', 'Pause', { kind: 'forge-pause', trackerId: forge.trackerId }, true), title), stop, openInNewTab];
+}
+
 function buttonsOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeButton[] {
   if (shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting') return [{ kind: 'waiting', label: 'Starting' }];
+  if (cannotTalkTo(forge)) return buttonsOfAForgeGaiaCannotTalkTo(forge, rowSurroundings);
   return BUTTONS_BY_CONDITION[forge.condition].flatMap((button) => {
     const shown = buttonOf(button, forge, rowSurroundings);
     return shown === null ? [] : [shown];
@@ -356,7 +442,7 @@ function agentsInFlightOf(forge: FleetDocumentForge): number {
   return forge.concurrency?.agentsInFlight ?? forge.agents.length;
 }
 
-function detailTextOf(forge: FleetDocumentForge, shownCondition: FleetDocumentCondition, rowSurroundings: RowSurroundings): string | null {
+function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition, rowSurroundings: RowSurroundings): string | null {
   const { clock } = rowSurroundings.surroundings;
   switch (shownCondition) {
     case 'live':
@@ -385,18 +471,20 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: FleetDocumentCo
       return 'newer than this Gaia';
     case 'missing':
       return 'the repository folder is gone';
+    case 'outdated':
+      return 'older than this Gaia';
   }
 }
 
-/** B2: held and starting read in orange, a paused, dormant or missing forge in the secondary ink. */
-function conditionToneOf(condition: FleetDocumentCondition): ConditionTone | null {
-  if (condition === 'held' || condition === 'starting') return 'warn';
-  if (condition === 'paused' || condition === 'dormant' || condition === 'missing') return 'muted';
+/** B2: held, starting and a forge that needs an update read in orange; a paused, dormant, unreadable or missing forge in the secondary ink. */
+function conditionToneOf(condition: ShownCondition): ConditionTone | null {
+  if (condition === 'held' || condition === 'starting' || condition === 'outdated') return 'warn';
+  if (condition === 'paused' || condition === 'dormant' || condition === 'unreadable' || condition === 'missing') return 'muted';
   return null;
 }
 
-function detailFaceOf(condition: FleetDocumentCondition, forgeProgramIsMissing: boolean): DetailFace {
-  if (condition === 'paused' || condition === 'starting' || condition === 'unreadable' || condition === 'missing') return 'ui';
+function detailFaceOf(condition: ShownCondition, forgeProgramIsMissing: boolean): DetailFace {
+  if (condition === 'paused' || condition === 'starting' || condition === 'unreadable' || condition === 'missing' || condition === 'outdated') return 'ui';
   return condition === 'dormant' && forgeProgramIsMissing ? 'ui' : 'mono';
 }
 
@@ -405,6 +493,7 @@ function detailFaceOf(condition: FleetDocumentCondition, forgeProgramIsMissing: 
  * disabled one while the forge starts (B2).
  */
 function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeAgentsCell | null {
+  if (cannotTalkTo(forge)) return { kind: 'not-read' };
   const { concurrency, trackerId, project } = forge;
   if (concurrency === null) return null;
   const valueText = `${concurrency.agentsInFlight} / ${concurrency.limit}`;
@@ -488,13 +577,15 @@ function refusalBelongsToTheHeldBanner(forge: FleetDocumentForge, kind: CommandK
   return forge.condition === 'held' && SENT_FROM_THE_HELD_BANNER.has(kind);
 }
 
-/** The restart an update left pending, until a restart, stop or update of the forge succeeds or it is dismissed; Restart needs its API. */
+/**
+ * The restart an update left pending, until a restart, stop or update of the forge succeeds or it is dismissed; Restart needs its API. Under
+ * the row of a forge Gaia cannot talk to it says Gaia reads the forge once it restarts.
+ */
 function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): PendingRestart | null {
   const { trackerId } = forge;
   if (!CommandSender.stateOf(rowSurroundings.surroundings.commandStates, { trackerId }).restartPending) return null;
-  const {
-    word, sentence, restartLabel, dismissLabel
-  } = ForgeCommandTextUtil.RESTART_PENDING;
+  const { word, restartLabel, dismissLabel } = ForgeCommandTextUtil.RESTART_PENDING;
+  const sentence = cannotTalkTo(forge) ? ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.doneUnderAControl : ForgeCommandTextUtil.RESTART_PENDING.sentence;
   const restartIsOff = forgeIsBusy(forge, rowSurroundings) || !apiCarriesCommandsTo(forge);
   return {
     word,
@@ -513,9 +604,38 @@ function rowBrainOf(forge: FleetDocumentForge, clock: ClockReading): ForgeRowBra
   };
 }
 
+/** The conditions whose detail is only when the Overseer started: the versions subline takes their place. */
+const CONDITIONS_DETAILED_BY_THEIR_START: ReadonlySet<ShownCondition> = new Set(['live', 'held', 'passing-baton']);
+
+const VERSIONS_DISCLOSURE_LABEL_SUFFIX = ', its version beside this Gaia’s';
+
+/** A current forge's version replaces when its Overseer started; any other verdict's disclosure replaces whatever the detail was. */
+function rowVersionsOf(forge: FleetDocumentForge, shownCondition: ShownCondition, { fleetDocument, surroundings }: RowSurroundings): ForgeRowVersions | null {
+  const withVersions = withVersionsOf(forge);
+  if (withVersions === null) return null;
+  const gaiaVersions: GaiaVersions = fleetDocument.gaia.versions;
+  const subline = ForgeVersionsTextUtil.sublineTextOf(withVersions);
+  const isShown = subline.opensVersions && surroundings.versionsShownFor === forge.trackerId;
+  return {
+    subline:         subline.opensVersions || CONDITIONS_DETAILED_BY_THEIR_START.has(shownCondition) ? subline : null,
+    disclosureLabel: `${forge.project}${VERSIONS_DISCLOSURE_LABEL_SUFFIX}`,
+    isShown,
+    pair:            isShown ? ForgeVersionsTextUtil.pairTextOf(withVersions, gaiaVersions) : null,
+    pairSentence:    isShown ? ForgeVersionsTextUtil.pairSentenceOf(withVersions, gaiaVersions) : null,
+    quietLine:       isShown ? null : ForgeVersionsTextUtil.quietLineOf(withVersions, gaiaVersions),
+  };
+}
+
+function updateStatusOf(forge: FleetDocumentForge, commandStates: CommandStates): string | null {
+  const updateIsOnItsWay = onItsWayFor(commandStates, forge.trackerId) === 'forge-update';
+  return updateIsOnItsWay && forge.versions?.verdict === 'older' ? ForgeVersionsTextUtil.UPDATE_FORGE_TEXT.pending : null;
+}
+
 function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeRow {
   const { fleetDocument, surroundings } = rowSurroundings;
   const shownCondition = shownConditionOf(forge, surroundings.commandStates);
+  const versions = rowVersionsOf(forge, shownCondition, rowSurroundings);
+  const workIsRead = !cannotTalkTo(forge);
   return {
     trackerId:      forge.trackerId,
     project:        forge.project,
@@ -524,10 +644,11 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     condition:      ForgeTextUtil.dotConditionOf(shownCondition),
     conditionWord:  ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone:  conditionToneOf(shownCondition),
-    detailText:     detailTextOf(forge, shownCondition, rowSurroundings),
+    detailText:     versions === null || versions.subline === null ? detailTextOf(forge, shownCondition, rowSurroundings) : null,
     detailFace:     detailFaceOf(shownCondition, rowSurroundings.forgeProgramIsMissing),
     agents:         agentsCellOf(forge, rowSurroundings),
-    waitingCount:   waitingCountShownOf(forge),
+    waitingCount:   workIsRead ? waitingCountShownOf(forge) : null,
+    workIsRead,
     codeText:       forge.codeVersion === null ? null : forge.codeVersion.slice(0, SHORT_CODE_VERSION_CHARACTERS),
     buttons:        buttonsOf(forge, rowSurroundings),
     isInView:       surroundings.forgeInView === forge.trackerId,
@@ -536,6 +657,8 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
     noticeText:     forge.notices.find((notice) => notice.kind === NOTICE_KIND_OF_ASSISTANT_DOWN)?.text ?? null,
     brain:          rowBrainOf(forge, surroundings.clock),
+    versions,
+    updateStatus:   updateStatusOf(forge, surroundings.commandStates),
   };
 }
 
@@ -611,12 +734,18 @@ function atTheLimitTextOf(fleetDocument: FleetDocument): string {
   return `The machine is at its limit. ${waitingText}${byForge === null ? '.' : `: ${byForge}.`}`;
 }
 
+/** A count that leaves out a forge Gaia cannot read is a floor, never a guess: `8+`. */
+function agentsRunningTextOf(fleetDocument: FleetDocument): string {
+  const { agentsInFlight, incompleteFor } = fleetDocument.figures;
+  return `${agentsInFlight}${incompleteFor.length === 0 ? '' : '+'}`;
+}
+
 function machineFactsOf(fleetDocument: FleetDocument, isAtTheLimit: boolean): MachineFact[] {
-  const { figures, machine } = fleetDocument;
+  const { machine } = fleetDocument;
   const waiting = machine.ticketsWaitingForMachineSlot;
   const ticketsWaitAtTheLimit = isAtTheLimit && waiting !== null && waiting > 0;
   return [
-    { label: 'Agents running', value: String(figures.agentsInFlight) },
+    { label: 'Agents running', value: agentsRunningTextOf(fleetDocument) },
     { label: 'Asked for by the forges\' own limits', value: String(machine.agentsAskedForByForgeLimits) },
     ...(waiting === null ? [] : [{ label: 'Tickets waiting for a machine slot', value: String(waiting), ...(ticketsWaitAtTheLimit ? { attention: true as const } : {}) }]),
   ];
@@ -637,6 +766,17 @@ function machineBrainLineOf(fleetDocument: FleetDocument): MachineBrainLine | nu
       ? null
       : `${running.length} ${running.length === 1 ? 'is' : 'are'} running now, in ${namesInASentenceOf(running)}, and ${running.length === 1 ? 'takes' : 'take'} no agent slot.`,
   };
+}
+
+function notCountedTextOf(fleetDocument: FleetDocument): string | null {
+  const names = fleetDocument.figures.incompleteFor.flatMap((trackerId) => {
+    const forge = FleetDocumentUtil.forgeOf(fleetDocument, trackerId);
+    return forge === null ? [] : [forge.project];
+  });
+  if (names.length === 0) return null;
+  return names.length === 1
+    ? `${names.join('')} is not counted: this Gaia cannot read its agents.`
+    : `${namesInASentenceOf(names)} are not counted: this Gaia cannot read their agents.`;
 }
 
 /** Why no machine limit is known: no forge registered, none that answered reports one, or none has answered at all. */
@@ -664,21 +804,28 @@ function machinePanelOf(fleetDocument: FleetDocument, commandStates: CommandStat
       atTheLimitText: null,
       facts:          machineFactsOf(fleetDocument, false),
       brainLine:      null,
+      notCountedText: notCountedTextOf(fleetDocument),
     };
   }
   const isAtTheLimit = agentsInFlight >= machineLimit;
   return {
-    limitText:      String(machineLimit),
-    limit:          machineLimit,
-    lowerCommand:   machineLimit <= AGENT_LIMITS.lowestAgents ? null : machineLimitCommand(machineLimit - 1),
-    raiseCommand:   machineLimit >= cpuCount ? null : machineLimitCommand(machineLimit + 1),
-    stepperIsOff:   CommandSender.stateOf(commandStates, { fleetCommand: 'machine-agent-limit-set' }).onItsWay !== null,
-    sentence:       isAtTheLimit ? cpuSentence : `${cpuSentence} No forge starts an agent past it, whatever its own limit.`,
-    meter:          { used: agentsInFlight, whole: machineLimit, label: `${agentsInFlight} of ${machineLimit} agents` },
+    limitText:    String(machineLimit),
+    limit:        machineLimit,
+    lowerCommand: machineLimit <= AGENT_LIMITS.lowestAgents ? null : machineLimitCommand(machineLimit - 1),
+    raiseCommand: machineLimit >= cpuCount ? null : machineLimitCommand(machineLimit + 1),
+    stepperIsOff: CommandSender.stateOf(commandStates, { fleetCommand: 'machine-agent-limit-set' }).onItsWay !== null,
+    sentence:     isAtTheLimit ? cpuSentence : `${cpuSentence} No forge starts an agent past it, whatever its own limit.`,
+    meter:        {
+      used:     agentsInFlight,
+      usedText: agentsRunningTextOf(fleetDocument),
+      whole:    machineLimit,
+      label:    `${agentsRunningTextOf(fleetDocument)} of ${machineLimit} agents`,
+    },
     isAtTheLimit,
     atTheLimitText: isAtTheLimit ? atTheLimitTextOf(fleetDocument) : null,
     facts:          machineFactsOf(fleetDocument, isAtTheLimit),
     brainLine:      machineBrainLineOf(fleetDocument),
+    notCountedText: notCountedTextOf(fleetDocument),
   };
 }
 
@@ -715,6 +862,7 @@ function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurro
     hiddenHead:    `Hidden in Gaia${HEAD_SEPARATOR}${hidden.length}`,
     hidden,
     machine:       machinePanelOf(fleetDocument, surroundings.commandStates),
+    versionsNote:  rows.some((row) => row.versions?.subline?.opensVersions === true) ? ForgeVersionsTextUtil.VERSIONS_EXPLANATION : null,
   };
 }
 

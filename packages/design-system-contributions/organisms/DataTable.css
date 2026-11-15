@@ -1,7 +1,7 @@
 /*
  * A data table: one grid per row inside a card, a hairline under each row but the last. A regular row is 40px under a 34px head, a compact
- * one 36px with its hairline under a 32px head, a tall one 58px. The selected row lies on the wash with an orange inset edge; an
- * interactive row is ringed on hover.
+ * one 36px with its hairline under a 32px head, a tall one 58px. The selected row lies on the wash with an orange inset edge, an
+ * expanded one with the muted tone's faded edge; an interactive row is ringed on hover.
  */
 .design-system-data-table {
   overflow: hidden;
@@ -12,6 +12,7 @@
 .design-system-data-table-row { border-bottom: 1px solid var(--line); transition: var(--feedback-transition); }
 .design-system-data-table-row:last-child { border-bottom: 0; }
 .design-system-data-table-row[data-selected] { background: var(--wash); box-shadow: inset 3px 0 0 var(--signal); }
+.design-system-data-table-row[data-expanded] { background: var(--wash); box-shadow: inset 3px 0 0 var(--s-fill); }
 /* An interactive row is the box a link stretched over it fills. */
 .design-system-data-table-row[data-interactive] { position: relative; }
 .design-system-data-table-row[data-interactive]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }

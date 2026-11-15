@@ -1,7 +1,8 @@
 /**
  * A table drawn as one CSS grid per row inside a bordered card: a micro-caps head row, then rows of 40px, 36px when compact or 58px when
- * tall, each with its hairline. A row may be the selected one, may be interactive (ringed on hover, a box a stretched link can fill), and
- * may carry content under its cells, such as a confirmation or a failure, spanning every column. A head label may be hidden, read by a
+ * tall, each with its hairline. A row may be the selected one, may be interactive (ringed on hover, a box a stretched link can fill), may
+ * be expanded, opened to show what lies under it on the wash with a faded edge, never the selection's orange, and may carry content under
+ * its cells, such as a confirmation or a failure, spanning every column. A head label may be hidden, read by a
  * screen reader only, over a column whose cells name themselves. A table with many narrow columns may set them closer together, and one
  * may sit its cells further in from the card's edges.
  */
@@ -19,6 +20,7 @@ export interface DataTableRow<Key extends string> {
   readonly cells:        Readonly<Record<Key, ReactNode>>;
   readonly selected?:    boolean;
   readonly interactive?: boolean;
+  readonly expanded?:    boolean;
   readonly below?:       ReactNode;
 }
 
@@ -70,6 +72,8 @@ export function DataTable<Key extends string>({
           role="row"
           data-selected={flagAttribute(row.selected)}
           data-interactive={flagAttribute(row.interactive)}
+          data-expanded={flagAttribute(row.expanded)}
+          data-state-tone={row.expanded === true ? 'muted' : undefined}
           aria-current={row.selected === true ? 'true' : undefined}
         >
           <div className="design-system-data-table-cells" role="none" style={gridStyle}>

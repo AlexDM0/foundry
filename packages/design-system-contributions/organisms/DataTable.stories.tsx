@@ -36,3 +36,13 @@ export const SelectedWithContentBelow: Story = {
     ],
   },
 };
+export const ExpandedWithContentBelow: Story = {
+  args: {
+    rows: [
+      { key: 'storefront', cells: { name: 'Example Storefront', state: 'Running', count: '4' } },
+      {
+        key: 'invoices', cells: { name: 'Example Invoices', state: 'Paused', count: '3' }, expanded: true, below: 'Example Invoices is paused since 09:12.'
+      },
+    ],
+  },
+};

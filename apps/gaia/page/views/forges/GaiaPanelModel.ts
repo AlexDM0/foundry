@@ -1,6 +1,7 @@
 /**
  * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Start the running forges at login" and "Notify me while Gaia is
- * open", each a switch that sends `settings-set`; the forge program, the registry, the contracts Gaia reads, Gaia's version and address;
+ * open", each a switch that sends `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is
+ * built for and its address;
  * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
  * refusal shows in the place whose switch sent the change, and only for that send.
  */
@@ -8,6 +9,7 @@ import type { CommandBody }                                                     
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';
 import { type CommandResult, CommandSender, type CommandStates }                    from '../../api/CommandSender.ts';
 import { CommandFailureTextUtil, type RefusalText }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
+import { ForgeVersionsTextUtil }                                                    from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import { PathTextUtil }                                                             from '../../shared/utils/PathTextUtil.ts';
 
 /** One of Gaia's facts: its value in mono, unless the fact says its value is words. */
@@ -53,6 +55,8 @@ export interface GaiaPanelContent {
   /** Said when Gaia runs on its defaults because its settings file cannot be used. */
   readonly settingsFileLine: string | null;
   readonly facts:            readonly GaiaFact[];
+  /** This Gaia's own facts, each a label and its mono value on one line, under one label. */
+  readonly thisGaiaFacts:    readonly GaiaFact[];
   readonly refusal:          SettingsRefusal | null;
 }
 
@@ -62,8 +66,6 @@ export interface WhatNotifiesContent {
   readonly offLine: string | null;
   readonly refusal: SettingsRefusal | null;
 }
-
-const FACT_SEPARATOR = ' · ';
 
 const START_AT_LOGIN_LABEL = 'Start the running forges at login';
 const NOTIFY_LABEL = 'Notify me while Gaia is open';
@@ -119,15 +121,21 @@ function hostOf(address: string): string {
 
 function factsOf(fleetDocument: FleetDocument): GaiaFact[] {
   const { gaia } = fleetDocument;
-  const { knownContracts } = gaia;
   const forgeProgram: GaiaFact = gaia.forgeProgramInUse === null
     ? { label: 'Forge program', value: 'not found', valueFace: 'ui' }
     : { label: 'Forge program', value: PathTextUtil.homeRelativePathOf(gaia.forgeProgramInUse, gaia.homeFolder) };
   return [
     forgeProgram,
     { label: 'Registry', value: PathTextUtil.homeRelativePathOf(gaia.registryPath, gaia.homeFolder) },
-    { label: 'Gaia reads', value: [`monitor ${knownContracts.monitor}`, `control ${knownContracts.control}`, `embed ${knownContracts.embed}`].join(FACT_SEPARATOR) },
-    { label: 'Gaia', value: `${gaia.gaiaVersion} on ${hostOf(gaia.address)}` },
+  ];
+}
+
+/** This Gaia's system version and the one forge version it is built for, never its package version. */
+function thisGaiaFactsOf({ gaia }: FleetDocument): GaiaFact[] {
+  return [
+    { label: 'version', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.systemVersion) },
+    { label: 'built for forge', value: ForgeVersionsTextUtil.versionTextOf(gaia.versions.supportedForgeVersion) },
+    { label: 'address', value: hostOf(gaia.address) },
   ];
 }
 
@@ -153,6 +161,7 @@ function gaiaPanelOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurrou
     },
     settingsFileLine: SETTINGS_FILE_LINES[fleetDocument.gaia.settingsFile],
     facts:            factsOf(fleetDocument),
+    thisGaiaFacts:    thisGaiaFactsOf(fleetDocument),
     refusal:          refusalIn('gaia-panel', surroundings),
   };
 }

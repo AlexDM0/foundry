@@ -1,8 +1,8 @@
 /**
  * The data table, in a happy-dom document. What matters: it is a table named by its label; the head row holds the column headers and each
- * row its cells in column order, every row on the same grid tracks; only the selected row is current; content under a row spans every
- * column; an end-aligned column, a hidden head label and an interactive row are marked; and the row height, column gap and inset are the
- * table's, with the regular ones left unmarked.
+ * row its cells in column order, every row on the same grid tracks; only the selected row is current; an expanded row is marked in the
+ * muted tone and is not current; content under a row spans every column; an end-aligned column, a hidden head label and an interactive row
+ * are marked; and the row height, column gap and inset are the table's, with the regular ones left unmarked.
  */
 import {
   cleanup,
@@ -65,6 +65,22 @@ describe('the data table', () => {
     expect([selected?.getAttribute('aria-current'), other?.getAttribute('aria-current') ?? null]).toEqual(['true', null]);
     const below = screen.getByText('Archive Example Storefront?');
     expect([below.getAttribute('role'), below.getAttribute('aria-colspan')]).toEqual(['cell', '3']);
+  });
+
+  test('an expanded row is marked in the muted tone and is not current, so its faded edge is no selection', () => {
+    render(
+      <DataTable
+        label="Projects"
+        columns={[{ key: 'name', label: 'Name' }]}
+        columnWidths="minmax(0, 1fr)"
+        rows={[{
+          key: 'storefront', cells: { name: 'Example Storefront' }, expanded: true, below: 'Example Storefront is ahead.'
+        }, { key: 'invoices', cells: { name: 'Example Invoices' } }]}
+      />,
+    );
+    const [, expanded, other] = screen.getAllByRole('row');
+    expect([expanded?.hasAttribute('data-expanded'), expanded?.getAttribute('data-state-tone'), expanded?.getAttribute('aria-current') ?? null]).toEqual([true, 'muted', null]);
+    expect([other?.hasAttribute('data-expanded'), other?.hasAttribute('data-state-tone')]).toEqual([false, false]);
   });
 
   test('an end-aligned column, a hidden head label and an interactive row are marked', () => {
