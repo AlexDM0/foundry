@@ -1,7 +1,8 @@
 /**
  * The callout, in a happy-dom document. What matters: a title heads it as a heading only when one is given, so an untitled quote adds no
  * empty heading to the outline, an `h3` unless the screen picks another element; each tone sets `data-tone`, and only a `state` callout
- * takes a state tone, since the warn tone has colours of its own; its contents follow the title; and the title is text, never markup.
+ * takes a state tone, since every other tone has colours of its own; only a warn callout can be tinted and only a neutral one dashed; its
+ * contents follow the title, and its actions follow its contents in a part of their own; and the title is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -40,10 +41,43 @@ describe('the callout', () => {
       <>
         <Callout tone="state" stateTone="info">Reviewing</Callout>
         <Callout tone="warn">Why J4 stopped</Callout>
+        <Callout tone="error">The example service does not answer</Callout>
+        <Callout tone="neutral">The example setup is not finished</Callout>
       </>,
     );
     expect([...container.querySelectorAll('.design-system-callout')].map((callout) => [callout.getAttribute('data-tone'), callout.getAttribute('data-state-tone')]))
-      .toEqual([['state', 'info'], ['warn', null]]);
+      .toEqual([['state', 'info'], ['warn', null], ['error', null], ['neutral', null]]);
+  });
+
+  test('tinted sets data-tinted on a warn callout and dashed sets data-dashed on a neutral one; a plain callout sets neither', () => {
+    const { container } = render(
+      <>
+        <Callout tone="warn" tinted>Held</Callout>
+        <Callout tone="neutral" dashed>Not finished</Callout>
+        <Callout tone="warn">Why J4 stopped</Callout>
+      </>,
+    );
+    expect([...container.querySelectorAll('.design-system-callout')].map((callout) => [callout.hasAttribute('data-tinted'), callout.hasAttribute('data-dashed')]))
+      .toEqual([[true, false], [false, true], [false, false]]);
+  });
+
+  test('its actions follow its title and contents, each in a part of their own', () => {
+    const { container } = render(
+      <Callout tone="error" title="Example service" actions={<button type="button">Try again</button>}>
+        <p>The example service does not answer.</p>
+      </Callout>,
+    );
+    const callout = container.querySelector('.design-system-callout');
+    const [body, actions] = [...callout?.children ?? []];
+    expect([callout?.hasAttribute('data-with-actions'), body?.className, actions?.className])
+      .toEqual([true, 'design-system-callout-body', 'design-system-callout-actions']);
+    expect([body?.firstElementChild?.tagName, body?.lastElementChild?.textContent]).toEqual(['H3', 'The example service does not answer.']);
+    expect(actions?.contains(screen.getByRole('button', { name: 'Try again' }))).toBe(true);
+  });
+
+  test('with no actions it holds no part for them', () => {
+    const { container } = render(<Callout tone="neutral" dashed><p>Not finished.</p></Callout>);
+    expect([container.querySelector('.design-system-callout-actions'), container.querySelector('[data-with-actions]')]).toEqual([null, null]);
   });
 
   test('the title is text, never markup', () => {
@@ -56,6 +90,16 @@ describe('the callout', () => {
     const warnWithStateTone = <Callout tone="warn" stateTone="info">x</Callout>;
     // @ts-expect-error a state callout takes the colours of a state tone
     const stateWithoutTone = <Callout tone="state">x</Callout>;
-    expect([warnWithStateTone, stateWithoutTone]).toHaveLength(2);
+    // @ts-expect-error an error callout has colours of its own
+    const errorWithStateTone = <Callout tone="error" stateTone="info">x</Callout>;
+    expect([warnWithStateTone, stateWithoutTone, errorWithStateTone]).toHaveLength(3);
+  });
+
+  test('tinted does not compile beside any tone but warn, nor dashed beside any tone but neutral', () => {
+    // @ts-expect-error only a warn callout is tinted
+    const tintedError = <Callout tone="error" tinted>x</Callout>;
+    // @ts-expect-error only a neutral callout is dashed
+    const dashedWarn = <Callout tone="warn" dashed>x</Callout>;
+    expect([tintedError, dashedWarn]).toHaveLength(2);
   });
 });

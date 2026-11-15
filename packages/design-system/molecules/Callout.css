@@ -1,5 +1,14 @@
-/* A card that stands out: tinted in a state's colours, or a surface with a warn rule down its left edge. */
+/* A card that stands out: tinted in a state's colours, a surface with a warn rule down its left edge, the warn or the failure tint with a
+   4px left edge, or a plain or dashed neutral surface. With actions, its contents and its actions share one line. */
 .design-system-callout { padding: var(--sp-3) var(--space-14); font-size: var(--fs-small); line-height: 1.5; border-radius: var(--r-2); }
 .design-system-callout p { margin: 0; }
 .design-system-callout[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); }
 .design-system-callout[data-tone="warn"] { padding: var(--sp-2) var(--sp-3); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent-edge); }
+.design-system-callout[data-tone="warn"][data-tinted] { padding: var(--space-9) var(--space-14); background: var(--warn-tint); border: 1px solid var(--warn-edge); border-left-width: 4px; }
+.design-system-callout[data-tone="error"] { padding: var(--space-9) var(--space-14); color: var(--ink); background: var(--err-tint); border: 1px solid var(--err-edge); border-left-width: 4px; }
+.design-system-callout[data-tone="neutral"] { padding: var(--sp-3) var(--sp-4); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); }
+.design-system-callout[data-tone="neutral"][data-dashed] { border-style: dashed; }
+
+.design-system-callout[data-with-actions] { display: flex; align-items: center; gap: var(--sp-4); }
+.design-system-callout-body { flex: 1; min-width: 0; }
+.design-system-callout-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); }
