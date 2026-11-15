@@ -1,13 +1,14 @@
 # Gaia's workspace
 
 A Bun workspace laid out as the forge monorepo will be: each app in `apps/`, each shared package in `packages/`. Gaia is `apps/gaia/`;
-its `CLAUDE.md` holds Gaia's rules, map and boundaries, and its `README.md` how to run it. `packages/forge-contracts/` is the
-contract between a forge's Overseer and Gaia, released with its own version; its `README.md` says how that version differs from the forge's system version and the endpoint versions.
-`migration/` holds what the merge into forge applies once and then deletes: `migration/design-system-patches/`, ready patches against
-forge's design-system package, with their check.
+its `CLAUDE.md` holds Gaia's rules, map and boundaries, and its `README.md` how to run it. `packages/forge-contracts/` is forge's own
+contract with any client: its documents as types, its system versions and its compatibility registry, naming no client. Its version
+model and the registry's logic are `packages/system-versions/`, which names no server either. Each package is released with its own
+version, and its `README.md` says how that version differs from a system version. `migration/` holds what the merge into forge applies
+once and then deletes: `migration/design-system-patches/`, ready patches against forge's design-system package, with their check.
 
-`packages/brand/` holds Gaia's and Forge's marks, their colour tokens and the logo's drawings: a package with its own version, published
-on its own, which an app names as `workspace:^`. Its `README.md` says how to use it.
+`packages/brand/` holds Forge's mark, its colour tokens and the geometry a host's mark may draw alike: a package with its own version,
+published on its own, which an app names as `workspace:^`. Its `README.md` says how to use it. Gaia's own mark is Gaia's.
 
 ## Set up
 

@@ -1,6 +1,7 @@
 /**
  * Gaia's own system version toward its own clients, its page and its launcher, as `GET /api/versions` answers it, and the version of each
- * route at its versioned path, `/api/v<n>/<endpoint>`. The forge system versions Gaia knows are `forge-contracts`' (`ForgeSystemVersions`).
+ * route at its versioned path, `/api/v<n>/<endpoint>`. The forge system versions Gaia is built for are the forge client's
+ * (`src/lib/forge-client/constants/SupportedForgeVersions.ts`).
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
