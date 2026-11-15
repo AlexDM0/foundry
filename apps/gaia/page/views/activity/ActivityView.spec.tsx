@@ -8,14 +8,22 @@
  * view's figures. Flint's brain (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens' bars a note names its part per
  * forge in mono, absent when no brain ran today.
  *
- * `ActivityLayout` takes no hooks and unfolds to its host elements; `ActivityView`, which keeps the filters, is rendered with React's own
- * server renderer, which runs its hooks without a document.
+ * `ActivityLayout` takes no hooks and unfolds, its package parts folded; `ActivityView`, which keeps the filters, is rendered with React's
+ * own server renderer, which runs its hooks without a document, and is held to the layout it opens on.
  */
 import { describe, expect, test } from 'bun:test';
+import { Card }                   from 'design-system/Card';
+import { EmptyState }             from 'design-system/EmptyState';
+import { FillMeter }              from 'design-system/FillMeter';
+import { SegmentedControl }       from 'design-system/SegmentedControl';
+import { Stamp }                  from 'design-system/Stamp';
+import { StateDot }               from 'design-system/StateDot';
+import { Text }                   from 'design-system/Text';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import type { ClockReading }                                                        from '../../shared/@types/ClockReading.ts';
+import { DataTableRows }                                                            from '../../testing/DataTableRows.ts';
 import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
 import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';
 import { FLEET_EMPTY }                                                              from '../../testing/fixtures/fleet-empty.ts';
@@ -63,25 +71,42 @@ function layoutOf(fleetDocument: FleetDocument, filters: ActivityFilters = EVERY
   return { unfolded: tree.unfolded(<ActivityLayout {...layoutPropsOf(fleetDocument, filters, menuIsOpen, handled)} />), handled };
 }
 
-/** The package's segmented control is a group named by the label element it points at. */
-function groupNamed(unfolded: ReturnType<typeof tree.unfolded>, name: string): HostElement {
-  const label = tree.onlyHostElementIn(unfolded, (element) => typeof element.props['id'] === 'string' && tree.textOf([element]) === name);
-  return tree.onlyHostElementIn(unfolded, (element) => element.props['role'] === 'group' && element.props['aria-labelledby'] === label.props['id']);
+interface HandedSegment {
+  readonly value:  string;
+  readonly label:  string;
+  readonly count?: number;
 }
 
-/** The forge filter: its group of segments, then the menu of the forges past the first three beside it. */
-function forgeFilterIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement {
-  groupNamed(unfolded, 'Forge');
-  return tree.onlyWithClass(unfolded, 'gaia-activity-forge-filter');
+/** The package's segmented control Gaia names by the label element it hands it. */
+function groupNamed(unfolded: ReturnType<typeof tree.unfolded>, name: string): HostElement {
+  const label = tree.onlyHostElementIn(unfolded, (element) => typeof element.props['id'] === 'string' && tree.textOf([element]) === name);
+  return tree.onlyHostElementIn(unfolded, (element) => tree.withComponent(SegmentedControl)(element) && element.props['labelledBy'] === label.props['id']);
+}
+
+/** Each segment Gaia hands a segmented control, by its label, its count where it has one, and whether it is the selected one. */
+function segmentsOf(group: HostElement): (readonly [string, number | null, boolean])[] {
+  return (group.props['options'] as readonly HandedSegment[]).map((option) => [option.label, option.count ?? null, option.value === group.props['selected']]);
+}
+
+/** The forge filter: its segments, then the menu's own button for the forges past the first three, each by its words and whether it is pressed. */
+function forgeFilterOf(unfolded: ReturnType<typeof tree.unfolded>): (readonly [string, unknown])[] {
+  const segments = segmentsOf(groupNamed(unfolded, 'Forge')).map(([label, , selected]) => [label, selected] as const);
+  const menuButton = tree.hostElementsIn([tree.onlyWithClass(unfolded, 'gaia-activity-forge-filter')], tree.withTag('button'));
+  return [...segments, ...menuButton.map((button) => [tree.textOf([button]), button.props['aria-pressed']] as const)];
+}
+
+/** Picks a segment as a press of it would, handing its value on. */
+function choose(group: HostElement, label: string): void {
+  const option = (group.props['options'] as readonly HandedSegment[]).find((segment) => segment.label === label);
+  if (option === undefined) throw new Error(`The segment ${label} is missing.`);
+  tree.dispatch(group, 'onSelect', option.value);
 }
 
 function bodyRowsIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
-  return tree.hostElementsIn(unfolded, (element) => element.props['role'] === 'row' && element.props['data-head'] === undefined);
+  return DataTableRows.rowsIn(unfolded);
 }
 
-function cellTextsOf(row: HostElement): string[] {
-  return tree.hostElementsIn([row], (element) => element.props['role'] === 'cell').map((cell) => tree.textOf([cell]));
-}
+const { cellTextsOf } = DataTableRows;
 
 function buttonsIn(group: HostElement): HostElement[] {
   return tree.hostElementsIn([group], tree.withTag('button'));
@@ -107,9 +132,10 @@ describe('the table', () => {
     const rows = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
     const [brainStart, newestJob] = rows;
     if (brainStart === undefined || newestJob === undefined) throw new Error('The table holds no row.');
-    expect(tree.hostElementsIn([brainStart], tree.withTag('a'))).toEqual([]);
+    expect([tree.hostElementsIn([brainStart], tree.withTag('a')), brainStart.props['interactive']]).toEqual([[], false]);
     const link = tree.onlyWithTag([newestJob], 'a');
-    expect([link.props['href'], link.props['title']]).toEqual([`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`, 'J4 builder started on #013 Product image zoom']);
+    expect([link.props['href'], link.props['title'], newestJob.props['interactive']])
+      .toEqual([`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`, 'J4 builder started on #013 Product image zoom', true]);
     const heldRow = rows.find((row) => tree.textOf([row]).includes('Launches held'));
     if (heldRow === undefined) throw new Error('The held forge\'s entry is missing.');
     expect(tree.hostElementsIn([heldRow], tree.withTag('a'))).toEqual([]);
@@ -129,43 +155,37 @@ describe('the table', () => {
 
   test('with no entry at all the table\'s place says so, and with none that the filters keep it says that', () => {
     const empty = layoutOf(FLEET_EMPTY).unfolded;
-    expect(tree.hostElementsIn(empty, (element) => element.props['role'] === 'table')).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(empty, 'gaia-activity-entries')], 'design-system-empty')])).toBe('No forge has reported activity yet.');
+    expect(bodyRowsIn(empty)).toEqual([]);
+    expect(tree.onlyOfComponent([tree.onlyWithClass(empty, 'gaia-activity-entries')], EmptyState).props['text']).toBe('No forge has reported activity yet.');
     const filteredAway = layoutOf(FLEET_FIVE_FORGES, { kind: 'forge', trackerId: TRACKER_IDS.invoiceService }).unfolded;
-    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(filteredAway, 'gaia-activity-entries')], 'design-system-empty')])).toBe('No entry matches these filters.');
+    expect(tree.onlyOfComponent([tree.onlyWithClass(filteredAway, 'gaia-activity-entries')], EmptyState).props['text']).toBe('No entry matches these filters.');
   });
 });
 
 describe('the filters', () => {
   test('the kind filter offers the five kinds, presses the chosen one and hands a new choice on', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { kind: 'needs-user', trackerId: null });
-    const kinds = buttonsIn(groupNamed(unfolded, 'Kind'));
-    expect(kinds.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
-      ['Everything', false], ['Needs you 5', true], ['Landed 6', false], ['Agents', false], ['Forge', false],
+    const kinds = groupNamed(unfolded, 'Kind');
+    expect(segmentsOf(kinds)).toEqual([
+      ['Everything', null, false], ['Needs you', 5, true], ['Landed', 6, false], ['Agents', null, false], ['Forge', null, false],
     ]);
-    const landed = kinds[2];
-    if (landed === undefined) throw new Error('The Landed segment is missing.');
-    tree.dispatch(landed, 'onClick');
+    choose(kinds, 'Landed');
     expect(handled.kinds).toEqual(['landed']);
   });
 
   test('the forge filter offers every forge, then the first three, then a menu of the other two', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    const forges = buttonsIn(forgeFilterIn(unfolded));
-    expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
+    expect(forgeFilterOf(unfolded)).toEqual([
       ['All forges', true], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['2 more', false],
     ]);
-    const [allForges, storefront] = forges;
-    if (allForges === undefined || storefront === undefined) throw new Error('A forge segment is missing.');
-    tree.dispatch(storefront, 'onClick');
-    tree.dispatch(allForges, 'onClick');
+    choose(groupNamed(unfolded, 'Forge'), 'Example Storefront');
+    choose(groupNamed(unfolded, 'Forge'), 'All forges');
     expect(handled.forges).toEqual([TRACKER_IDS.exampleStorefront, null]);
   });
 
   test('the menu opens from its segment and hands the chosen forge on', () => {
     const closed = layoutOf(FLEET_FIVE_FORGES);
-    const toggle = buttonsIn(forgeFilterIn(closed.unfolded)).at(-1);
-    if (toggle === undefined) throw new Error('The menu segment is missing.');
+    const toggle = tree.onlyWithClass(closed.unfolded, 'gaia-activity-more-forges-button');
     expect(toggle.props['aria-expanded']).toBe(false);
     expect(tree.hostElementsIn(closed.unfolded, tree.withClass('gaia-activity-forge-menu'))).toEqual([]);
     tree.dispatch(toggle, 'onClick');
@@ -184,8 +204,7 @@ describe('the filters', () => {
 
   test('a forge chosen from the menu names the menu\'s segment and presses it, and no other segment', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES, { kind: 'everything', trackerId: TRACKER_IDS.designSystem });
-    const forges = buttonsIn(forgeFilterIn(unfolded));
-    expect(forges.map((button) => [tree.textOf([button]), button.props['aria-pressed']])).toEqual([
+    expect(forgeFilterOf(unfolded)).toEqual([
       ['All forges', false], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['Design System', true],
     ]);
     expect(bodyRowsIn(unfolded).map(cellTextsOf)).toEqual([['12:20', 'Design System', 'Forge', 'Overseer stopped']]);
@@ -207,7 +226,7 @@ describe('the filters', () => {
     const menuForges = new Set<string>([TRACKER_IDS.exampleMobileApp, TRACKER_IDS.designSystem]);
     const threeForges = { ...FLEET_FIVE_FORGES, activity: FLEET_FIVE_FORGES.activity.filter((entry) => !menuForges.has(entry.trackerId)) };
     const { unfolded } = layoutOf(threeForges);
-    expect(buttonsIn(forgeFilterIn(unfolded)).map((button) => tree.textOf([button]))).toEqual(['All forges', 'Example Storefront', 'Invoice Service', 'Research Wiki']);
+    expect(forgeFilterOf(unfolded).map(([words]) => words)).toEqual(['All forges', 'Example Storefront', 'Invoice Service', 'Research Wiki']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-more-forges'))).toEqual([]);
   });
 });
@@ -216,7 +235,8 @@ describe('the side lists', () => {
   test('landed today and tokens today list the forges that report today, and a forge that reports none is absent, not 0', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
     const sections = tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-side-section'));
-    expect(sections.map((section) => tree.textOf([tree.onlyWithTag([section], 'h2')]))).toEqual(['Landed today · 6', 'Tokens today · 1.24M']);
+    const headOf = (section: HostElement) => tree.onlyHostElementIn([section], (element) => element.tag === Text.name && element.props['element'] === 'h2');
+    expect(sections.map((section) => tree.textOf([headOf(section)]))).toEqual(['Landed today · 6', 'Tokens today · 1.24M']);
     const rowsOf = (section: HostElement | undefined) => tree.hostElementsIn(section === undefined ? [] : [section], tree.withClass('gaia-activity-today-row'))
       .map((row) => [tree.textOf([tree.onlyWithClass([row], 'gaia-activity-today-project')]), tree.textOf([tree.onlyWithClass([row], 'gaia-activity-today-value')])]);
     expect(rowsOf(sections[0])).toEqual([['Example Storefront', '3'], ['Invoice Service', '2'], ['Research Wiki', '1'], ['Example Mobile App', '0']]);
@@ -225,20 +245,21 @@ describe('the side lists', () => {
   });
 
   test('each bar is relative to the largest, in the landed tone for landings, and never warns at the largest', () => {
-    const meters = tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('design-system-fill-meter'));
-    expect(meters.slice(0, 4).map((meter) => [meter.props['data-state-tone'], meter.props['data-near']])).toEqual([
-      ['success', undefined], ['success', undefined], ['success', undefined], ['success', undefined],
+    const meters = tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withComponent(FillMeter));
+    expect(meters.slice(0, 4).map((meter) => [meter.props['tone'], meter.props['near']])).toEqual([
+      ['success', false], ['success', false], ['success', false], ['success', false],
     ]);
-    expect(meters.slice(4).map((meter) => [meter.props['data-state-tone'], meter.props['data-near']])).toEqual(Array(4).fill(['neutral', undefined]));
-    const widths = meters.map((meter) => (tree.onlyWithClass([meter], 'design-system-fill-meter-bar').props['style'] as { readonly width?: string }).width);
-    expect(widths.slice(4)).toEqual(['100%', `${(418 / 512) * 100}%`, `${(164 / 512) * 100}%`, `${(146 / 512) * 100}%`]);
+    expect(meters.slice(4).map((meter) => [meter.props['tone'], meter.props['near']])).toEqual(Array(4).fill(['neutral', false]));
+    const shares = meters.map((meter) => Number(meter.props['used']) / Number(meter.props['limit']));
+    expect(shares.slice(4)).toEqual([1, 418 / 512, 164 / 512, 146 / 512]);
   });
 
   test('the usage line is the forges\' reading, and with no forge reporting today or usage the lists say so and the usage is absent', () => {
-    expect(tree.textOf([tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-activity-usage-line')])).toBe('under its limit · window resets 16:00');
+    const usageLine = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-activity-usage-line');
+    expect([tree.textOf([usageLine]), tree.onlyOfComponent([usageLine], Stamp).props['shortText']]).toEqual(['under its limit · window resets ', '16:00']);
     const empty = layoutOf(FLEET_EMPTY).unfolded;
     const side = tree.onlyWithClass(empty, 'gaia-activity-side');
-    const sideSentences = tree.hostElementsIn([side], tree.withClass('design-system-empty')).map((sentence) => tree.textOf([sentence]));
+    const sideSentences = tree.hostElementsIn([side], tree.withComponent(EmptyState)).map((sentence) => sentence.props['text']);
     expect(sideSentences).toEqual(['No forge reports it.', 'No forge reports it.']);
     expect(tree.hostElementsIn(empty, tree.withClass('gaia-activity-usage'))).toEqual([]);
   });
@@ -271,12 +292,12 @@ describe('the look of the parts', () => {
   test('each side list is a card, its total in mono, and the usage reading has a neutral dot under the limit and an orange one at it', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
     const sections = tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-side-section'));
-    expect(sections.map((section) => tree.hostElementsIn([section], tree.withClass('design-system-card')).length)).toEqual([1, 1]);
-    const totals = sections.map((section) => tree.onlyHostElementIn([section], (element) => element.props['data-mono'] === ''));
+    expect(sections.map((section) => tree.hostElementsIn([section], tree.withComponent(Card)).length)).toEqual([1, 1]);
+    const totals = sections.map((section) => tree.onlyHostElementIn([section], (element) => element.tag === Text.name && element.props['mono'] === true));
     expect(totals.map((total) => tree.textOf([total]))).toEqual(['6', '1.24M']);
     const toneOfReading = (filters: ActivityFilters, fleetDocument: FleetDocument) => {
       const usage = tree.onlyWithClass(tree.unfolded(<ActivityLayout {...layoutPropsOf(fleetDocument, filters)} />), 'gaia-activity-usage');
-      return tree.onlyHostElementIn([usage], tree.withClass('design-system-state-dot')).props['data-state-tone'];
+      return tree.onlyOfComponent([usage], StateDot).props['tone'];
     };
     expect(toneOfReading(EVERY_ENTRY, FLEET_FIVE_FORGES)).toBe('neutral');
     const hitUsage = {
@@ -289,9 +310,9 @@ describe('the look of the parts', () => {
   test('the usage reading sets the clock time its window resets as a mono stamp, with its month and day when not today, and a reading with no clock time has none', () => {
     const stampsOf = (fleetDocument: FleetDocument) => {
       const line = tree.onlyWithClass(layoutOf(fleetDocument).unfolded, 'gaia-activity-usage-line');
-      return { text: tree.textOf([line]), stamps: tree.hostElementsIn([line], tree.withClass('design-system-stamp')).map((stamp) => tree.textOf([stamp])) };
+      return { text: tree.textOf([line]), stamps: tree.hostElementsIn([line], tree.withComponent(Stamp)).map((stamp) => stamp.props['shortText']) };
     };
-    expect(stampsOf(FLEET_FIVE_FORGES)).toEqual({ text: 'under its limit · window resets 16:00', stamps: ['16:00'] });
+    expect(stampsOf(FLEET_FIVE_FORGES)).toEqual({ text: 'under its limit · window resets ', stamps: ['16:00'] });
     const noWindowUsage = {
       window: null, resetsAt: null, currentWindow: null, currentWindowResetsAt: null,
     };
@@ -305,7 +326,7 @@ describe('the look of the parts', () => {
       ...FLEET_FIVE_FORGES,
       forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.usage === null ? forge : { ...forge, usage: tomorrowUsage })),
     };
-    expect(stampsOf(resetsTomorrow)).toEqual({ text: 'under its limit · window resets 11-13 16:00', stamps: ['11-13 16:00'] });
+    expect(stampsOf(resetsTomorrow)).toEqual({ text: 'under its limit · window resets ', stamps: ['11-13 16:00'] });
   });
 
   test('the page title carries the view\'s figures once the first fleet document is in', () => {
@@ -319,10 +340,9 @@ describe('the look of the parts', () => {
 describe('the view with its filters', () => {
   test('it opens on every entry of every forge, with the menu closed', () => {
     const markup = renderToStaticMarkup(<ActivityView fleetDocument={FLEET_FIVE_FORGES} clock={ARTBOARD_CLOCK} />);
+    expect(markup).toBe(renderToStaticMarkup(<ActivityLayout {...layoutPropsOf(FLEET_FIVE_FORGES, EVERY_ENTRY)} />));
     expect(markup.match(/<time class="gaia-activity-at"/g)).toHaveLength(18);
-    expect(markup).toContain('aria-pressed="true">Everything</button>');
-    expect(markup).toContain('aria-pressed="true">All forges</button>');
-    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('<button type="button" class="gaia-activity-more-forges-button" aria-pressed="false" aria-expanded="false">');
     expect(markup).not.toContain('class="gaia-activity-forge-menu"');
   });
 });

@@ -6,6 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { PackageButtons }   from '../testing/PackageButtons.ts';
 import { ReactElementTree } from '../testing/ReactElementTree.ts';
 import { ConfirmPanel }     from './ConfirmPanel.tsx';
 
@@ -29,8 +30,9 @@ describe('the confirm panel', () => {
     const panel = ReactElementTree.onlyWithClass(unfolded, 'gaia-confirm');
     expect([panel.props['role'], panel.props['aria-label']]).toEqual(['group', 'Stop Example Storefront']);
     expect(ReactElementTree.textOf(unfolded)).toBe(
-      'Stop the Overseer of Example Storefront? 4 agents are running.Stop the Overseer only2 questions keep waiting on you while it is stopped.CancelStop',
+      'Stop the Overseer of Example Storefront? 4 agents are running.Stop the Overseer only2 questions keep waiting on you while it is stopped.',
     );
+    expect(PackageButtons.buttonsIn(unfolded).map(PackageButtons.labelOf)).toEqual(['Cancel', 'Stop']);
   });
 
   test('with no choices there is no choice area, as when no agent is running', () => {
@@ -39,16 +41,16 @@ describe('the confirm panel', () => {
 
   test('Cancel and the confirming button call their own handlers, and only the confirming button is primary', () => {
     const presses: string[] = [];
-    const [cancel, confirm] = ReactElementTree.hostElementsIn(panelOf(presses), ReactElementTree.withTag('button'));
+    const [cancel, confirm] = PackageButtons.buttonsIn(panelOf(presses));
     if (cancel === undefined || confirm === undefined) throw new Error('A panel button is missing.');
-    ReactElementTree.dispatch(cancel, 'onClick');
-    ReactElementTree.dispatch(confirm, 'onClick');
+    PackageButtons.press(cancel);
+    PackageButtons.press(confirm);
     expect(presses).toEqual(['cancel', 'confirm']);
-    expect([cancel.props['data-ghost'], cancel.props['data-primary'], confirm.props['data-primary']]).toEqual(['', undefined, '']);
+    expect([PackageButtons.emphasisOf(cancel), PackageButtons.emphasisOf(confirm)]).toEqual(['ghost', 'primary']);
   });
 
   test('while the command is on its way both buttons are disabled', () => {
-    const buttons = ReactElementTree.hostElementsIn(panelOf([], { disabled: true }), ReactElementTree.withTag('button'));
+    const buttons = PackageButtons.buttonsIn(panelOf([], { disabled: true }));
     expect(buttons.map((button) => button.props['disabled'])).toEqual([true, true]);
   });
 });

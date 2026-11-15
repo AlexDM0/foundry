@@ -1,8 +1,9 @@
 /**
  * The element tree that the design-system specs read in place of a document. What matters: nested components and fragments unfold to the
  * host elements React itself renders, empty children leave nothing, a handler is called through `dispatch`, and an element type the tree
- * cannot unfold fails rather than passing as empty; a component that holds hooks fails, unless the spec keeps it folded under its name with
- * its props.
+ * cannot unfold fails rather than passing as empty; a component of Gaia's that holds hooks fails; and every component the design-system
+ * packages export, hooked or not, stays folded under its name with the props it was handed, its children and slots unfolded as Gaia's own,
+ * so no spec reads the markup a package draws.
  */
 import {
   describe,
@@ -10,7 +11,19 @@ import {
   spyOn,
   test
 } from 'bun:test';
-import { forwardRef, useRef }   from 'react';
+import { Button }        from 'design-system/Button';
+import { Card }          from 'design-system/Card';
+import { CountBadge }    from 'design-system/CountBadge';
+import { Dialog }        from 'design-system/Dialog';
+import { NumberStepper } from 'design-system/NumberStepper';
+import { Tooltip }       from 'design-system/Tooltip';
+import { Checkbox }      from 'design-system-contributions/Checkbox';
+import {
+  createElement,
+  forwardRef,
+  type FunctionComponent,
+  useRef,
+} from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { ReactElementTree } from './ReactElementTree.ts';
@@ -49,7 +62,7 @@ describe('unfolding', () => {
     expect(() => ReactElementTree.unfolded(<ExampleForwarded />)).toThrow('cannot unfold');
   });
 
-  test('a component that holds hooks fails, and a kept one stands folded under its name with its props, its siblings unfolded', () => {
+  test('a component of Gaia\'s that holds hooks fails', () => {
     function ExampleHooked({ text }: { readonly text: string }) {
       const reference = useRef<HTMLElement>(null);
       return <i ref={reference}>{text}</i>;
@@ -59,11 +72,42 @@ describe('unfolding', () => {
     expect(() => ReactElementTree.unfolded(<p><ExampleHooked text="Alex Example" /></p>)).toThrow();
     expect(hookReport).toHaveBeenCalled();
     hookReport.mockRestore();
-    const unfolded = ReactElementTree.unfoldedKeeping(<p><ExampleHooked text="Alex Example" /><ExampleInner text="Example Agency" /></p>, [ExampleHooked]);
-    expect(ReactElementTree.hostElementsIn(unfolded).map((element) => [element.tag, element.props['text']])).toEqual([
-      ['p', undefined], ['ExampleHooked', 'Alex Example'], ['b', undefined],
+  });
+});
+
+describe('a package component', () => {
+  test('stays folded under its name with the props it was handed, its siblings unfolded, even one that holds hooks', () => {
+    const unfolded = ReactElementTree.unfolded(<p><CountBadge count={4} tone="warn" /><Button label="Start" emphasis="primary" /><ExampleInner text="Example Agency" /></p>);
+    expect(ReactElementTree.hostElementsIn(unfolded).map((element) => [element.tag, element.props['count'] ?? element.props['label']])).toEqual([
+      ['p', undefined], ['CountBadge', 4], ['Button', 'Start'], ['b', undefined],
     ]);
+    expect(ReactElementTree.onlyOfComponent(unfolded, Button).props['emphasis']).toBe('primary');
     expect(ReactElementTree.textOf(unfolded)).toBe('Example Agency');
+  });
+
+  test('stays folded whatever it holds inside, so a part that gains hooks, as the count badge and the stepper did, breaks no spec', () => {
+    const hookedParts = [CountBadge, NumberStepper, Tooltip, Dialog];
+    expect(hookedParts.map((part) => ReactElementTree.unfolded(createElement(part as unknown as FunctionComponent))))
+      .toEqual(hookedParts.map((part) => [{ tag: part.name, props: {}, children: [] }]));
+  });
+
+  test('a contributed package\'s component stays folded too', () => {
+    const presses: boolean[] = [];
+    const unfolded = ReactElementTree.unfolded(<Checkbox label="Notify" checked={false} onChange={(checked) => presses.push(checked)} />);
+    const checkbox = ReactElementTree.onlyOfComponent(unfolded, Checkbox);
+    expect([checkbox.children, checkbox.props['label']]).toEqual([[], 'Notify']);
+    ReactElementTree.dispatch(checkbox, 'onChange', true);
+    expect(presses).toEqual([true]);
+  });
+
+  test('holds the children and slots Gaia handed it, unfolded as Gaia\'s own, and none of the package\'s markup', () => {
+    const unfolded = ReactElementTree.unfolded(<Card title="Example Agency"><ExampleInner text="Alex Example" /></Card>);
+    const card = ReactElementTree.onlyOfComponent(unfolded, Card);
+    const handedChild = { tag: 'b', props: { className: 'example-inner', children: 'Alex Example' }, children: ['Alex Example'] };
+    expect([card.props['title'], card.children]).toEqual(['Example Agency', [handedChild]]);
+    const button = ReactElementTree.onlyOfComponent(ReactElementTree.unfolded(<Button label="Start" leading={<ExampleInner text="Example Agency" />} />), Button);
+    expect(ReactElementTree.textOf(ReactElementTree.unfoldedProp(button, 'leading'))).toBe('Example Agency');
+    expect([button.children.map((child) => (typeof child === 'string' ? child : child.tag)), ReactElementTree.textOf([button])]).toEqual([['b'], 'Example Agency']);
   });
 });
 

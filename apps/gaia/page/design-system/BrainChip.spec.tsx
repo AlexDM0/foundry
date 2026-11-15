@@ -8,7 +8,9 @@
  * text it is given.
  */
 import { describe, expect, test } from 'bun:test';
+import { StateDot }               from 'design-system/StateDot';
 
+import { PackageButtons }                     from '../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree } from '../testing/ReactElementTree.ts';
 import { BrainChip, type BrainChipProps }     from './BrainChip.tsx';
 
@@ -17,7 +19,7 @@ function chipOf(props: BrainChipProps) {
 }
 
 function buttonsOf(unfolded: ReturnType<typeof chipOf>): HostElement[] {
-  return ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withTag('button'));
+  return PackageButtons.buttonsIn(unfolded);
 }
 
 const RUNNING: BrainChipProps = {
@@ -37,9 +39,9 @@ describe('the brain chip', () => {
     expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-group').props['data-state']).toBe('off');
     const [wake, ...others] = buttonsOf(unfolded);
     if (wake === undefined) throw new Error('The Wake button is missing.');
-    expect([others, ReactElementTree.textOf([wake]), wake.props['disabled']]).toEqual([[], 'Wake Flint\'s brain', false]);
-    expect(ReactElementTree.hostElementsIn([wake], ReactElementTree.withClass('gaia-brain-diamond'))).toHaveLength(1);
-    ReactElementTree.dispatch(wake, 'onClick');
+    expect([others, PackageButtons.labelOf(wake), wake.props['disabled']]).toEqual([[], 'Wake Flint\'s brain', false]);
+    expect(ReactElementTree.hostElementsIn(ReactElementTree.unfoldedProp(wake, 'leading'), ReactElementTree.withClass('gaia-brain-diamond'))).toHaveLength(1);
+    PackageButtons.press(wake);
     expect(presses).toEqual(['wake']);
   });
 
@@ -53,8 +55,8 @@ describe('the brain chip', () => {
     const unfolded = chipOf({ state: 'starting' });
     const note = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-note');
     expect([note.props['role'], ReactElementTree.textOf([note])]).toEqual(['status', 'Waking Flint\'s brain…']);
-    const dot = ReactElementTree.onlyWithClass(unfolded, 'design-system-state-dot');
-    expect([dot.props['data-state-tone'], dot.props['data-shape']]).toEqual(['accent', 'ring']);
+    const dot = ReactElementTree.onlyOfComponent(unfolded, StateDot);
+    expect([dot.props['tone'], dot.props['shape']]).toEqual(['accent', 'ring']);
     expect(buttonsOf(unfolded)).toEqual([]);
   });
 
@@ -68,9 +70,9 @@ describe('the brain chip', () => {
     expect(ReactElementTree.hostElementsIn([chip], ReactElementTree.withClass('gaia-brain-diamond'))).toHaveLength(1);
     const [stop, ...others] = buttonsOf(unfolded);
     if (stop === undefined) throw new Error('The Stop button is missing.');
-    expect([others, ReactElementTree.textOf([stop]), stop.props['aria-label'], stop.props['data-primary']])
-      .toEqual([[], 'Stop', 'Stop Flint\'s brain on Example Storefront', undefined]);
-    ReactElementTree.dispatch(stop, 'onClick');
+    expect([others, PackageButtons.labelOf(stop), PackageButtons.nameOf(stop), PackageButtons.emphasisOf(stop)])
+      .toEqual([[], 'Stop', 'Stop Flint\'s brain on Example Storefront', 'quiet']);
+    PackageButtons.press(stop);
     expect(presses).toEqual(['stop']);
   });
 
@@ -89,13 +91,13 @@ describe('the brain chip', () => {
     const group = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-group');
     const [first, second] = group.children;
     expect(typeof first === 'object' ? first.props['className'] : null).toBe('gaia-brain-chip-refusal');
-    expect(typeof second === 'object' ? second.tag : null).toBe('button');
+    expect(typeof second === 'object' ? second.tag : null).toBe('Button');
     const refusal = ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-refusal');
     expect([refusal.props['role'], refusal.props['title']]).toEqual(['alert', 'The forge refused: launches are held until 16:00 (usage limit) usage-limit-holds']);
     expect(['gaia-brain-chip-refusal-sentence', 'gaia-brain-chip-refusal-code'].map((className) => (
       ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, className)])
     ))).toEqual(['The forge refused: launches are held until 16:00 (usage limit)', 'usage-limit-holds']);
-    expect(buttonsOf(unfolded).map((button) => ReactElementTree.textOf([button]))).toEqual(['Wake Flint\'s brain']);
+    expect(buttonsOf(unfolded).map(PackageButtons.labelOf)).toEqual(['Wake Flint\'s brain']);
   });
 
   test('a wake Gaia could not carry out, as when its server did not answer, says Gaia could not wake the brain, not that the forge refused', () => {

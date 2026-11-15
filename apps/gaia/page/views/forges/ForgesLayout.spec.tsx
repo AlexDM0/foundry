@@ -9,9 +9,13 @@
  * no other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command states
  * come from the real sender over Gaia's server stood in for by authored answers.
  */
-import { describe, expect, test }                 from 'bun:test';
-import { ChoiceOption, type ChoiceOptionProps }   from 'design-system/ChoiceOption';
-import { NumberStepper, type NumberStepperProps } from 'design-system/NumberStepper';
+import { describe, expect, test }  from 'bun:test';
+import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
+import { FillMeter }               from 'design-system/FillMeter';
+import type { NumberStepperProps } from 'design-system/NumberStepper';
+import { SlotMeter }               from 'design-system/SlotMeter';
+import { DataTable }               from 'design-system-contributions/DataTable';
+import { PendingStep }             from 'design-system-contributions/PendingStep';
 
 import type {
   CommandAnswerDocument,
@@ -22,8 +26,11 @@ import type {
 import type { FleetDocument }                                    from '../../@types/FleetDocument.ts';
 import type { CommandStates, CommandSubject }                    from '../../api/CommandSender.ts';
 import { answerResponse, senderOver }                            from '../../testing/CommandServer.ts';
+import { DataTableRows }                                         from '../../testing/DataTableRows.ts';
 import { DrawnDots }                                             from '../../testing/DrawnDots.ts';
+import { FailedActions }                                         from '../../testing/FailedActions.ts';
 import { PackageButtons }                                        from '../../testing/PackageButtons.ts';
+import { PackageControls }                                       from '../../testing/PackageControls.ts';
 import { type HostElement, ReactElementTree, type RenderedNode } from '../../testing/ReactElementTree.ts';
 import { FLEET_AT_LIMIT }                                        from '../../testing/fixtures/fleet-at-limit.ts';
 import {
@@ -79,8 +86,7 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
     lastSent:    new Map(),
     ...surroundings,
   });
-  // The package's choice option and number stepper hold hooks, so they stay folded, their props read and called as the view hands them.
-  const unfolded = tree.unfoldedKeeping(
+  const unfolded = tree.unfolded(
     <ForgesLayout
       content={content}
       gaiaPanel={GaiaPanelModel.gaiaPanelOf(fleetDocument, { commandStates, sentSettingsChange: null })}
@@ -97,13 +103,12 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
         onOpenWhatNotifies:      () => undefined,
       }}
     />,
-    [ChoiceOption, NumberStepper],
   );
   return { unfolded, handled };
 }
 
 function rowsIn(nodes: readonly RenderedNode[]): HostElement[] {
-  return tree.hostElementsIn(nodes, (element) => element.props['role'] === 'row' && element.props['data-head'] === undefined);
+  return DataTableRows.rowsIn(nodes);
 }
 
 function rowOf(nodes: readonly RenderedNode[], trackerId: string): HostElement {
@@ -119,16 +124,22 @@ function stepperNamed(nodes: readonly RenderedNode[], accessibleName: string): N
   return stepper.props as unknown as NumberStepperProps;
 }
 
+/** A host control or link, or a package button even one handed no press, by the name a reader hears. */
 function controlNamed(nodes: readonly RenderedNode[], name: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => (element.tag === 'button' || element.tag === 'a')
-    && (element.props['aria-label'] === name || (element.props['aria-label'] === undefined && tree.textOf([element]) === name)));
+  return tree.onlyHostElementIn(nodes, (element) => (['button', 'a'].includes(element.tag) || PackageControls.isControl(element) || PackageButtons.isButton(element))
+    && PackageControls.nameOf(element) === name);
+}
+
+/** Presses a control as a reader would: a package button through the press Gaia handed it, a host one through its click. */
+function press(control: HostElement): void {
+  tree.dispatch(control, PackageButtons.isButton(control) ? 'onPress' : 'onClick');
 }
 
 describe('the table (A4)', () => {
   test('heads its columns and holds one row per forge whose repository is there, each with its name and root', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
-    const head = tree.onlyHostElementIn(unfolded, (element) => element.props['data-head'] === '');
-    expect(tree.hostElementsIn([head], (element) => element.props['role'] === 'columnheader').map((cell) => tree.textOf([cell]))).toEqual([
+    const columns = tree.onlyOfComponent(unfolded, DataTable).props['columns'] as readonly { readonly label: string }[];
+    expect(columns.map((column) => column.label)).toEqual([
       'Forge', 'Overseer', 'Agents', 'Waiting', 'Code', 'Controls',
     ]);
     const forgeCells = rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge'));
@@ -144,7 +155,7 @@ describe('the table (A4)', () => {
 
   test('sets its many columns close, and each root carries its full path for a window too narrow to print it whole', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
-    expect(tree.onlyWithClass(unfolded, 'design-system-data-table').props['data-column-gap']).toBe('narrow');
+    expect(tree.onlyOfComponent(unfolded, DataTable).props['columnGap']).toBe('narrow');
     expect(rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge-root').props['title'])).toEqual([
       '/Users/alexexample/development/example-storefront',
       '/Users/alexexample/development/invoice-service',
@@ -156,26 +167,26 @@ describe('the table (A4)', () => {
 
   test('the row the route names is the selected one', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES, { forgeInView: TRACKER_IDS.researchWiki });
-    expect(rowOf(unfolded, TRACKER_IDS.researchWiki).props['aria-current']).toBe('true');
-    expect(rowOf(unfolded, TRACKER_IDS.invoiceService).props['aria-current']).toBeUndefined();
+    expect(rowOf(unfolded, TRACKER_IDS.researchWiki).props['selected']).toBe(true);
+    expect(rowOf(unfolded, TRACKER_IDS.invoiceService).props['selected']).toBe(false);
   });
 });
 
 describe('a row\'s controls', () => {
   test('Stop opens the dialog under its row', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    tree.dispatch(controlNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Stop'), 'onClick');
+    press(controlNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Stop'));
     expect(handled.stopsOpened).toEqual([TRACKER_IDS.invoiceService]);
   });
 
   test('"Open in new tab" is a button, not a link, that sends forge-open-in-browser and nothing else', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const openInNewTab = controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open Example Storefront in a new tab');
-    expect([openInNewTab.tag, openInNewTab.props['href'], tree.textOf([openInNewTab])]).toEqual(['button', undefined, '']);
+    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['label']]).toEqual(['Button', undefined, '']);
     expect(tree.hostElementsIn([openInNewTab], tree.withClass('gaia-open-in-new-tab-glyph'))).toHaveLength(1);
     const tooltipHolder = tree.onlyHostElementIn([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], tree.withClass('gaia-forges-icon-button'));
     expect(tooltipHolder.props['title']).toBe('Open Example Storefront in a new tab');
-    tree.dispatch(openInNewTab, 'onClick');
+    press(openInNewTab);
     expect(handled).toEqual({
       commands:          [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
       stopsOpened:       [],
@@ -208,15 +219,15 @@ describe('a row\'s controls', () => {
     const sender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
     const row = rowOf(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, TRACKER_IDS.designSystem);
-    const buttons = tree.hostElementsIn([row], tree.withClass('design-system-button'));
-    expect(buttons.map((button) => [tree.textOf([button]), button.props['disabled']])).toEqual([['Starting', true]]);
+    const buttons = PackageButtons.buttonsIn([row]);
+    expect(buttons.map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([['Starting', true]]);
   });
 });
 
 describe('the Stop dialog (B2 acceptance 1)', () => {
   test('hands the view the chosen agents, the cancel and the command its Stop sends', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' } });
-    const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
+    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => element.props['aria-label'] === 'Stop Example Storefront');
     expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
     const choices = tree.hostElementsIn([dialog], tree.withTag('ChoiceOption')).map((choice) => choice.props as unknown as ChoiceOptionProps);
     expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.props.type, choice.input?.props.checked, choice.input?.props.name])).toEqual([
@@ -224,8 +235,8 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
       ['Stop the agents, then the Overseer', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
     ]);
     choices.find((choice) => !choice.chosen)?.input?.props.onChange();
-    tree.dispatch(controlNamed([dialog], 'Cancel'), 'onClick');
-    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary'), 'onClick');
+    press(controlNamed([dialog], 'Cancel'));
+    press(tree.onlyHostElementIn([dialog], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary'));
     expect(handled.stopChoices).toEqual(['stop-first']);
     expect(handled.stopsCancelled).toEqual([1]);
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' }]);
@@ -233,8 +244,8 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
 
   test('with "Stop the agents, then the Overseer" chosen, its Stop sends stop-first', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } });
-    const dialog = tree.onlyHostElementIn(unfolded, (element) => element.props['aria-label'] === 'Stop Example Storefront');
-    tree.dispatch(tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary'), 'onClick');
+    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => element.props['aria-label'] === 'Stop Example Storefront');
+    press(tree.onlyHostElementIn([dialog], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary'));
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' }]);
   });
 });
@@ -245,11 +256,11 @@ describe('a refusal on a row (B2 acceptance 3)', () => {
     const stop: ForgeCommandBody = { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleMobileApp, agents: 'keep' };
     await sender.send(stop);
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent: new Map([[TRACKER_IDS.exampleMobileApp, stop]]) });
-    const refusal = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], 'design-system-failed-action');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
-      .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
-    tree.dispatch(controlNamed([refusal], 'Try again'), 'onClick');
-    tree.dispatch(controlNamed([refusal], 'Dismiss this refusal'), 'onClick');
+    const refusal = FailedActions.onlyFailedActionIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)]);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
+    expect([refusal.props['retryLabel'], refusal.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
+    tree.dispatch(refusal, 'onRetry');
+    tree.dispatch(refusal, 'onDismiss');
     expect(handled.commands).toEqual([stop]);
     expect(handled.dismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
   });
@@ -264,7 +275,7 @@ describe('a notice under a row', () => {
     const { unfolded } = layoutOf({ ...FLEET_FIVE_FORGES, forges });
     const notice = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'gaia-forges-row-notice');
     expect([tree.textOf([notice]), notice.props['role']]).toEqual([sentence, 'status']);
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-forges-row-notice'))).toHaveLength(1);
+    expect(tree.hostElementsIn(rowsIn(unfolded), tree.withClass('gaia-forges-row-notice'))).toHaveLength(1);
   });
 });
 
@@ -275,8 +286,8 @@ describe('the held forge and the forges outside the table', () => {
     expect(tree.textOf([tree.onlyWithClass([banner], 'gaia-forges-held-text')])).toBe(
       'Example Mobile App Launches held. The install version changed. Nothing launches until this forge is updated. Its 2 agents keep running.',
     );
-    tree.dispatch(controlNamed([banner], 'Update forge'), 'onClick');
-    tree.dispatch(controlNamed(unfolded, 'Hide in Gaia'), 'onClick');
+    press(controlNamed([banner], 'Update forge'));
+    press(controlNamed(unfolded, 'Hide in Gaia'));
     expect(handled.commands).toEqual([
       { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp },
       { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
@@ -293,11 +304,12 @@ describe('an update that left a restart pending', () => {
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
     const group = tree.onlyWithClass(unfolded, 'gaia-forges-held-group');
-    const pendingStep = tree.onlyWithClass([group], 'design-system-pending-step');
-    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'design-system-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
-    expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withClass('design-system-pending-step'))).toEqual([]);
-    tree.dispatch(controlNamed([pendingStep], 'Restart'), 'onClick');
-    tree.dispatch(controlNamed([pendingStep], 'Dismiss the pending restart'), 'onClick');
+    const pendingStep = tree.onlyOfComponent([group], PendingStep);
+    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
+    expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withComponent(PendingStep))).toEqual([]);
+    press(controlNamed([pendingStep], 'Restart'));
+    expect(pendingStep.props['dismissLabel']).toBe('Dismiss the pending restart');
+    tree.dispatch(pendingStep, 'onDismiss');
     expect(handled.commands).toEqual([{ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp }]);
     expect(handled.restartsDismissed).toEqual([{ trackerId: TRACKER_IDS.exampleMobileApp }]);
   });
@@ -309,13 +321,13 @@ describe('an update that left a restart pending', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const group = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, 'gaia-forges-held-group');
-    const primaries = tree.hostElementsIn([group], (element) => element.tag === 'button' && PackageButtons.emphasisOf(element) === 'primary');
-    expect(primaries.map((button) => tree.textOf([button]))).toEqual(['Restart']);
+    const primaries = tree.hostElementsIn([group], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary');
+    expect(primaries.map(PackageButtons.labelOf)).toEqual(['Restart']);
     expect(PackageButtons.emphasisOf(controlNamed([group], 'Update forge'))).toBe('quiet');
   });
 
   test('without a pending restart no pending step shows anywhere', () => {
-    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('design-system-pending-step'))).toEqual([]);
+    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withComponent(PendingStep))).toEqual([]);
   });
 });
 
@@ -333,7 +345,7 @@ describe('a paused row and the hidden forges', () => {
     expect(group.props['open']).toBeUndefined();
     expect(tree.textOf([tree.onlyWithClass([group], 'gaia-forges-hidden-summary')])).toBe('Hidden in Gaia · 1');
     expect(rowsIn(unfolded).some((row) => tree.hostElementsIn([row], (element) => element.props['id'] === forgeAnchorIdOf(TRACKER_IDS.designSystem)).length > 0)).toBe(false);
-    tree.dispatch(controlNamed([group], 'Show again'), 'onClick');
+    press(controlNamed([group], 'Show again'));
     expect(handled.commands).toEqual([{ kind: 'forge-unhide', trackerId: TRACKER_IDS.designSystem }]);
   });
 });
@@ -350,10 +362,10 @@ describe('Flint\'s brain on A4 (acceptance 2)', () => {
   });
 
   test('no other row carries the mark, and with the brain ended, refused, off or not reported none does', () => {
-    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-forges-brain'))).toHaveLength(1);
+    expect(tree.hostElementsIn(rowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded), tree.withClass('gaia-forges-brain'))).toHaveLength(1);
     for (const brain of [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off, 'not-reported' as const]) {
       const fleet = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, brain } : forge)) };
-      expect(tree.hostElementsIn(layoutOf(fleet).unfolded, tree.withClass('gaia-forges-brain'))).toEqual([]);
+      expect(tree.hostElementsIn(rowsIn(layoutOf(fleet).unfolded), tree.withClass('gaia-forges-brain'))).toEqual([]);
     }
   });
 
@@ -384,9 +396,9 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(ABOVE_THE_CPUS))]);
     await sender.send({ kind: 'machine-agent-limit-set', limit: 13 });
     const panel = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, 'gaia-forges-machine');
-    expect(tree.textOf([tree.onlyWithClass([panel], 'design-system-failed-action-text')])).toBe(
-      'The forge refused Set the machine\'s agent limit: machine-agent-limit-above-cpus. The machine limit is at most the 12 CPUs of this machine.',
-    );
+    expect(FailedActions.wordsOf(FailedActions.onlyFailedActionIn([panel]))).toEqual([
+      'The forge refused Set the machine\'s agent limit: ', 'machine-agent-limit-above-cpus', 'The machine limit is at most the 12 CPUs of this machine.',
+    ]);
   });
 
   test('without F6 the panel says no limit is enforced, shows no limit and offers no control that sets one', () => {
@@ -395,7 +407,7 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-sentence')])).toBe('This forge version does not enforce a machine limit.');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-limit')])).toBe('Agent limit—');
     expect(tree.hostElementsIn([panel], tree.withTag('NumberStepper'))).toEqual([]);
-    expect(tree.hostElementsIn([panel], tree.withClass('design-system-fill-meter'))).toEqual([]);
+    expect(tree.hostElementsIn([panel], (element) => tree.withComponent(SlotMeter)(element) || tree.withComponent(FillMeter)(element))).toEqual([]);
   });
 
   test('at its limit the panel is marked and names the ready tickets that wait for a slot', () => {

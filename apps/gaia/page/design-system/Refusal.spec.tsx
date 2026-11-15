@@ -1,16 +1,17 @@
 /**
- * The refusal. What matters: it is an alert that says which command the forge refused, or which one Gaia could not carry out when Gaia
- * refused or nothing answered, so no forge is blamed for what it was never asked; the code is in mono and the sentence unedited; "Try again"
- * shows only when the command can be sent again, as the package's compact secondary button, never a red one; the dismiss button is the
- * package's icon button, named and titled, and calls onDismiss.
+ * The refusal. What matters: it is the package's failed action, led by which command the forge refused, or which one Gaia could not carry
+ * out when Gaia refused or nothing answered, so no forge is blamed for what it was never asked; it hands on the code and the sentence
+ * unedited; "Try again" is handed on only when the command can be sent again, and calls onTryAgain; the dismissal is named and calls
+ * onDismiss. How the failed action draws them (an alert, the code in mono, a compact secondary button) is the package's to hold.
  */
 import { describe, expect, test } from 'bun:test';
+import { FailedAction }           from 'design-system-contributions/FailedAction';
 
-import { ReactElementTree }        from '../testing/ReactElementTree.ts';
-import { Refusal, type RefusedBy } from './Refusal.tsx';
+import { type HostElement, ReactElementTree } from '../testing/ReactElementTree.ts';
+import { Refusal, type RefusedBy }            from './Refusal.tsx';
 
-function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy = 'forge') {
-  return ReactElementTree.unfolded(
+function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy = 'forge'): HostElement {
+  return ReactElementTree.onlyOfComponent(ReactElementTree.unfolded(
     <Refusal
       commandLabel="Stop"
       refusedBy={refusedBy}
@@ -19,38 +20,31 @@ function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy
       onDismiss={() => presses.push('dismiss')}
       {...(canTryAgain ? { onTryAgain: () => presses.push('try again') } : {})}
     />,
-  );
+  ), FailedAction);
 }
 
 describe('the refusal', () => {
-  test('it is an alert with the refused command, the forge\'s code in mono and its sentence', () => {
-    const unfolded = refusalOf([], true);
-    expect(ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action').props['role']).toBe('alert');
-    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action-code')])).toBe('overseer-still-live');
-    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action-text')]))
-      .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
+  test('it is the failed action led by the refused command, with the forge\'s code and its sentence unedited', () => {
+    const refusal = refusalOf([], true);
+    expect([refusal.props['lead'], refusal.props['code'], refusal.props['sentence']])
+      .toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
   });
 
   test('a refusal Gaia gave, or one nothing answered, says Gaia could not carry out the command and never that the forge refused it', () => {
-    const text = ReactElementTree.textOf([ReactElementTree.onlyWithClass(refusalOf([], false, 'gaia'), 'design-system-failed-action-text')]);
-    expect(text).toBe('Gaia could not Stop: overseer-still-live. The Overseer did not stop within its tries.');
+    expect(refusalOf([], false, 'gaia').props['lead']).toBe('Gaia could not Stop: ');
   });
 
-  test('Try again and the named dismiss button call their own handlers', () => {
+  test('Try again and the named dismissal call their own handlers', () => {
     const presses: string[] = [];
-    const [tryAgain, dismiss] = ReactElementTree.hostElementsIn(refusalOf(presses, true), ReactElementTree.withTag('button'));
-    if (tryAgain === undefined || dismiss === undefined) throw new Error('A refusal button is missing.');
-    expect([ReactElementTree.textOf([tryAgain]), tryAgain.props['data-compact'], tryAgain.props['data-primary'], tryAgain.props['data-danger']])
-      .toEqual(['Try again', '', undefined, undefined]);
-    expect([dismiss.props['className'], dismiss.props['aria-label'], dismiss.props['title']])
-      .toEqual(['design-system-icon-button', 'Dismiss this refusal', 'Dismiss this refusal']);
-    ReactElementTree.dispatch(tryAgain, 'onClick');
-    ReactElementTree.dispatch(dismiss, 'onClick');
+    const refusal = refusalOf(presses, true);
+    expect([refusal.props['retryLabel'], refusal.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
+    ReactElementTree.dispatch(refusal, 'onRetry');
+    ReactElementTree.dispatch(refusal, 'onDismiss');
     expect(presses).toEqual(['try again', 'dismiss']);
   });
 
-  test('without a way to try again only the dismiss button shows', () => {
-    const buttons = ReactElementTree.hostElementsIn(refusalOf([], false), ReactElementTree.withTag('button'));
-    expect(buttons.map((button) => button.props['aria-label'])).toEqual(['Dismiss this refusal']);
+  test('without a way to try again only the dismissal is handed on', () => {
+    const refusal = refusalOf([], false);
+    expect([refusal.props['retryLabel'], refusal.props['onRetry'], refusal.props['dismissLabel']]).toEqual([undefined, undefined, 'Dismiss this refusal']);
   });
 });

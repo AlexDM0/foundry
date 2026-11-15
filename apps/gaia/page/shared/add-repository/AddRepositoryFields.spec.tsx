@@ -11,6 +11,7 @@ import { describe, expect, test } from 'bun:test';
 import type { CommandAnswerDocument }                   from '../../@types/CommandDocument.ts';
 import type { CommandResult, CommandStates }            from '../../api/CommandSender.ts';
 import { answerResponse, senderOver, type SentRequest } from '../../testing/CommandServer.ts';
+import { FailedActions }                                from '../../testing/FailedActions.ts';
 import { ReactElementTree }                             from '../../testing/ReactElementTree.ts';
 import {
   AddRepositoryCommands,
@@ -164,9 +165,9 @@ describe('the line of a missing forge program', () => {
       />,
     );
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-failed-action-text')])).toBe(
-      'Gaia could not Choose the forge program: settings-unwritable. Gaia could not write its settings.',
-    );
+    expect(FailedActions.wordsOf(FailedActions.onlyFailedActionIn(unfolded))).toEqual([
+      'Gaia could not Choose the forge program: ', 'settings-unwritable', 'Gaia could not write its settings.',
+    ]);
   });
 });
 
@@ -174,7 +175,7 @@ describe('a failure shows only beside the button whose send it was', () => {
   test('a settings-set another screen sent, as the Gaia panel\'s checkboxes do, shows no refusal under the forge program\'s line', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(SETTINGS_REFUSED))]);
     await sender.send({ kind: 'settings-set', key: 'startForgesAtLogin', value: true });
-    expect(tree.hostElementsIn(missingLineOf(sender.states(), NOTHING_SENT), tree.withClass('design-system-failed-action'))).toEqual([]);
+    expect(FailedActions.failedActionsIn(missingLineOf(sender.states(), NOTHING_SENT))).toEqual([]);
   });
 
   test('a refused choice of the forge program shows under its line and not under "Choose a folder"', async () => {
@@ -185,15 +186,15 @@ describe('a failure shows only beside the button whose send it was', () => {
       return forgeProgramChoice;
     }, sender.send);
     const sentResults = { ...NOTHING_SENT, forgeProgramChoice };
-    expect(tree.hostElementsIn(fieldsOf(sender.states(), sentResults), tree.withClass('design-system-failed-action'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass(missingLineOf(sender.states(), sentResults), 'design-system-failed-action-code')])).toBe('chooser-unavailable');
+    expect(FailedActions.failedActionsIn(fieldsOf(sender.states(), sentResults))).toEqual([]);
+    expect(FailedActions.onlyFailedActionIn(missingLineOf(sender.states(), sentResults)).props['code']).toBe('chooser-unavailable');
   });
 
   test('a refused choice of a folder shows under "Choose a folder" and not under the forge program\'s line', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(PATH_CHOICE_REFUSED))]);
     const folderChoice = await sender.send({ kind: 'path-choose', what: 'folder' });
     const sentResults = { ...NOTHING_SENT, folderChoice };
-    expect(tree.textOf([tree.onlyWithClass(fieldsOf(sender.states(), sentResults), 'design-system-failed-action-code')])).toBe('chooser-unavailable');
-    expect(tree.hostElementsIn(missingLineOf(sender.states(), sentResults), tree.withClass('design-system-failed-action'))).toEqual([]);
+    expect(FailedActions.onlyFailedActionIn(fieldsOf(sender.states(), sentResults)).props['code']).toBe('chooser-unavailable');
+    expect(FailedActions.failedActionsIn(missingLineOf(sender.states(), sentResults))).toEqual([]);
   });
 });

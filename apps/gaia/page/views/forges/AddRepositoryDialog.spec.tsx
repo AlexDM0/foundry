@@ -2,24 +2,21 @@
  * "Add a repository" over the Forges view. What matters (SCREENS A4 and B4 acceptance 2): it is B4's form in a dialog named for what it
  * does (the package's modal dialog, titled by its heading), Cancel closes it; with no forge program "Add and start" is disabled and the
  * dashed status line says why; a refusal of `init` or `start` shows in the dialog. The command states come from the real sender over
- * Gaia's server stood in for by authored answers. The dialog's hook-free body and foot are unfolded; the package's dialog around them is
- * rendered with `react-dom/server`.
+ * Gaia's server stood in for by authored answers. The dialog's layout is unfolded, the package's dialog around its body and foot folded.
  */
 import { describe, expect, test } from 'bun:test';
-import { renderToStaticMarkup }   from 'react-dom/server';
+import { Dialog }                 from 'design-system/Dialog';
+import { TextField }              from 'design-system-contributions/TextField';
 
-import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
-import type { CommandStates }                 from '../../api/CommandSender.ts';
-import { NOTHING_SENT }                       from '../../shared/add-repository/AddRepositoryFields.tsx';
-import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
-import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
-import { type HostElement, ReactElementTree } from '../../testing/ReactElementTree.ts';
-import {
-  AddRepositoryDialogBody,
-  AddRepositoryDialogFoot,
-  AddRepositoryDialogLayout,
-  type AddRepositoryDialogLayoutProps
-} from './AddRepositoryDialog.tsx';
+import type { CommandAnswerDocument }                                     from '../../@types/CommandDocument.ts';
+import type { CommandStates }                                             from '../../api/CommandSender.ts';
+import { NOTHING_SENT }                                                   from '../../shared/add-repository/AddRepositoryFields.tsx';
+import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
+import { answerResponse, senderOver }                                     from '../../testing/CommandServer.ts';
+import { FailedActions }                                                  from '../../testing/FailedActions.ts';
+import { PackageButtons }                                                 from '../../testing/PackageButtons.ts';
+import { type HostElement, ReactElementTree }                             from '../../testing/ReactElementTree.ts';
+import { AddRepositoryDialogLayout, type AddRepositoryDialogLayoutProps } from './AddRepositoryDialog.tsx';
 
 const tree = ReactElementTree;
 
@@ -50,37 +47,31 @@ function propsOf(forgeProgramIsMissing: boolean, commandStates: CommandStates, c
   };
 }
 
-/** The dialog's body and foot, unfolded inside a stand-in holder so a spec can search them as one. */
+/** The package's dialog, folded, holding the body and the foot the layout hands it. */
 function dialogOf(forgeProgramIsMissing: boolean, commandStates: CommandStates = senderOver([]).states()) {
   const closed: number[] = [];
-  const props = propsOf(forgeProgramIsMissing, commandStates, closed);
-  const [holder] = tree.unfolded(<div><AddRepositoryDialogBody {...props} /><AddRepositoryDialogFoot onClose={props.onClose} /></div>);
-  if (holder === undefined || typeof holder === 'string') throw new Error('The dialog holds nothing.');
-  return { dialog: holder, closed };
+  const dialog = tree.onlyOfComponent(tree.unfolded(<AddRepositoryDialogLayout {...propsOf(forgeProgramIsMissing, commandStates, closed)} />), Dialog);
+  return { dialog, closed };
 }
 
 function buttonNamed(dialog: HostElement, label: string): HostElement {
-  return tree.onlyHostElementIn([dialog], (element) => element.tag === 'button' && tree.textOf([element]) === label);
+  return PackageButtons.onlyLabelled([dialog], label);
 }
 
 describe('the dialog', () => {
   test('is B4\'s form under its own name, and Cancel closes it', () => {
     const { dialog, closed } = dialogOf(false);
-    const markup = renderToStaticMarkup(<AddRepositoryDialogLayout {...propsOf(false, senderOver([]).states(), [])} />);
-    const titleId = /<h2 id="([^"]+)" class="design-system-dialog-title">Add a repository<\/h2>/.exec(markup)?.[1];
-    expect(markup).toContain(`<dialog class="design-system-dialog" aria-modal="true" aria-labelledby="${titleId ?? 'no title'}"`);
-    expect(markup).toContain('class="design-system-text-field"');
-    const fields = tree.hostElementsIn([dialog], tree.withClass('design-system-text-field'));
-    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'design-system-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
+    expect([dialog.props['title'], dialog.props['isOpen']]).toEqual(['Add a repository', true]);
+    const fields = tree.hostElementsIn([dialog], tree.withComponent(TextField));
+    expect(fields.map((field) => field.props['label'])).toEqual(['Repository folder', 'Project name']);
     expect(buttonNamed(dialog, 'Add and start').props['disabled']).toBe(false);
     expect(tree.hostElementsIn([dialog], tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
-    tree.dispatch(buttonNamed(dialog, 'Cancel'), 'onClick');
+    PackageButtons.press(buttonNamed(dialog, 'Cancel'));
     expect(closed).toEqual([1]);
   });
 
   test('is the package\'s widest dialog, as B4 draws it', () => {
-    const markup = renderToStaticMarkup(<AddRepositoryDialogLayout {...propsOf(false, senderOver([]).states(), [])} />);
-    expect(markup).toContain('data-width="widest"');
+    expect(dialogOf(false).dialog.props['width']).toBe('widest');
   });
 
   test('with no forge program, "Add and start" is disabled and the dashed status line says why', () => {
@@ -97,7 +88,7 @@ describe('the dialog', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(INIT_REFUSED))]);
     await sender.send(AddRepositoryForm.addCommandOf(FILLED_FORM));
     const { dialog } = dialogOf(false, sender.states());
-    expect(tree.textOf([tree.onlyWithClass([dialog], 'design-system-failed-action-text')]))
-      .toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
+    expect(FailedActions.wordsOf(FailedActions.onlyFailedActionIn([dialog])))
+      .toEqual(['The forge refused Add and start: ', 'not-a-git-repository', 'The folder is not a git repository.']);
   });
 });

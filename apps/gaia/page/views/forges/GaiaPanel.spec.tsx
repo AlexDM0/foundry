@@ -2,17 +2,22 @@
  * The Gaia panel laid out, and the "What notifies" list. What matters (SCREENS A4 and C2): the panel sits under this machine's in the Forges view; its two
  * switches hand the view the setting clicked, "What notifies" opens the list and is a button of its own beside the second switch, not inside its
  * label; a refusal offers Try again and its dismissal; the facts and a settings file line show, a path free to break after each slash; the list holds the
- * seven kinds with their lines, hands the view the kind clicked, and closes on Done; it is the package's modal dialog titled "What notifies". The panel
- * and the list's body and foot are unfolded without a document; the package's dialog around them is rendered with `react-dom/server`.
+ * seven kinds with their lines, hands the view the kind clicked, and closes on Done; it is the package's open dialog titled "What notifies".
+ * The panel and the list are unfolded without a document, the package's dialog, switches and checkboxes folded.
  */
 import { describe, expect, test } from 'bun:test';
-import { NumberStepper }          from 'design-system/NumberStepper';
-import { renderToStaticMarkup }   from 'react-dom/server';
+import { Dialog }                 from 'design-system/Dialog';
+import { Switch }                 from 'design-system/Switch';
+import { Text }                   from 'design-system/Text';
+import { TextButton }             from 'design-system/TextButton';
+import { Checkbox }               from 'design-system-contributions/Checkbox';
 
 import type { CommandAnswerDocument }                            from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                    from '../../@types/FleetDocument.ts';
 import type { CommandStates, CommandSubject }                    from '../../api/CommandSender.ts';
 import { answerResponse, senderOver }                            from '../../testing/CommandServer.ts';
+import { FailedActions }                                         from '../../testing/FailedActions.ts';
+import { PackageButtons }                                        from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree, type RenderedNode } from '../../testing/ReactElementTree.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIXTURES_READ_AT }             from '../../testing/fixtures/fleet-five-forges.ts';
 import { ForgesLayout }                                          from './ForgesLayout.tsx';
@@ -24,7 +29,7 @@ import {
   type SentSettingsChange,
   type SettingsCheckbox,
 } from './GaiaPanelModel.ts';
-import { WhatNotifiesBody, WhatNotifiesDialog, WhatNotifiesFoot } from './WhatNotifiesDialog.tsx';
+import { WhatNotifiesDialog } from './WhatNotifiesDialog.tsx';
 
 const tree = ReactElementTree;
 
@@ -66,26 +71,18 @@ function whatNotifiesOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSur
   const { handled, handlers } = handledAndHandlers();
   const content = GaiaPanelModel.whatNotifiesOf(fleetDocument, surroundings);
   const onClose = () => handled.whatNotifiesClosed.push(1);
-  const unfolded = tree.unfolded(<><WhatNotifiesBody content={content} handlers={handlers} /><WhatNotifiesFoot onClose={onClose} /></>);
-  const markup = renderToStaticMarkup(<WhatNotifiesDialog content={content} handlers={handlers} onClose={onClose} />);
-  return { unfolded, handled, markup };
+  const unfolded = tree.unfolded(<WhatNotifiesDialog content={content} handlers={handlers} onClose={onClose} />);
+  return { unfolded, handled };
 }
 
 function checkboxLabelled(nodes: readonly RenderedNode[], label: string): HostElement {
-  const box = tree.onlyHostElementIn(nodes, (element) => tree.hasClass(element, 'design-system-checkbox')
-    && tree.textOf([tree.onlyWithClass([element], 'design-system-checkbox-label')]) === label);
-  return tree.onlyWithTag([box], 'input');
+  return tree.onlyHostElementIn(nodes, (element) => tree.withComponent(Checkbox)(element) && element.props['label'] === label);
 }
 
-/** The panel's settings are the package's switches, each named by the visible label its `aria-labelledby` points at. */
+/** The panel's settings are the package's switches, each named by the visible label Gaia hands it the id of. */
 function switchLabelled(nodes: readonly RenderedNode[], label: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => element.props['role'] === 'switch'
-    && tree.textOf(tree.hostElementsIn(nodes, (candidate) => candidate.props['id'] === element.props['aria-labelledby'])) === label);
-}
-
-function buttonNamed(nodes: readonly RenderedNode[], name: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => element.tag === 'button'
-    && (element.props['aria-label'] === name || (element.props['aria-label'] === undefined && tree.textOf([element]) === name)));
+  return tree.onlyHostElementIn(nodes, (element) => tree.withComponent(Switch)(element)
+    && tree.textOf(tree.hostElementsIn(nodes, (candidate) => candidate.props['id'] === element.props['labelledBy'])) === label);
 }
 
 describe('the panel in the Forges view (A4)', () => {
@@ -99,8 +96,7 @@ describe('the panel in the Forges view (A4)', () => {
       lastSent:    new Map(),
     });
     const { handlers } = handledAndHandlers();
-    // The package's number stepper holds hooks, so it stays folded.
-    const unfolded = tree.unfoldedKeeping(
+    const unfolded = tree.unfolded(
       <ForgesLayout
         content={content}
         gaiaPanel={GaiaPanelModel.gaiaPanelOf(FLEET_FIVE_FORGES, { commandStates, sentSettingsChange: null })}
@@ -115,7 +111,6 @@ describe('the panel in the Forges view (A4)', () => {
           onDismissRestartPending: () => undefined,
         }}
       />,
-      [NumberStepper],
     );
     const aside = tree.onlyWithTag(unfolded, 'aside');
     expect(aside.children.map((child) => (typeof child === 'string' ? child : child.props['className']))).toEqual(['gaia-forges-machine', 'gaia-forges-gaia']);
@@ -126,15 +121,16 @@ describe('the panel', () => {
   test('is headed Gaia and holds the two switches as the settings hold them', () => {
     const { unfolded } = panelOf(FLEET_FIVE_FORGES);
     const panel = tree.onlyWithClass(unfolded, 'gaia-forges-gaia');
-    expect(tree.textOf([tree.onlyWithTag([panel], 'h2')])).toBe('Gaia');
-    expect(switchLabelled(unfolded, 'Start the running forges at login').props['aria-checked']).toBe(false);
-    expect(switchLabelled(unfolded, 'Notify me while Gaia is open').props['aria-checked']).toBe(true);
+    const head = tree.onlyHostElementIn([panel], (element) => element.tag === Text.name && element.props['element'] === 'h2');
+    expect([tree.textOf([head]), head.props['id']]).toEqual(['Gaia', panel.props['aria-labelledby']]);
+    expect(switchLabelled(unfolded, 'Start the running forges at login').props['checked']).toBe(false);
+    expect(switchLabelled(unfolded, 'Notify me while Gaia is open').props['checked']).toBe(true);
   });
 
   test('a switch clicked hands the view that setting, with the change it sends', () => {
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES);
-    tree.dispatch(switchLabelled(unfolded, 'Start the running forges at login'), 'onClick');
-    tree.dispatch(switchLabelled(unfolded, 'Notify me while Gaia is open'), 'onClick');
+    tree.dispatch(switchLabelled(unfolded, 'Start the running forges at login'), 'onToggle');
+    tree.dispatch(switchLabelled(unfolded, 'Notify me while Gaia is open'), 'onToggle');
     expect(handled.checkboxes.map((checkbox) => checkbox.command)).toEqual([
       { kind: 'settings-set', key: 'startForgesAtLogin', value: true },
       { kind: 'settings-set', key: 'notifications', value: { enabled: false, kinds: FLEET_FIVE_FORGES.settings.notifications.kinds } },
@@ -144,10 +140,11 @@ describe('the panel', () => {
   test('"What notifies" is a button beside the second switch, outside its label, that opens the list', () => {
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES);
     const notifyLine = tree.onlyWithClass(unfolded, 'gaia-forges-gaia-notify');
-    const whatNotifies = buttonNamed([notifyLine], 'What notifies');
-    const labelId = switchLabelled([notifyLine], 'Notify me while Gaia is open').props['aria-labelledby'];
-    expect(tree.hostElementsIn([tree.onlyHostElementIn([notifyLine], (element) => element.props['id'] === labelId)], tree.withTag('button'))).toEqual([]);
-    tree.dispatch(whatNotifies, 'onClick');
+    const whatNotifies = tree.onlyOfComponent([notifyLine], TextButton);
+    expect(whatNotifies.props['label']).toBe('What notifies');
+    const labelId = switchLabelled([notifyLine], 'Notify me while Gaia is open').props['labelledBy'];
+    expect(tree.hostElementsIn([tree.onlyHostElementIn([notifyLine], (element) => element.props['id'] === labelId)], tree.withComponent(TextButton))).toEqual([]);
+    tree.dispatch(whatNotifies, 'onPress');
     expect(handled.whatNotifiesOpened).toEqual([1]);
   });
 
@@ -158,7 +155,7 @@ describe('the panel', () => {
       'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonGaia readsmonitor 3 · control 2 · embed 1Gaia0.1.0 on 127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
-    expect(tree.hostElementsIn(unfolded, (element) => element.props['role'] === 'switch').map((setting) => setting.props['disabled'])).toEqual([true, true]);
+    expect(tree.hostElementsIn(unfolded, tree.withComponent(Switch)).map((setting) => setting.props['disabled'])).toEqual([true, true]);
   });
 
   test('a path among the facts may break after each slash and nowhere else, and a fact with no slash is left whole', () => {
@@ -174,9 +171,9 @@ describe('the panel', () => {
 
   test('each fact\'s value is set in mono, but a value that is words, as a forge program not found, in the interface face', () => {
     const monoOf = (fleetDocument: FleetDocument) => tree.hostElementsIn(panelOf(fleetDocument).unfolded, tree.withTag('dd'))
-      .map((value) => tree.onlyWithClass([value], 'design-system-text').props['data-mono']);
-    expect(monoOf(FLEET_FIVE_FORGES)).toEqual(['', '', '', '']);
-    expect(monoOf({ ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, forgeProgramInUse: null } })).toEqual([undefined, '', '', '']);
+      .map((value) => tree.onlyOfComponent([value], Text).props['mono']);
+    expect(monoOf(FLEET_FIVE_FORGES)).toEqual([true, true, true, true]);
+    expect(monoOf({ ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, forgeProgramInUse: null } })).toEqual([false, true, true, true]);
   });
 
   test('a refused change shows its code and sentence under the switches, with Try again and its dismissal', async () => {
@@ -184,12 +181,11 @@ describe('the panel', () => {
     const checkbox = GaiaPanelModel.gaiaPanelOf(FLEET_FIVE_FORGES, { commandStates: IDLE_STATES, sentSettingsChange: null }).startAtLogin;
     const sentSettingsChange: SentSettingsChange = { checkbox, result: await sender.send(checkbox.command) };
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), sentSettingsChange });
-    const refusal = tree.onlyWithClass(unfolded, 'design-system-failed-action');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')])).toBe(
-      'Gaia could not Start the running forges at login: settings-unwritable. The command was refused.',
-    );
-    tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
-    tree.dispatch(buttonNamed([refusal], 'Dismiss this refusal'), 'onClick');
+    const refusal = FailedActions.onlyFailedActionIn(unfolded);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['Gaia could not Start the running forges at login: ', 'settings-unwritable', 'The command was refused.']);
+    expect([refusal.props['retryLabel'], refusal.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
+    tree.dispatch(refusal, 'onRetry');
+    tree.dispatch(refusal, 'onDismiss');
     expect(handled.checkboxes).toEqual([checkbox]);
     expect(handled.dismissed).toEqual([{ fleetCommand: 'settings-set' }]);
   });
@@ -197,19 +193,19 @@ describe('the panel', () => {
 
 describe('"What notifies" (C2)', () => {
   test('is a dialog of the seven kinds, each with its line of explanation', () => {
-    const { unfolded, markup } = whatNotifiesOf(FLEET_FIVE_FORGES);
-    const titleId = /<h2 id="([^"]+)" class="design-system-dialog-title">What notifies<\/h2>/.exec(markup)?.[1];
-    expect(markup).toContain(`<dialog class="design-system-dialog" aria-modal="true" aria-labelledby="${titleId ?? 'no title'}"`);
-    expect(markup.match(/class="design-system-checkbox-explanation"/g)).toHaveLength(7);
-    expect(tree.hostElementsIn(unfolded, tree.withClass('design-system-checkbox-explanation'))).toHaveLength(7);
+    const { unfolded } = whatNotifiesOf(FLEET_FIVE_FORGES);
+    const dialog = tree.onlyOfComponent(unfolded, Dialog);
+    expect([dialog.props['title'], dialog.props['isOpen']]).toEqual(['What notifies', true]);
+    const kinds = tree.hostElementsIn([dialog], tree.withComponent(Checkbox));
+    expect(kinds.filter((kind) => typeof kind.props['explanation'] === 'string' && kind.props['explanation'] !== '')).toHaveLength(7);
     expect(checkboxLabelled(unfolded, 'Draft tickets').props['checked']).toBe(false);
     expect(checkboxLabelled(unfolded, 'Questions').props['checked']).toBe(true);
   });
 
   test('a kind clicked hands the view that kind\'s change, and Done closes the list', () => {
     const { unfolded, handled } = whatNotifiesOf(FLEET_FIVE_FORGES);
-    tree.dispatch(checkboxLabelled(unfolded, 'Questions'), 'onChange', { currentTarget: { checked: false } });
-    tree.dispatch(buttonNamed(unfolded, 'Done'), 'onClick');
+    tree.dispatch(checkboxLabelled(unfolded, 'Questions'), 'onChange', false);
+    PackageButtons.press(PackageButtons.onlyLabelled(unfolded, 'Done'));
     expect(handled.checkboxes.map((checkbox) => checkbox.command)).toEqual([{
       kind:  'settings-set',
       key:   'notifications',

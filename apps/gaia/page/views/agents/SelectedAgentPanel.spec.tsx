@@ -5,7 +5,10 @@
  * messages and stops are sent from the agent's forge, with no control of its own to send either.
  */
 import { describe, expect, test } from 'bun:test';
+import { FactList }               from 'design-system/FactList';
+import type { ReactNode }         from 'react';
 
+import { PackageButtons }            from '../../testing/PackageButtons.ts';
 import { ReactElementTree }          from '../../testing/ReactElementTree.ts';
 import type { SelectedAgentContent } from './AgentsModel.ts';
 import { SelectedAgentPanel }        from './SelectedAgentPanel.tsx';
@@ -43,32 +46,35 @@ function unfoldedPanel(content: SelectedAgentContent) {
   return tree.unfolded(<SelectedAgentPanel content={content} handlers={{ onBrainCommand: () => undefined, onDismissFailure: () => undefined }} />);
 }
 
+/** The words of the part with this class, each package part in it written as `[Name words]`. */
 function textWithClass(content: SelectedAgentContent, className: string): string {
-  return tree.textOf([tree.onlyWithClass(unfoldedPanel(content), className)]);
+  return tree.readingOf([tree.onlyWithClass(unfoldedPanel(content), className)]);
 }
 
 describe('a running agent', () => {
   test('the head holds the job, its state and running time, the subject its role, forge and flags, then its ticket, calls and last tool', () => {
-    expect(textWithClass(RUNNING, 'gaia-agents-panel-head')).toBe('JobJ12Building · 34m 02s');
-    expect(textWithClass(RUNNING, 'gaia-agents-panel-subject')).toBe('builderExample Agency Sitequiet · 4 sweeps');
-    expect(textWithClass(RUNNING, 'gaia-agents-panel-ticket')).toBe('#034Credit note numbering');
-    expect(textWithClass(RUNNING, 'gaia-agents-panel-calls')).toBe('58 / 120calls · 122,300 tokens');
+    expect(textWithClass(RUNNING, 'gaia-agents-panel-head')).toBe('Job[MonoId J12]Building · 34m 02s');
+    expect(textWithClass(RUNNING, 'gaia-agents-panel-subject')).toBe('builderExample Agency Site[Tag quiet · 4 sweeps]');
+    expect(textWithClass(RUNNING, 'gaia-agents-panel-ticket')).toBe('[MonoId #034]Credit note numbering');
+    expect(textWithClass(RUNNING, 'gaia-agents-panel-calls')).toBe('[FillMeter 58 of 120 calls]58 / 120calls · 122,300 tokens');
     expect(textWithClass(RUNNING, 'gaia-agents-panel-last-tool')).toBe('Last tool Bash bun test');
   });
 
   test('the facts are exactly the ones given, and the last line keeps its line breaks', () => {
     const panel = unfoldedPanel(RUNNING);
-    expect(tree.textOf([tree.onlyWithTag(panel, 'dl')])).toBe('Turn7Calls58 of 120');
+    const facts = tree.onlyOfComponent(panel, FactList).props['facts'] as readonly { readonly label: string; readonly value: ReactNode }[];
+    expect(facts.map((fact) => [fact.label, tree.readingOf(tree.unfolded(fact.value))])).toEqual([['Turn', '7'], ['Calls', '58 of 120']]);
     const lastLine = tree.onlyWithClass(panel, 'gaia-agents-panel-last-line');
     expect([lastLine.props['data-reported'], tree.textOf([lastLine])]).toEqual(['yes', 'Running the specs again.\n$ bun test']);
   });
 
   test('its controls are links to the agent in its forge: its ticket and the open button', () => {
     const panel = unfoldedPanel(RUNNING);
-    expect(tree.hostElementsIn(panel, tree.withTag('button'))).toEqual([]);
-    expect(tree.hostElementsIn(panel, tree.withTag('a')).map((link) => [tree.textOf([link]), link.props['href']])).toEqual([
-      ['#034Credit note numbering', '#forge/example-agency-site-1a2b/#agents/J12'],
-      ['Open J12 in its forge', '#forge/example-agency-site-1a2b/#agents/J12'],
+    expect(tree.hostElementsIn(panel, (element) => element.tag === 'button' || (PackageButtons.isButton(element) && element.props['href'] === undefined))).toEqual([]);
+    const links = tree.hostElementsIn(panel, (element) => element.tag === 'a' || PackageButtons.isButton(element));
+    expect(links.map((link) => [tree.readingOf([link]), link.props['href']])).toEqual([
+      ['[MonoId #034]Credit note numbering', '#forge/example-agency-site-1a2b/#agents/J12'],
+      ['[Button Open J12 in its forge]', '#forge/example-agency-site-1a2b/#agents/J12'],
     ]);
   });
 
@@ -76,7 +82,7 @@ describe('a running agent', () => {
     const bare = {
       ...RUNNING, role: null, dotRole: null, runningText: null, flags: [], ticketIdsText: null, ticketTitle: null, calls: null, lastToolCall: null, facts: [], lastLine: null,
     };
-    expect(textWithClass(bare, 'gaia-agents-panel-head')).toBe('JobJ12Building');
+    expect(textWithClass(bare, 'gaia-agents-panel-head')).toBe('Job[MonoId J12]Building');
     expect(textWithClass(bare, 'gaia-agents-panel-subject')).toBe('Example Agency Site');
     const panel = unfoldedPanel(bare);
     expect(tree.hostElementsIn(panel, (element) => tree.hasClass(element, 'gaia-agents-panel-ticket') || tree.hasClass(element, 'gaia-agents-panel-last-tool'))).toEqual([]);
@@ -89,7 +95,7 @@ describe('a running agent', () => {
 describe('no running agent', () => {
   test('an agent whose job has ended says it is no longer running, under its job and forge', () => {
     const ended: SelectedAgentContent = { kind: 'no-longer-running', jobId: 'J12', project: 'Example Agency Site' };
-    expect(textWithClass(ended, 'gaia-agents-panel-head')).toBe('JobJ12');
+    expect(textWithClass(ended, 'gaia-agents-panel-head')).toBe('Job[MonoId J12]');
     expect(textWithClass(ended, 'gaia-agents-panel-sentence')).toBe('This agent is no longer running.');
     expect(tree.hostElementsIn(unfoldedPanel(ended), tree.withTag('a'))).toEqual([]);
   });

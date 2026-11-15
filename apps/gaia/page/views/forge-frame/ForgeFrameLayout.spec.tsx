@@ -11,13 +11,16 @@
  * keeping the frame hidden behind it; says the forge cannot be shown inside Gaia with Open in new tab; shows B3's callout with Look again;
  * and offers Try again on a refused session.
  */
-import { describe, expect, test }               from 'bun:test';
-import { ChoiceOption, type ChoiceOptionProps } from 'design-system/ChoiceOption';
+import { describe, expect, test } from 'bun:test';
+import { Banner }                 from 'design-system/Banner';
+import type { ChoiceOptionProps } from 'design-system/ChoiceOption';
+import { MonoId }                 from 'design-system/MonoId';
 
 import type { CommandBody }                                   from '../../@types/CommandDocument.ts';
 import type { FleetDocumentBrainState, FleetDocumentForge }   from '../../@types/FleetDocument.ts';
 import { frameUrlOf }                                         from '../../testing/AuthoredBridge.ts';
 import { DrawnDots }                                          from '../../testing/DrawnDots.ts';
+import { FailedActions }                                      from '../../testing/FailedActions.ts';
 import { PackageButtons }                                     from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree }                 from '../../testing/ReactElementTree.ts';
 import { STOREFRONT_BRAINS }                                  from '../../testing/fixtures/fleet-brain-states.ts';
@@ -64,8 +67,7 @@ function controlsOf(overrides: Partial<ForgeBarControlsProps> = {}) {
     onCancelStop:      () => events.push('cancel stop'),
     ...overrides,
   };
-  // The package's choice option holds hooks, so the Stop question's choices stay folded, their props read and called as the bar hands them.
-  return { unfolded: tree.unfoldedKeeping(<ForgeBarControls {...props} />, [ChoiceOption]), sent, events };
+  return { unfolded: tree.unfolded(<ForgeBarControls {...props} />), sent, events };
 }
 
 function choicesIn(popover: HostElement): ChoiceOptionProps[] {
@@ -73,17 +75,17 @@ function choicesIn(popover: HostElement): ChoiceOptionProps[] {
 }
 
 function buttonsIn(nodes: ReturnType<typeof tree.unfolded>): HostElement[] {
-  return tree.hostElementsIn(nodes, (element) => element.tag === 'button' || (element.tag === 'a' && PackageButtons.isButton(element)));
+  return PackageButtons.buttonsIn(nodes);
 }
 
 function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, name: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => element.tag === 'button' && (tree.textOf([element]) === name || element.props['aria-label'] === name));
+  return tree.onlyHostElementIn(nodes, (element) => PackageButtons.isButton(element) && (PackageButtons.labelOf(element) === name || PackageButtons.nameOf(element) === name));
 }
 
 describe('the bar\'s controls', () => {
   test('a live forge shows Pause, Stop and Open in new tab, each enabled, and none primary', () => {
     const { unfolded } = controlsOf();
-    expect(buttonsIn(unfolded).map((button) => tree.textOf([button]))).toEqual(['Pause', 'Stop', 'Open in new tab']);
+    expect(buttonsIn(unfolded).map(PackageButtons.labelOf)).toEqual(['Pause', 'Stop', 'Open in new tab']);
     expect(buttonsIn(unfolded).map((button) => [button.props['disabled'], PackageButtons.emphasisOf(button)])).toEqual([
       [false, 'quiet'], [false, 'quiet'], [false, 'quiet'],
     ]);
@@ -93,8 +95,8 @@ describe('the bar\'s controls', () => {
     const paused = controlsOf({ bar: barOf({ ...STOREFRONT, condition: 'paused' }) });
     expect(PackageButtons.emphasisOf(buttonNamed(paused.unfolded, 'Resume'))).toBe('primary');
     const live = controlsOf();
-    tree.dispatch(buttonNamed(live.unfolded, 'Pause'), 'onClick');
-    tree.dispatch(buttonNamed(live.unfolded, 'Open in new tab'), 'onClick');
+    PackageButtons.press(buttonNamed(live.unfolded, 'Pause'));
+    PackageButtons.press(buttonNamed(live.unfolded, 'Open in new tab'));
     expect(live.sent).toEqual([
       { kind: 'forge-pause', trackerId: STOREFRONT.trackerId },
       { kind: 'forge-open-in-browser', trackerId: STOREFRONT.trackerId },
@@ -109,7 +111,7 @@ describe('the bar\'s controls', () => {
   test('a forge whose control contract Gaia does not know keeps only Open in new tab', () => {
     const newerControl = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } };
     const { unfolded } = controlsOf({ bar: barOf(newerControl), stopIsOpen: true });
-    expect(buttonsIn(unfolded).map((button) => [tree.textOf([button]), button.props['disabled']])).toEqual([
+    expect(buttonsIn(unfolded).map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([
       ['Pause', true], ['Stop', true], ['Open in new tab', false],
     ]);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-forge-frame-stop-popover'))).toEqual([]);
@@ -117,7 +119,7 @@ describe('the bar\'s controls', () => {
 
   test('Stop opens its question rather than stopping', () => {
     const { unfolded, sent, events } = controlsOf();
-    tree.dispatch(buttonNamed(unfolded, 'Stop'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Stop'));
     expect(events).toEqual(['open stop']);
     expect(sent).toEqual([]);
   });
@@ -133,7 +135,7 @@ function brainGroupOf(unfolded: ReturnType<typeof tree.unfolded>): HostElement {
 }
 
 function buttonTextsOf(unfolded: ReturnType<typeof tree.unfolded>): string[] {
-  return buttonsIn(unfolded).map((button) => tree.textOf([button]));
+  return buttonsIn(unfolded).map(PackageButtons.labelOf);
 }
 
 describe('Flint\'s brain in the bar (SCREENS B1)', () => {
@@ -141,7 +143,7 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     const { unfolded, sent } = controlsOf({ bar: barOf(storefrontWithBrain('off')) });
     expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
     expect(brainGroupOf(unfolded).props['data-state']).toBe('off');
-    tree.dispatch(buttonNamed(unfolded, 'Wake Flint\'s brain'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Wake Flint\'s brain'));
     expect(sent).toEqual([{ kind: 'forge-brain-start', trackerId: STOREFRONT.trackerId }]);
   });
 
@@ -157,10 +159,10 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     const { unfolded, sent } = controlsOf({ bar: barOf(storefrontWithBrain('running')) });
     const group = brainGroupOf(unfolded);
     expect(tree.textOf([tree.onlyWithClass([group], 'gaia-brain-chip')])).toBe('Flint\'s brain · haiku low · 1:24 left · 3.1k tokens');
-    const brainStop = tree.onlyHostElementIn([group], tree.withTag('button'));
-    expect(brainStop.props['aria-label']).toBe('Stop Flint\'s brain on Example Storefront');
+    const brainStop = tree.onlyHostElementIn([group], PackageButtons.isButton);
+    expect(PackageButtons.nameOf(brainStop)).toBe('Stop Flint\'s brain on Example Storefront');
     expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
-    tree.dispatch(brainStop, 'onClick');
+    PackageButtons.press(brainStop);
     expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: STOREFRONT.trackerId }]);
   });
 
@@ -170,7 +172,7 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     expect(refusal.props['title']).toBe('The forge refused: launches are held until 16:00 (usage limit) usage-limit-holds');
     expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-brain-chip-refusal-code')])).toBe('usage-limit-holds');
     expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
-    tree.dispatch(buttonNamed(unfolded, 'Wake Flint\'s brain'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Wake Flint\'s brain'));
     expect(sent).toEqual([{ kind: 'forge-brain-start', trackerId: STOREFRONT.trackerId }]);
   });
 
@@ -205,7 +207,7 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
   test('while a command to the forge is on its way, Wake and the brain\'s Stop are disabled with the rest', () => {
     for (const state of ['off', 'refused', 'running'] as const) {
       const { unfolded } = controlsOf({ bar: barOf(storefrontWithBrain(state)), commandIsOnItsWay: true });
-      expect(tree.hostElementsIn([brainGroupOf(unfolded)], tree.withTag('button')).map((button) => button.props['disabled'])).toEqual([true]);
+      expect(buttonsIn([brainGroupOf(unfolded)]).map((button) => button.props['disabled'])).toEqual([true]);
     }
   });
 
@@ -280,15 +282,15 @@ describe('the Stop question as a popover under its button (B2)', () => {
     const [, stopFirst] = choicesIn(popover);
     if (stopFirst?.input === undefined) throw new Error('The question has no second choice.');
     stopFirst.input.props.onChange();
-    tree.dispatch(buttonNamed([popover], 'Stop'), 'onClick');
-    tree.dispatch(buttonNamed([popover], 'Cancel'), 'onClick');
+    PackageButtons.press(buttonNamed([popover], 'Stop'));
+    PackageButtons.press(buttonNamed([popover], 'Cancel'));
     expect(events).toEqual(['choose stop-first', 'cancel stop']);
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'keep' }]);
   });
 
   test('with "Stop the agents, then the Overseer" chosen, Stop sends stop-first', () => {
     const { unfolded, sent } = controlsOf({ stopIsOpen: true, stopAgents: 'stop-first' });
-    tree.dispatch(buttonNamed([tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover')], 'Stop'), 'onClick');
+    PackageButtons.press(buttonNamed([tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover')], 'Stop'));
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'stop-first' }]);
   });
 
@@ -297,7 +299,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
     const { unfolded, sent } = controlsOf({ bar: idle, stopIsOpen: true, stopAgents: 'stop-first' });
     const popover = tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover');
     expect(choicesIn(popover)).toEqual([]);
-    tree.dispatch(buttonNamed([popover], 'Stop'), 'onClick');
+    PackageButtons.press(buttonNamed([popover], 'Stop'));
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'keep' }]);
   });
 });
@@ -314,10 +316,10 @@ describe('a refusal under the bar', () => {
     const unfolded = tree.unfolded(<BarRefusalLine refusal={refusal} onCommand={() => undefined} onDismiss={() => {
       dismissed += 1;
     }} />);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-failed-action-text')]))
-      .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
-    expect(buttonsIn(unfolded).map((button) => button.props['aria-label'] ?? tree.textOf([button]))).toEqual(['Dismiss this refusal']);
-    tree.dispatch(buttonNamed(unfolded, 'Dismiss this refusal'), 'onClick');
+    const failedAction = FailedActions.onlyFailedActionIn(unfolded);
+    expect(FailedActions.wordsOf(failedAction)).toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
+    expect([failedAction.props['retryLabel'], failedAction.props['onRetry'], failedAction.props['dismissLabel']]).toEqual([undefined, undefined, 'Dismiss this refusal']);
+    tree.dispatch(failedAction, 'onDismiss');
     expect(dismissed).toBe(1);
   });
 
@@ -326,7 +328,9 @@ describe('a refusal under the bar', () => {
     if (refusal === null) throw new Error('No refusal.');
     const sent: CommandBody[] = [];
     const unfolded = tree.unfolded(<BarRefusalLine refusal={refusal} onCommand={(command) => sent.push(command)} onDismiss={() => undefined} />);
-    tree.dispatch(buttonNamed(unfolded, 'Try again'), 'onClick');
+    const failedAction = FailedActions.onlyFailedActionIn(unfolded);
+    expect(failedAction.props['retryLabel']).toBe('Try again');
+    tree.dispatch(failedAction, 'onRetry');
     expect(sent).toEqual([{ kind: 'forge-pause', trackerId: STOREFRONT.trackerId }]);
   });
 });
@@ -380,7 +384,7 @@ describe('the frame area', () => {
     const cannotShow = ForgeFrameModel.forgeFrameContentOf('research-wiki-58d0', FLEET_DEGRADED, CLOCK).area;
     const { unfolded, events } = areaOf(cannotShow);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice-text')])).toBe('This forge cannot be shown inside Gaia yet.');
-    tree.dispatch(buttonNamed(unfolded, 'Open in new tab'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Open in new tab'));
     expect(events).toEqual(['open in new tab']);
     const sessionNotSupported = areaOf(storefrontArea, { shown: { kind: 'cannot-show' } });
     expect(tree.textOf([tree.onlyWithClass(sessionNotSupported.unfolded, 'gaia-forge-frame-notice-text')])).toBe('This forge cannot be shown inside Gaia yet.');
@@ -390,10 +394,10 @@ describe('the frame area', () => {
     const unreachable = ForgeFrameModel.forgeFrameContentOf('invoice-service-2b9e', FLEET_DEGRADED, CLOCK).area;
     const { unfolded, events } = areaOf(unreachable);
     const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
-    expect(tree.onlyWithClass([callout], 'design-system-banner').props['data-tone']).toBe('error');
+    expect(tree.onlyOfComponent([callout], Banner).props['tone']).toBe('error');
     expect(tree.textOf([callout])).toContain('Its Overseer stopped answering. The registry still names it.');
     expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-callout-machine-line')])).toBe('127.0.0.1:4957 · process 48211 · last answer 13:14');
-    tree.dispatch(buttonNamed(unfolded, 'Look again'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Look again'));
     expect(events).toEqual(['look again']);
   });
 
@@ -402,22 +406,25 @@ describe('the frame area', () => {
     const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
     expect(callout.props['aria-label']).toBe('Example Storefront: Unreachable');
     expect(DrawnDots.conditionOf(tree.onlyHostElementIn([callout], DrawnDots.isDot))).toBe('unreachable');
-    tree.dispatch(buttonNamed(unfolded, 'Look again'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Look again'));
     expect(events).toEqual(['ask again']);
   });
 
   test('a refused session shows the reason with Try again in a notice that leaves the fade to the refusal, and dismissing it goes back', () => {
     const refusal = ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null);
     const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'refused', refusal } });
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-failed-action-text')])).toBe('Gaia could not Open: token-rejected. The forge did not accept Gaia\'s token.');
+    const failedAction = FailedActions.onlyFailedActionIn(unfolded);
+    expect(FailedActions.wordsOf(failedAction)).toEqual(['Gaia could not Open: ', 'token-rejected', 'The forge did not accept Gaia\'s token.']);
     expect(tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice').props['data-refused']).toBe('');
-    tree.dispatch(buttonNamed(unfolded, 'Try again'), 'onClick');
-    tree.dispatch(buttonNamed(unfolded, 'Dismiss this refusal'), 'onClick');
+    expect([failedAction.props['retryLabel'], failedAction.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
+    tree.dispatch(failedAction, 'onRetry');
+    tree.dispatch(failedAction, 'onDismiss');
     expect(events).toEqual(['ask again', 'leave']);
   });
 
   test('a tracker id the registry does not name says so and names the id', () => {
     const { unfolded } = areaOf({ kind: 'not-registered', trackerId: 'example-unknown-0000' });
-    expect(tree.textOf(unfolded)).toBe('The registry names no forge with this id.example-unknown-0000');
+    expect(tree.textOf(unfolded)).toBe('The registry names no forge with this id.');
+    expect(tree.onlyOfComponent([tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice-id')], MonoId).props['text']).toBe('example-unknown-0000');
   });
 });

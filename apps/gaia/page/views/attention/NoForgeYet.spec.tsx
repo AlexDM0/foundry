@@ -6,12 +6,14 @@
  * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
 import { describe, expect, test } from 'bun:test';
+import { TextField }              from 'design-system-contributions/TextField';
 
 import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
 import type { CommandSender, CommandStates }  from '../../api/CommandSender.ts';
 import { NOTHING_SENT }                       from '../../shared/add-repository/AddRepositoryFields.tsx';
 import { AddRepositoryForm }                  from '../../shared/add-repository/AddRepositoryForm.ts';
 import { answerResponse, senderOver }         from '../../testing/CommandServer.ts';
+import { FailedActions }                      from '../../testing/FailedActions.ts';
 import { PackageButtons }                     from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree } from '../../testing/ReactElementTree.ts';
 import { NoForgeYetLayout }                   from './NoForgeYet.tsx';
@@ -74,18 +76,18 @@ function layoutOf(forgeProgramIsMissing: boolean, form = FILLED_FORM, commandSta
 }
 
 function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, label: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => element.tag === 'button' && tree.textOf([element]) === label);
+  return PackageButtons.onlyLabelled(nodes, label);
 }
 
 describe('no forge yet', () => {
   test('offers Look again, says why nothing waits and offers the form, its fields named and "Add and start" the one primary button', () => {
     const { unfolded } = layoutOf(false);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-no-forge-title')])).toBe('Nothing waits on you, because no forge is registered.');
-    const fields = tree.hostElementsIn(unfolded, tree.withClass('design-system-text-field'));
-    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'design-system-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
-    expect(fields.map((field) => tree.onlyWithTag([field], 'input').props['value'])).toEqual(['~/development/example-storefront', 'example-storefront']);
-    const buttons = tree.hostElementsIn(unfolded, PackageButtons.isButton);
-    expect(buttons.map((button) => [tree.textOf([button]), PackageButtons.emphasisOf(button)])).toEqual([
+    const fields = tree.hostElementsIn(unfolded, tree.withComponent(TextField));
+    expect(fields.map((field) => field.props['label'])).toEqual(['Repository folder', 'Project name']);
+    expect(fields.map((field) => field.props['value'])).toEqual(['~/development/example-storefront', 'example-storefront']);
+    const buttons = PackageButtons.buttonsIn(unfolded);
+    expect(buttons.map((button) => [PackageButtons.labelOf(button), PackageButtons.emphasisOf(button)])).toEqual([
       ['Look again', 'quiet'],
       ['Choose a folder', 'quiet'],
       ['Add and start', 'primary'],
@@ -95,9 +97,9 @@ describe('no forge yet', () => {
   test('with a forge program, a filled form can be added and started, and the buttons call their handlers', () => {
     const { unfolded, pressed } = layoutOf(false);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
-    tree.dispatch(buttonNamed(unfolded, 'Add and start'), 'onClick');
-    tree.dispatch(buttonNamed(unfolded, 'Choose a folder'), 'onClick');
-    tree.dispatch(buttonNamed(unfolded, 'Look again'), 'onClick');
+    PackageButtons.press(buttonNamed(unfolded, 'Add and start'));
+    PackageButtons.press(buttonNamed(unfolded, 'Choose a folder'));
+    PackageButtons.press(buttonNamed(unfolded, 'Look again'));
     expect(pressed).toEqual({
       chooseFolder: 1, addAndStart: 1, chooseForgeProgram: 0, lookAgain: 1
     });
@@ -112,7 +114,7 @@ describe('no forge yet', () => {
     expect(tree.textOf([tree.onlyWithClass([line], 'gaia-add-repository-program-missing-text')])).toBe(
       'The forge program was not found. Gaia can show running forges without it, but cannot start one.',
     );
-    tree.dispatch(buttonNamed([line], 'Choose the forge program'), 'onClick');
+    PackageButtons.press(buttonNamed([line], 'Choose the forge program'));
     expect(pressed.chooseForgeProgram).toBe(1);
   });
 
@@ -137,18 +139,20 @@ describe('no forge yet', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(INIT_REFUSED))]);
     await sender.send(AddRepositoryForm.addCommandOf(FILLED_FORM));
     const add = tree.onlyWithClass(layoutOf(false, FILLED_FORM, sender.states()).unfolded, 'gaia-attention-add');
-    expect(tree.textOf([tree.onlyWithClass([add], 'design-system-failed-action-text')]))
-      .toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
+    expect(FailedActions.wordsOf(FailedActions.onlyFailedActionIn([add])))
+      .toEqual(['The forge refused Add and start: ', 'not-a-git-repository', 'The folder is not a git repository.']);
   });
 
   test('a refused Look again shows under its button, and Try again sends it once more', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(LOOK_AGAIN_REFUSED))]);
     await sender.send({ kind: 'fleet-look-again' });
     const { unfolded, pressed } = layoutOf(false, FILLED_FORM, sender.states());
-    const refusal = tree.onlyWithClass(unfolded, 'design-system-failed-action');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
-      .toBe('Gaia could not Look again: registry-unreadable. The registry could not be read.');
-    tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
+    const refusal = FailedActions.onlyFailedActionIn(unfolded);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['Gaia could not Look again: ', 'registry-unreadable', 'The registry could not be read.']);
+    const [welcome, refusalPlace] = tree.onlyWithClass(unfolded, 'gaia-attention-no-forge-intro').children;
+    expect([typeof welcome === 'object' && tree.hasClass(welcome, 'gaia-attention-no-forge-welcome'), refusalPlace]).toEqual([true, refusal]);
+    expect(refusal.props['retryLabel']).toBe('Try again');
+    tree.dispatch(refusal, 'onRetry');
     expect(pressed.lookAgain).toBe(1);
   });
 

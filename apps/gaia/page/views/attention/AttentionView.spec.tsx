@@ -7,9 +7,11 @@
  * while a fleet whose every forge is hidden keeps it; ages are printed from the page's clock.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs the hooks without a document, so each spec reads the markup the page
- * would paint for the source's current document.
+ * would paint for the source's current document: Gaia's own markup and the text a reader sees in it, and a package part only whole, as the
+ * package draws it for the props Gaia hands it.
  */
 import { describe, expect, test } from 'bun:test';
+import { Button }                 from 'design-system/Button';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument, FleetDocumentFleetAttentionItem }                          from '../../@types/FleetDocument.ts';
@@ -17,6 +19,7 @@ import type { FleetStreamState }                                                
 import { createFleetSource, type FleetSource }                                          from '../../shell/FleetSource.ts';
 import { GaiaApp }                                                                      from '../../shell/GaiaApp.tsx';
 import { senderOver }                                                                   from '../../testing/CommandServer.ts';
+import { ShellMarkup }                                                                  from '../../testing/ShellMarkup.tsx';
 import { fixedPageClockAt, shellSurroundingsAt }                                        from '../../testing/ShellSurroundingsAt.ts';
 import { FLEET_DEGRADED }                                                               from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                                  from '../../testing/fixtures/fleet-empty.ts';
@@ -62,8 +65,15 @@ function sourceHolding(fleetDocument: FleetDocument): FleetSource {
   return source;
 }
 
+/** The id a reader sees in each row's id cell, which ends where the row's text begins. */
 function rowIdsIn(markup: string): string[] {
-  return [...markup.matchAll(/class="gaia-attention-row-id"><span class="design-system-mono-id"[^>]*>([^<]*)</g)].map(([, idText = '']) => idText);
+  return [...markup.matchAll(/<span class="gaia-attention-row-id">(.*?)<\/span>(?=<span class="gaia-attention-row-text">)/g)]
+    .map(([, idMarkup = '']) => ShellMarkup.textIn(idMarkup));
+}
+
+/** Whether the held forge's callout is in the list of forges that need a look. */
+function heldCalloutIn(markup: string): boolean {
+  return markup.includes('<div class="gaia-attention-look" data-look-kind="launches-held">');
 }
 
 function staleRowCountIn(markup: string): number {
@@ -83,14 +93,14 @@ describe('the view follows the fleet source, with no reload', () => {
   test('the held forge\'s callout leaves once the forge reports serving', () => {
     const source = sourceHolding(FLEET_FIVE_FORGES);
     const app = appAt(source);
-    expect(renderToStaticMarkup(app)).toContain('>Update forge<');
+    expect(heldCalloutIn(renderToStaticMarkup(app))).toBe(true);
     source.publish({
       ...FLEET_FIVE_FORGES,
       forges:     FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleMobileApp ? { ...forge, condition: 'live', notices: [] } : forge)),
       needsALook: FLEET_FIVE_FORGES.needsALook.filter((look) => look.trackerId !== TRACKER_IDS.exampleMobileApp),
     });
     const serving = renderToStaticMarkup(app);
-    expect(serving).not.toContain('>Update forge<');
+    expect(heldCalloutIn(serving)).toBe(false);
     expect(serving).toContain('Forges that need a look · 1');
   });
 
@@ -121,20 +131,22 @@ describe('the view follows the fleet source, with no reload', () => {
   });
 });
 
-function pageTitleFiguresIn(markup: string): string[] {
-  const pageTitle = /<header class="design-system-page-head">.*?<\/header>/.exec(markup)?.[0] ?? '';
-  const figure = new RegExp('<div class="design-system-figure" data-form="stacked"( data-state-tone="accent")?>'
-    + '<span class="design-system-figure-value">([^<]*)</span><span class="design-system-figure-label">([^<]*)<', 'g');
-  return [...pageTitle.matchAll(figure)]
-    .map(([, attention, value, label]) => `${value} ${label}${attention === undefined ? '' : ' (waits on you)'}`);
+/**
+ * The figures the page title carries for this document, each marked where it waits on User, once the app's page title area is the
+ * package's page head drawn whole for them; a page title area of anything else fails the spec.
+ */
+function pageTitleFiguresIn(markup: string, fleetDocument: FleetDocument): string[] {
+  const { parts, markup: pageHead } = ShellMarkup.viewPageHeadAt('#attention', fleetDocument);
+  expect(ShellMarkup.pageTitleAreaIn(markup)).toBe(pageHead);
+  return parts.figures.map((figure) => `${figure.value} ${figure.label}${figure.attention === true ? ' (waits on you)' : ''}`);
 }
 
 describe('the page title and the clock', () => {
   test('A1\'s page title carries the title, the lead and the six figures stacked, the waiting one marked, and no button of its own', () => {
     const fleet = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES)));
-    expect(fleet).toContain('<h1 class="design-system-text" data-type-role="display">Attention</h1><p class="design-system-text" data-type-role="lead" data-ink="muted">'
-      + 'What waits on you across every forge, and the forges that need a look.</p>');
-    expect(pageTitleFiguresIn(fleet)).toEqual([
+    const { parts } = ShellMarkup.viewPageHeadAt('#attention', FLEET_FIVE_FORGES);
+    expect([parts.title, parts.lead, parts.actions]).toEqual(['Attention', 'What waits on you across every forge, and the forges that need a look.', null]);
+    expect(pageTitleFiguresIn(fleet, FLEET_FIVE_FORGES)).toEqual([
       '5 waiting on you (waits on you)',
       '10 / 12 agents',
       '11 tickets ready',
@@ -142,28 +154,30 @@ describe('the page title and the clock', () => {
       '1.24M tokens today',
       '0 open incidents',
     ]);
-    expect(fleet).not.toContain('design-system-page-head-actions');
     expect(fleet).not.toContain('class="gaia-attention-figures"');
   });
 
   test('with nothing waiting the page title keeps its six figures', () => {
     const nothingWaits = { ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } };
-    expect(pageTitleFiguresIn(renderToStaticMarkup(appAt(sourceHolding(nothingWaits))))).toHaveLength(6);
+    expect(pageTitleFiguresIn(renderToStaticMarkup(appAt(sourceHolding(nothingWaits))), nothingWaits)).toHaveLength(6);
   });
 
   test('B3 folds the figures into the main column and leaves the page title without them; B4 heads itself with no page title', () => {
     const degraded = renderToStaticMarkup(appAt(sourceHolding(FLEET_DEGRADED)));
-    expect(degraded).toContain('data-type-role="display">Attention</h1>');
-    expect(pageTitleFiguresIn(degraded)).toEqual([]);
+    expect(ShellMarkup.viewPageHeadAt('#attention', FLEET_DEGRADED).parts.title).toBe('Attention');
+    expect(pageTitleFiguresIn(degraded, FLEET_DEGRADED)).toEqual([]);
     expect(degraded).toContain('<div class="gaia-attention-figures" data-form="line">');
     const empty = renderToStaticMarkup(appAt(sourceHolding(FLEET_EMPTY)));
-    expect(empty).not.toContain('design-system-page-head');
-    expect(empty).toMatch(/<div class="gaia-attention-no-forge-actions"><button[^>]*>Look again<\/button><\/div>/);
+    expect(ShellMarkup.pageTitleAreaIn(empty)).toBeUndefined();
+    const lookAgain = renderToStaticMarkup(<Button label="Look again" compact disabled={false} onPress={() => undefined} />);
+    expect(empty).toContain(`<div class="gaia-attention-no-forge-actions">${lookAgain}</div>`);
   });
 
   test('a fleet whose every forge is hidden keeps the page title, as the fleet screen it is', () => {
     const everyForgeHidden = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, hiddenTrackerIds: [TRACKER_IDS.exampleStorefront] } };
-    expect(renderToStaticMarkup(appAt(sourceHolding(everyForgeHidden)))).toContain('data-type-role="display">Attention</h1>');
+    const { parts, markup: pageHead } = ShellMarkup.viewPageHeadAt('#attention', everyForgeHidden);
+    expect(parts.title).toBe('Attention');
+    expect(ShellMarkup.pageTitleAreaIn(renderToStaticMarkup(appAt(sourceHolding(everyForgeHidden))))).toBe(pageHead);
   });
 
   test('ages are printed from the page\'s clock', () => {

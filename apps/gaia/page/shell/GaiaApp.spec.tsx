@@ -10,23 +10,34 @@
  * to the fragment that keeps it. And motion may start only once the source holds a document; the frames after it are MotionReadiness's.
  *
  * `GaiaApp` is rendered with React's own server renderer, which runs its hooks without a document, so the specs read the markup it
- * would paint for the source's current document; `GaiaShell` takes no hooks and unfolds to its host elements.
+ * would paint for the source's current document: Gaia's own markup, and a package part only as the whole markup the package draws for the
+ * props Gaia hands it, never its insides. `GaiaShell` takes no hooks and unfolds, its package parts folded.
  */
 import { describe, expect, test } from 'bun:test';
+import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
+import { CountBadge }             from 'design-system/CountBadge';
 import { IconButton }             from 'design-system/IconButton';
+import { SegmentedControl }       from 'design-system/SegmentedControl';
+import { SlotMeter }              from 'design-system/SlotMeter';
+import { StateBadge }             from 'design-system/StateBadge';
 import { TextField }              from 'design-system-contributions/TextField';
+import { ThemeCycleButton }       from 'design-system-contributions/ThemeCycleButton';
 import type { ReactElement }      from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument, FleetDocumentForge }                                   from '../@types/FleetDocument.ts';
 import { CommandSender }                                                            from '../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
+import { BrandBar, themeButtonNameOf }                                              from '../design-system/BrandBar.tsx';
 import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
+import type { ThemeChoice }                                                         from '../shared/@types/ThemeChoice.ts';
 import { DEFAULT_ROUTE, HashRouter }                                                from '../shared/HashRouter.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
-import { type HostElement, ReactElementTree }                                       from '../testing/ReactElementTree.ts';
+import { PackageControls }                                                          from '../testing/PackageControls.ts';
+import { ReactElementTree }                                                         from '../testing/ReactElementTree.ts';
+import { ShellMarkup }                                                              from '../testing/ShellMarkup.tsx';
 import { forgeFrameSurroundingsAt, shellSurroundingsAt }                            from '../testing/ShellSurroundingsAt.ts';
 import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
@@ -46,6 +57,7 @@ import {
   viewPartsOf,
 } from './GaiaApp.tsx';
 import { MotionReadiness } from './MotionReadiness.ts';
+import { RailModel }       from './RailModel.ts';
 
 const tree = ReactElementTree;
 
@@ -76,28 +88,29 @@ function railForgeProjectsIn(markup: string): string[] {
   return [...markup.matchAll(/class="gaia-rail-row-label">([^<]*)</g)].map(([, label = '']) => label).slice(4);
 }
 
-function railForgesCountIn(markup: string): string | undefined {
-  return /href="#forges"[^>]*><span class="gaia-rail-row-label">Forges<\/span><span class="gaia-rail-count"><span class="design-system-count-badge"[^>]*>(\d+)</.exec(markup)?.[1];
+/** Whether the rail's Forges row holds the package's count badge as Gaia hands it this count. */
+function railForgesRowHoldsCount(markup: string, count: number): boolean {
+  const forgesRow = /<a class="gaia-rail-row" href="#forges"[^>]*>.*?<\/a>/.exec(markup)?.[0] ?? '';
+  return forgesRow.includes(renderToStaticMarkup(<CountBadge count={count} tone="neutral" />));
 }
 
-function pageTitleIn(markup: string): string | undefined {
-  return /<h1 class="design-system-text" data-type-role="display">([^<]*)<\/h1>/.exec(markup)?.[1];
+const { pageTitleAreaIn } = ShellMarkup;
+
+/** The view's title, lead and figures at a fragment, and the package's page head drawn whole for them as the shell draws it. */
+function viewPageHeadAt(fragment: string, fleetDocument: FleetDocument | null) {
+  const { parts, figures, markup } = ShellMarkup.viewPageHeadAt(fragment, fleetDocument);
+  return {
+    title: parts.title, lead: parts.lead, figures, markup
+  };
 }
 
+/** The name of the theme button the markup holds: the package's theme button drawn whole for a choice, named after it and the next. */
 function themeButtonNameIn(markup: string): string | undefined {
-  return /<button type="button" class="design-system-icon-button" aria-label="(Theme: [^"]*)"/.exec(markup)?.[1];
-}
-
-function isFocusable(element: HostElement): boolean {
-  const { tabIndex } = element.props;
-  if (typeof tabIndex === 'number') return tabIndex >= 0;
-  if (element.tag === 'a') return typeof element.props['href'] === 'string';
-  return ['button', 'input', 'select', 'textarea'].includes(element.tag) && element.props['disabled'] !== true;
-}
-
-function accessibleNameOf(element: HostElement): string {
-  const label = element.props['aria-label'];
-  return typeof label === 'string' ? label : tree.textOf([element]);
+  const choices: readonly ThemeChoice[] = ['auto', 'light', 'dark'];
+  const shown = choices.find((choice) => markup.includes(renderToStaticMarkup(
+    <ThemeCycleButton choice={choice} accessibleName={themeButtonNameOf(choice)} onCycle={() => undefined} />,
+  )));
+  return shown === undefined ? undefined : themeButtonNameOf(shown);
 }
 
 describe('a forge joins or leaves the rail without a reload', () => {
@@ -111,7 +124,7 @@ describe('a forge joins or leaves the rail without a reload', () => {
     const registeredBefore = ['Example Storefront', 'Invoice Service', 'Research Wiki', 'Example Mobile App', 'Design System', 'Legacy Importer'];
     expect(railForgeProjectsIn(before)).toEqual(registeredBefore);
     expect(railForgeProjectsIn(after)).toEqual([...registeredBefore, 'Example Newsletter']);
-    expect([railForgesCountIn(before), railForgesCountIn(after)]).toEqual(['6', '7']);
+    expect([railForgesRowHoldsCount(before, 6), railForgesRowHoldsCount(after, 7), railForgesRowHoldsCount(after, 6)]).toEqual([true, true, false]);
   });
 
   test('a forge that leaves the registry leaves the rail, and the last one leaving empties the forge rows', () => {
@@ -122,15 +135,17 @@ describe('a forge joins or leaves the rail without a reload', () => {
     source.publish(FLEET_EMPTY);
     const emptied = renderToStaticMarkup(app);
     expect(railForgeProjectsIn(emptied)).toEqual([]);
-    expect(railForgesCountIn(emptied)).toBe('0');
+    expect(railForgesRowHoldsCount(emptied, 0)).toBe(true);
   });
 
   test('before any document the shell already shows its brand bar, its rail and the view\'s page title, with no count and no pill', () => {
     const markup = renderToStaticMarkup(appAt(createFleetSource(), ''));
     expect(markup).toContain('<header class="gaia-brand-bar">');
-    expect(pageTitleIn(markup)).toBe('Attention');
+    const attention = viewPageHeadAt('', null);
+    expect(attention.title).toBe('Attention');
+    expect(pageTitleAreaIn(markup)).toBe(attention.markup);
     expect(markup).not.toContain('gaia-rail-count');
-    expect(markup).not.toContain('design-system-state-badge');
+    expect(markup).toContain(renderToStaticMarkup(<BrandBar status={null} themeButton={{ choice: 'auto', onCycle: () => undefined }} />));
   });
 });
 
@@ -139,11 +154,13 @@ describe('the route and the theme', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const onAgents = renderToStaticMarkup(appAt(source, '#agents'));
-    expect(pageTitleIn(onAgents)).toBe('Agents');
+    const agents = viewPageHeadAt('#agents', FLEET_FIVE_FORGES);
+    expect(agents.title).toBe('Agents');
+    expect(pageTitleAreaIn(onAgents)).toBe(agents.markup);
     expect(onAgents).toMatch(/href="#agents" aria-current="page"/);
     expect(onAgents.match(/aria-current="page"/g)).toHaveLength(1);
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.invoiceService}/#questions/E4`));
-    expect(pageTitleIn(inPlace)).toBeUndefined();
+    expect(pageTitleAreaIn(inPlace)).toBeUndefined();
     expect(inPlace).toContain('<h1 class="gaia-forge-frame-bar-name">Invoice Service</h1>');
     expect(inPlace).toMatch(new RegExp(`href="#forge/${TRACKER_IDS.invoiceService}" aria-current="page"`));
   });
@@ -157,7 +174,8 @@ describe('the route and the theme', () => {
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
     expect(inPlace).toContain('<header class="gaia-brand-bar">');
     expect(themeButtonNameIn(inPlace)).toBeUndefined();
-    expect(inPlace).not.toContain('class="design-system-theme-cycle-glyph"');
+    const brandBar = /<header class="gaia-brand-bar">.*?<\/header>/.exec(inPlace)?.[0];
+    expect(brandBar).toEndWith('<span class="gaia-brand-bar-sentence">1 holds its launches · 1 dormant · 1 repository missing</span></header>');
   });
 
   test('the brand bar shows the fleet\'s pill and sentence on every route', () => {
@@ -165,7 +183,7 @@ describe('the route and the theme', () => {
     source.publish(FLEET_FIVE_FORGES);
     for (const fragment of ['#attention', '#forges', `#forge/${TRACKER_IDS.exampleStorefront}`]) {
       const markup = renderToStaticMarkup(appAt(source, fragment));
-      expect(markup).toMatch(/data-state-tone="accent"[^>]*data-pulsing=""[^>]*>.*?4 forges running</);
+      expect(markup).toContain(renderToStaticMarkup(<StateBadge tone="accent" label="4 forges running" pulsing />));
       expect(markup).toContain('<span class="gaia-brand-bar-sentence">1 holds its launches · 1 dormant · 1 repository missing</span>');
     }
   });
@@ -175,17 +193,19 @@ describe('the route and the theme', () => {
     const app = appAt(source, '#activity');
     const lead = 'The newest 50 entries of each forge, as each forge words them.';
     const beforeTheDocument = renderToStaticMarkup(app);
-    expect(pageTitleIn(beforeTheDocument)).toBe('Activity');
-    expect(beforeTheDocument).toContain(`data-type-role="lead" data-ink="muted">${lead}</p>`);
+    const activityBefore = viewPageHeadAt('#activity', null);
+    expect([activityBefore.title, activityBefore.lead]).toEqual(['Activity', lead]);
+    expect(pageTitleAreaIn(beforeTheDocument)).toBe(activityBefore.markup);
     expect(beforeTheDocument).not.toContain('class="gaia-activity"');
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(app);
-    expect(pageTitleIn(markup)).toBe('Activity');
-    expect(markup).toContain(`data-type-role="lead" data-ink="muted">${lead}</p>`);
+    const activity = viewPageHeadAt('#activity', FLEET_FIVE_FORGES);
+    expect([activity.title, activity.lead]).toEqual(['Activity', lead]);
+    expect(pageTitleAreaIn(markup)).toBe(activity.markup);
     const fieldsetAt = markup.indexOf('<fieldset class="gaia-shell-controls">');
     expect(fieldsetAt).toBeGreaterThan(-1);
-    expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeGreaterThan(fieldsetAt);
-    expect(markup.indexOf('aria-labelledby="gaia-activity-kind-label"')).toBeLessThan(markup.indexOf('</fieldset>'));
+    expect(markup.indexOf('<div class="gaia-activity">')).toBeGreaterThan(fieldsetAt);
+    expect(markup.indexOf('<div class="gaia-activity">')).toBeLessThan(markup.indexOf('</fieldset>'));
   });
 
   test('the theme button shows the stored choice before the first document, and the settings\' choice from it on', () => {
@@ -218,9 +238,10 @@ describe('the rail with no forge registered (B4)', () => {
     const markup = renderToStaticMarkup(appAt(source, '#attention'));
     expect(markup).toContain('<p class="gaia-rail-no-forge">No forge is registered</p>');
     expect(railForgeProjectsIn(markup)).toEqual([]);
-    expect(markup.match(/class="design-system-slot-meter-cell" data-cell="empty"/g)).toHaveLength(12);
-    expect(markup).not.toContain('data-cell="filled"');
-    expect(markup).toMatch(/data-dot-shape="ring"[^>]*>.*?No forge registered</);
+    const meter = RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE).machine?.meter;
+    expect([meter?.filled, meter?.slots]).toEqual([0, 12]);
+    expect(markup).toContain(renderToStaticMarkup(<SlotMeter label={meter?.label ?? ''} filled={0} limit={12} tone="accent" />));
+    expect(markup).toContain(renderToStaticMarkup(<StateBadge tone="neutral" label="No forge registered" dotShape="ring" />));
   });
 });
 
@@ -244,21 +265,21 @@ describe('Tab and names', () => {
   }
 
   test('Tab meets the brand bar from its home link to the theme button, the rail top to bottom, then the view\'s buttons', () => {
-    const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), isFocusable);
-    expect(focusable.map(accessibleNameOf)).toEqual([
+    const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), PackageControls.isFocusable);
+    expect(focusable.map(PackageControls.nameOf)).toEqual([
       'Gaia, Attention',
       'Theme: dark. Switch to auto',
-      'Attention5',
-      'Agents10',
+      'Attention',
+      'Agents',
       'Activity',
-      'Forges6',
-      'Example Storefront2',
-      'Invoice Service2',
-      'Research Wiki1',
+      'Forges',
+      'Example Storefront',
+      'Invoice Service',
+      'Research Wiki',
       'Example Mobile App',
       'Design System',
       'Legacy Importer',
-      'This machine10 / 12agentslimit 12 of 12 CPUs · Flint\'s brain runs outside it',
+      '10 / 12agentslimit 12 of 12 CPUs · Flint\'s brain runs outside it',
       'Open Example Storefront in a new tab',
     ]);
   });
@@ -273,18 +294,18 @@ describe('Tab and names', () => {
   });
 
   test('every control has a name, an icon-only one by its label', () => {
-    const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), isFocusable);
-    expect(focusable.filter((element) => accessibleNameOf(element).trim() === '')).toEqual([]);
-    const iconOnly = focusable.filter((element) => tree.hasClass(element, 'design-system-icon-button'));
-    expect(iconOnly.map((element) => [element.props['aria-label'], element.props['title']])).toEqual([
-      ['Theme: dark. Switch to auto', 'Theme: dark. Switch to auto'],
-      ['Open Example Storefront in a new tab', 'Open Example Storefront in a new tab'],
+    const focusable = tree.hostElementsIn(unfoldedShell(FLEET_FIVE_FORGES), PackageControls.isFocusable);
+    expect(focusable.filter((element) => PackageControls.nameOf(element).trim() === '')).toEqual([]);
+    const iconOnly = focusable.filter((element) => [IconButton.name, ThemeCycleButton.name].includes(element.tag));
+    expect(iconOnly.map((element) => [element.tag, element.props['accessibleName']])).toEqual([
+      ['ThemeCycleButton', 'Theme: dark. Switch to auto'],
+      ['IconButton', 'Open Example Storefront in a new tab'],
     ]);
+    expect(tree.onlyOfComponent(unfoldedShell(FLEET_FIVE_FORGES), IconButton).props['title']).toBe(OPEN_IN_NEW_TAB_LABEL);
   });
 });
 
 describe('a lost stream shows the banner and disables every control', () => {
-  const CONTROLS = ['button', 'input', 'select', 'textarea'];
 
   function streamAt(initialState: FleetStreamState) {
     let state = initialState;
@@ -307,8 +328,8 @@ describe('a lost stream shows the banner and disables every control', () => {
           title:   'Forges',
           lead:    'Every forge on this machine.',
           figures: [],
-          actions: <Button label="Look again" />,
-          content: <><Button label="Stop" /><TextField label="Folder" value="" onChange={() => undefined} /></>,
+          actions: <Button label="Look again" onPress={() => undefined} />,
+          content: <><Button label="Stop" onPress={() => undefined} /><TextField label="Folder" value="" onChange={() => undefined} /></>,
         }}
         themeChoice="dark"
         onThemeChoice={() => undefined}
@@ -322,12 +343,13 @@ describe('a lost stream shows the banner and disables every control', () => {
     const stream = streamAt('live');
     const app = appAt(source, '#forges', stream);
     const live = renderToStaticMarkup(app);
-    expect(live).not.toContain('design-system-banner');
+    expect(live).not.toContain('gaia-connection-banner');
     expect(live).toContain('<fieldset class="gaia-shell-controls">');
     stream.change('lost');
     const lost = renderToStaticMarkup(app);
-    const bannerUnderThePageTitle = '</header></div><div class="gaia-connection-banner"><div class="design-system-banner" data-tone="error" role="alert"><span>';
-    expect(lost).toContain(`${bannerUnderThePageTitle}Gaia&#x27;s server could not be reached. Trying again.</span></div>`);
+    const banner = renderToStaticMarkup(<Banner tone="error" role="alert" text="Gaia's server could not be reached. Trying again." />);
+    const pageTitleArea = `<div class="gaia-shell-page-title">${viewPageHeadAt('#forges', FLEET_FIVE_FORGES).markup ?? ''}</div>`;
+    expect(lost).toContain(`${pageTitleArea}<div class="gaia-connection-banner">${banner}</div><div class="gaia-shell-view">`);
     expect(lost).toContain('<fieldset class="gaia-shell-controls" disabled="">');
     stream.change('live');
     expect(renderToStaticMarkup(app)).toBe(live);
@@ -336,23 +358,23 @@ describe('a lost stream shows the banner and disables every control', () => {
   test('a page out of date with the server disables the controls too', () => {
     const fieldset = tree.onlyWithTag(unfoldedShellAt('page-out-of-date'), 'fieldset');
     expect(fieldset.props['disabled']).toBe(true);
-    expect(tree.hostElementsIn(fieldset.children, tree.withClass('design-system-banner'))).toHaveLength(1);
+    expect(tree.hostElementsIn(fieldset.children, tree.withComponent(Banner))).toHaveLength(1);
   });
 
   test('every control of the shell, the theme button and the view\'s buttons and fields among them, sits in the disabled fieldset; nothing focusable lies outside it', () => {
     const shell = unfoldedShellAt('lost');
     const fieldset = tree.onlyWithTag(shell, 'fieldset');
     expect(fieldset.props['disabled']).toBe(true);
-    const everyControl = tree.hostElementsIn(shell, (element) => CONTROLS.includes(element.tag));
-    const controlsInTheFieldset = tree.hostElementsIn(fieldset.children, (element) => CONTROLS.includes(element.tag));
-    expect(controlsInTheFieldset.map((element) => [element.tag, accessibleNameOf(element)])).toEqual([
-      ['button', 'Theme: dark. Switch to auto'],
-      ['button', 'Look again'],
-      ['button', 'Stop'],
-      ['input', ''],
+    const everyControl = tree.hostElementsIn(shell, PackageControls.isControl);
+    const controlsInTheFieldset = tree.hostElementsIn(fieldset.children, PackageControls.isControl);
+    expect(controlsInTheFieldset.map((element) => [element.tag, PackageControls.nameOf(element)])).toEqual([
+      ['ThemeCycleButton', 'Theme: dark. Switch to auto'],
+      ['Button', 'Look again'],
+      ['Button', 'Stop'],
+      ['TextField', 'Folder'],
     ]);
     expect(controlsInTheFieldset).toEqual(everyControl);
-    const focusableOutside = tree.hostElementsIn(shell, isFocusable).filter((element) => !tree.hostElementsIn([fieldset]).includes(element));
+    const focusableOutside = tree.hostElementsIn(shell, PackageControls.isFocusable).filter((element) => !tree.hostElementsIn([fieldset]).includes(element));
     expect(focusableOutside).toEqual([]);
   });
 
@@ -360,7 +382,7 @@ describe('a lost stream shows the banner and disables every control', () => {
     for (const streamState of ['live', 'connecting'] as const) {
       const shell = unfoldedShellAt(streamState);
       expect(tree.onlyWithTag(shell, 'fieldset').props['disabled']).toBe(false);
-      expect(tree.hostElementsIn(shell, tree.withClass('design-system-banner'))).toEqual([]);
+      expect(tree.hostElementsIn(shell, tree.withComponent(Banner))).toEqual([]);
     }
   });
 });
@@ -372,17 +394,18 @@ describe('the Agents view in the shell', () => {
     const source = createFleetSource();
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
-    expect(pageTitleIn(markup)).toBe('Agents');
-    const figure = /<span class="design-system-figure-value">([^<]*)<\/span><span class="design-system-figure-label">([^<]*)</g;
-    const figures = [...markup.matchAll(figure)].map(([, value, label]) => `${value} ${label}`);
-    expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
+    const agents = viewPageHeadAt('#agents', FLEET_FIVE_FORGES);
+    expect(agents.title).toBe('Agents');
+    expect(agents.figures.map(({ value, label }) => `${value} ${label}`)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
+    expect(pageTitleAreaIn(markup)).toBe(agents.markup);
     expect(markup).toContain('<div class="gaia-agents-table" role="table" aria-label="Agents">');
   });
 
   test('before the first document the Agents route shows its page title with no figure and no view', () => {
     const markup = renderToStaticMarkup(appAt(createFleetSource(), '#agents'));
-    expect(pageTitleIn(markup)).toBe('Agents');
-    expect(markup).not.toContain('design-system-figure');
+    const agents = viewPageHeadAt('#agents', null);
+    expect([agents.title, agents.figures]).toEqual(['Agents', []]);
+    expect(pageTitleAreaIn(markup)).toBe(agents.markup);
     expect(markup).not.toContain('gaia-agents');
   });
 
@@ -423,8 +446,9 @@ describe('the Agents view in the shell', () => {
       commandStates:      SENDER_OF_NOTHING.states(),
     });
     const view = tree.unfolded(<AgentsView content={content} handlers={agentsHandlersOf(agentsRoute.selectedAgent, goTo, SENDER_OF_NOTHING)} />);
-    const needsALook = tree.onlyHostElementIn(view, (element) => element.tag === 'button' && tree.textOf([element]).startsWith('Needs a look'));
-    tree.dispatch(needsALook, 'onClick');
+    const conditionFilter = tree.onlyHostElementIn(view, (element) => element.tag === SegmentedControl.name
+      && (element.props['options'] as readonly { readonly value: string; readonly label: string }[]).some((option) => option.label.startsWith('Needs a look')));
+    tree.dispatch(conditionFilter, 'onSelect', 'needs-a-look');
     expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);
   });
 });

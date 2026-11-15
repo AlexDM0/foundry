@@ -123,7 +123,8 @@ describe('a refusal reaches the view with the forge\'s sentence', () => {
     expect(renderToStaticMarkup(view)).toBe('');
     await sender.send(STOP_EXAMPLE_MOBILE_APP);
     const refused = renderToStaticMarkup(view);
-    expect(refused).toContain('The forge refused Stop: <span class="design-system-failed-action-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
+    const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="overseer-still-live" sentence="The Overseer did not stop within its tries." onDismiss={() => undefined} />;
+    expect(refused).toBe(renderToStaticMarkup(refusal));
     sender.dismissFailure(subject);
     expect(renderToStaticMarkup(view)).toBe('');
   });

@@ -4,7 +4,9 @@
  * brain's, since Flint's brain notifies nothing (SCREENS C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
  */
 import { describe, expect, test } from 'bun:test';
-import { renderToStaticMarkup }   from 'react-dom/server';
+import { Card }                   from 'design-system/Card';
+import { Dialog }                 from 'design-system/Dialog';
+import { Checkbox }               from 'design-system-contributions/Checkbox';
 
 import type { CommandStates }                                  from '../../api/CommandSender.ts';
 import { senderOver }                                          from '../../testing/CommandServer.ts';
@@ -27,13 +29,15 @@ function contentOf(fleetDocument = FLEET_FIVE_FORGES) {
 
 describe('"What notifies" in version 2 (C2)', () => {
   test('counts the kinds on at the end of the title line, as the five on by default read "5 of 7 on"', () => {
-    const markup = renderToStaticMarkup(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />);
-    expect(markup).toMatch(/class="design-system-dialog-title">What notifies<\/h2><span class="gaia-forges-what-notifies-count"><span[^>]*>5 of 7 on<\/span><\/span>/);
+    const dialog = tree.onlyOfComponent(tree.unfolded(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />), Dialog);
+    expect(dialog.props['title']).toBe('What notifies');
+    const headEnd = tree.unfoldedProp(dialog, 'headEnd');
+    expect([tree.onlyWithClass(headEnd, 'gaia-forges-what-notifies-count').tag, tree.textOf(headEnd)]).toEqual(['span', '5 of 7 on']);
   });
 
   test('is the package\'s wide dialog, the one closest to the width C2 draws', () => {
-    const markup = renderToStaticMarkup(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />);
-    expect(markup).toContain('data-width="wide"');
+    const dialog = tree.onlyOfComponent(tree.unfolded(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />), Dialog);
+    expect(dialog.props['width']).toBe('wide');
   });
 
   test('the count follows the settings: a kind switched on adds one, and all off reads "0 of 7 on"', () => {
@@ -46,9 +50,9 @@ describe('"What notifies" in version 2 (C2)', () => {
 
   test('sets the seven kinds in one card, a hairline between each two', () => {
     const unfolded = tree.unfolded(<WhatNotifiesBody content={contentOf()} handlers={HANDLERS} />);
-    const card = tree.onlyWithClass(unfolded, 'design-system-card');
-    expect(tree.hostElementsIn([card], tree.withClass('design-system-checkbox'))).toHaveLength(7);
-    expect(tree.hostElementsIn([card], tree.withClass('design-system-view-divider'))).toHaveLength(6);
+    const card = tree.onlyOfComponent(unfolded, Card);
+    expect(tree.hostElementsIn([card], tree.withComponent(Checkbox))).toHaveLength(7);
+    expect(card.props['divider']).toBe(true);
   });
 
   test('no kind is Flint\'s brain\'s, which notifies nothing', () => {

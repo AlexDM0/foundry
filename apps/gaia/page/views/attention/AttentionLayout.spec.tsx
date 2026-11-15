@@ -9,13 +9,23 @@
  * content comes from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
+import { Banner }                 from 'design-system/Banner';
+import { Button }                 from 'design-system/Button';
+import { EmptyState }             from 'design-system/EmptyState';
+import { MonoId }                 from 'design-system/MonoId';
+import { Tag }                    from 'design-system/Tag';
+import { TextButton }             from 'design-system/TextButton';
+import { Figure }                 from 'design-system-contributions/Figure';
+import { PendingStep }            from 'design-system-contributions/PendingStep';
 
 import type { CommandAnswerDocument }                   from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                           from '../../@types/FleetDocument.ts';
 import { type CommandSender, type CommandSubject }      from '../../api/CommandSender.ts';
 import { answerResponse, senderOver, type SentRequest } from '../../testing/CommandServer.ts';
 import { DrawnDots }                                    from '../../testing/DrawnDots.ts';
+import { FailedActions }                                from '../../testing/FailedActions.ts';
 import { PackageButtons }                               from '../../testing/PackageButtons.ts';
+import { PackageControls }                              from '../../testing/PackageControls.ts';
 import { type HostElement, ReactElementTree }           from '../../testing/ReactElementTree.ts';
 import { FLEET_DEGRADED }                               from '../../testing/fixtures/fleet-degraded.ts';
 import {
@@ -69,11 +79,16 @@ function rowsIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
 }
 
 function rowButtonOf(row: HostElement): HostElement {
-  return tree.onlyWithClass([row], 'design-system-button');
+  return tree.onlyOfComponent([row], Button);
 }
 
 function buttonNamed(nodes: ReturnType<typeof tree.unfolded>, label: string): HostElement {
-  return tree.onlyHostElementIn(nodes, (element) => tree.hasClass(element, 'design-system-button') && tree.textOf([element]) === label);
+  return PackageButtons.onlyLabelled(nodes, label);
+}
+
+/** Whether the package's button is handed a link, which it draws as one, or a press. */
+function buttonFormOf(button: HostElement): 'link' | 'button' {
+  return button.props['href'] === undefined ? 'button' : 'link';
 }
 
 function calloutNamed(nodes: ReturnType<typeof tree.unfolded>, project: string): HostElement {
@@ -92,14 +107,14 @@ function heldAnswer() {
 describe('the list of what waits on User', () => {
   test('draws the five rows in order, each button a link to its forge in place, the first one alone primary', () => {
     const rows = rowsIn(unfoldedLayout(FLEET_FIVE_FORGES));
-    expect(rows.map((row) => tree.textOf([tree.onlyWithClass([row], 'gaia-attention-row-id')]))).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
+    expect(rows.map((row) => tree.onlyOfComponent([tree.onlyWithClass([row], 'gaia-attention-row-id')], MonoId).props['text'])).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
     const buttons = rows.map(rowButtonOf);
-    expect(buttons.map((button) => [button.tag, PackageButtons.emphasisOf(button), tree.textOf([button])])).toEqual([
-      ['a', 'primary', 'Answer'],
-      ['a', 'quiet', 'Ready'],
-      ['a', 'quiet', 'Answer'],
-      ['a', 'quiet', 'Accept'],
-      ['a', 'quiet', 'Answer'],
+    expect(buttons.map((button) => [buttonFormOf(button), PackageButtons.emphasisOf(button), PackageButtons.labelOf(button)])).toEqual([
+      ['link', 'primary', 'Answer'],
+      ['link', 'quiet', 'Ready'],
+      ['link', 'quiet', 'Answer'],
+      ['link', 'quiet', 'Accept'],
+      ['link', 'quiet', 'Answer'],
     ]);
     expect(buttons[4]?.props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
   });
@@ -108,18 +123,24 @@ describe('the list of what waits on User', () => {
     const [first] = rowsIn(unfoldedLayout(FLEET_FIVE_FORGES));
     if (first === undefined) throw new Error('Expected a first row.');
     expect(tree.hostElementsIn([first], DrawnDots.isDot).map(DrawnDots.conditionOf)).toEqual(['live']);
-    expect(tree.onlyWithClass([first], 'design-system-tag').props['data-tone']).toBe('warn');
-    expect(tree.textOf([first])).toBe('Invoice ServiceliveEscalatedE4The VAT gate cannot run in the sandbox. Allow network for it?from incident I2 · opened 21mAnswer');
+    const kind = tree.onlyOfComponent([first], Tag);
+    expect([kind.props['text'], kind.props['tone']]).toEqual(['Escalated', 'warn']);
+    expect(tree.onlyOfComponent([first], MonoId).props['text']).toBe('E4');
+    expect(tree.textOf([first])).toBe('Invoice ServiceliveThe VAT gate cannot run in the sandbox. Allow network for it?from incident I2 · opened 21m');
+    expect(first.children.map((cell) => (typeof cell === 'string' ? cell : cell.props['className'] ?? cell.tag))).toEqual([
+      'gaia-attention-row-forge', 'gaia-attention-row-kind', 'gaia-attention-row-id', 'gaia-attention-row-text', 'Button',
+    ]);
+    expect(PackageButtons.labelOf(rowButtonOf(first))).toBe('Answer');
   });
 
   test('with nothing waiting the list\'s place says so', () => {
     const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, attention: [], figures: { ...FLEET_FIVE_FORGES.figures, waitingOnUser: 0 } });
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-list-card'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass([tree.onlyWithClass(unfolded, 'gaia-attention-waiting')], 'design-system-empty')])).toBe('Nothing waits on you.');
+    expect(tree.onlyOfComponent([tree.onlyWithClass(unfolded, 'gaia-attention-waiting')], EmptyState).props['text']).toBe('Nothing waits on you.');
   });
 
   test('with every forge read in full the layout draws no figures: they stand stacked in the page title', () => {
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('design-system-figure'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withComponent(Figure))).toEqual([]);
   });
 });
 
@@ -129,7 +150,7 @@ describe('a callout\'s command', () => {
     const sent: SentRequest[] = [];
     const sender = senderOver([() => answer.promise], sent);
     const sends: Promise<unknown>[] = [];
-    tree.dispatch(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'), 'onClick');
+    PackageButtons.press(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'));
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([
       { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 },
     ]);
@@ -146,15 +167,14 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(UPDATE_REFUSED)), () => new Promise<Response>(() => undefined)], sent);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const refused = unfoldedLayout(FLEET_FIVE_FORGES, sender);
-    const refusal = tree.onlyWithClass([calloutNamed(refused, 'Example Mobile App')], 'design-system-failed-action');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')])).toBe(
-      'The forge refused Update forge: update-in-progress. An update already runs in this repository.',
-    );
-    expect(tree.hostElementsIn([calloutNamed(refused, 'Design System')], tree.withClass('design-system-failed-action'))).toEqual([]);
-    tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
+    const refusal = FailedActions.onlyFailedActionIn([calloutNamed(refused, 'Example Mobile App')]);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Update forge: ', 'update-in-progress', 'An update already runs in this repository.']);
+    expect(FailedActions.failedActionsIn([calloutNamed(refused, 'Design System')])).toEqual([]);
+    expect(refusal.props['retryLabel']).toBe('Try again');
+    tree.dispatch(refusal, 'onRetry');
     expect(sent).toHaveLength(2);
     sender.dismissFailure({ trackerId: TRACKER_IDS.exampleMobileApp });
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('design-system-failed-action'))).toEqual([]);
+    expect(FailedActions.failedActionsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender))).toEqual([]);
   });
 
   test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
@@ -165,15 +185,15 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const pending = unfoldedLayout(FLEET_FIVE_FORGES, sender);
-    const pendingStep = tree.onlyWithClass([calloutNamed(pending, 'Example Mobile App')], 'design-system-pending-step');
-    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'design-system-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
-    expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withClass('design-system-pending-step'))).toEqual([]);
-    tree.dispatch(buttonNamed([pendingStep], 'Restart'), 'onClick');
+    const pendingStep = tree.onlyOfComponent([calloutNamed(pending, 'Example Mobile App')], PendingStep);
+    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
+    expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withComponent(PendingStep))).toEqual([]);
+    PackageButtons.press(buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart'));
     expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 });
-    const restarting = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'design-system-pending-step');
-    expect(buttonNamed([restarting], 'Restart').props['disabled']).toBe(true);
+    const restarting = tree.onlyOfComponent([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], PendingStep);
+    expect(buttonNamed(tree.unfoldedProp(restarting, 'action'), 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('design-system-pending-step'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withComponent(PendingStep))).toEqual([]);
   });
 
   test('a Restart the pending step sent that the forge refuses shows its refusal under the callout that offered it', async () => {
@@ -186,14 +206,13 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
-    const refusal = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'design-system-failed-action');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
-      .toBe('The forge refused Restart: overseer-busy. Its Overseer is busy with a baton pass.');
+    const refusal = FailedActions.onlyFailedActionIn([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')]);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Restart: ', 'overseer-busy', 'Its Overseer is busy with a baton pass.']);
   });
 
   test('a callout that leaves the document leaves the view', () => {
     const updated = { ...FLEET_FIVE_FORGES, needsALook: FLEET_FIVE_FORGES.needsALook.filter((look) => look.kind !== 'launches-held') };
-    expect(tree.hostElementsIn(unfoldedLayout(updated), (element) => tree.textOf([element]) === 'Update forge')).toEqual([]);
+    expect(PackageButtons.buttonsIn(unfoldedLayout(updated)).filter((button) => PackageButtons.labelOf(button) === 'Update forge')).toEqual([]);
   });
 });
 
@@ -201,14 +220,14 @@ describe('forges Gaia cannot fully read (B3)', () => {
   test('an unreachable forge has a banner atop the view with its last stamp in mono and Look again', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
     const inCallouts = new Set(tree.hostElementsIn(tree.hostElementsIn(unfolded, tree.withClass('gaia-callout'))));
-    const banner = tree.onlyHostElementIn(unfolded, (element) => tree.hasClass(element, 'design-system-banner') && !inCallouts.has(element));
-    expect(banner.props['data-tone']).toBe('error');
-    const [text] = banner.children;
-    expect(typeof text === 'object' ? tree.textOf([text]) : null).toBe(
-      'Overseer unreachable: Invoice Service. Gaia shows what it last reported at 13:14 and tries again.',
-    );
-    expect(tree.textOf([tree.onlyWithClass([banner], 'design-system-stamp')])).toBe('13:14');
-    expect(tree.textOf([tree.onlyWithClass([banner], 'design-system-banner-action')])).toBe('Look again');
+    const banner = tree.onlyHostElementIn(unfolded, (element) => tree.withComponent(Banner)(element) && !inCallouts.has(element));
+    expect(banner.props['tone']).toBe('error');
+    const textParts = tree.unfoldedProp(banner, 'text').map((part) => {
+      if (typeof part === 'string') return part;
+      return part.tag === 'Stamp' ? `[stamp ${String(part.props['shortText'])}]` : tree.textOf([part]);
+    });
+    expect(textParts.join('')).toBe('Overseer unreachable: Invoice Service. Gaia shows what it last reported at [stamp 13:14] and tries again.');
+    expect(PackageButtons.buttonsIn(tree.unfoldedProp(banner, 'action')).map(PackageButtons.labelOf)).toEqual(['Look again']);
   });
 
   test('its rows can be read, at reduced contrast, and not acted on: the button is disabled and goes nowhere', () => {
@@ -219,7 +238,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'The VAT gate cannot run in the sandbox. Allow network for it?',
       'Round VAT per line, not per invoice',
     ]);
-    expect(stale.map(rowButtonOf).map((button) => [button.tag, button.props['disabled'], button.props['href']])).toEqual([
+    expect(stale.map(rowButtonOf).map((button) => [buttonFormOf(button), button.props['disabled'], button.props['href']])).toEqual([
       ['button', true, undefined],
       ['button', true, undefined],
     ]);
@@ -249,14 +268,14 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const main = tree.onlyWithClass(unfolded, 'gaia-attention-main');
     const figuresRow = tree.onlyWithClass([main], 'gaia-attention-figures');
     expect(figuresRow.props['data-form']).toBe('line');
-    const figures = tree.hostElementsIn([figuresRow], tree.withClass('design-system-figure'));
-    expect(figures.map((figure) => [figure.props['data-form'], tree.textOf([figure])])).toEqual([
-      ['inline', '4+waiting on you'],
-      ['inline', '10 / 12agents'],
-      ['inline', '8tickets ready'],
-      ['inline', '5done today'],
-      ['inline', '1.08Mtokens today'],
-      ['inline', '0open incidents'],
+    const figures = tree.hostElementsIn([figuresRow], tree.withComponent(Figure));
+    expect(figures.map((figure) => [figure.props['form'], figure.props['value'], figure.props['label']])).toEqual([
+      ['inline', '4+', 'waiting on you'],
+      ['inline', '10 / 12', 'agents'],
+      ['inline', '8', 'tickets ready'],
+      ['inline', '5', 'done today'],
+      ['inline', '1.08M', 'tokens today'],
+      ['inline', '0', 'open incidents'],
     ]);
   });
 
@@ -300,7 +319,8 @@ describe('the side of the view', () => {
     const firstJobs = cards[0] === undefined ? [] : tree.hostElementsIn(tree.hostElementsIn([cards[0]], tree.withClass('gaia-attention-running-job')), DrawnDots.isDot);
     expect(firstJobs.map(DrawnDots.roleOf)).toEqual(['builder', 'needs-user', 'builder', 'reviewer']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent-entry'))).toHaveLength(4);
-    expect(tree.onlyWithClass(unfolded, 'design-system-link-button').props['href']).toBe('#activity');
+    const allActivity = tree.onlyOfComponent(unfolded, TextButton);
+    expect([allActivity.props['label'], allActivity.props['href']]).toEqual(['All activity', '#activity']);
   });
 
   test('a running brain draws one line under its forge\'s job chips: the diamond, "Flint\'s brain · haiku · 1:24 left", the time in mono', () => {
@@ -328,15 +348,15 @@ describe('the side of the view', () => {
     const unfolded = unfoldedLayout({ ...FLEET_FIVE_FORGES, activity: [] });
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-recent'))).toEqual([]);
     const recentSection = tree.onlyHostElementIn(unfolded, (element) => element.tag === 'section' && element.props['aria-label'] === 'Just happened');
-    expect(tree.textOf([tree.onlyWithClass([recentSection], 'design-system-empty')])).toBe('No forge has reported activity yet.');
+    expect(tree.onlyOfComponent([recentSection], EmptyState).props['text']).toBe('No forge has reported activity yet.');
   });
 
   test('every control has a name, and the open-in-new-tab command shows its words beside its arrow', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
-    const controls = tree.hostElementsIn(unfolded, (element) => element.tag === 'button' || element.tag === 'a');
-    expect(controls.filter((control) => tree.textOf([control]).trim() === '' && typeof control.props['aria-label'] !== 'string')).toEqual([]);
-    const openInNewTab = tree.hostElementsIn(unfolded, (element) => tree.hasClass(element, 'design-system-button') && tree.textOf([element]) === 'Open in new tab');
+    const controls = tree.hostElementsIn(unfolded, (element) => PackageControls.isControl(element) || element.tag === 'a' || PackageButtons.isButton(element));
+    expect(controls.filter((control) => PackageControls.nameOf(control).trim() === '')).toEqual([]);
+    const openInNewTab = PackageButtons.buttonsIn(unfolded).filter((button) => PackageButtons.labelOf(button) === 'Open in new tab');
     expect(openInNewTab).toHaveLength(2);
-    expect(openInNewTab.map((button) => tree.hostElementsIn([button], (element) => element.tag === 'svg').length)).toEqual([1, 1]);
+    expect(openInNewTab.map((button) => tree.hostElementsIn(tree.unfoldedProp(button, 'leading'), tree.withTag('svg')).length)).toEqual([1, 1]);
   });
 });

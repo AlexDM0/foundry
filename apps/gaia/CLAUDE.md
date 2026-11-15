@@ -38,10 +38,12 @@ its own; the dev tools every workspace shares are the root's.
     `page/design-system/` holds only the parts neither package has (the marks, the brand bar, the brain chip, the callout and the like)
     and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
     a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
-    `page/testing/ReactElementTree.ts`. The page's specs have no document at all: a component that needs hooks keeps its layout in a
-    hook-free part, and a spec renders a hooked root, or a package component, which may hold hooks, with `react-dom/server`, which runs the
-    hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and `page/DesignSystemPackage.spec.tsx` do, or keeps the hooked package
-    component folded with `ReactElementTree.unfoldedKeeping` to read and call the props a view hands it.
+    `page/testing/ReactElementTree.ts`, which keeps every component both packages' exports maps name folded: a spec reads and calls the
+    props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
+    Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a
+    spec renders a hooked root with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does, and
+    reads Gaia's own markup there, a package part only whole, as drawn for the props Gaia hands it. Only the visual harness reads the
+    package's markup.
 11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system` at the repository
     root, never named in a `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
     `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
