@@ -1,9 +1,8 @@
 /**
  * The guard that keeps the brand a package that can move to any repository unchanged. What matters: no import leaves the folder; what ships
  * imports React and nothing else; a spec, a DOM spec, a story or a test helper only its listed tools; no stylesheet reference leaves the
- * folder; no colour is written outside `styles/tokens.css` and the logo drawings of `assets/`; and no file names a word of a host, its
- * views or its domain, since the brand names alone are the package's subject. The scan first proves it read the package, and each form is
- * planted.
+ * folder; no colour is written outside `styles/tokens.css`; and no file names a word of a host, its name, its views or its domain, since
+ * Forge's brand alone is the package's subject. The scan first proves it read the package, and each form is planted.
  */
 import { dirname, join, normalize } from 'node:path';
 import { describe, expect, test }   from 'bun:test';
@@ -17,9 +16,10 @@ const STORY_PACKAGES: readonly string[] = ['react', '@storybook/react-vite'];
 const MINIMUM_SOURCE_COUNT = 10;
 const COLOUR_VALUE = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\(/i;
 const STYLESHEET_REFERENCE = /@import\s+(?:url\()?["']([^"']+)["']|url\(\s*["']?([^"')#]+)["']?\s*\)/g;
-const COLOURED_PATHS = /^(?:styles\/tokens\.css|assets\/.*\.svg)$/;
+const COLOURED_PATHS = /^styles\/tokens\.css$/;
 /** Words of the hosts that draw the marks: their views, their parts and their domain. This spec is the one file that names them. */
 const HOST_WORDS: readonly string[] = [
+  'gaia',
   'attention',
   'fleet',
   'splash',
@@ -100,7 +100,7 @@ describe('the package\'s isolation', () => {
     ])).toHaveLength(4);
     expect(stylesheetSentencesOf([{ path: 'marks/Planted.css', text: '@import "../../elsewhere.css";' }])).toHaveLength(1);
     expect(colourSentencesOf([{ path: 'marks/Planted.css', text: '.planted { fill: #fff; }' }])).toHaveLength(1);
-    expect(hostWordSentencesOf([{ path: 'README.md', text: 'Draw it on the splash.' }])).toHaveLength(1);
+    expect(hostWordSentencesOf([{ path: 'README.md', text: 'Draw it on the splash.' }, { path: 'README.md', text: 'Gaia draws it too.' }])).toHaveLength(2);
   });
 
   test('nothing imports outside the package, and each kind of file imports only what it may', () => {
@@ -111,7 +111,7 @@ describe('the package\'s isolation', () => {
     expect(stylesheetSentencesOf(STYLESHEETS)).toEqual([]);
   });
 
-  test('no colour is written outside the tokens and the logo drawings', () => {
+  test('no colour is written outside the tokens', () => {
     expect(colourSentencesOf(EVERY_TEXT_FILE)).toEqual([]);
   });
 

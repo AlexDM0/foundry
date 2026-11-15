@@ -6,15 +6,13 @@
   <title>Gaia</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../../../node_modules/design-system/styles/tokens.css">
-  <link rel="stylesheet" href="../../../../node_modules/brand/styles/brand.css">
   <link rel="stylesheet" href="../../page/styles/tokens.css">
   <!--
     The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
     health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
     this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
-    the window to Gaia's page. The design-system package's tokens and fonts and the brand package's stylesheet, which styles the mark, are
-    reached by their files, because a file page resolves no package export: the installed app runs from this checkout, so the paths hold
-    there too. One line shows the step that is on its way, and fades in as
+    the window to Gaia's page. The package's tokens and fonts are reached by their files, because a file page resolves no package export:
+    the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way, and fades in as
     the launcher moves it on.
   -->
   <style>
@@ -57,6 +55,17 @@
       font-weight: var(--weight-wordmark);
       letter-spacing: var(--wordmark-tracking);
     }
+    .gaia-mark { display: block; flex: none; }
+    .gaia-mark-ground-from { stop-color: var(--mark-from); }
+    .gaia-mark-ground-to { stop-color: var(--mark-to); }
+    .gaia-mark-mask-open { fill: var(--mark-mask-open); }
+    .gaia-mark-mask-shut { fill: var(--mark-mask-shut); }
+    .gaia-mark-ring { stroke: var(--mark-ring); }
+    .gaia-mark-core { fill: var(--mark-core); }
+    .gaia-mark-node-halo { fill: var(--mark-node-halo); stroke: var(--mark-node-halo); }
+    .gaia-mark-node-core { fill: var(--mark-core); }
+    .gaia-mark-glow { fill: var(--mark-glow); }
+    .gaia-mark-rim { stroke: var(--mark-rim); }
     .splash-steps { display: flex; align-items: center; gap: var(--space-10); height: var(--line-height-lead); margin: 0; padding: 0; list-style: none; }
     .splash-step { display: flex; align-items: center; gap: var(--space-10); transition: opacity var(--motion-base) var(--ease-out); }
     /* The step the launcher moves the splash to fades in; the first paint shows its step at once, as motion is ready only after it. */
@@ -94,7 +103,7 @@
 </head>
 <body>
   <div class="splash-brand">
-    <svg class="brand-gaia-mark" data-drawing="large" aria-hidden="true" width="88" height="88" viewBox="0 0 64 64"><defs><linearGradient id="brand-gaia-mark-large-ground" x1="0" y1="0" x2="1" y2="1"><stop class="brand-gaia-mark-ground-from" offset="0"></stop><stop class="brand-gaia-mark-ground-to" offset="1"></stop></linearGradient><filter id="brand-gaia-mark-large-glow" filterUnits="userSpaceOnUse" x="-0.02" y="6.75" width="32" height="32"><feGaussianBlur stdDeviation="2"></feGaussianBlur></filter><mask id="brand-gaia-mark-large-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect class="brand-gaia-mark-mask-open" width="64" height="64"></rect><circle class="brand-gaia-mark-mask-shut" cx="15.98" cy="22.75" r="9.00"></circle><circle class="brand-gaia-mark-mask-shut" cx="48.02" cy="41.25" r="8.60"></circle><circle class="brand-gaia-mark-mask-shut" cx="23.99" cy="45.88" r="6.80"></circle></mask></defs><rect x="1" y="1" width="62" height="62" rx="13" fill="url(#brand-gaia-mark-large-ground)"></rect><g transform="translate(32 32) scale(1.1) translate(-32 -32)"><g mask="url(#brand-gaia-mark-large-gap)"><path class="brand-gaia-mark-ring" d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke-width="3"></path></g><path class="brand-gaia-mark-core" d="M31.50 26.29 A1.0 1.0 0 0 1 32.50 26.29 L36.70 28.71 A1.0 1.0 0 0 1 37.20 29.58 L37.20 34.42 A1.0 1.0 0 0 1 36.70 35.29 L32.50 37.71 A1.0 1.0 0 0 1 31.50 37.71 L27.30 35.29 A1.0 1.0 0 0 1 26.80 34.42 L26.80 29.58 A1.0 1.0 0 0 1 27.30 28.71 Z"></path><circle class="brand-gaia-mark-glow" cx="15.98" cy="22.75" r="5.5" opacity="0.22" filter="url(#brand-gaia-mark-large-glow)"></circle><circle class="brand-gaia-mark-node-halo" cx="15.98" cy="22.75" r="6.4" fill-opacity="0.22" stroke-width="1.5"></circle><circle class="brand-gaia-mark-node-core" cx="15.98" cy="22.75" r="3.4"></circle><circle class="brand-gaia-mark-node-halo" cx="48.02" cy="41.25" r="6.0" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="brand-gaia-mark-node-core" cx="48.02" cy="41.25" r="3.2"></circle><circle class="brand-gaia-mark-node-halo" cx="23.99" cy="45.88" r="4.4" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="brand-gaia-mark-node-core" cx="23.99" cy="45.88" r="2.3"></circle></g><rect class="brand-gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none"></rect></svg>
+    <svg class="gaia-mark" data-drawing="large" aria-hidden="true" width="88" height="88" viewBox="0 0 64 64"><defs><linearGradient id="gaia-mark-large-ground" x1="0" y1="0" x2="1" y2="1"><stop class="gaia-mark-ground-from" offset="0"></stop><stop class="gaia-mark-ground-to" offset="1"></stop></linearGradient><filter id="gaia-mark-large-glow" filterUnits="userSpaceOnUse" x="-0.02" y="6.75" width="32" height="32"><feGaussianBlur stdDeviation="2"></feGaussianBlur></filter><mask id="gaia-mark-large-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect class="gaia-mark-mask-open" width="64" height="64"></rect><circle class="gaia-mark-mask-shut" cx="15.98" cy="22.75" r="9.00"></circle><circle class="gaia-mark-mask-shut" cx="48.02" cy="41.25" r="8.60"></circle><circle class="gaia-mark-mask-shut" cx="23.99" cy="45.88" r="6.80"></circle></mask></defs><rect x="1" y="1" width="62" height="62" rx="13" fill="url(#gaia-mark-large-ground)"></rect><g transform="translate(32 32) scale(1.1) translate(-32 -32)"><g mask="url(#gaia-mark-large-gap)"><path class="gaia-mark-ring" d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke-width="3"></path></g><path class="gaia-mark-core" d="M31.50 26.29 A1.0 1.0 0 0 1 32.50 26.29 L36.70 28.71 A1.0 1.0 0 0 1 37.20 29.58 L37.20 34.42 A1.0 1.0 0 0 1 36.70 35.29 L32.50 37.71 A1.0 1.0 0 0 1 31.50 37.71 L27.30 35.29 A1.0 1.0 0 0 1 26.80 34.42 L26.80 29.58 A1.0 1.0 0 0 1 27.30 28.71 Z"></path><circle class="gaia-mark-glow" cx="15.98" cy="22.75" r="5.5" opacity="0.22" filter="url(#gaia-mark-large-glow)"></circle><circle class="gaia-mark-node-halo" cx="15.98" cy="22.75" r="6.4" fill-opacity="0.22" stroke-width="1.5"></circle><circle class="gaia-mark-node-core" cx="15.98" cy="22.75" r="3.4"></circle><circle class="gaia-mark-node-halo" cx="48.02" cy="41.25" r="6.0" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="gaia-mark-node-core" cx="48.02" cy="41.25" r="3.2"></circle><circle class="gaia-mark-node-halo" cx="23.99" cy="45.88" r="4.4" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="gaia-mark-node-core" cx="23.99" cy="45.88" r="2.3"></circle></g><rect class="gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none"></rect></svg>
     <span class="splash-brand-name">gaia</span>
   </div>
   <ol class="splash-steps" aria-live="polite">

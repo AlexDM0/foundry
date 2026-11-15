@@ -8,9 +8,8 @@ import { describe, expect, test }            from 'bun:test';
 import { type ComponentType, createElement } from 'react';
 import { renderToStaticMarkup }              from 'react-dom/server';
 
-import { ForgeMark }                                 from './marks/ForgeMark.tsx';
-import { GaiaMark, SMALL_DRAWING_BELOW_SIZE_PIXELS } from './marks/GaiaMark.tsx';
-import { PackageFiles }                              from './testing/PackageFiles.ts';
+import { ForgeMark }    from './marks/ForgeMark.tsx';
+import { PackageFiles } from './testing/PackageFiles.ts';
 
 interface MarkUnderContract {
   readonly name:      string;
@@ -19,12 +18,11 @@ interface MarkUnderContract {
 }
 
 const MARKS: readonly MarkUnderContract[] = [
-  { name: 'GaiaMark', classStem: 'brand-gaia-mark', component: GaiaMark },
   { name: 'ForgeMark', classStem: 'brand-forge-mark', component: ForgeMark },
 ];
 
-/** Each drawing a mark has: the small one just below the threshold, the large one from it on. */
-const DRAWN_SIZES_PIXELS = [SMALL_DRAWING_BELOW_SIZE_PIXELS - 1, SMALL_DRAWING_BELOW_SIZE_PIXELS];
+/** A small and a large size, so a mark that draws differently by size is held at both. */
+const DRAWN_SIZES_PIXELS = [16, 88];
 
 const CLASS_ATTRIBUTE = /class="([^"]+)"/g;
 const CLASS_SELECTOR = /\.([\w-]+)/g;
@@ -62,12 +60,12 @@ function themeBlocksOf(tokensText: string): { readonly light: string; readonly d
 
 describe('the brand\'s style contract', () => {
   test('a planted unstyled class, an unused rule and a foreign class are caught', () => {
-    const drawn = new Set(['brand-planted-mark', 'brand-planted-mark-ring', 'gaia-ring']);
+    const drawn = new Set(['brand-planted-mark', 'brand-planted-mark-ring', 'host-ring']);
     expect(classSentencesOf('brand-planted-mark', drawn, new Set(['brand-planted-mark', 'brand-planted-mark-core']))).toEqual([
       'brand-planted-mark-ring is drawn but not styled',
-      'gaia-ring is drawn but not styled',
+      'host-ring is drawn but not styled',
       'brand-planted-mark-core is styled but not drawn',
-      'gaia-ring is not the mark\'s own',
+      'host-ring is not the mark\'s own',
     ]);
   });
 

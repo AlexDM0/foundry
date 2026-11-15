@@ -1,4 +1,3 @@
-/* The package's one stylesheet for a host to link: the tokens, then each mark's own rules. */
+/* The package's one stylesheet for a host to link: the tokens, then the mark's own rules. */
 @import "./tokens.css";
-@import "../marks/GaiaMark.css";
 @import "../marks/ForgeMark.css";

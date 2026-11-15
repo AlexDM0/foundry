@@ -1,20 +1,15 @@
 /*
- * The marks' colours, the one place they are written: light under :root, dark under :root[data-theme="dark"], the theme a host sets on its
+ * The mark's colours, the one place they are written: light under :root, dark under :root[data-theme="dark"], the theme a host sets on its
  * root element. Every name starts with `--brand-`, so it never meets a host's token.
  */
 :root {
-  /* The tile under both marks: its gradient and rim. */
+  /* The tile under the mark: its gradient and rim. */
   --brand-tile-from: #ffffff;
   --brand-tile-to:   #d6d6d6;
   --brand-tile-rim:  rgba(0, 0, 0, 0.14);
-  /* A mark's mask: what it keeps open and what it shuts, the gaps around its nodes. */
+  /* The mark's mask: what it keeps open and what it shuts, the gap around its node. */
   --brand-mask-open: #ffffff;
   --brand-mask-shut: #000000;
-  /* Gaia's constellation: the orange ring, the slate core and node cores, each node's halo, and the glow on the top left node. */
-  --brand-gaia-ring:      #f26100;
-  --brand-gaia-core:      #2f4a5c;
-  --brand-gaia-node-halo: #f5a473;
-  --brand-gaia-glow:      #ff8d42;
   /* Forge's mark: its ring, its core and its orange node. */
   --brand-forge-line:      #3d3d3d;
   --brand-forge-core:      rgba(250, 95, 1, 0.5);
@@ -28,10 +23,6 @@
   --brand-tile-rim:  rgba(255, 255, 255, 0.12);
   --brand-mask-open: #ffffff;
   --brand-mask-shut: #000000;
-  --brand-gaia-ring:      #ff7417;
-  --brand-gaia-core:      #c9dbe6;
-  --brand-gaia-node-halo: #d9854c;
-  --brand-gaia-glow:      #ff8d42;
   --brand-forge-line:      #dcdcdc;
   --brand-forge-core:      rgba(255, 148, 80, 0.85);
   --brand-forge-node-ring: #ee5600;

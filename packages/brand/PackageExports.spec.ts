@@ -15,12 +15,11 @@ const MARK_NAMES = PackageFiles.matching(MARK_SOURCE).map((file) => MARK_SOURCE.
 
 describe('the package\'s exports', () => {
   test('every export names a file that exists', () => {
-    const exportedFiles = Object.values(MANIFEST.exports).map((target) => target.replace('*', 'icon.svg'));
-    expect(exportedFiles.filter((target) => !existsSync(join(PACKAGE_FOLDER, target)))).toEqual([]);
+    expect(Object.values(MANIFEST.exports).filter((target) => !existsSync(join(PACKAGE_FOLDER, target)))).toEqual([]);
   });
 
   test('every mark is exported by its name, with its DOM spec and its story beside it', () => {
-    expect(MARK_NAMES).toEqual(['ForgeMark', 'GaiaMark']);
+    expect(MARK_NAMES).toEqual(['ForgeMark']);
     for (const markName of MARK_NAMES) {
       expect(MANIFEST.exports[`./${markName}`]).toBe(`./marks/${markName}.tsx`);
       expect([`marks/${markName}.dom.tsx`, `marks/${markName}.stories.tsx`].filter((path) => !existsSync(join(PACKAGE_FOLDER, path)))).toEqual([]);

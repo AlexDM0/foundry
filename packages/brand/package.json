@@ -1,16 +1,15 @@
 {
   "name": "brand",
-  "version": "0.1.0",
-  "description": "Gaia's and Forge's marks as React components, their colour tokens in a light and a dark theme, and the logo's source drawings",
+  "version": "0.2.0",
+  "description": "Forge's mark as a React component, its colour tokens in a light and a dark theme, and the geometry a mark drawn alike shares",
   "type": "module",
   "engines": { "bun": "1.4.2" },
   "exports": {
-    "./GaiaMark": "./marks/GaiaMark.tsx",
     "./ForgeMark": "./marks/ForgeMark.tsx",
-    "./brand.css": "./styles/brand.css",
-    "./assets/*": "./assets/*"
+    "./MarkGeometry": "./constants/MarkGeometry.ts",
+    "./brand.css": "./styles/brand.css"
   },
-  "files": ["marks/*.tsx", "marks/*.css", "!marks/*.dom.tsx", "!marks/*.stories.tsx", "constants", "styles", "assets", "README.md"],
+  "files": ["marks/*.tsx", "marks/*.css", "!marks/*.dom.tsx", "!marks/*.stories.tsx", "constants", "styles", "README.md"],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",

@@ -1,7 +1,7 @@
 /**
- * Forge's mark, in a happy-dom document. What matters: it is an image named "Forge", 22 px by default, on the tile Gaia's mark draws but
- * in classes and ids of its own, with Forge's hexagon ring and core and the node at Forge's place; its title and its double-click handler
- * reach the drawing only when given.
+ * Forge's mark, in a happy-dom document. What matters: it is an image named "Forge", 22 px by default, on its tile, in classes and ids of its
+ * own, with Forge's hexagon ring and core and the node at Forge's place; its title and its double-click handler reach the drawing only
+ * when given.
  */
 import {
   cleanup,

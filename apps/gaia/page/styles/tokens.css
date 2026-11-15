@@ -100,8 +100,31 @@
 
   /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
   --neutral-fill: #8f8f8f;
+
+  /* The tile under Gaia's mark: its gradient and rim. */
+  --mark-from:      #ffffff;
+  --mark-to:        #d6d6d6;
+  --mark-rim:       rgba(0, 0, 0, 0.14);
+  /* Gaia's constellation: the orange ring, the slate core and node cores, each node's halo, and the glow on the top left node. */
+  --mark-ring:      #f26100;
+  --mark-core:      #2f4a5c;
+  --mark-node-halo: #f5a473;
+  --mark-glow:      #ff8d42;
+  /* The mark's mask: what it keeps open and what it shuts, the gaps around its nodes. */
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
 }
 
 :root[data-theme="dark"] {
   --neutral-fill: #7f8590;
+
+  --mark-from:      #343434;
+  --mark-to:        #121212;
+  --mark-rim:       rgba(255, 255, 255, 0.12);
+  --mark-ring:      #ff7417;
+  --mark-core:      #c9dbe6;
+  --mark-node-halo: #d9854c;
+  --mark-glow:      #ff8d42;
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
 }

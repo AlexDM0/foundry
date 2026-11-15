@@ -1,5 +1,5 @@
 /**
- * Forge's mark: Gaia's tile with Forge's hexagon ring, opened at the top right where the orange node sits, around a hexagon core. It is an
+ * Forge's mark: a tile with Forge's hexagon ring, opened at the top right where the orange node sits, around a hexagon core. It is an
  * image named for the brand; a host may give it a title and an action on a double click.
  */
 import { MARK_GEOMETRY } from '../constants/MarkGeometry.ts';
