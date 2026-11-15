@@ -28,7 +28,9 @@ bun migration/design-system-patches/CheckPatches.ts packages/design-system
 It says per patch whether it applies, is applied already, is stale (a file it touches changed since; make it again against the
 new source) or waits on an earlier patch that does not apply. Its spec holds this README to the patches' hashes. Forge kept
 reworking the package after this snapshot (motion tokens, and hooks in `CountBadge` and `NumberStepper`), so expect the check to
-name stale patches until that work lands; make those again against the landed source.
+name stale patches until that work lands; make those again against the landed source. Against forge's live uncommitted package,
+patches 05, 06, 07, 08, 09, 11, 13 and 14 are stale. They stay here as written: once forge commits its design-system work, each is
+made again against the committed source and checked with `CheckPatches.ts` before the series applies.
 
 After every patch in order, and after the whole series on an untouched copy, the package's checks pass: both typechecks
 (`tsconfig.json`, `tsconfig.spec.json`), its specs, its DOM specs under happy-dom, and forge's lint of the package.
