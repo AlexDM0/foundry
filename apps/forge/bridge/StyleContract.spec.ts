@@ -16,9 +16,11 @@ import { join }         from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
+import { designSystemFolder } from './testing/PageStylesheets.ts';
+
 const BRIDGE_FOLDER = import.meta.dir;
 const BOARD_STYLESHEET_PATH = join(BRIDGE_FOLDER, 'styles', 'board.css');
-const DESIGN_SYSTEM_FOLDER = join(BRIDGE_FOLDER, '..', 'design-system');
+const DESIGN_SYSTEM_FOLDER = designSystemFolder();
 const DESIGN_SYSTEM_CLASS_PREFIX = 'design-system-';
 const SMALLEST_CLASS_COUNT = 10;
 

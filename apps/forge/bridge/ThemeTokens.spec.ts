@@ -11,7 +11,9 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-const TOKENS_STYLESHEET_PATHS = [join(import.meta.dir, '..', 'design-system', 'styles', 'tokens.css'), join(import.meta.dir, 'styles', 'tokens.css')];
+import { designSystemFolder } from './testing/PageStylesheets.ts';
+
+const TOKENS_STYLESHEET_PATHS = [join(designSystemFolder(), 'styles', 'tokens.css'), join(import.meta.dir, 'styles', 'tokens.css')];
 const LIGHT_SELECTOR = ':root';
 const DARK_SELECTOR = ':root[data-theme="dark"]';
 const REDUCED_MOTION_CONDITION = '@media (prefers-reduced-motion: reduce)';
