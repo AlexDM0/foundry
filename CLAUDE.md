@@ -9,6 +9,7 @@ Two apps share this Bun workspace, each under its own rules. Read the rules of w
 | `packages/<name>/` | a shared package | its own `README.md` and, where it has one, `CONSTITUTION.md`, plus the rules of the app that owns it |
 | `migration/` | what the design-system merge applies once and then deletes | `migration/design-system-patches/README.md`, and Gaia's rules |
 | `docs/monorepo/` | the monorepo's design (`design.md`) and the migration checklist (`migration.md`) | this file |
+| `scripts/` | the root's own scripts (`cache:audit`), a workspace member so turbo checks them | this file |
 
 Whose rules a package follows beside its own:
 

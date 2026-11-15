@@ -3,7 +3,8 @@
 A Bun workspace: each app in `apps/` (`apps/forge/`, `apps/gaia/`), each shared package in `packages/`. Each app's `README.md` says how
 to run it and its `CLAUDE.md` holds its rules; this root's `CLAUDE.md` says whose rules each package follows. `migration/` holds what
 the design-system merge applies once and then deletes: `migration/design-system-patches/`, patches against `packages/design-system`
-with their check. `docs/monorepo/` holds the monorepo's design and the migration checklist.
+with their check. `docs/monorepo/` holds the monorepo's design and the migration checklist. `scripts/` holds the root's own
+scripts, a workspace member so turbo typechecks, lints and tests them like any other.
 
 ## Set up
 
@@ -28,4 +29,4 @@ workspace's test preload applies only in its own folder.
 | Script | Runs |
 | --- | --- |
 | `gate:forge`, `gate:gaia` | a tracker's gate: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then that app's `check` alone |
-| `cache:audit` | the merge gate's audit: re-runs past the cache the tasks of what changed since `main`, and removes a failing task's entry |
+| `cache:audit [<target reference>]` | the merge gate's audit: re-runs past the cache the tasks of what changed since the target, `main` when none is named (forge hands a gate none), and removes a failing task's entry |
