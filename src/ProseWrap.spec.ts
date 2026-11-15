@@ -1,8 +1,8 @@
 /**
- * The prose wrap reviewers hold: a paragraph line of the repository's rules, the design system's constitution, skills, installed templates
- * and CLI reference is at most 120 columns. Table rows, fenced code, frontmatter and a line holding one code span alone are left alone,
- * since none can wrap. The scan first proves it read paragraph lines of every file, and each form is planted to prove the guard names it
- * and passes what it skips.
+ * The prose wrap reviewers hold: a paragraph line of the repository's rules, root and path-scoped, the design system's constitution, skills,
+ * installed templates and CLI reference is at most 120 columns. Table rows, fenced code, frontmatter and a line holding one code span
+ * alone are left alone, since none can wrap. The scan first proves it read paragraph lines of every file, and each form is planted to
+ * prove the guard names it and passes what it skips.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -18,7 +18,8 @@ const LONE_CODE_SPAN = /^\s*(— )?`[^`]+`[.,;:]?$/;
 const FRONTMATTER_FENCE = '---';
 
 function wrappedProseFilePaths(repositoryRoot: string): string[] {
-  const globbed = ['skills/**/*.md', 'resources/templates/*.md', 'resources/prompts/*.md'].flatMap((pattern) => [...new Bun.Glob(pattern).scanSync({ cwd: repositoryRoot })]);
+  const globbed = ['.claude/rules/*.md', 'skills/**/*.md', 'resources/templates/*.md', 'resources/prompts/*.md']
+    .flatMap((pattern) => [...new Bun.Glob(pattern).scanSync({ cwd: repositoryRoot, dot: true })]);
   return ['CLAUDE.md', 'design-system/CONSTITUTION.md', 'docs/cli.md', 'docs/backlog.md', ...globbed.sort()];
 }
 
@@ -54,6 +55,10 @@ const PROSE_FILES = wrappedProseFilePaths(REPOSITORY_ROOT).map((path) => ({ path
 describe('prose wraps at 120 columns', () => {
   test('the scan reads paragraph lines of the rules, the design system\'s constitution, both skills, the templates, the reference and the overseer\'s prompts', () => {
     for (const expectedPath of ['CLAUDE.md',
+      '.claude/rules/bridge.md',
+      '.claude/rules/design-system.md',
+      '.claude/rules/flint.md',
+      '.claude/rules/skills.md',
       'design-system/CONSTITUTION.md',
       'docs/cli.md',
       'skills/agent-po/SKILL.md',

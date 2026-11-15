@@ -1,8 +1,8 @@
 /**
  * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
- * in `README.md`, `CLAUDE.md` and the files under `docs/` (but the untracked `docs/design/`) exists: a spec rename or split corrects
- * its citations in the same change. A bare file name, a glob and a relative link are no citation. The scan first proves it read
- * citations, and each form is planted to prove the guard names it and passes what it skips.
+ * in `README.md`, `CLAUDE.md`, the rule files under `.claude/rules/` and the files under `docs/` (but the untracked `docs/design/`)
+ * exists: a spec rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
+ * citation. The scan first proves it read citations, and each form is planted to prove the guard names it and passes what it skips.
  */
 import {
   existsSync,
@@ -46,7 +46,8 @@ function documentsInScope(repositoryRoot: string): CitingDocument[] {
   const underDocs = [...new Bun.Glob('docs/**/*.{md,html,json}').scanSync({ cwd: repositoryRoot })]
     .filter((path) => !OUT_OF_SCOPE_FOLDERS.some((folder) => path.startsWith(folder)))
     .sort();
-  return ['README.md', 'CLAUDE.md', ...underDocs].map((path) => ({ path, text: readFileSync(join(repositoryRoot, path), 'utf8') }));
+  const pathScopedRules = [...new Bun.Glob('.claude/rules/*.md').scanSync({ cwd: repositoryRoot, dot: true })].sort();
+  return ['README.md', 'CLAUDE.md', ...pathScopedRules, ...underDocs].map((path) => ({ path, text: readFileSync(join(repositoryRoot, path), 'utf8') }));
 }
 
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
@@ -57,9 +58,11 @@ function existsInCheckout(path: string): boolean {
 }
 
 describe('the spec citations of the documentation resolve', () => {
-  test('the scan reads spec citations in the docs and in CLAUDE.md', () => {
+  test('the scan reads spec citations in the docs, in CLAUDE.md and in a path-scoped rule file', () => {
     expect(DOCUMENTS.flatMap((document) => citedSpecPathsOf(document.text)).length).toBeGreaterThan(0);
-    expect(citedSpecPathsOf(DOCUMENTS.find((document) => document.path === 'CLAUDE.md')?.text ?? '').length).toBeGreaterThan(0);
+    for (const rulePath of ['CLAUDE.md', '.claude/rules/bridge.md']) {
+      expect(citedSpecPathsOf(DOCUMENTS.find((document) => document.path === rulePath)?.text ?? '').length, rulePath).toBeGreaterThan(0);
+    }
   });
 
   test('every repository-rooted spec path a document in scope cites exists, but the deliberately absent ones', () => {
@@ -85,11 +88,17 @@ describe('the spec citations of the documentation resolve', () => {
   test('a planted file under docs/design/ citing a missing spec is not read, while one beside it is', () => {
     const plantedRoot = createScratchDirectory('document-spec-citations');
     mkdirSync(join(plantedRoot, 'docs/design'), { recursive: true });
-    for (const path of ['README.md', 'CLAUDE.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
+    mkdirSync(join(plantedRoot, '.claude/rules'), { recursive: true });
+    for (const path of ['README.md', 'CLAUDE.md', '.claude/rules/Planted.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
       writeFileSync(join(plantedRoot, path), 'See `src/Gone.spec.ts`.\n');
     }
     const missing = documentsInScope(plantedRoot).flatMap((document) => missingCitationsOf(document, () => false));
-    expect(missing).toEqual(['README.md cites src/Gone.spec.ts', 'CLAUDE.md cites src/Gone.spec.ts', 'docs/Kept.md cites src/Gone.spec.ts']);
+    expect(missing).toEqual([
+      'README.md cites src/Gone.spec.ts',
+      'CLAUDE.md cites src/Gone.spec.ts',
+      '.claude/rules/Planted.md cites src/Gone.spec.ts',
+      'docs/Kept.md cites src/Gone.spec.ts',
+    ]);
   });
 
   test('a bare file name, a glob and a relative link are no citation', () => {

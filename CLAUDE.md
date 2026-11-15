@@ -63,9 +63,9 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
 - `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
 - `design-system/` imports no file of the forge. The Bridge imports it by its name, `design-system/<entry>`, with an
   entry that `design-system/package.json` exports, never by a file path. `src/ImportDirection.spec.ts` holds this
-  (see The design-system/ package).
+  (see `.claude/rules/design-system.md`).
 - `flint/` imports no file of the forge. The Bridge imports only the files that `flint/package.json` exports.
-  `src/ImportDirection.spec.ts` holds this (see The flint/ package).
+  `src/ImportDirection.spec.ts` holds this (see `.claude/rules/flint.md`).
 
 ### Values and wording
 
@@ -249,14 +249,17 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
 
 ### Documentation and commits
 
-- One CLAUDE.md, holding only rules, boundaries and decisions; a change that invalidates a rule updates it in the
-  same change. forge's instructions are not in it: they are `.forge/session-instructions.md`,
-  installed from `resources/templates/SessionInstructions.md` and printed by the SessionStart hook.
+- `CLAUDE.md` holds the rules that apply to all work in the repository. A file in `.claude/rules/` holds the rules of
+  one area, and its `paths` list names the folders where it applies. A rule is in one file only. These files hold
+  only rules, boundaries and decisions; a change that invalidates a rule updates it in the same change.
+- forge's instructions are not in these files: they are `.forge/session-instructions.md`, installed from
+  `resources/templates/SessionInstructions.md` and printed by the SessionStart hook.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
   flags, exit codes and file formats.
 - `docs/README.md` is the documentation map.
-- `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, `docs/cli.md`, `docs/backlog.md`, the skills, the
-  templates under `resources/templates/` and the prompts under `resources/prompts/`.
+- `src/ProseWrap.spec.ts` holds the 120-column wrap of this file, the files in `.claude/rules/`, `docs/cli.md`,
+  `docs/backlog.md`, the skills, the templates under `resources/templates/` and the prompts under
+  `resources/prompts/`.
 - Write new tickets, new agent prompts and new system md text (`CLAUDE.md`, skills, briefs, templates) in ASD-STE100.
   Do not use this rule for human-facing documentation. Do not rewrite existing text: the rule applies only to new text.
 - A commit is one plain, human-written subject line, with no AI attribution.
@@ -342,175 +345,3 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
   tracked write of the product to a tracked repository's main line outside a ticket's landing. The commit runs no gates,
   because it changes only this document. A commit that changes another path never lands (`docs/cli.md`, "The
   constitution commit").
-
-### The Bridge
-
-- The Bridge is the board's one page: the React live UI the Overseer serves at `GET /` from `bridge/index.html`, an
-  HTML import in `cli/overseer/routes/OverseerRoutes.ts` that `src/services/overseer/OverseerServer.ts` builds with
-  `Bun.build` for production and serves through `fetch`, never Bun's HTML route, which takes no headers: every file
-  carries the page CSP's `frame-ancestors`. It reads the Overseer's API and nothing else, and keeps no copy of the
-  rules: what it shows arrives as facts. Nothing renders a static page: `open` opens the live Overseer's URL, and
-  starts the Overseer detached first when none is live, and `progress.html` is a stub that `init`, `update` and
-  `oversee` write, naming that URL or saying the Overseer is down.
-- The render service builds the payload from the same Board queries `status --json` prints (`BoardFacts`,
-  `PagePayloadAssembly`, `MarkdownRenderer`); a ticket's `bodyHtml` and an epic's `descriptionHtml` are its only HTML.
-- The detail panel claims a log line by its `taskIds` or `ticketIds`, never a number in free text; a note is matched
-  by its sentence. Stamps are sliced, never re-parsed.
-- A view model reads a structural type of exactly the fields it uses; tracker types satisfy it unchanged.
-- A visual change leaves the README screenshots stale: once it lands, run `.readme-graphics/regenerate.sh` in the
-  long-lived checkout holding that code: the script shoots its own checkout.
-- `bridge/index.html` links the package's entry stylesheet, `design-system/design-system.css`, first, then
-  `bridge/styles/tokens.css`, then `bridge/styles/board.css`. `design-system/styles/tokens.css` holds every token of
-  the theme.
-  `bridge/styles/tokens.css` holds only the tokens that only the Bridge's classes read. `bridge/styles/board.css` holds
-  every class of the Bridge. All of them are designer-owned. `bridge/StyleContract.spec.ts` holds both ways that every
-  class a Bridge component emits is styled and every styled class is emitted. It also holds that no Bridge component
-  emits a `design-system-…` class, and that no `board.css` selector names one. A `className` is a literal the scan can
-  read.
-- `bridge/HoverMovesNothing.spec.ts` holds that no `:hover` or `:active` rule moves or resizes anything. The one
-  exception is the tooltip's transform: the tooltip takes no space.
-- `bridge/ReducedMotionStopsEveryAnimation.spec.ts` holds that a `prefers-reduced-motion: reduce` rule stops each
-  animation outside `prefers-reduced-motion: no-preference`. The reduce rule must win: a higher specificity, or the same
-  specificity later in the file. A scroll timeline is not motion.
-- `bridge/StyleBraceBalance.spec.ts` holds that each stylesheet closes each brace that it opens.
-- These three guards and `bridge/ThemeTokens.spec.ts` read the stylesheets of `bridge/styles/` and of `design-system/`.
-- React's escaping is the one escape for a value: no value is escaped by hand, and a pre-escaped one would show its
-  entities. `eslint.config.js` bans
-  `dangerouslySetInnerHTML` and assigning `innerHTML` or `outerHTML` in `bridge/` and `design-system/`; agent-written
-  HTML reaches the DOM
-  only as a sandboxed iframe's `srcdoc`, whose fixed markup is the one place `escapeHtml` is used, for its title, theme
-  and stylesheet addresses.
-- A view is `bridge/views/<view>/`: its component, and its logic in a pure `<View>Model.ts` beside it, specced as a
-  plain `.spec.ts` in the main run; its behaviour is held by `.dom.tsx` specs, never a frozen markup table. A pure
-  util several views use lives in `bridge/utils/` (chip parts in `bridge/chips/`), with its spec.
-- The Pipeline view is `bridge/views/pipeline/`. Its components are in one subfolder for each part: `setup/`,
-  `agent-panel/`, `flow/`, `gates/`, `dialogs/`, `apply/`, `editing/` and `live/`. Each subfolder keeps the logic of its
-  components in pure `*Model.ts` files. `PipelineViewModel.screenOf` selects the screen from the pipeline facts of the
-  board and the route: a setup step, the resume summary, the live flow or the editing flow.
-- While the board has no readable `pipeline.json`, the Bridge shows only the Pipeline tab
-  (`bridge/shell/HashRouter.ts`). The header then shows the setup stepper in place of the statistics, the Overseer
-  controls and the tabs (`setupSteps` in `bridge/shell/HeaderModel.ts`). A done step links back to its route.
-- The reusable components of the Bridge are in `design-system/` (see The design-system/ package). A component that only
-  the Bridge uses is in `bridge/`.
-- `bridge/shell/` holds what the entry starts with: the hash router, the theme bootstrap, the embedded channel (theme in
-  and Esc out by `postMessage`, only with the framing parent's origin), the banners and the error boundary.
-  `bridge/api/` holds the clients of the Overseer's API. Every control sends its `ControlCommand` through
-  `useControlCommand` (`bridge/shell/ControlCommandSender.ts`): a `CommandButton`, or the Send button and Enter of the
-  composer, `bridge/conversation/Composer.tsx`. The control is disabled while the event stream is down or launches are
-  held, and it shows its refusal verbatim. The one post that is not a `ControlCommand` is the picture upload:
-  `bridge/api/PictureUploadClient.ts` posts the bytes of a picture to `/api/pictures` before the command that names the
-  picture.
-- `eslint.config.js` holds the Bridge's browser storage to `bridge/preferences/PreferenceStore.ts`, keys under
-  `<STORAGE_PREFIX>:<trackerId>` and the theme under `<STORAGE_PREFIX>:theme`.
-- `bridge/HeadlessBridge.integration.spec.ts` loads the Bridge from a real Overseer in headless Chrome and fails on a
-  console error, an exception or a failed request; it skips through `src/testing/ToolGuard.ts` without Chrome.
-
-### The design-system/ package
-
-- `design-system/` is the design system of the Bridge, as a portable package with its own `package.json`,
-  `tsconfig.json`, `tsconfig.spec.json` and `README.md`. Its rules are in `design-system/CONSTITUTION.md`: read it
-  before you change `design-system/`.
-- The root `package.json` makes `design-system/` a workspace package: `"workspaces": ["design-system"]` and the
-  dependency `"design-system": "workspace:*"`. `bun install` links `node_modules/design-system` to the folder, and
-  `bunfig.toml` keeps the hoisted linker. Bun, `Bun.build` and TypeScript resolve `design-system/<entry>` through the
-  `exports` of `design-system/package.json`.
-- `src/ImportDirection.spec.ts` holds that `design-system/` imports no file of the forge, and that a file outside it
-  imports it only as `design-system/<entry>`, with an entry that `design-system/package.json` exports. A relative or
-  absolute path into the folder, and an entry that the exports do not list, are findings.
-- `bun run typecheck` checks `design-system/tsconfig.json` (only the DOM library, no Bun or Node types) and
-  `design-system/tsconfig.spec.json` (the specs, the stories and `.storybook/`). `src/ProjectIncludeLists.spec.ts` holds
-  that its `include` list names only its own folder.
-- `bun run storybook` runs the package's Storybook 10; `design-system/StoryCoverage.spec.ts` holds a story per export.
-- `bridge/testing/RunDomSpecs.ts` runs the DOM specs of `design-system/` with those of the Bridge.
-- The package knows no state of the board: a component takes a `StateTone` and shape flags.
-  `bridge/utils/StateToneUtil.ts` maps each `DisplayState` and job state to its tone and flags, over a `Record` of every
-  `DisplayState`, and every state-coloured element of the Bridge takes its look from it.
-
-### The flint/ package
-
-- `flint/` is Flint, the sprite of the forge agents, as a portable package. It has its own `package.json`,
-  `tsconfig.json`, `tsconfig.spec.json` and `README.md`. The folder can go to its own repository with no change to a
-  source file.
-- No file in `flint/` imports a file outside `flint/`. A file that ships does not import a `bun:` module or a `node:`
-  module. Only `flint/react/` imports React. `flint/PackageIsolation.spec.ts` holds this.
-- `bun run typecheck` checks `flint/tsconfig.json` and `flint/tsconfig.spec.json`. The project uses only the DOM
-  library and no Bun or Node types. `src/ProjectIncludeLists.spec.ts` holds that its `include` list names only its own
-  folder.
-- Flint makes no network call, calls no model, and reads no clock and no browser storage. The time comes from a frame
-  source that the host can replace. The host gives a storage port. `eslint.config.js` holds the clock, the markup, the
-  network and the storage in `flint/`.
-- Flint adds no global CSS. The renderer makes each element with `createElementNS` and sets only attributes. Each
-  colour is a `--flint-*` custom property with its default.
-- There is one Flint on a document. A second `createFlint` on the same document is refused.
-- Flint knows no component of the host. It knows only the cue names that the host sends and its own list of intents.
-  The host gives the home element, the habitats and the policy that selects the habitat to visit.
-- A behaviour, a gesture, an emote, sleep and the attendants each give only a part of the target pose.
-  `flint/PoseComposition.ts` puts the parts together in one order: behaviour, gesture, emote, sleep, attendants, reduced
-  motion. Only `flint/PoseEasing.ts` eases. The renderer knows nothing about behaviour.
-- The core names no animation and no behaviour: it reaches each through its catalog. One more animation or behaviour is
-  one more folder and one more catalog line. `flint/AnimationModules.spec.ts` holds this.
-- The mind and the pose are pure, with plain `.spec.ts` specs. The renderer and `createFlint` have `.dom.tsx` specs. A
-  spec gives a manual frame source (`flint/testing/ManualFrameSource.ts`) and never waits for real time.
-- Each value of the design handoff is a named constant with its unit in its name: a value of the core in
-  `flint/constants/`, a value of one animation or behaviour in `constants/<Name>Values.ts` in its own folder.
-- `flint/demo/index.html` shows each animation of the design handoff through `createFlint`, `perform`, `attend` and
-  `steer`. The command in `flint/README.md` builds it into one file in `flint/demo/build/`. Git ignores this folder.
-- `bridge/flint/` is the host of Flint in the Bridge. `bridge/flint/BridgeFlint.tsx` gives the home corner at the
-  bottom right, the storage port on `bridge/preferences/PreferenceStore.ts` for each board, the visit target and the
-  board occasions. The visit target (`bridge/flint/VisitTargetTracker.ts`) is the Flint slot of the open screen. When
-  User focuses or clicks in another habitat after that slot shows, the visit target is that habitat. A slot that
-  shows, as on a change of screen, is the visit target again. An element with `data-flint-workplace` around a
-  habitat, such as the chat card, counts as part of that habitat; a slot counts only as its own box. The innermost
-  habitat around the element that User worked in wins. The Bridge learns where Flint lives only from the handle's
-  `livesIn`.
-- The habitats of the Bridge are the chat thread (`bridge/conversation/`), the Agents view, the Questions view and the
-  question panel, the Tickets and Kanban views, the merge queue, the Epics view, the Progress timeline, and the Flint
-  slot of each screen. A habitat makes its cues from the data that its component gets, through a pure model with a
-  plain spec. It never reads text from the page and never calls a model. One change of the board has one answer of
-  Flint, not a cue and an occasion that replace each other: while Flint lives in the questions habitat, that habitat
-  answers an incident that opens or settles, and the board occasions do not. A change that ends a loop of Flint, such
-  as the connection that comes back, gets a one-action gesture, because an emote does not stop a gesture.
-  `bridge/flint/BridgeFlint.dom.tsx` holds the host.
-- Each Flint slot (`design-system/FlintSlot`) is the habitat of its screen. The slot draws no sprite. It gives its box
-  to `bridge/flint/FlintSlotHabitat.tsx` through `slotRef`. That component registers the box with the habitat of the
-  screen, a module constant in `bridge/flint/FlintSlotHabitats.ts`, and sends the cue of the screen's data
-  (`bridge/flint/FlintSlotCues.ts`) when the data changes it. While a lasting cue holds, Flint keeps up its answer in
-  the slot through `copy`. A screen whose agent does one thing for the whole time sends no cue: the arrival answer of
-  its habitat shows it. A slot is at least 100 by 100 pixels, because Flint ignores a smaller habitat. A page shows
-  one slot; a slot under a covering panel, or in a panel that is hidden behind one, is not rendered, so it is not
-  registered. Each slot habitat sets `keepsFlintInside`: Flint does not show outside the slot, and a visit comes in
-  through the edge of the slot. When a slot shows, or when Flint is made while a slot shows,
-  `bridge/flint/BridgeFlint.tsx` sends Flint to the slot at once with `perform('visit')`, so Flint does not wait at
-  home for its director.
-
-### Skills
-
-- Two skills, split by audience. `skills/agent-po/` is PO intake: it loads in any session asked to file a ticket and
-  as an Overseer product-owner job's first line, holds the whole filing procedure, files every ticket as a draft with a
-  numbered Acceptance and a `## Brief`, and readies drafts only on User's yes in User's own session (under the Overseer
-  it closes intake instead); it loads no other skill. `skills/agent-progress-orchestrate/` is the interactive wrapper
-  around a running Overseer (`oversee`): it reads its state, starts it on User's go, turns User's intent into verbs,
-  loads `forge-po` for intake and may wait on `await`; it never drives the lifecycle or handles an incident, which
-  are the Overseer's and its Assistant's.
-- No agent preloads a skill, and nothing installs a worker definition. An Overseer's roles read the instruction files
-  `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
-  fixed prompts under `resources/prompts/`.
-- The pipeline agent loads no skill. Only `pipeline setup`, `pipeline update` and `advise` start one. The Overseer
-  starts no new one by itself: it only resumes a pipeline agent that a stop interrupted. Its instructions are the fixed
-  prompts `resources/prompts/PipelineAgent*.md` and the brief that `pipeline.json` names, by default
-  `briefs/defaults/pipelineAgent.md`.
-- No skill file lists commands: `forge help` is the reference. Both skills name it and
-  `.forge/reference.md`, installed from `resources/templates/Reference.md`, which holds only what help does
-  not print and follows `docs/cli.md`.
-- A `SKILL.md` `description` is its trigger, naming the words a user says. Skill files cite only commands, paths in
-  a tracked repository, or files beside them; naming a skill the host may offer, such as `grill-me`, is no citation.
-- `skills/agent-progress-orchestrate/` repeats nothing from `skills/agent-po/`, writes rules as instructions,
-  and never restates what the Overseer decides. Call budgets are `DISPATCH_PROTOCOL`
-  (`src/shared/constants/DispatchProtocol.ts`), stated by the Overseer's job prompts and never by an installed file.
-  The rework threshold is the pipeline's `review.reReview.thresholdLines`; with no re-review, no round is granted. Only
-  with no pipeline, `DISPATCH_PROTOCOL` gives the default through `LIFECYCLE_LIMITS`. No installed file states it.
-  Neither skill nor the installed guidance names a by-hand lifecycle verb but `ticket deliver --by-hand`, held by
-  `cli/HelpText.spec.ts`.
-- `init` and `update` copy both into the tracked repository's git-ignored `.claude/skills/`, never globally, and
-  remove the files a retired skill folder installed there with its `.gitignore` entry; `setup.ts` only removes the
-  `~/.claude/skills/` symlinks into this checkout that earlier versions made.

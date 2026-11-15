@@ -322,8 +322,8 @@ The README's diagrams are the exception: they stay in `docs/images/` and render 
 documents link that anchor. An entry defines the word and links its home. It never states a bound.
 
 **Check the wrap.** Paragraph lines stop at 120 columns; table rows, fences and a line holding one code span are exempt.
-`src/ProseWrap.spec.ts` holds this for the files it lists, which are `CLAUDE.md`, `docs/cli.md`, `docs/backlog.md`, the
-skills, and the templates and prompts under `resources/`. For any other document, this prints what is too long, and a
+`src/ProseWrap.spec.ts` holds this for the files it lists, which are `CLAUDE.md`, the rule files under
+`.claude/rules/`, `docs/cli.md`, `docs/backlog.md`, the skills, and the templates and prompts under `resources/`. For any other document, this prints what is too long, and a
 printed line that holds one code span is fine. It skips image lines, whose alt text stays on one line:
 
 ```sh
