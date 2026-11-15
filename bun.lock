@@ -44,6 +44,7 @@
       },
       "dependencies": {
         "brand": "workspace:^",
+        "design-system": "workspace:^",
         "design-system-contributions": "workspace:^",
         "forge-contracts": "workspace:^",
         "react": "19.3.1",

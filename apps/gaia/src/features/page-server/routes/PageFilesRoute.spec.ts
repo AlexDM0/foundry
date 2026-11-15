@@ -3,10 +3,15 @@
  * it, and nothing it loads is inline, which the page's CSP would block. One build serves every request; a build that fails answers its
  * refusal, and the next request builds again, so a page fixed on disk is served without a restart. The design system's font files come from
  * the package through the page's script and are served from Gaia's own origin, each with its content hash in its name, so a browser may
- * keep it for a year.
+ * keep it for a year. The page bundles one React, the workspace's hoisted copy, which the design-system package's hooks share.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join }     from 'node:path';
+import {
+  basename,
+  dirname,
+  join,
+  relative
+} from 'node:path';
 import {
   afterEach,
   describe,
@@ -26,6 +31,23 @@ const FONT_FILE_ADDRESS = /"\.\/([\w-]+\.woff2)"/g;
 const HASHED_FONT_FILE_NAME = /^(?<packageName>[\w-]+)-(?<contentHash>[a-z0-9]{8})\.woff2$/;
 
 const FONT_FILE_CACHE_CONTROL = 'max-age=31536000, immutable';
+
+/** An unminified bundle names each module it holds in a comment line of its path, relative to the build's working folder. */
+const REACT_MODULE_COMMENT = /^\/\/ (?<modulePath>\S*node_modules\/react(?:-dom)?\/\S+)$/gm;
+
+/** The one `node_modules` React may come from, as a bundle names it: the workspace install hoists it out of Gaia's folder. */
+function hoistedNodeModulesPrefix(): string {
+  return `${relative(process.cwd(), dirname(dirname(Bun.resolveSync('react/package.json', import.meta.dir))))}/`;
+}
+
+async function reactModulePathsOfThePage(): Promise<string[]> {
+  const built = await Bun.build({
+    entrypoints: [pageIndexFilePath()], target: 'browser', minify: false, throw: false
+  });
+  if (!built.success) throw new Error(built.logs.map((log) => log.message).join('\n'));
+  const scriptTexts = await Promise.all(built.outputs.filter((output) => output.path.endsWith('.js')).map((output) => output.text()));
+  return [...new Set(scriptTexts.flatMap((scriptText) => [...scriptText.matchAll(REACT_MODULE_COMMENT)].map((match) => match.groups?.['modulePath'] ?? '')))];
+}
 
 function packageFontFilePaths(): string[] {
   const fontFolder = dirname(Bun.resolveSync('design-system/FontLoader', import.meta.dir));
@@ -84,6 +106,12 @@ describe('the real page', () => {
   test('gives no other file of the page the font files\' lasting cache', async () => {
     const pageFiles = builtPageFilesOf(pageIndexFilePath());
     expect((await pageFileAnswerFor(pageFiles, '/')).headers.get('cache-control')).toBeNull();
+  });
+
+  test('bundles React and React DOM from the hoisted copy only, the one the design-system package shares', async () => {
+    const reactModulePaths = await reactModulePathsOfThePage();
+    expect(reactModulePaths.length).toBeGreaterThan(0);
+    expect(reactModulePaths.filter((modulePath) => !modulePath.startsWith(hoistedNodeModulesPrefix()))).toEqual([]);
   });
 
   test('answers a file the build did not make as not found', async () => {

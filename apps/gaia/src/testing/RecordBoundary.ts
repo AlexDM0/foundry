@@ -34,7 +34,7 @@ import { scratchRoot } from './ScratchRoot.ts';
 const RECORDING_RUN_TIMEOUT_MILLISECONDS = 300_000;
 const JSON_INDENT_SPACES = 2;
 /** A pattern given on the command line replaces those of `bunfig.toml`, which keep every recording spec out of a plain `bun test`. */
-const FOREIGN_TREES_IGNORED = ['.claude/**', '.scratch/**', 'node_modules/**'];
+const FOREIGN_TREES_IGNORED = ['.claude/**', '.scratch/**', 'node_modules/**', '.forge/**', '.forge-worktrees/**', '.turbo/**'];
 
 export interface RecordOutput {
   readonly writeStandardOutput: (text: string) => void;

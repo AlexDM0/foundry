@@ -47,7 +47,7 @@ const CONFINED_REACH_SITES = [...new Set(CONFINED_REACHES.flatMap((reach) => rea
 
 export default [
   ...base,
-  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.scratch/**', 'design_handoff*/**'] },
+  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.scratch/**', '.forge/**', '.forge-worktrees/**', '.turbo/**', 'design_handoff*/**'] },
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: SPECS_AND_TESTING_FOLDERS,
