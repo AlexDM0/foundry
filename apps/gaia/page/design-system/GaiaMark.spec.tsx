@@ -119,7 +119,7 @@ describe('the mark', () => {
     expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-mark-core').props['d']).not.toBe(largeCore.props['d']);
   });
 
-  test('each drawing names its gradient, mask and filter with ids of its own, and points at them', () => {
+  test('each drawing names its gradient, mask and filter with ids of its own, and points only at them', () => {
     expect(idsOf(LARGE_SIZE_PIXELS)).toEqual(['gaia-mark-large-ground', 'gaia-mark-large-glow', 'gaia-mark-large-gap']);
     expect(idsOf(SMALL_SIZE_PIXELS)).toEqual(['gaia-mark-small-ground', 'gaia-mark-small-gap']);
     for (const [sizePixels, drawing] of [[LARGE_SIZE_PIXELS, 'large'], [SMALL_SIZE_PIXELS, 'small']] as const) {
