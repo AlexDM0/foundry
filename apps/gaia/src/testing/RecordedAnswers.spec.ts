@@ -154,7 +154,7 @@ describe('the recorded states of Flint\'s brain', () => {
       for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor);
       return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
-    expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);
+    expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'api' }), expect.objectContaining({ state: 'running' })]);
     expect(brainOf('brain-ended')).toEqual([expect.objectContaining({ state: 'ended', endedReason: 'stopped' }), expect.objectContaining({ state: 'ended' })]);
     expect(brainOf('brain-refused')).toEqual([
       expect.objectContaining({ state: 'refused', refusal: expect.objectContaining({ code: 'usage-limit-holds' }) }),

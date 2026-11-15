@@ -2,7 +2,7 @@
  * The verdict on one forge's system version (`GET /api/versions`) against the forge versions a Gaia knows: whether they can talk at all,
  * which side needs an update, and which paths Gaia calls the forge's endpoints at. One verdict per forge, never per endpoint.
  */
-import type { SystemVersion, VersionsDocument } from 'forge-contracts/VersionsDocument';
+import type { SystemVersion, VersionsDocument } from 'system-versions/VersionsDocument';
 
 import type { OverseerPaths }                       from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeVersions, ForgeVersionsVerdict } from '../@types/ForgeReading.ts';

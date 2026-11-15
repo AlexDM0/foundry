@@ -16,7 +16,8 @@ export type MonitorActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge
 
 export type MonitorFlintBrainState = 'off' | 'starting' | 'running' | 'ended' | 'refused';
 
-export type MonitorFlintBrainStartedBy = 'bridge' | 'gaia';
+/** `api` for a start a client asked for through `POST /api/v1/commands`. */
+export type MonitorFlintBrainStartedBy = 'bridge' | 'api';
 
 export type MonitorFlintBrainEndedReason = 'time' | 'stopped' | 'usage-limit' | 'failed';
 

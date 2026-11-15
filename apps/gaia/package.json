@@ -20,6 +20,7 @@
     "design-system-contributions": "workspace:^",
     "forge-contracts": "workspace:^",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "system-versions": "workspace:^"
   }
 }

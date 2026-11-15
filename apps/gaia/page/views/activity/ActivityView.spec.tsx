@@ -117,7 +117,7 @@ describe('the table', () => {
     const rows = bodyRowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded);
     expect(rows).toHaveLength(18);
     expect(rows.slice(0, 6).map(cellTextsOf)).toEqual([
-      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started from Gaia · haiku low · 2:00 at most'],
+      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started through the API · haiku low · 2:00 at most'],
       ['13:16', 'Example Storefront', 'Agent', 'J4 builder started on #013 Product image zoom'],
       ['13:15', 'Example Storefront', 'Needs you', 'J3 asked E2: How long should a password reset link stay valid?'],
       ['13:07', 'Invoice Service', 'Needs you', '#031 Round VAT per line, not per invoice was reviewed and waits for your accept'],

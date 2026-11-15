@@ -4,7 +4,7 @@
  */
 export type BrainState = 'off' | 'starting' | 'running' | 'ended' | 'refused';
 
-export type BrainStartedBy = 'bridge' | 'gaia';
+export type BrainStartedBy = 'bridge' | 'api';
 
 export type BrainEndedReason = 'time' | 'stopped' | 'usage-limit' | 'failed';
 

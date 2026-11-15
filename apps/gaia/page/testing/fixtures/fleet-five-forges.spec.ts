@@ -59,7 +59,7 @@ describe('the fleet-five-forges fixture', () => {
     const storefront = FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
     const brain = storefront?.brain === 'not-reported' ? null : storefront?.brain;
     expect([secondsSince(brain?.startedAt ?? ''), -secondsSince(brain?.endsAt ?? ''), brain?.startedBy, brain?.model, brain?.effort, brain?.tokens, brain?.calls])
-      .toEqual([36, 84, 'gaia', 'haiku', 'low', 3100, 9]);
+      .toEqual([36, 84, 'api', 'haiku', 'low', 3100, 9]);
     const brainRows = FLEET_FIVE_FORGES.agents.filter((row) => !row.countsAgainstLimit);
     expect(brainRows.map((row) => [projectOf(row.trackerId), row.jobId, row.role, row.tokens])).toEqual([['Example Storefront', 'flint-brain', 'brain', 3100]]);
     const storefrontRows = FLEET_FIVE_FORGES.agents.filter((row) => row.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
@@ -80,8 +80,8 @@ describe('the fleet-five-forges fixture', () => {
   test('holds A3\'s two entries of Flint\'s brain: its start on Example Storefront at the brain\'s own, and Invoice Service\'s run that ended at 12:46 with 4.2k tokens', () => {
     const brainEntries = FLEET_FIVE_FORGES.activity.filter((entry) => entry.kind === 'flint-brain');
     expect(brainEntries.map((entry) => [projectOf(entry.trackerId), entry.category, entry.at, entry.tokens, entry.text])).toEqual([
-      ['Example Storefront', 'agent', '2026-11-12T13:18:54.000Z', null, 'Flint\'s brain started from Gaia · haiku low · 2:00 at most'],
-      ['Invoice Service', 'agent', '2026-11-12T12:46:00.000Z', 4200, 'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia'],
+      ['Example Storefront', 'agent', '2026-11-12T13:18:54.000Z', null, 'Flint\'s brain started through the API · haiku low · 2:00 at most'],
+      ['Invoice Service', 'agent', '2026-11-12T12:46:00.000Z', 4200, 'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API'],
     ]);
     const storefront = FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
     expect(storefront?.brain === 'not-reported' ? null : storefront?.brain.startedAt).toBe(brainEntries[0]?.at);

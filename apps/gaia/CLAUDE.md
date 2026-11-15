@@ -20,9 +20,12 @@ its own; the dev tools every workspace shares are the root's.
    apart, so any two versions may meet, and they meet through system versions. Each system has one, major.minor by interoperability (a
    minor only adds; a major may break a client of an older major), never its package version: Gaia's and the routes' endpoint versions
    are in `src/shared/constants/GaiaSystemVersions.ts`, and the forge versions Gaia is built for and still talks to in
-   `forge-contracts/ForgeSystemVersions`, each with what raises it. A server answers its system version and its minimum supported at
-   `GET /api/versions`, unversioned and never removed, and serves each route at `/api/v<n>/<endpoint>`; Gaia's routes keep answering at
-   their unversioned paths too, so a window open across an upgrade keeps working. Gaia asks every forge's `/api/versions` first and
+   `src/lib/forge-client/constants/SupportedForgeVersions.ts`, each with what raises it; the forge endpoint versions Gaia calls are derived
+   from forge's compatibility registry (`forge-contracts/ForgeCompatibilityRegistry`) at the supported version, never listed by Gaia.
+   Forge never knows Gaia: nothing in `forge-contracts` names Gaia, and Gaia sends forge client-neutral values only, such as the embed
+   mode (`docs/forge-requirements.md`). A server answers its system version and its minimum supported at `GET /api/versions`,
+   unversioned and never removed, and serves each route at `/api/v<n>/<endpoint>`; Gaia's routes keep answering at their unversioned
+   paths too, so a window open across an upgrade keeps working. Gaia asks every forge's `/api/versions` first and
    decides one verdict per forge (`src/shared/utils/ForgeVersionsUtil.ts`): it cannot talk to a `newer` or `older` forge, reads an
    `ahead`, `behind` or `current` one at the versioned paths, and a forge that publishes none exactly as before versions. The fleet stream
    and the embed channel carry the system version in their handshake and every message. A REST answer carries no version of its own

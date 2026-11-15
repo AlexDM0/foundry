@@ -4,8 +4,6 @@ import { mkdir }                from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join }                 from 'node:path';
 
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'forge-contracts/ForgeSystemVersions';
-
 import packageManifest from '../package.json' with { type: 'json' };
 
 import { AppBundleInfoFile, applicationsFolderIn }                       from './adapters/app-bundle/AppBundleInfoFile.ts';
@@ -26,6 +24,7 @@ import { startPageServer, type PageServerStartVerdict }                  from '.
 import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
 import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
 import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }                from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
 import { realClockTimers, stampOfNow }                                   from './services/Clock.ts';
 import { environmentCopy, gaiaPort, homeDirectory }                      from './services/Environment.ts';

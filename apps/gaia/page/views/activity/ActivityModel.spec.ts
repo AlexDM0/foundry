@@ -48,7 +48,7 @@ describe('the entries', () => {
   test('rows from several forges interleave by at, newest first, as the artboard lists them', () => {
     const rows = contentOf(FLEET_FIVE_FORGES).rows.map((row) => [row.clockTime, row.project, row.categoryWord, row.text]);
     expect(rows).toEqual([
-      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started from Gaia · haiku low · 2:00 at most'],
+      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started through the API · haiku low · 2:00 at most'],
       ['13:16', 'Example Storefront', 'Agent', 'J4 builder started on #013 Product image zoom'],
       ['13:15', 'Example Storefront', 'Needs you', 'J3 asked E2: How long should a password reset link stay valid?'],
       ['13:07', 'Invoice Service', 'Needs you', '#031 Round VAT per line, not per invoice was reviewed and waits for your accept'],
@@ -57,7 +57,7 @@ describe('the entries', () => {
       ['12:58', 'Invoice Service', 'Needs you', 'E4 escalated from incident I2: the VAT gate cannot run in the sandbox'],
       ['12:53', 'Research Wiki', 'Needs you', 'E1 opened: two gates are proposed for this repository'],
       ['12:47', 'Research Wiki', 'Landed', '#006 Glossary page landed on main'],
-      ['12:46', 'Invoice Service', 'Flint\'s brain', 'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia'],
+      ['12:46', 'Invoice Service', 'Flint\'s brain', 'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API'],
       ['12:40', 'Example Mobile App', 'Forge', 'Launches held: the install version changed'],
       ['12:38', 'Example Mobile App', 'Agent', 'J7 reviewer started on #020 Push permission prompt'],
       ['12:31', 'Invoice Service', 'Landed', '#030 Reminder emails landed on main'],
@@ -81,8 +81,8 @@ describe('the entries', () => {
     expect(rows[1]?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`);
     expect(rows[3]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/#tickets/ticket-row/031`);
     expect(rows.filter((row) => row.href === null).map((row) => row.text)).toEqual([
-      'Flint\'s brain started from Gaia · haiku low · 2:00 at most',
-      'Flint\'s brain ran 2:00 · 4.2k tokens · started from Gaia',
+      'Flint\'s brain started through the API · haiku low · 2:00 at most',
+      'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API',
       'Launches held: the install version changed',
       'Overseer stopped',
     ]);

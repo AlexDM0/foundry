@@ -3,7 +3,8 @@
  * recorded from a real forge, or from a program that is no forge; the table below uses every such answer, so none is left unproven. A
  * monitor stream that ends inside an event hands on no half snapshot, and one whose snapshot handler throws is closed all the same. The
  * token travels as a bearer on the guarded routes only, and no answer carries it. A forge that publishes its versions is called at each
- * endpoint's versioned path, one before them at today's paths, and `/api/versions` at its one path, which a forge before them refuses.
+ * endpoint's versioned path, at the version forge's compatibility registry serves the forge version this client supports, one before them
+ * at today's paths, and `/api/versions` at its one path, which a forge before them refuses.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -18,8 +19,8 @@ import {
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
 
-import type { OverseerAccess, OverseerAddress } from './@types/ForgeClientAnswer.ts';
-import { forgeClientOf }                        from './ForgeClient.ts';
+import type { OverseerAccess, OverseerAddress }                             from './@types/ForgeClientAnswer.ts';
+import { forgeClientOf, forgeEndpointVersionOf, type OverseerEndpointName } from './ForgeClient.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
@@ -423,6 +424,11 @@ describe('the paths an Overseer is called at', () => {
       'POST /api/v1/commands with bearer',
       'STREAM /api/v2/monitor/events with bearer',
     ]);
+  });
+
+  test('take each endpoint\'s version from forge\'s compatibility registry at the forge version this client supports, which serves every one', () => {
+    const endpointNames: readonly OverseerEndpointName[] = ['identity', 'summary', 'monitor', 'monitorEvents', 'commands', 'sessionCodes'];
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1]);
   });
 
   test('answer the refusal a forge from before versions gives its versions, as it gives any unknown path', async () => {

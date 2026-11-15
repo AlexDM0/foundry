@@ -18,8 +18,6 @@ import {
   test
 } from 'bun:test';
 
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'forge-contracts/ForgeSystemVersions';
-
 import packageManifest from '../package.json' with { type: 'json' };
 
 import type { FleetDocument }                                                                        from '../page/@types/FleetDocument.ts';
@@ -36,6 +34,7 @@ import { startPageServer, type PageServer }                                     
 import { eventStreamParserOf, type ServerSentEvent }                                                 from './lib/event-stream/EventStreamParser.ts';
 import { forgeClientOf }                                                                             from './lib/forge-client/ForgeClient.ts';
 import type { OverseerFetch }                                                                        from './lib/forge-client/OverseerFetch.ts';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }                                            from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ProcessRun }                                                                           from './lib/process-run/ProcessRun.ts';
 import { createFleetStore }                                                                          from './services/FleetStore.ts';
 import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals }                               from './services/ForgeWatch.ts';

@@ -129,7 +129,7 @@ const FLINT_BRAIN_SHAPE = {
   state:       { oneOf: ['off', 'starting', 'running', 'ended', 'refused'] },
   startedAt:   NULLABLE_TEXT,
   endsAt:      NULLABLE_TEXT,
-  startedBy:   { nullable: { oneOf: ['bridge', 'gaia'] } },
+  startedBy:   { nullable: { oneOf: ['bridge', 'api'] } },
   model:       NULLABLE_TEXT,
   effort:      NULLABLE_TEXT,
   tokens:      NULLABLE_WHOLE_NUMBER,

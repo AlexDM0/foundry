@@ -32,7 +32,7 @@ export function sessionCodeOf(sessionNumber: number): string {
 }
 
 export function frameUrlOf(sessionNumber: number, origin = BRIDGE_ORIGIN): string {
-  return `${origin}/?embedded=gaia#session=${sessionCodeOf(sessionNumber)}`;
+  return `${origin}/?embedded=frame#session=${sessionCodeOf(sessionNumber)}`;
 }
 
 export const FRAME_SESSION_ANSWERS = {

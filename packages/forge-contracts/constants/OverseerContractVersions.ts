@@ -1,7 +1,7 @@
 /**
  * The version of each contract an Overseer serves, as the integer key of its documents carries it (`monitorVersion`, the identity's
- * `contracts`), and the older ones those documents still describe, so a reader may read a forge not yet updated. A forge's system
- * version, not these, says whether a reader can talk to it (`ForgeSystemVersions.ts`); these keep the documents of released forges readable.
+ * `contracts`), and the older ones those documents still describe. A forge's system version, not these, says whether a client can talk to
+ * it (`ForgeSystemVersions.ts`); forge keeps the keys for clients built before system versions (`ForgeCompatibilityRegistry.ts`).
  */
 import type { ServedContractName } from '../@types/IdentityDocument.ts';
 

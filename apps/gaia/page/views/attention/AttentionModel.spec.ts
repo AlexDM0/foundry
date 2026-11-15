@@ -279,7 +279,7 @@ describe('Flint\'s brain on A1', () => {
     expect(withBrain.running.map(({ brain, ...card }) => card)).toEqual(withoutBrain.running.map(({ brain, ...card }) => card));
     const partsOf = (content: AttentionContent) => [content.figures, content.rows, content.looks, content.runningHead];
     expect(partsOf(withBrain)).toEqual(partsOf(withoutBrain));
-    expect(withBrain.recent.map((entry) => entry.text)).not.toContain('Flint\'s brain started from Gaia · haiku low · 2:00 at most');
+    expect(withBrain.recent.map((entry) => entry.text)).not.toContain('Flint\'s brain started through the API · haiku low · 2:00 at most');
   });
 
   test('just happened leaves out the brain\'s entries, ended runs included, and takes the newest four others', () => {

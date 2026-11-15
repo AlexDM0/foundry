@@ -41,7 +41,7 @@ describe('words and figures', () => {
   });
 
   test('who woke the brain is a place, and nobody is said when the forge does not say', () => {
-    const places = (['gaia', 'bridge', null] as const).map((startedBy) => BrainTextUtil.startedByPlaceOf(startedBy));
+    const places = (['api', 'bridge', null] as const).map((startedBy) => BrainTextUtil.startedByPlaceOf(startedBy));
     expect(places).toEqual(['from Gaia', 'from the Bridge', null]);
   });
 

@@ -2,7 +2,7 @@
  * A system version as `GET /api/versions` and every message carry it, `{ major, minor }` of whole numbers: read from unchecked JSON,
  * compared, and written as text for a machine line. Comparing two versions of one system is ordering them, never a clock.
  */
-import type { SystemVersion, VersionsDocument } from 'forge-contracts/VersionsDocument';
+import type { SystemVersion, VersionsDocument } from 'system-versions/VersionsDocument';
 
 function isWholeNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;

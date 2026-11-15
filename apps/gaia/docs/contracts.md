@@ -13,22 +13,24 @@ its keys.
   version: a minor change only adds, and every client of that major keeps working; a major change may break a client of an older major.
   Gaia's is `GAIA_SYSTEM_VERSION` (`src/shared/constants/GaiaSystemVersions.ts`); the forge versions Gaia knows are
   `SUPPORTED_FORGE_VERSION` (the forge version this Gaia is built for) and `MINIMUM_FORGE_VERSION` (the oldest it still talks to, through
-  the migrations below), in `forge-contracts/ForgeSystemVersions`. Each constant's docblock says what raises it.
+  the migrations below), in `src/lib/forge-client/constants/SupportedForgeVersions.ts`. Each constant's docblock says what raises it. What a
+  forge answers is `forge-contracts/ForgeSystemVersions`, forge's own.
 - **`GET /api/versions`, unversioned and never removed.** A server answers its `current` system version and its `minimumSupported`, the
-  oldest version of its own system a client may have been built for and still be served (`forge-contracts/VersionsDocument`). Raising
+  oldest version of its own system a client may have been built for and still be served (`system-versions/VersionsDocument`). Raising
   the minimum is what lets a server remove an old endpoint version: no client it still supports calls it. Gaia's own server answers it
   for its page and its launcher (`src/features/page-server/routes/VersionsRoute.ts`), and Gaia asks it of every forge first.
 - **Endpoints versioned by path.** A route is served at `/api/v<n>/<endpoint>`, and an endpoint's breaking change is served side by side
   at the next `n` until the minimum is raised (`src/lib/api-paths/ApiPathUtil.ts`). A REST answer carries no version of its own for this:
   each client version knows which endpoint versions it calls. Gaia's routes also keep answering at their unversioned `/api/<endpoint>`,
   so a window open across an upgrade keeps working; the page calls the versioned paths, and the launcher falls back to the unversioned
-  ones for an older running Gaia. The forge endpoints Gaia calls, and their versions, are `OVERSEER_ENDPOINT_VERSIONS`
-  (`forge-contracts/ForgeSystemVersions`): Gaia calls them at those paths when a forge publishes its versions, and at today's
-  unversioned paths when it does not.
+  ones for an older running Gaia. The version of each forge endpoint Gaia calls is the one forge's compatibility registry
+  (`forge-contracts/ForgeCompatibilityRegistry`) serves `SUPPORTED_FORGE_VERSION` (`forgeEndpointVersionOf` in
+  `src/lib/forge-client/ForgeClient.ts`): Gaia calls them at those paths when a forge publishes its versions, and at today's unversioned
+  paths when it does not.
 - **Message protocols carry the system version.** The fleet stream opens on a `handshake` event and carries Gaia's `systemVersion` in every
   `fleet` event; every embed message Gaia posts carries Gaia's `systemVersion`, and a Bridge's message names its forge's where it does
   (V5). A page that hears a handshake of another system major is a stale page and reloads once. The forge's monitor stream and Bridge
-  carry the forge's (V4, V5 in `FORGE_REQUIREMENTS.md`); Gaia keeps reading today's messages without it.
+  carry the forge's (V5 in `docs/forge-requirements.md`); Gaia keeps reading today's messages without it.
 - **The keys documents have always carried stay, as whole versions.** `monitorVersion`, `identityVersion`, `contracts`, `fleetVersion`,
   `answerVersion` and the like keep their integer and keep being read: released forges send them, and an open page of an older Gaia reads
   them on the unversioned paths. A known version reads with its unknown keys passed over; an older one only where "Older versions Gaia
@@ -97,7 +99,7 @@ version, major.minor.
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1.0 | `recordingVersion`, `recordingMinor` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
-The forge's requirements F1 to F9, G1 to G4 and V1 to V7 are the owner's to run on the forge's own board. Every fixture of a forge
+The forge's requirements F1 to F9, G1 to G4 and V1 to V9 (`docs/forge-requirements.md`) are the owner's to run on the forge's own board. Every fixture of a forge
 contract is recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped
 `authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on: monitor 3 and control 2 (G1 to
 G3), and `/api/versions` with the versioned paths (V1 to V3), whose recording also holds what a forge before them answers there.

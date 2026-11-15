@@ -8,7 +8,7 @@ export default [
   ...base,
   { ignores: ['**/*.js', 'node_modules/**'] },
   {
-    // The spec may import the dev tools the workspace root shares; the contract modules import nothing at all.
+    // A spec may import the dev tools the workspace root shares; the contract modules import only the version model.
     files: ['**/*.spec.ts'],
     rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: [import.meta.dirname, join(import.meta.dirname, '..', '..')] }] },
   },

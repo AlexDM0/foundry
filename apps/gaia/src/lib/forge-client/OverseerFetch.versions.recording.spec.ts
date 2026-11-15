@@ -13,12 +13,12 @@ import {
   expect,
   test
 } from 'bun:test';
-import { OVERSEER_ENDPOINT_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
 import { recordAnswer, recordSystemVersion }                            from '../../testing/BoundaryRecordings.ts';
 import { requestCallShapeOf, situationCallShapeOf }                     from '../../testing/RecordedAnswers.ts';
 import { createScratchForge, type ScratchForge }                        from '../../testing/ScratchForge.ts';
 import { ApiPathUtil }                                                  from '../api-paths/ApiPathUtil.ts';
+import { forgeEndpointVersionOf }                                       from './ForgeClient.ts';
 import { realOverseerFetch, type OverseerAnswer, type OverseerRequest } from './OverseerFetch.ts';
 
 const RECORDING_NAME = 'overseer-fetch-versions';
@@ -74,9 +74,9 @@ describe('a forge that publishes its versions', () => {
   });
 
   test('answers its identity, its monitor and a session code at the versioned paths this Gaia calls', async () => {
-    const identity = await keepAnswerTo(requestOf('GET', ApiPathUtil.versionedPathOf('identity', OVERSEER_ENDPOINT_VERSIONS.identity), null));
-    const monitor = await keepAnswerTo(requestOf('GET', ApiPathUtil.versionedPathOf('monitor', OVERSEER_ENDPOINT_VERSIONS.monitor), bearerToken));
-    const sessionCode = await keepAnswerTo(requestOf('POST', ApiPathUtil.versionedPathOf('session-codes', OVERSEER_ENDPOINT_VERSIONS.sessionCodes), bearerToken));
+    const identity = await keepAnswerTo(requestOf('GET', ApiPathUtil.versionedPathOf('identity', forgeEndpointVersionOf('identity')), null));
+    const monitor = await keepAnswerTo(requestOf('GET', ApiPathUtil.versionedPathOf('monitor', forgeEndpointVersionOf('monitor')), bearerToken));
+    const sessionCode = await keepAnswerTo(requestOf('POST', ApiPathUtil.versionedPathOf('session-codes', forgeEndpointVersionOf('sessionCodes')), bearerToken));
     for (const answer of [identity, monitor, sessionCode]) expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
   });
 });

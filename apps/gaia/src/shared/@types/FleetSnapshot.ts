@@ -1,5 +1,5 @@
 /** Every forge's reading assembled into one picture of the machine; the page receives it mapped out as a `FleetDocument`. */
-import type { SystemVersion } from 'forge-contracts/VersionsDocument';
+import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import type { ActivityEntry } from './ActivityEntry.ts';
 import type { AgentRow }      from './AgentRow.ts';

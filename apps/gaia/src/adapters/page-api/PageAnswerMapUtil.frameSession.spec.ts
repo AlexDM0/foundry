@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { PageAnswerMapUtil } from './PageAnswerMapUtil.ts';
 
-const FRAME_URL = 'http://127.0.0.1:4951/?embedded=gaia#session=0123456789abcdef';
+const FRAME_URL = 'http://127.0.0.1:4951/?embedded=frame#session=0123456789abcdef';
 
 describe('a frame session verdict mapped out', () => {
   test('carries the frame address at done', () => {

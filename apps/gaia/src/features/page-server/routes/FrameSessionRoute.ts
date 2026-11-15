@@ -1,8 +1,11 @@
 /**
  * `POST /api/forges/<trackerId>/frame-session` (PLAN 8.3): Gaia asks the forge's Overseer for a one-time session code with the forge's
- * token, and answers the Bridge's address with `?embedded=gaia` and that code in its fragment, which the page sets as the frame's `src`.
+ * token, and answers the Bridge's address in forge's embed mode, `?embedded=frame`, with that code in its fragment, which the page sets as
+ * the frame's `src`.
  * The token travels only as the bearer of that one request: it reaches no answer and no log line.
  */
+import { EMBED_MODE_QUERY } from 'forge-contracts/EmbedMode';
+
 import { OverseerTokenFile }                          from '../../../adapters/forge-api/OverseerTokenFile.ts';
 import type { RegisteredOverseer }                    from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
 import { registeredForgesOf, type RegistryReading }   from '../../../adapters/forge-registry/RegistryFile.ts';
@@ -27,8 +30,6 @@ export const FRAME_SESSION_METHOD = 'POST';
 
 const FRAME_SESSION_ENDPOINT = /^forges\/([^/]+)\/frame-session$/;
 
-const EMBEDDED_PARAMETER = 'embedded';
-const EMBEDDED_FOR_GAIA = 'gaia';
 
 /** The Bridge's own session exchange reads the code from this fragment, as it does for `forge open`. */
 const SESSION_CODE_FRAGMENT_PREFIX = 'session=';
@@ -53,7 +54,7 @@ export function trackerIdOfFrameSessionEndpoint(endpoint: string): string | null
 
 function frameUrlOf(overseerUrl: string, sessionCode: string): string {
   const frameUrl = new URL(overseerUrl);
-  frameUrl.searchParams.set(EMBEDDED_PARAMETER, EMBEDDED_FOR_GAIA);
+  frameUrl.searchParams.set(EMBED_MODE_QUERY.parameter, EMBED_MODE_QUERY.value);
   frameUrl.hash = `${SESSION_CODE_FRAGMENT_PREFIX}${sessionCode}`;
   return frameUrl.href;
 }

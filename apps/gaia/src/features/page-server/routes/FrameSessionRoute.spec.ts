@@ -1,5 +1,5 @@
 /**
- * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with `?embedded=gaia` and
+ * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with `?embedded=frame` and
  * the forge's one-time code, asked at the versioned path of a forge that publishes its versions; the token travels only as the bearer of
  * the one request and reaches no answer and no log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported`
  * and is asked for nothing; and every other way a code is not given ends in its own outcome, a registry Gaia cannot read and an Overseer
@@ -128,13 +128,13 @@ async function exchangeOf(sources: FrameSessionSources): Promise<FrameSessionExc
 }
 
 describe('a forge that serves the embed channel', () => {
-  test('answers the Bridge\'s address with ?embedded=gaia and the forge\'s one-time code in its fragment', async () => {
+  test('answers the Bridge\'s address with ?embedded=frame and the forge\'s one-time code in its fragment', async () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf(), overseerAnswering('serving-every-contract')));
     expect(exchange.status).toBe(200);
     expect(exchange.document).toEqual({
       frameSessionVersion: 1,
       outcome:             'done',
-      frameUrl:            `${STOREFRONT_URL}?embedded=gaia#session=${recordedSessionCode()}`,
+      frameUrl:            `${STOREFRONT_URL}?embedded=frame#session=${recordedSessionCode()}`,
       refusal:             null,
       text:                null,
     });

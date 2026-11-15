@@ -13,7 +13,7 @@ What is agreed and not started, with the reason it waits.
   entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'` and
   `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
 - **Flint's box in the framed Bridge (G4).** B1 frames the Bridge with its "Agents at work" strip, where Flint has its Kanban box; the
-  Bridge decides under `embedded=gaia` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
+  Bridge decides under `embedded=frame` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
   forge and on the owner's answer to Q11.
 - **The embed channel's messages are recorded from a real Bridge.** `page/testing/AuthoredBridge.ts` holds the Bridge's messages as
   authored from FORGE_REQUIREMENTS F5; they match the forge's `bridge/shell/VersionedEmbedChannel.ts` at 55beb9cd. The forge serves F5

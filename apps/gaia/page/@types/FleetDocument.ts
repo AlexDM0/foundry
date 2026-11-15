@@ -149,7 +149,7 @@ export interface FleetDocumentBrain {
   state:       FleetDocumentBrainState;
   startedAt:   string | null;
   endsAt:      string | null;
-  startedBy:   'bridge' | 'gaia' | null;
+  startedBy:   'bridge' | 'api' | null;
   model:       string | null;
   effort:      string | null;
   tokens:      number | null;

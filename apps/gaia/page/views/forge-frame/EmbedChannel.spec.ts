@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { SystemVersion } from 'forge-contracts/VersionsDocument';
+import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import { GAIA_SYSTEM_VERSION }                           from '../../../src/shared/constants/GaiaSystemVersions.ts';
 import { BRIDGE_MESSAGES, BRIDGE_ORIGIN, bridgeStandIn } from '../../testing/AuthoredBridge.ts';

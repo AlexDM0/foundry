@@ -488,7 +488,7 @@ describe('a snapshot at monitor version 3', () => {
       state:       'running',
       startedAt:   '2026-11-13T09:58:02+01:00',
       endsAt:      '2026-11-13T10:00:02+01:00',
-      startedBy:   'gaia',
+      startedBy:   'api',
       model:       'haiku',
       effort:      'low',
       tokens:      1840,

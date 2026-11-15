@@ -6,7 +6,7 @@
  * to the frame's origin, never to `*`.
  */
 import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'forge-contracts/EmbedChannelMessage';
-import type { SystemVersion }                                           from 'forge-contracts/VersionsDocument';
+import type { SystemVersion }                                           from 'system-versions/VersionsDocument';
 
 import { CONTRACT_VERSIONS }   from '../../../src/shared/constants/ContractVersions.ts';
 import { GAIA_SYSTEM_VERSION } from '../../../src/shared/constants/GaiaSystemVersions.ts';

@@ -3,8 +3,9 @@
  * a session code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read
  * them. `/api/versions` is asked at its one path; every other endpoint at the paths the caller names.
  */
+import { FORGE_COMPATIBILITY_REGISTRY }                from 'forge-contracts/ForgeCompatibilityRegistry';
 import type { ForgeControlCommand }                    from 'forge-contracts/ForgeControlCommand';
-import { OVERSEER_ENDPOINT_VERSIONS }                  from 'forge-contracts/ForgeSystemVersions';
+import { CompatibilityRegistryUtil }                   from 'system-versions/CompatibilityRegistryUtil';
 import { ApiPathUtil }                                 from '../api-paths/ApiPathUtil.ts';
 import { eventStreamParserOf, type EventStreamParser } from '../event-stream/EventStreamParser.ts';
 import { JsonValueUtil, type JsonObject }              from '../json-value/JsonValueUtil.ts';
@@ -26,6 +27,7 @@ import type {
   OverseerRequest,
   OverseerStream,
 } from './OverseerFetch.ts';
+import { SUPPORTED_FORGE_VERSION } from './constants/SupportedForgeVersions.ts';
 
 export interface ForgeClientSettings {
   readonly overseerFetch:                  OverseerFetch;
@@ -56,13 +58,24 @@ const OVERSEER_ENDPOINTS = {
   monitorEvents: 'monitor/events',
   commands:      'commands',
   sessionCodes:  'session-codes',
-} as const satisfies Readonly<Record<keyof typeof OVERSEER_ENDPOINT_VERSIONS, string>>;
+} as const;
 
-type OverseerEndpointName = keyof typeof OVERSEER_ENDPOINTS;
+export type OverseerEndpointName = keyof typeof OVERSEER_ENDPOINTS;
+
+/**
+ * The version of the endpoint that forge's compatibility registry serves the forge version this client supports. Every endpoint the client
+ * calls has one, as its spec holds, so the throw marks a registry that dropped one, never a forge's answer.
+ */
+export function forgeEndpointVersionOf(endpointName: OverseerEndpointName): number {
+  const endpoint = OVERSEER_ENDPOINTS[endpointName];
+  const version = CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, SUPPORTED_FORGE_VERSION);
+  if (version === null) throw new Error(`The forge version this client supports serves no ${endpoint} endpoint.`);
+  return version;
+}
 
 function pathOf(endpointName: OverseerEndpointName, paths: OverseerPaths): string {
   const endpoint = OVERSEER_ENDPOINTS[endpointName];
-  return paths === 'versioned' ? ApiPathUtil.versionedPathOf(endpoint, OVERSEER_ENDPOINT_VERSIONS[endpointName]) : ApiPathUtil.unversionedPathOf(endpoint);
+  return paths === 'versioned' ? ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName)) : ApiPathUtil.unversionedPathOf(endpoint);
 }
 
 const SUCCESS_STATUS = 200;

@@ -2,7 +2,7 @@
  * `GET /api/versions`, open to any local caller and never versioned or removed: Gaia's system version and the oldest Gaia a page or a
  * launcher may have been built for and still be served. A client reads it to learn which paths it may call.
  */
-import type { VersionsDocument } from 'forge-contracts/VersionsDocument';
+import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
 import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION } from '../../../shared/constants/GaiaSystemVersions.ts';
 

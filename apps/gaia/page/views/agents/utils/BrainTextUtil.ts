@@ -15,9 +15,9 @@ const EFFORT_LEVELS: Readonly<Record<string, number>> = {
   max:    4,
 };
 
-const STARTED_BY_PLACES: Readonly<Record<'bridge' | 'gaia', string>> = {
+const STARTED_BY_PLACES: Readonly<Record<'bridge' | 'api', string>> = {
   bridge: 'from the Bridge',
-  gaia:   'from Gaia',
+  api:    'from Gaia',
 };
 
 function epochMillisecondsOf(stamp: string | null): number | null {
@@ -61,7 +61,7 @@ function effortLevelOf(effort: string): number | null {
   return Object.hasOwn(EFFORT_LEVELS, effort) ? EFFORT_LEVELS[effort] ?? null : null;
 }
 
-function startedByPlaceOf(startedBy: 'bridge' | 'gaia' | null): string | null {
+function startedByPlaceOf(startedBy: 'bridge' | 'api' | null): string | null {
   return startedBy === null ? null : STARTED_BY_PLACES[startedBy];
 }
 

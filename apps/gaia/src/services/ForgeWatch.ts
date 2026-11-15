@@ -7,8 +7,6 @@
 import { createHash } from 'node:crypto';
 import { stat }       from 'node:fs/promises';
 
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'forge-contracts/ForgeSystemVersions';
-
 import type { ForgeIdentity, ForgeRegistryFacts }                   from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { BoardSummaryIngestion }                                    from '../adapters/forge-api/BoardSummaryIngestion.ts';
 import { IdentityIngestion }                                        from '../adapters/forge-api/IdentityIngestion.ts';
@@ -19,6 +17,7 @@ import type { RegisteredForge }                                     from '../ada
 import type { RegistryReading }                                     from '../adapters/forge-registry/RegistryFile.ts';
 import type { ForgeDocumentAnswer, MonitorFollow, OverseerAddress } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                         from '../lib/forge-client/ForgeClient.ts';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION }           from '../lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ForgeReading, ForgeVersions }                         from '../shared/@types/ForgeReading.ts';
 import { ForgeVersionsUtil, type KnownForgeVersions }               from '../shared/utils/ForgeVersionsUtil.ts';
 import { SystemVersionUtil }                                        from '../shared/utils/SystemVersionUtil.ts';

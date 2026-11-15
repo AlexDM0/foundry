@@ -8,7 +8,7 @@ import type { CONTRACT_VERSIONS } from '../../src/shared/constants/ContractVersi
 export type FrameSessionOutcome = 'done' | 'refused' | 'unreachable' | 'not-supported';
 
 /**
- * `frameUrl` is set only at `done`: the Bridge's address with `?embedded=gaia` and a one-time `#session=<code>`, spent by the frame's
+ * `frameUrl` is set only at `done`: the Bridge's address with `?embedded=frame` and a one-time `#session=<code>`, spent by the frame's
  * first load. `refusal` is the forge's own code or Gaia's, and `text` the forge's sentence, in Gaia's words where the forge's names a
  * command (D10) and `null` where Gaia has none for it.
  */
