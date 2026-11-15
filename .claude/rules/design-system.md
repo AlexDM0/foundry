@@ -18,7 +18,7 @@ paths:
   `apps/forge/package.json` declares it. A relative or absolute path into the folder, and an entry that the exports do
   not list, are findings.
 - The package's `bun run typecheck` checks its `tsconfig.json` (only the DOM library, no Bun or Node types) and its
-  `tsconfig.spec.json` (the specs, the stories and `.storybook/`). `packages/design-system/ProjectIncludeList.spec.ts`
+  `tsconfig.spec.json` (the specs, the stories and `.storybook/`). `apps/forge/src/ProjectIncludeLists.spec.ts`
   holds that its `include` list names only its own folder.
 - `bun run storybook` in `packages/design-system/` runs the package's Storybook 10;
   `packages/design-system/StoryCoverage.spec.ts` holds a story per export.
