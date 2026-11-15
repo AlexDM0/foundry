@@ -8,7 +8,7 @@
 import { cleanup, render }         from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';
 
-import type { FlintHandle }                 from '../../flint/CreateFlint.ts';
+import type { FlintHandle }                 from 'flint';
 import type { BoardReading, OccasionBoard } from './BoardOccasionModel.ts';
 import { useBoardOccasions }                from './UseBoardOccasions.ts';
 

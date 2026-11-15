@@ -9,6 +9,7 @@ import { Stamp, type StampProps } from 'design-system/Stamp';
 import { StateDot }               from 'design-system/StateDot';
 import { Tag, type TagProps }     from 'design-system/Tag';
 import { TextButton }             from 'design-system/TextButton';
+import { useFlintHabitat }        from 'flint/react/UseFlintHabitat';
 import {
   useContext,
   useEffect,
@@ -17,7 +18,6 @@ import {
   type ReactNode
 } from 'react';
 
-import { useFlintHabitat }                         from '../../flint/react/UseFlintHabitat.ts';
 import type { DisplayState }                       from '../../src/lib/tracker-model/@types/Task.ts';
 import { useCueOnChange }                          from '../flint/UseCueOnChange.ts';
 import { presenceAttributeOf, useItemPresence }    from '../shell/ItemPresence.ts';

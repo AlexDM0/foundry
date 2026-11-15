@@ -3,7 +3,7 @@
  * cue names a state that holds while it shows, so Flint keeps its answer up in the slot for as long as it holds; any other cue is a moment,
  * answered once.
  */
-import type { SpriteCue } from '../../flint/SpriteHabitat.ts';
+import type { SpriteCue } from 'flint/SpriteHabitat';
 
 export const FLINT_SLOT_CUES = Object.freeze({
   AGENT_READS:         'agent-reads',

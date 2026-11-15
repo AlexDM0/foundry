@@ -5,6 +5,9 @@
  * edge, so it stands below the job column for every job. What the view mounts with is no change: the one actions jobs show then are taken
  * as shown, so a return to the view cues none again.
  */
+
+import type { SpriteCopyTarget } from 'flint/SpriteHabitat';
+import { useFlintHabitat }       from 'flint/react/UseFlintHabitat';
 import {
   useEffect,
   useMemo,
@@ -12,9 +15,6 @@ import {
   useState,
   type RefObject
 } from 'react';
-
-import type { SpriteCopyTarget }                        from '../../../flint/SpriteHabitat.ts';
-import { useFlintHabitat }                              from '../../../flint/react/UseFlintHabitat.ts';
 import type { IdentifiedRecord, OverseerFactsDocument } from '../../@types/BoardStateDocument.ts';
 import { useCueOnChange }                               from '../../flint/UseCueOnChange.ts';
 import type { EndedAgentJobDocument }                   from './AgentJobDocument.ts';

@@ -3,9 +3,9 @@
  * `lay-bar-along`) only while Flint lives in that view's habitat, since the behaviour runs on the floor of the habitat Flint lives in. With
  * no Flint made, Flint lives nowhere.
  */
-import { createContext } from 'react';
+import type { FlintHandle } from 'flint';
+import { createContext }    from 'react';
 
-import type { FlintHandle } from '../../flint/CreateFlint.ts';
 
 export interface FlintDwelling {
   readonly livesIn: (habitatKind: string) => boolean;

@@ -2,8 +2,8 @@
  * The Progress chart as the timeline habitat of Flint (`flint/`): there Flint lays the bars. When a ticket starts, the view has Flint lay
  * the bar along its row (`lay-bar-along`, through Flint's handle), or lay a bar where it stands when the row is not shown.
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from '../../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE }                                     from '../../../flint/SpriteHabitat.ts';
+import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
 
 export const TIMELINE_CUES = Object.freeze({ STARTED_BAR_IS_NOT_SHOWN: 'started-bar-is-not-shown', } satisfies Readonly<Record<string, SpriteCue>>);
 

@@ -1,8 +1,8 @@
 /**
  * The Epics view as the epics habitat of Flint (`flint/`): there Flint ties tickets into epics, and ties a ribbon when a ticket joins one.
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from '../../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE }                                     from '../../../flint/SpriteHabitat.ts';
+import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
 
 export const EPICS_CUES = Object.freeze({ TICKET_JOINED_AN_EPIC: 'ticket-joined-an-epic', } satisfies Readonly<Record<string, SpriteCue>>);
 

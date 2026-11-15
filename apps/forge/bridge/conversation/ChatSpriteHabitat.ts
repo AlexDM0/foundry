@@ -2,8 +2,8 @@
  * The chat thread as a habitat of Flint (`flint/`): there Flint pretends to be the agent that User talks to. The cues are this habitat's
  * own names for what its turns show; each suggestion answers one with a move of Flint's fixed list.
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from '../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE }                                     from '../../flint/SpriteHabitat.ts';
+import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
 
 export const CHAT_CUES = Object.freeze({
   AGENT_IS_THINKING:     'agent-is-thinking',

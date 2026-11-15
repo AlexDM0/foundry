@@ -3,11 +3,11 @@
  * lived a frame there; a recording brain reads what Flint perceived, such as the cues it received and its visit target; and every intent
  * performed through the handle is recorded with its element before Flint carries it out. Test-only.
  */
-import { act, render }                      from '@testing-library/react';
-import { createElement, type ReactElement } from 'react';
+import { act, render } from '@testing-library/react';
 
-import type { FlintHandle }                                from '../../flint/CreateFlint.ts';
-import type { Director, PerceptionDigest }                 from '../../flint/SpriteHabitat.ts';
+import type { FlintHandle }                                from 'flint';
+import type { Director, PerceptionDigest }                 from 'flint/SpriteHabitat';
+import { createElement, type ReactElement }                from 'react';
 import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
 import { BridgeFlint }                                     from '../flint/BridgeFlint.tsx';
 import { FLINT_HABITAT_CHOICE_NAME }                       from '../flint/FlintHabitatStorage.ts';

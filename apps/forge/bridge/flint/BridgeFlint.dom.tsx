@@ -23,11 +23,11 @@ import {
   expect,
   test
 } from 'bun:test';
-import { useRef, type ReactNode } from 'react';
 
-import type { FlintHandle }                                from '../../flint/CreateFlint.ts';
-import type { Director, PerceptionDigest, SpriteIntent }   from '../../flint/SpriteHabitat.ts';
-import { useFlintPerform }                                 from '../../flint/react/UseFlintPerform.ts';
+import type { FlintHandle }                                from 'flint';
+import type { Director, PerceptionDigest, SpriteIntent }   from 'flint/SpriteHabitat';
+import { useFlintPerform }                                 from 'flint/react/UseFlintPerform';
+import { useRef, type ReactNode }                          from 'react';
 import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
 import type { IdentifiedRecord }                           from '../@types/BoardStateDocument.ts';
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';

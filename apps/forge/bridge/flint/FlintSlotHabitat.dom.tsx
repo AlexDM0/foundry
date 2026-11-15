@@ -12,10 +12,10 @@ import {
   screen
 } from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';
-import { useRef }                  from 'react';
 
-import type { SpriteHabitat } from '../../flint/SpriteHabitat.ts';
-import { useFlintHabitat }    from '../../flint/react/UseFlintHabitat.ts';
+import type { SpriteHabitat } from 'flint/SpriteHabitat';
+import { useFlintHabitat }    from 'flint/react/UseFlintHabitat';
+import { useRef }             from 'react';
 import {
   elementOf,
   flintHabitatSceneOf,

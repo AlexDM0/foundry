@@ -8,8 +8,8 @@ import type {
   SpriteCue,
   SpriteHabitat,
   SpriteSuggestion
-} from '../../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE } from '../../../flint/SpriteHabitat.ts';
+} from 'flint/SpriteHabitat';
+import { ARRIVED_CUE } from 'flint/SpriteHabitat';
 
 export const AGENT_PANEL_CUES = Object.freeze({
   AGENT_APPEARS:           'agent-appears',

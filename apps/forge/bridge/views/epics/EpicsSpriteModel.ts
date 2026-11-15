@@ -2,7 +2,7 @@
  * What the epics habitat cues between two payloads (`09-bridge-wiring.md`, "New habitats", `epics`): a ticket the previous payload had
  * gets a key in its `epics`. A new ticket filed into an epic is the tickets habitat's to answer.
  */
-import type { SpriteCue } from '../../../flint/SpriteHabitat.ts';
+import type { SpriteCue } from 'flint/SpriteHabitat';
 import { EPICS_CUES }     from './EpicsSpriteHabitat.ts';
 
 /** The fields of a page ticket the habitat reads; the Epics view's tickets satisfy it unchanged. */

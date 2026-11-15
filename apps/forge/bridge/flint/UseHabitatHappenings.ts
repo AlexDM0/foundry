@@ -4,6 +4,10 @@
  * one of the view's elements is performed through Flint's handle with that element, found at the change, and only while Flint lives in
  * this habitat; with the element not on the page, its fallback cue is sent instead. The facts the view mounts with are no change.
  */
+
+import type { SpriteCue, SpriteHabitat } from 'flint/SpriteHabitat';
+import { useFlintHabitat }               from 'flint/react/UseFlintHabitat';
+import { useFlintPerform }               from 'flint/react/UseFlintPerform';
 import {
   useContext,
   useEffect,
@@ -11,11 +15,7 @@ import {
   useRef,
   type RefObject
 } from 'react';
-
-import type { SpriteCue, SpriteHabitat } from '../../flint/SpriteHabitat.ts';
-import { useFlintHabitat }               from '../../flint/react/UseFlintHabitat.ts';
-import { useFlintPerform }               from '../../flint/react/UseFlintPerform.ts';
-import { FlintDwellingContext }          from './FlintDwelling.ts';
+import { FlintDwellingContext } from './FlintDwelling.ts';
 
 /** A behaviour that runs on one of the view's elements, named by the model with a key the view finds it by. */
 export interface ElementHappening {

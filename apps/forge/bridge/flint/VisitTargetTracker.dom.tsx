@@ -11,7 +11,7 @@
  */
 import { afterEach, expect, test } from 'bun:test';
 
-import { FLINT_OVERLAY_ATTRIBUTE, type RegisteredHabitat }     from '../../flint/SpriteHabitat.ts';
+import { FLINT_OVERLAY_ATTRIBUTE, type RegisteredHabitat }     from 'flint/SpriteHabitat';
 import { createVisitTargetTracker, FLINT_WORKPLACE_ATTRIBUTE } from './VisitTargetTracker.ts';
 
 afterEach(() => {

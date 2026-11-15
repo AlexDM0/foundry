@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { SpriteIntent }                                          from '../../../flint/SpriteHabitat.ts';
+import type { SpriteIntent }                                          from 'flint/SpriteHabitat';
 import { AgentPanelSpriteModel, type AgentPanelFacts, type PanelJob } from './AgentPanelSpriteModel.ts';
 
 type JobChanges = Partial<Omit<PanelJob, 'id' | 'live'>> & { readonly silentSweeps?: number };

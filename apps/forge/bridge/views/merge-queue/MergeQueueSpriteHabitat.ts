@@ -3,8 +3,8 @@
  * gets a holder, shows a conflict when a candidate's prediction against its target turns conflicting, and chains a ticket that joins a
  * target's order.
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from '../../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE }                                     from '../../../flint/SpriteHabitat.ts';
+import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
 
 export const MERGE_QUEUE_CUES = Object.freeze({
   AIRLOCK_TAKEN:      'airlock-taken',

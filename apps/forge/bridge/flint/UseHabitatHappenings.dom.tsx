@@ -11,9 +11,9 @@ import {
   expect,
   test
 } from 'bun:test';
-import { useRef } from 'react';
+import type { SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { useRef }                               from 'react';
 
-import type { SpriteHabitat, SpriteSuggestion } from '../../flint/SpriteHabitat.ts';
 import {
   elementOf,
   flintHabitatSceneOf,

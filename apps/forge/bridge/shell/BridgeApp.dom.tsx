@@ -31,8 +31,8 @@ import {
   test
 } from 'bun:test';
 
-import type { FlintHandle }                                        from '../../flint/CreateFlint.ts';
-import { FLINT_OVERLAY_ATTRIBUTE }                                 from '../../flint/SpriteHabitat.ts';
+import type { FlintHandle }                                        from 'flint';
+import { FLINT_OVERLAY_ATTRIBUTE }                                 from 'flint/SpriteHabitat';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';

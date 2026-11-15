@@ -7,7 +7,7 @@
  * in, Flint visits none. The tracker sends Flint to a slot at once when the slot shows, or when Flint is made while it shows, so Flint
  * never waits at its home corner for its director's next turn.
  */
-import { FLINT_OVERLAY_ATTRIBUTE, type RegisteredHabitat } from '../../flint/SpriteHabitat.ts';
+import { FLINT_OVERLAY_ATTRIBUTE, type RegisteredHabitat } from 'flint/SpriteHabitat';
 import type { FlintSlotShowing }                           from './FlintSlotShowing.ts';
 
 export const FLINT_WORKPLACE_ATTRIBUTE = 'data-flint-workplace';

@@ -8,7 +8,7 @@
  * took its default move; an escalation is no settling, since its decision opens. A waiver is answered when the history gains a
  * `decision-answered` record for a decision its `decision-opened` record names as a `waiver`; any other decision that gains one is answered.
  */
-import type { SpriteCue } from '../../flint/SpriteHabitat.ts';
+import type { SpriteCue } from 'flint/SpriteHabitat';
 import { QUESTIONS_CUES } from './QuestionsSpriteHabitat.ts';
 
 /** How many times User selects another decision, with the oldest decision still waiting, before Flint knocks rather than asks. */

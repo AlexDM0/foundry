@@ -8,15 +8,10 @@
     "tsBuildInfoFile": "../node_modules/.cache/typecheck/bridge.tsbuildinfo"
   },
   // The Bridge's own modules plus the shared files it reaches, named one by one, and the whole tracker model, to prove it DOM-safe. The
-  // design-system workspace package is found through the exports of its package.json, so no file of it is named here.
+  // design-system and flint workspace packages are found through the exports of their package.json, so no file of them is named here.
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
-    "../flint/CreateFlint.ts",
-    "../flint/SpriteHabitat.ts",
-    "../flint/react/Flint.tsx",
-    "../flint/react/UseFlintHabitat.ts",
-    "../flint/react/UseFlintPerform.ts",
     "../src/shared/constants/OverseerApiContracts.ts",
     "../src/shared/constants/ProductNames.ts",
     "../src/shared/constants/DispatchProtocol.ts",

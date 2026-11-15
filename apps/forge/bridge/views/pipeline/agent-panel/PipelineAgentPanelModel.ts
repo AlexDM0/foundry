@@ -6,7 +6,7 @@
  */
 import type { TagProps } from 'design-system/Tag';
 
-import type { SpriteHabitat } from '../../../../flint/SpriteHabitat.ts';
+import type { SpriteHabitat } from 'flint/SpriteHabitat';
 import type { JobState }      from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type {
   PipelineSetup,

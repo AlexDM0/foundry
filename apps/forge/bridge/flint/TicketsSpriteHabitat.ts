@@ -3,8 +3,8 @@
  * is readied, makes a ticket that is filed, reorders, chains, holds and ships, jars a bug a review found, and chases the bug a delivered
  * ticket let out, which the view performs with that ticket's row or card (`bridge/flint/UseTicketsHabitat.ts`).
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from '../../flint/SpriteHabitat.ts';
-import { ARRIVED_CUE }                                     from '../../flint/SpriteHabitat.ts';
+import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
 
 export const TICKETS_CUES = Object.freeze({
   DRAFT_READIED:           'draft-readied',

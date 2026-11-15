@@ -6,7 +6,8 @@
  * the sprite of the agents, lives over the whole page, its habitat stored with the board's preferences, and answers each change of the
  * board, of the stream and each command the Overseer refuses.
  */
-import { EmptyState } from 'design-system/EmptyState';
+import { EmptyState }       from 'design-system/EmptyState';
+import type { FlintHandle } from 'flint';
 import {
   useCallback,
   useEffect,
@@ -16,7 +17,6 @@ import {
   useState
 } from 'react';
 
-import type { FlintHandle }                                                              from '../../flint/CreateFlint.ts';
 import { OpenDecisionsUtil }                                                             from '../../src/shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardStateDocument, OverseerIdentity }                                     from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                                                from '../@types/ConversationDocuments.ts';

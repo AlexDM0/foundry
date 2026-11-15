@@ -8,6 +8,9 @@
  * that call `useFlintHabitat`; a component below it that starts an intent with one of its own elements calls `useFlintPerform`. Every
  * choice here is the host's, and easy to change.
  */
+
+import type { FlintHandle, FlintOptions } from 'flint';
+import { Flint }                          from 'flint/react';
 import {
   useEffect,
   useMemo,
@@ -15,9 +18,6 @@ import {
   useState,
   type ReactNode
 } from 'react';
-
-import type { FlintHandle, FlintOptions }   from '../../flint/CreateFlint.ts';
-import { Flint }                            from '../../flint/react/Flint.tsx';
 import type { PreferenceStore }             from '../preferences/PreferenceStore.ts';
 import type { BoardReading }                from './BoardOccasionModel.ts';
 import { dwellingOf, FlintDwellingContext } from './FlintDwelling.ts';

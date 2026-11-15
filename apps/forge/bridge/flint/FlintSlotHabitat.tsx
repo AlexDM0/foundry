@@ -5,6 +5,9 @@
  * the box, so a Flint that arrives later keeps it up too; and it tells the host that it shows, so Flint visits the open screen's slot.
  */
 import { FlintSlot, type FlintSlotGround, type FlintSlotSize } from 'design-system/FlintSlot';
+
+import type { SpriteCopyTarget, SpriteHabitat, SpriteIntent } from 'flint/SpriteHabitat';
+import { useFlintHabitat }                                    from 'flint/react/UseFlintHabitat';
 import {
   useContext,
   useEffect,
@@ -12,13 +15,10 @@ import {
   useRef,
   useState
 } from 'react';
-
-import type { SpriteCopyTarget, SpriteHabitat, SpriteIntent } from '../../flint/SpriteHabitat.ts';
-import { useFlintHabitat }                                    from '../../flint/react/UseFlintHabitat.ts';
-import type { FlintSlotCue }                                  from './FlintSlotCues.ts';
-import { lastingIntentOf }                                    from './FlintSlotHabitats.ts';
-import { FlintSlotShowingContext }                            from './FlintSlotShowing.ts';
-import { useCueOnChange }                                     from './UseCueOnChange.ts';
+import type { FlintSlotCue }       from './FlintSlotCues.ts';
+import { lastingIntentOf }         from './FlintSlotHabitats.ts';
+import { FlintSlotShowingContext } from './FlintSlotShowing.ts';
+import { useCueOnChange }          from './UseCueOnChange.ts';
 
 export interface FlintSlotHabitatProps {
   /** The screen's habitat, one of `FLINT_SLOT_HABITATS`. */
