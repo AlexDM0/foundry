@@ -1,8 +1,9 @@
 /**
- * Every import edge of the repository's TypeScript, over the files the root, Bridge, design-system and Flint programs compile, read
- * syntactically with the compiler API so no type checking is paid for. A specifier naming a workspace package of the root `package.json`
- * resolves through that package's `exports`, as Bun and TypeScript resolve it. Planted sources add or replace files in memory, so a guard
- * can prove it still fires. The tree is read once per run and shared frozen: `bun test` runs every spec file in one process.
+ * Every import edge of the program's TypeScript, over the files the root and Bridge programs and each workspace package the program declares
+ * compile, read syntactically with the compiler API so no type checking is paid for. A declared package's files sit under a virtual folder
+ * named after it (`design-system/atoms/Button.tsx`), and a specifier naming it resolves through its `exports`, as Bun and TypeScript resolve
+ * it. Planted sources add or replace files in memory, so a guard can prove it still fires. The tree is read once per run and shared frozen:
+ * `bun test` runs every spec file in one process.
  */
 import { readFileSync } from 'node:fs';
 import {
@@ -15,6 +16,9 @@ import {
 } from 'node:path';
 
 import ts from 'typescript';
+
+import type { DeclaredWorkspacePackage } from './RepositorySources.ts';
+import { declaredWorkspacePackagesOf }   from './RepositorySources.ts';
 
 export type ImportForm = 'import' | 're-export' | 'dynamic-import';
 
@@ -44,18 +48,44 @@ export interface ImportGraph {
 }
 
 /** Each spec project holds its shipping project plus the specs, so these together name every file the type check compiles. */
-const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json', 'design-system/tsconfig.spec.json', 'flint/tsconfig.spec.json'];
+const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json'];
+const PACKAGE_CONFIGURATION_PATH = 'tsconfig.spec.json';
 
-function repositoryPathOf(repositoryRoot: string, absolutePath: string): string {
-  return relative(repositoryRoot, absolutePath).split('\\').join('/');
+function forwardSlashed(path: string): string {
+  return path.split('\\').join('/');
 }
 
-function programFilePathsOf(repositoryRoot: string): readonly string[] {
+function isBelow(folder: string, absolutePath: string): boolean {
+  const relativePath = relative(folder, absolutePath);
+  return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+}
+
+/** A path as the guards name it: under a declared package's virtual folder when it lies in the package, else relative to the program root. */
+function programPathOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[], absolutePath: string): string {
+  const owningPackage = workspacePackages.find((workspacePackage) => isBelow(workspacePackage.folder, absolutePath));
+  return owningPackage === undefined
+    ? forwardSlashed(relative(programRoot, absolutePath))
+    : posix.join(owningPackage.name, forwardSlashed(relative(owningPackage.folder, absolutePath)));
+}
+
+/** Where a path the guards name is read: a virtual package path in the package's real folder, any other path under the program root. */
+export function programFileLocationOf(programRoot: string, path: string): string {
+  const [topFolder = '', ...rest] = path.split('/');
+  const owningPackage = declaredWorkspacePackagesOf(programRoot).find((workspacePackage) => workspacePackage.name === topFolder);
+  return owningPackage === undefined ? join(programRoot, path) : join(owningPackage.folder, ...rest);
+}
+
+function programFilePathsOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[]): readonly string[] {
   const unreportedDiagnostic = (): void => undefined;
   const parsingWatcher: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: unreportedDiagnostic };
-  const filePaths = PROGRAM_CONFIGURATION_PATHS.flatMap((configurationPath) => {
-    const parsedConfiguration = ts.getParsedCommandLineOfConfigFile(join(repositoryRoot, configurationPath), {}, parsingWatcher);
-    return (parsedConfiguration?.fileNames ?? []).map((fileName) => repositoryPathOf(repositoryRoot, resolve(fileName)));
+  const configurationLocations = [
+    ...PROGRAM_CONFIGURATION_PATHS.map((configurationPath) => join(programRoot, configurationPath)),
+    ...workspacePackages.map((workspacePackage) => join(workspacePackage.folder, PACKAGE_CONFIGURATION_PATH)),
+  ];
+  const filePaths = configurationLocations.flatMap((configurationLocation) => {
+    const parsedConfiguration = ts.getParsedCommandLineOfConfigFile(configurationLocation, {}, parsingWatcher);
+    if (parsedConfiguration === undefined) throw new Error(`${configurationLocation} could not be read`);
+    return parsedConfiguration.fileNames.map((fileName) => programPathOf(programRoot, workspacePackages, resolve(fileName)));
   });
   return [...new Set(filePaths)];
 }
@@ -64,19 +94,13 @@ function stringLiteralTextOf(node: ts.Node | undefined): string | null {
   return node !== undefined && ts.isStringLiteralLike(node) ? node.text : null;
 }
 
-interface WorkspacePackageManifest {
-  readonly name?:    string;
-  readonly exports?: Readonly<Record<string, string>>;
-}
-
-/** Every entry the workspace packages of the root `package.json` export, keyed by the specifier a host writes: `<name>/<entry>`. */
-function workspaceEntryPathsBySpecifierOf(repositoryRoot: string): ReadonlyMap<string, string> {
-  const readManifest = (path: string): WorkspacePackageManifest & { readonly workspaces?: readonly string[] } => JSON.parse(readFileSync(join(repositoryRoot, path), 'utf8'));
+/** Every entry the declared workspace packages export, keyed by the specifier a host writes, `<name>/<entry>`, naming its virtual path. */
+function workspaceEntryPathsBySpecifierOf(workspacePackages: readonly DeclaredWorkspacePackage[]): ReadonlyMap<string, string> {
   const entryPathsBySpecifier = new Map<string, string>();
-  for (const workspaceFolder of readManifest('package.json').workspaces ?? []) {
-    const { name, exports: entries = {} } = readManifest(posix.join(workspaceFolder, 'package.json'));
-    for (const [entryKey, entryTarget] of Object.entries(entries)) {
-      entryPathsBySpecifier.set(posix.join(name ?? workspaceFolder, entryKey), posix.join(workspaceFolder, entryTarget));
+  for (const workspacePackage of workspacePackages) {
+    const manifest = JSON.parse(readFileSync(join(workspacePackage.folder, 'package.json'), 'utf8')) as { readonly exports?: Readonly<Record<string, unknown>> };
+    for (const [entryKey, entryTarget] of Object.entries(manifest.exports ?? {})) {
+      if (typeof entryTarget === 'string') entryPathsBySpecifier.set(posix.join(workspacePackage.name, entryKey), posix.join(workspacePackage.name, entryTarget));
     }
   }
   return entryPathsBySpecifier;
@@ -84,6 +108,7 @@ function workspaceEntryPathsBySpecifierOf(repositoryRoot: string): ReadonlyMap<s
 
 interface SpecifierResolution {
   readonly repositoryRoot:                 string;
+  readonly workspacePackages:              readonly DeclaredWorkspacePackage[];
   readonly workspaceEntryPathsBySpecifier: ReadonlyMap<string, string>;
 }
 
@@ -97,7 +122,7 @@ function targetOf(fromPath: string, specifier: string, resolution: SpecifierReso
     return { kind: 'repository-file', path: posix.normalize(posix.join(posix.dirname(fromPath), specifier)) };
   }
   if (isAbsolute(specifier)) {
-    return { kind: 'repository-file', path: repositoryPathOf(resolution.repositoryRoot, specifier) };
+    return { kind: 'repository-file', path: programPathOf(resolution.repositoryRoot, resolution.workspacePackages, specifier) };
   }
   const workspaceEntryPath = resolution.workspaceEntryPathsBySpecifier.get(specifier);
   if (workspaceEntryPath !== undefined) {
@@ -155,9 +180,10 @@ export function importGraphScannerOf(repositoryRoot: string): ImportGraphScanner
 }
 
 function scannerOf(repositoryRoot: string): ImportGraphScanner {
-  const resolution: SpecifierResolution = { repositoryRoot, workspaceEntryPathsBySpecifier: workspaceEntryPathsBySpecifierOf(repositoryRoot) };
-  const sourceTexts: ReadonlyMap<string, string> = new Map(programFilePathsOf(repositoryRoot)
-    .map((path) => [path, readFileSync(join(repositoryRoot, path), 'utf8')]));
+  const workspacePackages = declaredWorkspacePackagesOf(repositoryRoot);
+  const resolution: SpecifierResolution = { repositoryRoot, workspacePackages, workspaceEntryPathsBySpecifier: workspaceEntryPathsBySpecifierOf(workspacePackages) };
+  const sourceTexts: ReadonlyMap<string, string> = new Map(programFilePathsOf(repositoryRoot, workspacePackages)
+    .map((path) => [path, readFileSync(programFileLocationOf(repositoryRoot, path), 'utf8')]));
   const edgesByPath: ReadonlyMap<string, readonly ImportEdge[]> = new Map([...sourceTexts]
     .map(([path, sourceText]) => [path, Object.freeze(edgesOf(path, sourceText, resolution))]));
   const graphOf = (texts: ReadonlyMap<string, string>, edgesByScannedPath: ReadonlyMap<string, readonly ImportEdge[]>): ImportGraph => Object.freeze({

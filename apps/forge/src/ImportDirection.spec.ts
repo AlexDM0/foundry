@@ -8,8 +8,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ImportEdge, ImportGraph }                       from './testing/ImportGraph.ts';
-import { importGraphScannerOf, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import type { ImportEdge, ImportGraph }                                              from './testing/ImportGraph.ts';
+import { importGraphScannerOf, programFileLocationOf, repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
 
 type ImportViolation =
   | 'layer-imports-upward'
@@ -464,7 +464,7 @@ function flintEntryPathsOf(packageText: string): readonly string[] {
   return Object.values(entries).map((entry) => `${FLINT_FOLDER}${entry.replace(/^\.\//, '')}`).sort();
 }
 
-const FLINT_ENTRY_PATHS = flintEntryPathsOf(await Bun.file(`${repositoryRootOfThisCheckout()}/${FLINT_PACKAGE_PATH}`).text());
+const FLINT_ENTRY_PATHS = flintEntryPathsOf(await Bun.file(programFileLocationOf(repositoryRootOfThisCheckout(), FLINT_PACKAGE_PATH)).text());
 
 function findingsOf(graph: ImportGraph, allowlists: Allowlists): readonly Finding[] {
   const declarations = declaredLibDependenciesOf(graph);

@@ -2,11 +2,17 @@
  * `reachablePathsFrom`, the walk the guards share, and the resolution of each specifier. What matters: it follows imports through each
  * other, keeps the entries, ignores package imports and stops at a cycle; on the real graph the Bridge entry reaches its modules, which the
  * include-list guard relies on; and a workspace package's specifier resolves through its `exports` as Bun and TypeScript resolve it, which
- * the import-direction guard relies on to tell an import by name from one by path.
+ * the import-direction guard relies on to tell an import by name from one by path; and each workspace package the program declares is read
+ * from its own folder under a virtual folder named after it, so the guards hold it as they held the folder it once was.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { importGraphScannerOf, reachablePathsFrom, repositoryRootOfThisCheckout } from './ImportGraph.ts';
+import {
+  importGraphScannerOf,
+  programFileLocationOf,
+  reachablePathsFrom,
+  repositoryRootOfThisCheckout
+} from './ImportGraph.ts';
 
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
@@ -32,6 +38,17 @@ describe('the target of a specifier', () => {
       { specifier: 'design-system/atoms/Button.tsx', target: { kind: 'unexported-workspace-entry', specifier: 'design-system/atoms/Button.tsx' } },
       { specifier: 'react', target: { kind: 'package', specifier: 'react' } },
     ]);
+  });
+});
+
+describe('the declared workspace packages', () => {
+  /** Floors well under today's counts, to fail a scan that found a package folder empty or read none. */
+  test('each is read under a virtual folder named after it, from the package\'s own folder', () => {
+    for (const [packageName, floor] of [['design-system', 100], ['flint', 20]] as const) {
+      expect(SCANNER.graph.scannedPaths.filter((path) => path.startsWith(`${packageName}/`)).length, `files of ${packageName}`).toBeGreaterThanOrEqual(floor);
+    }
+    expect(programFileLocationOf(repositoryRootOfThisCheckout(), 'flint/package.json')).toEndWith('/packages/flint/package.json');
+    expect(programFileLocationOf(repositoryRootOfThisCheckout(), 'bridge/tsconfig.json')).toBe(`${repositoryRootOfThisCheckout()}/bridge/tsconfig.json`);
   });
 });
 
