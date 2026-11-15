@@ -26,7 +26,9 @@ bun migration/design-system-patches/CheckPatches.ts packages/design-system
 ```
 
 It says per patch whether it applies, is applied already, is stale (a file it touches changed since; make it again against the
-new source) or waits on an earlier patch that does not apply. Its spec holds this README to the patches' hashes.
+new source) or waits on an earlier patch that does not apply. Its spec holds this README to the patches' hashes. Forge kept
+reworking the package after this snapshot (motion tokens, and hooks in `CountBadge` and `NumberStepper`), so expect the check to
+name stale patches until that work lands; make those again against the landed source.
 
 After every patch in order, and after the whole series on an untouched copy, the package's checks pass: both typechecks
 (`tsconfig.json`, `tsconfig.spec.json`), its specs, its DOM specs under happy-dom, and forge's lint of the package.
@@ -214,6 +216,5 @@ Changes the list asked for that are not small or clean as a patch:
   240, 700 and 200 ms, SidePanel's 140 ms swap, the 0.9 and 1.3 s spinners, Skeleton 1.4 s, Toast 420 to 600 ms, ChangeRow,
   TypingIndicator). Each needs a decision of the package's owner: which existing token holds it or which new token it gets, and
   what an endless loop (a spinner, the skeleton) shows before the gate opens, where a zero duration is no answer. Patch 13 does
-  the token half that needs no decision. Late on 2026-11-15 forge's own uncommitted work began moving these durations onto new
-  motion tokens and set `--side-panel-motion` to `var(--motion-slow)`, which makes 06, 13 and 14 stale against it: once that work
-  lands, make them again against it and drop what it already covers.
+  the token half that needs no decision. Later on 2026-11-15 forge's own uncommitted work began moving these durations onto new
+  motion tokens and set `--side-panel-motion` to `var(--motion-slow)`; once that work lands, this ticket and part of 13 may be done.
