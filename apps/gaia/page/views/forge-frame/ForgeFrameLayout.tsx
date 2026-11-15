@@ -299,7 +299,7 @@ function SessionArea({
       return <Unreachable area={area} onLookAgain={onAskAgain} />;
     case 'refused':
       return (
-        <div className="gaia-forge-frame-notice">
+        <div className="gaia-forge-frame-notice" data-refused="">
           <div className="gaia-forge-frame-notice-refusal">
             <Refusal
               commandLabel="Open"

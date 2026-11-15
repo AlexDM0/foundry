@@ -1282,9 +1282,11 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
-/* A notice and Stop's question fade in as they appear; the panel inside Stop's question fades with it, not again. */
+/* A notice and Stop's question fade in as they appear; the panel inside Stop's question fades with it, not again. A refused notice
+   draws nothing of its own and its refusal fades in itself, so the notice holds still and the refusal fades once. */
 @starting-style {
   .gaia-forge-frame-notice,
   .gaia-forge-frame-stop-popover { opacity: 0; }
 }
+.gaia-forge-frame-notice[data-refused],
 .gaia-forge-frame-stop-popover > .gaia-confirm { transition: none; }
