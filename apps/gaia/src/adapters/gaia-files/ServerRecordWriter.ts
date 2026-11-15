@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { AtomicFile, type AtomicWriteVerdict } from '../../lib/atomic-file/AtomicFile.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FORGE_PLACES }                        from '../../shared/constants/ForgePlaces.ts';
+import { ContractVersionUtil }                 from '../../shared/utils/ContractVersionUtil.ts';
 import { GaiaFile, type FileRemoveVerdict }    from './GaiaFile.ts';
 
 /** The record's place is part of the forge's contract (F5), so no name follows Gaia's own product names. */
@@ -21,8 +22,11 @@ export interface ServerRecord {
   readonly startedAt: string;
 }
 
+const SERVER_RECORD_VERSION_KEYS = { majorKey: 'version', minorKey: 'minor' } as const;
+
 interface StoredServerRecordVersion1 {
   readonly version:   1;
+  readonly minor:     number;
   readonly url:       string;
   readonly origin:    string;
   readonly processId: number;
@@ -43,7 +47,8 @@ export function serverRecordPathIn(homeDirectory: string): string {
 
 function storedFormOf(record: ServerRecord): StoredServerRecordVersion1 {
   return {
-    version:   CONTRACT_VERSIONS.gaiaServerRecord,
+    version:   CONTRACT_VERSIONS.gaiaServerRecord.major,
+    minor:     CONTRACT_VERSIONS.gaiaServerRecord.minor,
     url:       record.url.href,
     origin:    record.url.origin,
     processId: record.processId,
@@ -60,7 +65,7 @@ function storedRecordNamesProcess(contents: string, processId: number): boolean 
   }
   if (typeof stored !== 'object' || stored === null) return false;
   const storedFields = stored as Readonly<Record<string, unknown>>;
-  return storedFields['version'] === CONTRACT_VERSIONS.gaiaServerRecord && storedFields['processId'] === processId;
+  return ContractVersionUtil.readMajorOf(storedFields, SERVER_RECORD_VERSION_KEYS, CONTRACT_VERSIONS.gaiaServerRecord) !== null && storedFields['processId'] === processId;
 }
 
 export function createServerRecordWriter(homeDirectory: string): ServerRecordWriter {

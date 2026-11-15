@@ -3,7 +3,7 @@
  * states, as B1 draws them, and the brain's agent row only while it runs. Storefront publishes control contract 2, which carries the
  * brain's commands, so its bar offers Wake and Stop as B1 draws them.
  */
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                   from '../../../src/shared/constants/ContractVersions.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                   from 'overseer-contracts/OverseerContractVersions';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentBrainState } from '../../@types/FleetDocument.ts';
 
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from './fleet-five-forges.ts';
@@ -73,7 +73,7 @@ export function fleetWithStorefrontBrainOf(state: FleetDocumentBrainState): Flee
   return {
     ...FLEET_FIVE_FORGES,
     forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront
-      ? { ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl }, brain: STOREFRONT_BRAINS[state] }
+      ? { ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control }, brain: STOREFRONT_BRAINS[state] }
       : forge)),
     agents: state === 'running' ? FLEET_FIVE_FORGES.agents : FLEET_FIVE_FORGES.agents.filter((row) => row.jobId !== FLINT_BRAIN_JOB_ID),
   };

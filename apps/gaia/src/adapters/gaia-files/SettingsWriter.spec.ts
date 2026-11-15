@@ -64,7 +64,7 @@ describe('a settings round trip', () => {
   test('keeps every key: what is written reads back equal', async () => {
     expect(EVERY_KEY_CHANGED).not.toEqual(GAIA_SETTINGS_DEFAULTS);
     expect(await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED)).toEqual({ verdict: 'written' });
-    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', settings: EVERY_KEY_CHANGED });
+    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', storedVersion: { major: 1, minor: 0 }, settings: EVERY_KEY_CHANGED });
   });
 
   test('keeps every key of a stored file: read, written again and stored the same', async () => {
@@ -75,9 +75,9 @@ describe('a settings round trip', () => {
     expect(storedJson()).toEqual(storedBefore);
   });
 
-  test('stores exactly the keys of version 1, with the version', async () => {
+  test('stores exactly the keys of version 1, with the version and its minor', async () => {
     await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED);
-    expect(storedJson()).toEqual({ version: 1, ...EVERY_KEY_CHANGED });
+    expect(storedJson()).toEqual({ version: 1, minor: 0, ...EVERY_KEY_CHANGED });
   });
 });
 
@@ -91,15 +91,23 @@ describe('a settings write', () => {
     mkdirSync(dirname(settingsFilePathIn(homeDirectory)), { recursive: true });
     writeFileSync(settingsFilePathIn(homeDirectory), 'not json');
     expect(await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED)).toEqual({ verdict: 'written' });
-    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', settings: EVERY_KEY_CHANGED });
+    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', storedVersion: { major: 1, minor: 0 }, settings: EVERY_KEY_CHANGED });
   });
 
   test('keeps a file of a newer version byte for byte and says so', async () => {
     const newerText = JSON.stringify({ version: 2, theme: 'midnight' });
     mkdirSync(dirname(settingsFilePathIn(homeDirectory)), { recursive: true });
     writeFileSync(settingsFilePathIn(homeDirectory), newerText);
-    expect(await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED)).toEqual({ verdict: 'kept-newer-version', storedVersion: 2 });
+    expect(await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED)).toEqual({ verdict: 'kept-newer-version', storedVersion: { major: 2, minor: 0 } });
     expect(readFileSync(settingsFilePathIn(homeDirectory), 'utf8')).toBe(newerText);
+  });
+
+  test('keeps a file of a newer minor byte for byte, since writing it would drop the key that minor adds', async () => {
+    await createSettingsWriter(homeDirectory).write(GAIA_SETTINGS_DEFAULTS);
+    const newerMinorText = JSON.stringify({ ...storedJson() as object, minor: 1, exampleAddedKey: true });
+    writeFileSync(settingsFilePathIn(homeDirectory), newerMinorText);
+    expect(await createSettingsWriter(homeDirectory).write(EVERY_KEY_CHANGED)).toEqual({ verdict: 'kept-newer-version', storedVersion: { major: 1, minor: 1 } });
+    expect(readFileSync(settingsFilePathIn(homeDirectory), 'utf8')).toBe(newerMinorText);
   });
 
   test('that cannot make Gaia\'s folder is unwritable with the system\'s reason', async () => {

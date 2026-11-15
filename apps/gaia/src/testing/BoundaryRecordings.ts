@@ -12,7 +12,8 @@ import {
 import { release } from 'node:os';
 import { join }    from 'node:path';
 
-import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
+import { CONTRACT_VERSIONS }   from '../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil } from '../shared/utils/ContractVersionUtil.ts';
 
 import { scratchRoot } from './ScratchRoot.ts';
 
@@ -151,6 +152,8 @@ export interface RecordedAnswer {
 
 export interface BoundaryRecording {
   readonly recordingVersion: number;
+  /** Absent in a recording taken before minors, which reads as 0. */
+  readonly recordingMinor:   number;
   readonly stamp:            RecordingStamp;
   readonly answers:          readonly RecordedAnswer[];
 }
@@ -228,6 +231,8 @@ function answerOrNull(value: unknown): RecordedAnswer | null {
   return { callShape: value['callShape'], answer: value['answer'] };
 }
 
+const RECORDING_VERSION_KEYS = { majorKey: 'recordingVersion', minorKey: 'recordingMinor' } as const;
+
 export function boundaryRecordingReadingOf(recordingText: string): BoundaryRecordingReading {
   let parsed: unknown;
   try {
@@ -236,17 +241,24 @@ export function boundaryRecordingReadingOf(recordingText: string): BoundaryRecor
     return { verdict: 'unreadable', reason: 'it is no JSON' };
   }
   if (!isRecord(parsed)) return { verdict: 'unreadable', reason: 'it is no JSON object' };
-  const { recordingVersion } = parsed;
-  if (recordingVersion !== CONTRACT_VERSIONS.boundaryRecording) {
-    return { verdict: 'unreadable', reason: `its recordingVersion is ${String(recordingVersion)}, and Gaia reads ${CONTRACT_VERSIONS.boundaryRecording}` };
+  const versionReading = ContractVersionUtil.versionOf(parsed, RECORDING_VERSION_KEYS);
+  if (versionReading.verdict !== 'versioned' || ContractVersionUtil.majorVerdictOf(versionReading.version.major, CONTRACT_VERSIONS.boundaryRecording) !== 'known') {
+    const { recordingVersion } = parsed;
+    return { verdict: 'unreadable', reason: `its recordingVersion is ${String(recordingVersion)}, and Gaia reads ${CONTRACT_VERSIONS.boundaryRecording.major}` };
   }
+  const { major: recordingVersion, minor: recordingMinor } = versionReading.version;
   const stamp = stampOrNull(parsed['stamp']);
   if (stamp === null) return { verdict: 'unreadable', reason: 'it has no readable stamp' };
   const listedAnswers = parsed['answers'];
   if (!Array.isArray(listedAnswers)) return { verdict: 'unreadable', reason: 'it has no list of answers' };
   const answers = listedAnswers.map(answerOrNull);
   if (answers.some((answer) => answer === null)) return { verdict: 'unreadable', reason: 'an answer has no call shape or no answer' };
-  return { verdict: 'readable', recording: { recordingVersion, stamp, answers: answers.filter((answer) => answer !== null) } };
+  return {
+    verdict:   'readable',
+    recording: {
+      recordingVersion, recordingMinor, stamp, answers: answers.filter((answer) => answer !== null)
+    }
+  };
 }
 
 /** Where a recording spec collects its answers while `bun run record` runs it: in the scratch root, outside the run's own folder. */

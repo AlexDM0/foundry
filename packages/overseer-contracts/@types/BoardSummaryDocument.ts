@@ -1,6 +1,6 @@
 /**
- * The forge's open `GET /api/summary` at `summaryVersion: 1`: the keys Gaia reads of a forge without the monitor contract, after their
- * check. `ticketCountByStatus` is passed over.
+ * The forge's open `GET /api/summary` at `summaryVersion: 1`: the keys a reader checks of a forge without the monitor contract.
+ * `ticketCountByStatus` is left out.
  */
 import type { UsageLimitDocument } from './MonitorSnapshotDocument.ts';
 
@@ -25,6 +25,8 @@ export interface SummaryJobDocument {
 
 export interface BoardSummaryDocument {
   readonly summaryVersion: number;
+  /** Absent reads as 0. */
+  readonly summaryMinor?:  number;
   readonly project:        string;
   readonly overseer:       SummaryOverseerDocument;
   readonly readyTicketIds: readonly string[];

@@ -4,12 +4,12 @@
  * the artboard shows mid-use, such as B2's Stop dialog, refusal and start on their way, is set in the view's own state, not drawn apart.
  * A state no artboard draws, which a later decision of the owner added, is painted over the artboard it changes, for the same pass.
  */
-import { readFileSync }         from 'node:fs';
-import { join }                 from 'node:path';
-import { pathToFileURL }        from 'node:url';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync }                  from 'node:fs';
+import { join }                          from 'node:path';
+import { pathToFileURL }                 from 'node:url';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { renderToStaticMarkup }          from 'react-dom/server';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from '../../src/shared/constants/ContractVersions.ts';
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
@@ -57,7 +57,7 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 /** The fixture's forges serve control 1; A2 draws Wake and Stop, which a forge offers only at the control contract that carries them (G3). */
 const FLEET_SERVING_THE_BRAIN: FleetDocument = {
   ...FLEET_FIVE_FORGES,
-  forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
+  forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } })),
 };
 
 const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';

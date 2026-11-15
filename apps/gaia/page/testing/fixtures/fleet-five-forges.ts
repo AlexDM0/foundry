@@ -854,6 +854,7 @@ const STOREFRONT_BRAIN_ROW: FleetDocumentFleetAgentRow = {
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
   fleetVersion: 3,
+  fleetMinor:   0,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },

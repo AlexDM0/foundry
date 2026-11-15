@@ -8,10 +8,10 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { BoardSummaryDocument, SummaryOverseerState } from 'overseer-contracts/BoardSummaryDocument';
+import type { MonitorSnapshotDocument }                    from 'overseer-contracts/MonitorSnapshotDocument';
 import { FORGE_NOTICE_KINDS }                              from '../../../shared/constants/ForgeNoticeKinds.ts';
-import type { BoardSummaryDocument, SummaryOverseerState } from '../@types/BoardSummaryDocument.ts';
 import type { ForgeIdentity, ForgeRegistryFacts }          from '../@types/ForgeDocumentReading.ts';
-import type { MonitorSnapshotDocument }                    from '../@types/MonitorSnapshotDocument.ts';
 import { ForgeReadingMapUtil }                             from './ForgeReadingMapUtil.ts';
 
 const REGISTRY_FACTS: ForgeRegistryFacts = {

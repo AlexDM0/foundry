@@ -45,7 +45,8 @@ export type CommandKind = CommandBody['kind'];
 
 export type FleetCommandKind = FleetCommandBody['kind'];
 
-export type CommandDocument = CommandBody & { commandVersion: typeof CONTRACT_VERSIONS.gaiaCommand };
+/** An absent `commandMinor` reads as 0; a reader reads any minor of its major. */
+export type CommandDocument = CommandBody & { commandVersion: typeof CONTRACT_VERSIONS.gaiaCommand.major; commandMinor?: number };
 
 /** `restart-pending`: a `forge-update` was done, and the forge's Overseer runs the old code until it restarts. */
 export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'refused' | 'unreachable' | 'not-supported';
@@ -55,7 +56,9 @@ export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'ref
  * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`.
  */
 export interface CommandAnswerDocument {
-  answerVersion: typeof CONTRACT_VERSIONS.gaiaCommandAnswer;
+  answerVersion: typeof CONTRACT_VERSIONS.gaiaCommandAnswer.major;
+  /** Absent reads as 0; a reader reads any minor of its major. */
+  answerMinor?:  number;
   outcome:       CommandOutcome;
   refusal:       string | null;
   text:          string | null;

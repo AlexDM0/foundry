@@ -37,7 +37,7 @@ describe('a command Gaia can read', () => {
     const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand);
     expect(answer.status).toBe(200);
     expect(await answer.json()).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     });
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -47,10 +47,12 @@ describe('a command Gaia can read', () => {
     const carrier = carrierAnswering({
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
-    const body = JSON.stringify({ commandVersion: 2, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
+    const body = JSON.stringify({
+      commandVersion: 2, commandMinor: 0, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41'
+    });
     const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
     expect([answer.status, await answer.json()]).toEqual([409, {
-      answerVersion: 3, outcome: 'refused', refusal: 'usage-limit-holds', text,
+      answerVersion: 3, answerMinor: 0, outcome: 'refused', refusal: 'usage-limit-holds', text,
     }]);
     expect(carrier.carriedCommands).toEqual([{ kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' }]);
   });
@@ -84,13 +86,13 @@ describe('a command Gaia cannot read', () => {
     }));
     expect(answers).toEqual([
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'not-json', text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'not-json', text: null
       }],
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'other-version', text: null
       }],
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'malformed', text: null
       }],
     ]);
     expect(carrier.carriedCommands).toEqual([]);

@@ -212,6 +212,7 @@ describe('a headless start under a scratch home', () => {
     const record = JSON.parse(readFileSync(serverRecordPathIn(homeDirectory), 'utf8')) as unknown;
     expect(record).toEqual({
       version:   1,
+      minor:     0,
       url:       pageServer.url.href,
       origin:    pageServer.url.origin,
       processId: PROCESS_ID,
@@ -257,6 +258,7 @@ describe('a headless start under a scratch home', () => {
     expect(await response.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
+      healthMinor:      0,
       installVersion:   1,
       forgesRegistered: 5,
       forgesAnswered:   3,
@@ -301,10 +303,10 @@ describe('a command', () => {
   test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, commandMinor: 0, kind: 'fleet-look-again' }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     });
     expect(carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -315,12 +317,13 @@ describe('a command', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
     };
     const stopCommand = {
-      commandVersion: 2, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+      commandVersion: 2, commandMinor: 0, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
     };
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'refused',
       refusal:       'overseer-held',
       text:          'The Overseer is held by an install change.',
@@ -340,7 +343,7 @@ describe('a command', () => {
     const statuses: number[] = [];
     for (const verdict of verdicts) {
       nextCommandVerdict = verdict;
-      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }))).status);
+      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, commandMinor: 0, kind: 'fleet-look-again' }))).status);
     }
     expect(statuses).toEqual([200, 409, 502, 501]);
   });
@@ -350,7 +353,7 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 1, kind: 'fleet-look-again' }));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'other-version', text: null
     });
     expect(carriedCommands).toEqual([]);
   });
@@ -372,7 +375,7 @@ describe('a frame session', () => {
     const response = await answerOf(pageServer, framePath, { method: 'POST', headers: { cookie: await sessionCookieOf(pageServer) } });
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
+      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
     });
     expect(overseerFetch.callsAnswered()).toEqual([]);
   });

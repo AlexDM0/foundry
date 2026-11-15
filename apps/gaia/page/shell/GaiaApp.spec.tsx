@@ -219,14 +219,14 @@ describe('the route and the theme', () => {
   test('a theme picked with the switch shows at once and is sent to Gaia\'s settings, so the next document does not bring back the old one', async () => {
     const sent: SentRequest[] = [];
     const sender = senderOver([() => Promise.resolve(answerResponse({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     }))], sent);
     const shown: string[] = [];
     themeChoiceHandlerOf((choice) => shown.push(choice), sender.send)('light');
     await Promise.resolve();
     expect(shown).toEqual(['light']);
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([{
-      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 2
+      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 2, commandMinor: 0
     }]);
   });
 });

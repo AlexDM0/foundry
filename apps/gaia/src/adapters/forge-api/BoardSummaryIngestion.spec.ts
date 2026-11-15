@@ -184,3 +184,18 @@ describe('a summary that cannot be read', () => {
     expect(recordedForgeIngestion().readingOf({ project: 'Example Project' }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['summaryVersion'] });
   });
 });
+
+describe('a summary at another minor', () => {
+  test('reads a summary at a newer summaryMinor, with a key this Gaia does not know, as it reads one at minor 0', async () => {
+    const atMinorZero = recordedForgeIngestion().readingOf(await recordedSummary(), EXAMPLE_READ_STAMP);
+    const atANewerMinor = { ...await recordedSummary(), summaryMinor: 3, exampleAddedKey: ['example'] };
+
+    expect(atMinorZero.verdict).toBe('readable');
+    expect(recordedForgeIngestion().readingOf(atANewerMinor, EXAMPLE_READ_STAMP)).toEqual(atMinorZero);
+  });
+
+  test('names a summaryMinor that is no whole number', async () => {
+    expect(recordedForgeIngestion().readingOf({ ...await recordedSummary(), summaryMinor: 1.5 }, EXAMPLE_READ_STAMP))
+      .toEqual({ verdict: 'malformed', invalidKeys: ['summaryMinor'] });
+  });
+});

@@ -36,17 +36,26 @@ describe('what the channel hears', () => {
     expect(heard).toEqual([]);
   });
 
+  test('a message at a newer channelMinor as at minor 0, passing over a key it adds, and nothing at a channelMinor that is no whole number', () => {
+    const { bridge, heard } = openedOver();
+    bridge.post({ ...BRIDGE_MESSAGES.ready, channelMinor: 2, exampleAddedKey: true });
+    bridge.post({ ...BRIDGE_MESSAGES.leave, channelMinor: '1' });
+    expect(heard).toEqual([{ kind: 'ready' }]);
+  });
+
   test('nothing at another channel version, of another channel, of an unknown kind or of another shape, and answers none of it', () => {
     const { bridge, heard } = openedOver();
     [
-      { ...BRIDGE_MESSAGES.ready, channelVersion: 2 },
+      { ...BRIDGE_MESSAGES.ready, channelVersion: 2, channelMinor: 0 },
       { ...BRIDGE_MESSAGES.ready, channelVersion: '1' },
       { channel: 'forge-embed', kind: 'ready' },
       { ...BRIDGE_MESSAGES.ready, channel: 'forge-dashboard' },
       { ...BRIDGE_MESSAGES.ready, kind: 'navigate' },
-      { channel: 'forge-embed', channelVersion: 1, kind: 'route' },
       {
-        channel: 'forge-embed', channelVersion: 1, kind: 'route', fragment: 7
+        channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'route'
+      },
+      {
+        channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'route', fragment: 7
       },
       'ready',
       null,
@@ -56,7 +65,9 @@ describe('what the channel hears', () => {
   });
 
   test('reads only the message\'s own keys, never one it inherits', () => {
-    const inherited = Object.create({ channel: 'forge-embed', channelVersion: 1, kind: 'ready' }) as object;
+    const inherited = Object.create({
+      channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'ready'
+    }) as object;
     expect(EmbedChannel.bridgeMessageOf(inherited)).toBeNull();
   });
 });
@@ -69,13 +80,13 @@ describe('what the channel posts', () => {
     expect(bridge.posted).toEqual([
       {
         message: {
-          channel: 'forge-embed', channelVersion: 1, kind: 'theme', themeChoice: 'dark'
+          channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'theme', themeChoice: 'dark'
         },
         targetOrigin: BRIDGE_ORIGIN
       },
       {
         message: {
-          channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions/E2'
+          channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E2'
         },
         targetOrigin: BRIDGE_ORIGIN
       },

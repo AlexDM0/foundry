@@ -4,7 +4,7 @@
  * names no kind; contract 1 knows no current usage window, so it is `null`. The document keeps its `monitorVersion`, so the reading still
  * names the number the forge serves.
  */
-import type { MonitorSnapshotDocument, MonitorSnapshotDocumentOfVersionOne, MonitorSnapshotDocumentOfVersionTwo } from '../@types/MonitorSnapshotDocument.ts';
+import type { MonitorSnapshotDocument, MonitorSnapshotDocumentOfVersionOne, MonitorSnapshotDocumentOfVersionTwo } from 'overseer-contracts/MonitorSnapshotDocument';
 
 /** The kind a warning of monitor contract 1 reads as: the forge sends its sentence and names no kind. */
 export const FORGE_WARNING_WITHOUT_KIND = 'forge-warning';

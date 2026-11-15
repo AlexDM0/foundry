@@ -155,6 +155,14 @@ describe('following the event stream', () => {
     expect(stage.opened).toHaveLength(1);
   });
 
+  test('a fleet document of this page\'s fleetVersion at a newer fleetMinor is published, and one whose fleetMinor is no whole number dropped', () => {
+    const stage = followedAndLive(streamStage());
+    const atANewerMinor = { ...FLEET_FIVE_FORGES, fleetMinor: 4, exampleAddedKey: true };
+    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetMinor: 'four' }));
+    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify(atANewerMinor));
+    expect([stage.client.state(), stage.published, stage.reloads]).toEqual(['live', [atANewerMinor], []]);
+  });
+
   test('data that is no fleet document is dropped, and the stream stays live', () => {
     const stage = followedAndLive(streamStage());
     for (const data of ['not json', 'null', '{}', '{"fleetVersion":"1"}', '[1]']) stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, data);

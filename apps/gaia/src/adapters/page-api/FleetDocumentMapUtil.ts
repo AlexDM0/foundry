@@ -206,7 +206,8 @@ export const FleetDocumentMapUtil = {
   fleetDocumentOf(snapshot: FleetSnapshot): FleetDocument {
     const { figures, machine } = snapshot;
     return {
-      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument,
+      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument.major,
+      fleetMinor:   CONTRACT_VERSIONS.gaiaFleetDocument.minor,
       forges:       snapshot.forges.map(forgeOut),
       attention:    snapshot.attention.map((item) => ({ ...attentionItemOut(item), trackerId: item.trackerId })),
       needsALook:   snapshot.needsALook.map((look) => ({ trackerId: look.trackerId, kind: look.kind })),

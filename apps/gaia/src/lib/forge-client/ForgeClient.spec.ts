@@ -6,6 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { ForgeControlCommand } from 'overseer-contracts/ForgeControlCommand';
 import {
   everyRecordedOverseerAnswerOf,
   recordedOverseerAnswersOf,
@@ -15,9 +16,8 @@ import {
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
 
-import type { OverseerAccess }      from './@types/ForgeClientAnswer.ts';
-import type { ForgeControlCommand } from './@types/ForgeControlCommand.ts';
-import { forgeClientOf }            from './ForgeClient.ts';
+import type { OverseerAccess } from './@types/ForgeClientAnswer.ts';
+import { forgeClientOf }       from './ForgeClient.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';

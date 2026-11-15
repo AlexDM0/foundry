@@ -247,7 +247,9 @@ export interface FleetDocumentGaia {
 }
 
 export interface FleetDocument {
-  fleetVersion: typeof CONTRACT_VERSIONS.gaiaFleetDocument;
+  fleetVersion: typeof CONTRACT_VERSIONS.gaiaFleetDocument.major;
+  /** Absent reads as 0; a reader reads any minor of its major. */
+  fleetMinor?:  number;
   forges:       FleetDocumentForge[];
   attention:    FleetDocumentFleetAttentionItem[];
   needsALook:   FleetDocumentLook[];

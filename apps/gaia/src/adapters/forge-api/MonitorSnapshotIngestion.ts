@@ -1,11 +1,8 @@
 /**
- * The ingestion of a forge's monitor snapshot (F2, F3, G1): check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads
- * at that number, migrate a snapshot of an older number Gaia still reads (`OLDER_CONTRACT_VERSIONS_READ`), map to a `ForgeReading` at
+ * The ingestion of a forge's monitor snapshot (F2, F3, G1): check `monitorVersion` and `monitorMinor` against `CONTRACT_VERSIONS`, check the keys
+ * Gaia reads at that major, migrate a snapshot of an older number Gaia still reads (`OLDER_CONTRACT_VERSIONS_READ`), map to a `ForgeReading` at
  * fidelity `full`. A snapshot at a newer version maps nothing of itself; nor does a malformed one, or one that names another forge.
  */
-import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ }              from '../../shared/constants/ContractVersions.ts';
-import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
 import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
@@ -22,15 +19,21 @@ import type {
   MonitorTodayDocument,
   MonitorUsageDocument,
   UsageLimitDocument,
-} from './@types/MonitorSnapshotDocument.ts';
-import { DocumentShapeUtil, type DocumentShape, type ShapeOf } from './utils/DocumentShapeUtil.ts';
-import { ForgeReadingMapUtil }                                 from './utils/ForgeReadingMapUtil.ts';
-import { MonitorSnapshotMigrationUtil }                        from './utils/MonitorSnapshotMigrationUtil.ts';
+} from 'overseer-contracts/MonitorSnapshotDocument';
 
-const VERSION_KEY = 'monitorVersion';
+import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ }              from '../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                                          from '../../shared/utils/ContractVersionUtil.ts';
+import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
+import { DocumentShapeUtil, type DocumentShape, type ShapeOf }          from './utils/DocumentShapeUtil.ts';
+import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
+import { MonitorSnapshotMigrationUtil }                                 from './utils/MonitorSnapshotMigrationUtil.ts';
+
+const VERSION_KEYS = { majorKey: 'monitorVersion', minorKey: 'monitorMinor' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 const NULLABLE_WHOLE_NUMBER = { nullable: 'whole-number' } as const;
+const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
 
 const OVERSEER_SHAPE = {
   state:       { oneOf: ['serving', 'held-by-install-change', 'passing-baton'] },
@@ -142,6 +145,7 @@ const FLINT_BRAIN_SHAPE = {
 
 const MONITOR_SNAPSHOT_SHAPE_OF_VERSION_TWO = {
   monitorVersion: 'whole-number',
+  monitorMinor:   OPTIONAL_WHOLE_NUMBER,
   trackerId:      'text',
   project:        'text',
   root:           'text',
@@ -179,11 +183,11 @@ function invalidKeysOrNull(document: unknown, shape: DocumentShape): readonly st
 const MONITOR_VERSION_TWO = 2;
 
 /**
- * The snapshot in the current shape: checked at its own number, and migrated when that number is an older one Gaia still reads. Only a
- * number `versionIsRead` lets through reaches here, so every number below 2 is 1.
+ * The snapshot in the current shape: checked at its own major, and migrated when that major is an older one Gaia still reads. Only a
+ * major the ingestion reads reaches here, so every major below 2 is 1.
  */
 function checkedSnapshotOf(document: unknown, version: number): CheckedSnapshot {
-  if (version === CONTRACT_VERSIONS.forgeMonitor) {
+  if (version === CONTRACT_VERSIONS.forgeMonitor.major) {
     const invalidKeys = invalidKeysOrNull(document, MONITOR_SNAPSHOT_SHAPE);
     return invalidKeys === null ? { verdict: 'checked', snapshot: document as MonitorSnapshotDocument } : { verdict: 'malformed', invalidKeys };
   }
@@ -197,10 +201,6 @@ function checkedSnapshotOf(document: unknown, version: number): CheckedSnapshot 
   return { verdict: 'checked', snapshot: MonitorSnapshotMigrationUtil.currentDocumentOfVersionOne(document as MonitorSnapshotDocumentOfVersionOne) };
 }
 
-function versionIsRead(version: number): boolean {
-  return version === CONTRACT_VERSIONS.forgeMonitor || OLDER_CONTRACT_VERSIONS_READ.forgeMonitor.includes(version);
-}
-
 export class MonitorSnapshotIngestion {
   readonly #registryFacts: ForgeRegistryFacts;
   readonly #identity:      ForgeIdentity;
@@ -212,9 +212,12 @@ export class MonitorSnapshotIngestion {
 
   /** `readAt` is when Gaia received the snapshot, from the injected clock: shown as "as last reported", never compared. */
   public readingOf(document: unknown, readAt: string): ForgeDocumentReading {
-    const version = DocumentShapeUtil.topLevelValueOf(document, VERSION_KEY);
-    if (!DocumentShapeUtil.isWholeNumber(version)) return { verdict: 'malformed', invalidKeys: [VERSION_KEY] };
-    if (version > CONTRACT_VERSIONS.forgeMonitor) {
+    const versionReading = ContractVersionUtil.versionOf(document, VERSION_KEYS);
+    if (versionReading.verdict === 'unversioned') return { verdict: 'malformed', invalidKeys: [VERSION_KEYS.majorKey] };
+    if (versionReading.verdict === 'malformed') return { verdict: 'malformed', invalidKeys: [versionReading.invalidKey] };
+    const version = versionReading.version.major;
+    const majorVerdict = ContractVersionUtil.majorVerdictOf(version, CONTRACT_VERSIONS.forgeMonitor, OLDER_CONTRACT_VERSIONS_READ.forgeMonitor);
+    if (majorVerdict === 'newer') {
       return {
         verdict:  'newer-contract',
         contract: 'monitor',
@@ -222,7 +225,7 @@ export class MonitorSnapshotIngestion {
         reading:  this.#newerContractReadingAt(version),
       };
     }
-    if (!versionIsRead(version)) return { verdict: 'older-contract', contract: 'monitor', version };
+    if (majorVerdict === 'older') return { verdict: 'older-contract', contract: 'monitor', version };
 
     const checked = checkedSnapshotOf(document, version);
     if (checked.verdict === 'malformed') return checked;

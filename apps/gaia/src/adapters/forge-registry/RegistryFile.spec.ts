@@ -128,6 +128,17 @@ describe('the registry a forge wrote', () => {
   });
 });
 
+describe('a registry at another minor', () => {
+  test('reads a registry a newer forge wrote at a newer minor as at minor 0, passing over a key it adds', async () => {
+    const document = { ...fixtureDocument(), minor: 2, exampleAddedKey: true };
+    expect(await registryWith(JSON.stringify(document)).read()).toEqual({ verdict: 'readable', forges: RECORDED_FORGES });
+  });
+
+  test('answers unreadable for a minor that is no whole number', async () => {
+    expect(await registryWith(JSON.stringify({ ...fixtureDocument(), minor: 'two' })).read()).toMatchObject({ verdict: 'unreadable', reason: 'version-unknown' });
+  });
+});
+
 describe('an entry written by a forge before F4 or F9', () => {
   test('maps a live Overseer without its token file to an unknown token path, and an entry without its program to an unknown program', async () => {
     const document = fixtureDocument();

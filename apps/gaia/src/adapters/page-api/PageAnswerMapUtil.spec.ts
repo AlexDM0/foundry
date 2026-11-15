@@ -20,19 +20,19 @@ describe('the command answer of a verdict', () => {
       PageAnswerMapUtil.commandAnswerOf({ verdict: 'restart-pending' }),
     ]).toEqual([
       {
-        answerVersion: 3, outcome: 'done', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'nothing-to-do', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'unreachable', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'restart-pending', refusal: null, text: null
       },
     ]);
   });
@@ -40,6 +40,7 @@ describe('the command answer of a verdict', () => {
   test('answers a chosen path as done, with the path as its text', () => {
     expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'path-chosen', path: '/Users/example/Development/example-storefront' })).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'done',
       refusal:       null,
       text:          '/Users/example/Development/example-storefront',
@@ -52,6 +53,7 @@ describe('the command answer of a verdict', () => {
     } as const;
     expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'refused',
       refusal:       'overseer-held',
       text:          'The Overseer is held by an install change.',
@@ -64,6 +66,7 @@ describe('the command answer of a verdict', () => {
     } as const;
     expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'refused',
       refusal:       'launches-held-by-install-change',
       text:          'The install version changed. Nothing launches until this forge is updated.',
@@ -75,13 +78,14 @@ describe('the command answer of a verdict', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'arguments-refused', text: 'It is a bare repository. Run `forge init` in a checkout of it.'
     } as const;
     expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
-      answerVersion: 3, outcome: 'refused', refusal: 'arguments-refused', text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'refused', refusal: 'arguments-refused', text: null
     });
   });
 
   test('carries Gaia\'s own refusal as its code, with no sentence', () => {
     expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' })).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'refused',
       refusal:       'command-in-flight',
       text:          null,
@@ -99,14 +103,14 @@ describe('the command answer of a command of Flint\'s brain', () => {
       expect(PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       })).toEqual({
-        answerVersion: 3, outcome: 'refused', refusal, text,
+        answerVersion: 3, answerMinor: 0, outcome: 'refused', refusal, text,
       });
     }
   });
 
   test('carries Gaia\'s refusal under control contract 1 as brain-not-served, with no sentence', () => {
     expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'refused', refusedBy: 'gaia', refusal: 'brain-not-served' })).toEqual({
-      answerVersion: 3, outcome: 'refused', refusal: 'brain-not-served', text: null,
+      answerVersion: 3, answerMinor: 0, outcome: 'refused', refusal: 'brain-not-served', text: null,
     });
   });
 });
@@ -118,10 +122,10 @@ describe('the command answer of a command Gaia could not read', () => {
       PageAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'malformed', invalidKeys: ['trackerId'] }),
     ]).toEqual([
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'other-version', text: null
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'malformed', text: null
       },
     ]);
   });

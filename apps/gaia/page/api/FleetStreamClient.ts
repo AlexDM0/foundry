@@ -8,8 +8,9 @@
  * nothing answers that check, the server and the session it held are gone: the client reads `server-ended` and keeps reopening, so a server
  * that answers again moves it on.
  */
-import { CONTRACT_VERSIONS }  from '../../src/shared/constants/ContractVersions.ts';
-import type { FleetDocument } from '../@types/FleetDocument.ts';
+import { CONTRACT_VERSIONS }   from '../../src/shared/constants/ContractVersions.ts';
+import { ContractVersionUtil } from '../../src/shared/utils/ContractVersionUtil.ts';
+import type { FleetDocument }  from '../@types/FleetDocument.ts';
 
 /**
  * `connecting` only before the first open; `page-out-of-date` once a reload did not bring a page of the server's `fleetVersion`;
@@ -71,6 +72,8 @@ interface FleetEventReading {
 }
 
 /** The parsed data of a `fleet` event with its `fleetVersion`, or `null` for data that is no fleet document at all. */
+const FLEET_VERSION_KEYS = { majorKey: 'fleetVersion', minorKey: 'fleetMinor' } as const;
+
 function fleetEventReadingOf(eventData: unknown): FleetEventReading | null {
   if (typeof eventData !== 'string') return null;
   let parsed: unknown;
@@ -79,9 +82,8 @@ function fleetEventReadingOf(eventData: unknown): FleetEventReading | null {
   } catch {
     return null;
   }
-  if (typeof parsed !== 'object' || parsed === null || !Object.hasOwn(parsed, 'fleetVersion')) return null;
-  const { fleetVersion } = parsed as { readonly fleetVersion: unknown };
-  return typeof fleetVersion === 'number' ? { fleetVersion, fleetDocument: parsed } : null;
+  const versionReading = ContractVersionUtil.versionOf(parsed, FLEET_VERSION_KEYS);
+  return versionReading.verdict === 'versioned' ? { fleetVersion: versionReading.version.major, fleetDocument: parsed } : null;
 }
 
 function controlsMayActIn(state: FleetStreamState): boolean {
@@ -127,9 +129,9 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
   const readFleetEvent = (event: Event): void => {
     const fleetEventReading = fleetEventReadingOf('data' in event ? event.data : null);
     if (fleetEventReading === null) return;
-    if (fleetEventReading.fleetVersion === CONTRACT_VERSIONS.gaiaFleetDocument) {
+    if (ContractVersionUtil.majorVerdictOf(fleetEventReading.fleetVersion, CONTRACT_VERSIONS.gaiaFleetDocument) === 'known') {
       if (reloadMark.read() !== null) reloadMark.write(null);
-      // The page and the server ship together: the version is the whole contract between them.
+      // The page and the server ship together: the major is the whole contract between them, and a newer minor only adds keys.
       publish(fleetEventReading.fleetDocument as FleetDocument);
       return;
     }

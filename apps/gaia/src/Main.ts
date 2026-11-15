@@ -61,7 +61,8 @@ type VerbRun = (remainingArguments: readonly string[], output: ProgramOutput) =>
 
 async function printVersion(remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const versionAnswer = {
-    answerVersion:  CONTRACT_VERSIONS.gaiaProgramAnswer,
+    answerVersion:  CONTRACT_VERSIONS.gaiaProgramAnswer.major,
+    answerMinor:    CONTRACT_VERSIONS.gaiaProgramAnswer.minor,
     gaiaVersion:    packageManifest.version,
     installVersion: GAIA_INSTALL_VERSION,
   };
@@ -146,10 +147,10 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
       forgeProgramInUse: settingsStore.settings().forgeProgramPath,
       settingsFile:      settingsStore.fileState(),
       knownContracts:    {
-        summary: CONTRACT_VERSIONS.forgeBoardSummary,
-        monitor: CONTRACT_VERSIONS.forgeMonitor,
-        control: CONTRACT_VERSIONS.forgeControl,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
+        summary: CONTRACT_VERSIONS.forgeBoardSummary.major,
+        monitor: CONTRACT_VERSIONS.forgeMonitor.major,
+        control: CONTRACT_VERSIONS.forgeControl.major,
+        embed:   CONTRACT_VERSIONS.forgeEmbedChannel.major,
       },
     },
   });

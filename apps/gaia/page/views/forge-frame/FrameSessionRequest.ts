@@ -4,6 +4,7 @@
  * one-time code comes back only inside the frame's address.
  */
 import { CONTRACT_VERSIONS }                                    from '../../../src/shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                                  from '../../../src/shared/utils/ContractVersionUtil.ts';
 import type { FrameSessionAnswerDocument, FrameSessionOutcome } from '../../@types/FrameSessionDocument.ts';
 
 /** `opened` carries the frame's address and the origin its messages must come from; the others say why there is no frame. */
@@ -35,10 +36,13 @@ function nullableStringIsIn(body: object, key: string): boolean {
   return value === null || typeof value === 'string';
 }
 
-/** Gaia's answer at the known `frameSessionVersion`, or `null` for anything else. */
+const FRAME_SESSION_VERSION_KEYS = { majorKey: 'frameSessionVersion', minorKey: 'frameSessionMinor' } as const;
+
+/** Gaia's answer at the known `frameSessionVersion`, at any `frameSessionMinor`, or `null` for anything else. */
 function answerDocumentOf(body: unknown): FrameSessionAnswerDocument | null {
   if (typeof body !== 'object' || body === null) return null;
-  if (fieldOf(body, 'frameSessionVersion') !== CONTRACT_VERSIONS.gaiaFrameSession || !FRAME_SESSION_OUTCOMES.has(fieldOf(body, 'outcome'))) return null;
+  const versionIsKnown = ContractVersionUtil.readMajorOf(body, FRAME_SESSION_VERSION_KEYS, CONTRACT_VERSIONS.gaiaFrameSession) !== null;
+  if (!versionIsKnown || !FRAME_SESSION_OUTCOMES.has(fieldOf(body, 'outcome'))) return null;
   if (!nullableStringIsIn(body, 'frameUrl') || !nullableStringIsIn(body, 'refusal') || !nullableStringIsIn(body, 'text')) return null;
   return body as FrameSessionAnswerDocument;
 }

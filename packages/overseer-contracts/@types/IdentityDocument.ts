@@ -1,0 +1,24 @@
+/**
+ * An Overseer's open `GET /api/identity`: the keys a reader checks. A forge from before F1 sends neither `identityVersion` nor `contracts`.
+ */
+
+/** The contracts an identity names beside its own. */
+export type ServedContractName = 'summary' | 'monitor' | 'control' | 'embed';
+
+/** The major of each contract the forge serves; a contract it does not serve is absent from the object (F1). */
+export type IdentityContractsDocument = { readonly [Contract in ServedContractName]?: number };
+
+export interface IdentityDocument {
+  readonly identityVersion?: number;
+  /** Absent reads as 0. */
+  readonly identityMinor?:   number;
+  readonly application:      'forge';
+  readonly trackerId:        string;
+  readonly project:          string;
+  readonly codeVersion:      string;
+  readonly installVersion:   number;
+  readonly processId:        number;
+  readonly contracts?:       IdentityContractsDocument;
+  /** The minor of each contract `contracts` names; a contract absent here is at minor 0. */
+  readonly contractMinors?:  IdentityContractsDocument;
+}

@@ -1,12 +1,24 @@
 /**
- * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys Gaia reads, after their check, at
- * `monitorVersion: 3`, and the keys of `monitorVersion: 2` and `1` that differ, which the ingestion migrates. Keys Gaia does not read, such
- * as `ticketCountByStatus` and the Overseer's `generation`, are passed over.
+ * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 3`,
+ * and the keys of `monitorVersion: 2` and `1` that differ. Keys no reader checks, such as `ticketCountByStatus` and the Overseer's
+ * `generation`, are left out. Every string union is the wire's own spelling.
  */
-import type { ActivityCategory }                                        from '../../../shared/@types/ActivityEntry.ts';
-import type { JobTurn }                                                 from '../../../shared/@types/AgentRow.ts';
-import type { AttentionActionLabel, AttentionKind, AttentionStampWord } from '../../../shared/@types/AttentionItem.ts';
-import type { BrainEndedReason, BrainStartedBy, BrainState }            from '../../../shared/@types/ForgeBrain.ts';
+
+export type MonitorAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
+
+export type MonitorAttentionStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed';
+
+export type MonitorAttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
+
+export type MonitorJobTurn = 'between-turns' | 'mid-turn';
+
+export type MonitorActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
+
+export type MonitorFlintBrainState = 'off' | 'starting' | 'running' | 'ended' | 'refused';
+
+export type MonitorFlintBrainStartedBy = 'bridge' | 'gaia';
+
+export type MonitorFlintBrainEndedReason = 'time' | 'stopped' | 'usage-limit' | 'failed';
 
 export type MonitorOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton';
 
@@ -30,7 +42,7 @@ export interface MonitorConcurrencyDocument {
 
 export interface MonitorAttentionEntryDocument {
   readonly key:                     string;
-  readonly kind:                    AttentionKind;
+  readonly kind:                    MonitorAttentionKind;
   readonly idText:                  string;
   readonly ticketIds:               readonly string[];
   readonly subject:                 string;
@@ -40,8 +52,8 @@ export interface MonitorAttentionEntryDocument {
   readonly escalatedFromIncidentId: string | null;
   readonly metaText:                string | null;
   readonly stamp:                   string;
-  readonly stampWord:               AttentionStampWord;
-  readonly actionLabel:             AttentionActionLabel;
+  readonly stampWord:               MonitorAttentionStampWord;
+  readonly actionLabel:             MonitorAttentionActionLabel;
   readonly route:                   string;
 }
 
@@ -63,7 +75,7 @@ export interface MonitorJobDocument {
   readonly runningSubagents:    number;
   readonly silentSweeps:        number;
   readonly quiet:               boolean;
-  readonly turn:                JobTurn | null;
+  readonly turn:                MonitorJobTurn | null;
   readonly messagesWaiting:     number;
   readonly lastLine:            string | null;
   readonly waitingOnDecisionId: string | null;
@@ -80,7 +92,7 @@ export interface MonitorNoticeDocument {
 export interface MonitorActivityEntryDocument {
   readonly logPosition: number;
   readonly at:          string;
-  readonly category:    ActivityCategory;
+  readonly category:    MonitorActivityCategory;
   readonly text:        string;
   readonly route:       string | null;
   readonly kind?:       string | null;
@@ -117,10 +129,10 @@ export interface MonitorFlintBrainRefusalDocument {
 
 /** Flint's brain as the forge reports it (G1): `ended` and `refused` stay until the next start or for 60 seconds. */
 export interface MonitorFlintBrainDocument {
-  readonly state:       BrainState;
+  readonly state:       MonitorFlintBrainState;
   readonly startedAt:   string | null;
   readonly endsAt:      string | null;
-  readonly startedBy:   BrainStartedBy | null;
+  readonly startedBy:   MonitorFlintBrainStartedBy | null;
   readonly model:       string | null;
   readonly effort:      string | null;
   readonly tokens:      number | null;
@@ -128,13 +140,15 @@ export interface MonitorFlintBrainDocument {
   /** At most five, newest first. */
   readonly recentMoves: readonly MonitorFlintBrainMoveDocument[];
   readonly endedAt:     string | null;
-  readonly endedReason: BrainEndedReason | null;
+  readonly endedReason: MonitorFlintBrainEndedReason | null;
   readonly sentence:    string | null;
   readonly refusal:     MonitorFlintBrainRefusalDocument | null;
 }
 
 export interface MonitorSnapshotDocument {
   readonly monitorVersion: number;
+  /** Absent reads as 0. */
+  readonly monitorMinor?:  number;
   readonly trackerId:      string;
   readonly project:        string;
   readonly root:           string;

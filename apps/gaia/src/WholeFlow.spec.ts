@@ -262,10 +262,10 @@ async function startGaia(): Promise<RunningGaia> {
       forgeProgramInUse: settingsStore.settings().forgeProgramPath,
       settingsFile:      settingsStore.fileState(),
       knownContracts:    {
-        summary: CONTRACT_VERSIONS.forgeBoardSummary,
-        monitor: CONTRACT_VERSIONS.forgeMonitor,
-        control: CONTRACT_VERSIONS.forgeControl,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
+        summary: CONTRACT_VERSIONS.forgeBoardSummary.major,
+        monitor: CONTRACT_VERSIONS.forgeMonitor.major,
+        control: CONTRACT_VERSIONS.forgeControl.major,
+        embed:   CONTRACT_VERSIONS.forgeEmbedChannel.major,
       },
     },
   });
@@ -389,7 +389,7 @@ describe('Gaia from the registry to the page', () => {
 
     const startAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-start', trackerId: FORGES.exampleStorefront.trackerId });
     expect(startAnswer).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     });
     expect(gaia.forgeProgramRun.callShapesAnswered()).toEqual([`run ${JSON.stringify([EXAMPLE_FORGE_PROGRAM_PATH, 'start', '--json'])}`]);
     // The started forge names its Overseer in the registry, and answers that it is starting until its API is up.
@@ -409,6 +409,7 @@ describe('Gaia from the registry to the page', () => {
     const stopAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-stop', trackerId: FORGES.invoiceService.trackerId, agents: 'keep' });
     expect(stopAnswer).toEqual({
       answerVersion: 3,
+      answerMinor:   0,
       outcome:       'refused',
       refusal:       'overseer-still-live',
       text:          'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
@@ -416,7 +417,7 @@ describe('Gaia from the registry to the page', () => {
 
     const limitAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT });
     expect(limitAnswer).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     });
     const commandsToTheStorefront = gaia.storefrontFetch.jsonBodiesSent().flatMap((jsonBody) => (jsonBody === null ? [] : [JSON.parse(jsonBody) as unknown]));
     expect(commandsToTheStorefront).toEqual([expect.objectContaining({ kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT })]);

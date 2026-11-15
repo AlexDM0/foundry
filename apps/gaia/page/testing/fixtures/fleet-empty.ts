@@ -6,6 +6,7 @@ import type { FleetDocument } from '../../@types/FleetDocument.ts';
 
 export const FLEET_EMPTY: FleetDocument = {
   fleetVersion: 3,
+  fleetMinor:   0,
   forges:       [],
   attention:    [],
   needsALook:   [],

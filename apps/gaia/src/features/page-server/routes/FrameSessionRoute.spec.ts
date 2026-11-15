@@ -131,6 +131,7 @@ describe('a forge that serves the embed channel', () => {
     expect(exchange.status).toBe(200);
     expect(exchange.document).toEqual({
       frameSessionVersion: 1,
+      frameSessionMinor:   0,
       outcome:             'done',
       frameUrl:            `${STOREFRONT_URL}?embedded=gaia#session=${recordedSessionCode()}`,
       refusal:             null,
@@ -193,7 +194,7 @@ describe('a forge with no embed channel Gaia knows', () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf({ contracts: { ...EVERY_CONTRACT, embed: null } }), overseerFetch));
     expect(exchange.status).toBe(501);
     expect(exchange.document).toEqual({
-      frameSessionVersion: 1, outcome: 'not-supported', frameUrl: null, refusal: null, text: null,
+      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'not-supported', frameUrl: null, refusal: null, text: null,
     });
     expect(overseerFetch.callsAnswered()).toEqual([]);
   });
@@ -237,7 +238,7 @@ describe('a forge that gives no code', () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf(), overseerAnswering('token-rejected')));
     expect(exchange.status).toBe(409);
     expect(exchange.document).toEqual({
-      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'token-rejected', text: null,
+      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'refused', frameUrl: null, refusal: 'token-rejected', text: null,
     });
   });
 

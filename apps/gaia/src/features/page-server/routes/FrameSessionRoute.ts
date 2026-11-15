@@ -92,7 +92,7 @@ export async function frameSessionVerdictFor(trackerId: string, sources: FrameSe
   const reading = sources.readings().find((watched) => watched.trackerId === trackerId);
   const overseerAnswered = reading !== undefined && OVERSEER_ANSWERED_FIDELITIES.has(reading.fidelity);
   if (forge.overseer === null || reading === undefined || reading.url !== forge.overseer.url || !overseerAnswered) return { verdict: 'unreachable' };
-  if (reading.contracts.embed !== CONTRACT_VERSIONS.forgeEmbedChannel) return { verdict: 'not-supported' };
+  if (reading.contracts.embed !== CONTRACT_VERSIONS.forgeEmbedChannel.major) return { verdict: 'not-supported' };
   return sessionCodeVerdictOf(forge.overseer, sources.forgeClient);
 }
 

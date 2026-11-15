@@ -1,0 +1,23 @@
+{
+  "name": "overseer-contracts",
+  "version": "0.1.0",
+  "description": "The documents a forge's Overseer serves and reads, as types, with each contract's wire version: produced by forge, read by Gaia",
+  "type": "module",
+  "engines": { "bun": "1.4.2" },
+  "files": ["@types", "constants/OverseerContractVersions.ts", "README.md", "FORGE_REQUIREMENTS.md"],
+  "exports": {
+    "./ContractVersion": "./@types/ContractVersion.ts",
+    "./IdentityDocument": "./@types/IdentityDocument.ts",
+    "./BoardSummaryDocument": "./@types/BoardSummaryDocument.ts",
+    "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
+    "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
+    "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
+    "./OverseerContractVersions": "./constants/OverseerContractVersions.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
+    "test": "bun test",
+    "verify": "bun run typecheck && bun run lint && bun test"
+  }
+}

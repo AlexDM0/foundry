@@ -28,7 +28,22 @@ describe('reading a recording', () => {
     const answers = [{ callShape: 'run ["bun","--version"]', answer: { verdict: 'timed-out' } }];
     expect(boundaryRecordingReadingOf(JSON.stringify({ recordingVersion: 1, stamp: RECORDED_STAMP, answers }))).toEqual({
       verdict:   'readable',
-      recording: { recordingVersion: 1, stamp: RECORDED_STAMP, answers },
+      recording: {
+        recordingVersion: 1, recordingMinor: 0, stamp: RECORDED_STAMP, answers
+      },
+    });
+  });
+
+  test('reads a recording at a newer minor of version 1, passing over the key that minor adds', () => {
+    const answers = [{ callShape: 'run ["bun","--version"]', answer: { verdict: 'timed-out' } }];
+    const recordingText = JSON.stringify({
+      recordingVersion: 1, recordingMinor: 1, exampleAddedKey: true, stamp: RECORDED_STAMP, answers
+    });
+    expect(boundaryRecordingReadingOf(recordingText)).toEqual({
+      verdict:   'readable',
+      recording: {
+        recordingVersion: 1, recordingMinor: 1, stamp: RECORDED_STAMP, answers
+      },
     });
   });
 

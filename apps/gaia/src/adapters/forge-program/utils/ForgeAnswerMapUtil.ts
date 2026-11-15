@@ -7,6 +7,7 @@ import { JsonValueUtil, type JsonObject }                             from '../.
 import type { DetachedStartAnswer, NotFoundAnswer, ProgramRunAnswer } from '../../../lib/process-run/ProcessRun.ts';
 import type { ForgeContracts }                                        from '../../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                                          from '../../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                                        from '../../../shared/utils/ContractVersionUtil.ts';
 import type {
   ForgeAnswerNotUnderstoodReason,
   ForgeBatonPass,
@@ -32,7 +33,7 @@ export interface ForgeProgramRunPlace {
   readonly root:    string;
 }
 
-const ANSWER_VERSION_KEY = 'answerVersion';
+const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion', minorKey: 'answerMinor' } as const;
 const OUTCOMES: ReadonlySet<unknown> = new Set<ForgeProgramOutcome>(['done', 'nothing-to-do']);
 const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created', 'refreshed']);
 const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);
@@ -175,7 +176,7 @@ function refusalVerdictOf<Answer>(document: JsonObject, exitCode: number): Forge
 function verdictOfFinishedRun<Answer>(exitCode: number, standardOutput: string, doneAnswerOf: DoneAnswerMapper<Answer>): ForgeProgramVerdict<Answer> {
   const document = documentIn(standardOutput);
   if (document === null) return notUnderstood('no-json', exitCode);
-  if (JsonValueUtil.ownValueOf(document, ANSWER_VERSION_KEY) !== CONTRACT_VERSIONS.forgeProgramAnswer) return notUnderstood('other-answer-version', exitCode);
+  if (ContractVersionUtil.readMajorOf(document, ANSWER_VERSION_KEYS, CONTRACT_VERSIONS.forgeProgramAnswer) === null) return notUnderstood('other-answer-version', exitCode);
   if (exitCode !== 0) return refusalVerdictOf(document, exitCode);
   const answer = doneAnswerOf(document);
   return answer === null ? notUnderstood('malformed', exitCode) : { verdict: 'done', answer };

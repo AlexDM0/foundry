@@ -84,19 +84,3 @@ describe('invalidKeysOf', () => {
     expect(DocumentShapeUtil.invalidKeysOf(inheritsName, SHAPE)).toEqual(['name']);
   });
 });
-
-describe('topLevelValueOf', () => {
-  test('answers the document\'s own value, and undefined for an absent key, an inherited one or a document that is no object', () => {
-    expect(DocumentShapeUtil.topLevelValueOf({ monitorVersion: 1 }, 'monitorVersion')).toBe(1);
-    expect(DocumentShapeUtil.topLevelValueOf({}, 'monitorVersion')).toBeUndefined();
-    expect(DocumentShapeUtil.topLevelValueOf(Object.create({ monitorVersion: 1 }), 'monitorVersion')).toBeUndefined();
-    expect(DocumentShapeUtil.topLevelValueOf(['monitorVersion'], '0')).toBeUndefined();
-  });
-});
-
-describe('isWholeNumber', () => {
-  test('holds for a safe integer of zero or more and for nothing else', () => {
-    expect([0, 7, Number.MAX_SAFE_INTEGER].map(DocumentShapeUtil.isWholeNumber)).toEqual([true, true, true]);
-    expect([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, '1', null].map(DocumentShapeUtil.isWholeNumber)).toEqual([false, false, false, false, false, false]);
-  });
-});

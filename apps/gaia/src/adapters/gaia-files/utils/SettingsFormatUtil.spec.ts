@@ -11,6 +11,7 @@ import { SettingsFormatUtil }          from './SettingsFormatUtil.ts';
 
 const STORED_EXAMPLE: StoredSettingsVersion1 = {
   version:          1,
+  minor:            0,
   theme:            'dark',
   hiddenTrackerIds: ['example-tracker-one', 'example-tracker-two'],
   forgeProgramPath: '/Users/alex-example/development/forge/bin/forge',
@@ -51,9 +52,9 @@ describe('the notification kinds', () => {
 });
 
 describe('versionOf', () => {
-  test('answers a whole-number version key', () => {
-    expect(SettingsFormatUtil.versionOf({ version: 1 })).toBe(1);
-    expect(SettingsFormatUtil.versionOf({ version: 7 })).toBe(7);
+  test('answers a whole-number version key as the major, and the minor key, absent as 0', () => {
+    expect(SettingsFormatUtil.versionOf({ version: 1 })).toEqual({ major: 1, minor: 0 });
+    expect(SettingsFormatUtil.versionOf({ version: 7, minor: 2 })).toEqual({ major: 7, minor: 2 });
   });
 
   test('answers null for a missing, textual, fractional or non-object version', () => {
@@ -62,6 +63,7 @@ describe('versionOf', () => {
     expect(SettingsFormatUtil.versionOf({ version: 1.5 })).toBeNull();
     expect(SettingsFormatUtil.versionOf([1])).toBeNull();
     expect(SettingsFormatUtil.versionOf(null)).toBeNull();
+    expect(SettingsFormatUtil.versionOf({ version: 1, minor: '1' })).toBeNull();
   });
 
   test('reads only an own version key, never one inherited from the prototype', () => {
@@ -83,8 +85,8 @@ describe('storedSettingsOf', () => {
     expect(SettingsFormatUtil.storedSettingsOf(exampleWithout('version'))).toBeNull();
   });
 
-  test('refuses a file that misses any key of version 1', () => {
-    for (const key of Object.keys(STORED_EXAMPLE).filter((storedKey) => storedKey !== 'version')) {
+  test('refuses a file that misses any key of version 1 but its optional minor', () => {
+    for (const key of Object.keys(STORED_EXAMPLE).filter((storedKey) => storedKey !== 'version' && storedKey !== 'minor')) {
       expect(SettingsFormatUtil.storedSettingsOf(exampleWithout(key))).toBeNull();
     }
   });

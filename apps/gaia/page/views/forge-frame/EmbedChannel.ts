@@ -1,20 +1,17 @@
 /**
  * The embed channel of FORGE_REQUIREMENTS F5 at `channelVersion: 1`: the messages between Gaia's page and one forge's Bridge in its frame.
  * A message is read only when it comes from the frame's own window at the frame's own origin and carries the channel's name and known
- * version; anything else is ignored and answered by nothing. Gaia posts only to the frame's origin, never to `*`.
+ * major, at any `channelMinor`; anything else is ignored and answered by nothing. Gaia posts only to the frame's origin, never to `*`.
  */
-import { CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
-import type { ThemeChoice }  from '../../shared/@types/ThemeChoice.ts';
+import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'overseer-contracts/EmbedChannelMessage';
 
-/** What the Bridge tells Gaia: it painted and listens, its route changed, Esc was left unused, or an API call found its session gone. */
-export type BridgeMessage =
-  | { readonly kind: 'ready' }
-  | { readonly kind: 'route'; readonly fragment: string }
-  | { readonly kind: 'leave' }
-  | { readonly kind: 'session-lost' };
+import { CONTRACT_VERSIONS }   from '../../../src/shared/constants/ContractVersions.ts';
+import { ContractVersionUtil } from '../../../src/shared/utils/ContractVersionUtil.ts';
+
+export type { BridgeMessage };
 
 /** What Gaia tells the Bridge: the theme User chose, or the route to go to. */
-export type GaiaMessage = { readonly kind: 'theme'; readonly themeChoice: ThemeChoice } | { readonly kind: 'navigate'; readonly fragment: string };
+export type GaiaMessage = FramingPageMessage;
 
 /** A message event as the channel reads it: who sent it, from where, and what. */
 export interface EmbedMessageEvent {
@@ -43,7 +40,9 @@ export interface OpenEmbedChannel {
   readonly close: () => void;
 }
 
-const CHANNEL_NAME = 'forge-embed';
+const CHANNEL_NAME: EmbedChannelEnvelope['channel'] = 'forge-embed';
+
+const CHANNEL_VERSION_KEYS = { majorKey: 'channelVersion', minorKey: 'channelMinor' } as const;
 
 function fieldOf(data: object, key: string): unknown {
   return Object.hasOwn(data, key) ? (data as Readonly<Record<string, unknown>>)[key] : undefined;
@@ -52,7 +51,7 @@ function fieldOf(data: object, key: string): unknown {
 /** The Bridge's message at the known channel version, or `null` for anything the channel does not know. */
 function bridgeMessageOf(data: unknown): BridgeMessage | null {
   if (typeof data !== 'object' || data === null) return null;
-  if (fieldOf(data, 'channel') !== CHANNEL_NAME || fieldOf(data, 'channelVersion') !== CONTRACT_VERSIONS.forgeEmbedChannel) return null;
+  if (fieldOf(data, 'channel') !== CHANNEL_NAME || ContractVersionUtil.readMajorOf(data, CHANNEL_VERSION_KEYS, CONTRACT_VERSIONS.forgeEmbedChannel) === null) return null;
   const kind = fieldOf(data, 'kind');
   switch (kind) {
     case 'ready':
@@ -73,8 +72,13 @@ function messageIsFromTheFrame(event: EmbedMessageEvent, { frameOrigin, frameWin
   return event.origin === frameOrigin && event.source === frameWindow;
 }
 
-function documentOf(message: GaiaMessage): Readonly<Record<string, unknown>> {
-  return { channel: CHANNEL_NAME, channelVersion: CONTRACT_VERSIONS.forgeEmbedChannel, ...message };
+function documentOf(message: GaiaMessage): EmbedChannelEnvelope & GaiaMessage {
+  return {
+    channel:        CHANNEL_NAME,
+    channelVersion: CONTRACT_VERSIONS.forgeEmbedChannel.major,
+    channelMinor:   CONTRACT_VERSIONS.forgeEmbedChannel.minor,
+    ...message,
+  };
 }
 
 function open(ends: EmbedChannelEnds, surroundings: EmbedChannelSurroundings, onMessage: (message: BridgeMessage) => void): OpenEmbedChannel {

@@ -1,17 +1,21 @@
 /**
- * The ingestion of a forge's board summary, for a forge without the monitor contract: check `summaryVersion` against `CONTRACT_VERSIONS`,
- * check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer version maps nothing of itself; nor
- * does a malformed one.
+ * The ingestion of a forge's board summary, for a forge without the monitor contract: check `summaryVersion` and `summaryMinor` against
+ * `CONTRACT_VERSIONS`, check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer major maps
+ * nothing of itself; nor does a malformed one.
  */
-import type { ForgeReading }                                                      from '../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS }                                                      from '../../shared/constants/ContractVersions.ts';
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from './@types/BoardSummaryDocument.ts';
-import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts }           from './@types/ForgeDocumentReading.ts';
-import type { UsageLimitDocument }                                                from './@types/MonitorSnapshotDocument.ts';
-import { DocumentShapeUtil, type ShapeOf }                                        from './utils/DocumentShapeUtil.ts';
-import { ForgeReadingMapUtil }                                                    from './utils/ForgeReadingMapUtil.ts';
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'overseer-contracts/BoardSummaryDocument';
+import type { UsageLimitDocument }                                                from 'overseer-contracts/MonitorSnapshotDocument';
 
-const VERSION_KEY = 'summaryVersion';
+import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS }                                            from '../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                                          from '../../shared/utils/ContractVersionUtil.ts';
+import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
+import { DocumentShapeUtil, type ShapeOf }                              from './utils/DocumentShapeUtil.ts';
+import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
+
+const VERSION_KEYS = { majorKey: 'summaryVersion', minorKey: 'summaryMinor' } as const;
+
+const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 
@@ -34,6 +38,7 @@ const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const 
 
 const BOARD_SUMMARY_SHAPE = {
   summaryVersion: 'whole-number',
+  summaryMinor:   OPTIONAL_WHOLE_NUMBER,
   project:        'text',
   overseer:       { object: OVERSEER_SHAPE },
   readyTicketIds: 'text-list',
@@ -54,9 +59,12 @@ export class BoardSummaryIngestion {
 
   /** `readAt` is when Gaia received the summary, from the injected clock: shown as "as last reported", never compared. */
   public readingOf(document: unknown, readAt: string): ForgeDocumentReading {
-    const version = DocumentShapeUtil.topLevelValueOf(document, VERSION_KEY);
-    if (!DocumentShapeUtil.isWholeNumber(version)) return { verdict: 'malformed', invalidKeys: [VERSION_KEY] };
-    if (version > CONTRACT_VERSIONS.forgeBoardSummary) {
+    const versionReading = ContractVersionUtil.versionOf(document, VERSION_KEYS);
+    if (versionReading.verdict === 'unversioned') return { verdict: 'malformed', invalidKeys: [VERSION_KEYS.majorKey] };
+    if (versionReading.verdict === 'malformed') return { verdict: 'malformed', invalidKeys: [versionReading.invalidKey] };
+    const version = versionReading.version.major;
+    const majorVerdict = ContractVersionUtil.majorVerdictOf(version, CONTRACT_VERSIONS.forgeBoardSummary);
+    if (majorVerdict === 'newer') {
       return {
         verdict:  'newer-contract',
         contract: 'summary',
@@ -64,7 +72,7 @@ export class BoardSummaryIngestion {
         reading:  this.#newerContractReadingAt(version),
       };
     }
-    if (version < CONTRACT_VERSIONS.forgeBoardSummary) return { verdict: 'older-contract', contract: 'summary', version };
+    if (majorVerdict !== 'known') return { verdict: 'older-contract', contract: 'summary', version };
 
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(document, BOARD_SUMMARY_SHAPE);
     if (invalidKeys.length > 0) return { verdict: 'malformed', invalidKeys };

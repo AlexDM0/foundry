@@ -20,12 +20,14 @@ import type {
   NotificationSettings,
   ThemeChoice,
 } from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS } from '../../shared/constants/ContractVersions.ts';
-import { SETTINGS_CHOICES }  from '../../shared/constants/SettingsChoices.ts';
+import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
+import { SETTINGS_CHOICES }    from '../../shared/constants/SettingsChoices.ts';
+import { ContractVersionUtil } from '../../shared/utils/ContractVersionUtil.ts';
 
 /**
- * `other-version`: `commandVersion` is not the known number, `null` when it is absent or no number. `unknown-kind`: a kind this Gaia does
- * not carry out, `null` when the body names none. `malformed`: a key the kind needs is missing or holds another type.
+ * `other-version`: `commandVersion` is not the known major, `null` when it is absent or no whole number, or `commandMinor` is there and no
+ * whole number. `unknown-kind`: a kind this Gaia does not carry out, `null` when the body names none. `malformed`: a key the kind needs is
+ * missing or holds another type.
  */
 export type GaiaCommandReading =
   | { readonly verdict: 'readable'; readonly command: GaiaCommand }
@@ -37,7 +39,7 @@ export type GaiaCommandReading =
 
 type SingleForgeKind = Exclude<ForgeCommand['kind'], 'forge-stop' | 'forge-concurrency-set'>;
 
-const VERSION_KEY = 'commandVersion';
+const VERSION_KEYS = { majorKey: 'commandVersion', minorKey: 'commandMinor' } as const;
 const KIND_KEY = 'kind';
 const TRACKER_ID_KEY = 'trackerId';
 const AGENTS_KEY = 'agents';
@@ -227,8 +229,11 @@ export class GaiaCommandIngestion {
     if (parsing === null) return { verdict: 'not-json' };
     const body = JsonValueUtil.jsonObjectOf(parsing.parsed);
     if (body === null) return { verdict: 'not-a-json-object' };
-    const commandVersion = JsonValueUtil.ownValueOf(body, VERSION_KEY);
-    if (commandVersion !== CONTRACT_VERSIONS.gaiaCommand) return { verdict: 'other-version', commandVersion: typeof commandVersion === 'number' ? commandVersion : null };
+    const versionReading = ContractVersionUtil.versionOf(body, VERSION_KEYS);
+    const commandVersion = versionReading.verdict === 'versioned' ? versionReading.version.major : null;
+    if (commandVersion === null || ContractVersionUtil.majorVerdictOf(commandVersion, CONTRACT_VERSIONS.gaiaCommand) !== 'known') {
+      return { verdict: 'other-version', commandVersion };
+    }
     const kind = JsonValueUtil.ownValueOf(body, KIND_KEY);
     if (typeof kind !== 'string') return { verdict: 'unknown-kind', kind: null };
     return commandReadingOf(body, kind);

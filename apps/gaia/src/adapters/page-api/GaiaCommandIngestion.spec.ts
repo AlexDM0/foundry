@@ -116,6 +116,17 @@ describe('a body that maps nothing', () => {
     expect(readingOf({ commandVersion: 1, kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: 1 });
   });
 
+  test('reads a body of a page at a newer commandMinor, passing over a key it adds', () => {
+    expect(readingOf({
+      commandVersion: 2, commandMinor: 3, kind: 'fleet-look-again', exampleAddedKey: true
+    }))
+      .toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
+  });
+
+  test('answers other-version, naming no version, for a body whose commandMinor is no whole number', () => {
+    expect(readingOf({ commandVersion: 2, commandMinor: '1', kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: null });
+  });
+
   test('answers other-version for a body with no commandVersion', () => {
     expect(readingOf({ kind: 'fleet-look-again' })).toEqual({ verdict: 'other-version', commandVersion: null });
   });

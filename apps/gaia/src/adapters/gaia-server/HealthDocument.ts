@@ -6,6 +6,7 @@ import { JsonValueUtil }        from '../../lib/json-value/JsonValueUtil.ts';
 import { CONTRACT_VERSIONS }    from '../../shared/constants/ContractVersions.ts';
 import { GAIA_INSTALL_VERSION } from '../../shared/constants/InstallVersion.ts';
 import { PRODUCT_NAMES }        from '../../shared/constants/ProductNames.ts';
+import { ContractVersionUtil }  from '../../shared/utils/ContractVersionUtil.ts';
 
 export const HEALTH_PATH = '/api/health';
 
@@ -17,14 +18,16 @@ export interface ForgeCounts {
 
 export interface HealthDocument extends ForgeCounts {
   readonly application:    typeof PRODUCT_NAMES.programName;
-  readonly healthVersion:  typeof CONTRACT_VERSIONS.gaiaHealth;
+  readonly healthVersion:  typeof CONTRACT_VERSIONS.gaiaHealth.major;
+  readonly healthMinor:    typeof CONTRACT_VERSIONS.gaiaHealth.minor;
   readonly installVersion: typeof GAIA_INSTALL_VERSION;
 }
 
 export function healthDocumentOf(forgeCounts: ForgeCounts): HealthDocument {
   return {
     application:      PRODUCT_NAMES.programName,
-    healthVersion:    CONTRACT_VERSIONS.gaiaHealth,
+    healthVersion:    CONTRACT_VERSIONS.gaiaHealth.major,
+    healthMinor:      CONTRACT_VERSIONS.gaiaHealth.minor,
     installVersion:   GAIA_INSTALL_VERSION,
     forgesRegistered: forgeCounts.forgesRegistered,
     forgesAnswered:   forgeCounts.forgesAnswered,
@@ -45,9 +48,11 @@ function isCount(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0;
 }
 
-/** The forge counts of a Gaia health answer at the known health version; `null` at another version or for counts that are no counts. */
+const HEALTH_VERSION_KEYS = { majorKey: 'healthVersion', minorKey: 'healthMinor' } as const;
+
+/** The forge counts of a Gaia health answer at the known health major, at any minor; `null` at another major or for counts that are no counts. */
 export function forgeCountsOf(parsed: unknown): ForgeCounts | null {
-  if (!answerIsGaiaHealth(parsed) || ownValueOf(parsed, 'healthVersion') !== CONTRACT_VERSIONS.gaiaHealth) return null;
+  if (!answerIsGaiaHealth(parsed) || ContractVersionUtil.readMajorOf(parsed, HEALTH_VERSION_KEYS, CONTRACT_VERSIONS.gaiaHealth) === null) return null;
   const forgesRegistered = ownValueOf(parsed, 'forgesRegistered');
   const forgesAnswered   = ownValueOf(parsed, 'forgesAnswered');
   return isCount(forgesRegistered) && isCount(forgesAnswered) ? { forgesRegistered, forgesAnswered } : null;

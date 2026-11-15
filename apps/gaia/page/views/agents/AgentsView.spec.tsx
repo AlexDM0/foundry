@@ -17,7 +17,7 @@ import { SegmentedControl }       from 'design-system/SegmentedControl';
 import { SlotMeter }              from 'design-system/SlotMeter';
 import type { ReactNode }         from 'react';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from '../../../src/shared/constants/ContractVersions.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'overseer-contracts/OverseerContractVersions';
 import type { ForgeCommandBody }                                                    from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
@@ -48,7 +48,7 @@ const STOREFRONT_BRAIN = { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'fli
 function servingTheBrain(fleetDocument: FleetDocument): FleetDocument {
   return {
     ...fleetDocument,
-    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
+    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } })),
   };
 }
 

@@ -449,7 +449,7 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
 };
 
 
-const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
+const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor.major + 1;
 
 /** The code version the monitor-3 answers were authored with; retake it after `bun run record overseer-fetch-monitor-3`. */
 const MONITOR_THREE_CODE_VERSION = '3f9a2c1';
@@ -736,5 +736,30 @@ describe('a snapshot that cannot be read', () => {
     Object.assign(inheritedToday, snapshot);
     delete inheritedToday['today'];
     expect(ingestion().readingOf(inheritedToday, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['today'] });
+  });
+});
+
+describe('a snapshot at another minor', () => {
+  test('reads a snapshot of the known version at a newer monitorMinor, with a key this Gaia does not know, as it reads one at minor 0', async () => {
+    const atMinorZero = monitorThreeIngestion().readingOf(await brainSnapshot('brain-running'), EXAMPLE_READ_STAMP);
+    const atANewerMinor = { ...await brainSnapshot('brain-running'), monitorMinor: 2, exampleAddedKey: { exampleNested: 1 } };
+
+    expect(atMinorZero.verdict).toBe('readable');
+    expect(monitorThreeIngestion().readingOf(atANewerMinor, EXAMPLE_READ_STAMP)).toEqual(atMinorZero);
+  });
+
+  test('reads a snapshot of an older version Gaia still reads at a minor, migrated as at minor 0', async () => {
+    const atMinorZero = ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP);
+    const atAMinor = { ...await storefrontSnapshot(), monitorMinor: 1, exampleAddedKey: true };
+
+    expect(atMinorZero.verdict).toBe('readable');
+    expect(ingestion().readingOf(atAMinor, EXAMPLE_READ_STAMP)).toEqual(atMinorZero);
+  });
+
+  test('refuses a newer monitorVersion whatever its minor, and names a monitorMinor that is no whole number', async () => {
+    const atANewerVersion = ingestion().readingOf({ ...await storefrontSnapshot(), monitorVersion: NEWER_MONITOR_VERSION, monitorMinor: 0 }, EXAMPLE_READ_STAMP);
+
+    expect(atANewerVersion.verdict).toBe('newer-contract');
+    expect(ingestion().readingOf({ ...await storefrontSnapshot(), monitorMinor: null }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['monitorMinor'] });
   });
 });

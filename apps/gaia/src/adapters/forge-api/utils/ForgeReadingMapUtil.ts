@@ -3,6 +3,16 @@
  * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (PLAN 6.1, 7.1). What a document does not carry
  * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain.
  */
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'overseer-contracts/BoardSummaryDocument';
+import type { IdentityDocument }                                               from 'overseer-contracts/IdentityDocument';
+import type {
+  MonitorActivityEntryDocument,
+  MonitorAttentionEntryDocument,
+  MonitorFlintBrainDocument,
+  MonitorJobDocument,
+  MonitorNoticeDocument,
+  MonitorSnapshotDocument,
+} from 'overseer-contracts/MonitorSnapshotDocument';
 import type { ActivityEntry, ActivityKind } from '../../../shared/@types/ActivityEntry.ts';
 import type { AgentRow }                    from '../../../shared/@types/AgentRow.ts';
 import type { AttentionItem }               from '../../../shared/@types/AttentionItem.ts';
@@ -13,18 +23,8 @@ import type {
   ForgeNotice,
   ForgeReading,
 } from '../../../shared/@types/ForgeReading.ts';
-import { FORGE_NOTICE_KINDS }                                                  from '../../../shared/constants/ForgeNoticeKinds.ts';
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from '../@types/BoardSummaryDocument.ts';
-import type { ForgeIdentity, ForgeRegistryFacts }                              from '../@types/ForgeDocumentReading.ts';
-import type { IdentityDocument }                                               from '../@types/IdentityDocument.ts';
-import type {
-  MonitorActivityEntryDocument,
-  MonitorAttentionEntryDocument,
-  MonitorFlintBrainDocument,
-  MonitorJobDocument,
-  MonitorNoticeDocument,
-  MonitorSnapshotDocument,
-} from '../@types/MonitorSnapshotDocument.ts';
+import { FORGE_NOTICE_KINDS }                     from '../../../shared/constants/ForgeNoticeKinds.ts';
+import type { ForgeIdentity, ForgeRegistryFacts } from '../@types/ForgeDocumentReading.ts';
 
 const NO_CONTRACTS: ForgeContracts = {
   summary: null,

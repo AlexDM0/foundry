@@ -100,7 +100,7 @@ describe('the recorded forge contracts', () => {
 
   test('hold a snapshot at every monitor number Gaia reads or still reads', () => {
     const monitorVersions = new Set(everyDocument().map((document) => document['monitorVersion']));
-    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor];
+    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor.major, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor];
     for (const version of knownVersions) expect([version, monitorVersions.has(version)]).toEqual([version, true]);
   });
 
@@ -108,7 +108,7 @@ describe('the recorded forge contracts', () => {
     const documents = everyDocument();
     const identityControlVersions = new Set(documents.map((document) => (document['contracts'] as { control?: unknown } | undefined)?.control));
     const answerControlVersions = new Set(documents.map((document) => document['controlVersion']));
-    for (const version of [CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]) {
+    for (const version of [CONTRACT_VERSIONS.forgeControl.major, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]) {
       expect([version, identityControlVersions.has(version), answerControlVersions.has(version)]).toEqual([version, true, true]);
     }
   });
@@ -141,13 +141,13 @@ describe('the recorded states of Flint\'s brain', () => {
       const [command] = documentsAnsweredIn(answersOfCall('POST /api/commands with bearer'));
       expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
         situation,
-        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl }),
-        CONTRACT_VERSIONS.forgeControl,
+        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor.major, control: CONTRACT_VERSIONS.forgeControl.major }),
+        CONTRACT_VERSIONS.forgeControl.major,
       ]);
       const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/monitor with bearer'));
       // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.
       const lastStreamSnapshot = documentsAnsweredIn(answersOfCall(MONITOR_STREAM_CALL_SHAPE)).at(-1);
-      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor);
+      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor.major);
       return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
     expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);

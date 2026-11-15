@@ -61,7 +61,8 @@ type RecordingWrite = { readonly verdict: 'written'; readonly recordingPath: str
 
 async function writeRecording(boundary: RecordedBoundary, systemVersion: string, answers: readonly RecordedAnswer[]): Promise<RecordingWrite> {
   const recording: BoundaryRecording = {
-    recordingVersion: CONTRACT_VERSIONS.boundaryRecording,
+    recordingVersion: CONTRACT_VERSIONS.boundaryRecording.major,
+    recordingMinor:   CONTRACT_VERSIONS.boundaryRecording.minor,
     stamp:            {
       recordingName:   boundary.recordingName,
       operatingSystem: process.platform,

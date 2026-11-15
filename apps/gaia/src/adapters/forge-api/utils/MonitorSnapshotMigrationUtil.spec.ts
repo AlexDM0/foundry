@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { MonitorSnapshotDocumentOfVersionOne, MonitorSnapshotDocumentOfVersionTwo } from '../@types/MonitorSnapshotDocument.ts';
+import type { MonitorSnapshotDocumentOfVersionOne, MonitorSnapshotDocumentOfVersionTwo } from 'overseer-contracts/MonitorSnapshotDocument';
 import { FORGE_WARNING_WITHOUT_KIND, MonitorSnapshotMigrationUtil }                      from './MonitorSnapshotMigrationUtil.ts';
 
 const SNAPSHOT_OF_VERSION_ONE: MonitorSnapshotDocumentOfVersionOne = {

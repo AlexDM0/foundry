@@ -99,13 +99,4 @@ function invalidKeysOf(document: unknown, shape: DocumentShape): readonly string
   return invalidKeys;
 }
 
-/** The document's own value at a top-level key; `undefined` when the document is no object or does not hold the key. */
-function topLevelValueOf(document: unknown, key: string): unknown {
-  return JsonValueUtil.ownValueOf(JsonValueUtil.jsonObjectOf(document) ?? NO_KEYS, key);
-}
-
-export const DocumentShapeUtil = {
-  invalidKeysOf,
-  topLevelValueOf,
-  isWholeNumber,
-} as const;
+export const DocumentShapeUtil = { invalidKeysOf } as const;

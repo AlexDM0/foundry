@@ -8,6 +8,7 @@
  * tracker id, port, process ids) are recorded as the Storefront's example values; the forge's install version stamps the recording.
  * Test-only.
  */
+
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
 import {
@@ -17,6 +18,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
 
 import {
   realOverseerFetch,
@@ -25,7 +27,6 @@ import {
   type OverseerStream,
   type OverseerStreamRequest,
 } from '../lib/forge-client/OverseerFetch.ts';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import { recordAnswer, recordSystemVersion } from './BoundaryRecordings.ts';
 import {
@@ -291,7 +292,7 @@ export function describeEveryContractRecording({ recordingName, monitorVersion, 
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: cpuCount })).toMatchObject({ verdict: 'answered', status: 200 });
     });
 
-    describe.if(controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl)('Flint\'s brain', () => {
+    describe.if(controlVersion >= FLINT_BRAIN_CONTRACT_VERSIONS.control)('Flint\'s brain', () => {
       const commandShape = (): string => requestCallShapeOf(requestOf('POST', '/api/commands', bearerToken));
 
       test('answers a start of the brain done, and serves the brain running', async () => {

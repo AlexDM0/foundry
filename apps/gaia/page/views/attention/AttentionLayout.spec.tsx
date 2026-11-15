@@ -43,11 +43,12 @@ const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
 };
 
 const UPDATE_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
+  answerMinor:   0,
   outcome:       'refused',
   refusal:       'update-in-progress',
   text:          'An update already runs in this repository.',
@@ -152,7 +153,9 @@ describe('a callout\'s command', () => {
     const sends: Promise<unknown>[] = [];
     PackageButtons.press(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'));
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([
-      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 },
+      {
+        kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2, commandMinor: 0
+      },
     ]);
     const onItsWay = unfoldedLayout(FLEET_FIVE_FORGES, sender);
     expect(buttonNamed(onItsWay, 'Update forge').props['disabled']).toBe(true);
@@ -179,7 +182,7 @@ describe('a callout\'s command', () => {
 
   test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'restart-pending', refusal: null, text: null
     };
     const sent: SentRequest[] = [];
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
@@ -189,7 +192,9 @@ describe('a callout\'s command', () => {
     expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
     expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withComponent(PendingStep))).toEqual([]);
     PackageButtons.press(buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart'));
-    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 });
+    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({
+      kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2, commandMinor: 0
+    });
     const restarting = tree.onlyOfComponent([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], PendingStep);
     expect(buttonNamed(tree.unfoldedProp(restarting, 'action'), 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
@@ -198,10 +203,10 @@ describe('a callout\'s command', () => {
 
   test('a Restart the pending step sent that the forge refuses shows its refusal under the callout that offered it', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'restart-pending', refusal: null, text: null
     };
     const restartRefused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.'
+      answerVersion: 3, answerMinor: 0, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.'
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });

@@ -72,10 +72,11 @@ describe('the server record', () => {
     expect(serverRecordPathIn('/Users/alex-example')).toBe('/Users/alex-example/.forge-monitor/gaia/server.json');
   });
 
-  test('is written at version 1 with the url, its origin, the process and the start', async () => {
+  test('is written at version 1.0 with the url, its origin, the process and the start', async () => {
     expect(await createServerRecordWriter(homeDirectory).write(EXAMPLE_RECORD)).toEqual({ verdict: 'written' });
     expect(storedRecord()).toEqual({
       version:   1,
+      minor:     0,
       url:       'http://127.0.0.1:4790/',
       origin:    'http://127.0.0.1:4790',
       processId: 4242,
@@ -96,6 +97,13 @@ describe('the server record', () => {
     expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'removed' });
     expect(existsSync(serverRecordPathIn(homeDirectory))).toBe(false);
     expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'absent' });
+  });
+
+  test('is removed by the process it names when a newer Gaia of the same version wrote it at a newer minor', async () => {
+    const writer = createServerRecordWriter(homeDirectory);
+    await writer.write(EXAMPLE_RECORD);
+    writeFileSync(serverRecordPathIn(homeDirectory), JSON.stringify({ ...storedRecord() as object, minor: 1, exampleAddedKey: true }));
+    expect(await writer.remove(EXAMPLE_RECORD.processId)).toEqual({ verdict: 'removed' });
   });
 
   test('is left standing by remove() from a process it does not name', async () => {

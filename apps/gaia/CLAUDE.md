@@ -16,10 +16,14 @@ its own; the dev tools every workspace shares are the root's.
    moves `HOME` and `TMPDIR` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind. A
    child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
    without `env`, Bun hands a child the environment the run started with, the real home.
-3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. The known numbers are
-   `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`; a reading at another number never reaches a mapper, except at an older
-   number `OLDER_CONTRACT_VERSIONS_READ` names, which its ingestion migrates to the current shape first (monitor 1, for a forge not yet
-   updated).
+3. **Every data model carries a version, as major and minor.** A stored file or JSON contract without a version key is a defect. Forge
+   and Gaia are released apart, so any two versions may meet: the integer key a contract has always carried (`monitorVersion`, a file's
+   `version`) is the major, an optional sibling (`monitorMinor`, `minor`) the minor, absent read as 0, never a string. Adding fields only
+   is a minor bump; anything else is a major bump. The known versions are `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`
+   (an Overseer's from the `overseer-contracts` package), and `src/shared/utils/ContractVersionUtil.ts` is the one reading rule: a known
+   major reads at any minor, its unknown keys passed over; an older major only where `OLDER_CONTRACT_VERSIONS_READ` names it, migrated to
+   the current shape first (monitor 1 and 2, for a forge not yet updated); a newer major never reaches a mapper. Gaia writes both keys, and
+   keeps a stored file at a newer minor rather than drop the keys it adds. `docs/contracts.md` holds the table.
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself. A forge sentence that names a command
    leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its refusal code or notice kind, and otherwise for
    a neutral sentence.
@@ -74,7 +78,7 @@ src/adapters/      every boundary: the registry, the forge's API and program, Ga
                    the installed app bundle's Info.plist
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
 src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value
-src/shared/        the internal model's types, app-wide constants, GaiaError
+src/shared/        the internal model's types, app-wide constants, the contract version rule, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
 page/design-system/ Gaia's own parts that the design-system package does not have, composed from the package (rule 10)

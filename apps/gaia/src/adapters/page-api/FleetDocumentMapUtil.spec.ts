@@ -31,9 +31,10 @@ describe('the fleet document mapper', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY)).toStrictEqual(FLEET_EMPTY);
   });
 
-  test('stamps the fleet contract version it was built for', () => {
-    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(3);
+  test('stamps the fleet contract version it was built for, major and minor', () => {
+    const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY);
+    expect({ major: fleetDocument.fleetVersion, minor: fleetDocument.fleetMinor }).toEqual(CONTRACT_VERSIONS.gaiaFleetDocument);
+    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toEqual({ major: 3, minor: 0 });
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {

@@ -10,6 +10,7 @@ import { JsonValueUtil }        from '../../lib/json-value/JsonValueUtil.ts';
 import type { RegistryRefusal } from '../../shared/@types/CommandVerdict.ts';
 import { CONTRACT_VERSIONS }    from '../../shared/constants/ContractVersions.ts';
 import { FORGE_PLACES }         from '../../shared/constants/ForgePlaces.ts';
+import { ContractVersionUtil }  from '../../shared/utils/ContractVersionUtil.ts';
 import type { RegisteredForge } from './@types/RegisteredForge.ts';
 import { RegistryMapUtil }      from './utils/RegistryMapUtil.ts';
 
@@ -46,7 +47,7 @@ export function registryFilePathIn(homeDirectory: string): string {
   return join(homeDirectory, FORGE_PLACES.monitorFolderName, FORGE_PLACES.registryFileName);
 }
 
-const VERSION_KEY = 'version';
+const VERSION_KEYS = { majorKey: 'version', minorKey: 'minor' } as const;
 const ENTRIES_KEY = 'projects';
 
 function unreadableReadingFor(reason: RegistryUnreadableReason): RegistryReading {
@@ -59,10 +60,12 @@ function readingOf(contents: string): RegistryReading {
   const document = JsonValueUtil.jsonObjectOf(parsing.parsed);
   if (document === null) return unreadableReadingFor('not-a-json-object');
 
-  const version = JsonValueUtil.ownValueOf(document, VERSION_KEY);
-  if (typeof version !== 'number' || !Number.isSafeInteger(version)) return unreadableReadingFor('version-unknown');
-  if (version > CONTRACT_VERSIONS.forgeRegistry) return { verdict: 'newer-version', version };
-  if (version !== CONTRACT_VERSIONS.forgeRegistry) return unreadableReadingFor('version-unknown');
+  const versionReading = ContractVersionUtil.versionOf(document, VERSION_KEYS);
+  if (versionReading.verdict !== 'versioned') return unreadableReadingFor('version-unknown');
+  const version = versionReading.version.major;
+  const majorVerdict = ContractVersionUtil.majorVerdictOf(version, CONTRACT_VERSIONS.forgeRegistry);
+  if (majorVerdict === 'newer') return { verdict: 'newer-version', version };
+  if (majorVerdict !== 'known') return unreadableReadingFor('version-unknown');
 
   // The forge writes `projects` from its first registration on; a registry without it holds no forge yet.
   const entriesValue = JsonValueUtil.ownValueOf(document, ENTRIES_KEY);

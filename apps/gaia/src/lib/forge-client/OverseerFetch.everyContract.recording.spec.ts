@@ -9,5 +9,5 @@ import { describeEveryContractRecording } from '../../testing/EveryContractRecor
 describeEveryContractRecording({
   recordingName:  'overseer-fetch-every-contract',
   monitorVersion: 2,
-  controlVersion: CONTRACT_VERSIONS.forgeControl,
+  controlVersion: CONTRACT_VERSIONS.forgeControl.major,
 });

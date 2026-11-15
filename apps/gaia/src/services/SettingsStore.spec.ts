@@ -101,7 +101,7 @@ describe('changing', () => {
     const heard: GaiaSettings[] = [];
     store.subscribe((settings) => heard.push(settings));
 
-    expect(await store.change(DARK_AND_ONE_HIDDEN)).toEqual({ verdict: 'kept-newer-version', storedVersion: 2 });
+    expect(await store.change(DARK_AND_ONE_HIDDEN)).toEqual({ verdict: 'kept-newer-version', storedVersion: { major: 2, minor: 0 } });
     expect(store.settings()).toEqual(GAIA_SETTINGS_DEFAULTS);
     expect(store.fileState()).toBe('newer-version');
     expect(heard).toEqual([]);
@@ -171,7 +171,7 @@ describe('updating', () => {
     const store = storeInHome();
     await store.load();
 
-    expect(await store.update(hiding('research-wiki-2b90'))).toEqual({ verdict: 'kept-newer-version', storedVersion: 2 });
+    expect(await store.update(hiding('research-wiki-2b90'))).toEqual({ verdict: 'kept-newer-version', storedVersion: { major: 2, minor: 0 } });
     expect(store.settings()).toEqual(GAIA_SETTINGS_DEFAULTS);
   });
 });

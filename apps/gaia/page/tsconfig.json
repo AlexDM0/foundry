@@ -15,7 +15,8 @@
     "./**/*.tsx",
     "../src/shared/constants/ContractVersions.ts",
     "../src/shared/constants/Limits.ts",
-    "../src/shared/constants/ProductNames.ts"
+    "../src/shared/constants/ProductNames.ts",
+    "../src/shared/utils/ContractVersionUtil.ts"
   ],
   "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./testing/**"]
 }

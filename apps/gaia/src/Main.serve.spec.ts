@@ -96,6 +96,7 @@ describe('gaia serve', () => {
     expect(await health.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
+      healthMinor:      0,
       installVersion:   1,
       forgesRegistered: 0,
       forgesAnswered:   0,
@@ -108,7 +109,8 @@ describe('gaia serve', () => {
     const cookie = (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
     const fleet = await answerOf(address, '/api/fleet', { headers: { cookie } });
     expect(await fleet.json()).toMatchObject({
-      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument,
+      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument.major,
+      fleetMinor:   CONTRACT_VERSIONS.gaiaFleetDocument.minor,
       forges:       [],
       gaia:         {
         address:      address.origin,
@@ -120,7 +122,7 @@ describe('gaia serve', () => {
 
     const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
     });
 
     const page = await answerOf(address, '/');

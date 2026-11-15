@@ -18,6 +18,7 @@
   "dependencies": {
     "brand": "workspace:^",
     "design-system-contributions": "workspace:^",
+    "overseer-contracts": "workspace:^",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   }

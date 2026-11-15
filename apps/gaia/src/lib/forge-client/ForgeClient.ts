@@ -2,6 +2,7 @@
  * The HTTP client of one Overseer: its identity, board summary and monitor snapshot, the monitor stream, a control command and a session
  * code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read them.
  */
+import type { ForgeControlCommand }                    from 'overseer-contracts/ForgeControlCommand';
 import { eventStreamParserOf, type EventStreamParser } from '../event-stream/EventStreamParser.ts';
 import { JsonValueUtil, type JsonObject }              from '../json-value/JsonValueUtil.ts';
 
@@ -14,7 +15,6 @@ import type {
   MonitorFollowEnd,
   OverseerAccess,
 } from './@types/ForgeClientAnswer.ts';
-import type { ForgeControlCommand } from './@types/ForgeControlCommand.ts';
 import type {
   OverseerAnswer,
   OverseerFetch,

@@ -84,7 +84,7 @@ describe('a forge that answers F8, every verb done', () => {
       verdict: 'done',
       answer:  {
         contracts: {
-          summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: 1, embed: 1
+          summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor.major, control: 1, embed: 1
         }
       }
     });

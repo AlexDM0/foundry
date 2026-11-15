@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from '../../../src/shared/constants/ContractVersions.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
 import type { FleetDocumentForge }       from '../../@types/FleetDocument.ts';
 import { FLEET_DEGRADED }                from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES_READINGS }    from '../../testing/fixtures/fleet-five-forges.ts';
@@ -47,10 +47,10 @@ describe('the control contract', () => {
 
 describe('the brain\'s commands', () => {
   test('are served only by an Overseer that answers, at a known control contract that carries them', () => {
-    const atTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } };
+    const atTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } };
     expect(ForgeContractUtil.brainCommandsAreServed(atTheBrainContract)).toBe(true);
     expect(ForgeContractUtil.brainCommandsAreServed({ ...atTheBrainContract, fidelity: 'unreachable' })).toBe(false);
-    const belowTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl - 1 } };
+    const belowTheBrainContract = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control - 1 } };
     expect(ForgeContractUtil.brainCommandsAreServed(belowTheBrainContract)).toBe(false);
     expect(ForgeContractUtil.brainCommandsAreServed(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });

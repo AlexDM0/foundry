@@ -25,18 +25,19 @@ const PAUSE_INVOICE_SERVICE: CommandBody = { kind: 'forge-pause', trackerId: TRA
 /** SCREENS B2: the refusal under Example Mobile App's row. */
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
+  answerMinor:   0,
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
 };
 
 /** An update was done, and the forge's live Overseer did not take the Baton pass. */
 const RESTART_PENDING: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+  answerVersion: 3, answerMinor: 0, outcome: 'restart-pending', refusal: null, text: null
 };
 
 const UPDATE_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp };
@@ -58,6 +59,7 @@ describe('sending one command', () => {
     expect(request?.requestOptions.headers).toEqual({ 'content-type': 'application/json' });
     expect(JSON.parse(String(request?.requestOptions.body))).toEqual({
       commandVersion: 2,
+      commandMinor:   0,
       kind:           'forge-stop',
       trackerId:      TRACKER_IDS.exampleMobileApp,
       agents:         'keep',
@@ -68,18 +70,18 @@ describe('sending one command', () => {
     const outcomes: CommandAnswerDocument[] = [
       DONE,
       {
-        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'nothing-to-do', refusal: null, text: null
       },
       RESTART_PENDING,
       STOP_REFUSED,
       {
-        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'unreachable', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null
+        answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: null, text: null
       },
       {
-        answerVersion: 3, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter'
+        answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter'
       },
     ];
     const sender = senderOver(outcomes.map((answer) => () => Promise.resolve(answerResponse(answer))));
@@ -91,7 +93,7 @@ describe('sending one command', () => {
   test('a server that does not answer is unreachable; an answer of another answerVersion, of no known outcome, or not JSON is not understood', async () => {
     const sender = senderOver([
       () => Promise.reject(new TypeError('Failed to fetch')),
-      () => Promise.resolve(answerResponse({ ...DONE, answerVersion: 2 })),
+      () => Promise.resolve(answerResponse({ ...DONE, answerVersion: 2, answerMinor: 0 })),
       () => Promise.resolve(answerResponse({ ...DONE, outcome: 'applied' })),
       () => Promise.resolve(answerResponse({ ...DONE, text: 4 })),
       () => Promise.resolve(new Response('Gaia\'s server is starting', { status: 503 })),

@@ -1,10 +1,13 @@
 /**
- * The ingestion of an Overseer's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
+ * The ingestion of an Overseer's identity (F1): check `identityVersion` and `identityMinor` against `CONTRACT_VERSIONS`, check the keys, map to a
  * `ForgeIdentity`, and decide from its `contracts` how Gaia reads the forge (PLAN 7.1): in full through the monitor, as counts through the
  * summary, or not at all when the forge speaks only newer contracts. An identity without `identityVersion` is the forge's from before F1.
  */
+import type { IdentityContractsDocument, IdentityDocument } from 'overseer-contracts/IdentityDocument';
+
 import type { ForgeContracts }                             from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                             from '../../shared/utils/ContractVersionUtil.ts';
 import type {
   ForgeContractName,
   ForgeIdentity,
@@ -13,9 +16,8 @@ import type {
   NewerContractVerdict,
   OlderContractVerdict,
 } from './@types/ForgeDocumentReading.ts';
-import type { IdentityContractsDocument, IdentityDocument } from './@types/IdentityDocument.ts';
-import { DocumentShapeUtil, type ShapeOf }                  from './utils/DocumentShapeUtil.ts';
-import { ForgeReadingMapUtil }                              from './utils/ForgeReadingMapUtil.ts';
+import { DocumentShapeUtil, type ShapeOf } from './utils/DocumentShapeUtil.ts';
+import { ForgeReadingMapUtil }             from './utils/ForgeReadingMapUtil.ts';
 
 export type IdentityReading =
   | { readonly verdict: 'readable'; readonly identity: ForgeIdentity; readonly fidelity: 'full' | 'counts-only' }
@@ -25,7 +27,7 @@ export type IdentityReading =
   | OlderContractVerdict
   | MalformedVerdict;
 
-const VERSION_KEY = 'identityVersion';
+const VERSION_KEYS = { majorKey: 'identityVersion', minorKey: 'identityMinor' } as const;
 
 const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
 
@@ -38,6 +40,7 @@ const CONTRACTS_SHAPE = {
 
 const IDENTITY_SHAPE = {
   identityVersion: OPTIONAL_WHOLE_NUMBER,
+  identityMinor:   OPTIONAL_WHOLE_NUMBER,
   application:     { oneOf: ['forge'] },
   trackerId:       'text',
   project:         'text',
@@ -45,6 +48,7 @@ const IDENTITY_SHAPE = {
   installVersion:  'whole-number',
   processId:       'whole-number',
   contracts:       { optional: { object: CONTRACTS_SHAPE } },
+  contractMinors:  { optional: { object: CONTRACTS_SHAPE } },
 } as const satisfies ShapeOf<IdentityDocument>;
 
 export class IdentityIngestion {
@@ -55,11 +59,13 @@ export class IdentityIngestion {
   }
 
   public readingOf(document: unknown): IdentityReading {
-    const version = DocumentShapeUtil.topLevelValueOf(document, VERSION_KEY);
-    if (version !== undefined) {
-      if (!DocumentShapeUtil.isWholeNumber(version)) return { verdict: 'malformed', invalidKeys: [VERSION_KEY] };
-      if (version > CONTRACT_VERSIONS.forgeIdentity) return this.#newerContract('identity', version, null, ForgeReadingMapUtil.contractsWith(null, {}));
-      if (version < CONTRACT_VERSIONS.forgeIdentity) return { verdict: 'older-contract', contract: 'identity', version };
+    const versionReading = ContractVersionUtil.versionOf(document, VERSION_KEYS);
+    if (versionReading.verdict === 'malformed') return { verdict: 'malformed', invalidKeys: [versionReading.invalidKey] };
+    if (versionReading.verdict === 'versioned') {
+      const { major } = versionReading.version;
+      const majorVerdict = ContractVersionUtil.majorVerdictOf(major, CONTRACT_VERSIONS.forgeIdentity);
+      if (majorVerdict === 'newer') return this.#newerContract('identity', major, null, ForgeReadingMapUtil.contractsWith(null, {}));
+      if (majorVerdict !== 'known') return { verdict: 'older-contract', contract: 'identity', version: major };
     }
 
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(document, IDENTITY_SHAPE);
@@ -70,19 +76,19 @@ export class IdentityIngestion {
   }
 
   /**
-   * The monitor is read when the forge serves it at the known number or an older one Gaia still reads; the summary when it does not, or
-   * names no contracts at all.
+   * The monitor is read when the forge serves it at the known major or an older one Gaia still reads, at any minor; the summary when it
+   * does not, or names no contracts at all.
    */
   #readingByContracts(identity: ForgeIdentity): IdentityReading {
     const { contracts } = identity;
     if (contracts === null) return { verdict: 'readable', identity, fidelity: 'counts-only' };
     const { monitor, summary } = contracts;
-    if (monitor === CONTRACT_VERSIONS.forgeMonitor || (monitor !== null && OLDER_CONTRACT_VERSIONS_READ.forgeMonitor.includes(monitor))) {
-      return { verdict: 'readable', identity, fidelity: 'full' };
-    }
-    if (monitor !== null && monitor > CONTRACT_VERSIONS.forgeMonitor) return this.#newerContract('monitor', monitor, identity, contracts);
-    if (summary === CONTRACT_VERSIONS.forgeBoardSummary) return { verdict: 'readable', identity, fidelity: 'counts-only' };
-    if (summary !== null && summary > CONTRACT_VERSIONS.forgeBoardSummary) return this.#newerContract('summary', summary, identity, contracts);
+    const monitorVerdict = monitor === null ? null : ContractVersionUtil.majorVerdictOf(monitor, CONTRACT_VERSIONS.forgeMonitor, OLDER_CONTRACT_VERSIONS_READ.forgeMonitor);
+    if (monitorVerdict === 'known' || monitorVerdict === 'older-read') return { verdict: 'readable', identity, fidelity: 'full' };
+    if (monitor !== null && monitorVerdict === 'newer') return this.#newerContract('monitor', monitor, identity, contracts);
+    const summaryVerdict = summary === null ? null : ContractVersionUtil.majorVerdictOf(summary, CONTRACT_VERSIONS.forgeBoardSummary);
+    if (summaryVerdict === 'known') return { verdict: 'readable', identity, fidelity: 'counts-only' };
+    if (summary !== null && summaryVerdict === 'newer') return this.#newerContract('summary', summary, identity, contracts);
     return { verdict: 'older-contract', contract: 'monitor', version: monitor };
   }
 

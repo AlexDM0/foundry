@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from '../../../src/shared/constants/ContractVersions.ts';
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'overseer-contracts/OverseerContractVersions';
 import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge }               from '../../@types/FleetDocument.ts';
 import type { CommandState, CommandStates }                                         from '../../api/CommandSender.ts';
@@ -44,7 +44,7 @@ function contentOf(fleetDocument: FleetDocument, overrides: Partial<Omit<AgentsM
 function servingTheBrain(fleetDocument: FleetDocument): FleetDocument {
   return {
     ...fleetDocument,
-    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
+    forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.control } })),
   };
 }
 

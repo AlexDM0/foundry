@@ -39,6 +39,7 @@ function storeSettingsText(contents: string): void {
 
 const STORED_EXAMPLE: StoredSettingsVersion1 = {
   version:          1,
+  minor:            0,
   theme:            'light',
   hiddenTrackerIds: ['example-tracker'],
   forgeProgramPath: null,
@@ -67,16 +68,33 @@ describe('a settings file', () => {
     expect(existsSync(settingsFilePathIn(homeDirectory))).toBe(false);
   });
 
-  test('at version 1 reads as its own settings, without the version key', async () => {
+  test('at version 1 reads as its own settings, without the version keys', async () => {
     storeSettingsText(JSON.stringify(STORED_EXAMPLE));
-    const { version: _version, ...settings } = STORED_EXAMPLE;
-    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', settings });
+    const { version: _version, minor: _minor, ...settings } = STORED_EXAMPLE;
+    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', storedVersion: { major: 1, minor: 0 }, settings });
+  });
+
+  test('at version 1 with no minor reads as minor 0', async () => {
+    const { minor: _minor, ...storedWithoutMinor } = STORED_EXAMPLE;
+    storeSettingsText(JSON.stringify(storedWithoutMinor));
+    expect(await new SettingsFile(homeDirectory).read()).toMatchObject({ verdict: 'readable', storedVersion: { major: 1, minor: 0 } });
+  });
+
+  test('at a newer minor of version 1 reads as its own settings and passes over the key that minor adds', async () => {
+    storeSettingsText(JSON.stringify({ ...STORED_EXAMPLE, minor: 1, exampleAddedKey: true }));
+    const { version: _version, minor: _minor, ...settings } = STORED_EXAMPLE;
+    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'readable', storedVersion: { major: 1, minor: 1 }, settings });
+  });
+
+  test('with a minor that is no whole number is unreadable as an unknown version', async () => {
+    storeSettingsText(JSON.stringify({ ...STORED_EXAMPLE, minor: '1' }));
+    expect(await new SettingsFile(homeDirectory).read()).toMatchObject({ verdict: 'unreadable', reason: 'version-unknown', settings: GAIA_SETTINGS_DEFAULTS });
   });
 
   test('at a newer version names that version, runs on the defaults and keeps the file byte for byte', async () => {
     const newerText = JSON.stringify({ version: 2, theme: 'midnight', somethingNew: true });
     storeSettingsText(newerText);
-    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'newer-version', storedVersion: 2, settings: GAIA_SETTINGS_DEFAULTS });
+    expect(await new SettingsFile(homeDirectory).read()).toEqual({ verdict: 'newer-version', storedVersion: { major: 2, minor: 0 }, settings: GAIA_SETTINGS_DEFAULTS });
     expect(readFileSync(settingsFilePathIn(homeDirectory), 'utf8')).toBe(newerText);
   });
 

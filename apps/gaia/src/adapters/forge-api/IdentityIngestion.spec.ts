@@ -112,15 +112,15 @@ describe('the identity of a forge that serves F1', () => {
       processId:   49_012,
       contracts:   {
         summary: 1,
-        monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
-        control: CONTRACT_VERSIONS.forgeControl + 1,
+        monitor: CONTRACT_VERSIONS.forgeMonitor.major + 1,
+        control: CONTRACT_VERSIONS.forgeControl.major + 1,
         embed:   1,
       },
     };
     expect(new IdentityIngestion(registryFactsOf(ANALYTICS_SANDBOX)).readingOf(identity)).toEqual({
       verdict:  'newer-contract',
       contract: 'monitor',
-      version:  CONTRACT_VERSIONS.forgeMonitor + 1,
+      version:  CONTRACT_VERSIONS.forgeMonitor.major + 1,
       reading:  ANALYTICS_SANDBOX,
     });
   });
@@ -179,5 +179,33 @@ describe('an identity that cannot be read', () => {
   test('names an identityVersion that is no whole number', async () => {
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...await storefrontIdentity(), identityVersion: 1.5 }))
       .toEqual({ verdict: 'malformed', invalidKeys: ['identityVersion'] });
+  });
+});
+
+describe('an identity at another minor', () => {
+  test('reads an identity at a newer identityMinor, with contract minors and a key this Gaia does not know, as it reads one at minor 0', async () => {
+    const atMinorZero = new IdentityIngestion(STOREFRONT_FACTS).readingOf(await storefrontIdentity());
+    const atANewerMinor = {
+      ...await storefrontIdentity(),
+      identityMinor:   4,
+      contractMinors:  { monitor: 2, control: 1, exampleAddedContract: 1 },
+      exampleAddedKey: { exampleNested: true },
+    };
+
+    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(atANewerMinor)).toEqual(atMinorZero);
+  });
+
+  test('names an identityMinor, or a contract minor, that is no whole number', async () => {
+    const identity = await storefrontIdentity();
+
+    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...identity, identityMinor: '1' })).toEqual({ verdict: 'malformed', invalidKeys: ['identityMinor'] });
+    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...identity, contractMinors: { monitor: -1 } }))
+      .toEqual({ verdict: 'malformed', invalidKeys: ['contractMinors.monitor'] });
+  });
+
+  test('refuses a newer identityVersion at minor 0 as at any minor', async () => {
+    const reading = new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...await storefrontIdentity(), identityVersion: 2, identityMinor: 0 });
+
+    expect([reading.verdict, reading.verdict === 'newer-contract' ? reading.version : null]).toEqual(['newer-contract', 2]);
   });
 });
