@@ -43,8 +43,15 @@ pushed. Each phase ends with a gate in the integration worktree: a clean `bun in
       `packages/*/ProjectIncludeList.spec.ts`, and "a package imports nothing from `apps/`" and "an app imports only the packages it
       declares" have no planted cases yet (lane `p2-import-graph-finish`).
 - [x] L6 network guard: dropped. The installed forge runs from a second clone instead (owner decision of 2026-11-15).
-- Open: under concurrency a DOM run hung and a popover spec timed out; `test:dom` now runs after its package's `test`, which avoids it.
-      The cause is not found.
+- [x] The popover spec's timeout under concurrency: each failed poll of its `waitFor` printed a happy-dom node, walking the whole
+      document (0.75 s alone, 5 s in the Bridge's tree), past the poll's 1 s bound under load. The DOM preloads of forge and the design
+      system print a node as its opening tag.
+- Open: forge's DOM run still hangs beside the other tasks (4 of 6 forced runs without the ordering edge), so `test:dom` keeps waiting
+      for its package's `test`. Each hang is in a `Bun.spawnSync` of the per-file leak check (`TestRunReport.ts`, rerun per file under
+      `--isolate`), right after its `lsof`: the git child has exited and is a zombie, Bun spins at 100 % CPU, and a `timeout` on the
+      spawn does not end it. Ruled out: the specs (a planted run of trivial files with the same preloads, `lsof` and happy-dom, 16 runs
+      under CPU and process-churn load, never hung), node printing, timers and ports. Next: an asynchronous spawn in the leak check, or
+      no process check per DOM file, then drop the edge.
 
 ### P2. Import Gaia (Claude) — under way
 
