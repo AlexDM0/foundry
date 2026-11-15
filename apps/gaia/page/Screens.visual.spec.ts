@@ -19,6 +19,13 @@ import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { GaiaMark }               from 'brand/GaiaMark';
 import { describe, expect, test } from 'bun:test';
+import { Banner }                 from 'design-system/Banner';
+import { Button }                 from 'design-system/Button';
+import { SlotMeter }              from 'design-system/SlotMeter';
+import { Stamp }                  from 'design-system/Stamp';
+import { Tag }                    from 'design-system/Tag';
+import { Text }                   from 'design-system/Text';
+import { DataTable }              from 'design-system-contributions/DataTable';
 import { createElement }          from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
@@ -48,8 +55,9 @@ import {
   whatNotifiesDocumentOf,
   whatNotifiesMarkupOf,
 } from './testing/ArtboardScreens.tsx';
-import { DesignSystemStylesheet } from './testing/DesignSystemStylesheet.ts';
-import { PackageStylesheet }      from './testing/PackageStylesheet.ts';
+import { DesignSystemStylesheet }         from './testing/DesignSystemStylesheet.ts';
+import { type MarkupElement, MarkupTree } from './testing/MarkupTree.ts';
+import { PackageStylesheet }              from './testing/PackageStylesheet.ts';
 
 const STYLESHEETS = ['tokens.css', 'gaia.css'].map((fileName) => readFileSync(join(import.meta.dir, 'styles', fileName), 'utf8'));
 
@@ -74,20 +82,57 @@ function screenOf(artboard: PageArtboard): ArtboardScreen {
 }
 
 function textsOfClass(markup: string, className: string): string[] {
-  return [...markup.matchAll(new RegExp(`class="${className}"[^>]*>([^<]*)<`, 'g'))].map(([, text = '']) => text);
+  return MarkupTree.textsOfClass(MarkupTree.parse(markup), className);
 }
 
-/** The ids of what waits on User, each the package's mono id in its row's id cell. */
+/** The ids of what waits on User, each in its row's id cell. */
 function attentionRowIdsOf(markup: string): string[] {
-  return [...markup.matchAll(/class="gaia-attention-row-id"><span class="design-system-mono-id"[^>]*>([^<]*)</g)].map(([, text = '']) => text);
+  return textsOfClass(markup, 'gaia-attention-row-id');
 }
 
+/** The page title: the first-level heading in the shell's page title area. */
 function pageTitleOf(markup: string): string[] {
-  return [...markup.matchAll(/<h1 class="design-system-text" data-type-role="display">([^<]*)<\/h1>/g)].map(([, text = '']) => text);
+  return MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-shell-page-title'))
+    .flatMap((titleArea) => MarkupTree.elementsIn(titleArea, (element) => element.tag === 'h1'))
+    .map(MarkupTree.textOf);
 }
 
 /** The brand bar's theme button, the one part of a screen that names its theme. */
-const THEME_BUTTON = /<button type="button" class="design-system-icon-button" aria-label="Theme: [^"]*"[^>]*>.*?<\/button>/;
+function themeButtonsOf(markup: string): MarkupElement[] {
+  return MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', /^Theme: /));
+}
+
+function onlyThemeButtonOf(markup: string): MarkupElement {
+  return MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('button', /^Theme: /));
+}
+
+function elementsLabelled(scope: MarkupElement, label: string | RegExp): MarkupElement[] {
+  return MarkupTree.elementsIn(scope, (element) => {
+    const ariaLabel = element.attributes['aria-label'];
+    return ariaLabel !== undefined && (typeof label === 'string' ? ariaLabel === label : label.test(ariaLabel));
+  });
+}
+
+function elementsReading(scope: MarkupElement, text: string): MarkupElement[] {
+  return MarkupTree.elementsIn(scope, (element) => MarkupTree.textOf(element) === text);
+}
+
+/** The element the selection marks, the selected row. */
+function selectedOf(markup: string): MarkupElement {
+  return MarkupTree.onlyElementIn(MarkupTree.parse(markup), (element) => element.attributes['aria-current'] === 'true');
+}
+
+/** What Gaia hands a compact button, drawn as the package draws it. */
+function compactButtonMarkupOf(label: string, disabled = false): string {
+  return MarkupTree.drawnMarkupOf(createElement(Button, { label, compact: true, disabled }));
+}
+
+/** The pending steps an update left, each a status that opens with its word. */
+function restartPendingStepsIn(scope: MarkupElement): MarkupElement[] {
+  return MarkupTree.elementsIn(scope, (element) => MarkupTree.withRole('status')(element) && MarkupTree.textOf(element).startsWith('Updated; restart pending.'));
+}
+
+const PRIMARY_BUTTON = () => MarkupTree.variantAttributesOf(createElement(Button, { label: 'Example' }), createElement(Button, { label: 'Example', emphasis: 'primary' }));
 
 function inlineStylesOf(markup: string): string[] {
   return [...markup.matchAll(/ style="([^"]*)"/g)].map(([, style = '']) => style);
@@ -148,9 +193,11 @@ describe('the screens of the visual pass', () => {
     for (const screen of screensWithTheButton) {
       const dark = screenMarkupOf(screen, 'dark');
       const light = screenMarkupOf(screen, 'light');
-      expect(THEME_BUTTON.exec(dark)?.[0]).toContain('aria-label="Theme: dark. Switch to auto"');
-      expect(THEME_BUTTON.exec(light)?.[0]).toContain('aria-label="Theme: light. Switch to dark"');
-      expect(dark.replace(THEME_BUTTON, '')).toBe(light.replace(THEME_BUTTON, ''));
+      const darkThemeButton = onlyThemeButtonOf(dark);
+      const lightThemeButton = onlyThemeButtonOf(light);
+      expect(MarkupTree.nameOf(darkThemeButton)).toBe('Theme: dark. Switch to auto');
+      expect(MarkupTree.nameOf(lightThemeButton)).toBe('Theme: light. Switch to dark');
+      expect(dark.replace(darkThemeButton.source, '')).toBe(light.replace(lightThemeButton.source, ''));
     }
   });
 
@@ -165,7 +212,7 @@ describe('each screen shows the state its artboard draws', () => {
       for (const theme of SCREEN_THEMES) {
         const markup = whatNotifiesMarkupOf(screen, theme);
         expect(markup).toContain('>5 of 7 on<');
-        expect(markup.match(/class="design-system-checkbox"/g)).toHaveLength(7);
+        expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('checkbox'))).toHaveLength(7);
         for (const inlineStyle of inlineStylesOf(markup)) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
         const screenDocument = whatNotifiesDocumentOf(screen, theme);
         expect(screenDocument).toContain(`data-theme="${theme}"`);
@@ -187,12 +234,16 @@ describe('each screen shows the state its artboard draws', () => {
 
   test('A2: the Agents table holds its ten agents and the brain under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
     const markup = screenMarkupOf(screenOf('A2'), 'dark');
-    expect(markup.match(/class="gaia-agents-row" role="row"(?! data-head)/g)).toHaveLength(11);
-    expect([...markup.matchAll(/aria-label="Wake Flint&#x27;s brain on ([^"]*)"/g)].map(([, project]) => project)).toEqual(['Invoice Service', 'Research Wiki']);
-    expect(markup.match(/class="gaia-agents-group" role="rowgroup"/g)).toHaveLength(4);
-    const selectedRow = markup.slice(markup.indexOf('aria-current="true"')).split('role="row"')[0] ?? '';
-    expect(selectedRow).toContain('aria-label="Example Storefront, J4"');
-    expect(selectedRow).toContain('>J4<');
+    const tree = MarkupTree.parse(markup);
+    const agentRows = MarkupTree.elementsIn(tree, (element) => MarkupTree.withClass('gaia-agents-row')(element) && MarkupTree.withRole('row')(element));
+    expect(agentRows.filter((row) => row.attributes['data-head'] === undefined)).toHaveLength(11);
+    const wakeLabels = elementsLabelled(tree, /^Wake Flint's brain on /).map((element) => element.attributes['aria-label']);
+    expect(wakeLabels).toEqual(['Wake Flint\'s brain on Invoice Service', 'Wake Flint\'s brain on Research Wiki']);
+    expect(MarkupTree.elementsIn(tree, (element) => MarkupTree.withClass('gaia-agents-group')(element) && MarkupTree.withRole('rowgroup')(element))).toHaveLength(4);
+    const selectedRow = selectedOf(markup);
+    expect(MarkupTree.roleOf(selectedRow)).toBe('row');
+    expect(elementsLabelled(selectedRow, 'Example Storefront, J4')).toHaveLength(1);
+    expect(elementsReading(selectedRow, 'J4').length).toBeGreaterThan(0);
     expect(markup).toContain('Open J4 in its forge');
   });
 
@@ -201,10 +252,12 @@ describe('each screen shows the state its artboard draws', () => {
     const [brainScreen] = BRAIN_SCREENS;
     if (brainScreen === undefined) throw new Error('No screen paints A2 with the brain selected.');
     const markup = screenMarkupOf(brainScreen, 'dark');
-    const selectedRow = markup.slice(markup.indexOf('aria-current="true"')).split('role="row"')[0] ?? '';
-    expect(selectedRow).toContain('aria-label="Example Storefront, Flint&#x27;s brain"');
-    expect(markup).toContain('>Last moves it chose<');
-    expect(markup.match(/aria-label="Stop Flint&#x27;s brain on Example Storefront"/g)).toHaveLength(2);
+    const selectedRow = selectedOf(markup);
+    expect(MarkupTree.roleOf(selectedRow)).toBe('row');
+    expect(elementsLabelled(selectedRow, 'Example Storefront, Flint\'s brain')).toHaveLength(1);
+    const tree = MarkupTree.parse(markup);
+    expect(elementsReading(tree, 'Last moves it chose').length).toBeGreaterThan(0);
+    expect(elementsLabelled(tree, 'Stop Flint\'s brain on Example Storefront')).toHaveLength(2);
   });
 
   test('A3 and A4: Activity and Forges each open under their own title', () => {
@@ -216,40 +269,64 @@ describe('each screen shows the state its artboard draws', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
     expect(textsOfClass(markup, 'gaia-forge-frame-bar-name')).toEqual(['Example Storefront']);
     expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
-    const figure = (text: string) => `<span class="design-system-text" data-type-role="small" data-mono="">${text}</span>`;
+    const figure = (text: string) => MarkupTree.drawnMarkupOf(createElement(Text, { typeRole: 'small', mono: true, children: text }));
     const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-line" title="4 / 5 agents · 2 wait on you · since 09:12">${line}</span>`);
-    expect(markup).toMatch(/<svg class="gaia-open-in-new-tab-glyph"[^>]*>.*?<\/svg>Open in new tab<\/button>/);
+    const openInNewTab = MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Open in new tab'));
+    const glyph = MarkupTree.onlyElementIn(openInNewTab, MarkupTree.withClass('gaia-open-in-new-tab-glyph'));
+    expect(openInNewTab.source.indexOf(glyph.source)).toBeLessThan(openInNewTab.source.lastIndexOf('Open in new tab'));
     expect(pageTitleOf(markup)).toEqual([]);
-    expect(markup).not.toMatch(THEME_BUTTON);
+    expect(themeButtonsOf(markup)).toEqual([]);
   });
 
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
     expect(textsOfClass(markup, 'gaia-confirm-question')).toEqual(['Stop the Overseer of Example Storefront? 4 agents are running.']);
-    expect(textsOfClass(markup, 'design-system-failed-action-code')).toEqual([B2_STOP_REFUSAL.refusal ?? '']);
-    expect(markup).toContain(`${B2_STOP_REFUSAL.text ?? ''}</span><button type="button" class="design-system-button" data-compact="">Try again</button>`);
+    const tree = MarkupTree.parse(markup);
+    const refusalCode = B2_STOP_REFUSAL.refusal ?? '';
+    expect(MarkupTree.textOf(tree).split(refusalCode)).toHaveLength(2);
+    const refusal = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('alert')(element) && MarkupTree.textOf(element).includes(refusalCode));
+    const refusalText = MarkupTree.textOf(refusal);
+    expect(refusalText).toContain(B2_STOP_REFUSAL.text ?? '');
+    const tryAgain = MarkupTree.onlyElementIn(refusal, MarkupTree.withRole('button', 'Try again'));
+    expect(tryAgain.source).toBe(compactButtonMarkupOf('Try again'));
+    expect(refusalText.indexOf(B2_STOP_REFUSAL.text ?? '')).toBeLessThan(refusalText.indexOf('Try again'));
     expect(textsOfClass(markup, 'gaia-forges-condition-detail')).toContain('forge start · waiting for its API');
-    expect(markup).toContain('<button type="button" class="design-system-button" disabled="" data-compact="">Starting</button>');
+    expect(MarkupTree.onlyElementIn(tree, MarkupTree.withRole('button', 'Starting')).source).toBe(compactButtonMarkupOf('Starting', true));
     expect(textsOfClass(markup, 'gaia-forges-controls-note')).toEqual([
-      'A control stays disabled while its command is on its way. A refusal is the forge&#x27;s own sentence, shown beside the control that caused it.',
+      'A control stays disabled while its command is on its way. A refusal is the forge\'s own sentence, shown beside the control that caused it.',
     ]);
   });
 
   test('B3: the unreachable banner under the bar, the head that counts what is known, and the figures folded into one line atop the main column', () => {
     const markup = screenMarkupOf(screenOf('B3'), 'dark');
-    expect(markup).toContain('<div class="design-system-banner" data-tone="error"><span><span class="gaia-attention-banner-lead">Overseer unreachable: Invoice Service.');
-    expect(markup).toContain(
-      'data-type-role="page">Waiting on you<span class="gaia-visually-hidden"> · </span><span class="design-system-tag" data-tone="warn">4 known, more possible</span></h2>',
-    );
+    const tree = MarkupTree.parse(markup);
+    const lead = MarkupTree.onlyElementIn(tree, MarkupTree.withClass('gaia-attention-banner-lead'));
+    expect(MarkupTree.textOf(lead)).toBe('Overseer unreachable: Invoice Service.');
+    const errorTone = MarkupTree.variantAttributesOf(createElement(Banner, { tone: 'quiet', text: '' }), createElement(Banner, { tone: 'error', text: '' }));
+    const banner = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.carries(element, errorTone) && MarkupTree.elementsIn(element).includes(lead));
+    expect(MarkupTree.textOf(banner)).toStartWith('Overseer unreachable: Invoice Service.');
+    const waitingHead = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('heading')(element) && MarkupTree.textOf(element).startsWith('Waiting on you'));
+    const countTag = MarkupTree.drawnMarkupOf(createElement(Tag, { text: '4 known, more possible', tone: 'warn' }));
+    expect(waitingHead.source).toContain(`>Waiting on you<span class="gaia-visually-hidden"> · </span>${countTag}</h2>`);
     expect(markup).toContain('<div class="gaia-attention-main"><div class="gaia-attention-figures" data-form="line">');
     expect(markup).not.toContain('data-form="stacked"');
   });
 
   test('A4 and B2: the Forges table sets its columns close, each root carrying its full path', () => {
+    const tableOf = (rowHeight: 'regular' | 'tall', columnGap: 'regular' | 'narrow') => createElement(DataTable, {
+      label:        'Forges',
+      columns:      [],
+      columnWidths: '',
+      rows:         [],
+      rowHeight,
+      columnGap,
+    });
+    const tallRowsSetClose = MarkupTree.variantAttributesOf(tableOf('regular', 'regular'), tableOf('tall', 'narrow'));
     for (const artboard of ['A4', 'B2'] as const) {
       const markup = screenMarkupOf(screenOf(artboard), 'dark');
-      expect(markup).toContain('class="design-system-data-table" role="table" aria-label="Forges" data-row-height="tall" data-column-gap="narrow"');
+      const forgesTable = MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('table', 'Forges'));
+      expect(MarkupTree.carries(forgesTable, tallRowsSetClose)).toBe(true);
       expect(markup).toContain('<span class="gaia-forges-forge-root" title="/Users/alexexample/development/example-storefront">~/development/example-storefront</span>');
     }
   });
@@ -262,7 +339,15 @@ describe('each screen shows the state its artboard draws', () => {
     expect(textsOfClass(markup, 'gaia-brand-bar-sentence')).toEqual(['nothing runs on this machine yet']);
     expect(textsOfClass(markup, 'gaia-rail-no-forge')).toEqual(['No forge is registered']);
     expect(textsOfClass(markup, 'gaia-rail-machine-line')).toEqual(['no limit known · 12 CPUs']);
-    expect(markup.match(/class="design-system-slot-meter-cell" data-cell="empty"/g)).toHaveLength(12);
+    const rail = MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('navigation'));
+    const slotMeter = MarkupTree.onlyElementIn(rail, MarkupTree.withRole('img'));
+    const everySlotFree = createElement(SlotMeter, {
+      label:  MarkupTree.nameOf(slotMeter),
+      filled: 0,
+      limit:  12,
+      tone:   'accent',
+    });
+    expect(slotMeter.source).toBe(MarkupTree.drawnMarkupOf(everySlotFree));
   });
 
   test('B4 found: the forge program named from ~ under the card, beside the one line that says a forge set up elsewhere appears by itself', () => {
@@ -279,12 +364,12 @@ describe('each screen shows the state its artboard draws', () => {
 });
 
 describe('B1 in each state of its brain tweak', () => {
-  function barControlsOf(markup: string): string {
-    return /<span class="gaia-forge-frame-bar-controls">(.*?)<\/span><\/header>/.exec(markup)?.[1] ?? '';
+  function barControlsOf(markup: string): MarkupElement {
+    return MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-forge-frame-bar-controls'));
   }
 
-  function buttonLabelsOf(markup: string): string[] {
-    return [...markup.matchAll(/<button [^>]*>(?:<svg.*?<\/svg>|<span[^>]*><\/span>)?([^<]*)<\/button>/g)].map(([, label = '']) => label);
+  function buttonLabelsOf(controls: MarkupElement): string[] {
+    return MarkupTree.elementsIn(controls, MarkupTree.withRole('button')).map(MarkupTree.textOf);
   }
 
   test('paints the five states in the tweak\'s order, off being the artboard\'s own, each from B1\'s source in both themes', () => {
@@ -301,14 +386,14 @@ describe('B1 in each state of its brain tweak', () => {
   test('each state shows its own parts of the brain between Stop and Open in new tab, and nothing of another', () => {
     const barByState = BRAIN_STATE_SCREENS.map((screen) => {
       const controls = barControlsOf(screenMarkupOf(screen, 'dark'));
-      const group = /<span class="gaia-brain-chip-group" data-state="([a-z]+)">/.exec(controls)?.[1] ?? null;
-      return [screen.brainState, group, buttonLabelsOf(controls)];
+      const groups = MarkupTree.elementsIn(controls, MarkupTree.withClass('gaia-brain-chip-group'));
+      return [screen.brainState, groups[0]?.attributes['data-state'] ?? null, buttonLabelsOf(controls)];
     });
     expect(barByState).toEqual([
-      ['off', 'off', ['Pause', 'Stop', 'Wake Flint&#x27;s brain', 'Open in new tab']],
+      ['off', 'off', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
       ['starting', 'starting', ['Pause', 'Stop', 'Open in new tab']],
       ['running', 'running', ['Pause', 'Stop', 'Stop', 'Open in new tab']],
-      ['refused', 'refused', ['Pause', 'Stop', 'Wake Flint&#x27;s brain', 'Open in new tab']],
+      ['refused', 'refused', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
       ['ended', 'ended', ['Pause', 'Stop', 'Open in new tab']],
     ]);
   });
@@ -320,11 +405,16 @@ describe('the restart an update left pending, over the artboard it changes', () 
     if (attention === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
-    expect(markup.match(/class="design-system-pending-step"/g)).toHaveLength(1);
-    const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
-    const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held."')) ?? '';
-    expect(heldLook).toContain('<span class="design-system-pending-step-word">Updated; restart pending.</span> Its Overseer runs the old code until it restarts.');
-    expect(heldLook).toContain('>Restart</button>');
+    const tree = MarkupTree.parse(markup);
+    expect(restartPendingStepsIn(tree)).toHaveLength(1);
+    const heldLook = MarkupTree.onlyElementIn(tree, (element) => (
+      MarkupTree.withClass('gaia-attention-look')(element) && elementsLabelled(element, 'Example Mobile App: Launches held.').length > 0
+    ));
+    const [pendingStep, ...otherPendingSteps] = restartPendingStepsIn(heldLook);
+    if (pendingStep === undefined) throw new Error('Example Mobile App\'s callout holds no pending restart.');
+    expect(otherPendingSteps).toEqual([]);
+    expect(MarkupTree.textOf(pendingStep)).toStartWith('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(MarkupTree.elementsIn(heldLook, MarkupTree.withRole('button', 'Restart'))).toHaveLength(1);
   });
 
   test('A4: Updated; restart pending with Restart under Example Mobile App\'s held banner, and nothing under its row', () => {
@@ -332,10 +422,11 @@ describe('the restart an update left pending, over the artboard it changes', () 
     if (forges === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(forges, 'dark');
     expect(pageTitleOf(markup)).toEqual(['Forges']);
-    expect(markup.match(/class="design-system-pending-step"/g)).toHaveLength(1);
-    const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
-    expect(heldGroup).toContain('<span class="design-system-pending-step-word">Updated; restart pending.</span>');
-    expect(heldGroup).toContain('>Restart</button>');
+    const tree = MarkupTree.parse(markup);
+    expect(restartPendingStepsIn(tree)).toHaveLength(1);
+    const heldGroup = MarkupTree.onlyElementIn(tree, MarkupTree.withClass('gaia-forges-held-group'));
+    expect(restartPendingStepsIn(heldGroup)).toHaveLength(1);
+    expect(MarkupTree.elementsIn(heldGroup, MarkupTree.withRole('button', 'Restart'))).toHaveLength(1);
   });
 });
 
@@ -345,10 +436,12 @@ describe('A4 as drawn, with the forge hidden in Gaia that the five forges\' fixt
     if (forges === undefined) throw new Error('The hidden forge screen is missing.');
     const markup = screenMarkupOf(forges, 'dark');
     expect(textsOfClass(markup, 'gaia-forges-hidden-summary')).toEqual(['Hidden in Gaia · 1']);
-    expect(markup).toContain('>Old Prototype<');
-    const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'), markup.indexOf('class="gaia-forges-group"'));
-    expect(heldGroup.match(/data-primary=""/g)).toHaveLength(1);
-    expect(heldGroup).toMatch(/data-primary=""[^>]*>Restart<\/button>/);
+    const tree = MarkupTree.parse(markup);
+    expect(elementsReading(tree, 'Old Prototype').length).toBeGreaterThan(0);
+    const heldGroup = MarkupTree.onlyElementIn(tree, MarkupTree.withClass('gaia-forges-held-group'));
+    const primaryButton = PRIMARY_BUTTON();
+    const primaries = MarkupTree.elementsIn(heldGroup, (element) => MarkupTree.carries(element, primaryButton));
+    expect(primaries.map((primary) => [MarkupTree.roleOf(primary), MarkupTree.nameOf(primary)])).toEqual([['button', 'Restart']]);
   });
 });
 
@@ -358,26 +451,28 @@ describe('the warnings of monitor contract 2, over the artboard that shows each'
     if (attention === undefined) throw new Error('A monitor warning screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
-    const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
-    expect(lookBlocks[0]).toContain('aria-label="Invoice Service: Baton pass failed."');
-    expect(lookBlocks[0]).toContain(BATON_PASS_FAILED_SENTENCE);
-    expect(lookBlocks[0]).toContain('>Open</a>');
-    expect(lookBlocks).toHaveLength(3);
+    const looks = MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-attention-look'));
+    expect(looks).toHaveLength(3);
+    const [batonLook = MarkupTree.parse('')] = looks;
+    expect(elementsLabelled(batonLook, 'Invoice Service: Baton pass failed.')).toHaveLength(1);
+    expect(MarkupTree.textOf(batonLook)).toContain(BATON_PASS_FAILED_SENTENCE);
+    expect(MarkupTree.elementsIn(batonLook, MarkupTree.withRole('link', 'Open'))).toHaveLength(1);
   });
 
   test('A4: an Assistant that cannot come up is a notice under Research Wiki\'s row, in Gaia\'s words', () => {
     const forges = MONITOR_WARNING_SCREENS[1];
     if (forges === undefined) throw new Error('A monitor warning screen is missing.');
     const markup = screenMarkupOf(forges, 'dark');
-    expect(textsOfClass(markup, 'gaia-forges-row-notice')).toEqual([ASSISTANT_DOWN_SENTENCE.replace('\'', '&#x27;')]);
+    expect(textsOfClass(markup, 'gaia-forges-row-notice')).toEqual([ASSISTANT_DOWN_SENTENCE]);
   });
 
   test('A3: the usage line names when the current window resets, under the limit', () => {
     const activity = ARTBOARD_SCREENS.find((screen) => screen.artboard === 'A3');
     if (activity === undefined) throw new Error('No screen paints artboard A3.');
     const markup = screenMarkupOf(activity, 'dark');
-    expect(textsOfClass(markup, 'gaia-activity-usage-line')).toEqual(['under its limit · window resets ']);
-    expect(textsOfClass(markup, 'design-system-stamp')).toEqual(['16:00']);
+    expect(textsOfClass(markup, 'gaia-activity-usage-line')).toEqual(['under its limit · window resets 16:00']);
+    const usageLine = MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-activity-usage-line'));
+    expect(usageLine.source).toEndWith(`window resets ${MarkupTree.drawnMarkupOf(createElement(Stamp, { shortText: '16:00' }))}</p>`);
   });
 });
 

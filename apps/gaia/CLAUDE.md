@@ -53,8 +53,9 @@ its own; the dev tools every workspace shares are the root's.
     props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
     Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a
     spec renders a hooked root with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does, and
-    reads Gaia's own markup there, a package part only whole, as drawn for the props Gaia hands it. Only the visual harness reads the
-    package's markup.
+    reads Gaia's own markup there, a package part only whole, as drawn for the props Gaia hands it. The visual harness reads its screens
+    through `page/testing/MarkupTree.ts`: a control by its role and name, a text by what it reads, a part of Gaia's by its own class, and a
+    package part whole or by the attributes a variant prop adds to its root, never by a package's class or nesting.
 11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system` at the repository
     root, never named in a `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
     `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
