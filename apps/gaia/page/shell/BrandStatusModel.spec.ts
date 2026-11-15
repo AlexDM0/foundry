@@ -1,8 +1,9 @@
 /**
  * What the brand bar says of the fleet (SCREENS "The shell"). What matters: the pill counts the forges whose Overseer runs, held, paused and
- * passing the baton among them, and pulses only while one does; the sentence counts every other condition, the running ones named apart
- * first; a hidden forge is left out; with no forge the pill says none is registered (B4), with every forge hidden that none is shown; and
- * before the first document the bar says nothing of the fleet.
+ * passing the baton among them, and one at a version Gaia cannot talk to, which answered its versions, and pulses only while one does; the
+ * sentence counts every other condition, the running ones named apart first, a forge that needs an update apart from one not readable; a
+ * hidden forge is left out; with no forge the pill says none is registered (B4), with every forge hidden that none is shown; and before the
+ * first document the bar says nothing of the fleet.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -11,6 +12,7 @@ import { FLEET_AT_LIMIT }                                   from '../testing/fix
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS }                                   from '../testing/fixtures/fleet-versions.ts';
 import { BrandStatusModel }                                 from './BrandStatusModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
@@ -37,6 +39,14 @@ describe('the brand bar\'s status', () => {
       fleet:    'running',
       pillText: '3 forges running',
       sentence: '1 holds its launches · 1 unreachable · 1 not readable by this Gaia',
+    });
+  });
+
+  test('U1: a forge older and one newer than this Gaia run, and the sentence names the one needing a forge update apart', () => {
+    expect(BrandStatusModel.brandStatusOf(FLEET_VERSIONS)).toEqual({
+      fleet:    'running',
+      pillText: '5 forges running',
+      sentence: '1 needs a forge update · 1 not readable by this Gaia',
     });
   });
 

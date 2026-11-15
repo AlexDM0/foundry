@@ -7,19 +7,21 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLEET_AT_LIMIT }     from '../../../page/testing/fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }     from '../../../page/testing/fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }        from '../../../page/testing/fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES }  from '../../../page/testing/fixtures/fleet-five-forges.ts';
-import type { FleetSnapshot } from '../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrain }    from '../../shared/@types/ForgeBrain.ts';
-import { CONTRACT_VERSIONS }  from '../../shared/constants/ContractVersions.ts';
+import { FLEET_AT_LIMIT }                                    from '../../../page/testing/fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }                                    from '../../../page/testing/fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }                                       from '../../../page/testing/fixtures/fleet-empty.ts';
+import { FLEET_FIVE_FORGES }                                 from '../../../page/testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_STATING_NO_VERSION } from '../../../page/testing/fixtures/fleet-versions.ts';
+import type { FleetSnapshot }                                from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrain }                                   from '../../shared/@types/ForgeBrain.ts';
+import { CONTRACT_VERSIONS }                                 from '../../shared/constants/ContractVersions.ts';
 
-import { FleetDocumentMapUtil }       from './FleetDocumentMapUtil.ts';
-import { FLEET_SNAPSHOT_AT_LIMIT }    from './testing/fleet-snapshot-at-limit.ts';
-import { FLEET_SNAPSHOT_DEGRADED }    from './testing/fleet-snapshot-degraded.ts';
-import { FLEET_SNAPSHOT_EMPTY }       from './testing/fleet-snapshot-empty.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES } from './testing/fleet-snapshot-five-forges.ts';
+import { FleetDocumentMapUtil }                                                from './FleetDocumentMapUtil.ts';
+import { FLEET_SNAPSHOT_AT_LIMIT }                                             from './testing/fleet-snapshot-at-limit.ts';
+import { FLEET_SNAPSHOT_DEGRADED }                                             from './testing/fleet-snapshot-degraded.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                                from './testing/fleet-snapshot-empty.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES }                                          from './testing/fleet-snapshot-five-forges.ts';
+import { FLEET_SNAPSHOT_VERSIONS, FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION } from './testing/fleet-snapshot-versions.ts';
 
 describe('the fleet document mapper', () => {
   test('maps the five-forges model to the fleet-five-forges document', () => {
@@ -30,6 +32,11 @@ describe('the fleet document mapper', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_AT_LIMIT)).toStrictEqual(FLEET_AT_LIMIT);
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_DEGRADED)).toStrictEqual(FLEET_DEGRADED);
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY)).toStrictEqual(FLEET_EMPTY);
+  });
+
+  test('maps the Versions boards\' models, a forge at each verdict and one that states no version, to their documents', () => {
+    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_VERSIONS)).toStrictEqual(FLEET_VERSIONS);
+    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION)).toStrictEqual(FLEET_VERSIONS_STATING_NO_VERSION);
   });
 
   test('stamps the fleet contract version it was built for', () => {

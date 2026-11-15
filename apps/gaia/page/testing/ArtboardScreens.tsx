@@ -26,6 +26,7 @@ import { fleetWithStorefrontBrainOf }                                           
 import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from './fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                               from './fixtures/fleet-versions.ts';
 
 export type ScreenTheme = 'dark' | 'light';
 
@@ -38,8 +39,11 @@ export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 /** The artboards in `designs/canvas.json`, by their mark. C2 is a dialog painted over A4 below; C3, the splash, is a file page of its own. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4';
 
-/** How the view of a screen is set: as the route shows it, with B2's controls in use, or after an update that left a restart pending. */
-type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending';
+/**
+ * How the view of a screen is set: as the route shows it, with B2's controls in use, after an update that left a restart pending, or with
+ * Example Billing's Update forge on its way, done with its restart pending, or refused (the Versions boards' `update` tweak).
+ */
+type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending' | 'forge-update-pending' | 'forge-update-done' | 'forge-update-refused';
 
 export interface ArtboardScreen {
   readonly artboard:      PageArtboard;
@@ -274,6 +278,108 @@ export const FORGE_PROGRAM_FOUND_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/** The Versions boards' pages: U1 is A1, U2 is A4 and U3 is B1, over forges at each version this Gaia, built for forge 3.1, meets. */
+export type VersionsBoard = 'U1' | 'U2' | 'U3';
+
+/** The step of Example Billing's Update forge a Versions screen shows, as the boards' `update` tweak names it. */
+export type ForgeUpdateStep = 'idle' | 'pending' | 'done' | 'refused';
+
+export interface VersionsScreen extends ArtboardScreen {
+  readonly board:            VersionsBoard;
+  /** The board's render in `.claude/.evidence/unsupported-forge-designs/`, without its theme: `U3-forge-older-pending`. */
+  readonly renderName:       string;
+  /** The forge whose versions pair the Forges view shows open under its row (U2's `versionsOf` tweak); `null` for every pair closed. */
+  readonly versionsShownFor: string | null;
+  readonly updateStep:       ForgeUpdateStep;
+}
+
+const VERSIONS_VIEW_STATES: Readonly<Record<ForgeUpdateStep, ScreenViewState>> = {
+  idle:    'as-routed',
+  pending: 'forge-update-pending',
+  done:    'forge-update-done',
+  refused: 'forge-update-refused',
+};
+
+/** U2's `versionsOf` tweak: each forge at a version other than this Gaia's, its pair open, and every pair closed. */
+const U2_VERSIONS_SHOWN_FOR: readonly (readonly [renderName: string, trackerId: string | null])[] = [
+  ['U2-forges-example-billing', FLEET_VERSIONS_TRACKER_IDS.exampleBilling],
+  ['U2-forges-analytics-sandbox', FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox],
+  ['U2-forges-example-storefront', FLEET_VERSIONS_TRACKER_IDS.exampleStorefront],
+  ['U2-forges-none', null],
+];
+
+/** U3's `case` and `update` tweaks as the boards render them: the newer and ahead forges idle, the older one at every step. */
+const U3_FORGES_IN_PLACE: readonly (readonly [renderName: string, trackerId: string, updateStep: ForgeUpdateStep])[] = [
+  ['U3-forge-newer', FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox, 'idle'],
+  ['U3-forge-older', FLEET_VERSIONS_TRACKER_IDS.exampleBilling, 'idle'],
+  ['U3-forge-older-pending', FLEET_VERSIONS_TRACKER_IDS.exampleBilling, 'pending'],
+  ['U3-forge-older-done', FLEET_VERSIONS_TRACKER_IDS.exampleBilling, 'done'],
+  ['U3-forge-older-refused', FLEET_VERSIONS_TRACKER_IDS.exampleBilling, 'refused'],
+  ['U3-forge-ahead', FLEET_VERSIONS_TRACKER_IDS.exampleStorefront, 'idle'],
+];
+
+/**
+ * The Versions boards (VERSIONS_SCREENS, U1 to U3), each over the artboard whose page it is, from the fleet-versions fixture: Attention with
+ * its two callouts, Forges with each pair open and none, and each forge in place at its version and Example Billing at each update step.
+ */
+export const VERSIONS_SCREENS: readonly VersionsScreen[] = [
+  {
+    board:            'U1',
+    renderName:       'U1-attention',
+    artboard:         'A1',
+    title:            'Attention, forges at other versions',
+    designFile:       'VersionsAttention.dc.html',
+    fleetDocument:    FLEET_VERSIONS,
+    fragment:         '#attention',
+    viewState:        'as-routed',
+    versionsShownFor: null,
+    updateStep:       'idle',
+  },
+  ...U2_VERSIONS_SHOWN_FOR.map(([renderName, versionsShownFor]) => ({
+    board:         'U2' as const,
+    renderName,
+    artboard:      'A4' as const,
+    title:         `Forges, the versions of ${versionsShownFor ?? 'no forge'} shown`,
+    designFile:    'VersionsForges.dc.html',
+    fleetDocument: FLEET_VERSIONS,
+    fragment:      '#forges',
+    viewState:     'as-routed' as const,
+    versionsShownFor,
+    updateStep:    'idle' as const,
+  })),
+  ...U3_FORGES_IN_PLACE.map(([renderName, trackerId, updateStep]) => ({
+    board:            'U3' as const,
+    renderName,
+    artboard:         'B1' as const,
+    title:            `A forge in place at another version, ${renderName.replace('U3-forge-', '')}`,
+    designFile:       trackerId === FLEET_VERSIONS_TRACKER_IDS.exampleBilling ? 'VersionsForgeBehind.dc.html' : 'VersionsForge.dc.html',
+    fleetDocument:    FLEET_VERSIONS,
+    fragment:         HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment: null }),
+    viewState:        VERSIONS_VIEW_STATES[updateStep],
+    versionsShownFor: null,
+    updateStep,
+  })),
+];
+
+/** The forge's refusal of Example Billing's Update forge, as the Versions boards word it. */
+export const VERSIONS_UPDATE_REFUSAL: CommandAnswerDocument = {
+  answerVersion: 3,
+  outcome:       'refused',
+  refusal:       'repository-busy',
+  text:          'Another forge command holds the repository.',
+};
+
+const EXAMPLE_BILLING_TRACKER_ID = FLEET_VERSIONS_TRACKER_IDS.exampleBilling;
+
+function exampleBillingUpdateStatesOf(updateStep: Exclude<ForgeUpdateStep, 'idle'>): CommandStates {
+  const state = {
+    pending: { onItsWay: 'forge-update' as const, failure: null, restartPending: false },
+    done:    { onItsWay: null, failure: null, restartPending: true },
+    refused: { onItsWay: null, failure: { kind: 'forge-update' as const, result: { verdict: 'answered' as const, answer: VERSIONS_UPDATE_REFUSAL } }, restartPending: false },
+  }[updateStep];
+  return { forges: new Map([[EXAMPLE_BILLING_TRACKER_ID, state]]), fleet: new Map() };
+}
+
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 3,
@@ -356,6 +462,12 @@ function commandStatesOf(viewState: ScreenViewState): CommandStates {
       return B2_COMMAND_STATES;
     case 'restart-pending':
       return RESTART_PENDING_COMMAND_STATES;
+    case 'forge-update-pending':
+      return exampleBillingUpdateStatesOf('pending');
+    case 'forge-update-done':
+      return exampleBillingUpdateStatesOf('done');
+    case 'forge-update-refused':
+      return exampleBillingUpdateStatesOf('refused');
   }
 }
 
@@ -399,7 +511,8 @@ export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): st
   return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
 }
 
-function documentAround(title: string, theme: ScreenTheme, bodyMarkup: string): string {
+/** A whole page around a body, the theme on its root and the stylesheets inline in the page's order, for a browser to open. */
+export function documentAround(title: string, theme: ScreenTheme, bodyMarkup: string): string {
   const stylesheetTexts = [
     DesignSystemStylesheet.fontFaceRules(),
     DesignSystemStylesheet.text(),

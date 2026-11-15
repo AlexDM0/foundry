@@ -8,7 +8,8 @@
  * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
  * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
  * state, the forge program found. B1 is painted in each of the five states of its `brain` tweak, each showing exactly its own parts of
- * Flint's brain between Stop and Open in new tab.
+ * Flint's brain between Stop and Open in new tab. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
+ * fixture, one screen per board render, Example Billing's Update forge at each of its steps.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
  * artboard's size in Chrome or Chromium, and compares the picture with the artboard; the splash opens at `splashScreenAddressOf`. A screen
@@ -51,6 +52,7 @@ import {
   SPLASH_SCREENS,
   SPLASH_SIZE_PIXELS,
   splashScreenAddressOf,
+  VERSIONS_SCREENS,
   WHAT_NOTIFIES_SCREENS,
   whatNotifiesDocumentOf,
   whatNotifiesMarkupOf,
@@ -73,6 +75,7 @@ const PAINTED_OVER_ARTBOARDS: readonly ArtboardScreen[] = [
   ...MONITOR_WARNING_SCREENS,
   ...HIDDEN_FORGE_SCREENS,
   ...FORGE_PROGRAM_FOUND_SCREENS,
+  ...VERSIONS_SCREENS,
 ];
 
 function screenOf(artboard: PageArtboard): ArtboardScreen {
@@ -175,6 +178,22 @@ describe('the screens of the visual pass', () => {
     expect(RESTART_PENDING_SCREENS.map((screen) => [screen.artboard, screen.designFile])).toEqual([
       ['A1', 'Main.dc.html'],
       ['A4', 'Forges.dc.html'],
+    ]);
+  });
+
+  test('paints each Versions board render over the artboard of its page, from its own board source, Example Billing at each update step', () => {
+    expect(VERSIONS_SCREENS.map((screen) => [screen.renderName, screen.artboard, screen.designFile, screen.updateStep])).toEqual([
+      ['U1-attention', 'A1', 'VersionsAttention.dc.html', 'idle'],
+      ['U2-forges-example-billing', 'A4', 'VersionsForges.dc.html', 'idle'],
+      ['U2-forges-analytics-sandbox', 'A4', 'VersionsForges.dc.html', 'idle'],
+      ['U2-forges-example-storefront', 'A4', 'VersionsForges.dc.html', 'idle'],
+      ['U2-forges-none', 'A4', 'VersionsForges.dc.html', 'idle'],
+      ['U3-forge-newer', 'B1', 'VersionsForge.dc.html', 'idle'],
+      ['U3-forge-older', 'B1', 'VersionsForgeBehind.dc.html', 'idle'],
+      ['U3-forge-older-pending', 'B1', 'VersionsForgeBehind.dc.html', 'pending'],
+      ['U3-forge-older-done', 'B1', 'VersionsForgeBehind.dc.html', 'done'],
+      ['U3-forge-older-refused', 'B1', 'VersionsForgeBehind.dc.html', 'refused'],
+      ['U3-forge-ahead', 'B1', 'VersionsForge.dc.html', 'idle'],
     ]);
   });
 

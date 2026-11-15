@@ -5,11 +5,18 @@
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';
 import type { BrandStatus }                           from '../design-system/BrandBar.tsx';
 import { CountTextUtil }                              from '../shared/utils/CountTextUtil.ts';
+import { ForgeTextUtil, type ShownCondition }         from '../shared/utils/ForgeTextUtil.ts';
 
 const SENTENCE_SEPARATOR = ' · ';
 
 /** The conditions under which a forge's Overseer runs. */
 const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
+
+/** A forge at a version Gaia cannot talk to answered its versions, so its Overseer runs, whatever Gaia reads of it. */
+function overseerRuns(forge: FleetDocument['forges'][number]): boolean {
+  const answeredAtAnotherVersion = forge.versions?.verdict === 'older' || forge.versions?.verdict === 'newer';
+  return answeredAtAnotherVersion || RUNNING_CONDITIONS.has(forge.condition);
+}
 
 const NO_FORGE_STATUS: BrandStatus = { fleet: 'dormant', pillText: 'No forge registered', sentence: 'nothing runs on this machine yet' };
 
@@ -28,8 +35,8 @@ function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null 
   const hidden = new Set(fleetDocument.settings.hiddenTrackerIds);
   const forges = fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
   if (forges.length === 0) return EVERY_FORGE_HIDDEN_STATUS;
-  const countOf = (condition: FleetDocumentCondition): number => forges.filter((forge) => forge.condition === condition).length;
-  const runningCount = forges.filter((forge) => RUNNING_CONDITIONS.has(forge.condition)).length;
+  const countOf = (condition: ShownCondition): number => forges.filter((forge) => ForgeTextUtil.shownConditionOf(forge) === condition).length;
+  const runningCount = forges.filter(overseerRuns).length;
   const clauses = [
     clauseOf(countOf('paused'), 'paused'),
     clauseOf(countOf('held'), 'holds its launches', 'hold their launches'),
@@ -37,6 +44,7 @@ function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null 
     clauseOf(countOf('starting'), 'starting'),
     clauseOf(countOf('dormant'), 'dormant'),
     clauseOf(countOf('unreachable'), 'unreachable'),
+    clauseOf(countOf('outdated'), 'needs a forge update', 'need a forge update'),
     clauseOf(countOf('unreadable'), 'not readable by this Gaia'),
     clauseOf(countOf('missing'), 'repository missing', 'repositories missing'),
   ];

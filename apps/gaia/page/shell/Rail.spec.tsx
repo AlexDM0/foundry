@@ -111,7 +111,7 @@ describe('the rail', () => {
   test('a forge row leads with its condition dot, hidden from the accessibility tree, in the forges group', () => {
     const unfolded = unfoldedRail(FLEET_FIVE_FORGES, DEFAULT_ROUTE);
     const dots = tree.hostElementsIn(unfolded, DrawnDots.isDot);
-    expect(dots.map(DrawnDots.conditionOf)).toEqual(['live', 'live', 'live', 'held', 'dormant', 'unreadable|missing']);
+    expect(dots.map(DrawnDots.conditionOf)).toEqual(['live', 'live', 'live', 'held|outdated', 'dormant', 'unreadable|missing']);
     expect(dots.every((dot) => dot.tag === StateDot.name || dot.props['aria-hidden'] === 'true')).toBe(true);
     const forgeRows = tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-row')).slice(4);
     expect(forgeRows.map((row) => row.children[0])).toEqual(dots);

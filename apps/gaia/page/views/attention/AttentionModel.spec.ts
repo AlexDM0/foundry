@@ -29,6 +29,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
 import {
   type AttentionContent,
   AttentionModel,
@@ -369,7 +370,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'warn',
       'unreadable',
       'Newer than this Gaia',
-      'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing. Update Gaia.',
+      'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing.',
       'monitor 4 · control 3',
     ]);
     expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
@@ -387,7 +388,9 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(olderDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia supports 1.1']);
+    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia is built for forge 1.1']);
+    expect(older.sentence).toBe('This forge is older than the forge this Gaia is built for. Gaia shows nothing of its work and sends it no command until '
+      + 'the forge is updated. Its agents keep running.');
     expect(actionsOf(older)).toEqual([
       ['Update forge', 'primary', { kind: 'forge-update', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
       ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
@@ -396,7 +399,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       .toBe('Nothing until the forge is updated. Its version is older than this Gaia talks to.');
   });
 
-  test('a forge that serves no versions, as every released forge, is the same callout with no machine line', () => {
+  test('a forge that serves no versions, as every released forge, is the same callout, saying it states no version', () => {
     const unversionedSandbox = {
       ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
       fidelity: 'older-contract',
@@ -408,7 +411,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(unversionedDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.word, older.machineLine, actionsOf(older)[0]?.[0]]).toEqual(['warn', 'Older than this Gaia', null, 'Update forge']);
+    expect([older.tone, older.word, older.machineLine, actionsOf(older)[0]?.[0]])
+      .toEqual(['warn', 'Older than this Gaia', 'forge states no version · this Gaia is built for forge 1.1', 'Update forge']);
   });
 
   test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {
@@ -464,5 +468,16 @@ describe('no forge yet (B4)', () => {
     const chosen = { ...FLEET_EMPTY, settings: { ...FLEET_EMPTY.settings, forgeProgramPath: '/opt/forge/bin/forge' } };
     expect(noForgeContentOf(chosen).forgeProgramText).toBe('/opt/forge/bin/forge');
     expect(noForgeContentOf({ ...found, settings: chosen.settings }).forgeProgramText).toBe('~/.bun/bin/forge');
+  });
+
+  test('a forge newer than this Gaia is a callout that only explains, in its own terms, and offers no update of Gaia', () => {
+    const newer = lookOf(fleetContentOf(FLEET_VERSIONS), FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox);
+    expect([newer.word, newer.sentence, newer.machineLine]).toEqual([
+      'Newer than this Gaia',
+      'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
+        + 'no command. Its own Bridge shows all of it.',
+      'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1',
+    ]);
+    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox }, true]]);
   });
 });

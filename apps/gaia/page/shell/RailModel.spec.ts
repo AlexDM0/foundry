@@ -15,6 +15,7 @@ import { FLEET_AT_LIMIT }                                   from '../testing/fix
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS }                                   from '../testing/fixtures/fleet-versions.ts';
 import { type RailContent, type RailCount, RailModel }      from './RailModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
@@ -202,5 +203,15 @@ describe('the current row', () => {
     if (storefront === undefined) throw new Error('The fixture holds no forge.');
     const passing: FleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, condition: 'passing-baton' }] };
     expect(RailModel.railContentOf(passing, DEFAULT_ROUTE).forges.map((row) => row.condition)).toEqual(['starting']);
+  });
+
+  test('a forge older than this Gaia shows the dashed orange dot of one needing an update, and a newer one the faded dot of one not readable', () => {
+    expect(RailModel.railContentOf(FLEET_VERSIONS, DEFAULT_ROUTE).forges.map((row) => [row.project, row.condition])).toEqual([
+      ['Example Storefront', 'live'],
+      ['Invoice Service', 'live'],
+      ['Research Wiki', 'live'],
+      ['Example Billing', 'outdated'],
+      ['Analytics Sandbox', 'unreadable'],
+    ]);
   });
 });

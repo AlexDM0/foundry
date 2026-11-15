@@ -139,6 +139,71 @@
 .gaia-callout-machine-line { display: block; font-family: var(--font-mono); font-size: var(--fs-pill); color: var(--ink-muted); }
 .gaia-callout-actions { display: inline-flex; flex: none; gap: var(--sp-2); }
 
+/* Versions: a forge's version beside the one this Gaia is built for, the verdict's mark and word, and the pair of both */
+.gaia-version-number {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  font-weight: var(--weight-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.gaia-version-number[data-ink="inherit"] { color: inherit; }
+.gaia-versions-line { display: block; font-size: var(--fs-small); line-height: var(--line-height-versions-line); color: var(--ink-muted); }
+.gaia-versions-verdict-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--versions-mark-size);
+  height: var(--versions-mark-size);
+}
+.gaia-versions-check {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--versions-check-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gaia-versions-half-dot {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: var(--condition-dot-size);
+  height: var(--condition-dot-size);
+  border: var(--dot-ring-width) solid var(--ink-muted);
+  border-radius: var(--r-pill);
+}
+.gaia-versions-half-dot::before { position: absolute; inset: 0 50% 0 0; content: ""; background: var(--ink-muted); }
+.gaia-versions-verdict { display: inline-flex; align-items: center; gap: var(--space-7); font-weight: var(--weight-strong); white-space: nowrap; }
+.gaia-versions-verdict[data-verdict="current"],
+.gaia-versions-verdict[data-verdict="ahead"] { font-weight: var(--weight-label); color: var(--ink); }
+.gaia-versions-verdict[data-verdict="newer"] { color: var(--ink-muted); }
+.gaia-versions-verdict[data-verdict="older"] { color: var(--link); }
+.gaia-versions-pair {
+  display: grid;
+  grid-template-columns: var(--versions-pair-name-width) minmax(0, 1fr);
+  row-gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-10) var(--space-14) var(--space-11);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-3);
+  background: var(--surface);
+  font-size: var(--fs-tab);
+  line-height: var(--line-height-tab);
+}
+.gaia-versions-pair-name {
+  overflow: hidden;
+  padding-right: var(--space-14);
+  font-weight: var(--weight-strong);
+  color: var(--ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gaia-versions-pair-value { min-width: 0; margin: 0; color: var(--ink-muted); }
+.gaia-versions-pair-name[data-verdict-row],
+.gaia-versions-pair-value[data-verdict-row] { padding-top: var(--space-6); border-top: var(--hairline) solid var(--line); }
+
 /* List card: rows with a hairline between them inside a card */
 .gaia-list-card {
   overflow: hidden;

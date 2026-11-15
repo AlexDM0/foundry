@@ -21,6 +21,10 @@
   --segment-padding-horizontal: 10px;
   --condition-dot-size:  8px;
   --dot-ring-width:      1.5px;
+  --versions-mark-size:  10px;
+  --versions-check-stroke-width: 1.6;
+  --line-height-versions-line: 17px;
+  --versions-pair-name-width: 146px;
   --brain-diamond-size:  7px;
   --brain-diamond-radius: 1px;
   --brain-diamond-scale: 0.85;

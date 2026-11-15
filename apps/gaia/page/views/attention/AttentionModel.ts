@@ -16,19 +16,20 @@ import type {
   FleetDocumentLook,
   FleetDocumentLookKind,
 } from '../../@types/FleetDocument.ts';
-import type { CalloutTone }     from '../../design-system/Callout.tsx';
-import type { DotCondition }    from '../../design-system/ConditionDot.tsx';
-import type { DotRole }         from '../../design-system/RoleDot.tsx';
-import type { ClockReading }    from '../../shared/@types/ClockReading.ts';
-import { HashRouter }           from '../../shared/HashRouter.ts';
-import { AddRepositoryForm }    from '../../shared/add-repository/AddRepositoryForm.ts';
-import { CountTextUtil }        from '../../shared/utils/CountTextUtil.ts';
-import { FleetDocumentUtil }    from '../../shared/utils/FleetDocumentUtil.ts';
-import { ForgeCommandTextUtil } from '../../shared/utils/ForgeCommandTextUtil.ts';
-import { ForgeContractUtil }    from '../../shared/utils/ForgeContractUtil.ts';
-import { ForgeTextUtil }        from '../../shared/utils/ForgeTextUtil.ts';
-import { PathTextUtil }         from '../../shared/utils/PathTextUtil.ts';
-import { StampTextUtil }        from '../../shared/utils/StampTextUtil.ts';
+import type { CalloutTone }      from '../../design-system/Callout.tsx';
+import type { DotCondition }     from '../../design-system/ConditionDot.tsx';
+import type { DotRole }          from '../../design-system/RoleDot.tsx';
+import type { ClockReading }     from '../../shared/@types/ClockReading.ts';
+import { HashRouter }            from '../../shared/HashRouter.ts';
+import { AddRepositoryForm }     from '../../shared/add-repository/AddRepositoryForm.ts';
+import { CountTextUtil }         from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }     from '../../shared/utils/FleetDocumentUtil.ts';
+import { ForgeCommandTextUtil }  from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeContractUtil }     from '../../shared/utils/ForgeContractUtil.ts';
+import { ForgeTextUtil }         from '../../shared/utils/ForgeTextUtil.ts';
+import { ForgeVersionsTextUtil } from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { PathTextUtil }          from '../../shared/utils/PathTextUtil.ts';
+import { StampTextUtil }         from '../../shared/utils/StampTextUtil.ts';
 
 /** The one drawn shape a look's button carries. */
 export type LookActionIcon = 'open-in-new-tab';
@@ -314,35 +315,48 @@ function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
   };
 }
 
+/**
+ * Gaia cannot read the forge and Gaia is the one behind, so the callout only explains and offers no update. A forge whose version is newer
+ * says so in its own terms; one whose version Gaia talks to but whose document is of a newer contract names that contract.
+ */
 function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
+  const word = ForgeVersionsTextUtil.verdictWordOf('newer');
+  const actions = [openInNewTabAction(forge.trackerId)];
+  const versionsCallout = forge.versions === null
+    ? null
+    : ForgeVersionsTextUtil.calloutTextOf({ project: forge.project, versions: forge.versions }, fleetDocument.gaia.versions);
+  if (versionsCallout !== null) {
+    return {
+      tone:        'warn' as const,
+      word,
+      sentence:    versionsCallout.sentence,
+      machineLine: ForgeVersionsTextUtil.plainTextOf(versionsCallout.versionsLine),
+      actions,
+    };
+  }
   const newer = newerContractsOf(forge, fleetDocument);
   const [leading = 'monitor'] = newer;
   return {
     tone:     'warn' as const,
-    word:     'Newer than this Gaia',
+    word,
     sentence: `This forge publishes ${leading} contract ${forge.contracts[leading] ?? ''}. This Gaia reads ${fleetDocument.gaia.knownContracts[leading]}, `
-      + 'so it shows nothing of it and sends it nothing. Update Gaia.',
+      + 'so it shows nothing of it and sends it nothing.',
     machineLine: newer.map((name) => `${name} ${forge.contracts[name] ?? ''}`).join(META_SEPARATOR) || null,
-    actions:     [openInNewTabAction(forge.trackerId)],
+    actions,
   };
 }
 
-/** The forge's system version is older than the one this Gaia supports, or it serves none: Gaia reads nothing of it, and Update forge brings it level. */
+/** The forge's system version is older than the one this Gaia is built for, or it serves none: Update forge brings it level. */
 function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
-  const current = forge.versions?.current ?? null;
-  const { supportedForgeVersion } = fleetDocument.gaia.versions;
+  const versions = forge.versions ?? ForgeVersionsTextUtil.NO_VERSIONS_SERVED;
+  const versionsCallout = ForgeVersionsTextUtil.calloutTextOf({ project: forge.project, versions }, fleetDocument.gaia.versions);
   return {
-    tone:     'warn' as const,
-    word:     'Older than this Gaia',
-    sentence: 'Its version is older than this Gaia talks to. Gaia shows nothing of its work and sends it no command until the forge is updated. '
-      + 'Its agents keep running.',
-    machineLine: current === null ? null : `forge ${versionTextOf(current)}${META_SEPARATOR}this Gaia supports ${versionTextOf(supportedForgeVersion)}`,
+    tone:        'warn' as const,
+    word:        ForgeVersionsTextUtil.verdictWordOf('older'),
+    sentence:    versionsCallout?.sentence ?? '',
+    machineLine: versionsCallout === null ? null : ForgeVersionsTextUtil.plainTextOf(versionsCallout.versionsLine),
     actions:     [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
   };
-}
-
-function versionTextOf({ major, minor }: { readonly major: number; readonly minor: number }): string {
-  return `${major}.${minor}`;
 }
 
 function countsOnlySentenceOf(forge: FleetDocumentForge): string {

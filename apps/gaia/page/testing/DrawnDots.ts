@@ -22,7 +22,7 @@ export const DrawnDots = {
       || ['gaia-condition-dot', 'gaia-brain-diamond'].some((className) => ReactElementTree.hasClass(element, className));
   },
 
-  /** The conditions whose look this dot draws; the dormant and unreadable looks differ, but unreadable and missing share one. */
+  /** The conditions whose look this dot draws; the dormant and unreadable looks differ, but unreadable and missing share one, as held and outdated do. */
   conditionsOf(element: HostElement): DotCondition[] {
     if (ReactElementTree.hasClass(element, 'gaia-condition-dot')) return [element.props['data-condition'] as DotCondition];
     const key = lookKeyOf(element.props['tone'], element.props['shape']);

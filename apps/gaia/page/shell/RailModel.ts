@@ -133,7 +133,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
     forges: fleetDocument === null ? [] : visibleForgesOf(fleetDocument).map((forge) => ({
       trackerId: forge.trackerId,
       project:   forge.project,
-      condition: ForgeTextUtil.dotConditionOf(forge.condition),
+      condition: ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
       href:      forgeHrefOf(forge),
       count:     forgeCountOf(forge),
       isCurrent: forge.trackerId === currentTrackerId,

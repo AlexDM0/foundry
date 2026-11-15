@@ -55,7 +55,7 @@ its own; the dev tools every workspace shares are the root's.
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
     `page/design-system/` holds only the parts no package has (Gaia's mark, the brand bar, the brain chip, the callout and the like)
     and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
-    a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
+    a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
     `page/testing/ReactElementTree.ts`, which keeps every component the design-system packages' exports maps name folded: a spec reads and calls the
     props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
     Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a

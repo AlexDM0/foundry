@@ -19,6 +19,7 @@ const EXPECTED_LOOKS: Readonly<Record<Exclude<DotCondition, 'unreachable'>, read
   dormant:    ['muted', 'ring'],
   unreadable: ['muted', 'dashed-ring'],
   missing:    ['muted', 'dashed-ring'],
+  outdated:   ['accent', 'dashed-ring'],
 };
 
 describe('the condition dot', () => {
