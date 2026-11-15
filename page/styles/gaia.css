@@ -979,6 +979,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-held-name { font-weight: var(--weight-strong); }
 .gaia-forges-held-word { font-weight: var(--weight-strong); color: var(--link); }
 .gaia-forges-held-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-5); }
+/* Indented under the held banner, a pending restart is dashed all round: the banner above already carries the solid edge. */
+.gaia-forges-held-below > .gaia-pending-step { border-left: var(--hairline) dashed var(--accent-edge); }
 
 /* The forges outside the table: their repository is gone, or User hid them in Gaia */
 .gaia-forges-group { display: flex; flex-direction: column; gap: var(--space-10); }
@@ -1145,6 +1147,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
 .gaia-attention-section { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
+/* The package's section head stands 26 px for parts this head lacks; its 5 px above and below its 16 px line are taken back, as A1 and B3 draw it. */
+.gaia-attention-looks { display: flex; flex-direction: column; gap: var(--space-5); margin-top: calc(-1 * var(--space-5)); }
+.gaia-attention-look-list { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 .gaia-attention-note { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 
 /* What waits on User: one card, its serif head with the count's pill, then one grid per row; the primary row has the orange edge */
@@ -1181,6 +1186,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 /* Forges that need a look: a callout, and the refusal of its command under it; an incomplete forge's word is a quiet pill */
 .gaia-attention-look { display: flex; flex-direction: column; gap: var(--sp-2); }
 .gaia-attention-look .gaia-callout-body { gap: var(--space-4); }
+/* While the figures fold into one line (B3), the callouts keep their lines as close as B3 draws them, so the column ends above the fold. */
+.gaia-attention-figures[data-form="line"] ~ .gaia-attention-looks .gaia-callout-body { gap: var(--sp-half); }
 /* A held forge's third line counts agents, a sentence and no machine value, so it is set in the callout's own face. */
 .gaia-attention-look[data-look-kind="launches-held"] .gaia-callout-machine-line { font-family: inherit; font-size: var(--fs-small); }
 .gaia-attention-look .gaia-callout-body[data-tone="neutral"] .gaia-callout-word {

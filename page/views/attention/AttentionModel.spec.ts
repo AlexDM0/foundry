@@ -12,11 +12,16 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import type { ClockReading }                                          from '../../shared/@types/ClockReading.ts';
-import { FLEET_AT_LIMIT }                                             from '../../testing/fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }                                             from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }                                                from '../../testing/fixtures/fleet-empty.ts';
+import type {
+  FleetDocument,
+  FleetDocumentBrain,
+  FleetDocumentForge,
+  FleetDocumentLookKind
+} from '../../@types/FleetDocument.ts';
+import type { ClockReading } from '../../shared/@types/ClockReading.ts';
+import { FLEET_AT_LIMIT }    from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }    from '../../testing/fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }       from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
   FLEET_FIVE_FORGES_BRAINS,
@@ -326,6 +331,13 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['Example Mobile App', 'launches held', '2 / 2', false],
     ]);
     expect(content.readings?.map((reading) => reading.condition)).toEqual(['live', 'unreachable', 'live', 'held', 'unreadable']);
+  });
+
+  test('the four callouts follow B3\'s order by kind, whatever order the document lists the forges in', () => {
+    const boardOrder: FleetDocumentLookKind[] = ['unreachable', 'launches-held', 'newer-contract', 'counts-only'];
+    expect(fleetContentOf(FLEET_DEGRADED).looks.map((look) => look.lookKind)).toEqual(boardOrder);
+    const reversed: FleetDocument = { ...FLEET_DEGRADED, needsALook: [...FLEET_DEGRADED.needsALook].reverse() };
+    expect(fleetContentOf(reversed).looks.map((look) => look.lookKind)).toEqual(boardOrder);
   });
 
   test('the unreachable forge has a banner with its last stamp, and a callout with its address, process and last answer', () => {

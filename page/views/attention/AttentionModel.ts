@@ -399,9 +399,29 @@ function restartAfterUpdateOf(forge: FleetDocumentForge, actions: readonly LookA
   return commandAction(restartLabel, 'primary', { kind: 'forge-restart', trackerId: forge.trackerId }, ForgeContractUtil.controlContractIsKnown(forge));
 }
 
+/**
+ * The callouts' order by kind, as B3 draws them: what Gaia cannot reach first, then what User updates or reads in another tab, then what
+ * runs but shows less; forges of one kind keep the document's order.
+ */
+const LOOK_CALLOUT_ORDER: readonly FleetDocumentLookKind[] = [
+  'unreachable',
+  'baton-pass-failed',
+  'launches-held',
+  'newer-contract',
+  'new-code',
+  'counts-only',
+  'dormant-with-ready-tickets',
+  'machine-limit-reached',
+];
+
+function lookCalloutRankOf(look: FleetDocumentLook): number {
+  return LOOK_CALLOUT_ORDER.indexOf(look.kind);
+}
+
 /** The machine at its limit shows once, on the machine panel, never as a forge's callout. */
 function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): LookCallout[] {
-  return fleetDocument.needsALook.flatMap((look) => {
+  const looksInCalloutOrder = [...fleetDocument.needsALook].sort((a, b) => lookCalloutRankOf(a) - lookCalloutRankOf(b));
+  return looksInCalloutOrder.flatMap((look) => {
     const forge = forgesById.get(look.trackerId);
     const parts = forge === undefined ? null : calloutPartsOf(look, forge, fleetDocument, clock);
     if (forge === undefined || parts === null) return [];

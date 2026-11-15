@@ -29,7 +29,6 @@ import { Refusal }                                                from '../../de
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
-import { CountTextUtil }                                          from '../../shared/utils/CountTextUtil.ts';
 import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
@@ -243,9 +242,13 @@ function Figures({ content }: { readonly content: AttentionContent }) {
   );
 }
 
+/** A small count in a sentence is written as a word, "the three forges", as SCREENS B3 words the readings' footnote. */
+const SMALL_COUNT_WORDS: readonly string[] = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+
 function readingsNoteOf(readings: readonly ForgeReadingLine[]): string {
   const leftOut = readings.filter((reading) => reading.totalsCannotVouchForIt).length;
-  return `Gaia never guesses a count. The totals leave out the ${CountTextUtil.countedPhrase(leftOut, 'forge', 'forges')} it cannot read in full.`;
+  const leftOutText = `${SMALL_COUNT_WORDS[leftOut] ?? String(leftOut)} ${leftOut === 1 ? 'forge' : 'forges'}`;
+  return `Gaia never guesses a count. The totals leave out the ${leftOutText} it cannot read in full.`;
 }
 
 function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
@@ -387,9 +390,11 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}
           <WaitingCard content={content} />
           {content.looks.length === 0 ? null : (
-            <section className="gaia-attention-section" aria-label={content.looksHead}>
+            <section className="gaia-attention-looks" aria-label={content.looksHead}>
               <SectionHead title={content.looksHead} />
-              {content.looks.map((look) => <LookBlock key={`${look.trackerId}/${look.lookKind}`} look={look} {...handlers} />)}
+              <div className="gaia-attention-look-list">
+                {content.looks.map((look) => <LookBlock key={`${look.trackerId}/${look.lookKind}`} look={look} {...handlers} />)}
+              </div>
             </section>
           )}
         </div>

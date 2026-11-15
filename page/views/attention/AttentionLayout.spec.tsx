@@ -239,7 +239,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ]);
     expect(tree.hostElementsIn(readings, tree.withClass('gaia-visually-hidden'))).toHaveLength(3);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-note')]))
-      .toBe('Gaia never guesses a count. The totals leave out the 3 forges it cannot read in full.');
+      .toBe('Gaia never guesses a count. The totals leave out the three forges it cannot read in full.');
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-attention-readings'))).toEqual([]);
   });
 
@@ -270,18 +270,18 @@ describe('forges Gaia cannot fully read (B3)', () => {
 
   test('each look carries its kind, so a held forge\'s agents line can be set as a sentence and not as a machine value', () => {
     const looks = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-attention-look'));
-    expect(looks.map((look) => look.props['data-look-kind'])).toEqual(['unreachable', 'counts-only', 'launches-held', 'newer-contract']);
+    expect(looks.map((look) => look.props['data-look-kind'])).toEqual(['unreachable', 'launches-held', 'newer-contract', 'counts-only']);
   });
 
   test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {
     const callouts = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-callout'));
     expect(callouts.map((callout) => [callout.props['aria-label'], tree.onlyWithClass([callout], 'gaia-callout-body').props['data-tone']])).toEqual([
       ['Invoice Service: Unreachable.', 'error'],
-      ['Research Wiki: Counts only', 'neutral'],
       ['Example Mobile App: Launches held.', 'warn'],
       ['Analytics Sandbox: Newer than this Gaia.', 'warn'],
+      ['Research Wiki: Counts only', 'neutral'],
     ]);
-    const newer = callouts[3];
+    const newer = callouts[2];
     expect(newer === undefined ? null : DrawnDots.conditionOf(tree.onlyHostElementIn([newer], DrawnDots.isDot))).toBe('unreadable|missing');
   });
 });
