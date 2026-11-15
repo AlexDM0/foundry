@@ -1,6 +1,6 @@
 /**
  * The session code exchange. What matters: the fragment is cleared before the code is posted, so no history entry or address keeps it;
- * the code goes only in a JSON body to `/api/session`, never in a URL; Gaia's answer maps to a verdict, a network failure included, and
+ * the code goes only in a JSON body to `/api/v1/session`, never in a URL; Gaia's answer maps to a verdict, a network failure included, and
  * a fragment without a code posts nothing. Gaia's server is stood in for by its answers: a success for a fresh code, a refusal status for a spent one.
  */
 import { describe, expect, test } from 'bun:test';
@@ -25,7 +25,7 @@ function serverAnswering(answer: () => Response, events: string[], posted: Poste
 }
 
 describe('exchanging the code in the fragment', () => {
-  test('the fragment is cleared first, then the code goes in a JSON body to /api/session, and a fresh code is exchanged', async () => {
+  test('the fragment is cleared first, then the code goes in a JSON body to /api/v1/session, and a fresh code is exchanged', async () => {
     const events: string[] = [];
     const posted: PostedRequest[] = [];
     const outcome = await SessionCodeExchange.exchangeCodeInFragment(
@@ -37,7 +37,7 @@ describe('exchanging the code in the fragment', () => {
     expect(events).toEqual(['replaced with "/"', 'posted']);
     expect(posted).toHaveLength(1);
     const [request] = posted;
-    expect(request?.path).toBe(SessionCodeExchange.SESSION_PATH);
+    expect(request?.path).toBe('/api/v1/session');
     expect(request?.path).not.toContain(CODE);
     expect(request?.requestOptions.method).toBe('POST');
     expect(JSON.parse(String(request?.requestOptions.body))).toEqual({ code: CODE });

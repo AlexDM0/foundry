@@ -142,7 +142,7 @@ describe('following the event stream', () => {
   test('it opens /api/v4/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
     const stage = streamStage();
     stage.client.follow();
-    expect(stage.opened.map((source) => source.path)).toEqual([FleetStreamClient.EVENTS_PATH]);
+    expect(stage.opened.map((source) => source.path)).toEqual(['/api/v4/events']);
     expect(stage.client.state()).toBe('connecting');
     stage.latest().emit('open');
     expect(stage.client.state()).toBe('live');

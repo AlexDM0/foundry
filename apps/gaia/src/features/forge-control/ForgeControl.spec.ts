@@ -2,12 +2,13 @@
  * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
  * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
  * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
- * know, the guard that sends Flint's brain's commands only at control 2 and refuses them with brain-not-served under 1, a stop and a
- * machine limit that fall back to the program, or the next live forge, when no Overseer answers or no token can be read, a command sent
- * only to the Overseer at the address the watch read, a registry Gaia cannot read refused with its reason, an add that runs `init`, then
- * `start`, and stops at the first refusal, settings changed one key at a time, "Start at login" written as each forge's login item before
- * the setting is kept and turned back when a forge or the settings write refuses, a cancelled chooser that answers nothing-to-do, and the
- * in-flight rule, which holds one forge, one repository, the machine limit, the chooser and the login items, and leaves the others free.
+ * know, the guard that sends Flint's brain's commands only at control 2 and refuses them with brain-not-served under 1, a forge that
+ * publishes its versions sent to at the versioned path, a stop and a machine limit that fall back to the program, or the next live forge,
+ * when no Overseer answers or no token can be read, a command sent only to the Overseer at the address the watch read, a registry Gaia
+ * cannot read refused with its reason, an add that runs `init`, then `start`, and stops at the first refusal, settings changed one key at
+ * a time, "Start at login" written as each forge's login item before the setting is kept and turned back when a forge or the settings
+ * write refuses, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one repository, the machine
+ * limit, the chooser and the login items, and leaves the others free.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -40,6 +41,7 @@ import {
   recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
+  recordedVersionsAnswersOf,
   type FlintBrainSituation,
   type OverseerSituation,
   type RecordedOverseerFetch,
@@ -445,6 +447,16 @@ describe('forge-brain-start and forge-brain-stop, carried by the API of a forge 
     expect(await controlOver({ forges: [liveForgeAtControl(2)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-start' }]);
     expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
+  });
+
+  test('a start to a forge that publishes its versions goes to the versioned path of the commands', async () => {
+    const versionedCommandsCallShape = 'POST /api/v1/commands with bearer';
+    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-current').filter((answer) => answer.callShape === versionedCommandsCallShape));
+    const forge = liveForgeAtControl(2);
+    const versions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
+    expect(await controlOver({ forges, overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
+    expect(overseerFetch.callsAnswered().map((call) => call.callShape)).toEqual([versionedCommandsCallShape]);
   });
 
   test('a stop sends `flint-brain-stop`, and answers done', async () => {

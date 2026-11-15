@@ -1,8 +1,9 @@
 /**
- * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with
- * `?embedded=gaia` and the forge's one-time code; the token travels only as the bearer of the one request and reaches no answer and no
- * log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported` and is asked for nothing; and every other way
- * a code is not given ends in its own outcome, a registry Gaia cannot read and an Overseer moved since the watch read it among them.
+ * The frame session route over recorded Overseer answers. What matters: the answer holds the Bridge's address with `?embedded=gaia` and
+ * the forge's one-time code, asked at the versioned path of a forge that publishes its versions; the token travels only as the bearer of
+ * the one request and reaches no answer and no log line in any outcome; a forge with no embed channel Gaia knows answers `not-supported`
+ * and is asked for nothing; and every other way a code is not given ends in its own outcome, a registry Gaia cannot read and an Overseer
+ * moved since the watch read it among them.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -24,6 +25,7 @@ import type { ForgeContracts, ForgeReading } from '../../../shared/@types/ForgeR
 import {
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
+  recordedVersionsAnswersOf,
   type OverseerSituation,
   type RecordedOverseerFetch,
 } from '../../../testing/RecordedAnswers.ts';
@@ -142,6 +144,15 @@ describe('a forge that serves the embed channel', () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     await exchangeOf(sourcesOver(exampleForgeOf(), overseerFetch));
     expect(overseerFetch.callsAnswered()).toEqual([{ callShape: SESSION_CODES_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null }]);
+  });
+
+  test('asks a forge that publishes its versions at the versioned path of the session codes', async () => {
+    const versionedCallShape = 'POST /api/v1/session-codes with bearer';
+    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-current').filter((answer) => answer.callShape === versionedCallShape));
+    const forge = exampleForgeOf();
+    const versions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const exchange = await exchangeOf(sourcesOver({ ...forge, reading: { ...forge.reading, versions } }, overseerFetch));
+    expect([exchange.status, overseerFetch.callsAnswered().map((call) => call.callShape)]).toEqual([200, [versionedCallShape]]);
   });
 
   test('reads the token file again at each request, since the Overseer writes a fresh one at each start', async () => {
