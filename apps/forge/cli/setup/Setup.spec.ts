@@ -4,8 +4,8 @@
  * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all four steps
  * run in order on macOS and on Windows; the Windows run puts Bun's bin folder on the User PATH through PowerShell and never names bash;
  * a launcher the rename cannot replace is a reported failure that leaves no partial file and stops no later step; a Bun below
- * `.bun-version` stops setup before anything is installed; --instruct-only writes nothing; and the retired skill links are removed only
- * when they resolve into the checkout.
+ * `.bun-version` stops setup before anything is installed, and a checkout inside a Bun workspace is held to the workspace root's pin;
+ * --instruct-only writes nothing; and the retired skill links are removed only when they resolve into the checkout.
  */
 import {
   existsSync,
@@ -35,6 +35,7 @@ import { type FinishedCommand, type SetupHost }                    from './Setup
 const CHECKOUT_ROOT = join(import.meta.dir, '..', '..');
 const PINNED_BUN_VERSION = pinnedBunVersionOf(CHECKOUT_ROOT);
 const OLD_BUN_VERSION = '1.0.0';
+const WORKSPACE_PINNED_BUN_VERSION = '99.0.0';
 const EXAMPLE_RC_CONTENT = '# Alex Example\'s shell configuration\n';
 
 interface HostChoices {
@@ -212,6 +213,14 @@ describe('the Bun floor', () => {
     const setup = recordedSetup({ bunVersions: [OLD_BUN_VERSION, PINNED_BUN_VERSION], answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
     expect(setup.bunCalls()).toEqual(['--version', 'upgrade', '--version', 'install', 'link', 'build']);
+  });
+
+  test('a checkout inside a Bun workspace is held to the pin at the workspace root, not to a pin of its own', () => {
+    writeFileSync(join(scratchDirectory, 'package.json'), JSON.stringify({ name: 'example-workspace', workspaces: ['checkout'] }));
+    writeFileSync(join(scratchDirectory, '.bun-version'), `${WORKSPACE_PINNED_BUN_VERSION}\n`);
+    const setup = recordedSetup({ bunVersions: [PINNED_BUN_VERSION], answer: false });
+    expect(runSetup(['--instruct-only'], setup.host)).toBe(1);
+    expect(setup.output()).toContain(`bun ${PINNED_BUN_VERSION} is below ${WORKSPACE_PINNED_BUN_VERSION}, the version .bun-version pins`);
   });
 });
 

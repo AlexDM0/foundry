@@ -1,14 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
+import { workspaceRootOf }  from '../../src/shared/WorkspaceRoot.ts';
 import { type SetupHost }   from './SetupHost.ts';
 import { type SetupReport } from './SetupReport.ts';
 
 /** The pinned Bun is the floor: an older one can panic on a busy pipe, on Windows above all. */
 const BUN_VERSION_FILE_NAME = '.bun-version';
 
+/** The pin of the whole workspace the checkout sits in, read at the workspace root; a checkout in no workspace pins its own. */
 export function pinnedBunVersionOf(checkoutDirectory: string): string {
-  return readFileSync(join(checkoutDirectory, BUN_VERSION_FILE_NAME), 'utf8').trim();
+  const pinningFolder = workspaceRootOf(checkoutDirectory) ?? checkoutDirectory;
+  return readFileSync(join(pinningFolder, BUN_VERSION_FILE_NAME), 'utf8').trim();
 }
 
 function versionOfBun(host: SetupHost): string {
