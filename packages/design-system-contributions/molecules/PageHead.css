@@ -1,0 +1,5 @@
+/* A page head: the display title and its lead, then the figures and the actions at the line's end. */
+.design-system-page-head { display: flex; align-items: flex-end; gap: var(--space-24); }
+.design-system-page-head-words { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.design-system-page-head-figures { display: flex; flex: none; align-items: flex-end; }
+.design-system-page-head-actions { display: flex; flex: none; align-items: center; gap: var(--space-8); }

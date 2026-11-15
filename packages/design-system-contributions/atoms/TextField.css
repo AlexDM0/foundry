@@ -1,0 +1,24 @@
+/* A text field: its label in small type over a 36px input on the surface; a hidden label is read by a screen reader only. */
+.design-system-text-field { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.design-system-text-field-label { font-size: var(--fs-small); font-weight: 500; color: var(--ink-4); }
+.design-system-text-field-label[data-hidden] {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.design-system-text-field-input {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--fs-lead) var(--font-ui);
+  transition: var(--feedback-transition);
+}
+.design-system-text-field-input[data-mono] { font: var(--fs-small) var(--font-mono); }
+.design-system-text-field-input:disabled { color: var(--ink-disabled); border-color: var(--line); }

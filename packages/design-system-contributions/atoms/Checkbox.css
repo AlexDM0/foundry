@@ -1,0 +1,14 @@
+/* A checkbox: a 16px box in the primary button's orange beside its label; an explained one sets its label strong and its note small. */
+.design-system-checkbox { display: flex; align-items: flex-start; gap: var(--space-8); cursor: pointer; }
+.design-system-checkbox[data-explained] { gap: var(--space-10); }
+.design-system-checkbox-input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: var(--space-2) 0 0;
+  accent-color: var(--button);
+}
+.design-system-checkbox-text { display: flex; flex: 1; flex-direction: column; }
+.design-system-checkbox-label { color: var(--ink); }
+.design-system-checkbox[data-explained] .design-system-checkbox-label { font-weight: 600; }
+.design-system-checkbox-explanation { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }

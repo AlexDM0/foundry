@@ -1,0 +1,32 @@
+{
+  "name": "design-system-contributions",
+  "version": "0.1.0",
+  "description": "Components staged to join the design-system package: a text field, a checkbox, a figure, a page head, a data table, a theme cycle button, a failed action and a pending step",
+  "type": "module",
+  "exports": {
+    "./ThemeChoice": "./@types/ThemeChoice.ts",
+    "./Checkbox": "./atoms/Checkbox.tsx",
+    "./Figure": "./atoms/Figure.tsx",
+    "./TextField": "./atoms/TextField.tsx",
+    "./FailedAction": "./molecules/FailedAction.tsx",
+    "./PageHead": "./molecules/PageHead.tsx",
+    "./PendingStep": "./molecules/PendingStep.tsx",
+    "./ThemeCycleButton": "./molecules/ThemeCycleButton.tsx",
+    "./DataTable": "./organisms/DataTable.tsx",
+    "./design-system-contributions.css": "./styles/design-system-contributions.css",
+    "./ThemeCycleUtil": "./utils/ThemeCycleUtil.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
+    "lint": "eslint . --cache --cache-strategy content --cache-location ../../node_modules/.cache/lint/design-system-contributions/",
+    "lint:fix": "eslint . --cache --cache-strategy content --cache-location ../../node_modules/.cache/lint/design-system-contributions/ --fix",
+    "test": "bun test && bun testing/RunDomSpecs.ts",
+    "storybook": "storybook dev --port 6007",
+    "storybook:build": "storybook build --output-dir ../../storybook-static/design-system-contributions",
+    "verify": "bun run typecheck && bun run lint && bun test && bun testing/RunDomSpecs.ts"
+  },
+  "peerDependencies": {
+    "design-system": "^0.1.0",
+    "react": ">=19"
+  }
+}
