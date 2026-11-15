@@ -24,19 +24,39 @@ type PreviewFlag = keyof typeof PREVIEW_CATALOGS;
 /** The intents that move Flint about rather than show an animation in place. */
 const INTENTS_THAT_MOVE_FLINT: readonly string[] = ['wander', 'visit', 'copy'];
 
-const PACKAGE_FOLDER = `${import.meta.dir}/..`;
-const REPOSITORY_FOLDER = `${PACKAGE_FOLDER}/..`;
-const EVIDENCE_FOLDER = `${REPOSITORY_FOLDER}/${FRAME_CAPTURE_FOLDERS.EVIDENCE_FOLDER}`;
+function parentFolderOf(folder: string): string {
+  const lastSeparatorIndex = folder.lastIndexOf('/');
+  return lastSeparatorIndex <= 0 ? '/' : folder.slice(0, lastSeparatorIndex);
+}
+
+const PACKAGE_FOLDER = parentFolderOf(import.meta.dir);
+
+/** A `.git` folder in a main checkout, a `.git` file in a linked worktree. */
+function holdsAGitEntry(folder: string): boolean {
+  return new Bun.Glob('.git').scanSync({ cwd: folder, dot: true, onlyFiles: false }).next().done !== true;
+}
+
+/** The checkout the package sits in, found by its `.git`, since the package's place inside the repository is not fixed. */
+function repositoryFolder(): string {
+  for (let folder = PACKAGE_FOLDER; ; folder = parentFolderOf(folder)) {
+    if (holdsAGitEntry(folder)) return folder;
+    if (parentFolderOf(folder) === folder) return parentFolderOf(PACKAGE_FOLDER);
+  }
+}
+
+function evidenceFolder(): string {
+  return `${repositoryFolder()}/${FRAME_CAPTURE_FOLDERS.EVIDENCE_FOLDER}`;
+}
 
 /** The last line of a catalog's list, which `flint/AnimationModules.spec.ts` holds; the preview joins the catalog right after it. */
 const CATALOG_LIST_END = '] as const);';
 
 const USAGE = [
   'usage:',
-  '  bun flint/testing/CaptureFlintFrames.ts capture <label> [--intent <intent>]... [--attendant <name>]... [--moments <ms>,<ms>...]',
+  '  bun packages/flint/testing/CaptureFlintFrames.ts capture <label> [--intent <intent>]... [--attendant <name>]... [--moments <ms>,<ms>...]',
   '      [--gesture-module <path>]... [--prop-module <path>]... [--emote-module <path>]... [--attendant-module <path>]...',
   '      [--behaviour-module <path>]... [--chrome <path>]',
-  '  bun flint/testing/CaptureFlintFrames.ts compare <first label> <second label> [--chrome <path>]',
+  '  bun packages/flint/testing/CaptureFlintFrames.ts compare <first label> <second label> [--chrome <path>]',
 ].join('\n');
 
 interface CaptureOptions {
@@ -60,7 +80,7 @@ function isPreviewFlag(flag: string): flag is PreviewFlag {
 }
 
 function absolutePathOf(path: string): string {
-  return path.startsWith('/') ? path : `${REPOSITORY_FOLDER}/${path}`;
+  return path.startsWith('/') ? path : `${repositoryFolder()}/${path}`;
 }
 
 function captureOptionsOf(words: readonly string[]): CaptureOptions | null {
@@ -142,7 +162,7 @@ async function bundledCaptureScript(previewModules: CaptureOptions['previewModul
 async function openCapturePage(chromePath: string | null, script: string): Promise<HeadlessChromePage> {
   const executable = chromePath ?? chromeExecutablePath();
   if (executable === null) throw new Error('no Chrome or Chromium found: give one with --chrome <path>');
-  const page = await openHeadlessChromePage(executable, `${EVIDENCE_FOLDER}/.chrome-profile`, {
+  const page = await openHeadlessChromePage(executable, `${evidenceFolder()}/.chrome-profile`, {
     widthPixels:       FRAME_CAPTURE_STAGE.VIEWPORT_WIDTH_PIXELS,
     heightPixels:      FRAME_CAPTURE_STAGE.VIEWPORT_HEIGHT_PIXELS,
     deviceScaleFactor: FRAME_CAPTURE_STAGE.DEVICE_SCALE_FACTOR,
@@ -200,7 +220,7 @@ async function capture(options: CaptureOptions): Promise<number> {
       const request: FrameRequest & { readonly attendant: string | null } = { ...shot.request, intent: shot.subject.intent, attendant: shot.subject.attendant };
       const verdict = String(await page.valueOf(callOf('showFrame', request)));
       if (verdict !== 'performed' && verdict !== 'idle' && verdict !== 'attended') throw new Error(`${shot.subject.name}: ${verdict}`);
-      await Bun.write(`${EVIDENCE_FOLDER}/${options.label}/${shot.subject.name}-${shot.facing}-${shot.moment}.png`, await page.pictureBytes());
+      await Bun.write(`${evidenceFolder()}/${options.label}/${shot.subject.name}-${shot.facing}-${shot.moment}.png`, await page.pictureBytes());
     }
     console.log(`${shots.length} pictures of ${subjects.length} subjects in ${FRAME_CAPTURE_FOLDERS.EVIDENCE_FOLDER}/${options.label}/`);
     return 0;
@@ -214,8 +234,8 @@ function pictureAddressOf(bytes: Uint8Array): string {
 }
 
 async function compare(firstLabel: string, secondLabel: string, chromePath: string | null): Promise<number> {
-  const firstFolder = `${EVIDENCE_FOLDER}/${firstLabel}`;
-  const secondFolder = `${EVIDENCE_FOLDER}/${secondLabel}`;
+  const firstFolder = `${evidenceFolder()}/${firstLabel}`;
+  const secondFolder = `${evidenceFolder()}/${secondLabel}`;
   const firstNames = [...new Bun.Glob('*.png').scanSync({ cwd: firstFolder })].sort();
   const secondNames = new Set(new Bun.Glob('*.png').scanSync({ cwd: secondFolder }));
   const page = await openCapturePage(chromePath, await bundledCaptureScript([]));

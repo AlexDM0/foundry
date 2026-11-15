@@ -2,9 +2,9 @@
  * The installed version of each outside system a recording is stamped with. Reading the git version starts `git --version` and
  * nothing more: it tests nothing.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { release, type }            from 'node:os';
-import { join }                     from 'node:path';
+import { readFileSync }  from 'node:fs';
+import { release, type } from 'node:os';
+import { join }          from 'node:path';
 
 import type { RecordedSystem } from './BoundaryRecordings.ts';
 
@@ -51,9 +51,14 @@ function agentProgressInstallVersion(): string {
   return `install version ${String(installVersion)}`;
 }
 
+/** Resolved as the program resolves it, so the eslint a workspace hoists to its root is found. */
 function eslintVersion(): string {
-  const manifestPath = join(REPOSITORY_ROOT, 'node_modules', 'eslint', 'package.json');
-  if (!existsSync(manifestPath)) return NOT_INSTALLED;
+  let manifestPath: string;
+  try {
+    manifestPath = Bun.resolveSync('eslint/package.json', REPOSITORY_ROOT);
+  } catch {
+    return NOT_INSTALLED;
+  }
   return (JSON.parse(readFileSync(manifestPath, 'utf8')) as { version: string }).version;
 }
 

@@ -3,7 +3,7 @@
 // an 830px column. Usage: bun render-readme.js <README.md> <out.html> [light|dark]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
-import { marked } from '../node_modules/marked/lib/marked.esm.js';
+import { marked } from 'marked';
 
 const [readmePath, outputPath, theme = 'light'] = process.argv.slice(2);
 if (!readmePath || !outputPath) throw new Error('usage: bun render-readme.js <README.md> <out.html> [light|dark]');
