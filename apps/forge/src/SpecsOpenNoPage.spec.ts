@@ -10,9 +10,9 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
-import type { RepositorySource }                          from './testing/RepositorySources.ts';
-import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
+import type { RepositorySource }                       from './testing/RepositorySources.ts';
+import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
 
 const PROCESS_STARTS = new Set([
   'Bun.spawn',
@@ -182,7 +182,7 @@ function pageOpeningViolationsOf(sources: readonly RepositorySource[], allowedOp
   });
 }
 
-const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 describe('the scan itself', () => {
   test('it sees the specs and the opener that the open command\'s specs bind', () => {

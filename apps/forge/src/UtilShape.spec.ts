@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources }  from './testing/RepositorySources.ts';
+import { programTypeScriptSources }     from './testing/RepositorySources.ts';
 
 interface UtilShape {
   readonly name:        string;
@@ -50,7 +50,7 @@ function undersizedUtilsOf(shapes: readonly UtilShape[]): string[] {
     .map((shape) => `${shape.name} has ${shape.memberCount ?? 'an uncountable set of'} member(s)`);
 }
 
-const SHIPPING_SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout()).filter((source) => !source.path.endsWith('.spec.ts'));
+const SHIPPING_SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout()).filter((source) => !source.path.endsWith('.spec.ts'));
 const UTIL_SHAPES = SHIPPING_SOURCES.flatMap((source) => exportedUtilShapesOf(source.path, source.text)
   .map((shape) => ({ ...shape, name: `${source.path}: ${shape.name}` })));
 

@@ -5,8 +5,8 @@
  */
 import { expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                       from './testing/ImportGraph.ts';
-import { repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                    from './testing/ImportGraph.ts';
+import { programTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 const THIS_SPEC = 'src/SpecSleeps.spec.ts';
 
@@ -92,7 +92,7 @@ function fixedWaitsIn(sources: readonly RepositorySource[]): string[] {
 }
 
 test('the scan finds fixed waits, and every one is allowlisted and every allowlist entry is found', () => {
-  const found = fixedWaitsIn(repositoryTypeScriptSources(repositoryRootOfThisCheckout()));
+  const found = fixedWaitsIn(programTypeScriptSources(repositoryRootOfThisCheckout()));
   expect(found.length).toBeGreaterThan(0);
   expect([...new Set(found)].sort()).toEqual(Object.keys(KEPT_FIXED_WAITS).sort());
 });

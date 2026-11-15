@@ -9,8 +9,8 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
-import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
+import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
 
 interface LiteralFinding {
   readonly path:    string;
@@ -21,7 +21,7 @@ const SCANNED_FOLDERS = ['src/', 'cli/', 'bridge/', 'design-system/'];
 
 const PRODUCT_NAMES_PATH = 'src/shared/constants/ProductNames.ts';
 
-const REPOSITORY_SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const REPOSITORY_SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 /** Read from the constant's source, since a guard at the repository root imports nothing of the tree; the released name comes first. */
 const PROGRAM_NAMES = [...(REPOSITORY_SOURCES.find(({ path }) => path === PRODUCT_NAMES_PATH)?.text ?? '').matchAll(/\bPROGRAM: +'([^']+)'/g)]

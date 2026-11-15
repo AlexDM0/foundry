@@ -1,15 +1,17 @@
 /**
  * The prose wrap reviewers hold: a paragraph line of the repository's rules, root and path-scoped, the design system's constitution, skills,
- * installed templates and CLI reference is at most 120 columns. Table rows, fenced code, frontmatter and a line holding one code span
- * alone are left alone, since none can wrap. The scan first proves it read paragraph lines of every file, and each form is planted to
- * prove the guard names it and passes what it skips.
+ * installed templates and CLI reference is at most 120 columns; the path-scoped rules are the workspace root's, the constitution the
+ * package's. Table rows, fenced code, frontmatter and a line holding one code span alone are left alone, since none can wrap. The scan
+ * first proves it read paragraph lines of every file, and each form is planted to prove the guard names it and passes what it skips.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
+import { repositoryRootOfThisCheckout }                        from './testing/ImportGraph.ts';
+import type { ProgramFile }                                    from './testing/RepositorySources.ts';
+import { declaredWorkspacePackagesOf, workspaceRootOfProgram } from './testing/RepositorySources.ts';
 
 const PROSE_WIDTH_COLUMNS = 120;
 const FENCE = /^\s*(```|~~~)/;
@@ -17,10 +19,26 @@ const TABLE_ROW = /^\s*\|/;
 const LONE_CODE_SPAN = /^\s*(— )?`[^`]+`[.,;:]?$/;
 const FRONTMATTER_FENCE = '---';
 
-function wrappedProseFilePaths(repositoryRoot: string): string[] {
-  const globbed = ['.claude/rules/*.md', 'skills/**/*.md', 'resources/templates/*.md', 'resources/prompts/*.md']
-    .flatMap((pattern) => [...new Bun.Glob(pattern).scanSync({ cwd: repositoryRoot, dot: true })]);
-  return ['CLAUDE.md', 'design-system/CONSTITUTION.md', 'docs/cli.md', 'docs/backlog.md', ...globbed.sort()];
+const DESIGN_SYSTEM_PACKAGE = 'design-system';
+const CONSTITUTION_FILE = 'CONSTITUTION.md';
+
+function filesGlobbedIn(root: string, patterns: readonly string[]): ProgramFile[] {
+  return patterns.flatMap((pattern) => [...new Bun.Glob(pattern).scanSync({ cwd: root, dot: true })])
+    .map((path) => ({ path, location: join(root, path) }));
+}
+
+function wrappedProseFilesOf(programRoot: string): ProgramFile[] {
+  const designSystemFolder = declaredWorkspacePackagesOf(programRoot).find(({ name }) => name === DESIGN_SYSTEM_PACKAGE)?.folder ?? '';
+  const globbed = [
+    ...filesGlobbedIn(workspaceRootOfProgram(programRoot), ['.claude/rules/*.md']),
+    ...filesGlobbedIn(programRoot, ['skills/**/*.md', 'resources/templates/*.md', 'resources/prompts/*.md']),
+  ].sort((a, b) => a.path.localeCompare(b.path));
+  return [
+    { path: 'CLAUDE.md', location: join(programRoot, 'CLAUDE.md') },
+    { path: `${DESIGN_SYSTEM_PACKAGE}/${CONSTITUTION_FILE}`, location: join(designSystemFolder, CONSTITUTION_FILE) },
+    ...filesGlobbedIn(programRoot, ['docs/cli.md', 'docs/backlog.md']),
+    ...globbed,
+  ];
 }
 
 function paragraphLineNumbersOf(text: string): number[] {
@@ -49,8 +67,7 @@ function overlongProseLinesOf(path: string, text: string): string[] {
     .map((lineNumber) => `${path}:${lineNumber} is ${(lines[lineNumber - 1] ?? '').length} columns`);
 }
 
-const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
-const PROSE_FILES = wrappedProseFilePaths(REPOSITORY_ROOT).map((path) => ({ path, text: readFileSync(join(REPOSITORY_ROOT, path), 'utf8') }));
+const PROSE_FILES = wrappedProseFilesOf(repositoryRootOfThisCheckout()).map(({ path, location }) => ({ path, text: readFileSync(location, 'utf8') }));
 
 describe('prose wraps at 120 columns', () => {
   test('the scan reads paragraph lines of the rules, the design system\'s constitution, both skills, the templates, the reference and the overseer\'s prompts', () => {

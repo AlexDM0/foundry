@@ -1,6 +1,6 @@
 /**
- * The line-ending policy, the part that runs no git: `.gitattributes` holds every text file at LF on every checkout, since a carriage
- * return breaks `setup.sh`, the hooks, the prose wrap and the frozen tables, and no repository file of the folder walk holds one. A file is
+ * The line-ending policy, the part that runs no git: the workspace root's `.gitattributes` holds every text file at LF on every checkout, since a carriage
+ * return breaks `setup.sh`, the hooks, the prose wrap and the frozen tables, and no file of the program or of a package it declares holds one. A file is
  * text unless a NUL byte makes it truly binary. Each form is planted in memory to prove the scan names it and passes what it skips.
  * `src/lib/git/LineEndingPolicy.integration.spec.ts` holds what git itself answers: the attributes it applies and both sides of `git ls-files --eol`.
  */
@@ -9,8 +9,8 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryFilePaths }          from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }         from './testing/ImportGraph.ts';
+import { programFiles, workspaceRootOfProgram } from './testing/RepositorySources.ts';
 
 const LINE_ENDING_POLICY = '* text=auto eol=lf';
 
@@ -33,13 +33,13 @@ function bytesOf(text: string): Uint8Array {
 
 describe('the line endings of this repository', () => {
   test('.gitattributes holds the LF policy', () => {
-    expect(readFileSync(join(REPOSITORY_ROOT, '.gitattributes'), 'utf8').split('\n')).toContain(LINE_ENDING_POLICY);
+    expect(readFileSync(join(workspaceRootOfProgram(REPOSITORY_ROOT), '.gitattributes'), 'utf8').split('\n')).toContain(LINE_ENDING_POLICY);
   });
 
   test('no repository text file holds a carriage return', () => {
-    const filePaths = repositoryFilePaths(REPOSITORY_ROOT);
-    expect(filePaths).toContain('setup.sh');
-    expect(carriageReturnHoldersAmong(filePaths.map((path) => ({ path, bytes: readFileSync(join(REPOSITORY_ROOT, path)) })))).toEqual([]);
+    const files = programFiles(REPOSITORY_ROOT);
+    expect(files.map(({ path }) => path)).toEqual(expect.arrayContaining(['setup.sh', 'design-system/CONSTITUTION.md', 'flint/package.json']));
+    expect(carriageReturnHoldersAmong(files.map(({ path, location }) => ({ path, bytes: readFileSync(location) })))).toEqual([]);
   });
 });
 

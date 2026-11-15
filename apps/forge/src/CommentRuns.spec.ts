@@ -8,8 +8,8 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
-import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
+import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
 
 interface CommentRun {
   readonly firstLine: number;
@@ -124,7 +124,7 @@ function commentWallsOf(path: string, text: string): string[] {
   return commentWallsIn(path, inlineCommentRunsOf(path, text));
 }
 
-const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 const inlineCommentRunsOfSource = memoisedPerSource((source) => inlineCommentRunsOf(source.path, source.text));
 
 describe('no inline comment runs past two lines', () => {

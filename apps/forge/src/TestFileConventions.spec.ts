@@ -8,9 +8,9 @@
 import { describe, expect, test } from 'bun:test';
 import ts                         from 'typescript';
 
-import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
-import type { RepositorySource }                          from './testing/RepositorySources.ts';
-import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
+import type { RepositorySource }                       from './testing/RepositorySources.ts';
+import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
 
 const PROCESS_CONTEXT_FACTORY = 'createProcessContext';
 const RETIRED_TEST_SUFFIX = '.test.ts';
@@ -95,7 +95,7 @@ function testFileViolationsOf(sources: readonly RepositorySource[]): string[] {
   ];
 }
 
-const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 describe('suites are spec files that never create the real process context', () => {
   test('the scan sees the specs and the factory\'s real callers outside them', () => {

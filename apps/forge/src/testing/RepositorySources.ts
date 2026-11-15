@@ -5,13 +5,27 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
 
+import { JsonRecordUtil }  from '../lib/json-record/JsonRecordUtil.ts';
+import { workspaceRootOf } from '../shared/WorkspaceRoot.ts';
+
 export interface RepositorySource {
   /** Repository-rooted, with forward slashes. */
   readonly path: string;
   readonly text: string;
 }
 
-const SKIPPED_FOLDERS = ['node_modules/', '.claude/', '.agent-progress/', '.readme-graphics/build/'];
+/** Matched at any depth: a tracker's data and ticket worktrees, turbo's cache and a build's output are no sources of the program. */
+const SKIPPED_FOLDERS = [
+  'node_modules/',
+  '.claude/',
+  '.agent-progress/',
+  '.forge/',
+  '.forge-worktrees/',
+  '.turbo/',
+  '.scratch/',
+  'storybook-static/',
+  '.readme-graphics/build/',
+];
 const GIT_FOLDER = '.git/';
 const TYPESCRIPT_EXTENSIONS = ['.ts', '.tsx'];
 
@@ -52,8 +66,6 @@ export function repositoryTypeScriptSources(repositoryRoot: string): readonly Re
 /** What `.gitignore`, `.platform-probes/.gitignore` and a main checkout's `.claude/` keep out of git, with git's own folder. */
 const UNTRACKED_PATH_PREFIXES = [
   GIT_FOLDER,
-  'node_modules/',
-  '.agent-progress/',
   '.readme-graphics/build/',
   '.platform-probes/results/',
   '.claude/worktrees/',
@@ -65,11 +77,23 @@ const UNTRACKED_PATH_PREFIXES = [
   '.idea/',
   'design_handoff',
 ];
-const UNTRACKED_PATH_PARTS = ['.DS_Store', '__pycache__'];
+const UNTRACKED_PATH_PARTS = [
+  '.DS_Store',
+  '__pycache__',
+  'node_modules',
+  '.agent-progress',
+  '.forge',
+  '.forge-worktrees',
+  '.turbo',
+  '.scratch',
+  'storybook-static',
+];
+const UNTRACKED_FILE_SUFFIXES = ['.tsbuildinfo'];
 const WORKTREE_GIT_FILE = '.git';
 
 function isUntracked(path: string): boolean {
-  return UNTRACKED_PATH_PREFIXES.some((prefix) => path.startsWith(prefix)) || path.split('/').some((part) => UNTRACKED_PATH_PARTS.includes(part));
+  return UNTRACKED_PATH_PREFIXES.some((prefix) => path.startsWith(prefix)) || path.split('/').some((part) => UNTRACKED_PATH_PARTS.includes(part))
+    || UNTRACKED_FILE_SUFFIXES.some((suffix) => path.endsWith(suffix));
 }
 
 const filePathsByRoot = new Map<string, readonly string[]>();
@@ -95,4 +119,96 @@ export function memoisedPerSource<Answer>(compute: (source: RepositorySource) =>
     answers.set(source, answer);
     return answer;
   };
+}
+
+/** A workspace package the program declares as a dependency, read under a virtual folder named after the package. */
+export interface DeclaredWorkspacePackage {
+  readonly name:   string;
+  /** The package's real folder, absolute. */
+  readonly folder: string;
+}
+
+const WORKSPACE_DEPENDENCY_PREFIX = 'workspace:';
+
+function manifestOf(folder: string): Record<string, unknown> {
+  return JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'))) ?? {};
+}
+
+/** The root of the workspace the program sits in, where the files the whole repository shares live; a program outside one is refused. */
+export function workspaceRootOfProgram(programRoot: string): string {
+  const workspaceRoot = workspaceRootOf(programRoot);
+  if (workspaceRoot === undefined) throw new Error(`${programRoot} sits in no Bun workspace`);
+  return workspaceRoot;
+}
+
+/** Each package `package.json` names at `workspace:`, found by its name among the workspace's members, in name order. */
+export function declaredWorkspacePackagesOf(programRoot: string): readonly DeclaredWorkspacePackage[] {
+  const workspaceRoot = workspaceRootOfProgram(programRoot);
+  const memberPatterns = manifestOf(workspaceRoot)['workspaces'];
+  const memberFolders = (Array.isArray(memberPatterns) ? memberPatterns : [])
+    .filter((pattern): pattern is string => typeof pattern === 'string')
+    .flatMap((pattern) => [...new Bun.Glob(`${pattern}/package.json`).scanSync({ cwd: workspaceRoot })])
+    .map((manifestPath) => join(workspaceRoot, manifestPath, '..'));
+  const declaredNames = Object.entries(JsonRecordUtil.recordOf(manifestOf(programRoot)['dependencies']) ?? {})
+    .filter(([, version]) => typeof version === 'string' && version.startsWith(WORKSPACE_DEPENDENCY_PREFIX))
+    .map(([name]) => name)
+    .sort();
+  return declaredNames.map((name) => {
+    const folder = memberFolders.find((memberFolder) => manifestOf(memberFolder)['name'] === name);
+    if (folder === undefined) throw new Error(`${name} is declared at ${WORKSPACE_DEPENDENCY_PREFIX} but no workspace member is named so`);
+    return { name, folder };
+  });
+}
+
+/** A file of the program or of a package it declares: `path` as the guards name it, `location` where it is read. */
+export interface ProgramFile {
+  readonly path:     string;
+  readonly location: string;
+}
+
+function packageFolderPrefixOf(workspacePackage: DeclaredWorkspacePackage): string {
+  return `${workspacePackage.name}/`;
+}
+
+/** A read of the program root plus each declared package under its virtual folder; a package that gave nothing fails the read rather than pass on it. */
+function programAndPackages<Entry extends { readonly path: string }>(
+  programRoot: string,
+  readBelow: (root: string, folderPrefix: string) => readonly Entry[],
+): readonly Entry[] {
+  const ownEntries = readBelow(programRoot, '');
+  const packageEntries = declaredWorkspacePackagesOf(programRoot).flatMap((workspacePackage) => {
+    const prefix = packageFolderPrefixOf(workspacePackage);
+    if (ownEntries.some(({ path }) => path.startsWith(prefix))) throw new Error(`the program holds a folder ${prefix} that shadows the package's virtual one`);
+    const entries = readBelow(workspacePackage.folder, prefix);
+    if (entries.length === 0) throw new Error(`the read found no file of the declared package ${workspacePackage.name}`);
+    return entries;
+  });
+  return Object.freeze([...ownEntries, ...packageEntries]);
+}
+
+const programSourcesByRoot = new Map<string, readonly RepositorySource[]>();
+
+/**
+ * Every TypeScript source of the program and of each workspace package it declares, the package's under a folder named after it
+ * (`design-system/atoms/Button.tsx`), so a guard holds a package as it held the folder the package once was.
+ */
+export function programTypeScriptSources(programRoot: string): readonly RepositorySource[] {
+  const known = programSourcesByRoot.get(programRoot);
+  if (known !== undefined) return known;
+  const sources = programAndPackages(programRoot, (root, folderPrefix) => repositoryTypeScriptSources(root)
+    .map((source) => (folderPrefix === '' ? source : Object.freeze({ path: `${folderPrefix}${source.path}`, text: source.text }))));
+  programSourcesByRoot.set(programRoot, sources);
+  return sources;
+}
+
+const programFilesByRoot = new Map<string, readonly ProgramFile[]>();
+
+/** Every file git could track of the program and of each workspace package it declares, named as `programTypeScriptSources` names them. */
+export function programFiles(programRoot: string): readonly ProgramFile[] {
+  const known = programFilesByRoot.get(programRoot);
+  if (known !== undefined) return known;
+  const files = programAndPackages(programRoot, (root, folderPrefix) => repositoryFilePaths(root)
+    .map((path) => Object.freeze({ path: `${folderPrefix}${path}`, location: join(root, path) })));
+  programFilesByRoot.set(programRoot, files);
+  return files;
 }

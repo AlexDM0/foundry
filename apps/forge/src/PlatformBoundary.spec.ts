@@ -6,8 +6,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                                          from './testing/ImportGraph.ts';
-import { memoisedPerSource, repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                                       from './testing/ImportGraph.ts';
+import { memoisedPerSource, programTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 type PlatformForm =
   | 'process-platform'
@@ -199,7 +199,7 @@ function violationsOfPlanted(path: string, plantedLine: string): readonly string
   return boundaryReportOf([{ path, text: `${plantedLine}\n` }], []).violations;
 }
 
-const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 describe('the scan saw the tree', () => {
   const shippingPaths = SOURCES.map((source) => source.path).filter(isShippingCode);

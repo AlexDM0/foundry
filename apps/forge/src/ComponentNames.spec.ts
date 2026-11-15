@@ -1,7 +1,8 @@
 /**
  * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board and the
- * design documents names one by its retired name, in a path, an identifier or a wire literal. The files come from a folder walk that runs
- * no git; `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches every file git tracks. What matters: the scan provably read the
+ * design documents names one by its retired name, in a path, an identifier or a wire literal; a package the program declares counts as
+ * its own. The files come from a folder walk that runs no git; `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches
+ * every file git tracks. What matters: the scan provably read the
  * tree, the allowlist is exact both ways, and the scan catches a planted name of each kind and passes once it is gone.
  */
 import { readFileSync } from 'node:fs';
@@ -10,7 +11,8 @@ import { join }         from 'node:path';
 import { expect, test } from 'bun:test';
 
 import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { repositoryFilePaths }          from './testing/RepositorySources.ts';
+import type { ProgramFile }             from './testing/RepositorySources.ts';
+import { programFiles }                 from './testing/RepositorySources.ts';
 
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 
@@ -63,20 +65,20 @@ const RETIRED_NAMES = [
 /** `<file>: <retired name>` pairs a file may keep. */
 const ALLOWED_RETIRED_NAMES: readonly string[] = [];
 
-function scannedFilePaths(): string[] {
-  return repositoryFilePaths(REPOSITORY_ROOT).filter((filePath) => filePath !== THIS_FILE
-    && !BINARY_FILE_PATTERN.test(filePath) && !UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)));
+function scannedFiles(): ProgramFile[] {
+  return programFiles(REPOSITORY_ROOT).filter(({ path }) => path !== THIS_FILE
+    && !BINARY_FILE_PATTERN.test(path) && !UNSCANNED_FOLDERS.some((folder) => path.startsWith(folder)));
 }
 
 function retiredNamesIn(filePath: string, text: string): string[] {
   return RETIRED_NAMES.filter((name) => filePath.includes(name) || text.includes(name)).map((name) => `${filePath}: ${name}`);
 }
 
-test('the scan reads every repository file but this one, the board and the design documents, the renamed roots among them', () => {
-  const filePaths = scannedFilePaths();
+test('the scan reads every program and package file but this one, the board and the design documents, the renamed roots among them', () => {
+  const filePaths = scannedFiles().map(({ path }) => path);
   expect(filePaths.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
   expect(filePaths).toContain('CLAUDE.md');
-  expect(filePaths).toContain('.claude/settings.json');
+  expect(filePaths).toEqual(expect.arrayContaining(['design-system/CONSTITUTION.md', 'flint/package.json']));
   expect(filePaths.some((filePath) => filePath.startsWith('src/services/overseer/'))).toBe(true);
   expect(filePaths.some((filePath) => filePath.startsWith('src/lib/watcher/'))).toBe(true);
   expect(filePaths.filter((filePath) => filePath === THIS_FILE || UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)))).toEqual([]);
@@ -84,7 +86,7 @@ test('the scan reads every repository file but this one, the board and the desig
 });
 
 test('no repository file names a component by its retired name, beyond the exact allowlist', () => {
-  const found = scannedFilePaths().flatMap((filePath) => retiredNamesIn(filePath, readFileSync(join(REPOSITORY_ROOT, filePath), 'utf8')));
+  const found = scannedFiles().flatMap(({ path, location }) => retiredNamesIn(path, readFileSync(location, 'utf8')));
   expect(found).toEqual([...ALLOWED_RETIRED_NAMES]);
 });
 

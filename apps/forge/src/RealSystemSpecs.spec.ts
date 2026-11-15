@@ -21,9 +21,9 @@ import {
   INTEGRATION_SPEC_SUFFIX,
   integrationSpecsTouchedBy
 } from './testing/BoundarySpecs.ts';
-import { repositoryRootOfThisCheckout }                   from './testing/ImportGraph.ts';
-import type { RepositorySource }                          from './testing/RepositorySources.ts';
-import { memoisedPerSource, repositoryTypeScriptSources } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                from './testing/ImportGraph.ts';
+import type { RepositorySource }                       from './testing/RepositorySources.ts';
+import { memoisedPerSource, programTypeScriptSources } from './testing/RepositorySources.ts';
 
 /** Each file here still makes a real call in the default suite, until the ticket named moves it. */
 const REAL_SYSTEM_ALLOWLIST: Readonly<Record<string, string>> = {};
@@ -487,7 +487,7 @@ function realGitViolationsOf(
 }
 
 const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
-const SOURCES = repositoryTypeScriptSources(REPOSITORY_ROOT);
+const SOURCES = programTypeScriptSources(REPOSITORY_ROOT);
 const REAL_HELPER_EXPORTS = realCallingHelperExportsOf(SOURCES);
 const MINIMUM_INTEGRATION_SPEC_FILE_COUNT = 70;
 const MINIMUM_DERIVED_REAL_HELPER_EXPORT_COUNT = 20;

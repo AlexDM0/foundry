@@ -1,7 +1,8 @@
 /**
  * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
- * in `README.md`, `CLAUDE.md`, the rule files under `.claude/rules/` and the files under `docs/` (but the untracked `docs/design/`)
- * exists: a spec rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
+ * in `README.md`, `CLAUDE.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
+ * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`design-system/…`): a spec
+ * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
  * citation. The scan first proves it read citations, and each form is planted to prove the guard names it and passes what it skips.
  */
 import {
@@ -14,8 +15,9 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout } from './testing/ImportGraph.ts';
-import { createScratchDirectory }       from './testing/ScratchWorkspace.ts';
+import { repositoryRootOfThisCheckout }                        from './testing/ImportGraph.ts';
+import { declaredWorkspacePackagesOf, workspaceRootOfProgram } from './testing/RepositorySources.ts';
+import { createScratchDirectory }                              from './testing/ScratchWorkspace.ts';
 
 const SPEC_CITATION = /(?<![\w./*@-])((?:[\w@][\w.@-]*\/)+[\w.-]+\.spec\.ts)(?!\w)/g;
 const OUT_OF_SCOPE_FOLDERS = ['docs/design/'];
@@ -42,19 +44,28 @@ function missingCitationsOf(document: CitingDocument, pathExists: (path: string)
     .map((path) => `${document.path}${CITES}${path}`);
 }
 
-function documentsInScope(repositoryRoot: string): CitingDocument[] {
-  const underDocs = [...new Bun.Glob('docs/**/*.{md,html,json}').scanSync({ cwd: repositoryRoot })]
+function documentsInScope(programRoot: string, workspaceRoot: string): CitingDocument[] {
+  const underDocs = [...new Bun.Glob('docs/**/*.{md,html,json}').scanSync({ cwd: programRoot })]
     .filter((path) => !OUT_OF_SCOPE_FOLDERS.some((folder) => path.startsWith(folder)))
     .sort();
-  const pathScopedRules = [...new Bun.Glob('.claude/rules/*.md').scanSync({ cwd: repositoryRoot, dot: true })].sort();
-  return ['README.md', 'CLAUDE.md', ...pathScopedRules, ...underDocs].map((path) => ({ path, text: readFileSync(join(repositoryRoot, path), 'utf8') }));
+  const pathScopedRules = [...new Bun.Glob('.claude/rules/*.md').scanSync({ cwd: workspaceRoot, dot: true })].sort();
+  const readIn = (root: string) => (path: string): CitingDocument => ({ path, text: readFileSync(join(root, path), 'utf8') });
+  return [...['README.md', 'CLAUDE.md'].map(readIn(programRoot)), ...pathScopedRules.map(readIn(workspaceRoot)), ...underDocs.map(readIn(programRoot))];
 }
 
-const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
-const DOCUMENTS = documentsInScope(REPOSITORY_ROOT);
+const PROGRAM_ROOT = repositoryRootOfThisCheckout();
+const WORKSPACE_ROOT = workspaceRootOfProgram(PROGRAM_ROOT);
+const DOCUMENTS = documentsInScope(PROGRAM_ROOT, WORKSPACE_ROOT);
+const PACKAGE_FOLDERS_BY_PREFIX = new Map(declaredWorkspacePackagesOf(PROGRAM_ROOT).map(({ name, folder }) => [`${name}/`, folder]));
+
+function existsInPackage(path: string): boolean {
+  const prefix = `${path.split('/')[0] ?? ''}/`;
+  const folder = PACKAGE_FOLDERS_BY_PREFIX.get(prefix);
+  return folder !== undefined && existsSync(join(folder, path.slice(prefix.length)));
+}
 
 function existsInCheckout(path: string): boolean {
-  return existsSync(join(REPOSITORY_ROOT, path));
+  return existsSync(join(PROGRAM_ROOT, path)) || existsSync(join(WORKSPACE_ROOT, path)) || existsInPackage(path);
 }
 
 describe('the spec citations of the documentation resolve', () => {
@@ -92,7 +103,7 @@ describe('the spec citations of the documentation resolve', () => {
     for (const path of ['README.md', 'CLAUDE.md', '.claude/rules/Planted.md', 'docs/design/Planted.md', 'docs/Kept.md']) {
       writeFileSync(join(plantedRoot, path), 'See `src/Gone.spec.ts`.\n');
     }
-    const missing = documentsInScope(plantedRoot).flatMap((document) => missingCitationsOf(document, () => false));
+    const missing = documentsInScope(plantedRoot, plantedRoot).flatMap((document) => missingCitationsOf(document, () => false));
     expect(missing).toEqual([
       'README.md cites src/Gone.spec.ts',
       'CLAUDE.md cites src/Gone.spec.ts',

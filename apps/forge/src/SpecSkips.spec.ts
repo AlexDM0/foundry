@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { repositoryRootOfThisCheckout }                                          from './testing/ImportGraph.ts';
-import { memoisedPerSource, repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import { repositoryRootOfThisCheckout }                                       from './testing/ImportGraph.ts';
+import { memoisedPerSource, programTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
 
 const TOOL_GUARD = 'src/testing/ToolGuard.ts';
 
@@ -60,7 +60,7 @@ function skipReportOf(sources: readonly RepositorySource[]): SkipReport {
   };
 }
 
-const SOURCES = repositoryTypeScriptSources(repositoryRootOfThisCheckout());
+const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 
 describe('the scan saw the specs', () => {
   test('it reads the specs and the guard holds the only skips', () => {
