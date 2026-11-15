@@ -440,11 +440,11 @@ function belowOf(row: HostElement): HostElement[] {
 }
 
 describe('a forge at another version than this Gaia is built for (U2)', () => {
-  test('its disclosure under the condition names the forge, says whether it is open, and asks the view to show its versions', () => {
+  test('its disclosure under the condition is named by what it shows and the forge, says whether it is open, and asks the view to show its versions', () => {
     const { unfolded, handled } = layoutOf(FLEET_VERSIONS);
     const disclosure = disclosureIn(rowOf(unfolded, VERSIONS_IDS.exampleBilling));
     expect([disclosure?.tag, disclosure?.props['aria-expanded'], disclosure?.props['aria-label']]).toEqual([
-      'button', false, 'Example Billing, its version beside this Gaia’s',
+      'button', false, '1.8 · older, Example Billing, its version beside this Gaia’s',
     ]);
     expect(tree.textOf(disclosure === null ? [] : [disclosure])).toBe('1.8 · older');
     if (disclosure !== null) tree.dispatch(disclosure, 'onClick');

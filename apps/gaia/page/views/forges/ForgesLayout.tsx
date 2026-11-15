@@ -308,7 +308,7 @@ function VersionsSubline({ versions, trackerId, handlers }: { readonly versions:
       type="button"
       className="gaia-forges-versions-disclosure"
       aria-expanded={versions.isShown}
-      aria-label={versions.disclosureLabel}
+      aria-label={`${subline.text}, ${versions.disclosureLabel}`}
       onClick={() => handlers.onToggleVersions(trackerId)}
     >
       {subline.text}
