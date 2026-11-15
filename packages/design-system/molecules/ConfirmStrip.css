@@ -15,6 +15,9 @@
 /* An action confirmed in place: the neutral strip reads as one line of text before its actions. */
 .design-system-confirm-text { min-width: 0; }
 .design-system-confirm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+/* With choices, the strip stacks its question, its choices side by side in equal columns, and its actions. */
+.design-system-confirm[data-with-choices] { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-3); }
+.design-system-confirm-choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--sp-3); }
 .design-system-confirm[data-tone="danger"] .design-system-confirm-question { font-weight: 600; }
 .design-system-confirm[data-tone="danger"] .design-system-confirm-consequence { display: block; margin: var(--space-2) 0 var(--sp-2); }
 

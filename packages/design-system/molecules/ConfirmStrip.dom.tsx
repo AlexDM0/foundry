@@ -1,7 +1,7 @@
 /**
  * The confirm strip, in a happy-dom document. What matters: it is a group named by its label; the question comes first, then the
- * consequence only when given, then the confirming control and Cancel; Cancel calls `onCancel`; the tone sets `data-tone`; and the words
- * are text, never markup.
+ * consequence only when given, then the choices only when given, then the confirming control and Cancel; Cancel calls `onCancel`; the tone
+ * sets `data-tone`; and the words are text, never markup.
  */
 import {
   cleanup,
@@ -60,6 +60,36 @@ describe('the confirm strip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect([strip.querySelector('.design-system-confirm-consequence'), strip.querySelector('.design-system-confirm-text')?.textContent, strip.getAttribute('data-tone'), cancels])
       .toEqual([null, 'Stop the server?', 'neutral', ['cancel']]);
+  });
+
+  test('choices sit between the question and the actions, and a strip without them holds no part for them', () => {
+    const { container } = render(
+      <>
+        <ConfirmStrip
+          label="Confirm stopping J4"
+          question="How should J4 stop?"
+          choices={<><button type="button">Finish the step</button><button type="button">Stop now</button></>}
+          tone="neutral"
+          confirm={<button type="button">Stop</button>}
+          cancelLabel="Cancel"
+          onCancel={() => undefined}
+        />
+        <ConfirmStrip
+          label="Confirm stopping J5"
+          question="Stop J5 now?"
+          tone="neutral"
+          confirm={<button type="button">Stop</button>}
+          cancelLabel="Cancel"
+          onCancel={() => undefined}
+        />
+      </>,
+    );
+    const [withChoices, withoutChoices] = [...container.querySelectorAll('.design-system-confirm')];
+    expect([...withChoices?.children ?? []].map((part) => part.className))
+      .toEqual(['design-system-confirm-text', 'design-system-confirm-choices', 'design-system-confirm-actions']);
+    expect([...withChoices?.querySelectorAll('.design-system-confirm-choices button') ?? []].map((choice) => choice.textContent)).toEqual(['Finish the step', 'Stop now']);
+    expect([withChoices?.hasAttribute('data-with-choices'), withoutChoices?.hasAttribute('data-with-choices')]).toEqual([true, false]);
+    expect(withoutChoices?.querySelector('.design-system-confirm-choices')).toBeNull();
   });
 
   test('the words are text, never markup', () => {

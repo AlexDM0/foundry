@@ -2,10 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState }            from 'react';
 import { fn }                  from 'storybook/test';
 
-import { Button }       from '../atoms/Button.tsx';
-import { Text }         from '../atoms/Text.tsx';
-import { ConfirmStrip } from './ConfirmStrip.tsx';
-import { Row }          from './Row.tsx';
+import { Button }                    from '../atoms/Button.tsx';
+import { Text }                      from '../atoms/Text.tsx';
+import { ChoiceInput, ChoiceOption } from './ChoiceOption.tsx';
+import { ConfirmStrip }              from './ConfirmStrip.tsx';
+import { Row }                       from './Row.tsx';
 
 /** An action confirmed in place: the strip rises into the place of the action. */
 function ConfirmingInPlace() {
@@ -55,3 +56,24 @@ export const Danger: Story = {
   },
 };
 export const Confirming: Story = { render: () => <ConfirmingInPlace /> };
+export const WithChoices: Story = {
+  args: {
+    question: 'How should the example build stop?',
+    choices:  (
+      <>
+        <ChoiceOption
+          label="Finish the step"
+          chosen
+          variant="card"
+          input={<ChoiceInput type="radio" name="example-stop" checked accessibleName="Finish the step" onChange={fn()} />}
+        />
+        <ChoiceOption
+          label="Stop now"
+          chosen={false}
+          variant="card"
+          input={<ChoiceInput type="radio" name="example-stop" checked={false} accessibleName="Stop now" onChange={fn()} />}
+        />
+      </>
+    ),
+  },
+};
