@@ -43,8 +43,9 @@ its keys.
 - **The keys documents have always carried stay, as whole versions.** `monitorVersion`, `identityVersion`, `contracts`, `fleetVersion`,
   `answerVersion` and the like keep their integer, and Gaia reads exactly one number of each: the one the forge version it supports serves,
   or Gaia's own. A known number reads with its unknown keys passed over; another, older or newer, never reaches a mapper.
-  `src/shared/utils/ContractVersionUtil.ts` holds the reading rule once. A forge's integer keys stay where forge 1.1 leaves them, or an
-  `ahead` forge would read as newer than Gaia can talk to.
+  `src/shared/utils/ContractVersionUtil.ts` holds the reading rule once. Forge's registry keeps its documents' integer keys only for
+  clients from before system versions, so Gaia still leans on a compatibility path it was not built for; `docs/backlog.md` holds the step
+  that ends it, before forge's minimum is raised past 0.0.
 - **Stored files keep their own format version**, major.minor: the integer `version` (or `recordingVersion`) is the major, an optional
   `minor` the minor, absent read as 0. A newer minor of a known major is read, and a file Gaia would rewrite at a newer minor is kept as
   it is (`kept-newer-version`), since the rewrite would drop the keys it adds.

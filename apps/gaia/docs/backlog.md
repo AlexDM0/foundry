@@ -13,6 +13,13 @@ What is agreed and not started, with the reason it waits.
   limit or to run one without Flint, so the spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended
   brain's activity entry by its kind, sentence and tokens but not its category: the authored entry is category `agent` with `kind:
   'flint-brain'` and `tokens`, the two keys only that entry carries, and the recording from a real forge settles both.
+- **Stop reading forge's integer contract keys.** Forge's compatibility registry keeps `identityVersion`, `contracts`, `summaryVersion`,
+  `monitorVersion`, `controlVersion` and the embed channel's `channelVersion` only for clients from before system versions, yet Gaia's
+  forge ingestions, its control and frame-session guards, the page's `ForgeContractUtil` and the embed channel still decide on them,
+  and the page contract carries them (`contracts`, `knownContracts`). For a forge Gaia can talk to, its verdict alone should say what it
+  serves. It waits because it changes the fleet document, so the fleet and events routes' versions and Gaia's own registry, and it
+  changes nothing while forge's minimum is 0.0, when every forge Gaia talks to still serves the keys; it must land before that minimum
+  is raised past 0.0.
 - **Flint's box in the framed Bridge (G4).** B1 frames the Bridge with its "Agents at work" strip, where Flint has its Kanban box; the
   Bridge decides under `embedded=frame` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
   forge and on the owner's answer to Q11.
