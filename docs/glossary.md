@@ -614,7 +614,8 @@ One of the nine instruction files the install's `briefs` part writes into `<data
 
 A file that tells a session how to work: a [constitution](#constitution) file or a [role brief](#role-brief).
 `InstructionFiles` reads them from `<data>` or the main line, never from the branch. Customs check V11 refuses a branch
-that changes a tracked one unless its ticket names it.
+that changes a tracked one unless its ticket names it. It counts only a change the branch made itself: a change that a
+merge of the job's target brought in, such as a constitution commit, does not.
 
 ### intake
 

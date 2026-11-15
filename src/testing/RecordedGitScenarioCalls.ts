@@ -92,6 +92,16 @@ const CUSTOMS_CALLS: readonly RecordedScenarioCall[] = [
 /** What the Customs checks ask a worktree of the repository: its state, the work since each named commit, and a merge against each target. */
 export const CUSTOMS_SCENARIO_CALLS: RecordedScenarioCalls = { folder: SCENARIO_REPOSITORY_PLACEHOLDER, calls: CUSTOMS_CALLS };
 
+/** The same, and what V11 asks of a branch that merged the main line in: its own commits past main, and its change against `<main tip>`. */
+export const CUSTOMS_MAIN_MERGE_SCENARIO_CALLS: RecordedScenarioCalls = {
+  folder: SCENARIO_REPOSITORY_PLACEHOLDER,
+  calls:  [
+    ...CUSTOMS_CALLS,
+    { gitArguments: ['log', '--name-only', '--no-renames', '--format=', '<start>..HEAD', `^${SCENARIO_MAIN_LINE}`, '--'] },
+    { gitArguments: ['diff', '--name-only', '--no-renames', '<main tip>', 'HEAD', '--'] },
+  ],
+};
+
 /** The folder of a pipeline agent's detached snapshot, inside the repository, which a spec takes as its worktrees root: setup S1's. */
 export const PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME = join('pipeline-agent', 'S1');
 

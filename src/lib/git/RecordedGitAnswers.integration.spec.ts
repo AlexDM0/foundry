@@ -817,6 +817,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     };
     const quietSuccess = { exitCode: 0, standardOutput: '', standardError: '' };
     const subject = 'Add the repository constitution';
+    expect(recordedIn(GIT_CALL_SHAPES.COMMIT_SIGNING_OFF, repositoryDirectory, ['config', '--bool', 'commit.gpgsign']).standardOutput).toBe('false\n');
 
     gitOutputIn(repositoryDirectory, ['worktree', 'add', '--quiet', '--detach', commitWorktree, targetTip]);
     writeFileSync(join(commitWorktree, 'CONSTITUTION.md'), '# Example Agency\n\n- Keep the basket page fast.\n');

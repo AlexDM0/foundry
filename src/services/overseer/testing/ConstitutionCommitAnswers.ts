@@ -50,8 +50,9 @@ export const PLANTED_MERGE_GATE = 'merge-tests';
 
 export const UPDATE_SUBJECT = 'Update the repository constitution';
 
-export function commitWorktreeOf(repository: string, jobId: string): string {
-  return join(`${repository}-worktrees`, CONSTITUTION_COMMITS_FOLDER, jobId);
+/** `worktreesRoot` is the Airlocks harness's unless given, such as a DrivePass's worktrees folder inside the repository. */
+export function commitWorktreeOf(repository: string, jobId: string, worktreesRoot = `${repository}-worktrees`): string {
+  return join(worktreesRoot, CONSTITUTION_COMMITS_FOLDER, jobId);
 }
 
 /**
@@ -69,23 +70,25 @@ export function requestConstitutionApply(board: Board, resumesBoard = false): st
 }
 
 export interface ConstitutionCommitWalk {
-  repository:    string;
-  jobId:         string;
+  repository:     string;
+  /** The Airlocks harness's worktrees folder unless set. */
+  worktreesRoot?: string;
+  jobId:          string;
   /** The main line's tip the job claims on. */
-  mainTip:       string;
-  committedTip:  string;
+  mainTip:        string;
+  committedTip:   string;
   /** Main's blob of `CONSTITUTION.md` at `mainTip`; `MAIN_BLOB` unless set, `null` for no file. */
-  mainBlob?:     string | null;
+  mainBlob?:      string | null;
   /** git refuses the commit for a signer that fails, or commits. */
-  commit?:       'committed' | 'unsigned';
+  commit?:        'committed' | 'unsigned';
   /** The commit changes `CONSTITUTION.md` alone, or `base.ts` beside it. */
-  paths?:        'constitution-only' | 'constitution-and-base';
+  paths?:         'constitution-only' | 'constitution-and-base';
   /** The main checkout is clean, or holds a change to `CONSTITUTION.md` that stops the fast-forward. */
-  mainCheckout?: 'clean' | 'constitution-modified';
+  mainCheckout?:  'clean' | 'constitution-modified';
   /** The main line's tip at the landing; `mainTip` unless set, as when someone moved main by hand. */
-  tipAtLanding?: string;
+  tipAtLanding?:  string;
   /** What else answers once the commit landed. */
-  afterLanding?: RecordedGitStage;
+  afterLanding?:  RecordedGitStage;
 }
 
 function blobRead(commit: string, blob: string | null): RecordedGitStep {
@@ -100,7 +103,7 @@ function forcedRemoval(repository: string, worktree: string): RecordedGitStep {
 }
 
 /** The landing reads in the main checkout, and its fast-forward, which hands on to `landed` once git moved main. */
-function landingSteps(walk: Required<Omit<ConstitutionCommitWalk, 'afterLanding'>>, landed: RecordedGitStage): RecordedGitStep[] {
+function landingSteps(walk: Required<Omit<ConstitutionCommitWalk, 'afterLanding' | 'worktreesRoot'>>, landed: RecordedGitStage): RecordedGitStep[] {
   const { repository, committedTip, tipAtLanding } = walk;
   const modified = walk.mainCheckout === 'constitution-modified';
   const fastForward = ['merge', '--ff-only', '--quiet', committedTip];
@@ -143,7 +146,7 @@ function constitutionCommitAnswersOf(walk: ConstitutionCommitWalk): RecordedGitS
   const {
     repository, jobId, mainTip, committedTip, mainBlob
   } = settled;
-  const worktree = commitWorktreeOf(repository, jobId);
+  const worktree = commitWorktreeOf(repository, jobId, walk.worktreesRoot);
   const commitArguments = ['commit', '--no-verify', '-q', '-m', mainBlob === null ? 'Add the repository constitution' : UPDATE_SUBJECT];
   const sharedSteps: RecordedGitStep[] = [
     blobRead(mainTip, mainBlob),

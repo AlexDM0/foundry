@@ -844,7 +844,10 @@ Overseer gates its ticket again.
 #### `gate add`
 
 `--defined-by` names the files that define the gate, as git pathspec-style globs. The Overseer's check V11 refuses a job
-(`checks-definition-changed`) when a commit in its range changes a matching path its ticket body does not name.
+(`checks-definition-changed`) when a commit in its range changes a matching path its ticket body does not name. A merge
+of the job's target brings the target's commits into that range, so a definition file another ticket landed fails each
+live job that merges the target after it; a fresh attempt started after the merge passes. An instruction file counts
+only where the branch changed it itself ([instruction file](glossary.md#instruction-file)).
 
 - `*` and `?` stay inside one folder, and `**` crosses folders.
 - A pattern without an inner `/` matches its name at any depth; one with an inner `/` is anchored at the repository
@@ -1425,6 +1428,10 @@ session of the intake, a fresh one after a replacement included.
 These five sections are contracts, not command groups. Each says what a job does, what shows, and which moves User or
 the [Assistant](glossary.md#assistant) has.
 
+A job that ends in a hold while its session runs, such as a build that Customs ends, has its session's input closed
+after that hold, and again each Pass until its Watcher takes the frame or ends, so the session exits. That retry lives
+only in the Overseer's memory: a session whose close was not taken when the Overseer stopped runs on after the restart.
+
 ### A build job
 
 A readied ticket's [build job](glossary.md#build-job) moves through `launching`, `preparing`, `running`, `in-customs`
@@ -1491,8 +1498,8 @@ branch back at its own tip. With `airlock.reReview` absent no conflict re-review
 | a merged tree's line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the Airlock slot waits | `gate retry`, `ticket park` |
 | a merged tree's prepare step fails or changes a tracked file | incident `setup-failed`, its `gate` fact naming the step; the Airlock slot waits | `worktree repair`, `ticket park` |
 | the Acceptance is not accounted for at landing | the ticket leaves the queue, held, with the `landing-refused` decision | answer the decision |
-| the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice | clean the main checkout |
-| another process holds a file of the target's checkout open, so git cannot replace it (Windows), on each of `HELD_CHECKOUT_RETRY_TRIES` (3) tries | the files git already wrote go back to HEAD; that target's landings wait under the `target-file-held` notice, which names the held files | close the program that holds the file |
+| the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice; each sweep checks the target again | clean the main checkout |
+| another process holds a file of the target's checkout open, so git cannot replace it (Windows), on each of `HELD_CHECKOUT_RETRY_TRIES` (3) tries | the files git already wrote go back to HEAD; that target's landings wait under the `target-file-held` notice, which names the held files; each sweep checks the target again | close the program that holds the file |
 
 #### The constitution commit
 

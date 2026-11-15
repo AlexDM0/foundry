@@ -131,6 +131,11 @@ export interface CustomsSubject {
    * where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
    */
   instructionFiles?: readonly string[];
+  /**
+   * V11 also: the line the branch lands on. When set, an instruction file counts as changed only where the branch changed it itself; a
+   * change that reached the branch through a merge of this line, such as a constitution commit, is not the worker's edit.
+   */
+  target?:           string;
   /** V12: the job being verified, and the log as stored plus this hold's records. */
   jobId?:            string;
   logRecords?:       readonly LogRecord[];
@@ -376,6 +381,29 @@ export function definitionFilePatternExpressionOf(pattern: string): RegExp {
   return new RegExp(`${anchored ? '^' : '(^|/)'}${translated}${namesAFolder ? '/' : '$'}`);
 }
 
+/**
+ * The paths the branch changed itself: those of its own commits, which `target` does not hold, and what HEAD changes against the newest
+ * commit of `target` that the branch holds. A merge commit names no paths of its own here, so only what its tree changes against `target`
+ * counts.
+ */
+function pathsTheBranchChangedPast(subject: RangeSubject, target: string): string[] | null {
+  const base = worktreeGitRun(subject.worktreePath, ['merge-base', target, 'HEAD']);
+  if (!GitProcess.succeeded(base)) return null;
+  const pathsOfOwnCommits = gitLines(subject.worktreePath, ['log', '--name-only', '--no-renames', '--format=', ...rangeArgumentsOf(subject), `^${target}`, '--']);
+  const pathsAgainstTarget = gitLines(subject.worktreePath, ['diff', '--name-only', '--no-renames', base.standardOutput.trim(), 'HEAD', '--']);
+  if (pathsOfOwnCommits === null || pathsAgainstTarget === null) return null;
+  return [...new Set([...pathsOfOwnCommits, ...pathsAgainstTarget])];
+}
+
+/** The instruction files of `changed` that the branch changed itself; all of them when the subject names no target. */
+function instructionFilesChangedByTheBranch(subject: CustomsSubject, changed: readonly string[]): readonly string[] | null {
+  if (changed.length === 0 || subject.target === undefined) return changed;
+  const ownPaths = pathsTheBranchChangedPast(subject, subject.target);
+  if (ownPaths === null) return null;
+  const ownProtectedForms = new Set(ownPaths.map(protectedFormOf));
+  return changed.filter((gitPath) => ownProtectedForms.has(protectedFormOf(gitPath)));
+}
+
 /** With no gate naming a `definedBy` the board names no definition files, so nothing refuses. */
 function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
   const patterns = (subject.gates ?? []).flatMap((gate) => gate.definedBy ?? []).map(definitionFilePatternExpressionOf);
@@ -387,7 +415,11 @@ function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
   const changedDefinitions = unnamed.filter((path) => patterns.some((pattern) => pattern.test(path)));
   if (changedDefinitions.length > 0) return refused('checks-definition-changed', changedDefinitions);
   const protectedInstructionFiles = instructionFiles.map(protectedFormOf);
-  const changedInstructions = unnamed.filter((gitPath) => protectedInstructionFiles.includes(protectedFormOf(gitPath)));
+  const changedInstructions = instructionFilesChangedByTheBranch(
+    subject,
+    unnamed.filter((gitPath) => protectedInstructionFiles.includes(protectedFormOf(gitPath))),
+  );
+  if (changedInstructions === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
   return changedInstructions.length === 0 ? PASSED : refused('instruction-file-changed', changedInstructions);
 }
 

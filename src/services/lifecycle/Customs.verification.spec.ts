@@ -3,7 +3,8 @@
  * `src/services/lifecycle/Customs.spec.ts`: each check refuses its planted case and passes a clean one, and `clearCustoms`
  * runs only the checks of the role's column, stopping at the first refusal. The planted cases are what a session could leave behind and
  * claim otherwise; V5 plants the data folder under the name `PRODUCT_NAMES` gives it. V11 reads its patterns from every gate's
- * `definedBy` and the tracked instruction files the pipeline names, and V15 holds a builder's gate claims to HEAD itself, so a stale
+ * `definedBy` and the tracked instruction files the pipeline names, and counts an instruction file only where the branch changed it
+ * itself, never where a merge of the main line brought the change in; V15 holds a builder's gate claims to HEAD itself, so a stale
  * claim is refused before any gate runs. Each case's git state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts`
  * builds with real git and records; a call it did not record fails the case.
  */
@@ -49,6 +50,7 @@ const TARGET_TIP = '4'.repeat(40);
 const REWRITTEN_COMMIT = '5'.repeat(40);
 const HONEST_START = '6'.repeat(40);
 const FEATURE_COMMIT = '7'.repeat(40);
+const MAIN_TIP = '8'.repeat(40);
 const OWN_BRANCH = 'main';
 
 const { enterScenario } = useRecordedGit();
@@ -68,6 +70,7 @@ function enter(scenario: string): void {
       '<rewritten>':    REWRITTEN_COMMIT,
       '<honest start>': HONEST_START,
       '<feature>':      FEATURE_COMMIT,
+      '<main tip>':     MAIN_TIP,
     },
   });
 }
@@ -311,6 +314,25 @@ describeWhenGitIsRecorded('verification by code', () => {
     expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles }))).toEqual({ verdict: 'refused', reason: 'instruction-file-changed', facts: ['example-constitution.md'] });
     expect(refusalOf('V11', builderSubject({ instructionFiles: ['example-builder.md'] }))).toBeNull();
     expect(refusalOf('V11', builderSubject({ instructionFiles, ticketBody: `${TICKET_BODY}\nScope: example-constitution.md\n` }))).toBeNull();
+  });
+
+  test('V11 passes an instruction file that a merge of the main line brought in, such as a constitution commit', () => {
+    enter(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED);
+    const instructionFiles = ['example-constitution.md'];
+
+    expect(refusalOf('V11', builderSubject({ instructionFiles, target: 'main' }))).toBeNull();
+    expect(refusalOf('V11', builderSubject({ instructionFiles })), 'with no target every path in range counts').toBe('instruction-file-changed');
+  });
+
+  test('V11 still refuses the branch\'s own change of an instruction file after a merge of the main line, and one made inside that merge', () => {
+    const instructionFiles = ['example-constitution.md'];
+    const refused = { verdict: 'refused', reason: 'instruction-file-changed', facts: ['example-constitution.md'] } as const;
+
+    enter(GIT_SCENARIOS.OWN_INSTRUCTION_EDIT_AFTER_MERGE);
+    expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles, target: 'main' }))).toEqual(refused);
+
+    enter(GIT_SCENARIOS.INSTRUCTION_EDIT_IN_THE_MERGE);
+    expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles, target: 'main' }))).toEqual(refused);
   });
 
   test('V15 refuses a gate claimed on an older commit, naming only it, and clearCustoms stops there before any gate could run', () => {
