@@ -4,7 +4,8 @@
  * layer, every allowlist entry still used), and each kind of violation is planted once in memory to prove the guard still names the edge.
  * The design-system package imports nothing of the forge, and the Bridge reaches it only as the workspace package `design-system`, by a
  * specifier its `package.json` exports, never by a file path. The Flint package imports nothing of the forge either, and the Bridge
- * reaches it only through the entry files its `package.json` exports.
+ * reaches it only through the entry files its `package.json` exports. No import leaves the program and the packages it declares by a
+ * path, into another app or package of the workspace, and a workspace package is imported by name only once `package.json` declares it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -19,6 +20,8 @@ type ImportViolation =
   | 'bridge-view-imports-a-sibling-view'
   | 'design-system-reached-by-path'
   | 'workspace-entry-not-exported'
+  | 'workspace-package-not-declared'
+  | 'import-leaves-the-program'
   | 'flint-reached-beside-its-entry-files'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
@@ -352,6 +355,16 @@ function libFinding(edge: ImportEdge, declarations: ReadonlyMap<string, readonly
   return edgeFinding(edge, 'lib-imports-an-undeclared-package', `the header of src/lib/${fromPackage}/'s main module does not name src/lib/${targetPackage}`);
 }
 
+/** A path that climbs out of the program root and lies in no declared package reaches another member of the workspace, or beyond it. */
+function programExitFinding(edge: ImportEdge, targetPath: string): Finding | null {
+  if (!targetPath.startsWith('../')) return null;
+  return edgeFinding(
+    edge,
+    'import-leaves-the-program',
+    'it lies outside the program and the workspace packages its package.json declares; another member of the workspace is imported by its name',
+  );
+}
+
 /** Outside its own folder, the Flint package is reached only through the files its `package.json` exports, as it will be once split off. */
 function flintEntryFinding(edge: ImportEdge, targetPath: string, flintEntryPaths: readonly string[]): Finding | null {
   if (!isInside(targetPath, FLINT_FOLDER) || isInside(edge.fromPath, FLINT_FOLDER) || flintEntryPaths.includes(targetPath)) return null;
@@ -381,9 +394,14 @@ function edgeFindingsOf(
     const unexportedEntryVerdict = edge.target.kind === 'unexported-workspace-entry'
       ? edgeFinding(edge, 'workspace-entry-not-exported', 'the package.json of its workspace package exports no such entry')
       : null;
-    return [libVerdict, watcherBinaryVerdict, unexportedEntryVerdict];
+    const undeclaredPackageVerdict = edge.target.kind === 'undeclared-workspace-package'
+      ? edgeFinding(edge, 'workspace-package-not-declared', 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency')
+      : null;
+    return [libVerdict, watcherBinaryVerdict, unexportedEntryVerdict, undeclaredPackageVerdict];
   }
   const targetPath = edge.target.path;
+  const programExitVerdict = programExitFinding(edge, targetPath);
+  if (programExitVerdict !== null) return [programExitVerdict];
   return [
     directionFinding(edge, targetPath, allowlists),
     commandFinding(edge, targetPath),
@@ -689,10 +707,10 @@ describe('the guard still names each violation, planted in memory', () => {
   });
 
   test('the design-system package importing the forge, and the forge reaching it but by a specifier its package.json exports from the Bridge', () => {
-    expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('../../src/lib/tracker-model/@types/Task.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('../../../apps/forge/src/lib/tracker-model/@types/Task.ts') })).toEqual([
       'layer-imports-upward — design-system/atoms/PlantedPart.tsx:1 imports src/lib/tracker-model/@types/Task.ts: design-system reaches only design-system, not lib',
     ]);
-    expect(plantedSentencesOf({ 'design-system/molecules/PlantedPart.tsx': importing('../../bridge/shell/HashRouter.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'design-system/molecules/PlantedPart.tsx': importing('../../../apps/forge/bridge/shell/HashRouter.ts') })).toEqual([
       'layer-imports-upward — design-system/molecules/PlantedPart.tsx:1 imports bridge/shell/HashRouter.ts: design-system reaches only design-system, not bridge',
     ]);
     expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('design-system/Button') })).toEqual([
@@ -700,10 +718,11 @@ describe('the guard still names each violation, planted in memory', () => {
         + 'tracker-service, lifecycle-service, control-service, overseer-service, cli, not design-system',
     ]);
     const byPathReason = 'outside design-system/, the package is imported as design-system/<entry>, an entry its package.json exports';
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../design-system/atoms/Button.tsx') })).toEqual([
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../../../packages/design-system/atoms/Button.tsx') })).toEqual([
       `design-system-reached-by-path — bridge/shell/PlantedPart.tsx:1 imports design-system/atoms/Button.tsx: ${byPathReason}`,
     ]);
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing(`${repositoryRootOfThisCheckout().replaceAll('\\', '/')}/design-system/utils/MeterUtil.ts`) })).toEqual([
+    const absoluteMeterUtilPath = `${repositoryRootOfThisCheckout().replaceAll('\\', '/')}/../../packages/design-system/utils/MeterUtil.ts`;
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing(absoluteMeterUtilPath) })).toEqual([
       `design-system-reached-by-path — bridge/shell/PlantedPart.tsx:1 imports design-system/utils/MeterUtil.ts: ${byPathReason}`,
     ]);
     expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('design-system/MeterUtil') })).toEqual([
@@ -718,27 +737,53 @@ describe('the guard still names each violation, planted in memory', () => {
   });
 
   test('the Flint package importing the forge, and the forge reaching it but through an entry file of the Bridge', () => {
-    expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('../src/shared/constants/ProductNames.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('../../apps/forge/src/shared/constants/ProductNames.ts') })).toEqual([
       'layer-imports-upward — flint/PlantedPart.ts:1 imports src/shared/constants/ProductNames.ts: flint reaches only flint, not shared',
     ]);
-    expect(plantedSentencesOf({ 'flint/react/PlantedPart.tsx': importing('../../bridge/shell/HashRouter.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'flint/react/PlantedPart.tsx': importing('../../../apps/forge/bridge/shell/HashRouter.ts') })).toEqual([
       'layer-imports-upward — flint/react/PlantedPart.tsx:1 imports bridge/shell/HashRouter.ts: flint reaches only flint, not bridge',
     ]);
-    expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('../flint/CreateFlint.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('../../../packages/flint/CreateFlint.ts') })).toEqual([
       'layer-imports-upward — cli/PlantedView.ts:1 imports flint/CreateFlint.ts: cli reaches only lib, shared, adapters, render-service, tracker-service, '
         + 'lifecycle-service, control-service, overseer-service, cli, not flint',
     ]);
     const entryFilesReason = `outside flint/, only its entry files are imported: ${FLINT_ENTRY_PATHS.join(', ')}`;
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importing('../../flint/SpritePose.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importing('../../../../packages/flint/SpritePose.ts') })).toEqual([
       `flint-reached-beside-its-entry-files — bridge/shell/PlantedSprite.tsx:1 imports flint/SpritePose.ts: ${entryFilesReason}`,
     ]);
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.dom.tsx': importing('../../flint/testing/ManualFrameSource.ts') })).toEqual([
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.dom.tsx': importing('../../../../packages/flint/testing/ManualFrameSource.ts') })).toEqual([
       `flint-reached-beside-its-entry-files — bridge/shell/PlantedSprite.dom.tsx:1 imports flint/testing/ManualFrameSource.ts: ${entryFilesReason}`,
       'test-helper-imported-outside-its-allowlist — bridge/shell/PlantedSprite.dom.tsx:1 imports flint/testing/ManualFrameSource.ts: '
         + 'flint/testing/ is test-only and may be imported by only the specs of flint/',
     ]);
-    const importingEntries = `${importing('../../flint/CreateFlint.ts')}${importing('../../flint/react/UseFlintHabitat.ts').replaceAll('planted', 'plantedHook')}`;
+    const importingEntries = `${importing('../../../../packages/flint/CreateFlint.ts')}`
+      + `${importing('../../../../packages/flint/react/UseFlintHabitat.ts').replaceAll('planted', 'plantedHook')}`;
     expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importingEntries })).toEqual([]);
+  });
+
+  test('a package or the forge reaching another member of the workspace by path, or by a name package.json does not declare', () => {
+    const leavesReason = 'it lies outside the program and the workspace packages its package.json declares; another member of the workspace is imported by its name';
+    expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('../../../apps/gaia/src/Main.ts') })).toEqual([
+      `import-leaves-the-program — design-system/atoms/PlantedPart.tsx:1 imports ../gaia/src/Main.ts: ${leavesReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('../../apps/gaia/page/Main.tsx') })).toEqual([
+      `import-leaves-the-program — flint/PlantedPart.ts:1 imports ../gaia/page/Main.tsx: ${leavesReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../../../packages/brand/marks/ForgeMark.tsx') })).toEqual([
+      `import-leaves-the-program — bridge/shell/PlantedPart.tsx:1 imports ../../packages/brand/marks/ForgeMark.tsx: ${leavesReason}`,
+    ]);
+    const undeclaredReason = 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency';
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('brand/ForgeMark') })).toEqual([
+      `workspace-package-not-declared — bridge/shell/PlantedPart.tsx:1 imports brand/ForgeMark: ${undeclaredReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('forge') })).toEqual([
+      `workspace-package-not-declared — design-system/atoms/PlantedPart.tsx:1 imports forge: ${undeclaredReason}`,
+    ]);
+    expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('gaia/src/Main.ts') })).toEqual([
+      `workspace-package-not-declared — flint/PlantedPart.ts:1 imports gaia/src/Main.ts: ${undeclaredReason}`,
+    ]);
+    const importingDeclaredAndOutsidePackages = `${importing('design-system/Button')}${importing('react').replaceAll('planted', 'plantedReact')}`;
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importingDeclaredAndOutsidePackages })).toEqual([]);
   });
 
   test('the binary importing anything but cli/', () => {
@@ -891,6 +936,11 @@ describe('the imports of the tree', () => {
 
   test('outside design-system/, the design-system package is imported by its name, never by a file path', () => {
     expect(sentencesAbout(FINDINGS, 'design-system-reached-by-path')).toEqual([]);
+  });
+
+  test('no import leaves the program and its declared packages by a path, and every workspace package imported by name is declared', () => {
+    expect(sentencesAbout(FINDINGS, 'import-leaves-the-program')).toEqual([]);
+    expect(sentencesAbout(FINDINGS, 'workspace-package-not-declared')).toEqual([]);
   });
 
   test('every specifier naming a workspace package is an entry its package.json exports', () => {

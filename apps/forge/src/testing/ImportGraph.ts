@@ -17,15 +17,20 @@ import {
 
 import ts from 'typescript';
 
-import type { DeclaredWorkspacePackage } from './RepositorySources.ts';
-import { declaredWorkspacePackagesOf }   from './RepositorySources.ts';
+import type { DeclaredWorkspacePackage }                       from './RepositorySources.ts';
+import { declaredWorkspacePackagesOf, workspaceRootOfProgram } from './RepositorySources.ts';
 
 export type ImportForm = 'import' | 're-export' | 'dynamic-import';
 
-/** A repository file reached by a relative or absolute path or through a workspace package's exports, or a package outside the repository. */
+/**
+ * A repository file reached by a relative or absolute path or through a workspace package's exports, or a package outside the repository.
+ * A file outside the program and its declared packages keeps its path from the program root (`../gaia/src/Main.ts`), and a workspace
+ * package the program does not declare is named apart: Bun's hoisted install would resolve it all the same.
+ */
 export type ImportTarget =
   | { readonly kind: 'repository-file'; readonly path: string }
   | { readonly kind: 'unexported-workspace-entry'; readonly specifier: string }
+  | { readonly kind: 'undeclared-workspace-package'; readonly specifier: string }
   | { readonly kind: 'package'; readonly specifier: string };
 
 export interface ImportEdge {
@@ -68,11 +73,33 @@ function programPathOf(programRoot: string, workspacePackages: readonly Declared
     : posix.join(owningPackage.name, forwardSlashed(relative(owningPackage.folder, absolutePath)));
 }
 
+/** The path the guards name for a file at this absolute location, under a declared package's virtual folder when it lies in one. */
+export function programPathOfLocation(programRoot: string, location: string): string {
+  return programPathOf(programRoot, declaredWorkspacePackagesOf(programRoot), location);
+}
+
+function fileLocationOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[], path: string): string {
+  const [topFolder = '', ...rest] = path.split('/');
+  const owningPackage = workspacePackages.find((workspacePackage) => workspacePackage.name === topFolder);
+  return owningPackage === undefined ? join(programRoot, path) : join(owningPackage.folder, ...rest);
+}
+
 /** Where a path the guards name is read: a virtual package path in the package's real folder, any other path under the program root. */
 export function programFileLocationOf(programRoot: string, path: string): string {
-  const [topFolder = '', ...rest] = path.split('/');
-  const owningPackage = declaredWorkspacePackagesOf(programRoot).find((workspacePackage) => workspacePackage.name === topFolder);
-  return owningPackage === undefined ? join(programRoot, path) : join(owningPackage.folder, ...rest);
+  return fileLocationOf(programRoot, declaredWorkspacePackagesOf(programRoot), path);
+}
+
+/** The name of every member of the program's Bun workspace, the program itself included. */
+function workspaceMemberNamesOf(programRoot: string): ReadonlySet<string> {
+  const workspaceRoot = workspaceRootOfProgram(programRoot);
+  const manifestNameOf = (folder: string): unknown => (JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8')) as { readonly name?: unknown }).name;
+  const { workspaces: memberPatterns } = JSON.parse(readFileSync(join(workspaceRoot, 'package.json'), 'utf8')) as { readonly workspaces?: unknown };
+  const memberNames = (Array.isArray(memberPatterns) ? memberPatterns : [])
+    .filter((pattern): pattern is string => typeof pattern === 'string')
+    .flatMap((pattern) => [...new Bun.Glob(`${pattern}/package.json`).scanSync({ cwd: workspaceRoot })])
+    .map((manifestPath) => manifestNameOf(join(workspaceRoot, dirname(manifestPath))))
+    .filter((name): name is string => typeof name === 'string');
+  return new Set(memberNames);
 }
 
 function programFilePathsOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[]): readonly string[] {
@@ -109,6 +136,7 @@ function workspaceEntryPathsBySpecifierOf(workspacePackages: readonly DeclaredWo
 interface SpecifierResolution {
   readonly repositoryRoot:                 string;
   readonly workspacePackages:              readonly DeclaredWorkspacePackage[];
+  readonly workspaceMemberNames:           ReadonlySet<string>;
   readonly workspaceEntryPathsBySpecifier: ReadonlyMap<string, string>;
 }
 
@@ -119,7 +147,8 @@ function workspacePackageNameOf(specifier: string): string {
 
 function targetOf(fromPath: string, specifier: string, resolution: SpecifierResolution): ImportTarget {
   if (specifier.startsWith('.')) {
-    return { kind: 'repository-file', path: posix.normalize(posix.join(posix.dirname(fromPath), specifier)) };
+    const importerLocation = fileLocationOf(resolution.repositoryRoot, resolution.workspacePackages, fromPath);
+    return { kind: 'repository-file', path: programPathOf(resolution.repositoryRoot, resolution.workspacePackages, resolve(dirname(importerLocation), specifier)) };
   }
   if (isAbsolute(specifier)) {
     return { kind: 'repository-file', path: programPathOf(resolution.repositoryRoot, resolution.workspacePackages, specifier) };
@@ -130,7 +159,8 @@ function targetOf(fromPath: string, specifier: string, resolution: SpecifierReso
   }
   const namesAWorkspacePackage = [...resolution.workspaceEntryPathsBySpecifier.keys()]
     .some((entrySpecifier) => workspacePackageNameOf(entrySpecifier) === workspacePackageNameOf(specifier));
-  return namesAWorkspacePackage ? { kind: 'unexported-workspace-entry', specifier } : { kind: 'package', specifier };
+  if (namesAWorkspacePackage) return { kind: 'unexported-workspace-entry', specifier };
+  return resolution.workspaceMemberNames.has(workspacePackageNameOf(specifier)) ? { kind: 'undeclared-workspace-package', specifier } : { kind: 'package', specifier };
 }
 
 function edgesOf(fromPath: string, sourceText: string, resolution: SpecifierResolution): readonly ImportEdge[] {
@@ -181,7 +211,12 @@ export function importGraphScannerOf(repositoryRoot: string): ImportGraphScanner
 
 function scannerOf(repositoryRoot: string): ImportGraphScanner {
   const workspacePackages = declaredWorkspacePackagesOf(repositoryRoot);
-  const resolution: SpecifierResolution = { repositoryRoot, workspacePackages, workspaceEntryPathsBySpecifier: workspaceEntryPathsBySpecifierOf(workspacePackages) };
+  const resolution: SpecifierResolution = {
+    repositoryRoot,
+    workspacePackages,
+    workspaceMemberNames:           workspaceMemberNamesOf(repositoryRoot),
+    workspaceEntryPathsBySpecifier: workspaceEntryPathsBySpecifierOf(workspacePackages),
+  };
   const sourceTexts: ReadonlyMap<string, string> = new Map(programFilePathsOf(repositoryRoot, workspacePackages)
     .map((path) => [path, readFileSync(programFileLocationOf(repositoryRoot, path), 'utf8')]));
   const edgesByPath: ReadonlyMap<string, readonly ImportEdge[]> = new Map([...sourceTexts]

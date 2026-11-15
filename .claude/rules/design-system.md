@@ -13,13 +13,14 @@ paths:
   the dependency `"design-system": "workspace:^"`. `bun install` at the repository root links
   `node_modules/design-system` to the folder, and the root `bunfig.toml` keeps the hoisted linker. Bun, `Bun.build` and
   TypeScript resolve `design-system/<entry>` through the `exports` of `packages/design-system/package.json`.
-- `src/ImportDirection.spec.ts` holds that the package imports no file of an app, and that forge imports it only by its
-  name, as `design-system/<entry>`, with an entry that `packages/design-system/package.json` exports, and only while
-  `apps/forge/package.json` declares it. A relative or absolute path into the folder, and an entry that the exports do
-  not list, are findings.
+- `apps/forge/src/ImportDirection.spec.ts` holds that the package imports no file of an app, by a path or by an app's
+  name, and that forge imports it only by its name, as `design-system/<entry>`, with an entry that
+  `packages/design-system/package.json` exports, and only while `apps/forge/package.json` declares it. A relative or
+  absolute path into the folder, and an entry that the exports do not list, are findings.
+  `packages/design-system/PackageIsolation.spec.ts` holds that no file of the package imports outside its folder.
 - The package's `bun run typecheck` checks its `tsconfig.json` (only the DOM library, no Bun or Node types) and its
-  `tsconfig.spec.json` (the specs, the stories and `.storybook/`). `apps/forge/src/ProjectIncludeLists.spec.ts`
-  holds that its `include` list names only its own folder.
+  `tsconfig.spec.json` (the specs, the stories and `.storybook/`). `packages/design-system/ProjectIncludeList.spec.ts`
+  holds that each `include` list names only its own folder.
 - `bun run storybook` in `packages/design-system/` runs the package's Storybook 10;
   `packages/design-system/StoryCoverage.spec.ts` holds a story per export.
 - `packages/design-system/testing/RunDomSpecs.ts`, the package's `test:dom` task, runs the DOM specs of the package.

@@ -12,9 +12,10 @@ paths:
   module or a `node:` module. Only `packages/flint/react/` imports React. `packages/flint/PackageIsolation.spec.ts`
   holds this.
 - `apps/forge/package.json` declares the dependency `"flint": "workspace:^"`, and the Bridge imports Flint only by its
-  name, through the entries that `packages/flint/package.json` exports.
+  name, through the entries that `packages/flint/package.json` exports. `apps/forge/src/ImportDirection.spec.ts`
+  holds this, and that the package imports no file of an app, by a path or by an app's name.
 - The package's `bun run typecheck` checks its `tsconfig.json` and its `tsconfig.spec.json`. The project uses only the
-  DOM library and no Bun or Node types. `apps/forge/src/ProjectIncludeLists.spec.ts` holds that its `include` list names
+  DOM library and no Bun or Node types. `packages/flint/ProjectIncludeList.spec.ts` holds that each `include` list names
   only its own folder.
 - Flint makes no network call, calls no model, and reads no clock and no browser storage. The time comes from a frame
   source that the host can replace. The host gives a storage port. `packages/flint/eslint.config.js` holds the clock,

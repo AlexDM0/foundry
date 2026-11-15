@@ -3,7 +3,8 @@
  * other, keeps the entries, ignores package imports and stops at a cycle; on the real graph the Bridge entry reaches its modules, which the
  * include-list guard relies on; and a workspace package's specifier resolves through its `exports` as Bun and TypeScript resolve it, which
  * the import-direction guard relies on to tell an import by name from one by path; and each workspace package the program declares is read
- * from its own folder under a virtual folder named after it, so the guards hold it as they held the folder it once was.
+ * from its own folder under a virtual folder named after it, so the guards hold it as they held the folder it once was; a relative path
+ * resolves from the importer's real folder, and a member of the workspace the program does not declare is named apart.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,10 +18,10 @@ import {
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
 
 describe('the target of a specifier', () => {
-  const targetsOf = (specifiers: readonly string[]): readonly unknown[] => {
+  const targetsOf = (specifiers: readonly string[], importerPath = 'bridge/Planted.ts'): readonly unknown[] => {
     const plantedSource = specifiers.map((specifier, i) => `import { planted${i} } from '${specifier}';\n`).join('');
-    return SCANNER.graphWithPlantedFiles({ 'bridge/Planted.ts': plantedSource }).edges
-      .filter((edge) => edge.fromPath === 'bridge/Planted.ts')
+    return SCANNER.graphWithPlantedFiles({ [importerPath]: plantedSource }).edges
+      .filter((edge) => edge.fromPath === importerPath)
       .map((edge) => ({ specifier: edge.specifier, target: edge.target }));
   };
 
@@ -37,6 +38,24 @@ describe('the target of a specifier', () => {
     expect(targetsOf(['design-system/atoms/Button.tsx', 'react'])).toEqual([
       { specifier: 'design-system/atoms/Button.tsx', target: { kind: 'unexported-workspace-entry', specifier: 'design-system/atoms/Button.tsx' } },
       { specifier: 'react', target: { kind: 'package', specifier: 'react' } },
+    ]);
+  });
+
+  test('a member of the workspace the program does not declare is named apart from a package outside the workspace, the program itself included', () => {
+    expect(targetsOf(['brand/ForgeMark', 'gaia', 'forge'])).toEqual([
+      { specifier: 'brand/ForgeMark', target: { kind: 'undeclared-workspace-package', specifier: 'brand/ForgeMark' } },
+      { specifier: 'gaia', target: { kind: 'undeclared-workspace-package', specifier: 'gaia' } },
+      { specifier: 'forge', target: { kind: 'undeclared-workspace-package', specifier: 'forge' } },
+    ]);
+  });
+
+  test('a relative path resolves from the importer\'s real folder, so a package file reaching the program lands on the program\'s path', () => {
+    const specifiers = ['./Button.tsx', '../../flint/CreateFlint.ts', '../../../apps/forge/src/shared/Environment.ts', '../../../apps/gaia/src/Main.ts'];
+    expect(targetsOf(specifiers, 'design-system/atoms/Planted.ts')).toEqual([
+      { specifier: './Button.tsx', target: { kind: 'repository-file', path: 'design-system/atoms/Button.tsx' } },
+      { specifier: '../../flint/CreateFlint.ts', target: { kind: 'repository-file', path: 'flint/CreateFlint.ts' } },
+      { specifier: '../../../apps/forge/src/shared/Environment.ts', target: { kind: 'repository-file', path: 'src/shared/Environment.ts' } },
+      { specifier: '../../../apps/gaia/src/Main.ts', target: { kind: 'repository-file', path: '../gaia/src/Main.ts' } },
     ]);
   });
 });
