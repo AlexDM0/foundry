@@ -29,5 +29,8 @@
   "peerDependencies": {
     "design-system": "^0.1.0",
     "react": ">=19"
+  },
+  "devDependencies": {
+    "design-system": "workspace:^"
   }
 }
