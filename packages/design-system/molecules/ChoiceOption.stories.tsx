@@ -88,5 +88,6 @@ export const FreeText: Story = {
     freeText: <ChoiceFreeText value="" placeholder="Example words" accessibleName="Your own example words" onChange={fn()} />,
   },
 };
+export const Disabled: Story = { args: { input: <ChoiceInput type="radio" name="example-group" checked={false} accessibleName="Example option" disabled onChange={fn()} /> }, };
 export const ReadOnly: Story = { render: () => <ul><ChoiceOption letter="B" label="Example read-only option" chosen variant="row" /></ul>, };
 export const Choosing: Story = { render: () => <ChoosingOptions /> };

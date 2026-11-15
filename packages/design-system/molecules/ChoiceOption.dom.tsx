@@ -4,8 +4,8 @@
  * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`, the tone `data-tone`, a size other
  * than the standard one `data-size` and mono `data-mono`; an option with no letter shows none; the Other option's text field takes the
  * focus when the option is chosen and keeps out of it when the option is unchosen, so an uncheck is never chosen again, chooses the option
- * once when it takes the focus itself, and hands each typed value on; a text field
- * without an input does not compile; the recommended mark is a word in its own class; and the words are text, never markup.
+ * once when it takes the focus itself, and hands each typed value on; a disabled input and text field take no click and no typing; a text
+ * field without an input does not compile; the recommended mark is a word in its own class; and the words are text, never markup.
  */
 import {
   cleanup,
@@ -62,6 +62,24 @@ describe('the choice option', () => {
     );
     fireEvent.click(screen.getByText('Always dark'));
     expect(changes).toEqual(['B']);
+  });
+
+  test('a disabled input and text field are disabled, and a click on the option calls nothing', () => {
+    const changes: string[] = [];
+    render(
+      <ChoiceOption
+        letter="B"
+        label="Stop now"
+        chosen={false}
+        variant="card"
+        input={<ChoiceInput type="radio" name="E1-2" checked={false} accessibleName="B. Stop now" disabled onChange={() => changes.push('B')} />}
+        freeText={<ChoiceFreeText value="" placeholder="Why" accessibleName="Why stop now" disabled onChange={() => changes.push('typed')} />}
+      />,
+    );
+    fireEvent.click(screen.getByText('Stop now'));
+    const radio = screen.getByRole('radio', { name: 'B. Stop now' });
+    const textField = screen.getByRole('textbox', { name: 'Why stop now' });
+    expect([radio.hasAttribute('disabled'), textField.hasAttribute('disabled'), (radio as HTMLInputElement).checked, changes]).toEqual([true, true, false, []]);
   });
 
   test('without an input it is a list item with no input, its marks after the text', () => {

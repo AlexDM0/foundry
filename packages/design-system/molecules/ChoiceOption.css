@@ -57,6 +57,11 @@ label.design-system-choice { cursor: pointer; }
 .design-system-choice[data-size="roomy"] .design-system-choice-description { font-weight: 400; }
 .design-system-choice[data-mono] .design-system-choice-text { font: var(--fs-small)/1.4 var(--font-mono); }
 
+/* An option whose input is disabled fades, takes no hover ring and shows that a click does nothing. */
+label.design-system-choice:has(> .design-system-choice-input:disabled) { color: var(--ink-disabled); cursor: not-allowed; }
+.design-system-choice[data-variant="card"]:has(> .design-system-choice-input:disabled):hover { box-shadow: none; }
+.design-system-choice-free-text:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+
 @media (prefers-reduced-motion: reduce) {
   .design-system-choice[data-variant="card"] { transition: none; }
   .design-system-choice-input:checked { animation: none; }
