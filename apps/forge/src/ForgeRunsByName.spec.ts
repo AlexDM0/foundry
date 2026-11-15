@@ -8,8 +8,8 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import { workspaceRootOf }                                    from './shared/WorkspaceRoot.ts';
-import { repositoryTypeScriptSources, type RepositorySource } from './testing/RepositorySources.ts';
+import type { RepositorySource }                                                            from './testing/RepositorySources.ts';
+import { declaredWorkspacePackagesOf, repositoryTypeScriptSources, workspaceRootOfProgram } from './testing/RepositorySources.ts';
 
 const PROGRAM_ROOT = join(import.meta.dir, '..');
 const THIS_SPEC    = 'src/ForgeRunsByName.spec.ts';
@@ -35,20 +35,14 @@ function sourcesRunningForge(sources: readonly RepositorySource[]): string[] {
 }
 
 function workspaceManifestPaths(): string[] {
-  const workspaceRoot = workspaceRootOf(PROGRAM_ROOT);
-  const programManifest = join(PROGRAM_ROOT, 'package.json');
-  if (workspaceRoot === undefined) return [programManifest];
-  const programDependencies = (JSON.parse(readFileSync(programManifest, 'utf8')) as { dependencies?: Record<string, string> }).dependencies ?? {};
-  const workspacePackageManifests = Object.keys(programDependencies)
-    .filter((packageName) => programDependencies[packageName]?.startsWith('workspace:') === true)
-    .map((packageName) => Bun.resolveSync(`${packageName}/package.json`, PROGRAM_ROOT));
-  return [join(workspaceRoot, 'package.json'), programManifest, ...workspacePackageManifests];
+  const workspacePackageManifests = declaredWorkspacePackagesOf(PROGRAM_ROOT).map((workspacePackage) => join(workspacePackage.folder, 'package.json'));
+  return [join(workspaceRootOfProgram(PROGRAM_ROOT), 'package.json'), join(PROGRAM_ROOT, 'package.json'), ...workspacePackageManifests];
 }
 
 describe('no script or source starts forge by name', () => {
   test('the workspace root, the program and the workspace packages it depends on run no forge in a package script', () => {
     const manifestPaths = workspaceManifestPaths();
-    expect(manifestPaths.length).toBeGreaterThan(1);
+    expect(manifestPaths.length).toBeGreaterThan(2);
     expect(manifestPaths.flatMap((manifestPath) => scriptsRunningForgeIn(manifestPath, readFileSync(manifestPath, 'utf8')))).toEqual([]);
   });
 
