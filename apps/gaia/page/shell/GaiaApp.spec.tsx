@@ -446,9 +446,11 @@ describe('the Agents view in the shell', () => {
       commandStates:      SENDER_OF_NOTHING.states(),
     });
     const view = tree.unfolded(<AgentsView content={content} handlers={agentsHandlersOf(agentsRoute.selectedAgent, goTo, SENDER_OF_NOTHING)} />);
+    const optionsOf = (element: { readonly props: Readonly<Record<string, unknown>> }) => element.props['options'] as readonly { readonly value: string; readonly label: string }[];
     const conditionFilter = tree.onlyHostElementIn(view, (element) => element.tag === SegmentedControl.name
-      && (element.props['options'] as readonly { readonly value: string; readonly label: string }[]).some((option) => option.label.startsWith('Needs a look')));
-    tree.dispatch(conditionFilter, 'onSelect', 'needs-a-look');
+      && optionsOf(element).some((option) => option.label.startsWith('Needs a look')));
+    const needsALook = optionsOf(conditionFilter).find((option) => option.label.startsWith('Needs a look'));
+    tree.dispatch(conditionFilter, 'onSelect', needsALook?.value);
     expect(visited).toEqual([`${J12_ROUTE}?role=builders&condition=needs-a-look`]);
   });
 });
