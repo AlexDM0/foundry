@@ -4,7 +4,15 @@
  * no DOM spec is a failure, so a renamed folder cannot pass by running nothing. The workspace packages run their own. `bun run verify` runs
  * it after `bun test`.
  */
-import { join } from 'node:path';
+import {
+  closeSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join }   from 'node:path';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 const DOM_SPEC_PATTERNS = ['bridge/**/*.dom.tsx'];
@@ -20,6 +28,21 @@ if (unmatchedPatterns.length > 0) {
 } else {
   const preloadArguments = PRELOADS.flatMap((preload) => ['--preload', preload]);
   const specArguments = domSpecPaths.map((domSpecPath) => `./${domSpecPath}`);
-  const finished = Bun.spawnSync(['bun', 'test', '--isolate', ...preloadArguments, ...specArguments], { cwd: REPOSITORY_ROOT, stdout: 'inherit', stderr: 'inherit' });
-  if (finished.exitCode !== 0) process.exitCode = 1;
+  // With its output on a pipe, as under turbo, Bun 1.4.2's isolated run at times misses the exit of a leak check's git child and spins
+  // for good; on a file it never did, so the run writes to one and its output is printed when it ends.
+  const outputFolder = mkdtempSync(join(tmpdir(), 'forge-dom-run-'));
+  const outputPath = join(outputFolder, 'output.log');
+  const outputDescriptor = openSync(outputPath, 'a');
+  try {
+    const finished = Bun.spawnSync(['bun', 'test', '--isolate', ...preloadArguments, ...specArguments], {
+      cwd:    REPOSITORY_ROOT,
+      stdout: outputDescriptor,
+      stderr: outputDescriptor,
+    });
+    if (finished.exitCode !== 0) process.exitCode = 1;
+  } finally {
+    closeSync(outputDescriptor);
+    process.stdout.write(readFileSync(outputPath));
+    rmSync(outputFolder, { recursive: true, force: true });
+  }
 }

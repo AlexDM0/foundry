@@ -46,12 +46,11 @@ pushed. Each phase ends with a gate in the integration worktree: a clean `bun in
 - [x] The popover spec's timeout under concurrency: each failed poll of its `waitFor` printed a happy-dom node, walking the whole
       document (0.75 s alone, 5 s in the Bridge's tree), past the poll's 1 s bound under load. The DOM preloads of forge and the design
       system print a node as its opening tag.
-- Open: forge's DOM run still hangs beside the other tasks (4 of 6 forced runs without the ordering edge), so `test:dom` keeps waiting
-      for its package's `test`. Each hang is in a `Bun.spawnSync` of the per-file leak check (`TestRunReport.ts`, rerun per file under
-      `--isolate`), right after its `lsof`: the git child has exited and is a zombie, Bun spins at 100 % CPU, and a `timeout` on the
-      spawn does not end it. Ruled out: the specs (a planted run of trivial files with the same preloads, `lsof` and happy-dom, 16 runs
-      under CPU and process-churn load, never hung), node printing, timers and ports. Next: an asynchronous spawn in the leak check, or
-      no process check per DOM file, then drop the edge.
+- [x] Forge's DOM run hanging: Bun 1.4.2's isolated run, with its output on a pipe as under turbo, at times misses the exit of a
+      leak check's git child (`git worktree list` at a file's preload, in one probe) and spins for good; the more output and load, the
+      more often (under eight busy loops, 4 of 10 runs into a pipe hung, 0 of 6 into a file). `RunDomSpecs.ts` writes the run to a
+      file and prints it at the end: 0 of 8 hung under the same load. The ordering edge stays until a gate measures the cold run
+      without it.
 
 ### P2. Import Gaia (Claude) — under way
 
