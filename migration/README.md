@@ -10,7 +10,7 @@ What Gaia prepared for its import into forge's repository, the steps from Gaia's
 | `apps/gaia/` | Gaia's whole app, moved as is: `src/`, `page/`, `resources/`, `docs/`, its `bunfig.toml`, tsconfigs, lint config and `CLAUDE.md` | `apps/gaia/README.md` |
 | `packages/design-system-contributions/` | The eight components Gaia built that belong in the design system (`TextField`, `Checkbox`, `Figure`, `PageHead`, `FailedAction`, `PendingStep`, `ThemeCycleButton`, `DataTable`, with `ThemeChoice` and `ThemeCycleUtil`), under the design-system package's constitution, importing its components by export name | its `README.md` and `CONSTITUTION.md` |
 | `packages/brand/` | Gaia's and Forge's marks as React components, their tokens in both themes, and the logo's source drawings | its `README.md` |
-| `packages/overseer-contracts/` | The Overseer's documents as types, the versions document, the forge system versions Gaia knows and each forge endpoint's path version; types and versions only | its `README.md` and `FORGE_REQUIREMENTS.md` |
+| `packages/forge-contracts/` | The Overseer's documents as types, the versions document, the forge system versions Gaia knows and each forge endpoint's path version; types and versions only | its `README.md` and `FORGE_REQUIREMENTS.md` |
 | `migration/design-system-patches/` | Fourteen numbered patches against forge's design-system package for what Gaia needs of forge's own components, and `CheckPatches.ts`, which says per patch whether it applies, is applied, is stale or waits on an earlier one | its `README.md` |
 
 The root holds the workspace (`package.json` with `apps/*`, `packages/*` and `migration/*`, one `bun.lock`, `.bun-version`) and a
@@ -45,7 +45,7 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
   `CLAUDE.md` is one line pointing at `apps/gaia/CLAUDE.md`; it goes, and the monorepo's root `CLAUDE.md` names each app's own.
 - Gaia's `README.md` loses its `bun link design-system` step.
 
-`packages/brand` and `packages/overseer-contracts` join here as they are.
+`packages/brand` and `packages/forge-contracts` join here as they are.
 
 **Step 4: the design system.**
 
@@ -72,7 +72,7 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
 
 ## How forge and Gaia release independently
 
-- Each app and each shared package carries its own semantic version. The shared packages (`brand`, `overseer-contracts`, and
+- Each app and each shared package carries its own semantic version. The shared packages (`brand`, `forge-contracts`, and
   `design-system-contributions` until it moves) are publishable, not private.
 - An app depends on a shared package with `workspace:^`, never `workspace:*`; `workspace:^` becomes a version range such as `^0.1.0` on
   release, so an app's release names the oldest package version it builds with, not the repository's commit.
@@ -84,7 +84,7 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
     oldest version of its own system a client may have been built for and still be served. Raising the minimum is what lets it remove an
     old endpoint version, since no supported client calls it any more.
   - A client knows the server version it was built for: Gaia knows `SUPPORTED_FORGE_VERSION` and `MINIMUM_FORGE_VERSION`
-    (`overseer-contracts/ForgeSystemVersions`), and Gaia's own page and launcher know `GAIA_SYSTEM_VERSION`
+    (`forge-contracts/ForgeSystemVersions`), and Gaia's own page and launcher know `GAIA_SYSTEM_VERSION`
     (`apps/gaia/src/shared/constants/GaiaSystemVersions.ts`).
   - REST endpoints are versioned by path, `/api/v<n>/<endpoint>`, served side by side; an answer carries no per-endpoint version, only
     the integer key it has always carried, which released readers still check. Message protocols (the fleet stream, the monitor stream,
@@ -92,7 +92,7 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
   - Gaia decides one verdict per forge from the forge's `/api/versions` and its two numbers: newer and older (they cannot talk; Gaia or
     the forge needs an update), ahead and behind (they talk; the other side has more), current, and not reported (every released forge
     today, read exactly as before). `apps/gaia/docs/contracts.md` holds the model and the table.
-- A forge system minor bump is a package minor bump of `overseer-contracts`; a system major bump, or a removed or changed type, a package
+- A forge system minor bump is a package minor bump of `forge-contracts`; a system major bump, or a removed or changed type, a package
   major bump.
 - Gaia tests what it does with a forge's answers against recordings of released forges (`apps/gaia/src/testing/recordings/`), stamped
   with each forge's version, never against the forge source beside it in the repository.
@@ -101,7 +101,7 @@ and `git merge --allow-unrelated-histories`, signatures intact. Conflicts are li
 
 ## What forge must do
 
-`packages/overseer-contracts/FORGE_REQUIREMENTS.md`, written as tickets for forge's board: serve `GET /api/versions`, unversioned and never
+`packages/forge-contracts/FORGE_REQUIREMENTS.md`, written as tickets for forge's board: serve `GET /api/versions`, unversioned and never
 removed (V1); keep a system version by interoperability and raise the minimum only to retire an endpoint version (V2); version each
 endpoint by its path and serve old versions side by side until the minimum is raised (V3); carry the system version in the monitor
 stream's handshake and events (V4) and in every embed message of the Bridge (V5); take the Overseer's documents from the package at the
@@ -119,5 +119,5 @@ merge (V6); release the package on its own version (V7).
   coupling.
   Its tooling section still names `workspace:*`.
 - `packages/brand` is not in its layout.
-- `packages/overseer-contracts` is no longer only proposed, and holds types and versions only; the recorded fixtures stay with Gaia, as
+- `packages/forge-contracts` is no longer only proposed, and holds types and versions only; the recorded fixtures stay with Gaia, as
   the reader.

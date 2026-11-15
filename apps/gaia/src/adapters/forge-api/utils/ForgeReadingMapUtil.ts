@@ -3,8 +3,8 @@
  * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (PLAN 6.1, 7.1). What a document does not carry
  * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain.
  */
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'overseer-contracts/BoardSummaryDocument';
-import type { IdentityDocument }                                               from 'overseer-contracts/IdentityDocument';
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'forge-contracts/BoardSummaryDocument';
+import type { IdentityDocument }                                               from 'forge-contracts/IdentityDocument';
 import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
@@ -12,7 +12,7 @@ import type {
   MonitorJobDocument,
   MonitorNoticeDocument,
   MonitorSnapshotDocument,
-} from 'overseer-contracts/MonitorSnapshotDocument';
+} from 'forge-contracts/MonitorSnapshotDocument';
 import type { ActivityEntry, ActivityKind } from '../../../shared/@types/ActivityEntry.ts';
 import type { AgentRow }                    from '../../../shared/@types/AgentRow.ts';
 import type { AttentionItem }               from '../../../shared/@types/AttentionItem.ts';

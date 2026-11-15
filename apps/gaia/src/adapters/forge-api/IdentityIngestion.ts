@@ -3,7 +3,7 @@
  * `ForgeIdentity`, and decide from its `contracts` how Gaia reads the forge (PLAN 7.1): in full through the monitor, as counts through the
  * summary, or not at all when the forge speaks only newer contracts. An identity without `identityVersion` is the forge's from before F1.
  */
-import type { IdentityContractsDocument, IdentityDocument } from 'overseer-contracts/IdentityDocument';
+import type { IdentityContractsDocument, IdentityDocument } from 'forge-contracts/IdentityDocument';
 
 import type { ForgeContracts }                             from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';

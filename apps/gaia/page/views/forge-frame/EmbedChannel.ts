@@ -5,8 +5,8 @@
  * system version is handed on with its message where it names one (V5); one that names a malformed version is not heard. Gaia posts only
  * to the frame's origin, never to `*`.
  */
-import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'overseer-contracts/EmbedChannelMessage';
-import type { SystemVersion }                                           from 'overseer-contracts/VersionsDocument';
+import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'forge-contracts/EmbedChannelMessage';
+import type { SystemVersion }                                           from 'forge-contracts/VersionsDocument';
 
 import { CONTRACT_VERSIONS }   from '../../../src/shared/constants/ContractVersions.ts';
 import { GAIA_SYSTEM_VERSION } from '../../../src/shared/constants/GaiaSystemVersions.ts';

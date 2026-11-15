@@ -3,8 +3,8 @@
  * check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer version maps nothing of itself; nor
  * does a malformed one.
  */
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'overseer-contracts/BoardSummaryDocument';
-import type { UsageLimitDocument }                                                from 'overseer-contracts/MonitorSnapshotDocument';
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'forge-contracts/BoardSummaryDocument';
+import type { UsageLimitDocument }                                                from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                                            from '../../shared/constants/ContractVersions.ts';

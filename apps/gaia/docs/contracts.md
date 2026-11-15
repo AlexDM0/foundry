@@ -2,7 +2,7 @@
 
 Every versioned contract Gaia reads, writes, sends or serves. Forge and Gaia are released apart and may run at any two versions, so
 they meet only through the model below. The known version of each contract lives once, in `CONTRACT_VERSIONS`
-(`src/shared/constants/ContractVersions.ts`); an Overseer's come from the `overseer-contracts` package (`packages/overseer-contracts/`),
+(`src/shared/constants/ContractVersions.ts`); an Overseer's come from the `forge-contracts` package (`packages/forge-contracts/`),
 which forge produces. The tables below name each with that version, and `src/shared/constants/ContractVersions.reference.spec.ts` fails
 `bun run verify` when a table and its constant disagree. A shape is defined once, in the module the table names; this file does not repeat
 its keys.
@@ -13,9 +13,9 @@ its keys.
   version: a minor change only adds, and every client of that major keeps working; a major change may break a client of an older major.
   Gaia's is `GAIA_SYSTEM_VERSION` (`src/shared/constants/GaiaSystemVersions.ts`); the forge versions Gaia knows are
   `SUPPORTED_FORGE_VERSION` (the forge version this Gaia is built for) and `MINIMUM_FORGE_VERSION` (the oldest it still talks to, through
-  the migrations below), in `overseer-contracts/ForgeSystemVersions`. Each constant's docblock says what raises it.
+  the migrations below), in `forge-contracts/ForgeSystemVersions`. Each constant's docblock says what raises it.
 - **`GET /api/versions`, unversioned and never removed.** A server answers its `current` system version and its `minimumSupported`, the
-  oldest version of its own system a client may have been built for and still be served (`overseer-contracts/VersionsDocument`). Raising
+  oldest version of its own system a client may have been built for and still be served (`forge-contracts/VersionsDocument`). Raising
   the minimum is what lets a server remove an old endpoint version: no client it still supports calls it. Gaia's own server answers it
   for its page and its launcher (`src/features/page-server/routes/VersionsRoute.ts`), and Gaia asks it of every forge first.
 - **Endpoints versioned by path.** A route is served at `/api/v<n>/<endpoint>`, and an endpoint's breaking change is served side by side
@@ -23,7 +23,7 @@ its keys.
   each client version knows which endpoint versions it calls. Gaia's routes also keep answering at their unversioned `/api/<endpoint>`,
   so a window open across an upgrade keeps working; the page calls the versioned paths, and the launcher falls back to the unversioned
   ones for an older running Gaia. The forge endpoints Gaia calls, and their versions, are `OVERSEER_ENDPOINT_VERSIONS`
-  (`overseer-contracts/ForgeSystemVersions`): Gaia calls them at those paths when a forge publishes its versions, and at today's
+  (`forge-contracts/ForgeSystemVersions`): Gaia calls them at those paths when a forge publishes its versions, and at today's
   unversioned paths when it does not.
 - **Message protocols carry the system version.** The fleet stream opens on a `handshake` event and carries Gaia's `systemVersion` in every
   `fleet` event; every embed message Gaia posts carries Gaia's `systemVersion`, and a Bridge's message names its forge's where it does
@@ -80,11 +80,11 @@ version, major.minor.
 | Key in `CONTRACT_VERSIONS` | Version | Version key | What and where | Gaia | Defined in | Served by |
 | --- | --- | --- | --- | --- | --- | --- |
 | `forgeRegistry` | 1.0 | `version`, `minor` | `~/.forge-monitor/projects.json`, the registry every forge of the account writes itself into | reads | `src/adapters/forge-registry/RegistryFile.ts` | the forge; `program` per entry with F9 |
-| `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/identity`; its `contracts` names the version of each contract below that the forge serves | reads | `overseer-contracts/IdentityDocument`, `src/adapters/forge-api/IdentityIngestion.ts` | the forge from F1; before it, no version key and no `contracts` |
-| `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/summary`, polled for a forge without the monitor contract | reads | `overseer-contracts/BoardSummaryDocument`, `src/adapters/forge-api/BoardSummaryIngestion.ts` | the forge |
-| `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`, with the bearer token | reads | `overseer-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge from F2 and F3; monitor 2 adds a kind to each warning and the current usage window; monitor 3 adds `flintBrain`, `null` for a forge without Flint, and an ended brain's activity entry of kind `flint-brain` with its tokens (G1, G2), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
-| `forgeControl` | 2 | `contracts.control` of the identity | an Overseer's `POST /api/commands`, with the bearer token | sends | `overseer-contracts/ForgeControlCommand` | the forge from F7; control 2 adds `flint-brain-start` and `flint-brain-stop` and their refusals (G3), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
-| `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity; every message also carries its sender's `systemVersion` | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `overseer-contracts/EmbedChannelMessage`, `page/views/forge-frame/EmbedChannel.ts` | the forge from F5; the Bridge's `systemVersion` from V5 |
+| `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/identity`; its `contracts` names the version of each contract below that the forge serves | reads | `forge-contracts/IdentityDocument`, `src/adapters/forge-api/IdentityIngestion.ts` | the forge from F1; before it, no version key and no `contracts` |
+| `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/summary`, polled for a forge without the monitor contract | reads | `forge-contracts/BoardSummaryDocument`, `src/adapters/forge-api/BoardSummaryIngestion.ts` | the forge |
+| `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge from F2 and F3; monitor 2 adds a kind to each warning and the current usage window; monitor 3 adds `flintBrain`, `null` for a forge without Flint, and an ended brain's activity entry of kind `flint-brain` with its tokens (G1, G2), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
+| `forgeControl` | 2 | `contracts.control` of the identity | an Overseer's `POST /api/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` | the forge from F7; control 2 adds `flint-brain-start` and `flint-brain-stop` and their refusals (G3), authored in `src/testing/recordings/darwin/overseer-fetch-monitor-3.json` until a forge serves it |
+| `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity; every message also carries its sender's `systemVersion` | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `forge-contracts/EmbedChannelMessage`, `page/views/forge-frame/EmbedChannel.ts` | the forge from F5; the Bridge's `systemVersion` from V5 |
 | `forgeProgramAnswer` | 1 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1.0 | `version`, `minor` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
 | `gaiaSettings` | 1.0 | `version`, `minor` | `~/.gaia/settings.json` | reads and writes | `src/adapters/gaia-files/@types/StoredSettings.ts`, `SettingsFile.ts`, `SettingsWriter.ts` | Gaia |
@@ -108,7 +108,7 @@ A forge on older code keeps serving an older contract until it is updated, so Ga
 ingestion to the current version's shape, and a mapper only ever sees the current shape; an older control version, which Gaia sends
 rather than reads, is held instead by the guard that sends it only the commands it carries. The versions live once, in
 `OLDER_CONTRACT_VERSIONS_READ` (`src/shared/constants/ContractVersions.ts`, from `OLDER_OVERSEER_CONTRACT_VERSIONS` in
-`overseer-contracts`), and the same spec holds this table to it, both ways. They are what `MINIMUM_FORGE_VERSION` stands on: dropping
+`forge-contracts`), and the same spec holds this table to it, both ways. They are what `MINIMUM_FORGE_VERSION` stands on: dropping
 one raises it.
 
 | Key in `CONTRACT_VERSIONS` | Older version | What the migration does | Migrated by |

@@ -3,7 +3,7 @@
  * in full or as last reported, and send it what its Overseer carries, which needs a control contract Gaia sends to: the current one, or an
  * older one, which lacks only the commands the later ones add.
  */
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 
 import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../../src/shared/constants/ContractVersions.ts';
 import { ContractVersionUtil }                             from '../../../src/shared/utils/ContractVersionUtil.ts';

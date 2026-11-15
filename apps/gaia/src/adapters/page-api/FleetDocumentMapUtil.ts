@@ -3,7 +3,7 @@
  * page only when the contract names it. A forge's notice, warning, activity entry, brain sentence or brain move leaves in Gaia's words when it
  * names a command (D10).
  */
-import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+import type { SystemVersion } from 'forge-contracts/VersionsDocument';
 
 import type {
   FleetDocument,

@@ -1,5 +1,5 @@
 /** One forge as Gaia last read it, at the fidelity its contracts allow. Internal only, so it carries no version of its own. */
-import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+import type { SystemVersion } from 'forge-contracts/VersionsDocument';
 
 import type { ActivityEntry }     from './ActivityEntry.ts';
 import type { AgentRow }          from './AgentRow.ts';

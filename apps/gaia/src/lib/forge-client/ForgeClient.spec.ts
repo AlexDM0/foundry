@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ForgeControlCommand } from 'overseer-contracts/ForgeControlCommand';
+import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 import {
   everyRecordedOverseerAnswerOf,
   recordedOverseerAnswersOf,

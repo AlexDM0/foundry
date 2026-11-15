@@ -1,8 +1,8 @@
 /**
  * Gaia's own system version toward its own clients, its page and its launcher, as `GET /api/versions` answers it, and the version of each
- * route at its versioned path, `/api/v<n>/<endpoint>`. The forge system versions Gaia knows are `overseer-contracts`' (`ForgeSystemVersions`).
+ * route at its versioned path, `/api/v<n>/<endpoint>`. The forge system versions Gaia knows are `forge-contracts`' (`ForgeSystemVersions`).
  */
-import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+import type { SystemVersion } from 'forge-contracts/VersionsDocument';
 
 /**
  * Raised in its minor when a route, the fleet stream or a message to the Bridge only adds, so every page and launcher of this major keeps

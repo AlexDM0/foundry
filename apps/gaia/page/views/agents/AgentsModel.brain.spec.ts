@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'forge-contracts/OverseerContractVersions';
 import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge }               from '../../@types/FleetDocument.ts';
 import type { CommandState, CommandStates }                                         from '../../api/CommandSender.ts';

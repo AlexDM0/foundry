@@ -7,7 +7,7 @@
 import { readFileSync }                  from 'node:fs';
 import { join }                          from 'node:path';
 import { pathToFileURL }                 from 'node:url';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 import { renderToStaticMarkup }          from 'react-dom/server';
 
 import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';

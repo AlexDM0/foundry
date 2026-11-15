@@ -18,7 +18,7 @@ import {
   expect,
   test
 } from 'bun:test';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 
 import {
   realOverseerFetch,

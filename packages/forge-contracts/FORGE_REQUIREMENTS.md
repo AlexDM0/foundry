@@ -116,7 +116,7 @@ already sends its own in every message and hands the Bridge's on with each one; 
 ### V6. The Overseer's documents come from this package (Must, at the merge)
 
 **Statement.** After the merge into the monorepo, forge's own types of the versions document, the identity, summary, monitor snapshot,
-control commands and embed messages are this package's (`overseer-contracts/VersionsDocument`, `/IdentityDocument`,
+control commands and embed messages are this package's (`forge-contracts/VersionsDocument`, `/IdentityDocument`,
 `/BoardSummaryDocument`, `/MonitorSnapshotDocument`, `/ForgeControlCommand`, `/EmbedChannelMessage`); `SERVED_CONTRACT_VERSIONS` is
 derived from `OVERSEER_CONTRACT_VERSIONS`, the endpoint versions it serves from `OVERSEER_ENDPOINT_VERSIONS`, and its system version from
 `SUPPORTED_FORGE_VERSION` at the forge release that publishes it. Forge keeps its own assembly, wording and checks; the package holds
@@ -130,7 +130,7 @@ document in this package raises the system version as V2 says and the package's 
 
 ### V7. The package's own version is not the wire's (Must)
 
-**Statement.** `overseer-contracts` is released with its own semantic version, independently of forge and of Gaia, and both depend on it
+**Statement.** `forge-contracts` is released with its own semantic version, independently of forge and of Gaia, and both depend on it
 by a version range (`workspace:^` in the repository). A forge system minor bump is a package minor bump; a forge system major bump, or a
 change that removes or changes a type, is a package major bump. A package release changes no running process: only the system version
 a forge serves does.

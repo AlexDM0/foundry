@@ -3,8 +3,8 @@
  * a session code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read
  * them. `/api/versions` is asked at its one path; every other endpoint at the paths the caller names.
  */
-import type { ForgeControlCommand }                    from 'overseer-contracts/ForgeControlCommand';
-import { OVERSEER_ENDPOINT_VERSIONS }                  from 'overseer-contracts/ForgeSystemVersions';
+import type { ForgeControlCommand }                    from 'forge-contracts/ForgeControlCommand';
+import { OVERSEER_ENDPOINT_VERSIONS }                  from 'forge-contracts/ForgeSystemVersions';
 import { ApiPathUtil }                                 from '../api-paths/ApiPathUtil.ts';
 import { eventStreamParserOf, type EventStreamParser } from '../event-stream/EventStreamParser.ts';
 import { JsonValueUtil, type JsonObject }              from '../json-value/JsonValueUtil.ts';

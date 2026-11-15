@@ -4,8 +4,8 @@
  * its login item when "Start at login" changes. One command per forge, per repository being added, for the machine limit, for the chooser
  * and for the login items is on its way at a time.
  */
-import type { ForgeControlCommand }      from 'overseer-contracts/ForgeControlCommand';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import type { ForgeControlCommand }      from 'forge-contracts/ForgeControlCommand';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 
 import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
 import type { ForgeProgram, ForgeProgramTarget }                     from '../../adapters/forge-program/ForgeProgram.ts';

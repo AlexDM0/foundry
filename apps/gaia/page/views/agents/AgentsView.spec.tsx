@@ -15,7 +15,7 @@ import { FillMeter }                     from 'design-system/FillMeter';
 import { ModelEffortMeter }              from 'design-system/ModelEffortMeter';
 import { SegmentedControl }              from 'design-system/SegmentedControl';
 import { SlotMeter }                     from 'design-system/SlotMeter';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 import type { ReactNode }                from 'react';
 
 import type { ForgeCommandBody }                                                    from '../../@types/CommandDocument.ts';

@@ -13,7 +13,7 @@ import {
   expect,
   test
 } from 'bun:test';
-import { OVERSEER_ENDPOINT_VERSIONS } from 'overseer-contracts/ForgeSystemVersions';
+import { OVERSEER_ENDPOINT_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
 import { recordAnswer, recordSystemVersion }                            from '../../testing/BoundaryRecordings.ts';
 import { requestCallShapeOf, situationCallShapeOf }                     from '../../testing/RecordedAnswers.ts';

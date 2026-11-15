@@ -3,7 +3,7 @@
  * states, as B1 draws them, and the brain's agent row only while it runs. Storefront publishes control contract 2, which carries the
  * brain's commands, so its bar offers Wake and Stop as B1 draws them.
  */
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                   from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS }                                   from 'forge-contracts/OverseerContractVersions';
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentBrainState } from '../../@types/FleetDocument.ts';
 
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from './fleet-five-forges.ts';

@@ -1,18 +1,18 @@
-# overseer-contracts
+# forge-contracts
 
 The shared contract between a forge's Overseer and the programs that read it: the documents the Overseer serves and reads, as
 TypeScript types, the forge system versions a reader knows, and each endpoint's version. Forge produces these documents; Gaia reads them and sends the commands.
 
 | Export | Holds |
 | --- | --- |
-| `overseer-contracts/VersionsDocument` | `GET /api/versions`, unversioned and never removed: a server's system version and its minimum supported, and `SystemVersion` |
-| `overseer-contracts/ForgeSystemVersions` | the forge version a reader built against this package supports, the oldest it still talks to, and each forge endpoint's path version |
-| `overseer-contracts/IdentityDocument` | `GET /api/identity`, with the `contracts` it names |
-| `overseer-contracts/BoardSummaryDocument` | `GET /api/summary` |
-| `overseer-contracts/MonitorSnapshotDocument` | `GET /api/monitor` and each `monitor` event, at `monitorVersion` 3 and the 1 and 2 a reader still reads |
-| `overseer-contracts/ForgeControlCommand` | the bodies of `POST /api/commands`, at control 2 and control 1 |
-| `overseer-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
-| `overseer-contracts/OverseerContractVersions` | the integer version each document has always carried, the older ones the types still describe, and the first control version of Flint's brain |
+| `forge-contracts/VersionsDocument` | `GET /api/versions`, unversioned and never removed: a server's system version and its minimum supported, and `SystemVersion` |
+| `forge-contracts/ForgeSystemVersions` | the forge version a reader built against this package supports, the oldest it still talks to, and each forge endpoint's path version |
+| `forge-contracts/IdentityDocument` | `GET /api/identity`, with the `contracts` it names |
+| `forge-contracts/BoardSummaryDocument` | `GET /api/summary` |
+| `forge-contracts/MonitorSnapshotDocument` | `GET /api/monitor` and each `monitor` event, at `monitorVersion` 3 and the 1 and 2 a reader still reads |
+| `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/commands`, at control 2 and control 1 |
+| `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
+| `forge-contracts/OverseerContractVersions` | the integer version each document has always carried, the older ones the types still describe, and the first control version of Flint's brain |
 
 ## What it holds, and what it does not
 

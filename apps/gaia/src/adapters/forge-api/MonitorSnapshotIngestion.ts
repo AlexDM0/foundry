@@ -19,7 +19,7 @@ import type {
   MonitorTodayDocument,
   MonitorUsageDocument,
   UsageLimitDocument,
-} from 'overseer-contracts/MonitorSnapshotDocument';
+} from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ }              from '../../shared/constants/ContractVersions.ts';

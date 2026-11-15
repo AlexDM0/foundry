@@ -4,7 +4,7 @@ import { mkdir }                from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join }                 from 'node:path';
 
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'overseer-contracts/ForgeSystemVersions';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'forge-contracts/ForgeSystemVersions';
 
 import packageManifest from '../package.json' with { type: 'json' };
 

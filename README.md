@@ -1,7 +1,7 @@
 # Gaia's workspace
 
 A Bun workspace laid out as the forge monorepo will be: each app in `apps/`, each shared package in `packages/`. Gaia is `apps/gaia/`;
-its `CLAUDE.md` holds Gaia's rules, map and boundaries, and its `README.md` how to run it. `packages/overseer-contracts/` is the
+its `CLAUDE.md` holds Gaia's rules, map and boundaries, and its `README.md` how to run it. `packages/forge-contracts/` is the
 contract between a forge's Overseer and Gaia, released with its own version; its `README.md` says how that version differs from the forge's system version and the endpoint versions.
 `migration/` holds what the merge into forge applies once and then deletes: `migration/design-system-patches/`, ready patches against
 forge's design-system package, with their check.

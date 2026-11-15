@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto';
 import { stat }       from 'node:fs/promises';
 
-import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'overseer-contracts/ForgeSystemVersions';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'forge-contracts/ForgeSystemVersions';
 
 import type { ForgeIdentity, ForgeRegistryFacts }                   from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { BoardSummaryIngestion }                                    from '../adapters/forge-api/BoardSummaryIngestion.ts';
@@ -42,7 +42,7 @@ export interface ForgeWatchOptions {
   readonly now:                 () => string;
   readonly onReadingsChanged:   () => void;
   readonly intervals?:          Partial<ForgeWatchIntervals>;
-  /** The forge versions this Gaia is built for and still talks to; `overseer-contracts`' when not given, and planted by a spec. */
+  /** The forge versions this Gaia is built for and still talks to; `forge-contracts`' when not given, and planted by a spec. */
   readonly knownForgeVersions?: KnownForgeVersions;
 }
 

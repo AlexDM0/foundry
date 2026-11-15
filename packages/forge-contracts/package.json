@@ -1,5 +1,5 @@
 {
-  "name": "overseer-contracts",
+  "name": "forge-contracts",
   "version": "0.2.0",
   "description": "The documents a forge's Overseer serves and reads, as types, with the forge system versions and each endpoint's version: produced by forge, read by Gaia",
   "type": "module",

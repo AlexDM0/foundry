@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 import type { FleetDocumentForge }       from '../../@types/FleetDocument.ts';
 import { FLEET_DEGRADED }                from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES_READINGS }    from '../../testing/fixtures/fleet-five-forges.ts';
