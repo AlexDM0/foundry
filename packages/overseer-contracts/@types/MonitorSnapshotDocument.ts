@@ -147,8 +147,6 @@ export interface MonitorFlintBrainDocument {
 
 export interface MonitorSnapshotDocument {
   readonly monitorVersion: number;
-  /** Absent reads as 0. */
-  readonly monitorMinor?:  number;
   readonly trackerId:      string;
   readonly project:        string;
   readonly root:           string;

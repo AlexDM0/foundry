@@ -39,9 +39,7 @@ describe('gaia version', () => {
   test('answers the versioned JSON with --json', async () => {
     const output = capturedOutput();
     expect(await runGaia(['version', '--json'], output)).toBe(0);
-    expect(JSON.parse(output.standardOutput())).toEqual({
-      answerVersion: 1, answerMinor: 0, gaiaVersion: packageManifest.version, installVersion: 1
-    });
+    expect(JSON.parse(output.standardOutput())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
   });
 
   test('prints the versioned JSON and exits 0 when run as the gaia program', () => {
@@ -54,9 +52,7 @@ describe('gaia version', () => {
         stderr: 'pipe',
       });
       expect(finished.exitCode).toBe(0);
-      expect(JSON.parse(finished.stdout.toString())).toEqual({
-        answerVersion: 1, answerMinor: 0, gaiaVersion: packageManifest.version, installVersion: 1
-      });
+      expect(JSON.parse(finished.stdout.toString())).toEqual({ answerVersion: 1, gaiaVersion: packageManifest.version, installVersion: 1 });
     } finally {
       removeScratchPath(programHome);
     }

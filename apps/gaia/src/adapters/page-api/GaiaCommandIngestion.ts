@@ -25,9 +25,8 @@ import { SETTINGS_CHOICES }    from '../../shared/constants/SettingsChoices.ts';
 import { ContractVersionUtil } from '../../shared/utils/ContractVersionUtil.ts';
 
 /**
- * `other-version`: `commandVersion` is not the known major, `null` when it is absent or no whole number, or `commandMinor` is there and no
- * whole number. `unknown-kind`: a kind this Gaia does not carry out, `null` when the body names none. `malformed`: a key the kind needs is
- * missing or holds another type.
+ * `other-version`: `commandVersion` is not the known number, `null` when it is absent or no whole number. `unknown-kind`: a kind this
+ * Gaia does not carry out, `null` when the body names none. `malformed`: a key the kind needs is missing or holds another type.
  */
 export type GaiaCommandReading =
   | { readonly verdict: 'readable'; readonly command: GaiaCommand }
@@ -39,7 +38,7 @@ export type GaiaCommandReading =
 
 type SingleForgeKind = Exclude<ForgeCommand['kind'], 'forge-stop' | 'forge-concurrency-set'>;
 
-const VERSION_KEYS = { majorKey: 'commandVersion', minorKey: 'commandMinor' } as const;
+const VERSION_KEYS = { majorKey: 'commandVersion' } as const;
 const KIND_KEY = 'kind';
 const TRACKER_ID_KEY = 'trackerId';
 const AGENTS_KEY = 'agents';

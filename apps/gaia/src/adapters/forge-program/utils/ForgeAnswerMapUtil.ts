@@ -33,7 +33,7 @@ export interface ForgeProgramRunPlace {
   readonly root:    string;
 }
 
-const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion', minorKey: 'answerMinor' } as const;
+const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion' } as const;
 const OUTCOMES: ReadonlySet<unknown> = new Set<ForgeProgramOutcome>(['done', 'nothing-to-do']);
 const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created', 'refreshed']);
 const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);

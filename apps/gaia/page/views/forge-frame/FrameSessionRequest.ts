@@ -3,7 +3,9 @@
  * the known `frameSessionVersion`. The request carries only the page's own session cookie; the forge's token stays in the server, and the
  * one-time code comes back only inside the frame's address.
  */
+import { ApiPathUtil }                                          from '../../../src/lib/api-paths/ApiPathUtil.ts';
 import { CONTRACT_VERSIONS }                                    from '../../../src/shared/constants/ContractVersions.ts';
+import { GAIA_ENDPOINT_VERSIONS }                               from '../../../src/shared/constants/GaiaSystemVersions.ts';
 import { ContractVersionUtil }                                  from '../../../src/shared/utils/ContractVersionUtil.ts';
 import type { FrameSessionAnswerDocument, FrameSessionOutcome } from '../../@types/FrameSessionDocument.ts';
 
@@ -24,7 +26,7 @@ const FRAME_SESSION_OUTCOMES: ReadonlySet<unknown> = new Set<FrameSessionOutcome
 const FRAMEABLE_PROTOCOLS: ReadonlySet<string> = new Set(['http:', 'https:']);
 
 function frameSessionPathOf(trackerId: string): string {
-  return `/api/forges/${encodeURIComponent(trackerId)}/frame-session`;
+  return ApiPathUtil.versionedPathOf(`forges/${encodeURIComponent(trackerId)}/frame-session`, GAIA_ENDPOINT_VERSIONS.frameSession);
 }
 
 function fieldOf(body: object, key: string): unknown {
@@ -36,9 +38,9 @@ function nullableStringIsIn(body: object, key: string): boolean {
   return value === null || typeof value === 'string';
 }
 
-const FRAME_SESSION_VERSION_KEYS = { majorKey: 'frameSessionVersion', minorKey: 'frameSessionMinor' } as const;
+const FRAME_SESSION_VERSION_KEYS = { majorKey: 'frameSessionVersion' } as const;
 
-/** Gaia's answer at the known `frameSessionVersion`, at any `frameSessionMinor`, or `null` for anything else. */
+/** Gaia's answer at the known `frameSessionVersion`, or `null` for anything else. */
 function answerDocumentOf(body: unknown): FrameSessionAnswerDocument | null {
   if (typeof body !== 'object' || body === null) return null;
   const versionIsKnown = ContractVersionUtil.readMajorOf(body, FRAME_SESSION_VERSION_KEYS, CONTRACT_VERSIONS.gaiaFrameSession) !== null;

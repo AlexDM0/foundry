@@ -4,7 +4,9 @@
  * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion`, newer or
  * older, reloads the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without
  * end; a session check that nothing answers reads `server-ended`, since the session lived in the gone server's memory, and only an answer
- * moves it on (#75).
+ * moves it on (#75). The stream opens on a handshake naming the server's system version: one of this page's system major is passed over, one
+ * of another major reloads the page once as another `fleetVersion` does, and one that cannot be read is passed over; the system version
+ * each `fleet` event carries is the stream's, so the document published leaves it out.
  *
  * The browser's `EventSource` is stood in for by a source the spec opens, errs and feeds the events Gaia's server sends (PLAN 8.1: `fleet`
  * events and a heartbeat); the reopen is a schedule the spec runs, so no spec waits the interval.
@@ -137,7 +139,7 @@ const NEWER_FLEET_VERSION_MARK = String(NEWER_FLEET_VERSION);
 const NEWER_FLEET_DOCUMENT_TEXT = JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: NEWER_FLEET_VERSION });
 
 describe('following the event stream', () => {
-  test('it opens /api/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
+  test('it opens /api/v4/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
     const stage = streamStage();
     stage.client.follow();
     expect(stage.opened.map((source) => source.path)).toEqual([FleetStreamClient.EVENTS_PATH]);
@@ -149,18 +151,32 @@ describe('following the event stream', () => {
     expect(stage.published).toEqual([FLEET_FIVE_FORGES]);
   });
 
+  test('a handshake of this page\'s system major is passed over, and the document of a fleet event is published without the event\'s system version', () => {
+    const stage = followedAndLive(streamStage());
+    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 1, minor: 4 } }));
+    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, systemVersion: { major: 1, minor: 4 } }));
+    expect([stage.client.state(), stage.published, stage.reloads]).toEqual(['live', [FLEET_FIVE_FORGES], []]);
+  });
+
+  test('a handshake of another system major reloads the page once, and a handshake that cannot be read is passed over', () => {
+    const stage = followedAndLive(streamStage());
+    for (const data of ['not json', '{}', JSON.stringify({ systemVersion: { major: '2', minor: 0 } })]) stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, data);
+    expect([stage.client.state(), stage.reloads]).toEqual(['live', []]);
+    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 2, minor: 0 } }));
+    expect([stage.marks, stage.reloads, stage.latest().isClosed()]).toEqual([['system 2'], ['reloaded'], true]);
+  });
+
   test('following twice opens one stream', () => {
     const stage = followedAndLive(streamStage());
     stage.client.follow();
     expect(stage.opened).toHaveLength(1);
   });
 
-  test('a fleet document of this page\'s fleetVersion at a newer fleetMinor is published, and one whose fleetMinor is no whole number dropped', () => {
+  test('a fleet document of this page\'s fleetVersion with a key this page does not know is published', () => {
     const stage = followedAndLive(streamStage());
-    const atANewerMinor = { ...FLEET_FIVE_FORGES, fleetMinor: 4, exampleAddedKey: true };
-    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetMinor: 'four' }));
-    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify(atANewerMinor));
-    expect([stage.client.state(), stage.published, stage.reloads]).toEqual(['live', [atANewerMinor], []]);
+    const withAddedKey = { ...FLEET_FIVE_FORGES, exampleAddedKey: true };
+    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify(withAddedKey));
+    expect([stage.client.state(), stage.published, stage.reloads]).toEqual(['live', [withAddedKey], []]);
   });
 
   test('data that is no fleet document is dropped, and the stream stays live', () => {
@@ -338,7 +354,7 @@ describe('another fleetVersion', () => {
 
   test('a document of each older fleetVersion, version 1 and the one before this page\'s, is refused as version 1 is: one reload and nothing published', () => {
     const olderVersions = Array.from({ length: FLEET_FIVE_FORGES.fleetVersion - 1 }, (_unused, i) => i + 1);
-    expect(olderVersions).toEqual([1, 2]);
+    expect(olderVersions).toEqual([1, 2, 3]);
     for (const olderVersion of olderVersions) {
       const stage = followedAndLive(streamStage());
       stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: olderVersion }));

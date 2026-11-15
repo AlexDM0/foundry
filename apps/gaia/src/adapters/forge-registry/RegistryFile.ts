@@ -63,7 +63,7 @@ function readingOf(contents: string): RegistryReading {
   const versionReading = ContractVersionUtil.versionOf(document, VERSION_KEYS);
   if (versionReading.verdict !== 'versioned') return unreadableReadingFor('version-unknown');
   const version = versionReading.version.major;
-  const majorVerdict = ContractVersionUtil.majorVerdictOf(version, CONTRACT_VERSIONS.forgeRegistry);
+  const majorVerdict = ContractVersionUtil.majorVerdictOf(version, CONTRACT_VERSIONS.forgeRegistry.major);
   if (majorVerdict === 'newer') return { verdict: 'newer-version', version };
   if (majorVerdict !== 'known') return unreadableReadingFor('version-unknown');
 

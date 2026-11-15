@@ -1,7 +1,7 @@
 /**
- * The ingestion of a forge's board summary, for a forge without the monitor contract: check `summaryVersion` and `summaryMinor` against
- * `CONTRACT_VERSIONS`, check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer major maps
- * nothing of itself; nor does a malformed one.
+ * The ingestion of a forge's board summary, for a forge without the monitor contract: check `summaryVersion` against `CONTRACT_VERSIONS`,
+ * check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer version maps nothing of itself; nor
+ * does a malformed one.
  */
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'overseer-contracts/BoardSummaryDocument';
 import type { UsageLimitDocument }                                                from 'overseer-contracts/MonitorSnapshotDocument';
@@ -13,9 +13,7 @@ import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './
 import { DocumentShapeUtil, type ShapeOf }                              from './utils/DocumentShapeUtil.ts';
 import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
 
-const VERSION_KEYS = { majorKey: 'summaryVersion', minorKey: 'summaryMinor' } as const;
-
-const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
+const VERSION_KEYS = { majorKey: 'summaryVersion' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 
@@ -38,7 +36,6 @@ const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const 
 
 const BOARD_SUMMARY_SHAPE = {
   summaryVersion: 'whole-number',
-  summaryMinor:   OPTIONAL_WHOLE_NUMBER,
   project:        'text',
   overseer:       { object: OVERSEER_SHAPE },
   readyTicketIds: 'text-list',

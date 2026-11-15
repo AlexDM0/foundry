@@ -10,8 +10,6 @@ export type IdentityContractsDocument = { readonly [Contract in ServedContractNa
 
 export interface IdentityDocument {
   readonly identityVersion?: number;
-  /** Absent reads as 0. */
-  readonly identityMinor?:   number;
   readonly application:      'forge';
   readonly trackerId:        string;
   readonly project:          string;
@@ -19,6 +17,4 @@ export interface IdentityDocument {
   readonly installVersion:   number;
   readonly processId:        number;
   readonly contracts?:       IdentityContractsDocument;
-  /** The minor of each contract `contracts` names; a contract absent here is at minor 0. */
-  readonly contractMinors?:  IdentityContractsDocument;
 }

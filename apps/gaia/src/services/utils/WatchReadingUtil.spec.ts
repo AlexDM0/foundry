@@ -9,6 +9,7 @@ import { describe, expect, test } from 'bun:test';
 import type { RegisteredForge }                from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil }                   from '../../shared/utils/ForgeVersionsUtil.ts';
 import { WatchReadingUtil }                    from './WatchReadingUtil.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
@@ -95,6 +96,7 @@ describe('a dormant forge', () => {
       readyTicketCount: null,
       activity:         [],
       brain:            'not-reported',
+      versions:         ForgeVersionsUtil.NOT_REPORTED,
     });
   });
 });

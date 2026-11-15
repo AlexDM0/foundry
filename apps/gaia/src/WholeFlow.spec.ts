@@ -18,6 +18,8 @@ import {
   test
 } from 'bun:test';
 
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'overseer-contracts/ForgeSystemVersions';
+
 import packageManifest from '../package.json' with { type: 'json' };
 
 import type { FleetDocument }                                                                        from '../page/@types/FleetDocument.ts';
@@ -39,6 +41,7 @@ import { createFleetStore }                                                     
 import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals }                               from './services/ForgeWatch.ts';
 import { createSettingsStore }                                                                       from './services/SettingsStore.ts';
 import { CONTRACT_VERSIONS }                                                                         from './shared/constants/ContractVersions.ts';
+import { GAIA_SYSTEM_VERSION }                                                                       from './shared/constants/GaiaSystemVersions.ts';
 import { manualTimers, type ManualTimers }                                                           from './testing/ManualTimers.ts';
 import {
   recordedOverseerAnswersOf,
@@ -84,16 +87,21 @@ function answersOf(situation: OverseerSituation, callShape: string | null = null
   return recordedOverseerAnswersOf(situation).filter((answer) => callShape === null || answer.callShape === callShape);
 }
 
+/** What a watch asks a forge before anything else: its versions, then its identity. */
+function identityAnswersOf(situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
+  return [...answersOf(situation, 'GET /api/versions'), ...answersOf(situation, 'GET /api/identity')];
+}
+
 const STOREFRONT_STAGES = {
   starting: answersOf('starting'),
   /** Its stream gives one whole snapshot and breaks, so the watch opens it again on its interval; its control API takes a command. */
   live:     [
-    ...answersOf('serving-every-contract', 'GET /api/identity'),
+    ...identityAnswersOf('serving-every-contract'),
     ...answersOf('connection-broken'),
     ...answersOf('serving-every-contract', 'POST /api/commands with bearer'),
   ],
   limitLowered: [
-    ...answersOf('serving-every-contract', 'GET /api/identity'),
+    ...identityAnswersOf('serving-every-contract'),
     ...answersOf('machine-limit-lowered'),
   ],
 } as const;
@@ -262,10 +270,15 @@ async function startGaia(): Promise<RunningGaia> {
       forgeProgramInUse: settingsStore.settings().forgeProgramPath,
       settingsFile:      settingsStore.fileState(),
       knownContracts:    {
-        summary: CONTRACT_VERSIONS.forgeBoardSummary.major,
-        monitor: CONTRACT_VERSIONS.forgeMonitor.major,
-        control: CONTRACT_VERSIONS.forgeControl.major,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel.major,
+        summary: CONTRACT_VERSIONS.forgeBoardSummary,
+        monitor: CONTRACT_VERSIONS.forgeMonitor,
+        control: CONTRACT_VERSIONS.forgeControl,
+        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
+      },
+      versions: {
+        systemVersion:         GAIA_SYSTEM_VERSION,
+        supportedForgeVersion: SUPPORTED_FORGE_VERSION,
+        minimumForgeVersion:   MINIMUM_FORGE_VERSION,
       },
     },
   });
@@ -389,7 +402,7 @@ describe('Gaia from the registry to the page', () => {
 
     const startAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-start', trackerId: FORGES.exampleStorefront.trackerId });
     expect(startAnswer).toEqual({
-      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
     expect(gaia.forgeProgramRun.callShapesAnswered()).toEqual([`run ${JSON.stringify([EXAMPLE_FORGE_PROGRAM_PATH, 'start', '--json'])}`]);
     // The started forge names its Overseer in the registry, and answers that it is starting until its API is up.
@@ -409,7 +422,6 @@ describe('Gaia from the registry to the page', () => {
     const stopAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-stop', trackerId: FORGES.invoiceService.trackerId, agents: 'keep' });
     expect(stopAnswer).toEqual({
       answerVersion: 3,
-      answerMinor:   0,
       outcome:       'refused',
       refusal:       'overseer-still-live',
       text:          'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
@@ -417,7 +429,7 @@ describe('Gaia from the registry to the page', () => {
 
     const limitAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT });
     expect(limitAnswer).toEqual({
-      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
     const commandsToTheStorefront = gaia.storefrontFetch.jsonBodiesSent().flatMap((jsonBody) => (jsonBody === null ? [] : [JSON.parse(jsonBody) as unknown]));
     expect(commandsToTheStorefront).toEqual([expect.objectContaining({ kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT })]);

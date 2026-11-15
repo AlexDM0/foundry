@@ -6,8 +6,10 @@
  */
 import { createContext, useContext, useSyncExternalStore } from 'react';
 
-import { CONTRACT_VERSIONS }   from '../../src/shared/constants/ContractVersions.ts';
-import { ContractVersionUtil } from '../../src/shared/utils/ContractVersionUtil.ts';
+import { ApiPathUtil }            from '../../src/lib/api-paths/ApiPathUtil.ts';
+import { CONTRACT_VERSIONS }      from '../../src/shared/constants/ContractVersions.ts';
+import { GAIA_ENDPOINT_VERSIONS } from '../../src/shared/constants/GaiaSystemVersions.ts';
+import { ContractVersionUtil }    from '../../src/shared/utils/ContractVersionUtil.ts';
 import type {
   CommandAnswerDocument,
   CommandBody,
@@ -67,7 +69,7 @@ export interface CommandSender {
   readonly subscribe:             (listener: () => void) => () => void;
 }
 
-const COMMANDS_PATH = '/api/commands';
+const COMMANDS_PATH = ApiPathUtil.versionedPathOf('commands', GAIA_ENDPOINT_VERSIONS.commands);
 
 const NO_SESSION_STATUS = 401;
 
@@ -109,9 +111,9 @@ function nullableStringIsIn(answer: object, key: string): boolean {
   return value === null || typeof value === 'string';
 }
 
-const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion', minorKey: 'answerMinor' } as const;
+const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion' } as const;
 
-/** Gaia's answer at the known `answerVersion`, at any `answerMinor`, or `null` for anything else. */
+/** Gaia's answer at the known `answerVersion`, or `null` for anything else. */
 function answerDocumentOf(body: unknown): CommandAnswerDocument | null {
   if (typeof body !== 'object' || body === null || !Object.hasOwn(body, 'outcome')) return null;
   const { outcome } = body as { readonly outcome: unknown };
@@ -152,7 +154,7 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
   };
 
   const post = async (command: CommandBody): Promise<SentCommandResult> => {
-    const commandDocument: CommandDocument = { ...command, commandVersion: CONTRACT_VERSIONS.gaiaCommand.major, commandMinor: CONTRACT_VERSIONS.gaiaCommand.minor };
+    const commandDocument: CommandDocument = { ...command, commandVersion: CONTRACT_VERSIONS.gaiaCommand };
     let response: Response;
     try {
       response = await sendRequest(COMMANDS_PATH, {

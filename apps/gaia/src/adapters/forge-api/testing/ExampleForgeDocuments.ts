@@ -25,9 +25,10 @@ export const EXAMPLE_READ_STAMP = '2026-11-12T13:19:22.000Z';
 
 async function documentAnsweredOf(answers: readonly RecordedOverseerAnswer[], route: ForgeDocumentRoute, overseerUrl: string): Promise<ForgeDocumentAnswer> {
   const client = forgeClientOf({ overseerFetch: recordedOverseerFetch(answers) });
-  if (route === 'identity') return client.identityOf(overseerUrl);
-  if (route === 'summary') return client.summaryOf(overseerUrl);
-  return client.monitorOf({ overseerUrl, bearerToken: EXAMPLE_TOKEN });
+  const address = { overseerUrl, paths: 'unversioned' } as const;
+  if (route === 'identity') return client.identityOf(address);
+  if (route === 'summary') return client.summaryOf(address);
+  return client.monitorOf({ ...address, bearerToken: EXAMPLE_TOKEN });
 }
 
 /** The parsed document one route answered in one situation of the forge; a spec fails when the route answered no document. */

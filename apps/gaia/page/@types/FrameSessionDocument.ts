@@ -13,9 +13,7 @@ export type FrameSessionOutcome = 'done' | 'refused' | 'unreachable' | 'not-supp
  * command (D10) and `null` where Gaia has none for it.
  */
 export interface FrameSessionAnswerDocument {
-  frameSessionVersion: typeof CONTRACT_VERSIONS.gaiaFrameSession.major;
-  /** Absent reads as 0; a reader reads any minor of its major. */
-  frameSessionMinor?:  number;
+  frameSessionVersion: typeof CONTRACT_VERSIONS.gaiaFrameSession;
   outcome:             FrameSessionOutcome;
   frameUrl:            string | null;
   refusal:             string | null;

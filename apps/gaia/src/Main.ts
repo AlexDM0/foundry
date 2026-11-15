@@ -4,6 +4,8 @@ import { mkdir }                from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join }                 from 'node:path';
 
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'overseer-contracts/ForgeSystemVersions';
+
 import packageManifest from '../package.json' with { type: 'json' };
 
 import { AppBundleInfoFile, applicationsFolderIn }                       from './adapters/app-bundle/AppBundleInfoFile.ts';
@@ -33,6 +35,7 @@ import { createSettingsStore }                                           from '.
 import type { FleetSnapshot }                                            from './shared/@types/FleetSnapshot.ts';
 import { GaiaError }                                                     from './shared/GaiaError.ts';
 import { CONTRACT_VERSIONS }                                             from './shared/constants/ContractVersions.ts';
+import { GAIA_SYSTEM_VERSION }                                           from './shared/constants/GaiaSystemVersions.ts';
 import { GAIA_INSTALL_VERSION }                                          from './shared/constants/InstallVersion.ts';
 import { PRODUCT_NAMES }                                                 from './shared/constants/ProductNames.ts';
 
@@ -61,8 +64,7 @@ type VerbRun = (remainingArguments: readonly string[], output: ProgramOutput) =>
 
 async function printVersion(remainingArguments: readonly string[], output: ProgramOutput): Promise<ExitCode> {
   const versionAnswer = {
-    answerVersion:  CONTRACT_VERSIONS.gaiaProgramAnswer.major,
-    answerMinor:    CONTRACT_VERSIONS.gaiaProgramAnswer.minor,
+    answerVersion:  CONTRACT_VERSIONS.gaiaProgramAnswer,
     gaiaVersion:    packageManifest.version,
     installVersion: GAIA_INSTALL_VERSION,
   };
@@ -147,10 +149,15 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
       forgeProgramInUse: settingsStore.settings().forgeProgramPath,
       settingsFile:      settingsStore.fileState(),
       knownContracts:    {
-        summary: CONTRACT_VERSIONS.forgeBoardSummary.major,
-        monitor: CONTRACT_VERSIONS.forgeMonitor.major,
-        control: CONTRACT_VERSIONS.forgeControl.major,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel.major,
+        summary: CONTRACT_VERSIONS.forgeBoardSummary,
+        monitor: CONTRACT_VERSIONS.forgeMonitor,
+        control: CONTRACT_VERSIONS.forgeControl,
+        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
+      },
+      versions: {
+        systemVersion:         GAIA_SYSTEM_VERSION,
+        supportedForgeVersion: SUPPORTED_FORGE_VERSION,
+        minimumForgeVersion:   MINIMUM_FORGE_VERSION,
       },
     },
   });

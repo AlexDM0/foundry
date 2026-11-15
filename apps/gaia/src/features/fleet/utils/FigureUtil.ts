@@ -9,7 +9,7 @@ import type { ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeRe
 const FIDELITIES_THAT_REPORT_AGENTS: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'unreachable']);
 
 /** Forges that may run right now and that Gaia does not read in full now: what they add to a figure may be stale or missing. */
-const FIDELITIES_THAT_CANNOT_VOUCH: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['counts-only', 'unreachable', 'newer-contract']);
+const FIDELITIES_THAT_CANNOT_VOUCH: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['counts-only', 'unreachable', 'newer-contract', 'older-contract']);
 
 function agentsAreReportedBy(reading: ForgeReading): boolean {
   return FIDELITIES_THAT_REPORT_AGENTS.has(reading.fidelity);

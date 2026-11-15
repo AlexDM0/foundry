@@ -59,6 +59,20 @@ export const FLINT_BRAIN_SITUATIONS = [
 
 export type FlintBrainSituation = typeof FLINT_BRAIN_SITUATIONS[number];
 
+/**
+ * Forges that publish their system version (V1 to V3), each called at its versioned paths: at the forge version this Gaia is built for,
+ * ahead of it, behind it, too new to talk to, and one whose versions document cannot be read, which is then read as before versions.
+ */
+export const VERSIONS_SITUATIONS = [
+  'versions-current',
+  'versions-ahead',
+  'versions-behind',
+  'versions-newer',
+  'versions-unreadable',
+] as const;
+
+export type VersionsSituation = typeof VERSIONS_SITUATIONS[number];
+
 /** `stays-open`: after its chunks the stream sends nothing more and ends only when it is closed. */
 export type RecordedStreamEnding = 'closed' | 'broken' | 'stays-open';
 
@@ -102,6 +116,13 @@ export const MONITOR_ONE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-1';
  */
 export const MONITOR_THREE_OVERSEER_RECORDING_NAME = 'overseer-fetch-monitor-3';
 
+/**
+ * The recording of `GET /api/versions`, authored from the forge requirements V1 to V3 until a forge serves them: what forges that publish
+ * their versions answer (`VERSIONS_SITUATIONS`), and what a forge before them answers in each situation of the recordings above, which
+ * the situation's answers take in.
+ */
+export const VERSIONS_OVERSEER_RECORDING_NAME = 'overseer-fetch-versions';
+
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';
 const BEARER_SUFFIX = ' with bearer';
 const SITUATION_SEPARATOR = ': ';
@@ -116,7 +137,7 @@ export function streamCallShapeOf(request: Pick<OverseerStreamRequest, 'path' | 
   return `${STREAM_CALL_SHAPE_PREFIX}${request.path}${request.bearerToken === null ? '' : BEARER_SUFFIX}`;
 }
 
-export function situationCallShapeOf(situation: OverseerSituation | FlintBrainSituation, callShape: string): string {
+export function situationCallShapeOf(situation: OverseerSituation | FlintBrainSituation | VersionsSituation, callShape: string): string {
   return `${situation}${SITUATION_SEPARATOR}${callShape}`;
 }
 
@@ -178,7 +199,12 @@ export function everyRecordedMonitorThreeAnswerOf(operatingSystem: string = proc
   return answersOfRecording(MONITOR_THREE_OVERSEER_RECORDING_NAME, operatingSystem);
 }
 
-function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situation: OverseerSituation | FlintBrainSituation): readonly RecordedOverseerAnswer[] {
+/** Every answer of the versions recording for an OS, each call shape still led by its situation. */
+export function everyRecordedVersionsAnswerOf(operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfRecording(VERSIONS_OVERSEER_RECORDING_NAME, operatingSystem);
+}
+
+function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situation: OverseerSituation | FlintBrainSituation | VersionsSituation): readonly RecordedOverseerAnswer[] {
   const situationPrefix = situationCallShapeOf(situation, '');
   return answers
     .filter(({ callShape }) => callShape.startsWith(situationPrefix))
@@ -187,17 +213,22 @@ function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situatio
 
 /** The answers of one situation, from every recording `OVERSEER_RECORDING_NAMES` names, each call shape without its situation. */
 export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
+  return answersOfSituation([...everyRecordedOverseerAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
 }
 
 /** The answers of one situation of the forge at monitor contract 1, each call shape without its situation. */
 export function recordedMonitorOneAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation(everyRecordedMonitorOneAnswerOf(operatingSystem), situation);
+  return answersOfSituation([...everyRecordedMonitorOneAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
 }
 
 /** The answers of one state of Flint's brain on a forge at monitor contract 3, each call shape without its situation. */
 export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation(everyRecordedMonitorThreeAnswerOf(operatingSystem), situation);
+  return answersOfSituation([...everyRecordedMonitorThreeAnswerOf(operatingSystem), ...everyRecordedVersionsAnswerOf(operatingSystem)], situation);
+}
+
+/** The answers of one forge that publishes its versions, each call shape without its situation. */
+export function recordedVersionsAnswersOf(situation: VersionsSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
+  return answersOfSituation(everyRecordedVersionsAnswerOf(operatingSystem), situation);
 }
 
 function recordedStreamOf(chunks: readonly string[], ending: RecordedStreamEnding): { readonly stream: OverseerStream; readonly isLeftOpen: () => boolean } {

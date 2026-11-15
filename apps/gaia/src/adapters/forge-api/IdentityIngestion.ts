@@ -1,5 +1,5 @@
 /**
- * The ingestion of an Overseer's identity (F1): check `identityVersion` and `identityMinor` against `CONTRACT_VERSIONS`, check the keys, map to a
+ * The ingestion of an Overseer's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
  * `ForgeIdentity`, and decide from its `contracts` how Gaia reads the forge (PLAN 7.1): in full through the monitor, as counts through the
  * summary, or not at all when the forge speaks only newer contracts. An identity without `identityVersion` is the forge's from before F1.
  */
@@ -27,7 +27,7 @@ export type IdentityReading =
   | OlderContractVerdict
   | MalformedVerdict;
 
-const VERSION_KEYS = { majorKey: 'identityVersion', minorKey: 'identityMinor' } as const;
+const VERSION_KEYS = { majorKey: 'identityVersion' } as const;
 
 const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
 
@@ -40,7 +40,6 @@ const CONTRACTS_SHAPE = {
 
 const IDENTITY_SHAPE = {
   identityVersion: OPTIONAL_WHOLE_NUMBER,
-  identityMinor:   OPTIONAL_WHOLE_NUMBER,
   application:     { oneOf: ['forge'] },
   trackerId:       'text',
   project:         'text',
@@ -48,7 +47,6 @@ const IDENTITY_SHAPE = {
   installVersion:  'whole-number',
   processId:       'whole-number',
   contracts:       { optional: { object: CONTRACTS_SHAPE } },
-  contractMinors:  { optional: { object: CONTRACTS_SHAPE } },
 } as const satisfies ShapeOf<IdentityDocument>;
 
 export class IdentityIngestion {
@@ -76,8 +74,8 @@ export class IdentityIngestion {
   }
 
   /**
-   * The monitor is read when the forge serves it at the known major or an older one Gaia still reads, at any minor; the summary when it
-   * does not, or names no contracts at all.
+   * The monitor is read when the forge serves it at the known number or an older one Gaia still reads; the summary when it does not, or
+   * names no contracts at all.
    */
   #readingByContracts(identity: ForgeIdentity): IdentityReading {
     const { contracts } = identity;

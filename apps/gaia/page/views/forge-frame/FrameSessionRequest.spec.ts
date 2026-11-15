@@ -31,11 +31,11 @@ describe('the request', () => {
   test('posts to the forge\'s own frame session path with the page\'s cookie and nothing else', async () => {
     const sent: SentRequest[] = [];
     await FrameSessionRequest.requestFrameSession(serverAnswering(async () => answerResponse(FRAME_SESSION_ANSWERS.opened(1)), sent), TRACKER_ID);
-    expect(sent).toEqual([{ path: '/api/forges/example-storefront-7c41/frame-session', requestOptions: { method: 'POST', credentials: 'same-origin' } }]);
+    expect(sent).toEqual([{ path: '/api/v1/forges/example-storefront-7c41/frame-session', requestOptions: { method: 'POST', credentials: 'same-origin' } }]);
   });
 
   test('encodes a tracker id that would leave its path segment', () => {
-    expect(FrameSessionRequest.frameSessionPathOf('odd/id?x')).toBe('/api/forges/odd%2Fid%3Fx/frame-session');
+    expect(FrameSessionRequest.frameSessionPathOf('odd/id?x')).toBe('/api/v1/forges/odd%2Fid%3Fx/frame-session');
   });
 });
 
@@ -45,8 +45,8 @@ describe('the answer', () => {
       .toEqual({ verdict: 'opened', frameUrl: frameUrlOf(1), frameOrigin: 'http://127.0.0.1:4951' });
   });
 
-  test('a higher frameSessionMinor of the known frameSessionVersion opens the frame, its added key passed over', async () => {
-    expect(await resultOfAnswer({ ...FRAME_SESSION_ANSWERS.opened(1), frameSessionMinor: 4, exampleAddedKey: 'example' }))
+  test('an answer of the known frameSessionVersion with a key this page does not know opens the frame, the key passed over', async () => {
+    expect(await resultOfAnswer({ ...FRAME_SESSION_ANSWERS.opened(1), exampleAddedKey: 'example' }))
       .toEqual({ verdict: 'opened', frameUrl: frameUrlOf(1), frameOrigin: 'http://127.0.0.1:4951' });
   });
 
@@ -62,7 +62,6 @@ describe('the answer', () => {
     const opened = FRAME_SESSION_ANSWERS.opened(1);
     const notUnderstood = { verdict: 'answer-not-understood' } as const;
     expect(await resultOfAnswer({ ...opened, frameSessionVersion: 2 })).toEqual(notUnderstood);
-    expect(await resultOfAnswer({ ...opened, frameSessionMinor: 'one' })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, outcome: 'opened' })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, frameUrl: 7 })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, frameUrl: null })).toEqual(notUnderstood);

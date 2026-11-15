@@ -10,11 +10,15 @@ import type {
   FleetDocumentBrain,
   FleetDocumentFleetAgentRow,
   FleetDocumentForge,
+  FleetDocumentForgeVersions,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
 
 /** The page clock the artboards were drawn at. */
 export const FLEET_FIXTURES_READ_AT = '2026-11-12T13:19:30.000Z';
+
+/** Every forge released today publishes no system version, so this Gaia reads each as before versions. */
+export const NOT_REPORTED_VERSIONS: FleetDocumentForgeVersions = { verdict: 'not-reported', current: null, minimumSupported: null };
 
 export const FLEET_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -519,9 +523,10 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 3, tokens: 512_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: STOREFRONT_BRAIN_RUNNING,
+  today:    { deliveredTickets: 3, tokens: 512_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    STOREFRONT_BRAIN_RUNNING,
+  versions: NOT_REPORTED_VERSIONS,
 };
 
 const INVOICE_SERVICE: FleetDocumentForge = {
@@ -608,9 +613,10 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 2, tokens: 418_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 2, tokens: 418_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: NOT_REPORTED_VERSIONS,
 };
 
 const RESEARCH_WIKI: FleetDocumentForge = {
@@ -661,9 +667,10 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 1, tokens: 164_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 1, tokens: 164_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: NOT_REPORTED_VERSIONS,
 };
 
 const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
@@ -714,9 +721,10 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 0, tokens: 146_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 0, tokens: 146_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: NOT_REPORTED_VERSIONS,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -757,9 +765,10 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
     kind:        null,
     tokens:      null,
   }],
-  today: null,
-  usage: null,
-  brain: 'not-reported',
+  today:    null,
+  usage:    null,
+  brain:    'not-reported',
+  versions: NOT_REPORTED_VERSIONS,
 };
 
 const LEGACY_IMPORTER: FleetDocumentForge = {
@@ -793,6 +802,7 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
+  versions:          NOT_REPORTED_VERSIONS,
 };
 
 /** A brain in each state the forge reports, for the specs that put one in Example Storefront's place. */
@@ -853,8 +863,7 @@ const STOREFRONT_BRAIN_ROW: FleetDocumentFleetAgentRow = {
 };
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
-  fleetVersion: 3,
-  fleetMinor:   0,
+  fleetVersion: 4,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },
@@ -941,6 +950,11 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
       monitor: 3,
       control: 2,
       embed:   1,
+    },
+    versions: {
+      systemVersion:         { major: 1, minor: 0 },
+      supportedForgeVersion: { major: 1, minor: 1 },
+      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

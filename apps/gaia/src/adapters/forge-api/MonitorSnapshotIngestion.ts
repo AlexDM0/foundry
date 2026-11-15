@@ -1,6 +1,6 @@
 /**
- * The ingestion of a forge's monitor snapshot (F2, F3, G1): check `monitorVersion` and `monitorMinor` against `CONTRACT_VERSIONS`, check the keys
- * Gaia reads at that major, migrate a snapshot of an older number Gaia still reads (`OLDER_CONTRACT_VERSIONS_READ`), map to a `ForgeReading` at
+ * The ingestion of a forge's monitor snapshot (F2, F3, G1): check `monitorVersion` against `CONTRACT_VERSIONS`, check the keys Gaia reads
+ * at that number, migrate a snapshot of an older number Gaia still reads (`OLDER_CONTRACT_VERSIONS_READ`), map to a `ForgeReading` at
  * fidelity `full`. A snapshot at a newer version maps nothing of itself; nor does a malformed one, or one that names another forge.
  */
 import type {
@@ -29,12 +29,10 @@ import { DocumentShapeUtil, type DocumentShape, type ShapeOf }          from './
 import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
 import { MonitorSnapshotMigrationUtil }                                 from './utils/MonitorSnapshotMigrationUtil.ts';
 
-const VERSION_KEYS = { majorKey: 'monitorVersion', minorKey: 'monitorMinor' } as const;
+const VERSION_KEYS = { majorKey: 'monitorVersion' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 const NULLABLE_WHOLE_NUMBER = { nullable: 'whole-number' } as const;
-const OPTIONAL_WHOLE_NUMBER = { optional: 'whole-number' } as const;
-
 const OVERSEER_SHAPE = {
   state:       { oneOf: ['serving', 'held-by-install-change', 'passing-baton'] },
   paused:      'boolean',
@@ -145,7 +143,6 @@ const FLINT_BRAIN_SHAPE = {
 
 const MONITOR_SNAPSHOT_SHAPE_OF_VERSION_TWO = {
   monitorVersion: 'whole-number',
-  monitorMinor:   OPTIONAL_WHOLE_NUMBER,
   trackerId:      'text',
   project:        'text',
   root:           'text',
@@ -187,7 +184,7 @@ const MONITOR_VERSION_TWO = 2;
  * major the ingestion reads reaches here, so every major below 2 is 1.
  */
 function checkedSnapshotOf(document: unknown, version: number): CheckedSnapshot {
-  if (version === CONTRACT_VERSIONS.forgeMonitor.major) {
+  if (version === CONTRACT_VERSIONS.forgeMonitor) {
     const invalidKeys = invalidKeysOrNull(document, MONITOR_SNAPSHOT_SHAPE);
     return invalidKeys === null ? { verdict: 'checked', snapshot: document as MonitorSnapshotDocument } : { verdict: 'malformed', invalidKeys };
   }

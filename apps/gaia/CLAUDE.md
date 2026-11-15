@@ -16,14 +16,21 @@ its own; the dev tools every workspace shares are the root's.
    moves `HOME` and `TMPDIR` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind. A
    child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
    without `env`, Bun hands a child the environment the run started with, the real home.
-3. **Every data model carries a version, as major and minor.** A stored file or JSON contract without a version key is a defect. Forge
-   and Gaia are released apart, so any two versions may meet: the integer key a contract has always carried (`monitorVersion`, a file's
-   `version`) is the major, an optional sibling (`monitorMinor`, `minor`) the minor, absent read as 0, never a string. Adding fields only
-   is a minor bump; anything else is a major bump. The known versions are `CONTRACT_VERSIONS` in `src/shared/constants/ContractVersions.ts`
-   (an Overseer's from the `overseer-contracts` package), and `src/shared/utils/ContractVersionUtil.ts` is the one reading rule: a known
-   major reads at any minor, its unknown keys passed over; an older major only where `OLDER_CONTRACT_VERSIONS_READ` names it, migrated to
-   the current shape first (monitor 1 and 2, for a forge not yet updated); a newer major never reaches a mapper. Gaia writes both keys, and
-   keeps a stored file at a newer minor rather than drop the keys it adds. `docs/contracts.md` holds the table.
+3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. Forge and Gaia are released
+   apart, so any two versions may meet, and they meet through system versions. Each system has one, major.minor by interoperability (a
+   minor only adds; a major may break a client of an older major), never its package version: Gaia's and the routes' endpoint versions
+   are in `src/shared/constants/GaiaSystemVersions.ts`, and the forge versions Gaia is built for and still talks to in
+   `overseer-contracts/ForgeSystemVersions`, each with what raises it. A server answers its system version and its minimum supported at
+   `GET /api/versions`, unversioned and never removed, and serves each route at `/api/v<n>/<endpoint>`; Gaia's routes keep answering at
+   their unversioned paths too, so a window open across an upgrade keeps working. Gaia asks every forge's `/api/versions` first and
+   decides one verdict per forge (`src/shared/utils/ForgeVersionsUtil.ts`): it cannot talk to a `newer` or `older` forge, reads an
+   `ahead`, `behind` or `current` one at the versioned paths, and a forge that publishes none exactly as before versions. The fleet stream
+   and the embed channel carry the system version in their handshake and every message. A REST answer carries no version of its own
+   beyond the integer key it has always carried (`monitorVersion`, `fleetVersion`), which released forges and open pages still read; a
+   stored file keeps its format version, the integer `version` its major and an optional `minor`. `CONTRACT_VERSIONS`
+   (`src/shared/constants/ContractVersions.ts`) holds every known version, and `src/shared/utils/ContractVersionUtil.ts` is the one
+   reading rule: a known version reads with its unknown keys passed over; an older one only where `OLDER_CONTRACT_VERSIONS_READ` names
+   it, migrated to the current shape first; a newer one never reaches a mapper. `docs/contracts.md` holds the tables and the verdicts.
 4. **No screen tells User to run a command.** Gaia starts, stops, updates and adds forges itself. A forge sentence that names a command
    leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its refusal code or notice kind, and otherwise for
    a neutral sentence.
@@ -77,7 +84,7 @@ src/features/      fleet, forge-control, page-server, launcher, app-install
 src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract,
                    the installed app bundle's Info.plist
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
-src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value
+src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value, api-paths
 src/shared/        the internal model's types, app-wide constants, the contract version rule, GaiaError
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
@@ -106,11 +113,13 @@ forge; a program that is no forge on an Overseer's port is recorded from a local
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
-for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
+for the OS as not finished. Three recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
-recording stays authored beside its spec. The other is `overseer-fetch-monitor-3`, the forge contracts of Flint's brain that no forge serves
-yet (monitor 3 and control 2): its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`),
-which alone lets a forge recording be authored, and verify fails while a recorded one still names them. macOS's programs are stamped
+recording stays authored beside its spec. The others await forge requirements: `overseer-fetch-monitor-3`, the forge contracts of Flint's
+brain that no forge serves yet (monitor 3 and control 2), and `overseer-fetch-versions`, `/api/versions` and the versioned paths (V1 to
+V3), with what a forge before them answers at `/api/versions` in each situation the other recordings hold. Each one's entry in
+`RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored,
+and verify fails while a recorded one still names them. macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through
 `src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a

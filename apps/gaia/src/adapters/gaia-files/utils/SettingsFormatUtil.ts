@@ -1,14 +1,12 @@
 /** The steps of reading and writing `settings.json`: find its version, validate major 1, map it in to `GaiaSettings` and back out. */
 import { isAbsolute } from 'node:path';
 
-import type { ContractVersion } from 'overseer-contracts/ContractVersion';
-
-import { JsonValueUtil }                       from '../../../lib/json-value/JsonValueUtil.ts';
-import type { GaiaSettings, NotificationKind } from '../../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }                   from '../../../shared/constants/ContractVersions.ts';
-import { SETTINGS_CHOICES }                    from '../../../shared/constants/SettingsChoices.ts';
-import { ContractVersionUtil }                 from '../../../shared/utils/ContractVersionUtil.ts';
-import type { StoredSettingsVersion1 }         from '../@types/StoredSettings.ts';
+import { JsonValueUtil }                           from '../../../lib/json-value/JsonValueUtil.ts';
+import type { GaiaSettings, NotificationKind }     from '../../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS }                       from '../../../shared/constants/ContractVersions.ts';
+import { SETTINGS_CHOICES }                        from '../../../shared/constants/SettingsChoices.ts';
+import { ContractVersionUtil, type FormatVersion } from '../../../shared/utils/ContractVersionUtil.ts';
+import type { StoredSettingsVersion1 }             from '../@types/StoredSettings.ts';
 
 function isStringList(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
@@ -33,7 +31,7 @@ function kindsOf(value: unknown): Record<NotificationKind, boolean> | null {
 const SETTINGS_VERSION_KEYS = { majorKey: 'version', minorKey: 'minor' } as const;
 
 /** The file's `version` and `minor` keys, an absent minor read as 0; null when `version` is absent or either is no whole number. */
-function versionOf(parsed: unknown): ContractVersion | null {
+function versionOf(parsed: unknown): FormatVersion | null {
   const reading = ContractVersionUtil.versionOf(parsed, SETTINGS_VERSION_KEYS);
   return reading.verdict === 'versioned' ? reading.version : null;
 }

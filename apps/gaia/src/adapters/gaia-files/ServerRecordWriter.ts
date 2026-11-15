@@ -65,7 +65,7 @@ function storedRecordNamesProcess(contents: string, processId: number): boolean 
   }
   if (typeof stored !== 'object' || stored === null) return false;
   const storedFields = stored as Readonly<Record<string, unknown>>;
-  return ContractVersionUtil.readMajorOf(storedFields, SERVER_RECORD_VERSION_KEYS, CONTRACT_VERSIONS.gaiaServerRecord) !== null && storedFields['processId'] === processId;
+  return ContractVersionUtil.readMajorOf(storedFields, SERVER_RECORD_VERSION_KEYS, CONTRACT_VERSIONS.gaiaServerRecord.major) !== null && storedFields['processId'] === processId;
 }
 
 export function createServerRecordWriter(homeDirectory: string): ServerRecordWriter {

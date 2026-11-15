@@ -1,10 +1,13 @@
-/** One forge as Gaia last read it, at the fidelity its contracts allow. Internal only, so it carries no version. */
+/** One forge as Gaia last read it, at the fidelity its contracts allow. Internal only, so it carries no version of its own. */
+import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+
 import type { ActivityEntry }     from './ActivityEntry.ts';
 import type { AgentRow }          from './AgentRow.ts';
 import type { AttentionItem }     from './AttentionItem.ts';
 import type { ForgeBrainReading } from './ForgeBrain.ts';
 
-export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
+/** `older-contract`: the forge's system version is older than Gaia still talks to, so Gaia reads nothing of it until it is updated. */
+export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
 export type ForgeCondition = 'live' | 'paused' | 'held' | 'passing-baton' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
 
@@ -14,6 +17,21 @@ export interface ForgeContracts {
   monitor: number | null;
   control: number | null;
   embed:   number | null;
+}
+
+/**
+ * How the forge's system version stands to the forge versions Gaia knows. `newer`: its minimum is above the version Gaia is built for, so
+ * they cannot talk and Gaia needs an update. `older`: it is below the oldest Gaia talks to, so they cannot talk and the forge needs an
+ * update. `ahead`: above the version Gaia is built for, read in full with what Gaia knows. `behind`: below it, read in full without
+ * Gaia's newest features. `current`: the version Gaia is built for. `not-reported`: the forge publishes no versions, read as before them.
+ */
+export type ForgeVersionsVerdict = 'newer' | 'older' | 'ahead' | 'behind' | 'current' | 'not-reported';
+
+/** The forge's own versions, both `null` when it reported none. */
+export interface ForgeVersions {
+  verdict:          ForgeVersionsVerdict;
+  current:          SystemVersion | null;
+  minimumSupported: SystemVersion | null;
 }
 
 export interface ForgeConcurrency {
@@ -73,4 +91,5 @@ export interface ForgeReading {
   today:             ForgeToday | null;
   usage:             ForgeUsage | null;
   brain:             ForgeBrainReading;
+  versions:          ForgeVersions;
 }

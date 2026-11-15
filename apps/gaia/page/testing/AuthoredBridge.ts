@@ -1,6 +1,6 @@
 /**
  * Test-only: one forge's Bridge in Gaia's frame, stood in for. Its messages and the frame session answers are authored by hand from
- * FORGE_REQUIREMENTS F5 and PLAN 8.3; recording the messages from a Bridge Gaia frames waits in `docs/backlog.md`. The page's message
+ * FORGE_REQUIREMENTS F5 and V5 and PLAN 8.3; recording the messages from a Bridge Gaia frames waits in `docs/backlog.md`. The page's message
  * listeners and the frame's window are the spec's: a spec posts the Bridge's messages to the page and reads what Gaia posted to the frame,
  * and to which origin.
  */
@@ -18,8 +18,12 @@ export const BRIDGE_MESSAGES = {
   routeKanban: {
     channel: 'forge-embed', channelVersion: 1, kind: 'route', fragment: '#kanban'
   },
-  leave:       { channel: 'forge-embed', channelVersion: 1, kind: 'leave' },
-  sessionLost: { channel: 'forge-embed', channelVersion: 1, kind: 'session-lost' },
+  leave:                  { channel: 'forge-embed', channelVersion: 1, kind: 'leave' },
+  sessionLost:            { channel: 'forge-embed', channelVersion: 1, kind: 'session-lost' },
+  /** A Bridge of a forge that serves V5 names its forge's system version in every message: here forge 1.1. */
+  readyOfAVersionedForge: {
+    channel: 'forge-embed', channelVersion: 1, systemVersion: { major: 1, minor: 1 }, kind: 'ready'
+  },
 } as const;
 
 /** The one-time code a frame session answer carries in the frame's address, numbered per session. */

@@ -1,19 +1,24 @@
 /**
- * The one reading rule of every versioned contract. The integer key a document has always carried keeps meaning the major; the minor
- * travels in an optional sibling key and reads as 0 when absent. A known major reads at any minor, since a minor only adds fields, which a
- * reader passes over; an older major reads only where its ingestion still migrates it; a newer major is refused.
+ * The one reading rule of every versioned contract. A document carries its version in the integer key it has always carried, read as its
+ * major; a stored file adds its format's minor in an optional sibling key, absent read as 0. A known major reads at any minor, its unknown
+ * keys passed over; an older major reads only where its ingestion still migrates it; a newer major is refused.
  */
-import type { ContractVersion } from 'overseer-contracts/ContractVersion';
 
-/** Where a document carries its version: `monitorVersion` and `monitorMinor`, or a stored file's `version` and `minor`. */
+/** A stored file's format version: a minor only adds keys, which a reader of the same major passes over. */
+export interface FormatVersion {
+  readonly major: number;
+  readonly minor: number;
+}
+
+/** Where a document carries its version: `monitorVersion` alone, or a stored file's `version` and `minor`. */
 export interface ContractVersionKeys {
-  readonly majorKey: string;
-  readonly minorKey: string;
+  readonly majorKey:  string;
+  readonly minorKey?: string;
 }
 
 /** `unversioned`: the document names no major. `malformed`: the major, or a minor that is there, is no whole number. */
 export type ContractVersionReading =
-  | { readonly verdict: 'versioned'; readonly version: ContractVersion }
+  | { readonly verdict: 'versioned'; readonly version: FormatVersion }
   | { readonly verdict: 'unversioned' }
   | { readonly verdict: 'malformed'; readonly invalidKey: string };
 
@@ -35,23 +40,23 @@ function versionOf(document: unknown, { majorKey, minorKey }: ContractVersionKey
   const major = ownValueOf(document, majorKey);
   if (major === undefined) return { verdict: 'unversioned' };
   if (!isWholeNumber(major)) return { verdict: 'malformed', invalidKey: majorKey };
-  const minor = ownValueOf(document, minorKey);
+  const minor = minorKey === undefined ? undefined : ownValueOf(document, minorKey);
   if (minor === undefined) return { verdict: 'versioned', version: { major, minor: 0 } };
-  if (!isWholeNumber(minor)) return { verdict: 'malformed', invalidKey: minorKey };
+  if (!isWholeNumber(minor)) return { verdict: 'malformed', invalidKey: minorKey ?? majorKey };
   return { verdict: 'versioned', version: { major, minor } };
 }
 
-function majorVerdictOf(major: number, known: ContractVersion, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): MajorVerdict {
-  if (major === known.major) return 'known';
-  if (major > known.major) return 'newer';
+function majorVerdictOf(major: number, knownMajor: number, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): MajorVerdict {
+  if (major === knownMajor) return 'known';
+  if (major > knownMajor) return 'newer';
   return olderMajorsRead.includes(major) ? 'older-read' : 'older';
 }
 
 /** The major of a document at a major this reader reads, at any minor; `null` for any other, unversioned or malformed document. */
-function readMajorOf(document: unknown, keys: ContractVersionKeys, known: ContractVersion, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): number | null {
+function readMajorOf(document: unknown, keys: ContractVersionKeys, knownMajor: number, olderMajorsRead: readonly number[] = NO_OLDER_MAJORS): number | null {
   const reading = versionOf(document, keys);
   if (reading.verdict !== 'versioned') return null;
-  const verdict = majorVerdictOf(reading.version.major, known, olderMajorsRead);
+  const verdict = majorVerdictOf(reading.version.major, knownMajor, olderMajorsRead);
   return verdict === 'known' || verdict === 'older-read' ? reading.version.major : null;
 }
 

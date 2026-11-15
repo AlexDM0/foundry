@@ -9,7 +9,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ThemeChoice } from '../../shared/@types/ThemeChoice.ts';
+import { GAIA_SYSTEM_VERSION } from '../../../src/shared/constants/GaiaSystemVersions.ts';
+import type { ThemeChoice }    from '../../shared/@types/ThemeChoice.ts';
 import {
   BRIDGE_MESSAGES,
   BRIDGE_ORIGIN,
@@ -109,13 +110,13 @@ describe('opening the frame', () => {
     expect(bridge.posted).toEqual([
       {
         message: {
-          channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'theme', themeChoice: 'dark'
+          channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'theme', themeChoice: 'dark'
         },
         targetOrigin: BRIDGE_ORIGIN
       },
       {
         message: {
-          channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E2'
+          channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'navigate', fragment: '#questions/E2'
         },
         targetOrigin: BRIDGE_ORIGIN
       },
@@ -126,7 +127,7 @@ describe('opening the frame', () => {
     const { bridge } = await framedSession(null, 'light');
     bridge.post(BRIDGE_MESSAGES.ready);
     expect(postedMessagesOf(bridge)).toEqual([{
-      channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'theme', themeChoice: 'light'
+      channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'theme', themeChoice: 'light'
     }]);
   });
 
@@ -154,7 +155,7 @@ describe('from Answer on E2 to the Bridge\'s Questions tab (B1 acceptance 1 and 
     expect(addressWrites).toEqual([]);
     bridge.post(BRIDGE_MESSAGES.ready);
     expect(postedMessagesOf(bridge)).toContainEqual({
-      channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E2'
+      channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'navigate', fragment: '#questions/E2'
     });
   });
 
@@ -177,7 +178,7 @@ describe('the route and the theme changing from outside', () => {
     session.routeChanged('#questions/E4');
     session.routeChanged(null);
     expect(postedMessagesOf(bridge).slice(2)).toEqual([{
-      channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E4'
+      channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'navigate', fragment: '#questions/E4'
     }]);
   });
 
@@ -187,7 +188,7 @@ describe('the route and the theme changing from outside', () => {
     expect(bridge.posted).toEqual([]);
     bridge.post(BRIDGE_MESSAGES.ready);
     expect(postedMessagesOf(bridge)).toContainEqual({
-      channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E4'
+      channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'navigate', fragment: '#questions/E4'
     });
   });
 
@@ -200,10 +201,10 @@ describe('the route and the theme changing from outside', () => {
     session.themeChanged('dark');
     expect(postedMessagesOf(bridge)).toEqual([
       {
-        channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'theme', themeChoice: 'light'
+        channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'theme', themeChoice: 'light'
       },
       {
-        channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'theme', themeChoice: 'dark'
+        channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'theme', themeChoice: 'dark'
       },
     ]);
   });
@@ -238,7 +239,7 @@ describe('after the Overseer restarts (B1 acceptance 3)', () => {
     expect(session.state()).toMatchObject({ bridgeIsReady: true });
     expect(freshFramePosted).toContainEqual({
       message: {
-        channel: 'forge-embed', channelVersion: 1, channelMinor: 0, kind: 'navigate', fragment: '#questions/E2'
+        channel: 'forge-embed', channelVersion: 1, systemVersion: GAIA_SYSTEM_VERSION, kind: 'navigate', fragment: '#questions/E2'
       },
       targetOrigin: BRIDGE_ORIGIN,
     });

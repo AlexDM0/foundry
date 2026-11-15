@@ -11,7 +11,7 @@ import type { FleetDocumentForge }                         from '../../@types/Fl
 
 function canOpenInPlace(forge: FleetDocumentForge): boolean {
   const isReadInFullOrAsLastReported = forge.fidelity === 'full' || forge.fidelity === 'unreachable';
-  return isReadInFullOrAsLastReported && forge.contracts.embed === CONTRACT_VERSIONS.forgeEmbedChannel.major;
+  return isReadInFullOrAsLastReported && forge.contracts.embed === CONTRACT_VERSIONS.forgeEmbedChannel;
 }
 
 function controlContractIsKnown(forge: FleetDocumentForge): boolean {

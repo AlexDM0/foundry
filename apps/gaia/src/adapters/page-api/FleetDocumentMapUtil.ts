@@ -3,6 +3,8 @@
  * page only when the contract names it. A forge's notice, warning, activity entry, brain sentence or brain move leaves in Gaia's words when it
  * names a command (D10).
  */
+import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+
 import type {
   FleetDocument,
   FleetDocumentActivityEntry,
@@ -10,19 +12,21 @@ import type {
   FleetDocumentAttentionItem,
   FleetDocumentBrain,
   FleetDocumentForge,
+  FleetDocumentForgeVersions,
   FleetDocumentGaia,
   FleetDocumentNotice,
   FleetDocumentSettings,
+  FleetDocumentSystemVersion,
 } from '../../../page/@types/FleetDocument.ts';
-import type { ActivityEntry }             from '../../shared/@types/ActivityEntry.ts';
-import type { AgentRow }                  from '../../shared/@types/AgentRow.ts';
-import type { AttentionItem }             from '../../shared/@types/AttentionItem.ts';
-import type { FleetSnapshot, GaiaFacts }  from '../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrainReading }         from '../../shared/@types/ForgeBrain.ts';
-import type { ForgeNotice, ForgeReading } from '../../shared/@types/ForgeReading.ts';
-import type { GaiaSettings }              from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }              from '../../shared/constants/ContractVersions.ts';
-import { ForgeSentenceUtil }              from './ForgeSentenceUtil.ts';
+import type { ActivityEntry }                            from '../../shared/@types/ActivityEntry.ts';
+import type { AgentRow }                                 from '../../shared/@types/AgentRow.ts';
+import type { AttentionItem }                            from '../../shared/@types/AttentionItem.ts';
+import type { FleetSnapshot, GaiaFacts }                 from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrainReading }                        from '../../shared/@types/ForgeBrain.ts';
+import type { ForgeNotice, ForgeReading, ForgeVersions } from '../../shared/@types/ForgeReading.ts';
+import type { GaiaSettings }                             from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS }                             from '../../shared/constants/ContractVersions.ts';
+import { ForgeSentenceUtil }                             from './ForgeSentenceUtil.ts';
 
 function attentionItemOut(item: AttentionItem): FleetDocumentAttentionItem {
   return {
@@ -113,6 +117,19 @@ function warningOut(warning: ForgeNotice): FleetDocumentNotice {
   return { kind: warning.kind, text: ForgeSentenceUtil.warningSentenceOf(warning.text) };
 }
 
+function systemVersionOut({ major, minor }: SystemVersion): FleetDocumentSystemVersion {
+  return { major, minor };
+}
+
+function forgeVersionsOut(versions: ForgeVersions): FleetDocumentForgeVersions {
+  const { current, minimumSupported } = versions;
+  return {
+    verdict:          versions.verdict,
+    current:          current === null ? null : systemVersionOut(current),
+    minimumSupported: minimumSupported === null ? null : systemVersionOut(minimumSupported),
+  };
+}
+
 function forgeOut(reading: ForgeReading): FleetDocumentForge {
   const {
     concurrency, contracts, today, usage
@@ -158,7 +175,8 @@ function forgeOut(reading: ForgeReading): FleetDocumentForge {
       currentWindow:         usage.currentWindow,
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
-    brain: brainOut(reading.brain),
+    brain:    brainOut(reading.brain),
+    versions: forgeVersionsOut(reading.versions),
   };
 }
 
@@ -185,7 +203,7 @@ function settingsOut(settings: GaiaSettings): FleetDocumentSettings {
 }
 
 function gaiaOut(gaia: GaiaFacts): FleetDocumentGaia {
-  const { knownContracts } = gaia;
+  const { knownContracts, versions } = gaia;
   return {
     gaiaVersion:       gaia.gaiaVersion,
     address:           gaia.address,
@@ -199,6 +217,11 @@ function gaiaOut(gaia: GaiaFacts): FleetDocumentGaia {
       control: knownContracts.control,
       embed:   knownContracts.embed,
     },
+    versions: {
+      systemVersion:         systemVersionOut(versions.systemVersion),
+      supportedForgeVersion: systemVersionOut(versions.supportedForgeVersion),
+      minimumForgeVersion:   systemVersionOut(versions.minimumForgeVersion),
+    },
   };
 }
 
@@ -206,8 +229,7 @@ export const FleetDocumentMapUtil = {
   fleetDocumentOf(snapshot: FleetSnapshot): FleetDocument {
     const { figures, machine } = snapshot;
     return {
-      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument.major,
-      fleetMinor:   CONTRACT_VERSIONS.gaiaFleetDocument.minor,
+      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       snapshot.forges.map(forgeOut),
       attention:    snapshot.attention.map((item) => ({ ...attentionItemOut(item), trackerId: item.trackerId })),
       needsALook:   snapshot.needsALook.map((look) => ({ trackerId: look.trackerId, kind: look.kind })),

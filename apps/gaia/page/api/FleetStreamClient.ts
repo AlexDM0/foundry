@@ -1,16 +1,20 @@
 /**
- * Follows `GET /api/events` and publishes the document of each `fleet` event. A stream that errs is closed and opened again after
+ * Follows `GET /api/v4/events` and publishes the document of each `fleet` event. A stream that errs is closed and opened again after
  * `FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS` by this client, not by the browser, so every wait is a schedule a spec controls; the stream
  * reads `lost` from the error until the next open. Gaia's server sends its current document first on every open, so a reopened stream
- * needs no separate read of `/api/fleet`. A document of another `fleetVersion` means a stale page: it reloads once, and a mark in the
- * session's storage keeps a second mismatch from reloading again. Page sessions live in the server's memory, so a stream that errs asks
+ * needs no separate read of `/api/fleet`. The stream opens on a handshake naming the server's system version, and every `fleet` event
+ * carries it too: a handshake of another system major, or a document of another `fleetVersion`, means a stale page: it reloads once, and a
+ * mark in the session's storage keeps a second mismatch from reloading again. Page sessions live in the server's memory, so a stream that errs asks
  * whether the window still holds one; once it does not, as after the server restarted, no reopen could succeed and the client stops. When
  * nothing answers that check, the server and the session it held are gone: the client reads `server-ended` and keeps reopening, so a server
  * that answers again moves it on.
  */
-import { CONTRACT_VERSIONS }   from '../../src/shared/constants/ContractVersions.ts';
-import { ContractVersionUtil } from '../../src/shared/utils/ContractVersionUtil.ts';
-import type { FleetDocument }  from '../@types/FleetDocument.ts';
+import { ApiPathUtil }                                 from '../../src/lib/api-paths/ApiPathUtil.ts';
+import { CONTRACT_VERSIONS }                           from '../../src/shared/constants/ContractVersions.ts';
+import { GAIA_ENDPOINT_VERSIONS, GAIA_SYSTEM_VERSION } from '../../src/shared/constants/GaiaSystemVersions.ts';
+import { ContractVersionUtil }                         from '../../src/shared/utils/ContractVersionUtil.ts';
+import { SystemVersionUtil }                           from '../../src/shared/utils/SystemVersionUtil.ts';
+import type { FleetDocument }                          from '../@types/FleetDocument.ts';
 
 /**
  * `connecting` only before the first open; `page-out-of-date` once a reload did not bring a page of the server's `fleetVersion`;
@@ -27,7 +31,7 @@ export interface FleetEventSource {
   close(): void;
 }
 
-/** Where the page notes the `fleetVersion` it reloaded for; `write` answers whether the mark was kept. */
+/** Where the page notes the server version it reloaded for, a `fleetVersion` or a system major; `write` answers whether the mark was kept. */
 export interface ReloadMark {
   readonly read:  () => string | null;
   readonly write: (fleetVersion: string | null) => boolean;
@@ -53,14 +57,19 @@ export interface FleetStreamClient {
   readonly subscribe:   (listener: () => void) => () => void;
 }
 
-const EVENTS_PATH = '/api/events';
+const EVENTS_PATH = ApiPathUtil.versionedPathOf('events', GAIA_ENDPOINT_VERSIONS.events);
 
 /** A route that needs the session, read only to learn whether the window still holds one. */
-const SESSION_CHECK_PATH = '/api/fleet';
+const SESSION_CHECK_PATH = ApiPathUtil.versionedPathOf('fleet', GAIA_ENDPOINT_VERSIONS.fleet);
 
 const NO_SESSION_STATUS = 401;
 
 const FLEET_EVENT_NAME = 'fleet';
+
+const HANDSHAKE_EVENT_NAME = 'handshake';
+
+/** The reload mark of a server of another system major, kept apart from a `fleetVersion`'s. */
+const SYSTEM_MAJOR_MARK_PREFIX = 'system ';
 
 const FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS = 2_000;
 
@@ -72,7 +81,7 @@ interface FleetEventReading {
 }
 
 /** The parsed data of a `fleet` event with its `fleetVersion`, or `null` for data that is no fleet document at all. */
-const FLEET_VERSION_KEYS = { majorKey: 'fleetVersion', minorKey: 'fleetMinor' } as const;
+const FLEET_VERSION_KEYS = { majorKey: 'fleetVersion' } as const;
 
 function fleetEventReadingOf(eventData: unknown): FleetEventReading | null {
   if (typeof eventData !== 'string') return null;
@@ -83,7 +92,28 @@ function fleetEventReadingOf(eventData: unknown): FleetEventReading | null {
     return null;
   }
   const versionReading = ContractVersionUtil.versionOf(parsed, FLEET_VERSION_KEYS);
-  return versionReading.verdict === 'versioned' ? { fleetVersion: versionReading.version.major, fleetDocument: parsed } : null;
+  return versionReading.verdict === 'versioned' ? { fleetVersion: versionReading.version.major, fleetDocument: withoutSystemVersion(parsed) } : null;
+}
+
+/** The event's system version is the stream's, not the document's, so the page is handed the document alone. */
+function withoutSystemVersion(parsed: unknown): unknown {
+  if (typeof parsed !== 'object' || parsed === null || !Object.hasOwn(parsed, 'systemVersion')) return parsed;
+  const { systemVersion: _systemVersion, ...fleetDocument } = parsed as Readonly<Record<string, unknown>>;
+  return fleetDocument;
+}
+
+/** The system major a handshake names, or `null` for data that is no handshake. */
+function handshakeSystemMajorOf(eventData: unknown): number | null {
+  if (typeof eventData !== 'string') return null;
+  try {
+    const parsed = JSON.parse(eventData) as unknown;
+    const systemVersion = typeof parsed === 'object' && parsed !== null && Object.hasOwn(parsed, 'systemVersion')
+      ? SystemVersionUtil.systemVersionOf((parsed as Readonly<Record<string, unknown>>)['systemVersion'])
+      : null;
+    return systemVersion?.major ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function controlsMayActIn(state: FleetStreamState): boolean {
@@ -131,15 +161,24 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
     if (fleetEventReading === null) return;
     if (ContractVersionUtil.majorVerdictOf(fleetEventReading.fleetVersion, CONTRACT_VERSIONS.gaiaFleetDocument) === 'known') {
       if (reloadMark.read() !== null) reloadMark.write(null);
-      // The page and the server ship together: the major is the whole contract between them, and a newer minor only adds keys.
       publish(fleetEventReading.fleetDocument as FleetDocument);
       return;
     }
+    reloadForServerVersion(String(fleetEventReading.fleetVersion));
+  };
+
+  const reloadForServerVersion = (serverVersion: string): void => {
     stop();
-    const serverVersion = String(fleetEventReading.fleetVersion);
     // A mark that cannot be kept could not stop a second reload, so the page then stays out of date rather than reload without end.
     if (reloadMark.read() !== serverVersion && reloadMark.write(serverVersion)) reloadPage();
     else changeState('page-out-of-date');
+  };
+
+  /** A handshake that cannot be read is passed over: each `fleet` event still names its `fleetVersion`. */
+  const readHandshake = (event: Event): void => {
+    const serverSystemMajor = handshakeSystemMajorOf('data' in event ? event.data : null);
+    if (serverSystemMajor === null || serverSystemMajor === GAIA_SYSTEM_VERSION.major) return;
+    reloadForServerVersion(`${SYSTEM_MAJOR_MARK_PREFIX}${serverSystemMajor}`);
   };
 
   const open = (): void => {
@@ -149,6 +188,9 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
     source = opened;
     opened.addEventListener('open', () => {
       if (source === opened) changeState('live');
+    });
+    opened.addEventListener(HANDSHAKE_EVENT_NAME, (event) => {
+      if (source === opened) readHandshake(event);
     });
     opened.addEventListener(FLEET_EVENT_NAME, (event) => {
       if (source === opened) readFleetEvent(event);
@@ -221,6 +263,7 @@ export const FleetStreamClient = {
   EVENTS_PATH,
   SESSION_CHECK_PATH,
   FLEET_EVENT_NAME,
+  HANDSHAKE_EVENT_NAME,
   FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS,
   create,
   controlsMayActIn,

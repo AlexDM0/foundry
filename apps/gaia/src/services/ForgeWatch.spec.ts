@@ -3,7 +3,9 @@
  * spec walks one forge through every stage PLAN 7.1 names, one answer set per stage: dormant, started, live, stream lost, unreachable and
  * back. Around it: a missing repository, a forge read as counts, another program or another forge on the port, an open stream of snapshots
  * Gaia cannot read, a hidden forge, an unchanged registry, look again, a readings listener that throws, and a stop at any moment leaves no
- * timer and no open stream. No spec waits a real interval.
+ * timer and no open stream. Every round asks the forge's versions first: each of the six verdicts follows from what a forge answers there,
+ * a forge Gaia can talk to is read at the versioned paths, one that publishes no versions, or none it can read, at today's paths exactly
+ * as before versions, and one Gaia cannot talk to is asked nothing more. No spec waits a real interval.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -15,14 +17,16 @@ import {
   test
 } from 'bun:test';
 
-import { RegistryFile }                       from '../adapters/forge-registry/RegistryFile.ts';
-import { forgeClientOf }                      from '../lib/forge-client/ForgeClient.ts';
-import type { OverseerAnswer, OverseerFetch } from '../lib/forge-client/OverseerFetch.ts';
-import type { ForgeReading }                  from '../shared/@types/ForgeReading.ts';
-import { manualTimers, type ManualTimers }    from '../testing/ManualTimers.ts';
+import { RegistryFile }                               from '../adapters/forge-registry/RegistryFile.ts';
+import { forgeClientOf }                              from '../lib/forge-client/ForgeClient.ts';
+import type { OverseerAnswer, OverseerFetch }         from '../lib/forge-client/OverseerFetch.ts';
+import type { ForgeReading }                          from '../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil, type KnownForgeVersions } from '../shared/utils/ForgeVersionsUtil.ts';
+import { manualTimers, type ManualTimers }            from '../testing/ManualTimers.ts';
 import {
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
+  recordedVersionsAnswersOf,
   type OverseerSituation,
   type RecordedOverseerAnswer,
   type RecordedOverseerFetch,
@@ -60,6 +64,11 @@ function answersOf(situation: OverseerSituation, callShape: string | null = null
   return recordedOverseerAnswersOf(situation).filter((answer) => callShape === null || answer.callShape === callShape);
 }
 
+/** What a watch asks a forge before anything else: its versions, then its identity. */
+function identityAnswersOf(situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
+  return [...answersOf(situation, 'GET /api/versions'), ...answersOf(situation, 'GET /api/identity')];
+}
+
 /** The program's unreadable snapshots on a stream held open after them, as a forge holds its stream open between heartbeats. */
 const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedOverseerAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/monitor/events with bearer')
   .map((recorded) => (recorded.answer.verdict === 'streaming' ? { ...recorded, answer: { ...recorded.answer, ending: 'stays-open' as const } } : recorded));
@@ -68,7 +77,7 @@ const STAGE_ANSWERS = {
   dormant:     [],
   started:     answersOf('starting'),
   /** The forge serves every contract; its stream gives one whole snapshot, then the connection breaks. */
-  live:        [...answersOf('serving-every-contract', 'GET /api/identity'), ...answersOf('connection-broken')],
+  live:        [...identityAnswersOf('serving-every-contract'), ...answersOf('connection-broken')],
   streamLost:  answersOf('stopped'),
   unreachable: answersOf('not-answering'),
   back:        answersOf('serving-every-contract'),
@@ -159,7 +168,12 @@ interface WatchUnderTest {
 }
 
 /** `throwingListenerCalls`: the calls of the readings listener, counted from one, that throw once the waiters have heard them. */
-function watchOver(overseerFetch: OverseerFetch, hiddenTrackerIds: readonly string[] = [], throwingListenerCalls: ReadonlySet<number> = new Set()): WatchUnderTest {
+function watchOver(
+  overseerFetch: OverseerFetch,
+  hiddenTrackerIds: readonly string[] = [],
+  throwingListenerCalls: ReadonlySet<number> = new Set(),
+  knownForgeVersions: KnownForgeVersions | null = null,
+): WatchUnderTest {
   const timers = manualTimers();
   const waiters: { readonly claim: (readings: readonly ForgeReading[]) => boolean; readonly resolve: (readings: readonly ForgeReading[]) => void }[] = [];
   let changes = 0;
@@ -170,6 +184,7 @@ function watchOver(overseerFetch: OverseerFetch, hiddenTrackerIds: readonly stri
     timers,
     now:               () => currentStamp,
     intervals:         INTERVALS,
+    ...knownForgeVersions === null ? {} : { knownForgeVersions },
     onReadingsChanged: () => {
       changes += 1;
       const readings = watch.readings();
@@ -251,13 +266,17 @@ describe('a forge through every stage of PLAN 7.1', () => {
     timers.fire(RECONNECT_MILLISECONDS);
     const back = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
     expect(back.lastReportedAt).toBe(STAMPS.back);
+    // An Overseer that does not answer its versions is a failed try before its identity is asked.
     expect(overseerFetch.callShapes()).toEqual([
+      'GET /api/versions',
       'GET /api/identity',
+      'GET /api/versions',
       'GET /api/identity',
       'STREAM /api/monitor/events with bearer',
-      'GET /api/identity',
-      'GET /api/identity',
-      'GET /api/identity',
+      'GET /api/versions',
+      'GET /api/versions',
+      'GET /api/versions',
+      'GET /api/versions',
       'GET /api/identity',
       'STREAM /api/monitor/events with bearer',
     ]);
@@ -325,17 +344,17 @@ describe('a forge read through its summary', () => {
     currentStamp = STAMPS.back;
     timers.fire(SUMMARY_POLL_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastReportedAt === STAMPS.back);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/summary', 'GET /api/identity', 'GET /api/summary']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'GET /api/summary', 'GET /api/versions', 'GET /api/identity', 'GET /api/summary']);
   });
 
   test('reads a forge that serves the monitor but names no token file through its open summary', async () => {
     writeRegistry([{ tokenPath: null }]);
-    const overseerFetch = stagedOverseerFetch([...answersOf('serving-every-contract', 'GET /api/identity'), ...answersOf('serving', 'GET /api/summary')]);
+    const overseerFetch = stagedOverseerFetch([...identityAnswersOf('serving-every-contract'), ...answersOf('serving', 'GET /api/summary')]);
     const { watch, untilReadings } = watchOver(overseerFetch);
     watch.start();
 
     await untilReadings(onlyReadingIs('counts-only', 'paused'));
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/summary']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'GET /api/summary']);
   });
 });
 
@@ -353,24 +372,24 @@ describe('a forge that cannot be read', () => {
     await timers.untilPending(RECONNECT_MILLISECONDS);
     timers.fire(RECONNECT_MILLISECONDS);
     await timers.untilPending(RECONNECT_MILLISECONDS);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/identity']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'GET /api/versions', 'GET /api/identity']);
   });
 
   test('reads unreachable when another forge answers at the address its registry entry names, and opens no stream', async () => {
     writeRegistry([{}]);
-    const overseerFetch = stagedOverseerFetch(answersOf('serving', 'GET /api/identity'));
+    const overseerFetch = stagedOverseerFetch(identityAnswersOf('serving'));
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
 
     const unreachable = onlyReadingOf(await untilReadings(onlyReadingIs('unreachable', 'unreachable')));
     expect(unreachable.trackerId).toBe(STOREFRONT_TRACKER_ID);
     await timers.untilPending(RECONNECT_MILLISECONDS);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity']);
   });
 
   test('reads unreachable and closes the stream when an open stream sends only snapshots it cannot read', async () => {
     writeRegistry([{}]);
-    const overseerFetch = stagedOverseerFetch([...answersOf('serving-every-contract', 'GET /api/identity'), ...UNREADABLE_SNAPSHOTS_HELD_OPEN]);
+    const overseerFetch = stagedOverseerFetch([...identityAnswersOf('serving-every-contract'), ...UNREADABLE_SNAPSHOTS_HELD_OPEN]);
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
 
@@ -382,7 +401,7 @@ describe('a forge that cannot be read', () => {
   test('counts a stream whose token is refused as a failed try', async () => {
     writeRegistry([{}]);
     const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/monitor/events with bearer');
-    const overseerFetch       = stagedOverseerFetch([...answersOf('serving-every-contract', 'GET /api/identity'), ...tokenRejectedStream]);
+    const overseerFetch       = stagedOverseerFetch([...identityAnswersOf('serving-every-contract'), ...tokenRejectedStream]);
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
 
@@ -417,7 +436,7 @@ describe('the registry', () => {
     writeRegistry([{}]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'STREAM /api/monitor/events with bearer']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'STREAM /api/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -433,7 +452,7 @@ describe('the registry', () => {
     writeRegistry([{ lastCommand: 'ticket ready' }]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastCommand === 'ticket ready');
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'STREAM /api/monitor/events with bearer']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'STREAM /api/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -468,13 +487,13 @@ describe('the registry', () => {
   test('counts a forge it watches while the forge is still being identified for the first time', async () => {
     writeRegistry([{}]);
     const recordedFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
-    let identityWasAsked: () => void = () => undefined;
-    const identityAsked = new Promise<void>((resolve) => {
-      identityWasAsked = resolve;
+    let firstRequestWasAsked: () => void = () => undefined;
+    const firstRequestAsked = new Promise<void>((resolve) => {
+      firstRequestWasAsked = resolve;
     });
     const unansweredFetch: OverseerFetch = {
       request: () => {
-        identityWasAsked();
+        firstRequestWasAsked();
         return new Promise<OverseerAnswer>(() => undefined);
       },
       openStream: recordedFetch.openStream,
@@ -482,7 +501,7 @@ describe('the registry', () => {
     const { watch } = watchOver(unansweredFetch);
     watch.start();
 
-    await identityAsked;
+    await firstRequestAsked;
     expect(watch.readings()).toEqual([]);
     expect(watch.watchedForgeCount()).toBe(1);
   });
@@ -534,7 +553,7 @@ describe('a readings listener that throws', () => {
     await timers.untilPending(RECONNECT_MILLISECONDS);
     timers.fire(RECONNECT_MILLISECONDS);
     await timers.untilPending(RECONNECT_MILLISECONDS);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/identity', 'GET /api/identity']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'GET /api/versions', 'GET /api/identity']);
   });
 });
 
@@ -542,36 +561,100 @@ describe('a stopped watch', () => {
   test('opens no stream and starts no timer when an answer arrives after the stop', async () => {
     writeRegistry([{}]);
     const recordedFetch = stagedOverseerFetch(STAGE_ANSWERS.back);
-    let releaseIdentity: () => void = () => undefined;
+    let releaseFirstAnswer: () => void = () => undefined;
     // The held answer travels in a record: a promise settled with a promise would wait for it.
-    let identityWasAsked: (held: { readonly answer: Promise<OverseerAnswer> }) => void = () => undefined;
-    const identityAsked = new Promise<{ readonly answer: Promise<OverseerAnswer> }>((resolve) => {
-      identityWasAsked = resolve;
+    let firstRequestWasAsked: (held: { readonly answer: Promise<OverseerAnswer> }) => void = () => undefined;
+    const firstRequestAsked = new Promise<{ readonly answer: Promise<OverseerAnswer> }>((resolve) => {
+      firstRequestWasAsked = resolve;
     });
     const heldFetch: OverseerFetch = {
       request: (overseerRequest) => {
         const answer = new Promise<void>((resolve) => {
-          releaseIdentity = resolve;
+          releaseFirstAnswer = resolve;
         }).then(() => recordedFetch.request(overseerRequest));
-        identityWasAsked({ answer });
+        firstRequestWasAsked({ answer });
         return answer;
       },
       openStream: recordedFetch.openStream,
     };
     const { watch, timers } = watchOver(heldFetch);
     watch.start();
-    const held = await identityAsked;
+    const held = await firstRequestAsked;
 
     watch.stop();
-    releaseIdentity();
+    releaseFirstAnswer();
     await held.answer;
     // The watch takes the answer in the microtasks that follow it; the next turn of the event loop sees what it did with it.
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
     expect(timers.pendingDelays()).toEqual([]);
-    expect(recordedFetch.callShapes()).toEqual(['GET /api/identity']);
+    expect(recordedFetch.callShapes()).toEqual(['GET /api/versions']);
     expect(recordedFetch.streamsLeftOpen()).toBe(0);
     expect(watch.readings()).toEqual([]);
+  });
+});
+
+describe('a forge\'s system version', () => {
+  const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v2/monitor/events with bearer'];
+
+  async function onlyReadingOfVersionsSituation(situation: Parameters<typeof recordedVersionsAnswersOf>[0], knownForgeVersions: KnownForgeVersions | null = null) {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(recordedVersionsAnswersOf(situation));
+    const { watch, untilReadings } = watchOver(overseerFetch, [], new Set(), knownForgeVersions);
+    watch.start();
+    const reading = onlyReadingOf(await untilReadings((readings) => readings.length === 1 && readings[0]?.fidelity !== 'unreachable'));
+    return { reading, callShapes: overseerFetch.callShapes };
+  }
+
+  test('of a forge at the version this Gaia is built for is current, and it is read in full at the versioned paths', async () => {
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-current');
+    expect([reading.fidelity, reading.condition, reading.versions])
+      .toEqual(['full', 'live', { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } }]);
+    expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
+  });
+
+  test('of a forge ahead of this Gaia is ahead, and it is read in full with what this Gaia knows', async () => {
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-ahead');
+    expect([reading.fidelity, reading.versions]).toEqual(['full', { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } }]);
+    expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
+  });
+
+  test('of a forge behind this Gaia but not below its minimum is behind, and it is read in full without Flint\'s brain', async () => {
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-behind');
+    expect([reading.fidelity, reading.brain, reading.versions])
+      .toEqual(['full', 'not-reported', { verdict: 'behind', current: { major: 1, minor: 0 }, minimumSupported: { major: 1, minor: 0 } }]);
+    expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
+  });
+
+  test('of a forge whose minimum is above the version this Gaia is built for is newer: nothing more is asked and nothing of it is read', async () => {
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-newer');
+    expect([reading.fidelity, reading.condition, reading.agents, reading.versions])
+      .toEqual(['newer-contract', 'unreadable', [], { verdict: 'newer', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } }]);
+    expect(callShapes()).toEqual(['GET /api/versions']);
+  });
+
+  test('of a forge below the oldest version this Gaia talks to is older: nothing more is asked, and the forge needs an update', async () => {
+    const gaiaThatTalksToForgeTwoOnly: KnownForgeVersions = { supported: { major: 2, minor: 1 }, minimum: { major: 2, minor: 0 } };
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-current', gaiaThatTalksToForgeTwoOnly);
+    expect([reading.fidelity, reading.condition, reading.url, reading.versions])
+      .toEqual(['older-contract', 'unreadable', 'http://127.0.0.1:4951/', { verdict: 'older', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } }]);
+    expect(callShapes()).toEqual(['GET /api/versions']);
+  });
+
+  test('of a forge that publishes none is not reported, and it is read at today\'s paths exactly as before versions', async () => {
+    writeRegistry([{}]);
+    const overseerFetch = stagedOverseerFetch(answersOf('serving-every-contract'));
+    const { watch, untilReadings } = watchOver(overseerFetch);
+    watch.start();
+    const reading = onlyReadingOf(await untilReadings(onlyReadingIs('full', 'live')));
+    expect(reading.versions).toEqual(ForgeVersionsUtil.NOT_REPORTED);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'STREAM /api/monitor/events with bearer']);
+  });
+
+  test('of a forge whose versions cannot be read is not reported either, and it is read at today\'s paths', async () => {
+    const { reading, callShapes } = await onlyReadingOfVersionsSituation('versions-unreadable');
+    expect([reading.fidelity, reading.versions]).toEqual(['full', ForgeVersionsUtil.NOT_REPORTED]);
+    expect(callShapes()).toEqual(['GET /api/versions', 'GET /api/identity', 'STREAM /api/monitor/events with bearer']);
   });
 });

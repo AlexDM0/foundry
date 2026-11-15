@@ -327,6 +327,24 @@ function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
   };
 }
 
+/** The forge's system version is older than this Gaia still talks to: Gaia reads nothing of it, and Update forge brings it level. */
+function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
+  const { current } = forge.versions;
+  const { minimumForgeVersion } = fleetDocument.gaia.versions;
+  return {
+    tone:     'warn' as const,
+    word:     'Older than this Gaia',
+    sentence: 'Its version is older than this Gaia talks to. Gaia shows nothing of its work and sends it no command until the forge is updated. '
+      + 'Its agents keep running.',
+    machineLine: current === null ? null : `forge ${versionTextOf(current)}${META_SEPARATOR}this Gaia talks to ${versionTextOf(minimumForgeVersion)} and newer`,
+    actions:     [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
+  };
+}
+
+function versionTextOf({ major, minor }: { readonly major: number; readonly minor: number }): string {
+  return `${major}.${minor}`;
+}
+
 function countsOnlySentenceOf(forge: FleetDocumentForge): string {
   const known = [
     forge.attentionCount === null ? null : CountTextUtil.countedPhrase(forge.attentionCount, 'entry waits on you', 'entries wait on you'),
@@ -342,6 +360,8 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
       return unreachableCallout(forge, clock);
     case 'newer-contract':
       return newerContractCallout(forge, fleetDocument);
+    case 'older-contract':
+      return olderContractCallout(forge, fleetDocument);
     case 'baton-pass-failed':
       return {
         tone:        'error' as const,
@@ -407,6 +427,7 @@ const LOOK_CALLOUT_ORDER: readonly FleetDocumentLookKind[] = [
   'unreachable',
   'baton-pass-failed',
   'launches-held',
+  'older-contract',
   'newer-contract',
   'new-code',
   'counts-only',
@@ -524,6 +545,8 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
       return 'Counts and jobs only. No questions or reviews by name.';
     case 'newer-contract':
       return 'Nothing. Its contract is newer than this Gaia.';
+    case 'older-contract':
+      return 'Nothing until the forge is updated. Its version is older than this Gaia talks to.';
     case 'dormant':
       return 'Nothing while its Overseer is not running.';
     case 'repository-missing':

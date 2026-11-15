@@ -15,14 +15,17 @@ import {
   everyRecordedMonitorOneAnswerOf,
   everyRecordedMonitorThreeAnswerOf,
   everyRecordedOverseerAnswerOf,
+  everyRecordedVersionsAnswerOf,
   FLINT_BRAIN_SITUATIONS,
   OVERSEER_SITUATIONS,
   recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
+  recordedVersionsAnswersOf,
   recordedOverseerFetch,
   requestCallShapeOf,
   situationCallShapeOf,
   streamCallShapeOf,
+  VERSIONS_SITUATIONS,
   type FlintBrainSituation,
   type RecordedOverseerAnswer,
 } from './RecordedAnswers.ts';
@@ -100,7 +103,7 @@ describe('the recorded forge contracts', () => {
 
   test('hold a snapshot at every monitor number Gaia reads or still reads', () => {
     const monitorVersions = new Set(everyDocument().map((document) => document['monitorVersion']));
-    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor.major, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor];
+    const knownVersions = [CONTRACT_VERSIONS.forgeMonitor, ...OLDER_CONTRACT_VERSIONS_READ.forgeMonitor];
     for (const version of knownVersions) expect([version, monitorVersions.has(version)]).toEqual([version, true]);
   });
 
@@ -108,7 +111,7 @@ describe('the recorded forge contracts', () => {
     const documents = everyDocument();
     const identityControlVersions = new Set(documents.map((document) => (document['contracts'] as { control?: unknown } | undefined)?.control));
     const answerControlVersions = new Set(documents.map((document) => document['controlVersion']));
-    for (const version of [CONTRACT_VERSIONS.forgeControl.major, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]) {
+    for (const version of [CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]) {
       expect([version, identityControlVersions.has(version), answerControlVersions.has(version)]).toEqual([version, true, true]);
     }
   });
@@ -122,11 +125,12 @@ describe('the recorded states of Flint\'s brain', () => {
     expect(new Set(callShapes).size).toBe(callShapes.length);
   });
 
-  test('hold for each state the identity, the monitor, its stream and the command that brought the brain there', () => {
+  test('hold for each state the versions, the identity, the monitor, its stream and the command that brought the brain there', () => {
     for (const situation of FLINT_BRAIN_SITUATIONS) {
       expect([situation, recordedFlintBrainAnswersOf(situation).map(({ callShape }) => callShape).sort()]).toEqual([situation, [
         'GET /api/identity',
         'GET /api/monitor with bearer',
+        'GET /api/versions',
         'POST /api/commands with bearer',
         MONITOR_STREAM_CALL_SHAPE,
       ]]);
@@ -141,13 +145,13 @@ describe('the recorded states of Flint\'s brain', () => {
       const [command] = documentsAnsweredIn(answersOfCall('POST /api/commands with bearer'));
       expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
         situation,
-        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor.major, control: CONTRACT_VERSIONS.forgeControl.major }),
-        CONTRACT_VERSIONS.forgeControl.major,
+        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl }),
+        CONTRACT_VERSIONS.forgeControl,
       ]);
       const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/monitor with bearer'));
       // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.
       const lastStreamSnapshot = documentsAnsweredIn(answersOfCall(MONITOR_STREAM_CALL_SHAPE)).at(-1);
-      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor.major);
+      for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor);
       return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
     expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'gaia' }), expect.objectContaining({ state: 'running' })]);
@@ -157,6 +161,41 @@ describe('the recorded states of Flint\'s brain', () => {
       expect.objectContaining({ state: 'refused' }),
     ]);
     expect(brainOf('no-flint')).toEqual([null, null]);
+  });
+});
+
+describe('the recorded versions of forges', () => {
+  test('lead every call shape with a known situation, once', () => {
+    const callShapes = everyRecordedVersionsAnswerOf().map(({ callShape }) => callShape);
+    const situations = [...OVERSEER_SITUATIONS, ...FLINT_BRAIN_SITUATIONS, ...VERSIONS_SITUATIONS];
+    for (const callShape of callShapes) expect([callShape, situations.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))]).toEqual([callShape, true]);
+    expect(new Set(callShapes).size).toBe(callShapes.length);
+  });
+
+  test('answer the versions in every situation whose identity is recorded, since a watch asks them first', () => {
+    const identityShapes = [...everyRecordedOverseerAnswerOf(), ...everyRecordedMonitorOneAnswerOf(), ...everyRecordedMonitorThreeAnswerOf()]
+      .map(({ callShape }) => callShape)
+      .filter((callShape) => callShape.endsWith(': GET /api/identity'));
+    const versionsShapes = new Set(everyRecordedVersionsAnswerOf().map(({ callShape }) => callShape));
+    for (const identityShape of identityShapes) {
+      const versionsShape = identityShape.replace(': GET /api/identity', ': GET /api/versions');
+      expect([versionsShape, versionsShapes.has(versionsShape)]).toEqual([versionsShape, true]);
+    }
+  });
+
+  test('hold, for a forge that publishes versions Gaia talks to, each endpoint at its versioned path, and nothing more for one too new', () => {
+    const versionedEndpoints = [
+      'GET /api/v1/identity',
+      'GET /api/v2/monitor with bearer',
+      'GET /api/versions',
+      'POST /api/v1/commands with bearer',
+      'POST /api/v1/session-codes with bearer',
+      'STREAM /api/v2/monitor/events with bearer',
+    ];
+    for (const situation of ['versions-current', 'versions-ahead', 'versions-behind'] as const) {
+      expect([situation, recordedVersionsAnswersOf(situation).map(({ callShape }) => callShape).sort()]).toEqual([situation, versionedEndpoints]);
+    }
+    expect(recordedVersionsAnswersOf('versions-newer').map(({ callShape }) => callShape)).toEqual(['GET /api/versions']);
   });
 });
 

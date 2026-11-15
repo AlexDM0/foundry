@@ -4,6 +4,7 @@ import type { AttentionItem }                from '../../../shared/@types/Attent
 import type { FleetAgentRow, FleetSnapshot } from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeBrain }                   from '../../../shared/@types/ForgeBrain.ts';
 import type { ForgeReading, ForgeUsage }     from '../../../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil }                 from '../../../shared/utils/ForgeVersionsUtil.ts';
 
 export const FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -490,9 +491,10 @@ const EXAMPLE_STOREFRONT: ForgeReading = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 3, tokens: 512_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: STOREFRONT_BRAIN_RUNNING,
+  today:    { deliveredTickets: 3, tokens: 512_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    STOREFRONT_BRAIN_RUNNING,
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 const INVOICE_SERVICE: ForgeReading = {
@@ -579,9 +581,10 @@ const INVOICE_SERVICE: ForgeReading = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 2, tokens: 418_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 2, tokens: 418_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 const RESEARCH_WIKI: ForgeReading = {
@@ -632,9 +635,10 @@ const RESEARCH_WIKI: ForgeReading = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 1, tokens: 164_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 1, tokens: 164_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 const EXAMPLE_MOBILE_APP: ForgeReading = {
@@ -686,9 +690,10 @@ const EXAMPLE_MOBILE_APP: ForgeReading = {
       tokens:      null,
     },
   ],
-  today: { deliveredTickets: 0, tokens: 146_000 },
-  usage: USAGE_UNDER_THE_LIMIT,
-  brain: BRAIN_OFF,
+  today:    { deliveredTickets: 0, tokens: 146_000 },
+  usage:    USAGE_UNDER_THE_LIMIT,
+  brain:    BRAIN_OFF,
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -729,9 +734,10 @@ const DESIGN_SYSTEM: ForgeReading = {
     kind:        null,
     tokens:      null,
   }],
-  today: null,
-  usage: null,
-  brain: 'not-reported',
+  today:    null,
+  usage:    null,
+  brain:    'not-reported',
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 const LEGACY_IMPORTER: ForgeReading = {
@@ -765,6 +771,7 @@ const LEGACY_IMPORTER: ForgeReading = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
+  versions:          ForgeVersionsUtil.NOT_REPORTED,
 };
 
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
@@ -903,6 +910,11 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
       monitor: 3,
       control: 2,
       embed:   1,
+    },
+    versions: {
+      systemVersion:         { major: 1, minor: 0 },
+      supportedForgeVersion: { major: 1, minor: 1 },
+      minimumForgeVersion:   { major: 1, minor: 0 },
     },
   },
 };

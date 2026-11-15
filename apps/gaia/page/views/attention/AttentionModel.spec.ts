@@ -375,6 +375,27 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
   });
 
+  test('a forge too old for this Gaia to talk to is a warn callout with both versions, Update forge as its primary and Open in new tab', () => {
+    const olderSandbox = {
+      ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
+      fidelity: 'older-contract',
+      versions: { verdict: 'older', current: { major: 0, minor: 9 }, minimumSupported: { major: 0, minor: 5 } },
+    } as FleetDocument['forges'][number];
+    const olderDocument: FleetDocument = {
+      ...FLEET_DEGRADED,
+      forges:     FLEET_DEGRADED.forges.map((forge) => (forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? olderSandbox : forge)),
+      needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
+    };
+    const older = lookOf(fleetContentOf(olderDocument), ANALYTICS_SANDBOX_TRACKER_ID);
+    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia talks to 1.0 and newer']);
+    expect(actionsOf(older)).toEqual([
+      ['Update forge', 'primary', { kind: 'forge-update', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
+      ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
+    ]);
+    expect(fleetContentOf(olderDocument).readings?.find((reading) => reading.trackerId === ANALYTICS_SANDBOX_TRACKER_ID)?.readingText)
+      .toBe('Nothing until the forge is updated. Its version is older than this Gaia talks to.');
+  });
+
   test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, reading.contractText, reading.readingText, reading.totalsCannotVouchForIt])).toEqual([

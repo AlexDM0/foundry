@@ -13,7 +13,7 @@ import type { RegisteredForge, RegisteredOverseer }                  from '../..
 import { registeredForgesOf, type RegistryReading }                  from '../../adapters/forge-registry/RegistryFile.ts';
 import type { PathChoiceVerdict }                                    from '../../adapters/path-chooser/@types/PathChoiceVerdict.ts';
 import type { PathChooser }                                          from '../../adapters/path-chooser/PathChooser.ts';
-import type { ForgeCommandAnswer }                                   from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeCommandAnswer, OverseerAccess, OverseerPaths }    from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                          from '../../lib/forge-client/ForgeClient.ts';
 import type { SettingsStore, SettingsUpdate, SettingsUpdateVerdict } from '../../services/SettingsStore.ts';
 import type { CommandVerdict, GaiaRefusal, RegistryRefusal }         from '../../shared/@types/CommandVerdict.ts';
@@ -27,6 +27,7 @@ import type {
 import type { GaiaSettings }                               from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS, OLDER_CONTRACT_VERSIONS_READ } from '../../shared/constants/ContractVersions.ts';
 import { OVERSEER_ANSWERED_FIDELITIES }                    from '../../shared/constants/ForgeFidelities.ts';
+import { ForgeVersionsUtil }                               from '../../shared/utils/ForgeVersionsUtil.ts';
 
 import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
 
@@ -59,7 +60,7 @@ const RUNNING_FOR_LOGIN_ITEMS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFide
 const LOGIN_ITEM_REMOVED_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'unreachable', 'dormant']);
 
 /** The control majors Gaia sends to, at any minor: the current one, and the older ones, which lack only the commands the later ones add. */
-const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl.major, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]);
+const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.forgeControl, ...OLDER_CONTRACT_VERSIONS_READ.forgeControl]);
 
 /**
  * `api`: the Overseer answers and speaks a control contract Gaia sends to, named by `controlVersion`. `control-unknown`: it answers in
@@ -67,9 +68,11 @@ const CONTROL_VERSIONS_SENT: ReadonlySet<number> = new Set([CONTRACT_VERSIONS.fo
  * one the watch read, so the contract read is not that Overseer's.
  */
 type ApiReach =
-  | { readonly reach: 'api'; readonly overseer: RegisteredOverseer; readonly controlVersion: number }
+  | { readonly reach: 'api'; readonly overseer: RegisteredOverseer; readonly paths: OverseerPaths; readonly controlVersion: number }
   | { readonly reach: 'control-unknown' }
   | { readonly reach: 'no-overseer' };
+
+type ApiReachOverApi = Extract<ApiReach, { readonly reach: 'api' }>;
 
 function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
   return { verdict: 'refused', refusedBy: 'gaia', refusal };
@@ -79,7 +82,10 @@ function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiRe
   const { overseer } = forge;
   if (overseer === null || reading === null || reading.url !== overseer.url || !OVERSEER_ANSWERED_FIDELITIES.has(reading.fidelity)) return { reach: 'no-overseer' };
   const controlVersion = reading.contracts.control;
-  return controlVersion !== null && CONTROL_VERSIONS_SENT.has(controlVersion) ? { reach: 'api', overseer, controlVersion } : { reach: 'control-unknown' };
+  if (controlVersion === null || !CONTROL_VERSIONS_SENT.has(controlVersion)) return { reach: 'control-unknown' };
+  return {
+    reach: 'api', overseer, paths: ForgeVersionsUtil.overseerPathsOf(reading.versions), controlVersion,
+  };
 }
 
 function programTargetOf(forge: RegisteredForge): ForgeProgramTarget {
@@ -185,10 +191,11 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
   }
 
   /** Sends the commands in order and stops at the first that is not taken; done when any of them changed something. */
-  async function sendOverApi(overseer: RegisteredOverseer, controlCommands: readonly ForgeControlCommand[]): Promise<CommandVerdict> {
+  async function sendOverApi(apiReach: ApiReachOverApi, controlCommands: readonly ForgeControlCommand[]): Promise<CommandVerdict> {
+    const { overseer, paths } = apiReach;
     const bearerToken = overseer.tokenPath === null ? null : await new OverseerTokenFile(overseer.tokenPath).read();
     if (bearerToken === null) return gaiaRefusalOf('token-unreadable');
-    const access = { overseerUrl: overseer.url, bearerToken };
+    const access: OverseerAccess = { overseerUrl: overseer.url, paths, bearerToken };
     let anyCommandChangedSomething = false;
     for (const controlCommand of controlCommands) {
       const answer = await forgeClient.send(access, controlCommand);
@@ -203,7 +210,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     const apiReach = apiReachOf(forge, reading);
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
     if (apiReach.reach === 'no-overseer') return { verdict: 'unreachable' };
-    return sendOverApi(apiReach.overseer, [controlCommand]);
+    return sendOverApi(apiReach, [controlCommand]);
   }
 
   /** A command of Flint's brain, which only an Overseer at a control contract that serves the brain is sent; Gaia refuses it under an older one. */
@@ -212,7 +219,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
     if (apiReach.reach === 'no-overseer') return { verdict: 'unreachable' };
     if (apiReach.controlVersion < FLINT_BRAIN_CONTRACT_VERSIONS.control) return gaiaRefusalOf('brain-not-served');
-    return sendOverApi(apiReach.overseer, [controlCommand]);
+    return sendOverApi(apiReach, [controlCommand]);
   }
 
   /**
@@ -225,7 +232,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     if (apiReach.reach === 'api') {
       const overseerStop: ForgeControlCommand = { kind: 'overseer-stop', now: false };
       const controlCommands: readonly ForgeControlCommand[] = agents === 'stop-first' ? [{ kind: 'job-stop-all', mode: 'stop' }, overseerStop] : [overseerStop];
-      const apiVerdict = await sendOverApi(apiReach.overseer, controlCommands);
+      const apiVerdict = await sendOverApi(apiReach, controlCommands);
       if (!apiLeftTheCommandUncarried(apiVerdict)) return apiVerdict;
     }
     return ProgramVerdictUtil.verdictOfProgram(await forgeProgram.stop(programTargetOf(forge)), (answer) => answer.outcome);
@@ -251,7 +258,7 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     for (const forge of forges) {
       const apiReach = apiReachOf(forge, readingOf(forge.trackerId));
       if (apiReach.reach !== 'api') continue;
-      const apiVerdict = await sendOverApi(apiReach.overseer, [{ kind: 'machine-agent-limit-set', limit }]);
+      const apiVerdict = await sendOverApi(apiReach, [{ kind: 'machine-agent-limit-set', limit }]);
       if (!apiLeftTheCommandUncarried(apiVerdict)) return apiVerdict;
     }
     const forgeWithItsRepository = forges.find((forge) => readingOf(forge.trackerId)?.fidelity !== 'repository-missing');

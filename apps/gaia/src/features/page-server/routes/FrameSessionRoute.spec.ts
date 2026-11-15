@@ -29,7 +29,7 @@ import {
 } from '../../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from '../../../testing/ScratchRoot.ts';
 
-import { frameSessionAnswerFor, trackerIdOfFrameSessionPath, type FrameSessionSources } from './FrameSessionRoute.ts';
+import { frameSessionAnswerFor, trackerIdOfFrameSessionEndpoint, type FrameSessionSources } from './FrameSessionRoute.ts';
 
 const STOREFRONT_TRACKER_ID = 'example-storefront-7c41';
 const STOREFRONT_URL = 'http://127.0.0.1:4951/';
@@ -131,7 +131,6 @@ describe('a forge that serves the embed channel', () => {
     expect(exchange.status).toBe(200);
     expect(exchange.document).toEqual({
       frameSessionVersion: 1,
-      frameSessionMinor:   0,
       outcome:             'done',
       frameUrl:            `${STOREFRONT_URL}?embedded=gaia#session=${recordedSessionCode()}`,
       refusal:             null,
@@ -194,7 +193,7 @@ describe('a forge with no embed channel Gaia knows', () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf({ contracts: { ...EVERY_CONTRACT, embed: null } }), overseerFetch));
     expect(exchange.status).toBe(501);
     expect(exchange.document).toEqual({
-      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'not-supported', frameUrl: null, refusal: null, text: null,
+      frameSessionVersion: 1, outcome: 'not-supported', frameUrl: null, refusal: null, text: null,
     });
     expect(overseerFetch.callsAnswered()).toEqual([]);
   });
@@ -238,7 +237,7 @@ describe('a forge that gives no code', () => {
     const exchange = await exchangeOf(sourcesOver(exampleForgeOf(), overseerAnswering('token-rejected')));
     expect(exchange.status).toBe(409);
     expect(exchange.document).toEqual({
-      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'refused', frameUrl: null, refusal: 'token-rejected', text: null,
+      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'token-rejected', text: null,
     });
   });
 
@@ -279,19 +278,19 @@ describe('a forge that gives no code', () => {
   });
 });
 
-describe('the path', () => {
-  test('names the tracker id between /api/forges/ and /frame-session', () => {
-    expect(trackerIdOfFrameSessionPath(`/api/forges/${STOREFRONT_TRACKER_ID}/frame-session`)).toBe(STOREFRONT_TRACKER_ID);
+describe('the endpoint', () => {
+  test('names the tracker id between forges/ and /frame-session', () => {
+    expect(trackerIdOfFrameSessionEndpoint(`forges/${STOREFRONT_TRACKER_ID}/frame-session`)).toBe(STOREFRONT_TRACKER_ID);
   });
 
   test('decodes a tracker id the page encoded', () => {
-    expect(trackerIdOfFrameSessionPath('/api/forges/example%20storefront/frame-session')).toBe('example storefront');
+    expect(trackerIdOfFrameSessionEndpoint('forges/example%20storefront/frame-session')).toBe('example storefront');
   });
 
-  test('names nothing for another path, an empty id, an id across folders or an encoding that does not decode', () => {
-    expect(trackerIdOfFrameSessionPath('/api/forges/example-storefront-7c41')).toBeNull();
-    expect(trackerIdOfFrameSessionPath('/api/forges//frame-session')).toBeNull();
-    expect(trackerIdOfFrameSessionPath('/api/forges/example/storefront/frame-session')).toBeNull();
-    expect(trackerIdOfFrameSessionPath('/api/forges/example%E0%A4%A/frame-session')).toBeNull();
+  test('names nothing for another endpoint, an empty id, an id across folders or an encoding that does not decode', () => {
+    expect(trackerIdOfFrameSessionEndpoint('forges/example-storefront-7c41')).toBeNull();
+    expect(trackerIdOfFrameSessionEndpoint('forges//frame-session')).toBeNull();
+    expect(trackerIdOfFrameSessionEndpoint('forges/example/storefront/frame-session')).toBeNull();
+    expect(trackerIdOfFrameSessionEndpoint('forges/example%E0%A4%A/frame-session')).toBeNull();
   });
 });

@@ -122,6 +122,13 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:                   'forge',
     forgeRequirementsAwaited: ['G1', 'G2', 'G3'],
   },
+  {
+    recordingName:            'overseer-fetch-versions',
+    boundaryModule:           'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:            'src/lib/forge-client/OverseerFetch.versions.recording.spec.ts',
+    system:                   'forge',
+    forgeRequirementsAwaited: ['V1', 'V2', 'V3'],
+  },
 ];
 
 export const RECORDING_SPEC_SUFFIX = '.recording.spec.ts';
@@ -242,7 +249,7 @@ export function boundaryRecordingReadingOf(recordingText: string): BoundaryRecor
   }
   if (!isRecord(parsed)) return { verdict: 'unreadable', reason: 'it is no JSON object' };
   const versionReading = ContractVersionUtil.versionOf(parsed, RECORDING_VERSION_KEYS);
-  if (versionReading.verdict !== 'versioned' || ContractVersionUtil.majorVerdictOf(versionReading.version.major, CONTRACT_VERSIONS.boundaryRecording) !== 'known') {
+  if (versionReading.verdict !== 'versioned' || ContractVersionUtil.majorVerdictOf(versionReading.version.major, CONTRACT_VERSIONS.boundaryRecording.major) !== 'known') {
     const { recordingVersion } = parsed;
     return { verdict: 'unreadable', reason: `its recordingVersion is ${String(recordingVersion)}, and Gaia reads ${CONTRACT_VERSIONS.boundaryRecording.major}` };
   }

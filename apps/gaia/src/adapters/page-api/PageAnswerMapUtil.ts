@@ -15,15 +15,14 @@ export type UnreadableCommandReading = Exclude<GaiaCommandReading, { readonly ve
 
 function answerOf(outcome: CommandAnswerDocument['outcome'], refusal: string | null = null, text: string | null = null): CommandAnswerDocument {
   return {
-    answerVersion: CONTRACT_VERSIONS.gaiaCommandAnswer.major,
-    answerMinor:   CONTRACT_VERSIONS.gaiaCommandAnswer.minor,
+    answerVersion: CONTRACT_VERSIONS.gaiaCommandAnswer,
     outcome,
     refusal,
     text,
   };
 }
 
-type FrameSessionAnswerContent = Omit<FrameSessionAnswerDocument, 'frameSessionVersion' | 'frameSessionMinor'>;
+type FrameSessionAnswerContent = Omit<FrameSessionAnswerDocument, 'frameSessionVersion'>;
 
 function frameSessionAnswerContentOf(verdict: FrameSessionVerdict): FrameSessionAnswerContent {
   switch (verdict.verdict) {
@@ -61,8 +60,7 @@ export const PageAnswerMapUtil = {
 
   frameSessionAnswerOf(verdict: FrameSessionVerdict): FrameSessionAnswerDocument {
     return {
-      frameSessionVersion: CONTRACT_VERSIONS.gaiaFrameSession.major,
-      frameSessionMinor:   CONTRACT_VERSIONS.gaiaFrameSession.minor,
+      frameSessionVersion: CONTRACT_VERSIONS.gaiaFrameSession,
       ...frameSessionAnswerContentOf(verdict),
     };
   },

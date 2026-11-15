@@ -4,8 +4,9 @@
  * the server record; it removes the record when it stops, and refuses to start where Gaia already answers.
  */
 import { createServerRecordWriter, type ServerRecordRemoveVerdict }                                from '../../adapters/gaia-files/ServerRecordWriter.ts';
-import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS, SESSION_CODES_PATH }            from '../../adapters/gaia-server/GaiaServerClient.ts';
-import { HEALTH_PATH, type ForgeCounts }                                                           from '../../adapters/gaia-server/HealthDocument.ts';
+import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                                from '../../adapters/gaia-server/GaiaServerClient.ts';
+import type { ForgeCounts }                                                                        from '../../adapters/gaia-server/HealthDocument.ts';
+import { ApiPathUtil, type EndpointOfPath }                                                        from '../../lib/api-paths/ApiPathUtil.ts';
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor, withContentSecurityPolicy } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
 import { hostGuardVerdictFor }                                                                     from '../../lib/local-http-guards/HostGuard.ts';
 import { originGuardVerdictFor }                                                                   from '../../lib/local-http-guards/OriginGuard.ts';
@@ -14,19 +15,21 @@ import { bearerTokenMatches }                                                   
 import { monotonicMillisecondsOfNow }                                                              from '../../services/Clock.ts';
 import type { ClockTimers }                                                                        from '../../services/Clock.ts';
 import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
+import { GAIA_ENDPOINT_VERSIONS }                                                                  from '../../shared/constants/GaiaSystemVersions.ts';
 import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
-import { COMMANDS_PATH, commandAnswerFor, type CommandCarrier }                                    from './routes/CommandsRoute.ts';
+import { commandAnswerFor, type CommandCarrier }                                                   from './routes/CommandsRoute.ts';
 import {
   FRAME_SESSION_METHOD,
   frameSessionAnswerFor,
-  trackerIdOfFrameSessionPath,
+  trackerIdOfFrameSessionEndpoint,
   type FrameSessionSources,
 } from './routes/FrameSessionRoute.ts';
 import { healthAnswerOf }                                                      from './routes/HealthRoute.ts';
 import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
 import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
+import { versionsAnswerOf }                                                    from './routes/VersionsRoute.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -65,12 +68,18 @@ export type PageServerStartVerdict =
 type RouteAccess = 'open' | 'token' | 'session-or-token';
 
 interface PageServerRoute {
-  readonly method:      'GET' | 'POST';
-  readonly matchesPath: (pathname: string) => boolean;
-  readonly access:      RouteAccess;
+  readonly method:          'GET' | 'POST';
+  /** Asked of the endpoint below `/api/` without its version, such as `fleet`. */
+  readonly matchesEndpoint: (endpoint: string) => boolean;
+  /**
+   * Served at `/api/v<version>/<endpoint>` and at `/api/<endpoint>`, which a page or a launcher from before versioned paths calls, so a
+   * window open across an upgrade keeps working; `null` for the one route served only at its unversioned path, `/api/versions`.
+   */
+  readonly version:         number | null;
+  readonly access:          RouteAccess;
   /** A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing. */
-  readonly isStream:    boolean;
-  readonly answer:      (request: Request, pathname: string) => Response | Promise<Response>;
+  readonly isStream:        boolean;
+  readonly answer:          (request: Request, endpoint: string) => Response | Promise<Response>;
 }
 
 const LOOPBACK_ADDRESS = '127.0.0.1';
@@ -109,12 +118,12 @@ function fleetAnswerOf(broker: FleetBroker): Response {
   return new Response(broker.fleetDocumentJson(), { headers: { 'content-type': JSON_CONTENT_TYPE, 'cache-control': 'no-store' } });
 }
 
-function exactly(path: string): (pathname: string) => boolean {
-  return (pathname) => pathname === path;
+function exactly(expectedEndpoint: string): (endpoint: string) => boolean {
+  return (endpoint) => endpoint === expectedEndpoint;
 }
 
-function frameSessionAnswerOf(pathname: string, sources: FrameSessionSources): Promise<Response> {
-  const trackerId = trackerIdOfFrameSessionPath(pathname);
+function frameSessionAnswerOf(endpoint: string, sources: FrameSessionSources): Promise<Response> {
+  const trackerId = trackerIdOfFrameSessionEndpoint(endpoint);
   return trackerId === null ? Promise.resolve(refusalAnswerOf('not-found')) : frameSessionAnswerFor(trackerId, sources);
 }
 
@@ -122,55 +131,76 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
   const { broker, sessionCodes, options } = context;
   return [
     {
-      method:      'GET',
-      matchesPath: exactly(HEALTH_PATH),
-      access:      'open',
-      isStream:    false,
-      answer:      () => healthAnswerOf(options.forgeCounts()),
+      method:          'GET',
+      matchesEndpoint: exactly('versions'),
+      version:         null,
+      access:          'open',
+      isStream:        false,
+      answer:          () => versionsAnswerOf(),
     },
     {
-      method:      'POST',
-      matchesPath: exactly(SESSION_CODES_PATH),
-      access:      'token',
-      isStream:    false,
-      answer:      () => sessionCodeAnswerOf(sessionCodes),
+      method:          'GET',
+      matchesEndpoint: exactly('health'),
+      version:         GAIA_ENDPOINT_VERSIONS.health,
+      access:          'open',
+      isStream:        false,
+      answer:          () => healthAnswerOf(options.forgeCounts()),
     },
     {
-      method:      'POST',
-      matchesPath: exactly('/api/session'),
-      access:      'open',
-      isStream:    false,
-      answer:      (request) => sessionExchangeAnswerFor(request, sessionCodes),
+      method:          'POST',
+      matchesEndpoint: exactly('session-codes'),
+      version:         GAIA_ENDPOINT_VERSIONS.sessionCodes,
+      access:          'token',
+      isStream:        false,
+      answer:          () => sessionCodeAnswerOf(sessionCodes),
     },
     {
-      method:      'GET',
-      matchesPath: exactly('/api/fleet'),
-      access:      'session-or-token',
-      isStream:    false,
-      answer:      () => fleetAnswerOf(broker),
+      method:          'POST',
+      matchesEndpoint: exactly('session'),
+      version:         GAIA_ENDPOINT_VERSIONS.session,
+      access:          'open',
+      isStream:        false,
+      answer:          (request) => sessionExchangeAnswerFor(request, sessionCodes),
     },
     {
-      method:      'GET',
-      matchesPath: exactly('/api/events'),
-      access:      'session-or-token',
-      isStream:    true,
-      answer:      () => broker.openEventStream(),
+      method:          'GET',
+      matchesEndpoint: exactly('fleet'),
+      version:         GAIA_ENDPOINT_VERSIONS.fleet,
+      access:          'session-or-token',
+      isStream:        false,
+      answer:          () => fleetAnswerOf(broker),
     },
     {
-      method:      'POST',
-      matchesPath: exactly(COMMANDS_PATH),
-      access:      'session-or-token',
-      isStream:    false,
-      answer:      (request) => commandAnswerFor(request, options.carryCommand),
+      method:          'GET',
+      matchesEndpoint: exactly('events'),
+      version:         GAIA_ENDPOINT_VERSIONS.events,
+      access:          'session-or-token',
+      isStream:        true,
+      answer:          () => broker.openEventStream(),
     },
     {
-      method:      FRAME_SESSION_METHOD,
-      matchesPath: (pathname) => trackerIdOfFrameSessionPath(pathname) !== null,
-      access:      'session-or-token',
-      isStream:    false,
-      answer:      (_request, pathname) => frameSessionAnswerOf(pathname, options.frameSessionSources),
+      method:          'POST',
+      matchesEndpoint: exactly('commands'),
+      version:         GAIA_ENDPOINT_VERSIONS.commands,
+      access:          'session-or-token',
+      isStream:        false,
+      answer:          (request) => commandAnswerFor(request, options.carryCommand),
+    },
+    {
+      method:          FRAME_SESSION_METHOD,
+      matchesEndpoint: (endpoint) => trackerIdOfFrameSessionEndpoint(endpoint) !== null,
+      version:         GAIA_ENDPOINT_VERSIONS.frameSession,
+      access:          'session-or-token',
+      isStream:        false,
+      answer:          (_request, endpoint) => frameSessionAnswerOf(endpoint, options.frameSessionSources),
     },
   ];
+}
+
+/** A route answers at its versioned path and at its unversioned one; at another version, or a version of an unversioned-only route, at neither. */
+function routeServesPath(route: PageServerRoute, { endpoint, version }: EndpointOfPath): boolean {
+  if (!route.matchesEndpoint(endpoint)) return false;
+  return version === null || version === route.version;
 }
 
 function accessIsGranted(request: Request, access: RouteAccess, context: RouteContext): boolean {
@@ -189,16 +219,16 @@ async function routedAnswerFor(request: Request, server: Bun.Server<undefined>, 
   const originVerdict = originGuardVerdictFor(request, port);
   if (originVerdict !== 'admitted') return refusalAnswerOf(originVerdict);
   const { pathname } = new URL(request.url);
-  const routesOfPath = routes.filter((route) => route.matchesPath(pathname));
-  if (routesOfPath.length === 0) {
-    const isPageFile = request.method === 'GET' && !pathname.startsWith(API_PATH_PREFIX);
-    return isPageFile ? pageFileAnswerFor(context.options.pageFiles, pathname) : refusalAnswerOf('not-found');
-  }
+  const endpointOfPath = ApiPathUtil.endpointOfPath(pathname);
+  const isPageFile = request.method === 'GET' && !pathname.startsWith(API_PATH_PREFIX);
+  if (endpointOfPath === null) return isPageFile ? pageFileAnswerFor(context.options.pageFiles, pathname) : refusalAnswerOf('not-found');
+  const routesOfPath = routes.filter((route) => routeServesPath(route, endpointOfPath));
+  if (routesOfPath.length === 0) return refusalAnswerOf('not-found');
   const route = routesOfPath.find((candidate) => candidate.method === request.method);
   if (route === undefined) return refusalAnswerOf('method-not-allowed');
   if (!accessIsGranted(request, route.access, context)) return refusalAnswerOf(refusalOfAccess(route.access));
   if (route.isStream) server.timeout(request, NO_IDLE_TIMEOUT);
-  return route.answer(request, pathname);
+  return route.answer(request, endpointOfPath.endpoint);
 }
 
 export async function startPageServer(options: PageServerOptions): Promise<PageServerStartVerdict> {

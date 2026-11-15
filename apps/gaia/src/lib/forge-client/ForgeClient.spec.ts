@@ -2,7 +2,8 @@
  * Every call of the forge client answers a document or a verdict, never a throw, and each outcome of each call is proven against an answer
  * recorded from a real forge, or from a program that is no forge; the table below uses every such answer, so none is left unproven. A
  * monitor stream that ends inside an event hands on no half snapshot, and one whose snapshot handler throws is closed all the same. The
- * token travels as a bearer on the guarded routes only, and no answer carries it.
+ * token travels as a bearer on the guarded routes only, and no answer carries it. A forge that publishes its versions is called at each
+ * endpoint's versioned path, one before them at today's paths, and `/api/versions` at its one path, which a forge before them refuses.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -12,16 +13,18 @@ import {
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
   situationCallShapeOf,
+  recordedVersionsAnswersOf,
   type OverseerSituation,
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
 
-import type { OverseerAccess } from './@types/ForgeClientAnswer.ts';
-import { forgeClientOf }       from './ForgeClient.ts';
+import type { OverseerAccess, OverseerAddress } from './@types/ForgeClientAnswer.ts';
+import { forgeClientOf }                        from './ForgeClient.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const ACCESS: OverseerAccess = { overseerUrl: OVERSEER_URL, bearerToken: EXAMPLE_TOKEN };
+const ADDRESS: OverseerAddress = { overseerUrl: OVERSEER_URL, paths: 'unversioned' };
+const ACCESS: OverseerAccess = { ...ADDRESS, bearerToken: EXAMPLE_TOKEN };
 const SHORT_BOUND_MILLISECONDS = 200;
 
 function overseerFetchOf(situation: OverseerSituation): RecordedOverseerFetch {
@@ -68,14 +71,14 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     call:      'identityOf',
     situation: 'serving',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  { verdict: 'answered', document: expect.objectContaining({ application: 'forge', project: 'Example Project' }) },
   },
   {
     call:      'identityOf',
     situation: 'serving-every-contract',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
@@ -90,56 +93,56 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     call:      'identityOf',
     situation: 'stopped',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'identityOf',
     situation: 'not-answering',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'identityOf',
     situation: 'starting',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  { verdict: 'refused', refusal: 'starting', text: null },
   },
   {
     call:      'identityOf',
     situation: 'port-held-by-another-program',
     callShape: 'GET /api/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'summaryOf',
     situation: 'serving',
     callShape: 'GET /api/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
     expected:  { verdict: 'answered', document: expect.objectContaining({ summaryVersion: 1, project: 'Example Project' }) },
   },
   {
     call:      'summaryOf',
     situation: 'stopped',
     callShape: 'GET /api/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'summaryOf',
     situation: 'board-unreadable',
     callShape: 'GET /api/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
     expected:  READ_FAILED,
   },
   {
     call:      'summaryOf',
     situation: 'port-held-by-another-program',
     callShape: 'GET /api/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(OVERSEER_URL),
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
     expected:  { verdict: 'malformed' },
   },
   {
@@ -398,16 +401,45 @@ describe('following a monitor stream', () => {
   });
 });
 
+describe('the paths an Overseer is called at', () => {
+  test('are /api/versions for its versions, and each endpoint at the version this client knows for a forge that publishes them', async () => {
+    const versionedFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-current'));
+    const client = clientOf(versionedFetch);
+    const versionedAddress: OverseerAddress = { overseerUrl: OVERSEER_URL, paths: 'versioned' };
+    const versionedAccess: OverseerAccess = { ...versionedAddress, bearerToken: EXAMPLE_TOKEN };
+    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } } });
+    await client.identityOf(versionedAddress);
+    await client.monitorOf(versionedAccess);
+    await client.sessionCodeOf(versionedAccess);
+    await client.send(versionedAccess, PAUSE_COMMAND);
+    const follow = client.followMonitor(versionedAccess, () => undefined);
+    follow.stop();
+    await follow.ended;
+    expect(versionedFetch.callsAnswered().map(({ callShape }) => callShape)).toEqual([
+      'GET /api/versions',
+      'GET /api/v1/identity',
+      'GET /api/v2/monitor with bearer',
+      'POST /api/v1/session-codes with bearer',
+      'POST /api/v1/commands with bearer',
+      'STREAM /api/v2/monitor/events with bearer',
+    ]);
+  });
+
+  test('answer the refusal a forge from before versions gives its versions, as it gives any unknown path', async () => {
+    expect(await clientOf(overseerFetchOf('serving-every-contract')).versionsOf(OVERSEER_URL)).toEqual({ verdict: 'refused', refusal: 'not-found', text: null });
+  });
+});
+
 describe('the token', () => {
   test('travels as a bearer on every guarded route and on no open one', async () => {
     const servingFetch = overseerFetchOf('serving-every-contract');
     const client       = clientOf(servingFetch);
-    await client.identityOf(OVERSEER_URL);
+    await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
     await client.sessionCodeOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
     const todaysFetch = overseerFetchOf('serving');
-    await clientOf(todaysFetch).summaryOf(OVERSEER_URL);
+    await clientOf(todaysFetch).summaryOf(ADDRESS);
     expect([...servingFetch.callsAnswered(), ...todaysFetch.callsAnswered()].map(({ callShape, bearerToken }) => [callShape, bearerToken])).toEqual([
       ['GET /api/identity', null],
       ['GET /api/monitor with bearer', EXAMPLE_TOKEN],

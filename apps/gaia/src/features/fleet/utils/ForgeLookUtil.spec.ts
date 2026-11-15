@@ -43,6 +43,10 @@ describe('one look per row of PLAN 7.2', () => {
     expect(ForgeLookUtil.lookKindOf(liveForgeWith({ fidelity: 'newer-contract', condition: 'unreadable' }))).toBe('newer-contract');
   });
 
+  test('a forge whose system version is older than this Gaia talks to needs the look older-contract', () => {
+    expect(ForgeLookUtil.lookKindOf(liveForgeWith({ fidelity: 'older-contract', condition: 'unreadable' }))).toBe('older-contract');
+  });
+
   test('row 3: a warning of a failed Baton pass needs the look baton-pass-failed', () => {
     expect(ForgeLookUtil.lookKindOf(liveForgeWith({ warnings: [BATON_PASS_FAILED] }))).toBe('baton-pass-failed');
   });

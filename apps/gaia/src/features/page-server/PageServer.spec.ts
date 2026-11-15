@@ -2,10 +2,12 @@
  * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
  * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
  * per guard, a command carried through the command port and answered with its verdict, a frame session routed behind the session guard,
- * and the CSP on every answer, refusals and failures included. It refuses to start where Gaia already answers, and a start that loses the
- * port leaves the token as it was; a stop leaves a newer Gaia's server record standing. The page's files are a stand-in for the build,
- * whose own spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the frame
- * session route's own spec asks a forge for a code; the heartbeat's timers are fired by hand.
+ * and the CSP on every answer, refusals and failures included. Gaia's system version answers at `/api/versions`, unversioned only; every
+ * other route answers at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to
+ * start where Gaia already answers, and a start that loses the port leaves the token as it was; a stop leaves a newer Gaia's server record
+ * standing. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
+ * forge-control, whose own spec carries every kind; the frame session route's own spec asks a forge for a code; the heartbeat's timers
+ * are fired by hand.
  */
 import {
   mkdirSync,
@@ -32,7 +34,9 @@ import { forgeClientOf }                                                from '..
 import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
 import { createFleetStore, type FleetStore }                            from '../../services/FleetStore.ts';
 import type { CommandVerdict }                                          from '../../shared/@types/CommandVerdict.ts';
+import type { FleetSnapshot }                                           from '../../shared/@types/FleetSnapshot.ts';
 import type { GaiaCommand }                                             from '../../shared/@types/GaiaCommand.ts';
+import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }          from '../../shared/constants/GaiaSystemVersions.ts';
 import { manualTimers, type ManualTimers }                              from '../../testing/ManualTimers.ts';
 import { recordedOverseerFetch, type RecordedOverseerFetch }            from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
@@ -179,11 +183,15 @@ function eventReaderOf(response: Response): EventReader {
   };
 }
 
-async function openEvents(pageServer: PageServer, cookie: string): Promise<{ readonly response: Response; readonly events: EventReader }> {
+async function openEvents(pageServer: PageServer, cookie: string, path = '/api/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
   const streamAbort = new AbortController();
   streamsToAbort.push(streamAbort);
-  const response = await answerOf(pageServer, '/api/events', { headers: { cookie }, signal: streamAbort.signal });
+  const response = await answerOf(pageServer, path, { headers: { cookie }, signal: streamAbort.signal });
   return { response, events: eventReaderOf(response) };
+}
+
+function fleetEventDocumentOf(snapshot: FleetSnapshot): unknown {
+  return { ...FleetDocumentMapUtil.fleetDocumentOf(snapshot), systemVersion: GAIA_SYSTEM_VERSION };
 }
 
 describe('a headless start under a scratch home', () => {
@@ -234,12 +242,14 @@ describe('a headless start under a scratch home', () => {
     const { response, events } = await openEvents(pageServer, cookie);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('text/event-stream');
+    const handshake = await events.nextEvent();
+    expect([handshake.eventName, JSON.parse(handshake.data)]).toEqual(['handshake', { systemVersion: GAIA_SYSTEM_VERSION }]);
     const firstEvent = await events.nextEvent();
-    expect([firstEvent.eventName, JSON.parse(firstEvent.data)]).toEqual(['fleet', FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY)]);
+    expect([firstEvent.eventName, JSON.parse(firstEvent.data)]).toEqual(['fleet', fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY)]);
 
     expect(fleetStore.publish(FLEET_SNAPSHOT_FIVE_FORGES)).toBe('published');
     const changeEvent = await events.nextEvent();
-    expect([changeEvent.eventName, JSON.parse(changeEvent.data)]).toEqual(['fleet', FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES)]);
+    expect([changeEvent.eventName, JSON.parse(changeEvent.data)]).toEqual(['fleet', fleetEventDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES)]);
   });
 
   test('marks the session cookie HttpOnly and SameSite=Strict under a name that carries its port', async () => {
@@ -258,7 +268,6 @@ describe('a headless start under a scratch home', () => {
     expect(await response.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
-      healthMinor:      0,
       installVersion:   1,
       forgesRegistered: 5,
       forgesAnswered:   3,
@@ -303,10 +312,10 @@ describe('a command', () => {
   test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, commandMinor: 0, kind: 'fleet-look-again' }));
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      answerVersion: 3, answerMinor: 0, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
     });
     expect(carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -317,13 +326,12 @@ describe('a command', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
     };
     const stopCommand = {
-      commandVersion: 2, commandMinor: 0, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+      commandVersion: 2, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
     };
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       answerVersion: 3,
-      answerMinor:   0,
       outcome:       'refused',
       refusal:       'overseer-held',
       text:          'The Overseer is held by an install change.',
@@ -343,7 +351,7 @@ describe('a command', () => {
     const statuses: number[] = [];
     for (const verdict of verdicts) {
       nextCommandVerdict = verdict;
-      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, commandMinor: 0, kind: 'fleet-look-again' }))).status);
+      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }))).status);
     }
     expect(statuses).toEqual([200, 409, 502, 501]);
   });
@@ -353,7 +361,7 @@ describe('a command', () => {
     const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 1, kind: 'fleet-look-again' }));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      answerVersion: 3, answerMinor: 0, outcome: 'not-supported', refusal: 'other-version', text: null
+      answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
     });
     expect(carriedCommands).toEqual([]);
   });
@@ -375,7 +383,7 @@ describe('a frame session', () => {
     const response = await answerOf(pageServer, framePath, { method: 'POST', headers: { cookie: await sessionCookieOf(pageServer) } });
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      frameSessionVersion: 1, frameSessionMinor: 0, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
+      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
     });
     expect(overseerFetch.callsAnswered()).toEqual([]);
   });
@@ -446,6 +454,70 @@ describe('one refused request per guard', () => {
     expect((await answerOf(pageServer, '/api/unknown')).status).toBe(404);
     expect((await answerOf(pageServer, '/api/fleet', { method: 'POST' })).status).toBe(405);
     expect((await answerOf(pageServer, '/', { method: 'POST' })).status).toBe(404);
+  });
+});
+
+describe('the versioned paths', () => {
+  test('answer Gaia\'s system version and its minimum supported at /api/versions, open to any local caller and never cached', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/versions');
+    expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
+    expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
+    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 0 });
+  });
+
+  test('serve /api/versions at no versioned path', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/versions')).status).toBe(404);
+  });
+
+  test('carry the whole road of the page at each route\'s own version, as at its unversioned path', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/health')).status).toBe(200);
+    const codeAnswer = await answerOf(pageServer, '/api/v1/session-codes', withBearer(storedToken()));
+    const { code } = await codeAnswer.json() as { readonly code: string };
+    const exchange = await answerOf(pageServer, '/api/v1/session', sessionExchange(code));
+    expect(exchange.status).toBe(204);
+    const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+
+    const fleetAnswer = await answerOf(pageServer, '/api/v4/fleet', { headers: { cookie } });
+    expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
+    const { events } = await openEvents(pageServer, cookie, '/api/v4/events');
+    expect((await events.nextEvent()).eventName).toBe('handshake');
+    expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
+    const command = await answerOf(pageServer, '/api/v3/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    expect([command.status, carriedCommands]).toEqual([200, [{ kind: 'fleet-look-again' }]]);
+    const frameSession = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST', headers: { cookie } });
+    expect(frameSession.status).not.toBe(404);
+  });
+
+  test('answer each route at no version but its own', async () => {
+    const pageServer = await servingPageServer();
+    for (const path of ['/api/v2/health', '/api/v3/fleet', '/api/v1/fleet', '/api/v5/events', '/api/v2/commands', '/api/v2/session-codes']) {
+      expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
+    }
+  });
+
+  test('keep the Host, Origin and preflight guards on the versioned paths and on /api/versions', async () => {
+    const pageServer = await servingPageServer();
+    const foreignOrigin = { method: 'POST', headers: { authorization: `Bearer ${storedToken()}`, origin: 'https://foreign.example' } };
+    expect((await answerOf(pageServer, '/api/v1/session-codes', foreignOrigin)).status).toBe(403);
+    for (const path of ['/api/v1/health', '/api/versions']) {
+      expect((await answerOf(pageServer, path, { headers: { host: `rebound.example:${pageServer.port}` } })).status).toBe(403);
+      expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
+    }
+    const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
+    expect((await answerOf(pageServer, '/api/v4/fleet', preflight)).status).toBe(403);
+  });
+
+  test('keep the token and session guards on the versioned paths', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v4/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v4/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v3/commands', { method: 'POST', body: '{}' })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST' })).status).toBe(401);
+    expect(carriedCommands).toEqual([]);
   });
 });
 

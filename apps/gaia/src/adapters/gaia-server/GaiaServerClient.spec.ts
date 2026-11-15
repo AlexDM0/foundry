@@ -1,8 +1,9 @@
 /**
  * The client of Gaia's own server against servers of this spec on loopback ports. The health: an answer that says Gaia, at any health
  * version, is Gaia, with its forge counts only at the known version; any other answer is another program; a port where nothing listens
- * answers nothing. The session code: asked with the token as a bearer, issued only as a code, refused with the status otherwise. The page
- * server's spec proves the routes themselves, and the launcher's recording spec this client against a real `gaia serve`.
+ * answers nothing. The session code: asked with the token as a bearer, issued only as a code, refused with the status otherwise. Both are
+ * asked at their versioned paths, and at their unversioned ones of a Gaia from before versioned paths, which answers a versioned path 404.
+ * The page server's spec proves the routes themselves, and the launcher's recording spec this client against a real `gaia serve`.
  */
 import {
   afterEach,
@@ -11,18 +12,24 @@ import {
   test
 } from 'bun:test';
 
-import {
-  healthProbeVerdictFor,
-  healthReadingFor,
-  SESSION_CODES_PATH,
-  sessionCodeFor,
-} from './GaiaServerClient.ts';
-import { healthDocumentOf } from './HealthDocument.ts';
+import { healthProbeVerdictFor, healthReadingFor, sessionCodeFor } from './GaiaServerClient.ts';
+import { healthDocumentOf }                                        from './HealthDocument.ts';
 
 const SHORT_BOUND_MILLISECONDS = 500;
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 const EXAMPLE_CODE = '0123456789abcdef';
 const HTTP_UNAUTHORIZED = 401;
+const HTTP_NOT_FOUND = 404;
+
+/** A Gaia from before versioned paths: its routes at their unversioned paths alone, and `not-found` for anything else under `/api/`. */
+function gaiaBeforeVersionedPaths(routes: Readonly<Record<string, () => Response>>, pathsAsked: string[]): (request: Request) => Response {
+  return (request) => {
+    const { pathname } = new URL(request.url);
+    pathsAsked.push(pathname);
+    const route = Object.hasOwn(routes, pathname) ? routes[pathname] : undefined;
+    return route === undefined ? Response.json({ refusal: 'not-found' }, { status: HTTP_NOT_FOUND }) : route();
+  };
+}
 
 let servers: Bun.Server<undefined>[] = [];
 
@@ -69,6 +76,21 @@ describe('the health reading', () => {
     expect(await healthReadingFor(port, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 5, forgesAnswered: 3 } });
   });
 
+  test('is asked at the versioned health path, and at /api/health of a Gaia from before versioned paths', async () => {
+    const pathsAskedOfThisGaia: string[] = [];
+    const thisGaia = portAnswering((request) => {
+      pathsAskedOfThisGaia.push(new URL(request.url).pathname);
+      return Response.json(healthDocumentOf({ forgesRegistered: 1, forgesAnswered: 1 }));
+    });
+    const pathsAskedOfAnOlderGaia: string[] = [];
+    const olderHealth = (): Response => Response.json(healthDocumentOf({ forgesRegistered: 2, forgesAnswered: 0 }));
+    const olderGaia = portAnswering(gaiaBeforeVersionedPaths({ '/api/health': olderHealth }, pathsAskedOfAnOlderGaia));
+
+    expect(await healthReadingFor(thisGaia, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 1, forgesAnswered: 1 } });
+    expect(await healthReadingFor(olderGaia, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 2, forgesAnswered: 0 } });
+    expect([pathsAskedOfThisGaia, pathsAskedOfAnOlderGaia]).toEqual([['/api/v1/health'], ['/api/v1/health', '/api/health']]);
+  });
+
   test('carries no forge counts for a Gaia at another health version', async () => {
     const port = portAnswering(() => Response.json({ ...healthDocumentOf({ forgesRegistered: 5, forgesAnswered: 3 }), healthVersion: 2 }));
     expect(await healthReadingFor(port, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: null });
@@ -83,7 +105,14 @@ describe('the session code', () => {
       return Response.json({ code: EXAMPLE_CODE });
     });
     expect(await sessionCodeFor(port, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'issued', code: EXAMPLE_CODE });
-    expect(requests).toEqual([{ method: 'POST', path: SESSION_CODES_PATH, authorization: `Bearer ${EXAMPLE_TOKEN}` }]);
+    expect(requests).toEqual([{ method: 'POST', path: '/api/v1/session-codes', authorization: `Bearer ${EXAMPLE_TOKEN}` }]);
+  });
+
+  test('is asked at /api/session-codes of a Gaia from before versioned paths', async () => {
+    const pathsAsked: string[] = [];
+    const olderGaia = portAnswering(gaiaBeforeVersionedPaths({ '/api/session-codes': () => Response.json({ code: EXAMPLE_CODE }) }, pathsAsked));
+    expect(await sessionCodeFor(olderGaia, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'issued', code: EXAMPLE_CODE });
+    expect(pathsAsked).toEqual(['/api/v1/session-codes', '/api/session-codes']);
   });
 
   test('is refused with the status of an answer that issues no code', async () => {

@@ -1,12 +1,17 @@
 /**
  * The embed channel of FORGE_REQUIREMENTS F5 at `channelVersion: 1`: the messages between Gaia's page and one forge's Bridge in its frame.
  * A message is read only when it comes from the frame's own window at the frame's own origin and carries the channel's name and known
- * major, at any `channelMinor`; anything else is ignored and answered by nothing. Gaia posts only to the frame's origin, never to `*`.
+ * version; anything else is ignored and answered by nothing. Every message Gaia posts carries Gaia's system version, and a Bridge's
+ * system version is handed on with its message where it names one (V5); one that names a malformed version is not heard. Gaia posts only
+ * to the frame's origin, never to `*`.
  */
 import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'overseer-contracts/EmbedChannelMessage';
+import type { SystemVersion }                                           from 'overseer-contracts/VersionsDocument';
 
 import { CONTRACT_VERSIONS }   from '../../../src/shared/constants/ContractVersions.ts';
+import { GAIA_SYSTEM_VERSION } from '../../../src/shared/constants/GaiaSystemVersions.ts';
 import { ContractVersionUtil } from '../../../src/shared/utils/ContractVersionUtil.ts';
+import { SystemVersionUtil }   from '../../../src/shared/utils/SystemVersionUtil.ts';
 
 export type { BridgeMessage };
 
@@ -42,16 +47,26 @@ export interface OpenEmbedChannel {
 
 const CHANNEL_NAME: EmbedChannelEnvelope['channel'] = 'forge-embed';
 
-const CHANNEL_VERSION_KEYS = { majorKey: 'channelVersion', minorKey: 'channelMinor' } as const;
+const CHANNEL_VERSION_KEYS = { majorKey: 'channelVersion' } as const;
+
+const SYSTEM_VERSION_KEY = 'systemVersion';
 
 function fieldOf(data: object, key: string): unknown {
   return Object.hasOwn(data, key) ? (data as Readonly<Record<string, unknown>>)[key] : undefined;
+}
+
+/** The system version a Bridge's message names: `null` from a Bridge before V5, which names none, and `malformed` for one that is no version. */
+function senderSystemVersionOf(data: object): SystemVersion | null | 'malformed' {
+  const systemVersion = fieldOf(data, SYSTEM_VERSION_KEY);
+  if (systemVersion === undefined) return null;
+  return SystemVersionUtil.systemVersionOf(systemVersion) ?? 'malformed';
 }
 
 /** The Bridge's message at the known channel version, or `null` for anything the channel does not know. */
 function bridgeMessageOf(data: unknown): BridgeMessage | null {
   if (typeof data !== 'object' || data === null) return null;
   if (fieldOf(data, 'channel') !== CHANNEL_NAME || ContractVersionUtil.readMajorOf(data, CHANNEL_VERSION_KEYS, CONTRACT_VERSIONS.forgeEmbedChannel) === null) return null;
+  if (senderSystemVersionOf(data) === 'malformed') return null;
   const kind = fieldOf(data, 'kind');
   switch (kind) {
     case 'ready':
@@ -75,18 +90,23 @@ function messageIsFromTheFrame(event: EmbedMessageEvent, { frameOrigin, frameWin
 function documentOf(message: GaiaMessage): EmbedChannelEnvelope & GaiaMessage {
   return {
     channel:        CHANNEL_NAME,
-    channelVersion: CONTRACT_VERSIONS.forgeEmbedChannel.major,
-    channelMinor:   CONTRACT_VERSIONS.forgeEmbedChannel.minor,
+    channelVersion: CONTRACT_VERSIONS.forgeEmbedChannel,
+    systemVersion:  GAIA_SYSTEM_VERSION,
     ...message,
   };
 }
 
-function open(ends: EmbedChannelEnds, surroundings: EmbedChannelSurroundings, onMessage: (message: BridgeMessage) => void): OpenEmbedChannel {
+/** `bridgeSystemVersion` is the forge's system version as its Bridge names it, `null` from a Bridge that names none. */
+export type BridgeMessageListener = (message: BridgeMessage, bridgeSystemVersion: SystemVersion | null) => void;
+
+function open(ends: EmbedChannelEnds, surroundings: EmbedChannelSurroundings, onMessage: BridgeMessageListener): OpenEmbedChannel {
   let isOpen = true;
   const stopFollowing = surroundings.followMessages((event) => {
     if (!isOpen || !messageIsFromTheFrame(event, ends)) return;
     const message = bridgeMessageOf(event.data);
-    if (message !== null) onMessage(message);
+    if (message === null) return;
+    const bridgeSystemVersion = senderSystemVersionOf(event.data as object);
+    onMessage(message, bridgeSystemVersion === 'malformed' ? null : bridgeSystemVersion);
   });
   return {
     post: (message) => {

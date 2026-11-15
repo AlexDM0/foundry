@@ -39,6 +39,7 @@ function ticketsWaitForAMachineSlot(reading: ForgeReading): boolean {
 const LOOK_RULES: readonly { readonly kind: ForgeLookKind; readonly applies: (reading: ForgeReading) => boolean }[] = [
   { kind: 'unreachable', applies: (reading) => reading.fidelity === 'unreachable' },
   { kind: 'newer-contract', applies: (reading) => reading.fidelity === 'newer-contract' },
+  { kind: 'older-contract', applies: (reading) => reading.fidelity === 'older-contract' },
   { kind: 'baton-pass-failed', applies: batonPassFailed },
   { kind: 'launches-held', applies: launchesAreHeld },
   { kind: 'new-code', applies: newCodeWaits },

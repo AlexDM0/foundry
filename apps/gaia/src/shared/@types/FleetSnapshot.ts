@@ -1,4 +1,6 @@
 /** Every forge's reading assembled into one picture of the machine; the page receives it mapped out as a `FleetDocument`. */
+import type { SystemVersion } from 'overseer-contracts/VersionsDocument';
+
 import type { ActivityEntry } from './ActivityEntry.ts';
 import type { AgentRow }      from './AgentRow.ts';
 import type { AttentionItem } from './AttentionItem.ts';
@@ -23,6 +25,7 @@ export interface FleetActivityEntry extends ActivityEntry {
 export type ForgeLookKind =
   | 'unreachable'
   | 'newer-contract'
+  | 'older-contract'
   | 'baton-pass-failed'
   | 'launches-held'
   | 'new-code'
@@ -66,6 +69,13 @@ export interface KnownContracts {
   embed:   number;
 }
 
+/** This Gaia's own system version, the forge version it is built for, and the oldest forge version it still talks to. */
+export interface GaiaVersions {
+  systemVersion:         SystemVersion;
+  supportedForgeVersion: SystemVersion;
+  minimumForgeVersion:   SystemVersion;
+}
+
 /** What the Forges view and the empty screen say about Gaia itself. */
 export interface GaiaFacts {
   gaiaVersion:       string;
@@ -76,6 +86,7 @@ export interface GaiaFacts {
   forgeProgramInUse: string | null;
   settingsFile:      SettingsFileState;
   knownContracts:    KnownContracts;
+  versions:          GaiaVersions;
 }
 
 export interface FleetSnapshot {

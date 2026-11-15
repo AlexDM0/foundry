@@ -1,8 +1,11 @@
 /**
- * The HTTP client of one Overseer: its identity, board summary and monitor snapshot, the monitor stream, a control command and a session
- * code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read them.
+ * The HTTP client of one Overseer: its versions, identity, board summary and monitor snapshot, the monitor stream, a control command and
+ * a session code. Every call answers the forge's document or a verdict; the documents stay unchecked JSON for the ingestions that read
+ * them. `/api/versions` is asked at its one path; every other endpoint at the paths the caller names.
  */
 import type { ForgeControlCommand }                    from 'overseer-contracts/ForgeControlCommand';
+import { OVERSEER_ENDPOINT_VERSIONS }                  from 'overseer-contracts/ForgeSystemVersions';
+import { ApiPathUtil }                                 from '../api-paths/ApiPathUtil.ts';
 import { eventStreamParserOf, type EventStreamParser } from '../event-stream/EventStreamParser.ts';
 import { JsonValueUtil, type JsonObject }              from '../json-value/JsonValueUtil.ts';
 
@@ -14,6 +17,8 @@ import type {
   MonitorFollow,
   MonitorFollowEnd,
   OverseerAccess,
+  OverseerAddress,
+  OverseerPaths,
 } from './@types/ForgeClientAnswer.ts';
 import type {
   OverseerAnswer,
@@ -29,8 +34,10 @@ export interface ForgeClientSettings {
 }
 
 export interface ForgeClient {
-  readonly identityOf:    (overseerUrl: string) => Promise<ForgeDocumentAnswer>;
-  readonly summaryOf:     (overseerUrl: string) => Promise<ForgeDocumentAnswer>;
+  /** `GET /api/versions`, which a forge from before versions answers as any unknown path. */
+  readonly versionsOf:    (overseerUrl: string) => Promise<ForgeDocumentAnswer>;
+  readonly identityOf:    (address: OverseerAddress) => Promise<ForgeDocumentAnswer>;
+  readonly summaryOf:     (address: OverseerAddress) => Promise<ForgeDocumentAnswer>;
   readonly monitorOf:     (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
   /** Hands each whole snapshot of the stream to `onSnapshot` as it arrives; an event the stream left unfinished is never handed on. */
   readonly followMonitor: (access: OverseerAccess, onSnapshot: (document: unknown) => void) => MonitorFollow;
@@ -41,14 +48,22 @@ export interface ForgeClient {
 const OVERSEER_REQUEST_TIMEOUT_MILLISECONDS = 5_000;
 const MONITOR_STREAM_OPEN_TIMEOUT_MILLISECONDS = 5_000;
 
-const OVERSEER_ROUTES = {
-  identity:      '/api/identity',
-  summary:       '/api/summary',
-  monitor:       '/api/monitor',
-  monitorEvents: '/api/monitor/events',
-  commands:      '/api/commands',
-  sessionCodes:  '/api/session-codes',
-} as const;
+/** Each endpoint below `/api/`, without its version. */
+const OVERSEER_ENDPOINTS = {
+  identity:      'identity',
+  summary:       'summary',
+  monitor:       'monitor',
+  monitorEvents: 'monitor/events',
+  commands:      'commands',
+  sessionCodes:  'session-codes',
+} as const satisfies Readonly<Record<keyof typeof OVERSEER_ENDPOINT_VERSIONS, string>>;
+
+type OverseerEndpointName = keyof typeof OVERSEER_ENDPOINTS;
+
+function pathOf(endpointName: OverseerEndpointName, paths: OverseerPaths): string {
+  const endpoint = OVERSEER_ENDPOINTS[endpointName];
+  return paths === 'versioned' ? ApiPathUtil.versionedPathOf(endpoint, OVERSEER_ENDPOINT_VERSIONS[endpointName]) : ApiPathUtil.unversionedPathOf(endpoint);
+}
 
 const SUCCESS_STATUS = 200;
 const UNAUTHORIZED_STATUS = 401;
@@ -105,25 +120,30 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     };
   }
 
-  async function identityOf(overseerUrl: string): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', OVERSEER_ROUTES.identity, null, null)));
+  async function versionsOf(overseerUrl: string): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', ApiPathUtil.VERSIONS_PATH, null, null)));
   }
 
-  async function summaryOf(overseerUrl: string): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', OVERSEER_ROUTES.summary, null, null)));
+  async function identityOf({ overseerUrl, paths }: OverseerAddress): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', pathOf('identity', paths), null, null)));
+  }
+
+  async function summaryOf({ overseerUrl, paths }: OverseerAddress): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', pathOf('summary', paths), null, null)));
   }
 
   async function monitorOf(access: OverseerAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', OVERSEER_ROUTES.monitor, access.bearerToken, null)));
+    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', pathOf('monitor', access.paths), access.bearerToken, null)));
   }
 
   async function send(access: OverseerAccess, command: ForgeControlCommand): Promise<ForgeCommandAnswer> {
-    const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', OVERSEER_ROUTES.commands, access.bearerToken, JSON.stringify(command));
+    const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', pathOf('commands', access.paths), access.bearerToken, JSON.stringify(command));
     return commandAnswerOf(await overseerFetch.request(commandRequest));
   }
 
   async function sessionCodeOf(access: OverseerAccess): Promise<ForgeSessionCodeAnswer> {
-    return sessionCodeAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'POST', OVERSEER_ROUTES.sessionCodes, access.bearerToken, null)));
+    const sessionCodeRequest = overseerRequestOf(access.overseerUrl, 'POST', pathOf('sessionCodes', access.paths), access.bearerToken, null);
+    return sessionCodeAnswerOf(await overseerFetch.request(sessionCodeRequest));
   }
 
   function followMonitor(access: OverseerAccess, onSnapshot: (document: unknown) => void): MonitorFollow {
@@ -143,7 +163,7 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     async function follow(): Promise<MonitorFollowEnd> {
       const opening = await overseerFetch.openStream({
         overseerUrl:         access.overseerUrl,
-        path:                OVERSEER_ROUTES.monitorEvents,
+        path:                pathOf('monitorEvents', access.paths),
         bearerToken:         access.bearerToken,
         timeoutMilliseconds: streamOpenTimeoutMilliseconds,
       });
@@ -179,6 +199,6 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   }
 
   return {
-    identityOf, summaryOf, monitorOf, followMonitor, send, sessionCodeOf,
+    versionsOf, identityOf, summaryOf, monitorOf, followMonitor, send, sessionCodeOf,
   };
 }

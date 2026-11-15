@@ -1,6 +1,7 @@
 /**
- * The fleet broker over a fleet store and timers fired by hand: a stream opens on the current document, hears every published snapshot
- * once as a `fleet` event, and hears nothing for a snapshot the store does not publish. The heartbeat runs only while a stream is open; a
+ * The fleet broker over a fleet store and timers fired by hand: a stream opens on its handshake, which names Gaia's system version, then on
+ * the current document, hears every published snapshot once as a `fleet` event carrying Gaia's system version beside the document, and
+ * hears nothing for a snapshot the store does not publish. The heartbeat runs only while a stream is open; a
  * stream whose reader went away is dropped, and a stop ends every stream, cancels the heartbeat and hears the store no more.
  */
 import { describe, expect, test } from 'bun:test';
@@ -12,6 +13,7 @@ import { FLEET_SNAPSHOT_FIVE_FORGES } from '../../adapters/page-api/testing/flee
 import { eventStreamParserOf }        from '../../lib/event-stream/EventStreamParser.ts';
 import { createFleetStore }           from '../../services/FleetStore.ts';
 import type { FleetSnapshot }         from '../../shared/@types/FleetSnapshot.ts';
+import { GAIA_SYSTEM_VERSION }        from '../../shared/constants/GaiaSystemVersions.ts';
 import { manualTimers }               from '../../testing/ManualTimers.ts';
 import { createFleetBroker }          from './FleetBroker.ts';
 
@@ -25,7 +27,7 @@ function brokerOver(firstSnapshot: FleetSnapshot) {
 }
 
 function fleetEventDataOf(snapshot: FleetSnapshot): string {
-  return JSON.stringify(FleetDocumentMapUtil.fleetDocumentOf(snapshot));
+  return JSON.stringify({ ...FleetDocumentMapUtil.fleetDocumentOf(snapshot), systemVersion: GAIA_SYSTEM_VERSION });
 }
 
 async function fleetEventDataIn(response: Response): Promise<string[]> {
@@ -43,6 +45,17 @@ describe('the fleet document', () => {
 });
 
 describe('an event stream', () => {
+  test('opens on its handshake, Gaia\'s system version, before the first document', async () => {
+    const { broker } = brokerOver(FLEET_SNAPSHOT_EMPTY);
+    const stream = broker.openEventStream();
+    broker.stop();
+    const events = eventStreamParserOf().eventsOf(await stream.text());
+    expect(events.map((event) => [event.eventName, JSON.parse(event.data) as unknown])).toEqual([
+      ['handshake', { systemVersion: GAIA_SYSTEM_VERSION }],
+      ['fleet', JSON.parse(fleetEventDataOf(FLEET_SNAPSHOT_EMPTY)) as unknown],
+    ]);
+  });
+
   test('opens on the current document, then hears each published snapshot once, and nothing for an unchanged one', async () => {
     const { fleetStore, broker } = brokerOver(FLEET_SNAPSHOT_EMPTY);
     const firstStream = broker.openEventStream();
@@ -97,7 +110,7 @@ describe('the heartbeat', () => {
     broker.stop();
     const bodyText = await stream.text();
     expect(bodyText).toContain('\n: heartbeat\n\n');
-    expect(eventStreamParserOf().eventsOf(bodyText)).toHaveLength(1);
+    expect(eventStreamParserOf().eventsOf(bodyText)).toHaveLength(2);
   });
 });
 

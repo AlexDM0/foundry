@@ -37,7 +37,6 @@ const IDLE_STATES: CommandStates = senderOver([]).states();
 
 const SETTINGS_UNWRITABLE: CommandAnswerDocument = {
   answerVersion: 3,
-  answerMinor:   0,
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          null,

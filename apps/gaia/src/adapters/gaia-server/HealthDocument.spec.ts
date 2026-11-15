@@ -14,7 +14,6 @@ describe('the health document', () => {
     expect(healthDocumentOf(FORGE_COUNTS)).toEqual({
       application:      'gaia',
       healthVersion:    1,
-      healthMinor:      0,
       installVersion:   1,
       forgesRegistered: 5,
       forgesAnswered:   3,
@@ -44,17 +43,16 @@ describe('the forge counts of a health answer', () => {
     expect(forgeCountsOf(healthDocumentOf(FORGE_COUNTS))).toEqual(FORGE_COUNTS);
   });
 
-  test('are read at a newer health minor, passing over a key it adds', () => {
-    expect(forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), healthMinor: 2, exampleAddedKey: true })).toEqual(FORGE_COUNTS);
+  test('are read passing over a key this Gaia does not know', () => {
+    expect(forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), exampleAddedKey: true })).toEqual(FORGE_COUNTS);
   });
 
   test('are not read at another health version, from another application, or when a count is no count', () => {
     expect([
       forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), healthVersion: 2 }),
-      forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), healthMinor: -1 }),
       forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), application: 'example-application' }),
       forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), forgesAnswered: -1 }),
       forgeCountsOf({ ...healthDocumentOf(FORGE_COUNTS), forgesRegistered: '5' }),
-    ]).toEqual([null, null, null, null, null]);
+    ]).toEqual([null, null, null, null]);
   });
 });

@@ -2,10 +2,9 @@
  * Writes `GaiaSettings` to `~/.gaia/settings.json` at the known major and minor, atomically, and never over a file of a newer major or
  * minor: this Gaia reads a newer minor but would drop the keys it adds.
  */
-import type { ContractVersion } from 'overseer-contracts/ContractVersion';
-
 import type { GaiaSettings }                from '../../shared/@types/GaiaSettings.ts';
 import { CONTRACT_VERSIONS }                from '../../shared/constants/ContractVersions.ts';
+import type { FormatVersion }               from '../../shared/utils/ContractVersionUtil.ts';
 import { GaiaFile }                         from './GaiaFile.ts';
 import { SettingsFile, settingsFilePathIn } from './SettingsFile.ts';
 import { SettingsFormatUtil }               from './utils/SettingsFormatUtil.ts';
@@ -15,7 +14,7 @@ const GAIA_FOLDER_MODE = 0o700;
 
 export type SettingsWriteVerdict =
   | { readonly verdict: 'written' }
-  | { readonly verdict: 'kept-newer-version'; readonly storedVersion: ContractVersion }
+  | { readonly verdict: 'kept-newer-version'; readonly storedVersion: FormatVersion }
   | { readonly verdict: 'unwritable'; readonly failure: string };
 
 export interface SettingsWriter {

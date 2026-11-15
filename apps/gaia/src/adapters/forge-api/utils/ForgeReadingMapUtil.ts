@@ -24,6 +24,7 @@ import type {
   ForgeReading,
 } from '../../../shared/@types/ForgeReading.ts';
 import { FORGE_NOTICE_KINDS }                     from '../../../shared/constants/ForgeNoticeKinds.ts';
+import { ForgeVersionsUtil }                      from '../../../shared/utils/ForgeVersionsUtil.ts';
 import type { ForgeIdentity, ForgeRegistryFacts } from '../@types/ForgeDocumentReading.ts';
 
 const NO_CONTRACTS: ForgeContracts = {
@@ -224,7 +225,8 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
       currentWindow:         usage.currentWindow,
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
-    brain: brainOf(snapshot.flintBrain),
+    brain:    brainOf(snapshot.flintBrain),
+    versions: ForgeVersionsUtil.NOT_REPORTED,
   };
 }
 
@@ -263,7 +265,8 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
       currentWindow:         null,
       currentWindowResetsAt: null,
     },
-    brain: 'not-reported',
+    brain:    'not-reported',
+    versions: ForgeVersionsUtil.NOT_REPORTED,
   };
 }
 
@@ -272,11 +275,25 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
  * nothing read from a document. `identity` is `null` when the identity itself is the newer contract.
  */
 function newerContractReadingOf(registryFacts: ForgeRegistryFacts, identity: ForgeIdentity | null, contracts: ForgeContracts): ForgeReading {
+  return unreadReadingOf(registryFacts, identity, contracts, 'newer-contract');
+}
+
+/** A forge whose system version is older than Gaia still talks to: its place in the registry, and nothing asked of its endpoints. */
+function olderContractReadingOf(registryFacts: ForgeRegistryFacts): ForgeReading {
+  return unreadReadingOf(registryFacts, null, NO_CONTRACTS, 'older-contract');
+}
+
+function unreadReadingOf(
+  registryFacts: ForgeRegistryFacts,
+  identity: ForgeIdentity | null,
+  contracts: ForgeContracts,
+  fidelity: 'newer-contract' | 'older-contract',
+): ForgeReading {
   return {
     trackerId:         registryFacts.trackerId,
     project:           registryFacts.project,
     root:              registryFacts.root,
-    fidelity:          'newer-contract',
+    fidelity,
     condition:         'unreadable',
     url:               registryFacts.overseerUrl,
     processId:         identity?.processId ?? registryFacts.overseerProcessId,
@@ -298,6 +315,7 @@ function newerContractReadingOf(registryFacts: ForgeRegistryFacts, identity: For
     today:             null,
     usage:             null,
     brain:             'not-reported',
+    versions:          ForgeVersionsUtil.NOT_REPORTED,
   };
 }
 
@@ -307,4 +325,5 @@ export const ForgeReadingMapUtil = {
   fullReadingOf,
   countsOnlyReadingOf,
   newerContractReadingOf,
+  olderContractReadingOf,
 } as const;

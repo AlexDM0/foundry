@@ -10,7 +10,12 @@ import type {
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
 
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from './fleet-five-forges.ts';
+import {
+  FLEET_FIVE_FORGES,
+  FLEET_FIVE_FORGES_READINGS,
+  FLEET_FIVE_FORGES_TRACKER_IDS,
+  NOT_REPORTED_VERSIONS,
+} from './fleet-five-forges.ts';
 
 const READINGS = FLEET_FIVE_FORGES_READINGS;
 
@@ -87,6 +92,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   today:             null,
   usage:             USAGE_OF_A_SUMMARY,
   brain:             'not-reported',
+  versions:          NOT_REPORTED_VERSIONS,
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -120,6 +126,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   today:             null,
   usage:             null,
   brain:             'not-reported',
+  versions:          NOT_REPORTED_VERSIONS,
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

@@ -25,8 +25,6 @@ export interface SummaryJobDocument {
 
 export interface BoardSummaryDocument {
   readonly summaryVersion: number;
-  /** Absent reads as 0. */
-  readonly summaryMinor?:  number;
   readonly project:        string;
   readonly overseer:       SummaryOverseerDocument;
   readonly readyTicketIds: readonly string[];

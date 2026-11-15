@@ -13,10 +13,13 @@
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
+    "../src/lib/api-paths/ApiPathUtil.ts",
     "../src/shared/constants/ContractVersions.ts",
+    "../src/shared/constants/GaiaSystemVersions.ts",
     "../src/shared/constants/Limits.ts",
     "../src/shared/constants/ProductNames.ts",
-    "../src/shared/utils/ContractVersionUtil.ts"
+    "../src/shared/utils/ContractVersionUtil.ts",
+    "../src/shared/utils/SystemVersionUtil.ts"
   ],
   "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./testing/**"]
 }

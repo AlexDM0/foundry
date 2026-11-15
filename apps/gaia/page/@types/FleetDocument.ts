@@ -1,10 +1,12 @@
 /**
- * The page contract: what `GET /api/fleet` and the `fleet` event carry. The server's internal model is mapped out to this shape at its
- * edge, so a change inside the server reaches the page only through a change here and a new `fleetVersion`.
+ * The page contract: what `GET /api/fleet` and the `fleet` event carry, and the event stream's handshake. The server's internal model is
+ * mapped out to this shape at its edge, so a change inside the server reaches the page only through a change here, and one a page of the
+ * older shape cannot read through a new `fleetVersion` and a new version of the fleet and events routes.
  */
 import type { CONTRACT_VERSIONS } from '../../src/shared/constants/ContractVersions.ts';
 
-export type FleetDocumentFidelity = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
+/** `newer-contract` and `older-contract`: Gaia reads nothing of the forge; `versions` says why when the forge's system version decided it. */
+export type FleetDocumentFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
 export type FleetDocumentCondition = 'live' | 'paused' | 'held' | 'passing-baton' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
 
@@ -13,6 +15,26 @@ export interface FleetDocumentContracts {
   monitor: number | null;
   control: number | null;
   embed:   number | null;
+}
+
+/** A system version: a minor only adds, a major may break a client of an older major. */
+export interface FleetDocumentSystemVersion {
+  major: number;
+  minor: number;
+}
+
+/**
+ * How the forge's system version stands to the forge versions this Gaia knows (`FleetDocumentGaia`). `newer` and `older`: they cannot
+ * talk, and this Gaia or the forge needs an update. `ahead`: read in full with what this Gaia knows; `behind`: read in full without this
+ * Gaia's newest features for it. `not-reported`: the forge publishes no versions and is read as before them.
+ */
+export type FleetDocumentVersionsVerdict = 'newer' | 'older' | 'ahead' | 'behind' | 'current' | 'not-reported';
+
+/** The forge's own versions, both `null` when it reported none. */
+export interface FleetDocumentForgeVersions {
+  verdict:          FleetDocumentVersionsVerdict;
+  current:          FleetDocumentSystemVersion | null;
+  minimumSupported: FleetDocumentSystemVersion | null;
 }
 
 export interface FleetDocumentConcurrency {
@@ -167,6 +189,7 @@ export interface FleetDocumentForge {
   usage:             FleetDocumentUsage | null;
   /** `not-reported` under a monitor older than contract 3 and for a forge without Flint: the brain is then absent, not empty. */
   brain:             FleetDocumentBrain | 'not-reported';
+  versions:          FleetDocumentForgeVersions;
 }
 
 export interface FleetDocumentFleetAttentionItem extends FleetDocumentAttentionItem {
@@ -186,6 +209,7 @@ export interface FleetDocumentFleetActivityEntry extends FleetDocumentActivityEn
 export type FleetDocumentLookKind =
   | 'unreachable'
   | 'newer-contract'
+  | 'older-contract'
   | 'baton-pass-failed'
   | 'launches-held'
   | 'new-code'
@@ -244,12 +268,20 @@ export interface FleetDocumentGaia {
   forgeProgramInUse: string | null;
   settingsFile:      FleetDocumentSettingsFileState;
   knownContracts:    { summary: number; monitor: number; control: number; embed: number };
+  /** This Gaia's own system version, the forge version it is built for, and the oldest forge version it still talks to. */
+  versions:          { systemVersion: FleetDocumentSystemVersion; supportedForgeVersion: FleetDocumentSystemVersion; minimumForgeVersion: FleetDocumentSystemVersion };
 }
 
+/** The first event of `GET /api/events`, before any document: the system version of the Gaia that serves the stream. */
+export interface FleetStreamHandshake {
+  systemVersion: FleetDocumentSystemVersion;
+}
+
+/** What each `fleet` event carries: the document and the system version of the Gaia that sent it. */
+export type FleetEventDocument = FleetDocument & { systemVersion: FleetDocumentSystemVersion };
+
 export interface FleetDocument {
-  fleetVersion: typeof CONTRACT_VERSIONS.gaiaFleetDocument.major;
-  /** Absent reads as 0; a reader reads any minor of its major. */
-  fleetMinor?:  number;
+  fleetVersion: typeof CONTRACT_VERSIONS.gaiaFleetDocument;
   forges:       FleetDocumentForge[];
   attention:    FleetDocumentFleetAttentionItem[];
   needsALook:   FleetDocumentLook[];

@@ -1,23 +1,29 @@
 /**
- * Finds and reads every forge the registry names (PLAN 7.1): one watch per forge identifies its Overseer, follows its monitor stream or
- * polls its summary, and opens a lost stream again. A forge that is down is an ordinary reading, never a throw. Every interval is a
- * schedule on injected timers, never a decision.
+ * Finds and reads every forge the registry names (PLAN 7.1): one watch per forge asks its Overseer's versions, identifies it, follows its
+ * monitor stream or polls its summary, and opens a lost stream again. The forge's system version decides whether Gaia can talk to it at
+ * all and at which paths; a forge that publishes none is read as before versions. A forge that is down is an ordinary reading, never a
+ * throw. Every interval is a schedule on injected timers, never a decision.
  */
 import { createHash } from 'node:crypto';
 import { stat }       from 'node:fs/promises';
 
-import type { ForgeIdentity, ForgeRegistryFacts } from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
-import { BoardSummaryIngestion }                  from '../adapters/forge-api/BoardSummaryIngestion.ts';
-import { IdentityIngestion }                      from '../adapters/forge-api/IdentityIngestion.ts';
-import { MonitorSnapshotIngestion }               from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
-import { OverseerTokenFile }                      from '../adapters/forge-api/OverseerTokenFile.ts';
-import type { RegisteredForge }                   from '../adapters/forge-registry/@types/RegisteredForge.ts';
-import type { RegistryReading }                   from '../adapters/forge-registry/RegistryFile.ts';
-import type { MonitorFollow }                     from '../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeClient }                       from '../lib/forge-client/ForgeClient.ts';
-import type { ForgeReading }                      from '../shared/@types/ForgeReading.ts';
-import type { ClockTimer, ClockTimers }           from './Clock.ts';
-import { WatchReadingUtil }                       from './utils/WatchReadingUtil.ts';
+import { MINIMUM_FORGE_VERSION, SUPPORTED_FORGE_VERSION } from 'overseer-contracts/ForgeSystemVersions';
+
+import type { ForgeIdentity, ForgeRegistryFacts }                   from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
+import { BoardSummaryIngestion }                                    from '../adapters/forge-api/BoardSummaryIngestion.ts';
+import { IdentityIngestion }                                        from '../adapters/forge-api/IdentityIngestion.ts';
+import { MonitorSnapshotIngestion }                                 from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
+import { OverseerTokenFile }                                        from '../adapters/forge-api/OverseerTokenFile.ts';
+import { ForgeReadingMapUtil }                                      from '../adapters/forge-api/utils/ForgeReadingMapUtil.ts';
+import type { RegisteredForge }                                     from '../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { RegistryReading }                                     from '../adapters/forge-registry/RegistryFile.ts';
+import type { ForgeDocumentAnswer, MonitorFollow, OverseerAddress } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeClient }                                         from '../lib/forge-client/ForgeClient.ts';
+import type { ForgeReading, ForgeVersions }                         from '../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil, type KnownForgeVersions }               from '../shared/utils/ForgeVersionsUtil.ts';
+import { SystemVersionUtil }                                        from '../shared/utils/SystemVersionUtil.ts';
+import type { ClockTimer, ClockTimers }                             from './Clock.ts';
+import { WatchReadingUtil }                                         from './utils/WatchReadingUtil.ts';
 
 export interface ForgeWatchIntervals {
   readonly registryCheckIntervalMilliseconds:   number;
@@ -27,15 +33,17 @@ export interface ForgeWatchIntervals {
 }
 
 export interface ForgeWatchOptions {
-  readonly readRegistry:      () => Promise<RegistryReading>;
-  readonly forgeClient:       ForgeClient;
+  readonly readRegistry:        () => Promise<RegistryReading>;
+  readonly forgeClient:         ForgeClient;
   /** Read at each registry check, so a forge hidden or shown again counts from the next check on. */
-  readonly hiddenTrackerIds:  () => readonly string[];
-  readonly timers:            ClockTimers;
+  readonly hiddenTrackerIds:    () => readonly string[];
+  readonly timers:              ClockTimers;
   /** The stamp a reading is taken at: recorded and shown, never compared. */
-  readonly now:               () => string;
-  readonly onReadingsChanged: () => void;
-  readonly intervals?:        Partial<ForgeWatchIntervals>;
+  readonly now:                 () => string;
+  readonly onReadingsChanged:   () => void;
+  readonly intervals?:          Partial<ForgeWatchIntervals>;
+  /** The forge versions this Gaia is built for and still talks to; `overseer-contracts`' when not given, and planted by a spec. */
+  readonly knownForgeVersions?: KnownForgeVersions;
 }
 
 export interface ForgeWatch {
@@ -56,6 +64,14 @@ const STREAM_RECONNECT_INTERVAL_MILLISECONDS = 3_000;
 const SUMMARY_POLL_INTERVAL_MILLISECONDS = 5_000;
 const UNREACHABLE_AFTER_FAILED_TRIES = 3;
 
+const KNOWN_FORGE_VERSIONS: KnownForgeVersions = { supported: SUPPORTED_FORGE_VERSION, minimum: MINIMUM_FORGE_VERSION };
+
+/** What a forge's `/api/versions` answer says: its versions, or that it publishes none, or that its Overseer did not answer as one. */
+type VersionsReading =
+  | { readonly verdict: 'read'; readonly versions: ForgeVersions }
+  | { readonly verdict: 'starting' }
+  | { readonly verdict: 'failed' };
+
 const DEFAULT_INTERVALS: ForgeWatchIntervals = {
   registryCheckIntervalMilliseconds:   REGISTRY_CHECK_INTERVAL_MILLISECONDS,
   streamReconnectIntervalMilliseconds: STREAM_RECONNECT_INTERVAL_MILLISECONDS,
@@ -69,6 +85,17 @@ async function rootIsAFolder(root: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * A forge from before versions answers `/api/versions` as any unknown path, and a program that is no forge answers it as it answers
+ * anything: both publish no versions, and the identity then decides as before versions. Only an Overseer that does not answer, or answers
+ * that it is starting, is decided here, as its identity would be.
+ */
+function versionsReadingOf(answer: ForgeDocumentAnswer, knownForgeVersions: KnownForgeVersions): VersionsReading {
+  if (answer.verdict === 'unreachable') return { verdict: 'failed' };
+  if (answer.verdict !== 'answered') return WatchReadingUtil.failureMeansStarting(answer) ? { verdict: 'starting' } : { verdict: 'read', versions: ForgeVersionsUtil.NOT_REPORTED };
+  return { verdict: 'read', versions: ForgeVersionsUtil.forgeVersionsOf(SystemVersionUtil.versionsDocumentOf(answer.document), knownForgeVersions) };
 }
 
 function contentHashOf(value: unknown): string {
@@ -100,9 +127,17 @@ interface WatchRound {
   readonly isCurrent: () => boolean;
 }
 
+/** One round's way to the forge: what the registry holds of it, the paths its versions call for, and those versions, which every reading carries. */
+interface ForgeAddress {
+  readonly registryFacts: ForgeRegistryFacts;
+  readonly address:       OverseerAddress;
+  readonly versions:      ForgeVersions;
+}
+
 export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
   const intervals = { ...DEFAULT_INTERVALS, ...options.intervals };
   const { forgeClient, timers } = options;
+  const knownForgeVersions = options.knownForgeVersions ?? KNOWN_FORGE_VERSIONS;
   const watchedForges = new Map<string, WatchedForge>();
   let trackerIdsInRegistryOrder: readonly string[] = [];
   let lastRegistryHash: string | null = null;
@@ -183,33 +218,35 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       setReading(isAFolder ? WatchReadingUtil.dormantReadingOf(entry, lastWholeReading) : WatchReadingUtil.repositoryMissingReadingOf(entry));
     }
 
-    async function readSummary(round: WatchRound, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity): Promise<void> {
-      const answer = await forgeClient.summaryOf(registryFacts.overseerUrl);
+    async function readSummary(round: WatchRound, forgeAddress: ForgeAddress, identity: ForgeIdentity): Promise<void> {
+      const { registryFacts, address, versions } = forgeAddress;
+      const answer = await forgeClient.summaryOf(address);
       if (!round.isCurrent()) return;
       if (answer.verdict !== 'answered') return failedTry();
       const summaryReading = new BoardSummaryIngestion(registryFacts, identity).readingOf(answer.document, options.now());
-      if (summaryReading.verdict === 'newer-contract') return setReading(summaryReading.reading);
+      if (summaryReading.verdict === 'newer-contract') return setReading({ ...summaryReading.reading, versions });
       if (summaryReading.verdict !== 'readable') return failedTry();
-      keepWholeReading(summaryReading.reading);
+      keepWholeReading({ ...summaryReading.reading, versions });
       scheduleRound(intervals.summaryPollIntervalMilliseconds);
     }
 
-    async function followMonitor(round: WatchRound, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity, tokenPath: string): Promise<void> {
+    async function followMonitor(round: WatchRound, forgeAddress: ForgeAddress, identity: ForgeIdentity, tokenPath: string): Promise<void> {
+      const { registryFacts, address, versions } = forgeAddress;
       const bearerToken = await new OverseerTokenFile(tokenPath).read();
       if (!round.isCurrent()) return;
       if (bearerToken === null) return failedTry();
       const ingestion = new MonitorSnapshotIngestion(registryFacts, identity);
       let wholeSnapshotsRead = 0;
       let snapshotWasUnreadable = false;
-      const follow = forgeClient.followMonitor({ overseerUrl: registryFacts.overseerUrl, bearerToken }, (document) => {
+      const follow = forgeClient.followMonitor({ ...address, bearerToken }, (document) => {
         if (!round.isCurrent()) return;
         const snapshotReading = ingestion.readingOf(document, options.now());
         if (snapshotReading.verdict === 'readable') {
           wholeSnapshotsRead += 1;
-          keepWholeReading(snapshotReading.reading);
+          keepWholeReading({ ...snapshotReading.reading, versions });
         } else if (snapshotReading.verdict === 'newer-contract') {
           // Gaia reads nothing of a newer contract; the forge is identified again when its registry entry changes.
-          setReading(snapshotReading.reading);
+          setReading({ ...snapshotReading.reading, versions });
           follow.stop();
         } else {
           // An open stream that only sends what Gaia cannot read would otherwise keep the forge as it was, never failing a try.
@@ -229,24 +266,40 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
     }
 
+    /** A forge Gaia cannot talk to is read from the registry alone, and asked nothing more until its entry changes or User looks again. */
+    function readCannotTalk(registryFacts: ForgeRegistryFacts, versions: ForgeVersions): void {
+      failedTries = 0;
+      const reading = versions.verdict === 'older'
+        ? ForgeReadingMapUtil.olderContractReadingOf(registryFacts)
+        : ForgeReadingMapUtil.newerContractReadingOf(registryFacts, null, ForgeReadingMapUtil.contractsWith(null, {}));
+      setReading({ ...reading, versions });
+    }
+
     async function identifyAndRead(round: WatchRound): Promise<void> {
       const { overseer } = entry;
       if (overseer === null) return decideWithoutOverseer(round);
       const registryFacts = WatchReadingUtil.registryFactsOf(entry, overseer);
-      const answer = await forgeClient.identityOf(overseer.url);
+      const versionsReading = versionsReadingOf(await forgeClient.versionsOf(overseer.url), knownForgeVersions);
+      if (!round.isCurrent()) return;
+      if (versionsReading.verdict === 'starting') return readStarting();
+      if (versionsReading.verdict === 'failed') return failedTry();
+      const { versions } = versionsReading;
+      if (!ForgeVersionsUtil.canTalk(versions)) return readCannotTalk(registryFacts, versions);
+      const forgeAddress: ForgeAddress = { registryFacts, address: { overseerUrl: overseer.url, paths: ForgeVersionsUtil.overseerPathsOf(versions) }, versions };
+      const answer = await forgeClient.identityOf(forgeAddress.address);
       if (!round.isCurrent()) return;
       if (answer.verdict !== 'answered' && WatchReadingUtil.failureMeansStarting(answer)) return readStarting();
       if (answer.verdict !== 'answered') return failedTry();
       const identityReading = new IdentityIngestion(registryFacts).readingOf(answer.document);
       if (identityReading.verdict === 'newer-contract') {
         failedTries = 0;
-        return setReading(identityReading.reading);
+        return setReading({ ...identityReading.reading, versions });
       }
       if (identityReading.verdict !== 'readable') return failedTry();
       const { identity, fidelity } = identityReading;
       // A forge that names no token file cannot be followed; its open summary still gives its counts.
-      if (fidelity === 'full' && overseer.tokenPath !== null) return followMonitor(round, registryFacts, identity, overseer.tokenPath);
-      return readSummary(round, registryFacts, identity);
+      if (fidelity === 'full' && overseer.tokenPath !== null) return followMonitor(round, forgeAddress, identity, overseer.tokenPath);
+      return readSummary(round, forgeAddress, identity);
     }
 
     function follow(nextEntry: RegisteredForge): void {

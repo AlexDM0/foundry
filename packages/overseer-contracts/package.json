@@ -1,18 +1,19 @@
 {
   "name": "overseer-contracts",
-  "version": "0.1.0",
-  "description": "The documents a forge's Overseer serves and reads, as types, with each contract's wire version: produced by forge, read by Gaia",
+  "version": "0.2.0",
+  "description": "The documents a forge's Overseer serves and reads, as types, with the forge system versions and each endpoint's version: produced by forge, read by Gaia",
   "type": "module",
   "engines": { "bun": "1.4.2" },
-  "files": ["@types", "constants/OverseerContractVersions.ts", "README.md", "FORGE_REQUIREMENTS.md"],
+  "files": ["@types", "constants/OverseerContractVersions.ts", "constants/ForgeSystemVersions.ts", "README.md", "FORGE_REQUIREMENTS.md"],
   "exports": {
-    "./ContractVersion": "./@types/ContractVersion.ts",
+    "./VersionsDocument": "./@types/VersionsDocument.ts",
     "./IdentityDocument": "./@types/IdentityDocument.ts",
     "./BoardSummaryDocument": "./@types/BoardSummaryDocument.ts",
     "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
     "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
-    "./OverseerContractVersions": "./constants/OverseerContractVersions.ts"
+    "./OverseerContractVersions": "./constants/OverseerContractVersions.ts",
+    "./ForgeSystemVersions": "./constants/ForgeSystemVersions.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

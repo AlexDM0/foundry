@@ -8,8 +8,6 @@ import { PageAnswerMapUtil }    from '../../../adapters/page-api/PageAnswerMapUt
 import type { CommandVerdict }  from '../../../shared/@types/CommandVerdict.ts';
 import type { GaiaCommand }     from '../../../shared/@types/GaiaCommand.ts';
 
-export const COMMANDS_PATH = '/api/commands';
-
 /** Carries one command and answers how it ended; never throws for a forge that is down. */
 export type CommandCarrier = (command: GaiaCommand) => Promise<CommandVerdict>;
 

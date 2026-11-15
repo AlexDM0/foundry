@@ -13,6 +13,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FORGE_NOTICE_KINDS }                  from '../../shared/constants/ForgeNoticeKinds.ts';
+import { ForgeVersionsUtil }                   from '../../shared/utils/ForgeVersionsUtil.ts';
 import type { FlintBrainSituation }            from '../../testing/RecordedAnswers.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
@@ -255,7 +256,8 @@ const RECORDED_READING: ForgeReading = {
     currentWindow:         null,
     currentWindowResetsAt: null,
   },
-  brain: 'not-reported',
+  brain:    'not-reported',
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 
@@ -445,11 +447,12 @@ const RECORDED_READING_OF_MONITOR_ONE: ForgeReading = {
     currentWindow:         null,
     currentWindowResetsAt: null,
   },
-  brain: 'not-reported',
+  brain:    'not-reported',
+  versions: ForgeVersionsUtil.NOT_REPORTED,
 };
 
 
-const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor.major + 1;
+const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
 /** The code version the monitor-3 answers were authored with; retake it after `bun run record overseer-fetch-monitor-3`. */
 const MONITOR_THREE_CODE_VERSION = '3f9a2c1';
@@ -690,6 +693,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       today:             null,
       usage:             null,
       brain:             'not-reported',
+      versions:          ForgeVersionsUtil.NOT_REPORTED,
     });
   });
 
@@ -739,27 +743,20 @@ describe('a snapshot that cannot be read', () => {
   });
 });
 
-describe('a snapshot at another minor', () => {
-  test('reads a snapshot of the known version at a newer monitorMinor, with a key this Gaia does not know, as it reads one at minor 0', async () => {
-    const atMinorZero = monitorThreeIngestion().readingOf(await brainSnapshot('brain-running'), EXAMPLE_READ_STAMP);
-    const atANewerMinor = { ...await brainSnapshot('brain-running'), monitorMinor: 2, exampleAddedKey: { exampleNested: 1 } };
+describe('a snapshot with keys this Gaia does not know', () => {
+  test('reads a snapshot of the known version as it reads one without them, a key named as a minor included', async () => {
+    const withoutAddedKeys = monitorThreeIngestion().readingOf(await brainSnapshot('brain-running'), EXAMPLE_READ_STAMP);
+    const withAddedKeys = { ...await brainSnapshot('brain-running'), monitorMinor: 2, exampleAddedKey: { exampleNested: 1 } };
 
-    expect(atMinorZero.verdict).toBe('readable');
-    expect(monitorThreeIngestion().readingOf(atANewerMinor, EXAMPLE_READ_STAMP)).toEqual(atMinorZero);
+    expect(withoutAddedKeys.verdict).toBe('readable');
+    expect(monitorThreeIngestion().readingOf(withAddedKeys, EXAMPLE_READ_STAMP)).toEqual(withoutAddedKeys);
   });
 
-  test('reads a snapshot of an older version Gaia still reads at a minor, migrated as at minor 0', async () => {
-    const atMinorZero = ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP);
-    const atAMinor = { ...await storefrontSnapshot(), monitorMinor: 1, exampleAddedKey: true };
+  test('reads a snapshot of an older version Gaia still reads as it reads one without them, migrated', async () => {
+    const withoutAddedKeys = ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP);
+    const withAddedKeys = { ...await storefrontSnapshot(), exampleAddedKey: true };
 
-    expect(atMinorZero.verdict).toBe('readable');
-    expect(ingestion().readingOf(atAMinor, EXAMPLE_READ_STAMP)).toEqual(atMinorZero);
-  });
-
-  test('refuses a newer monitorVersion whatever its minor, and names a monitorMinor that is no whole number', async () => {
-    const atANewerVersion = ingestion().readingOf({ ...await storefrontSnapshot(), monitorVersion: NEWER_MONITOR_VERSION, monitorMinor: 0 }, EXAMPLE_READ_STAMP);
-
-    expect(atANewerVersion.verdict).toBe('newer-contract');
-    expect(ingestion().readingOf({ ...await storefrontSnapshot(), monitorMinor: null }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['monitorMinor'] });
+    expect(withoutAddedKeys.verdict).toBe('readable');
+    expect(ingestion().readingOf(withAddedKeys, EXAMPLE_READ_STAMP)).toEqual(withoutAddedKeys);
   });
 });
