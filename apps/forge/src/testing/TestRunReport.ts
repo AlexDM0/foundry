@@ -5,6 +5,7 @@
  * registration, the reason it may do work at load.
  */
 import { tmpdir }   from 'node:os';
+import { join }     from 'node:path';
 import { afterAll } from 'bun:test';
 
 import { EVERY_TOOL_REQUIRED_VARIABLE }            from '../shared/Environment.ts';
@@ -26,7 +27,9 @@ import {
 }                                                            from './TestRunLeakCheck.ts';
 import { skippedSpecsSoFar, titleNamingTheUnmetRequirement } from './ToolGuard.ts';
 
-const baseline = takeTestRunBaseline(tmpdir(), spawnedGitLinesIn);
+const PROGRAM_ROOT = join(import.meta.dir, '..', '..');
+
+const baseline = takeTestRunBaseline(tmpdir(), PROGRAM_ROOT, spawnedGitLinesIn);
 moveTheRunIntoATemporaryFolderOfItsOwn();
 
 function reportSkippedSpecs(): void {

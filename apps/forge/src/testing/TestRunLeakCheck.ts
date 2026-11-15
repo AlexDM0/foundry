@@ -4,7 +4,7 @@
  * in the repository under test. Only what is known to be this run's counts, since other runs on the machine share every folder named here.
  */
 import { existsSync, readdirSync } from 'node:fs';
-import { join }                    from 'node:path';
+import { join, relative, sep }     from 'node:path';
 
 import { GitProcess } from '../lib/git/GitProcess.ts';
 
@@ -32,6 +32,8 @@ const PROCESS_SETTLE_POLL_MILLISECONDS = 50;
 
 interface RepositoryState {
   readonly directory:     string;
+  /** The status pathspec: the run's own program folder, so a file another workspace member's run adds is not this run's. */
+  readonly scopeFolder:   string;
   readonly worktreeLines: readonly string[];
   readonly worktreePaths: readonly string[];
   readonly branchNames:   readonly string[];
@@ -72,32 +74,46 @@ export function gitProcessLinesReaderIn(workingDirectory: string): GitLinesReade
   };
 }
 
-function repositoryStateOf(directory: string, gitLinesIn: GitLinesReader): RepositoryState | null {
+function repositoryStateOf(directory: string, scopeFolder: string, gitLinesIn: GitLinesReader): RepositoryState | null {
   const worktreeLines = gitLinesIn(directory, ['worktree', 'list', '--porcelain']);
   const branchNames   = gitLinesIn(directory, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']);
-  const statusLines   = gitLinesIn(directory, ['status', '--porcelain', '--untracked-files=all']);
+  const statusLines   = gitLinesIn(directory, ['status', '--porcelain', '--untracked-files=all', '--', scopeFolder]);
   if (worktreeLines === null || branchNames === null || statusLines === null) return null;
   const worktreePaths = worktreeLines.filter((line) => line.startsWith('worktree ')).map((line) => line.slice('worktree '.length));
   return {
-    directory, worktreeLines, worktreePaths, branchNames, statusLines
+    directory, scopeFolder, worktreeLines, worktreePaths, branchNames, statusLines
   };
 }
 
+/** `programRoot` as a pathspec relative to the repository's top level, `.` when they are one folder; null when it lies outside it. */
+function scopeFolderOf(topLevel: string, programRoot: string): string | null {
+  const canonicalTopLevel    = canonicalPathOf(topLevel);
+  const canonicalProgramRoot = canonicalPathOf(programRoot);
+  if (canonicalProgramRoot === canonicalTopLevel) return '.';
+  if (!pathLiesInside(canonicalProgramRoot, canonicalTopLevel)) return null;
+  return relative(canonicalTopLevel, canonicalProgramRoot).split(sep).join('/');
+}
+
 /** The repository the run was started in, through git itself, so a run outside any repository checks no git state. */
-function repositoryUnderTest(gitLinesIn: GitLinesReader): RepositoryState | null {
+function repositoryUnderTest(programRoot: string, gitLinesIn: GitLinesReader): RepositoryState | null {
   const topLevel = gitLinesIn(null, ['rev-parse', '--show-toplevel'])?.[0];
-  return topLevel === undefined ? null : repositoryStateOf(topLevel, gitLinesIn);
+  if (topLevel === undefined) return null;
+  const scopeFolder = scopeFolderOf(topLevel, programRoot);
+  return scopeFolder === null ? null : repositoryStateOf(topLevel, scopeFolder, gitLinesIn);
 }
 
 function directoryEntries(directory: string): string[] {
   return existsSync(directory) ? readdirSync(directory) : [];
 }
 
-/** Taken when the preload loads, before any spec runs; `temporaryFolderBeforeTheRun` is the machine's, before the run moved `TMPDIR`. */
-export function takeTestRunBaseline(temporaryFolderBeforeTheRun: string, gitLinesIn: GitLinesReader): TestRunBaseline {
+/**
+ * Taken when the preload loads, before any spec runs; `temporaryFolderBeforeTheRun` is the machine's, before the run moved `TMPDIR`, and
+ * `programRoot` the folder whose files the run answers for.
+ */
+export function takeTestRunBaseline(temporaryFolderBeforeTheRun: string, programRoot: string, gitLinesIn: GitLinesReader): TestRunBaseline {
   return {
     scratchRootEntries: new Set(directoryEntries(SHARED_SCRATCH_ROOT)),
-    repository:         repositoryUnderTest(gitLinesIn),
+    repository:         repositoryUnderTest(programRoot, gitLinesIn),
     temporaryRoots:     [...new Set([SHARED_SCRATCH_ROOT, temporaryFolderBeforeTheRun, ...TEMPORARY_ROOTS].map(canonicalPathOf))],
   };
 }
@@ -135,7 +151,7 @@ function pathLiesUnder(candidatePath: string, roots: readonly string[]): boolean
 function repositoryLeaksOf(baseline: TestRunBaseline, gitLinesIn: GitLinesReader): string[] {
   const before = baseline.repository;
   if (before === null) return [];
-  const after = repositoryStateOf(before.directory, gitLinesIn);
+  const after = repositoryStateOf(before.directory, before.scopeFolder, gitLinesIn);
   if (after === null) return [];
   // Other sessions add worktrees and branches to the same repository while the run goes; only a worktree in a temp folder, and a
   // branch such a worktree holds or `addWorktree` names, is the run's.

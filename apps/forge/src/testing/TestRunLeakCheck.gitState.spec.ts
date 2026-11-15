@@ -1,8 +1,9 @@
 /**
  * The git side of the leak check of `src/testing/TestRunLeakCheck.ts`: the repository under test read at the baseline and again after the
  * run. What matters: an unchanged repository fails nothing; a worktree added in a temp folder, a branch named as the scratch helpers name
- * one and a new file in the repository each fail the run and are named, the worktree with the branch it holds; and a branch another
- * process makes with no worktree fails nothing. The folders are real; git answers from recorded answer sets, one
+ * one and a new file in the repository each fail the run and are named, the worktree with the branch it holds; a branch another
+ * process makes with no worktree fails nothing; and git status is asked only of the run's program folder, so in a workspace a file
+ * another member's run adds is not this run's. The folders are real; git answers from recorded answer sets, one
  * for the repository before the run and one for it after. `TestRunLeakCheck.integration.spec.ts` holds the rest of the check, on a real run.
  */
 import { mkdirSync } from 'node:fs';
@@ -63,22 +64,23 @@ interface RepositoryAnswers {
   status?:    GitCallShape;
 }
 
-function repositoryAnswers(answers: RepositoryAnswers = {}): RecordedGitStage {
+function repositoryAnswers(answers: RepositoryAnswers = {}, statusPathspec = '.'): RecordedGitStage {
   const { worktrees = GIT_CALL_SHAPES.WORKTREE_LIST_MAIN_ONLY, branches = GIT_CALL_SHAPES.BRANCH_NAMES_OF_ONE, status = GIT_CALL_SHAPES.SHORT_STATUS_CLEAN, } = answers;
   return [
     answered(['rev-parse', '--show-toplevel'], GIT_CALL_SHAPES.TOP_LEVEL_AT_THE_ROOT),
     answered(['worktree', 'list', '--porcelain'], worktrees),
     answered(['for-each-ref', '--format=%(refname:short)', 'refs/heads'], branches),
-    answered(['status', '--porcelain', '--untracked-files=all'], status),
+    answered(['status', '--porcelain', '--untracked-files=all', '--', statusPathspec], status),
   ];
 }
 
 /** The git leaks of a run that found the repository as `repositoryAnswers()` says, and left it as `after` says. */
-function gitLeaksOf(after: RepositoryAnswers): string[] {
-  recordedGit.answerFrom(repositoryAnswers());
+function gitLeaksOf(after: RepositoryAnswers, programFolder = ''): string[] {
+  const statusPathspec = programFolder === '' ? '.' : programFolder;
+  recordedGit.answerFrom(repositoryAnswers({}, statusPathspec));
   const recordedGitLinesIn = gitProcessLinesReaderIn(repository);
-  const baseline = takeTestRunBaseline(repository, recordedGitLinesIn);
-  recordedGit.answerFrom(repositoryAnswers(after));
+  const baseline = takeTestRunBaseline(repository, `${repository}/${programFolder}`, recordedGitLinesIn);
+  recordedGit.answerFrom(repositoryAnswers(after, statusPathspec));
   return leaksAfterTheRunFoldersWent(baseline, NO_RUN_FOLDERS, recordedGitLinesIn).filter((leak) => leak.startsWith('git '));
 }
 
@@ -103,4 +105,9 @@ test('a branch that another process makes in the repository, with no worktree, d
 
 test('a new file in the repository fails the run, named', () => {
   expect(gitLeaksOf({ status: GIT_CALL_SHAPES.SHORT_STATUS_OF_A_NEW_FILE })).toEqual([`git status of ${repository} gained "?? planted-file.txt"`]);
+});
+
+test('a run of a program in a workspace member folder asks git status of that folder alone', () => {
+  mkdirSync(`${repository}/apps/example-app`, { recursive: true });
+  expect(gitLeaksOf({ status: GIT_CALL_SHAPES.SHORT_STATUS_OF_A_NEW_FILE }, 'apps/example-app')).toEqual([`git status of ${repository} gained "?? planted-file.txt"`]);
 });
