@@ -66,12 +66,6 @@ const UNREACHABLE_AFTER_FAILED_TRIES = 3;
 
 const KNOWN_FORGE_VERSIONS: KnownForgeVersions = { supported: SUPPORTED_FORGE_VERSION, minimum: MINIMUM_FORGE_VERSION };
 
-/** What a forge's `/api/versions` answer says: its versions, or that it publishes none, or that its Overseer did not answer as one. */
-type VersionsReading =
-  | { readonly verdict: 'read'; readonly versions: ForgeVersions }
-  | { readonly verdict: 'starting' }
-  | { readonly verdict: 'failed' };
-
 const DEFAULT_INTERVALS: ForgeWatchIntervals = {
   registryCheckIntervalMilliseconds:   REGISTRY_CHECK_INTERVAL_MILLISECONDS,
   streamReconnectIntervalMilliseconds: STREAM_RECONNECT_INTERVAL_MILLISECONDS,
@@ -88,14 +82,14 @@ async function rootIsAFolder(root: string): Promise<boolean> {
 }
 
 /**
- * A forge from before versions answers `/api/versions` as any unknown path, and a program that is no forge answers it as it answers
- * anything: both publish no versions, and the identity then decides as before versions. Only an Overseer that does not answer, or answers
- * that it is starting, is decided here, as its identity would be.
+ * The forge's versions, or `null` when its Overseer does not answer. A forge from before versions answers `/api/versions` as any unknown
+ * path, and a program that is no forge as it answers anything: both publish no versions, and the identity then decides as before versions,
+ * a starting Overseer included.
  */
-function versionsReadingOf(answer: ForgeDocumentAnswer, knownForgeVersions: KnownForgeVersions): VersionsReading {
-  if (answer.verdict === 'unreachable') return { verdict: 'failed' };
-  if (answer.verdict !== 'answered') return WatchReadingUtil.failureMeansStarting(answer) ? { verdict: 'starting' } : { verdict: 'read', versions: ForgeVersionsUtil.NOT_REPORTED };
-  return { verdict: 'read', versions: ForgeVersionsUtil.forgeVersionsOf(SystemVersionUtil.versionsDocumentOf(answer.document), knownForgeVersions) };
+function forgeVersionsOfAnswer(answer: ForgeDocumentAnswer, knownForgeVersions: KnownForgeVersions): ForgeVersions | null {
+  if (answer.verdict === 'unreachable') return null;
+  if (answer.verdict !== 'answered') return ForgeVersionsUtil.NOT_REPORTED;
+  return ForgeVersionsUtil.forgeVersionsOf(SystemVersionUtil.versionsDocumentOf(answer.document), knownForgeVersions);
 }
 
 function contentHashOf(value: unknown): string {
@@ -279,11 +273,9 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       const { overseer } = entry;
       if (overseer === null) return decideWithoutOverseer(round);
       const registryFacts = WatchReadingUtil.registryFactsOf(entry, overseer);
-      const versionsReading = versionsReadingOf(await forgeClient.versionsOf(overseer.url), knownForgeVersions);
+      const versions = forgeVersionsOfAnswer(await forgeClient.versionsOf(overseer.url), knownForgeVersions);
       if (!round.isCurrent()) return;
-      if (versionsReading.verdict === 'starting') return readStarting();
-      if (versionsReading.verdict === 'failed') return failedTry();
-      const { versions } = versionsReading;
+      if (versions === null) return failedTry();
       if (!ForgeVersionsUtil.canTalk(versions)) return readCannotTalk(registryFacts, versions);
       const forgeAddress: ForgeAddress = { registryFacts, address: { overseerUrl: overseer.url, paths: ForgeVersionsUtil.overseerPathsOf(versions) }, versions };
       const answer = await forgeClient.identityOf(forgeAddress.address);
