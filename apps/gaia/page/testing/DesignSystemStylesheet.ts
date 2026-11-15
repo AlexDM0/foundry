@@ -4,15 +4,14 @@
  * as the `@font-face` rules the font loader stands in for, each file inlined as a `data:` address, since a file page may not load a font
  * from another file.
  */
-import { readFileSync }  from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { type FontFaceFactory, loadDesignSystemFonts } from 'design-system/FontLoader';
 
+import { PackageStylesheet } from './PackageStylesheet.ts';
+
 /** The packages' entry stylesheets in the order `page/index.html` links them. */
 const ENTRY_STYLESHEET_EXPORTS = ['design-system/design-system.css', 'design-system-contributions/design-system-contributions.css'];
-
-const STYLESHEET_IMPORT = /@import\s+"([^"]+)";/g;
 
 const FONT_FILE_SOURCE = /^url\("([^"]+)"\) format\("woff2"\)$/;
 
@@ -24,11 +23,6 @@ interface RecordedFontFace {
 
 // The fake set hands back what the factory recorded, so the cast only renames the record the factory made.
 const recordingFontFaceFactory: FontFaceFactory = (family, source, descriptors) => ({ family, source, descriptors }) as unknown as FontFace;
-
-function inlinedStylesheetOf(stylesheetPath: string): string {
-  const stylesheetText = readFileSync(stylesheetPath, 'utf8');
-  return stylesheetText.replace(STYLESHEET_IMPORT, (_importRule, importedPath: string) => inlinedStylesheetOf(join(dirname(stylesheetPath), importedPath)));
-}
 
 function fontFaceRuleOf(fontFace: RecordedFontFace): string {
   // Under Bun an imported font file is its path on disk.
@@ -50,8 +44,8 @@ let fontFaceRulesText: string | null = null;
 
 export const DesignSystemStylesheet = {
   /** The entry stylesheets as a bundler links them: every imported stylesheet in place of its import, in order. */
-  text(): string {
-    return ENTRY_STYLESHEET_EXPORTS.map((entryExport) => inlinedStylesheetOf(Bun.resolveSync(entryExport, import.meta.dir))).join('\n');
+
+    return ENTRY_STYLESHEET_EXPORTS.map((entryExport) => PackageStylesheet.inlinedText(entryExport)).join('\n');
   },
 
   /** A rule per face the font loader registers, read once and kept, since the files are large and the same for every screen. */

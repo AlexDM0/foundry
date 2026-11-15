@@ -30,15 +30,15 @@ its own; the dev tools every workspace shares are the root's.
    Never `--no-verify`.
 9. **Verify** with `bun run verify`, here or at the repository root, which runs every workspace's own (typecheck of `src/` and `page/`,
    lint, specs, the recording-stamp check), never with ad-hoc compiler flags.
-10. **Colour lives only in tokens:** the design-system package's `tokens.css` and, for Gaia's own parts only (the marks, a fill the
-    package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no package token.
+10. **Colour lives only in tokens:** the design-system package's `tokens.css`, the brand package's for the marks, and, for Gaia's own
+    parts only (a fill the package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no package token.
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
     or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
-    `page/design-system/` holds only the parts neither package has (the marks, the brand bar, the brain chip, the callout and the like)
+    `page/design-system/` holds only the parts no package has (the brand bar, the brain chip, the callout and the like)
     and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
     a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
-    `page/testing/ReactElementTree.ts`, which keeps every component both packages' exports maps name folded: a spec reads and calls the
+    `page/testing/ReactElementTree.ts`, which keeps every component the design-system packages' exports maps name folded: a spec reads and calls the
     props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
     Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a
     spec renders a hooked root with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does, and
@@ -54,7 +54,9 @@ its own; the dev tools every workspace shares are the root's.
     the package (the text field, the checkbox, the figure, the page head, the data table, the theme button, the failed action and the
     pending step) live in `packages/design-system-contributions`, staged to move into it under its constitution: Gaia depends on that
     package with `workspace:^`, imports each part by its export name and passes every word in, and `page/index.html` links its stylesheet
-    after the design-system package's and before Gaia's own.
+    after the design-system package's and before Gaia's own. Gaia's and Forge's marks come from the workspace package `brand`
+    (`packages/brand/`), a dependency at `workspace:^` with a version of its own: each mark by its export name (`brand/GaiaMark`), its
+    stylesheet `brand/brand.css` linked after the contributions package's and before Gaia's own, and on the splash by its file.
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
     no shadow at rest; mono for machine values. Gaia draws no Flint and calls no model: the brain's only mark is the diamond, a brain counts

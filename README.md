@@ -3,6 +3,9 @@
 A Bun workspace laid out as the forge monorepo will be: each app in `apps/`, each shared package in `packages/`. Gaia is `apps/gaia/`;
 its `CLAUDE.md` holds Gaia's rules, map and boundaries, and its `README.md` how to run it.
 
+`packages/brand/` holds Gaia's and Forge's marks, their colour tokens and the logo's drawings: a package with its own version, published
+on its own, which an app names as `workspace:^`. Its `README.md` says how to use it.
+
 ## Set up
 
 ```bash

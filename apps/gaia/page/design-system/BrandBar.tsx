@@ -4,12 +4,11 @@
  * a pulsing dot while a forge runs, and neutral with a dormant ring while none does; before Gaia knows the fleet, the bar shows neither.
  * The theme button's name says the current choice and the next, as "Theme: auto. Switch to light".
  */
+import { GaiaMark }         from 'brand/GaiaMark';
 import { StateBadge }       from 'design-system/StateBadge';
 import type { ThemeChoice } from 'design-system-contributions/ThemeChoice';
 import { ThemeCycleButton } from 'design-system-contributions/ThemeCycleButton';
 import { ThemeCycleUtil }   from 'design-system-contributions/ThemeCycleUtil';
-
-import { GaiaMark } from './GaiaMark.tsx';
 
 const HOME_HREF = '#attention';
 

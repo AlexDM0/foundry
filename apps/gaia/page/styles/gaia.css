@@ -19,23 +19,6 @@
   white-space: nowrap;
 }
 
-/* Marks: the tile's gradient and rim and the ring opened by its mask; Gaia's core, nodes and glow; Forge's core and node, each in its tokens */
-.gaia-mark { display: block; flex: none; }
-.gaia-mark-ground-from { stop-color: var(--mark-from); }
-.gaia-mark-ground-to { stop-color: var(--mark-to); }
-.gaia-mark-mask-open { fill: var(--mark-mask-open); }
-.gaia-mark-mask-shut { fill: var(--mark-mask-shut); }
-.gaia-mark-ring { stroke: var(--mark-ring); }
-.gaia-mark-core { fill: var(--mark-core); }
-.gaia-mark-node-halo { fill: var(--mark-node-halo); stroke: var(--mark-node-halo); }
-.gaia-mark-node-core { fill: var(--mark-core); }
-.gaia-mark-glow { fill: var(--mark-glow); }
-.gaia-mark-rim { stroke: var(--mark-rim); }
-.gaia-forge-mark-ring { stroke: var(--forge-mark-line); }
-.gaia-forge-mark-core { fill: var(--forge-mark-core); }
-.gaia-forge-mark-node-ring { stroke: var(--forge-mark-node-ring); }
-.gaia-forge-mark-node-core { fill: var(--forge-mark-node-core); }
-
 /* The "Open in new tab" arrow, stroked in the colour of what holds it */
 .gaia-open-in-new-tab-glyph {
   flex: none;

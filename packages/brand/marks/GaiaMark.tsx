@@ -1,12 +1,12 @@
 /**
  * Gaia's mark, the constellation: a tile holding a rounded hexagon ring, opened around three nodes, about a hexagon core, drawn on a
- * 64-unit grid in the mark's tokens of each theme. Small, it draws a thicker ring and solid nodes with no halo or glow. It is decoration;
- * the link or the name beside it carries the meaning. Every mark of one drawing draws the same gradient, mask and filter, so one id for each
- * serves them all, and each drawing keeps ids of its own.
+ * 64-unit grid in the brand's tokens of each theme. Small, it draws a thicker ring and solid nodes with no halo or glow. It is decoration;
+ * the name beside it carries the meaning. Every mark of one drawing draws the same gradient, mask and filter, so one id for each serves
+ * them all, and each drawing keeps ids of its own.
  */
 import { Fragment } from 'react';
 
-import { MARK_GEOMETRY } from './constants/MarkGeometry.ts';
+import { MARK_GEOMETRY } from '../constants/MarkGeometry.ts';
 
 const DEFAULT_SIZE_PIXELS = 28;
 
@@ -80,13 +80,13 @@ const SMALL_NODES: readonly SmallNode[] = [
 
 const GLOW = { ...NODE_CENTRES.topLeft, radius: '5.5' } as const;
 
-const LARGE_IDS = { ground: 'gaia-mark-large-ground', gap: 'gaia-mark-large-gap', glow: 'gaia-mark-large-glow' } as const;
-const SMALL_IDS = { ground: 'gaia-mark-small-ground', gap: 'gaia-mark-small-gap' } as const;
+const LARGE_IDS = { ground: 'brand-gaia-mark-large-ground', gap: 'brand-gaia-mark-large-gap', glow: 'brand-gaia-mark-large-glow' } as const;
+const SMALL_IDS = { ground: 'brand-gaia-mark-small-ground', gap: 'brand-gaia-mark-small-gap' } as const;
 
 export type GaiaMarkDrawing = 'small' | 'large';
 
 export interface GaiaMarkProps {
-  /** 28 in the brand bar and a notification, 22 in the window bar, 88 on the splash, 128 and 64 for the app icon. */
+  /** Below `SMALL_DRAWING_BELOW_SIZE_PIXELS` the small drawing, from it on the large one. */
   readonly sizePixels?: number;
 }
 
@@ -97,8 +97,8 @@ function gaiaMarkDrawingAt(sizePixels: number): GaiaMarkDrawing {
 function TileGround({ id }: { readonly id: string }) {
   return (
     <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-      <stop className="gaia-mark-ground-from" offset="0" />
-      <stop className="gaia-mark-ground-to" offset="1" />
+      <stop className="brand-gaia-mark-ground-from" offset="0" />
+      <stop className="brand-gaia-mark-ground-to" offset="1" />
     </linearGradient>
   );
 }
@@ -106,8 +106,8 @@ function TileGround({ id }: { readonly id: string }) {
 function NodeGap({ id, nodes }: { readonly id: string; readonly nodes: readonly (NodeCentre & { readonly gapRadius: string })[] }) {
   return (
     <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
-      <rect className="gaia-mark-mask-open" width="64" height="64" />
-      {nodes.map((node) => <circle key={node.centreX} className="gaia-mark-mask-shut" cx={node.centreX} cy={node.centreY} r={node.gapRadius} />)}
+      <rect className="brand-gaia-mark-mask-open" width="64" height="64" />
+      {nodes.map((node) => <circle key={node.centreX} className="brand-gaia-mark-mask-shut" cx={node.centreX} cy={node.centreY} r={node.gapRadius} />)}
     </mask>
   );
 }
@@ -125,14 +125,21 @@ function LargeConstellation() {
       <rect x="1" y="1" width="62" height="62" rx="13" fill={`url(#${LARGE_IDS.ground})`} />
       <g transform={MARK_GEOMETRY.scaleAboutCentreTransform}>
         <g mask={`url(#${LARGE_IDS.gap})`}>
-          <path className="gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="3" />
+          <path className="brand-gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="3" />
         </g>
-        <path className="gaia-mark-core" d={LARGE_CORE_PATH} />
-        <circle className="gaia-mark-glow" cx={GLOW.centreX} cy={GLOW.centreY} r={GLOW.radius} opacity={GLOW_OPACITY} filter={`url(#${LARGE_IDS.glow})`} />
+        <path className="brand-gaia-mark-core" d={LARGE_CORE_PATH} />
+        <circle className="brand-gaia-mark-glow" cx={GLOW.centreX} cy={GLOW.centreY} r={GLOW.radius} opacity={GLOW_OPACITY} filter={`url(#${LARGE_IDS.glow})`} />
         {LARGE_NODES.map((node) => (
           <Fragment key={node.centreX}>
-            <circle className="gaia-mark-node-halo" cx={node.centreX} cy={node.centreY} r={node.haloRadius} fillOpacity={HALO_FILL_OPACITY} strokeWidth={node.haloStrokeWidth} />
-            <circle className="gaia-mark-node-core" cx={node.centreX} cy={node.centreY} r={node.coreRadius} />
+            <circle
+              className="brand-gaia-mark-node-halo"
+              cx={node.centreX}
+              cy={node.centreY}
+              r={node.haloRadius}
+              fillOpacity={HALO_FILL_OPACITY}
+              strokeWidth={node.haloStrokeWidth}
+            />
+            <circle className="brand-gaia-mark-node-core" cx={node.centreX} cy={node.centreY} r={node.coreRadius} />
           </Fragment>
         ))}
       </g>
@@ -150,10 +157,10 @@ function SmallConstellation() {
       <rect x="1" y="1" width="62" height="62" rx="13" fill={`url(#${SMALL_IDS.ground})`} />
       <g transform={MARK_GEOMETRY.scaleAboutCentreTransform}>
         <g mask={`url(#${SMALL_IDS.gap})`}>
-          <path className="gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="5.8" />
+          <path className="brand-gaia-mark-ring" d={MARK_GEOMETRY.hexagonRingPath} fill="none" strokeWidth="5.8" />
         </g>
-        <path className="gaia-mark-core" d={SMALL_CORE_PATH} />
-        {SMALL_NODES.map((node) => <circle key={node.centreX} className="gaia-mark-node-core" cx={node.centreX} cy={node.centreY} r={node.coreRadius} />)}
+        <path className="brand-gaia-mark-core" d={SMALL_CORE_PATH} />
+        {SMALL_NODES.map((node) => <circle key={node.centreX} className="brand-gaia-mark-node-core" cx={node.centreX} cy={node.centreY} r={node.coreRadius} />)}
       </g>
     </>
   );
@@ -162,9 +169,9 @@ function SmallConstellation() {
 export function GaiaMark({ sizePixels = DEFAULT_SIZE_PIXELS }: GaiaMarkProps) {
   const drawing = gaiaMarkDrawingAt(sizePixels);
   return (
-    <svg className="gaia-mark" data-drawing={drawing} aria-hidden="true" width={sizePixels} height={sizePixels} viewBox="0 0 64 64">
+    <svg className="brand-gaia-mark" data-drawing={drawing} aria-hidden="true" width={sizePixels} height={sizePixels} viewBox="0 0 64 64">
       {drawing === 'small' ? <SmallConstellation /> : <LargeConstellation />}
-      <rect className="gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" />
+      <rect className="brand-gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" />
     </svg>
   );
 }

@@ -1,0 +1,27 @@
+{
+  "name": "brand",
+  "version": "0.1.0",
+  "description": "Gaia's and Forge's marks as React components, their colour tokens in a light and a dark theme, and the logo's source drawings",
+  "type": "module",
+  "engines": { "bun": "1.4.2" },
+  "exports": {
+    "./GaiaMark": "./marks/GaiaMark.tsx",
+    "./ForgeMark": "./marks/ForgeMark.tsx",
+    "./brand.css": "./styles/brand.css",
+    "./assets/*": "./assets/*"
+  },
+  "files": ["marks/*.tsx", "marks/*.css", "!marks/*.dom.tsx", "!marks/*.stories.tsx", "constants", "styles", "assets", "README.md"],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
+    "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
+    "test": "bun test && bun test --isolate --preload ./testing/HappyDomPreload.ts ./marks/*.dom.tsx",
+    "verify": "bun run typecheck && bun run lint && bun run test"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

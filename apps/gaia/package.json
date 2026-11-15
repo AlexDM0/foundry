@@ -16,6 +16,7 @@
     "verify": "bun run typecheck && bun run lint && bun test && bun src/testing/CheckRecordingStamps.ts"
   },
   "dependencies": {
+    "brand": "workspace:^",
     "design-system-contributions": "workspace:^",
     "react": "19.3.1",
     "react-dom": "19.3.1"

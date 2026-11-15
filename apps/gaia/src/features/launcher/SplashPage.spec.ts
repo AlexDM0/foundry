@@ -1,9 +1,10 @@
 /**
  * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only, the design-system package's
- * and Gaia's, and reads no token that both lack; it says what SCREENS C3 says and tells User to run nothing; and it knows every step and
- * fragment key the launcher moves it with; and it marks motion ready only after its first step has painted, so that step shows at once and
- * a later one fades in. Its own script runs against a stand-in document and stand-in frames at each step the launcher moves it to, since
- * specs have no document; the browser window watch's recording shows it in a real browser at a step.
+ * and Gaia's, and reads no token that both lack, and leaves its mark to the brand package's stylesheet; it says what SCREENS C3 says and
+ * tells User to run nothing; and it knows every step and fragment key the launcher moves it with; and it marks motion ready only after
+ * its first step has painted, so that step shows at once and a later one fades in. Its own script runs against a stand-in document and
+ * stand-in frames at each step the launcher moves it to, since specs have no document; the browser window watch's recording shows it in a
+ * real browser at a step.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -100,9 +101,9 @@ function renderedSplashAt(address: string, systemPrefersDark = false): RenderedS
 }
 
 describe('the splash', () => {
-  test('links the package\'s tokens and then Gaia\'s, by paths that reach them from the splash\'s folder', () => {
+  test('links the design system\'s tokens, the brand\'s stylesheet and then Gaia\'s tokens, by paths that reach them from the splash\'s folder', () => {
     const linked = linkedStylesheetsOf(splashText());
-    expect(linked).toEqual(['../../../../node_modules/design-system/styles/tokens.css', '../../page/styles/tokens.css']);
+    expect(linked).toEqual(['../../../../node_modules/design-system/styles/tokens.css', '../../../../node_modules/brand/styles/brand.css', '../../page/styles/tokens.css']);
     for (const stylesheet of linked) expect(existsSync(join(dirname(SPLASH_PATH), stylesheet))).toBe(true);
   });
 

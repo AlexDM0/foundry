@@ -20,6 +20,7 @@ import { ForgesModel, type StopDialogState }                                    
 import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';
 import { WhatNotifiesDialog }                                                       from '../views/forges/WhatNotifiesDialog.tsx';
 import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
+import { PackageStylesheet }                                                        from './PackageStylesheet.ts';
 import { forgeFrameSurroundingsAt }                                                 from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
 import { fleetWithStorefrontBrainOf }                                               from './fixtures/fleet-brain-states.ts';
@@ -58,6 +59,8 @@ const FLEET_SERVING_THE_BRAIN: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: FLINT_BRAIN_CONTRACT_VERSIONS.forgeControl } })),
 };
+
+const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';
 
 const STYLESHEET_PATHS = [join(import.meta.dir, '..', 'styles', 'tokens.css'), join(import.meta.dir, '..', 'styles', 'gaia.css')];
 
@@ -397,7 +400,7 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
 /**
  * A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion off as before the first document
  * has painted, so no fade or pulse is caught mid-way, and the stylesheets inline in the page's order, the design system's fonts and
- * stylesheet before Gaia's.
+ * stylesheet, then the brand's, before Gaia's.
  */
 export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): string {
   return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
@@ -407,6 +410,7 @@ function documentAround(title: string, theme: ScreenTheme, bodyMarkup: string): 
   const stylesheetTexts = [
     DesignSystemStylesheet.fontFaceRules(),
     DesignSystemStylesheet.text(),
+    PackageStylesheet.inlinedText(BRAND_STYLESHEET_EXPORT),
     ...STYLESHEET_PATHS.map((stylesheetPath) => readFileSync(stylesheetPath, 'utf8')),
   ];
   const stylesheets = stylesheetTexts.map((stylesheetText) => `<style>\n${stylesheetText}</style>`).join('\n');

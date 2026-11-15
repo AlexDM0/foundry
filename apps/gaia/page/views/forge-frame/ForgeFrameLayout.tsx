@@ -4,18 +4,18 @@
  * "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, or why the forge cannot be shown here. It takes no
  * hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Button }                    from 'design-system/Button';
-import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
-import { MonoId }                    from 'design-system/MonoId';
-import { Text }                      from 'design-system/Text';
-import type { ReactNode, Ref }       from 'react';
+import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
+import { Button }                         from 'design-system/Button';
+import { ChoiceInput, ChoiceOption }      from 'design-system/ChoiceOption';
+import { MonoId }                         from 'design-system/MonoId';
+import { Text }                           from 'design-system/Text';
+import type { ReactNode, Ref }            from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents }            from '../../@types/CommandDocument.ts';
 import { BrainChip, type BrainChipProps, type BrainControl } from '../../design-system/BrainChip.tsx';
 import { Callout }                                           from '../../design-system/Callout.tsx';
 import { ConditionDot }                                      from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                      from '../../design-system/ConfirmPanel.tsx';
-import { ForgeMark, type ForgeMarkProps }                    from '../../design-system/ForgeMark.tsx';
 import { OpenInNewTabGlyph }                                 from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                           from '../../design-system/Refusal.tsx';
 import type { RefusalText }                                  from '../../shared/utils/CommandFailureTextUtil.ts';

@@ -44,7 +44,7 @@ describe('the rail', () => {
   test('it is the navigation landmark named Gaia, and leaves the mark to the brand bar', () => {
     const unfolded = unfoldedRail(FLEET_FIVE_FORGES, DEFAULT_ROUTE);
     expect(tree.onlyWithTag(unfolded, 'nav').props['aria-label']).toBe('Gaia');
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-mark'))).toEqual([]);
+    expect(tree.hostElementsIn(unfolded, tree.withClass('brand-gaia-mark'))).toEqual([]);
   });
 
   test('each row links to its route with its label and count, a count that waits on User orange and the others plain', () => {

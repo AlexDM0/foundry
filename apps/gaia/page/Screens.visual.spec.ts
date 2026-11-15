@@ -17,11 +17,11 @@
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
+import { GaiaMark }               from 'brand/GaiaMark';
 import { describe, expect, test } from 'bun:test';
 import { createElement }          from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import { GaiaMark }       from './design-system/GaiaMark.tsx';
 import {
   ARTBOARD_SCREENS,
   ARTBOARD_SIZE_PIXELS,
@@ -49,6 +49,7 @@ import {
   whatNotifiesMarkupOf,
 } from './testing/ArtboardScreens.tsx';
 import { DesignSystemStylesheet } from './testing/DesignSystemStylesheet.ts';
+import { PackageStylesheet }      from './testing/PackageStylesheet.ts';
 
 const STYLESHEETS = ['tokens.css', 'gaia.css'].map((fileName) => readFileSync(join(import.meta.dir, 'styles', fileName), 'utf8'));
 
@@ -112,7 +113,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('a screen document names its theme on the root as the page does before its first paint, leaves motion off, and holds every stylesheet whole', () => {
-    const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text()];
+    const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text(), PackageStylesheet.inlinedText('brand/brand.css')];
     for (const screen of ARTBOARD_SCREENS) {
       for (const theme of SCREEN_THEMES) {
         const screenDocument = screenDocumentOf(screen, theme);
@@ -402,9 +403,8 @@ describe('C3, the launcher\'s splash, opened as the file it is', () => {
     expect(splashText).toContain(renderToStaticMarkup(createElement(GaiaMark, { sizePixels: SPLASH_MARK_SIZE_PIXELS })));
   });
 
-  test('paints the mark with the page\'s own rules for it, since a file page links no gaia.css', () => {
-    const markRules = (STYLESHEETS[1] ?? '').split('\n').filter((line) => line.startsWith('.gaia-mark'));
-    expect(markRules.length).toBeGreaterThan(0);
-    for (const markRule of markRules) expect(splashText).toContain(markRule);
+  test('paints the mark with the brand\'s stylesheet, which it links as the page does, and with no mark rule of its own', () => {
+    expect(splashText).toContain('<link rel="stylesheet" href="../../../../node_modules/brand/styles/brand.css">');
+    expect(splashText).not.toMatch(/^\s*\.brand-/m);
   });
 });

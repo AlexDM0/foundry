@@ -1,0 +1,10 @@
+.brand-forge-mark { display: block; flex: none; }
+.brand-forge-mark-ground-from { stop-color: var(--brand-tile-from); }
+.brand-forge-mark-ground-to { stop-color: var(--brand-tile-to); }
+.brand-forge-mark-mask-open { fill: var(--brand-mask-open); }
+.brand-forge-mark-mask-shut { fill: var(--brand-mask-shut); }
+.brand-forge-mark-ring { stroke: var(--brand-forge-line); }
+.brand-forge-mark-core { fill: var(--brand-forge-core); }
+.brand-forge-mark-node-ring { stroke: var(--brand-forge-node-ring); }
+.brand-forge-mark-node-core { fill: var(--brand-forge-node-core); }
+.brand-forge-mark-rim { stroke: var(--brand-tile-rim); }
