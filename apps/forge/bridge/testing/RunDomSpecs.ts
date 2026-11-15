@@ -1,14 +1,13 @@
 /**
- * Runs every DOM spec of the Bridge, of the design-system package and of the Flint package, `bridge/**\/*.dom.tsx`,
- * `design-system/**\/*.dom.tsx` and `flint/**\/*.dom.tsx`, which `bun test` does not discover: in one isolated run under the skip report
+ * Runs every DOM spec of the Bridge, `bridge/**\/*.dom.tsx`, which `bun test` does not discover: in one isolated run under the skip report
  * and the happy-dom preload, each file in a fresh global, so a DOM never leaks into the main run or from one spec into the next. Finding
- * no DOM spec in any of the folders is a failure, so a renamed folder cannot pass by running nothing. `bun run verify` runs it after
- * `bun test`.
+ * no DOM spec is a failure, so a renamed folder cannot pass by running nothing. The workspace packages run their own. `bun run verify` runs
+ * it after `bun test`.
  */
 import { join } from 'node:path';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
-const DOM_SPEC_PATTERNS = ['bridge/**/*.dom.tsx', 'design-system/**/*.dom.tsx', 'flint/**/*.dom.tsx'];
+const DOM_SPEC_PATTERNS = ['bridge/**/*.dom.tsx'];
 const PRELOADS = ['./src/testing/TestRunReport.ts', './bridge/testing/HappyDom.ts'];
 
 const domSpecPathsByPattern = DOM_SPEC_PATTERNS.map((pattern) => ({ pattern, paths: [...new Bun.Glob(pattern).scanSync({ cwd: REPOSITORY_ROOT })] }));

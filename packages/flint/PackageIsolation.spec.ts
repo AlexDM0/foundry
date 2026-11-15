@@ -11,7 +11,7 @@ const REACT_LAYER_FOLDER = 'react/';
 /** What a file that ships may import from outside the package, by the folder it is in. */
 const SHIPPING_PACKAGES_BY_FOLDER: Readonly<Record<string, readonly string[]>> = { [REACT_LAYER_FOLDER]: ['react'] };
 /** What a spec, a DOM spec or a testing helper may import from outside the package. */
-const SPEC_PACKAGES: readonly string[] = ['bun:test', 'react', '@testing-library/react', 'eslint'];
+const SPEC_PACKAGES: readonly string[] = ['bun:test', 'react', '@testing-library/react', '@happy-dom/global-registrator', 'eslint'];
 const RUNTIME_PREFIXES = ['bun:', 'node:'];
 const MINIMUM_PACKAGE_FILE_COUNT = 30;
 
