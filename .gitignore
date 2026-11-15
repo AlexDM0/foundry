@@ -16,3 +16,14 @@ storybook-static/
 .claude/.evidence/
 **/.claude/skills/forge-po/
 **/.claude/skills/forge-orchestrate/
+
+# build output, packed packages, coverage, logs and local environment files
+out/
+dist/
+*.tgz
+coverage/
+*.lcov
+logs/
+.env*
+.eslintcache
+.cache/

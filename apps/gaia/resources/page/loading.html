@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaia</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../../../../node_modules/design-system/styles/tokens.css">
+  <link rel="stylesheet" href="../../page/styles/tokens.css">
+  <!--
+    The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
+    health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
+    this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
+    the window to Gaia's page. The package's tokens and fonts are reached by their files, because a file page resolves no package export:
+    the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way, and fades in as
+    the launcher moves it on.
+  -->
+  <style>
+    @font-face {
+      font-family: "Inter";
+      src: url("../../../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: swap;
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+                     U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: "Inter";
+      src: url("../../../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
+      font-weight: 100 900;
+      font-display: swap;
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+                     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    body {
+      position: relative;
+      box-sizing: border-box;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--splash-stack-gap);
+      padding-bottom: var(--space-24);
+      background: var(--bg);
+      color: var(--ink);
+      font: var(--fs-body)/var(--line-height-body) var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+    }
+    .splash-brand { display: flex; align-items: center; gap: var(--space-20); }
+    .splash-brand-name {
+      font-size: var(--fs-splash);
+      line-height: var(--line-height-splash);
+      font-weight: var(--weight-wordmark);
+      letter-spacing: var(--wordmark-tracking);
+    }
+    .gaia-mark { display: block; flex: none; }
+    .gaia-mark-ground-from { stop-color: var(--mark-from); }
+    .gaia-mark-ground-to { stop-color: var(--mark-to); }
+    .gaia-mark-mask-open { fill: var(--mark-mask-open); }
+    .gaia-mark-mask-shut { fill: var(--mark-mask-shut); }
+    .gaia-mark-ring { stroke: var(--mark-ring); }
+    .gaia-mark-core { fill: var(--mark-core); }
+    .gaia-mark-node-halo { fill: var(--mark-node-halo); stroke: var(--mark-node-halo); }
+    .gaia-mark-node-core { fill: var(--mark-core); }
+    .gaia-mark-glow { fill: var(--mark-glow); }
+    .gaia-mark-rim { stroke: var(--mark-rim); }
+    .splash-steps { display: flex; align-items: center; gap: var(--space-10); height: var(--line-height-lead); margin: 0; padding: 0; list-style: none; }
+    .splash-step { display: flex; align-items: center; gap: var(--space-10); transition: opacity var(--motion-base) var(--ease-out); }
+    /* The step the launcher moves the splash to fades in; the first paint shows its step at once, as motion is ready only after it. */
+    @starting-style {
+      .splash-step { opacity: 0; }
+    }
+    .splash-step:not([data-step="now"]) { display: none; }
+    /* Opening, the line names the address the server answered at, which the server's own step holds. */
+    .splash-steps:has(#opening-step[data-step="now"]) #server-step { display: flex; order: 1; }
+    .splash-steps:has(#opening-step[data-step="now"]) #server-step > :not(.splash-step-fact) { display: none; }
+    .splash-step-label { font-size: var(--fs-lead); line-height: var(--line-height-lead); color: var(--ink-muted); }
+    .splash-step-fact { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-4); }
+    .splash-step-fact:empty { display: none; }
+    .splash-step-dot {
+      display: inline-block;
+      flex: none;
+      box-sizing: border-box;
+      width: var(--condition-dot-size);
+      height: var(--condition-dot-size);
+      border-radius: var(--r-pill);
+      border: var(--dot-ring-width) solid var(--signal);
+    }
+    #opening-step .splash-step-dot { background: var(--signal); border: none; }
+    .splash-closing {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: var(--space-28);
+      text-align: center;
+      font-size: var(--fs-small);
+      line-height: var(--line-height-body);
+      color: var(--ink-4);
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-brand">
+    <svg class="gaia-mark" data-drawing="large" aria-hidden="true" width="88" height="88" viewBox="0 0 64 64"><defs><linearGradient id="gaia-mark-large-ground" x1="0" y1="0" x2="1" y2="1"><stop class="gaia-mark-ground-from" offset="0"></stop><stop class="gaia-mark-ground-to" offset="1"></stop></linearGradient><filter id="gaia-mark-large-glow" filterUnits="userSpaceOnUse" x="-0.02" y="6.75" width="32" height="32"><feGaussianBlur stdDeviation="2"></feGaussianBlur></filter><mask id="gaia-mark-large-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect class="gaia-mark-mask-open" width="64" height="64"></rect><circle class="gaia-mark-mask-shut" cx="15.98" cy="22.75" r="9.00"></circle><circle class="gaia-mark-mask-shut" cx="48.02" cy="41.25" r="8.60"></circle><circle class="gaia-mark-mask-shut" cx="23.99" cy="45.88" r="6.80"></circle></mask></defs><rect x="1" y="1" width="62" height="62" rx="13" fill="url(#gaia-mark-large-ground)"></rect><g transform="translate(32 32) scale(1.1) translate(-32 -32)"><g mask="url(#gaia-mark-large-gap)"><path class="gaia-mark-ring" d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke-width="3"></path></g><path class="gaia-mark-core" d="M31.50 26.29 A1.0 1.0 0 0 1 32.50 26.29 L36.70 28.71 A1.0 1.0 0 0 1 37.20 29.58 L37.20 34.42 A1.0 1.0 0 0 1 36.70 35.29 L32.50 37.71 A1.0 1.0 0 0 1 31.50 37.71 L27.30 35.29 A1.0 1.0 0 0 1 26.80 34.42 L26.80 29.58 A1.0 1.0 0 0 1 27.30 28.71 Z"></path><circle class="gaia-mark-glow" cx="15.98" cy="22.75" r="5.5" opacity="0.22" filter="url(#gaia-mark-large-glow)"></circle><circle class="gaia-mark-node-halo" cx="15.98" cy="22.75" r="6.4" fill-opacity="0.22" stroke-width="1.5"></circle><circle class="gaia-mark-node-core" cx="15.98" cy="22.75" r="3.4"></circle><circle class="gaia-mark-node-halo" cx="48.02" cy="41.25" r="6.0" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="gaia-mark-node-core" cx="48.02" cy="41.25" r="3.2"></circle><circle class="gaia-mark-node-halo" cx="23.99" cy="45.88" r="4.4" fill-opacity="0.22" stroke-width="1.25"></circle><circle class="gaia-mark-node-core" cx="23.99" cy="45.88" r="2.3"></circle></g><rect class="gaia-mark-rim" x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none"></rect></svg>
+    <span class="splash-brand-name">gaia</span>
+  </div>
+  <ol class="splash-steps" aria-live="polite">
+    <li class="splash-step" id="server-step" data-step="now">
+      <span class="splash-step-dot"></span><span class="splash-step-label" id="server-label" data-label-now="Starting Gaia…" data-label-done="Gaia's server is up">Starting Gaia…</span><span class="splash-step-fact" id="server-fact"></span>
+    </li>
+    <li class="splash-step" id="forges-step" data-step="next">
+      <span class="splash-step-dot"></span><span class="splash-step-label">Looking for forges</span><span class="splash-step-fact" id="forges-fact"></span>
+    </li>
+    <li class="splash-step" id="opening-step" data-step="next">
+      <span class="splash-step-dot"></span><span class="splash-step-label">Opening the window…</span>
+    </li>
+  </ol>
+  <div class="splash-closing">Closing this window stops Gaia. The forges keep running.</div>
+  <script>
+    'use strict';
+    /* The launcher's steps, in order: the server starting, the server up and the forges being looked for, the window opening. */
+    const SPLASH_STEPS = ['starting', 'looking', 'opening'];
+
+    function applyTheme(theme) {
+      const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+      if (theme === 'dark' || (theme !== 'light' && prefersDark)) document.documentElement.dataset.theme = 'dark';
+    }
+
+    function stepStateOf(stepIndex, currentIndex) {
+      if (stepIndex < currentIndex) return 'done';
+      return stepIndex === currentIndex ? 'now' : 'next';
+    }
+
+    function render() {
+      const query    = new URLSearchParams(location.search);
+      const fragment = new URLSearchParams(location.hash.slice(1));
+      const stepIndex = Math.max(0, SPLASH_STEPS.indexOf(fragment.get('step') ?? 'starting'));
+      const answered   = fragment.get('answered');
+      const registered = fragment.get('registered');
+      document.getElementById('server-step').dataset.step  = stepStateOf(0, stepIndex);
+      document.getElementById('forges-step').dataset.step  = stepStateOf(1, stepIndex);
+      document.getElementById('opening-step').dataset.step = stepStateOf(2, stepIndex);
+      const serverLabel = document.getElementById('server-label');
+      serverLabel.textContent = stepIndex === 0 ? serverLabel.dataset.labelNow : serverLabel.dataset.labelDone;
+      document.getElementById('server-fact').textContent  = stepIndex === 0 ? '' : (query.get('address') ?? '');
+      document.getElementById('forges-fact').textContent  = stepIndex > 0 && answered !== null && registered !== null ? `${answered} of ${registered} answered` : '';
+    }
+
+    /* The package's motion tokens stay 0ms until the root is marked ready, which waits out the frame that paints the first step. */
+    function markMotionReadyAfterFirstPaint() {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.dataset.motion = 'ready';
+      }));
+    }
+
+    applyTheme(new URLSearchParams(location.search).get('theme'));
+    render();
+    markMotionReadyAfterFirstPaint();
+    addEventListener('hashchange', render);
+  </script>
+</body>
+</html>

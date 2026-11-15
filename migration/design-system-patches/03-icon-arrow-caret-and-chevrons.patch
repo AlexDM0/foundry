@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:30:02 +0100
+Subject: Icon: an arrow out of a square, a down caret and a down and an up
+ chevron
+
+---
+ atoms/Icon.css         |  2 +-
+ atoms/Icon.dom.tsx     | 18 +++++++++++++++++-
+ atoms/Icon.stories.tsx | 18 +++++++++++++++++-
+ atoms/Icon.tsx         | 17 ++++++++++++-----
+ 4 files changed, 47 insertions(+), 8 deletions(-)
+
+diff --git a/atoms/Icon.css b/atoms/Icon.css
+index 05a711c3843670d964531420d345f4172dd2329c..5c1a31ac88bebedc5db510f1fd6d3434dfad0840 100644
+--- a/atoms/Icon.css
++++ b/atoms/Icon.css
+@@ -1,3 +1,3 @@
+ /* A line drawing in its holder's colour; its holder sets its size. */
+ .design-system-icon { display: block; flex: none; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+-.design-system-icon[data-icon="dot"] { fill: currentColor; }
++.design-system-icon:is([data-icon="dot"], [data-icon="caret-down"]) { fill: currentColor; }
+diff --git a/atoms/Icon.dom.tsx b/atoms/Icon.dom.tsx
+index 4a2f11765f943989648bfdd409862d75af56e55a..43af3938dae0880dc69c534924350bf6141d54a1 100644
+--- a/atoms/Icon.dom.tsx
++++ b/atoms/Icon.dom.tsx
+@@ -21,7 +21,23 @@ afterEach(() => {
+ 
+ describe('the icon', () => {
+   test('every name draws one svg on the 16 by 16 grid, with its name and at least one path', () => {
+-    expect(EVERY_ICON_NAME).toEqual(['hammer', 'magnifier', 'inbox', 'lifebuoy', 'flow', 'merge', 'cycle', 'document', 'dot', 'paper-plane', 'narrowing-lines']);
++    expect(EVERY_ICON_NAME).toEqual([
++      'hammer',
++      'magnifier',
++      'inbox',
++      'lifebuoy',
++      'flow',
++      'merge',
++      'cycle',
++      'document',
++      'dot',
++      'paper-plane',
++      'narrowing-lines',
++      'arrow-out-of-square',
++      'caret-down',
++      'chevron-down',
++      'chevron-up',
++    ]);
+     for (const name of EVERY_ICON_NAME) {
+       const { container } = render(<Icon name={name} label={null} />);
+       const drawings = container.querySelectorAll('svg');
+diff --git a/atoms/Icon.stories.tsx b/atoms/Icon.stories.tsx
+index d9443db69d334c64f42d6e005f081a09df8109f0..79f7fcff6b9750dded3d6c65483801273fc077ac 100644
+--- a/atoms/Icon.stories.tsx
++++ b/atoms/Icon.stories.tsx
+@@ -3,7 +3,23 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
+ import { Icon, type IconName } from './Icon.tsx';
+ import { View }                from './View.tsx';
+ 
+-const ICON_NAMES: readonly IconName[] = ['hammer', 'magnifier', 'inbox', 'lifebuoy', 'flow', 'merge', 'cycle', 'document', 'dot', 'paper-plane', 'narrowing-lines'];
++const ICON_NAMES: readonly IconName[] = [
++  'hammer',
++  'magnifier',
++  'inbox',
++  'lifebuoy',
++  'flow',
++  'merge',
++  'cycle',
++  'document',
++  'dot',
++  'paper-plane',
++  'narrowing-lines',
++  'arrow-out-of-square',
++  'caret-down',
++  'chevron-down',
++  'chevron-up',
++];
+ 
+ const meta = {
+   title:     'Atoms/Icon',
+diff --git a/atoms/Icon.tsx b/atoms/Icon.tsx
+index d47e9685d5ccfe9e6baaf6e483c39b3c88a963a4..9c2ebf6913339143abea74171c50712398a5021c 100644
+--- a/atoms/Icon.tsx
++++ b/atoms/Icon.tsx
+@@ -4,7 +4,8 @@
+  * beside it.
+  */
+ export type IconName =
+-  | 'hammer' | 'magnifier' | 'inbox' | 'lifebuoy' | 'flow' | 'merge' | 'cycle' | 'document' | 'dot' | 'paper-plane' | 'narrowing-lines';
++  | 'hammer' | 'magnifier' | 'inbox' | 'lifebuoy' | 'flow' | 'merge' | 'cycle' | 'document' | 'dot' | 'paper-plane' | 'narrowing-lines'
++  | 'arrow-out-of-square' | 'caret-down' | 'chevron-down' | 'chevron-up';
+ 
+ /** The path data of each drawing, one `path` per entry. */
+ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = Object.freeze({
+@@ -29,11 +30,17 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = Object.
+     'M13.5 8A5.5 5.5 0 0 1 3.25 10.75',
+     'M2.6 13.15L3.25 10.75L5.65 11.4',
+   ],
+-  document:          ['M3.5 1.5h6l3 3v10h-9Z', 'M9.5 1.5v3h3', 'M5.5 8.5h5 M5.5 11h5'],
+-  dot:               ['M10.5 8a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z'],
+-  'paper-plane':     ['M13.8 2.2L2.2 7.1L7.1 8.9L8.9 13.8Z', 'M13.8 2.2L7.1 8.9'],
++  document:              ['M3.5 1.5h6l3 3v10h-9Z', 'M9.5 1.5v3h3', 'M5.5 8.5h5 M5.5 11h5'],
++  dot:                   ['M10.5 8a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z'],
++  'paper-plane':         ['M13.8 2.2L2.2 7.1L7.1 8.9L8.9 13.8Z', 'M13.8 2.2L7.1 8.9'],
+   /** Three lines, each shorter than the one above. */
+-  'narrowing-lines': ['M2 4h12M4 8h8M6 12h4'],
++  'narrowing-lines':     ['M2 4h12M4 8h8M6 12h4'],
++  /** An open square with an arrow leaving it through its top right corner. */
++  'arrow-out-of-square': ['M7 2.5H2.5v11h11V9', 'M9.5 2.5h4v4', 'M13.5 2.5L7.5 8.5'],
++  /** A small filled triangle pointing down. */
++  'caret-down':          ['M4.5 6.5h7L8 10.5Z'],
++  'chevron-down':        ['M4 6l4 4l4-4'],
++  'chevron-up':          ['M4 10l4-4l4 4'],
+ });
+ 
+ export interface IconProps {

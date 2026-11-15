@@ -1,0 +1,75 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "browser-window-watch",
+    "operatingSystem": "darwin",
+    "system": "browser",
+    "source": "recorded",
+    "systemVersion": "Google Chrome 157.0.8103.51"
+  },
+  "answers": [
+    {
+      "callShape": "browser-ended: navigate",
+      "answer": {
+        "verdict": "unreachable"
+      }
+    },
+    {
+      "callShape": "browser-ended: page targets",
+      "answer": {
+        "verdict": "unreachable"
+      }
+    },
+    {
+      "callShape": "navigation-refused: navigate",
+      "answer": {
+        "verdict": "refused",
+        "failure": "Cannot navigate to invalid URL"
+      }
+    },
+    {
+      "callShape": "navigation-refused: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": [
+          {
+            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark#step=looking&answered=3&registered=5"
+          }
+        ]
+      }
+    },
+    {
+      "callShape": "window-closed: navigate",
+      "answer": {
+        "verdict": "refused",
+        "failure": "No target with given id found"
+      }
+    },
+    {
+      "callShape": "window-closed: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": []
+      }
+    },
+    {
+      "callShape": "window-open: navigate",
+      "answer": {
+        "verdict": "navigated"
+      }
+    },
+    {
+      "callShape": "window-open: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": [
+          {
+            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark"
+          }
+        ]
+      }
+    }
+  ]
+}

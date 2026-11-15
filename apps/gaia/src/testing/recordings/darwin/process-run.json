@@ -1,0 +1,79 @@
+{
+  "recordingVersion": 1,
+  "stamp": {
+    "recordingName": "process-run",
+    "operatingSystem": "darwin",
+    "system": "bun",
+    "source": "recorded",
+    "systemVersion": "1.4.2"
+  },
+  "answers": [
+    {
+      "callShape": "run [\"bun\",\"--eval\",\"process.stderr.write('Refused by the example.'); process.exitCode = 3;\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 3,
+        "standardOutput": "",
+        "standardError": "Refused by the example."
+      }
+    },
+    {
+      "callShape": "run [\"bun\",\"--version\"]",
+      "answer": {
+        "verdict": "finished",
+        "exitCode": 0,
+        "standardOutput": "1.4.2\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "run [\"gaia-example-missing-program\",\"--version\"]",
+      "answer": {
+        "verdict": "not-found",
+        "missing": "program"
+      }
+    },
+    {
+      "callShape": "run [\"sleep\",\"30\"]",
+      "answer": {
+        "verdict": "timed-out"
+      }
+    },
+    {
+      "callShape": "start detached [\"gaia-example-missing-program\"]",
+      "answer": {
+        "verdict": "not-found",
+        "missing": "program"
+      }
+    },
+    {
+      "callShape": "start owned [\"gaia-example-missing-program\"]",
+      "answer": {
+        "verdict": "not-found",
+        "missing": "program"
+      }
+    },
+    {
+      "callShape": "start owned [\"sh\",\"-c\",\"exit 3\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 1105,
+        "ending": {
+          "by": "itself",
+          "exitCode": 3
+        }
+      }
+    },
+    {
+      "callShape": "start owned [\"sleep\",\"30\"]",
+      "answer": {
+        "verdict": "started",
+        "processId": 1104,
+        "ending": {
+          "by": "stop",
+          "exitCode": 143
+        }
+      }
+    }
+  ]
+}

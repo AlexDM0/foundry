@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>Gaia</string>
+  <key>CFBundleExecutable</key>
+  <string>launch</string>
+  <key>CFBundleIconFile</key>
+  <string>Gaia</string>
+  <key>CFBundleIdentifier</key>
+  <string>local.gaia.app</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Gaia</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>{{GAIA_VERSION}}</string>
+  <key>CFBundleVersion</key>
+  <string>{{GAIA_VERSION}}</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>{{MINIMUM_SYSTEM_VERSION}}</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSAppSleepDisabled</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>GaiaInstallVersion</key>
+  <integer>{{INSTALL_VERSION}}</integer>
+</dict>
+</plist>

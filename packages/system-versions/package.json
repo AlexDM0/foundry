@@ -1,0 +1,20 @@
+{
+  "name": "system-versions",
+  "version": "0.1.0",
+  "description": "A server's system version and the oldest it still serves, the compatibility registry of what it keeps for older clients, and the report of what raising that minimum removes",
+  "type": "module",
+  "engines": { "bun": "1.4.2" },
+  "files": ["@types", "utils/*Util.ts", "README.md"],
+  "exports": {
+    "./VersionsDocument": "./@types/VersionsDocument.ts",
+    "./CompatibilityEntry": "./@types/CompatibilityEntry.ts",
+    "./SystemVersionUtil": "./utils/SystemVersionUtil.ts",
+    "./CompatibilityRegistryUtil": "./utils/CompatibilityRegistryUtil.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
+    "test": "bun test",
+    "verify": "bun run typecheck && bun run lint && bun test"
+  }
+}

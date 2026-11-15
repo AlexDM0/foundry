@@ -1,0 +1,136 @@
+/*
+ * Gaia's own design tokens: only what the design-system package's `tokens.css` does not hold, which the page links first and whose names
+ * `gaia.css` reads for everything else. Light under :root, dark under :root[data-theme="dark"], which the shell sets before the first paint.
+ */
+:root {
+  --sp-half: 2px;
+
+  --fs-figure: 17px; --line-height-figure: 22px;
+  --fs-wordmark: 20px; --line-height-wordmark: 24px;
+  --fs-splash: 60px; --line-height-splash: 64px;
+  --fs-confirm-question: 14px; --line-height-confirm-question: 20px;
+  --weight-figure: 500;
+  --weight-chip: 500;
+  --weight-label: 500;
+  --weight-wordmark: 650;
+  --wordmark-tracking: -0.035em;
+  --weight-strong: 600;
+
+  --menu-item-height:    24px;
+  --segment-padding-vertical: 6px;
+  --segment-padding-horizontal: 10px;
+  --condition-dot-size:  8px;
+  --dot-ring-width:      1.5px;
+  --versions-mark-size:  10px;
+  --versions-check-stroke-width: 1.6;
+  --line-height-versions-line: 17px;
+  --versions-pair-name-width: 146px;
+  --brain-diamond-size:  7px;
+  --brain-diamond-radius: 1px;
+  --brain-diamond-scale: 0.85;
+  --brain-chip-height:   24px;
+  --brain-chip-refusal-width: 232px;
+  --glyph-stroke-width:  1.5;
+  --selected-edge-width: 3px;
+  --banner-edge-width:   4px;
+  --brand-bar-height:    52px;
+  --brand-bar-start-padding: 22px;
+  --brand-bar-end-padding: 20px;
+  --brand-bar-divider-height: 18px;
+  --wordmark-gap:        9px;
+  --splash-stack-gap:    30px;
+  --rail-width:          232px;
+  --rail-section-gap:    22px;
+  --rail-inset:          10px;
+  --rail-row-height:     30px;
+  --rail-machine-gap:    9px;
+  --forge-bar-height:    56px;
+  --view-side-width:     320px;
+  --activity-at-width:   52px;
+  --activity-forge-width: 168px;
+  --activity-kind-width: 112px;
+  --activity-today-value-width: 56px;
+  --agents-table-columns: 128px minmax(0, 1fr) 116px 124px 64px;
+  --agents-head-height:  32px;
+  --agents-group-head-height: 30px;
+  /* 56 px, not the 58 px of other lists, so that A2's eleven rows and four forge heads fit at 1016 px. */
+  --agents-row-height:   56px;
+  /* The column heads, one forge's head and one row: the least of the table that stays in sight before the view scrolls. */
+  --agents-table-least-height: 119px;
+  --agents-calls-meter-width: 60px;
+  --agents-panel-width:  404px;
+  --agents-machine-width: 320px;
+  --agents-ticket-chip-height: 24px;
+  --fs-agents-role:      10.5px;
+  --weight-agents-role:  700;
+  --agents-role-tracking: 0.08em;
+  --fs-agents-panel-kind: 14px;
+  --line-height-agents-last-line: 18px;
+  --agents-brain-pill-height: 20px;
+  --agents-brain-move-time-width: 64px;
+  /* The artboard's tracks would leave the Forge column too little room for a name, Flint's brain beside it and the root path on their
+     lines, since Agents holds the package's number stepper after the agents in flight: Overseer and Code are a little narrower, and so is
+     the aside, which gives way, down to its least width, before the Forge column does. */
+  --forges-forge-column-width:     228px;
+  --forges-condition-column-width: 96px;
+  --forges-agents-column-width:    145px;
+  --forges-waiting-column-width:   56px;
+  --forges-code-column-width:      50px;
+  --forges-controls-column-width:  229px;
+  --forges-table-columns:          minmax(0, 1fr) var(--forges-condition-column-width) var(--forges-agents-column-width)
+                                   var(--forges-waiting-column-width) var(--forges-code-column-width) var(--forges-controls-column-width);
+  --forges-table-width:            calc(var(--forges-forge-column-width) + var(--forges-condition-column-width) + var(--forges-agents-column-width)
+                                   + var(--forges-waiting-column-width) + var(--forges-code-column-width) + var(--forges-controls-column-width)
+                                   + 5 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
+  --forges-aside-width:            258px;
+  --forges-aside-least-width:      240px;
+  --hairline:            1px;
+  --focus-ring-width:    2px;
+
+  --attention-figures-gap:        48px;
+  --attention-head-gap:           10px;
+  --attention-aside-width:        388px;
+  --attention-forge-column:       176px;
+  --attention-kind-column:        96px;
+  --attention-id-column:          48px;
+  --attention-row-height:         58px;
+  --attention-recent-clock-column: 44px;
+  --attention-no-forge-width:     640px;
+
+  --forge-frame-notice-width:        640px;
+  --forge-frame-stop-popover-width:  560px;
+  /* Wider than the brain's refusal, so the forge's code stays whole beside Try again. */
+  --forge-bar-update-refusal-width:  340px;
+  /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
+  --stale-opacity:                0.62;
+
+  /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
+  --neutral-fill: #8f8f8f;
+
+  /* The tile under Gaia's mark: its gradient and rim. */
+  --mark-from:      #ffffff;
+  --mark-to:        #d6d6d6;
+  --mark-rim:       rgba(0, 0, 0, 0.14);
+  /* Gaia's constellation: the orange ring, the slate core and node cores, each node's halo, and the glow on the top left node. */
+  --mark-ring:      #f26100;
+  --mark-core:      #2f4a5c;
+  --mark-node-halo: #f5a473;
+  --mark-glow:      #ff8d42;
+  /* The mark's mask: what it keeps open and what it shuts, the gaps around its nodes. */
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
+}
+
+:root[data-theme="dark"] {
+  --neutral-fill: #7f8590;
+
+  --mark-from:      #343434;
+  --mark-to:        #121212;
+  --mark-rim:       rgba(255, 255, 255, 0.12);
+  --mark-ring:      #ff7417;
+  --mark-core:      #c9dbe6;
+  --mark-node-halo: #d9854c;
+  --mark-glow:      #ff8d42;
+  --mark-mask-open: #ffffff;
+  --mark-mask-shut: #000000;
+}

@@ -1,0 +1,89 @@
+{
+  "recordingVersion": 1,
+  "recordingMinor": 0,
+  "stamp": {
+    "recordingName": "overseer-fetch-other-programs",
+    "operatingSystem": "darwin",
+    "system": "bun",
+    "source": "recorded",
+    "systemVersion": "1.4.2"
+  },
+  "answers": [
+    {
+      "callShape": "port-held-by-another-program: GET /api/v1/identity",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/v1/summary",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/v2/monitor with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: GET /api/versions",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/v1/commands with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: POST /api/v1/session-codes with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "port-held-by-another-program: STREAM /api/v2/monitor/events with bearer",
+      "answer": {
+        "verdict": "answered",
+        "status": 200,
+        "bodyText": "<!doctype html><title>Example Agency</title>"
+      }
+    },
+    {
+      "callShape": "snapshot-unreadable: STREAM /api/v2/monitor/events with bearer",
+      "answer": {
+        "verdict": "streaming",
+        "chunks": [
+          "event: monitor\ndata: {\"monitorVersion\":1,\"trackerId\"\n\nevent: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\"}\n\n"
+        ],
+        "ending": "closed"
+      }
+    },
+    {
+      "callShape": "stream-cut-inside-event: STREAM /api/v2/monitor/events with bearer",
+      "answer": {
+        "verdict": "streaming",
+        "chunks": [
+          "event: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\"}\n\nevent: monitor\ndata: {\"monitorVersion\":1,\"trackerId\":\"example-sto"
+        ],
+        "ending": "closed"
+      }
+    }
+  ]
+}

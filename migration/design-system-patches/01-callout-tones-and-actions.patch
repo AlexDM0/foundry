@@ -1,0 +1,214 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:28:42 +0100
+Subject: Callout: error and neutral tones, a tinted warn form, a dashed
+ neutral form and an actions slot
+
+---
+ molecules/Callout.css         | 11 +++++++-
+ molecules/Callout.dom.tsx     | 50 ++++++++++++++++++++++++++++++++---
+ molecules/Callout.stories.tsx | 11 ++++++++
+ molecules/Callout.tsx         | 48 ++++++++++++++++++++++++++-------
+ 4 files changed, 107 insertions(+), 13 deletions(-)
+
+diff --git a/molecules/Callout.css b/molecules/Callout.css
+index b29a236892ecf51f893c0b5be7071d34b44eaa09..f51dbb0cb5a26e35dd2a2af5837556fee419c52b 100644
+--- a/molecules/Callout.css
++++ b/molecules/Callout.css
+@@ -1,5 +1,14 @@
+-/* A card that stands out: tinted in a state's colours, or a surface with a warn rule down its left edge. */
++/* A card that stands out: tinted in a state's colours, a surface with a warn rule down its left edge, the warn or the failure tint with a
++   4px left edge, or a plain or dashed neutral surface. With actions, its contents and its actions share one line. */
+ .design-system-callout { padding: var(--sp-3) var(--space-14); font-size: var(--fs-small); line-height: 1.5; border-radius: var(--r-2); }
+ .design-system-callout p { margin: 0; }
+ .design-system-callout[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); }
+ .design-system-callout[data-tone="warn"] { padding: var(--sp-2) var(--sp-3); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent-edge); }
++.design-system-callout[data-tone="warn"][data-tinted] { padding: var(--space-9) var(--space-14); background: var(--warn-tint); border: 1px solid var(--warn-edge); border-left-width: 4px; }
++.design-system-callout[data-tone="error"] { padding: var(--space-9) var(--space-14); color: var(--ink); background: var(--err-tint); border: 1px solid var(--err-edge); border-left-width: 4px; }
++.design-system-callout[data-tone="neutral"] { padding: var(--sp-3) var(--sp-4); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); }
++.design-system-callout[data-tone="neutral"][data-dashed] { border-style: dashed; }
++
++.design-system-callout[data-with-actions] { display: flex; align-items: center; gap: var(--sp-4); }
++.design-system-callout-body { flex: 1; min-width: 0; }
++.design-system-callout-actions { display: inline-flex; flex: none; align-items: center; gap: var(--sp-2); }
+diff --git a/molecules/Callout.dom.tsx b/molecules/Callout.dom.tsx
+index 29b04c6bad6f22471cea4130891e7923606c27cf..c377e4e97bdf8f5aeeae796242f106259982b55c 100644
+--- a/molecules/Callout.dom.tsx
++++ b/molecules/Callout.dom.tsx
+@@ -1,7 +1,8 @@
+ /**
+  * The callout, in a happy-dom document. What matters: a title heads it as a heading only when one is given, so an untitled quote adds no
+  * empty heading to the outline, an `h3` unless the screen picks another element; each tone sets `data-tone`, and only a `state` callout
+- * takes a state tone, since the warn tone has colours of its own; its contents follow the title; and the title is text, never markup.
++ * takes a state tone, since every other tone has colours of its own; only a warn callout can be tinted and only a neutral one dashed; its
++ * contents follow the title, and its actions follow its contents in a part of their own; and the title is text, never markup.
+  */
+ import { cleanup, render, screen } from '@testing-library/react';
+ import {
+@@ -40,10 +41,43 @@ describe('the callout', () => {
+       <>
+         <Callout tone="state" stateTone="info">Reviewing</Callout>
+         <Callout tone="warn">Why J4 stopped</Callout>
++        <Callout tone="error">The example service does not answer</Callout>
++        <Callout tone="neutral">The example setup is not finished</Callout>
+       </>,
+     );
+     expect([...container.querySelectorAll('.design-system-callout')].map((callout) => [callout.getAttribute('data-tone'), callout.getAttribute('data-state-tone')]))
+-      .toEqual([['state', 'info'], ['warn', null]]);
++      .toEqual([['state', 'info'], ['warn', null], ['error', null], ['neutral', null]]);
++  });
++
++  test('tinted sets data-tinted on a warn callout and dashed sets data-dashed on a neutral one; a plain callout sets neither', () => {
++    const { container } = render(
++      <>
++        <Callout tone="warn" tinted>Held</Callout>
++        <Callout tone="neutral" dashed>Not finished</Callout>
++        <Callout tone="warn">Why J4 stopped</Callout>
++      </>,
++    );
++    expect([...container.querySelectorAll('.design-system-callout')].map((callout) => [callout.hasAttribute('data-tinted'), callout.hasAttribute('data-dashed')]))
++      .toEqual([[true, false], [false, true], [false, false]]);
++  });
++
++  test('its actions follow its title and contents, each in a part of their own', () => {
++    const { container } = render(
++      <Callout tone="error" title="Example service" actions={<button type="button">Try again</button>}>
++        <p>The example service does not answer.</p>
++      </Callout>,
++    );
++    const callout = container.querySelector('.design-system-callout');
++    const [body, actions] = [...callout?.children ?? []];
++    expect([callout?.hasAttribute('data-with-actions'), body?.className, actions?.className])
++      .toEqual([true, 'design-system-callout-body', 'design-system-callout-actions']);
++    expect([body?.firstElementChild?.tagName, body?.lastElementChild?.textContent]).toEqual(['H3', 'The example service does not answer.']);
++    expect(actions?.contains(screen.getByRole('button', { name: 'Try again' }))).toBe(true);
++  });
++
++  test('with no actions it holds no part for them', () => {
++    const { container } = render(<Callout tone="neutral" dashed><p>Not finished.</p></Callout>);
++    expect([container.querySelector('.design-system-callout-actions'), container.querySelector('[data-with-actions]')]).toEqual([null, null]);
+   });
+ 
+   test('the title is text, never markup', () => {
+@@ -56,6 +90,16 @@ describe('the callout', () => {
+     const warnWithStateTone = <Callout tone="warn" stateTone="info">x</Callout>;
+     // @ts-expect-error a state callout takes the colours of a state tone
+     const stateWithoutTone = <Callout tone="state">x</Callout>;
+-    expect([warnWithStateTone, stateWithoutTone]).toHaveLength(2);
++    // @ts-expect-error an error callout has colours of its own
++    const errorWithStateTone = <Callout tone="error" stateTone="info">x</Callout>;
++    expect([warnWithStateTone, stateWithoutTone, errorWithStateTone]).toHaveLength(3);
++  });
++
++  test('tinted does not compile beside any tone but warn, nor dashed beside any tone but neutral', () => {
++    // @ts-expect-error only a warn callout is tinted
++    const tintedError = <Callout tone="error" tinted>x</Callout>;
++    // @ts-expect-error only a neutral callout is dashed
++    const dashedWarn = <Callout tone="warn" dashed>x</Callout>;
++    expect([tintedError, dashedWarn]).toHaveLength(2);
+   });
+ });
+diff --git a/molecules/Callout.stories.tsx b/molecules/Callout.stories.tsx
+index d44ecec16ef751d678316a45c135b8e5c0b7639c..f5772fe89146f2ae5844591e858097706ea140b2 100644
+--- a/molecules/Callout.stories.tsx
++++ b/molecules/Callout.stories.tsx
+@@ -1,5 +1,7 @@
+ import type { Meta, StoryObj } from '@storybook/react-vite';
++import { fn }                  from 'storybook/test';
+ 
++import { Button }  from '../atoms/Button.tsx';
+ import { Text }    from '../atoms/Text.tsx';
+ import { Callout } from './Callout.tsx';
+ 
+@@ -15,5 +17,14 @@ type Story = StoryObj<typeof meta>;
+ 
+ export const State: Story = {};
+ export const Warn: Story = { args: { tone: 'warn' } };
++export const WarnTinted: Story = { args: { tone: 'warn', tinted: true } };
++export const ErrorTone: Story = { args: { tone: 'error' } };
++export const Neutral: Story = { args: { tone: 'neutral' } };
++export const NeutralDashed: Story = { args: { tone: 'neutral', dashed: true } };
++export const WithActions: Story = {
++  args: {
++    tone: 'warn', tinted: true, title: 'Example title', actions: <Button label="Example action" compact onPress={fn()} />
++  },
++};
+ export const WithTitle: Story = { args: { title: 'Example title' } };
+ export const NestedHeading: Story = { args: { title: 'Example title', titleElement: 'h4' } };
+diff --git a/molecules/Callout.tsx b/molecules/Callout.tsx
+index ac6fc5bb0e6f604ea6e51436e1b317a8523f5785..680e31b41803806058e6e0b70400ff0ee1608c7c 100644
+--- a/molecules/Callout.tsx
++++ b/molecules/Callout.tsx
+@@ -1,7 +1,8 @@
+ /**
+  * A card that stands out from the text around it: `state` is tinted in a state tone's colours, such as the card of an item's state; `warn` is
+- * a surface with a warn rule down its left edge, such as a quoted reason. Its title, when given, heads it, as an `h3` unless the screen picks
+- * another element.
++ * a surface with a warn rule down its left edge, such as a quoted reason, or with `tinted` the warn tint with a 4px left edge, such as a
++ * held item; `error` is the failure tint with a 4px left edge; `neutral` is a plain surface, `dashed` for what is only incomplete. Its title,
++ * when given, heads it, as an `h3` unless the screen picks another element; its actions, when given, sit at the end of its line.
+  */
+ import type { ReactNode } from 'react';
+ 
+@@ -9,25 +10,54 @@ import type { StateTone } from '../@types/StateTone.ts';
+ 
+ import { Text, type TextElement } from '../atoms/Text.tsx';
+ 
+-export type CalloutTone = 'state' | 'warn';
++export type CalloutTone = 'state' | 'warn' | 'error' | 'neutral';
+ 
+-/** A `state` callout takes the colours of its state tone; a `warn` callout has colours of its own, so it takes none. */
+-type CalloutColours = { readonly tone: 'state'; readonly stateTone: StateTone } | { readonly tone: 'warn'; readonly stateTone?: never };
++/**
++ * A `state` callout takes the colours of its state tone; every other tone has colours of its own, so it takes none. Only a `warn` callout
++ * can be `tinted`, and only a `neutral` one `dashed`.
++ */
++type CalloutColours =
++  | { readonly tone: 'state'; readonly stateTone: StateTone; readonly tinted?: never; readonly dashed?: never }
++  | { readonly tone: 'warn'; readonly stateTone?: never; readonly tinted?: boolean; readonly dashed?: never }
++  | { readonly tone: 'error'; readonly stateTone?: never; readonly tinted?: never; readonly dashed?: never }
++  | { readonly tone: 'neutral'; readonly stateTone?: never; readonly tinted?: never; readonly dashed?: boolean };
+ 
+ export type CalloutProps = CalloutColours & {
+   readonly title?:        string;
+   /** The title's heading level, chosen by the screen; an `h3` by default. */
+   readonly titleElement?: TextElement;
++  /** Controls at the end of the callout's line, such as its buttons. */
++  readonly actions?:      ReactNode;
+   readonly children:      ReactNode;
+ };
+ 
++const flagAttribute = (isSet: boolean | undefined) => (isSet === true ? '' : undefined);
++
+ export function Callout({
+-  tone, stateTone, title, titleElement = 'h3', children
++  tone, stateTone, tinted, dashed, title, titleElement = 'h3', actions, children
+ }: CalloutProps) {
++  const heading = title === undefined ? null : <Text typeRole="title" element={titleElement} marginBottom="two">{title}</Text>;
++  const lookAttributes = {
++    'data-tone':       tone,
++    'data-state-tone': stateTone,
++    'data-tinted':     flagAttribute(tinted),
++    'data-dashed':     flagAttribute(dashed),
++  };
++  if (actions === undefined) {
++    return (
++      <div className="design-system-callout" {...lookAttributes}>
++        {heading}
++        {children}
++      </div>
++    );
++  }
+   return (
+-    <div className="design-system-callout" data-tone={tone} data-state-tone={stateTone}>
+-      {title === undefined ? null : <Text typeRole="title" element={titleElement} marginBottom="two">{title}</Text>}
+-      {children}
++    <div className="design-system-callout" data-with-actions="" {...lookAttributes}>
++      <div className="design-system-callout-body">
++        {heading}
++        {children}
++      </div>
++      <div className="design-system-callout-actions">{actions}</div>
+     </div>
+   );
+ }

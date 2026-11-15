@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 64 64" role="img">
+  <title>gaia</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#343434"/><stop offset="1" stop-color="#121212"/></linearGradient>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64"><rect width="64" height="64" fill="#fff"/><circle cx="15.98" cy="22.75" r="8.55" fill="#000"/><circle cx="48.02" cy="41.25" r="8.20" fill="#000"/><circle cx="23.99" cy="45.88" r="6.62" fill="#000"/></mask>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="url(#tile)"/>
+  <g transform="translate(32 32) scale(1.1) translate(-32 -32)">
+    <g mask="url(#gap)"><path d="M30.75 14.22 A2.5 2.5 0 0 1 33.25 14.22 L46.77 22.03 A2.5 2.5 0 0 1 48.02 24.19 L48.02 39.81 A2.5 2.5 0 0 1 46.77 41.97 L33.25 49.78 A2.5 2.5 0 0 1 30.75 49.78 L17.23 41.97 A2.5 2.5 0 0 1 15.98 39.81 L15.98 24.19 A2.5 2.5 0 0 1 17.23 22.03 Z" fill="none" stroke="#ff7417" stroke-width="5.8"/></g>
+    <path d="M31.50 25.69 A1.0 1.0 0 0 1 32.50 25.69 L37.22 28.41 A1.0 1.0 0 0 1 37.72 29.28 L37.72 34.72 A1.0 1.0 0 0 1 37.22 35.59 L32.50 38.31 A1.0 1.0 0 0 1 31.50 38.31 L26.78 35.59 A1.0 1.0 0 0 1 26.28 34.72 L26.28 29.28 A1.0 1.0 0 0 1 26.78 28.41 Z" fill="#c9dbe6"/>
+    <circle cx="15.98" cy="22.75" r="5.95" fill="#c9dbe6"/>
+    <circle cx="48.02" cy="41.25" r="5.60" fill="#c9dbe6"/>
+    <circle cx="23.99" cy="45.88" r="4.02" fill="#c9dbe6"/>
+  </g>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="#fff" stroke-opacity="0.12"/>
+</svg>

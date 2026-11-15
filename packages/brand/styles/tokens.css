@@ -1,0 +1,30 @@
+/*
+ * The mark's colours, the one place they are written: light under :root, dark under :root[data-theme="dark"], the theme a host sets on its
+ * root element. Every name starts with `--brand-`, so it never meets a host's token.
+ */
+:root {
+  /* The tile under the mark: its gradient and rim. */
+  --brand-tile-from: #ffffff;
+  --brand-tile-to:   #d6d6d6;
+  --brand-tile-rim:  rgba(0, 0, 0, 0.14);
+  /* The mark's mask: what it keeps open and what it shuts, the gap around its node. */
+  --brand-mask-open: #ffffff;
+  --brand-mask-shut: #000000;
+  /* Forge's mark: its ring, its core and its orange node. */
+  --brand-forge-line:      #3d3d3d;
+  --brand-forge-core:      rgba(250, 95, 1, 0.5);
+  --brand-forge-node-ring: #ee5600;
+  --brand-forge-node-core: #ff8d42;
+}
+
+:root[data-theme="dark"] {
+  --brand-tile-from: #343434;
+  --brand-tile-to:   #121212;
+  --brand-tile-rim:  rgba(255, 255, 255, 0.12);
+  --brand-mask-open: #ffffff;
+  --brand-mask-shut: #000000;
+  --brand-forge-line:      #dcdcdc;
+  --brand-forge-core:      rgba(255, 148, 80, 0.85);
+  --brand-forge-node-ring: #ee5600;
+  --brand-forge-node-core: #ff8d42;
+}

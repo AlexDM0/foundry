@@ -1,0 +1,589 @@
+/**
+ * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
+ * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
+ * per guard, a command carried through the command port and answered with its verdict, a frame session routed behind the session guard,
+ * and the CSP on every answer, refusals and failures included. Gaia's system version answers at `/api/versions`, unversioned only; every
+ * other route answers at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to
+ * start where Gaia already answers, and a start that loses the port leaves the token as it was; a stop leaves a newer Gaia's server record
+ * standing. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
+ * forge-control, whose own spec carries every kind; the frame session route's own spec asks a forge for a code; the heartbeat's timers
+ * are fired by hand.
+ */
+import {
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
+
+import { createServerRecordWriter, serverRecordPathIn }                 from '../../adapters/gaia-files/ServerRecordWriter.ts';
+import { serverTokenPathIn }                                            from '../../adapters/gaia-files/ServerTokenFile.ts';
+import { FleetDocumentMapUtil }                                         from '../../adapters/page-api/FleetDocumentMapUtil.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                         from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES }                                   from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
+import { eventStreamParserOf, type ServerSentEvent }                    from '../../lib/event-stream/EventStreamParser.ts';
+import { forgeClientOf }                                                from '../../lib/forge-client/ForgeClient.ts';
+import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
+import { createFleetStore, type FleetStore }                            from '../../services/FleetStore.ts';
+import type { CommandVerdict }                                          from '../../shared/@types/CommandVerdict.ts';
+import type { FleetSnapshot }                                           from '../../shared/@types/FleetSnapshot.ts';
+import type { GaiaCommand }                                             from '../../shared/@types/GaiaCommand.ts';
+import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }          from '../../shared/constants/GaiaSystemVersions.ts';
+import { manualTimers, type ManualTimers }                              from '../../testing/ManualTimers.ts';
+import { recordedOverseerFetch, type RecordedOverseerFetch }            from '../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
+import { startPageServer, type PageServer, type PageServerOptions }     from './PageServer.ts';
+import type { PageFilesSource }                                         from './routes/PageFilesRoute.ts';
+
+const PAGE_POLICY = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
+
+const STARTED_AT = '2026-11-13T09:00:00.000Z';
+const PROCESS_ID = 48_321;
+const HEARTBEAT_MILLISECONDS = 1_000;
+const SHORT_PROBE_MILLISECONDS = 500;
+const EARLIER_TOKEN = `${'0'.repeat(63)}1`;
+
+const OWNER_ONLY_FILE_MODE = 0o600;
+const OWNER_ONLY_FOLDER_MODE = 0o700;
+const PERMISSION_BITS = 0o777;
+
+const STAND_IN_PAGE = '<!doctype html><title>Gaia</title><script type="module" src="./chunk-example.js"></script>';
+const STAND_IN_CHUNK = 'document.title = "Gaia";';
+
+const standInPageFiles: PageFilesSource = () => Promise.resolve({
+  verdict: 'built',
+  files:   new Map([
+    ['/', new Blob([STAND_IN_PAGE], { type: 'text/html;charset=utf-8' })],
+    ['/chunk-example.js', new Blob([STAND_IN_CHUNK], { type: 'text/javascript;charset=utf-8' })],
+  ]),
+});
+
+let homeDirectory: string;
+let fleetStore: FleetStore;
+let timers: ManualTimers;
+let serversToStop: PageServer[];
+let streamsToAbort: AbortController[];
+let carriedCommands: GaiaCommand[];
+let nextCommandVerdict: CommandVerdict;
+let overseerFetch: RecordedOverseerFetch;
+
+beforeEach(() => {
+  homeDirectory  = createScratchDirectory('page-server-home');
+  fleetStore     = createFleetStore(FLEET_SNAPSHOT_EMPTY);
+  timers         = manualTimers();
+  serversToStop  = [];
+  streamsToAbort = [];
+  carriedCommands    = [];
+  nextCommandVerdict = { verdict: 'done' };
+  overseerFetch      = recordedOverseerFetch([]);
+});
+
+afterEach(async () => {
+  for (const streamAbort of streamsToAbort) streamAbort.abort();
+  for (const pageServer of serversToStop) await pageServer.stop();
+  removeScratchPath(homeDirectory);
+});
+
+function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOptions {
+  return {
+    port:         0,
+    homeDirectory,
+    fleetStore,
+    forgeCounts:  () => ({ forgesRegistered: 5, forgesAnswered: 3 }),
+    pageFiles:    standInPageFiles,
+    carryCommand: (command) => {
+      carriedCommands.push(command);
+      return Promise.resolve(nextCommandVerdict);
+    },
+    frameSessionSources: {
+      readRegistry: () => Promise.resolve({ verdict: 'absent' }),
+      readings:     () => [],
+      forgeClient:  forgeClientOf({ overseerFetch }),
+    },
+    timers,
+    now:                            () => STARTED_AT,
+    processId:                      PROCESS_ID,
+    heartbeatIntervalMilliseconds:  HEARTBEAT_MILLISECONDS,
+    healthProbeTimeoutMilliseconds: SHORT_PROBE_MILLISECONDS,
+    ...overrides,
+  };
+}
+
+async function servingPageServer(overrides: Partial<PageServerOptions> = {}): Promise<PageServer> {
+  const startVerdict = await startPageServer(optionsWith(overrides));
+  if (startVerdict.verdict !== 'serving') throw new Error(`The page server did not start: ${JSON.stringify(startVerdict)}`);
+  serversToStop.push(startVerdict.pageServer);
+  return startVerdict.pageServer;
+}
+
+/** Every answer of the server passes here, so each case also holds that the answer carries the page's CSP. */
+async function answerOf(pageServer: PageServer, path: string, requestOptions: RequestInit = {}): Promise<Response> {
+  const response = await fetch(new URL(path, pageServer.url), { redirect: 'manual', ...requestOptions });
+  expect(response.headers.get('content-security-policy')).toBe(PAGE_POLICY);
+  return response;
+}
+
+function storedToken(): string {
+  return readFileSync(serverTokenPathIn(homeDirectory), 'utf8');
+}
+
+function withBearer(token: string): RequestInit {
+  return { method: 'POST', headers: { authorization: `Bearer ${token}` } };
+}
+
+async function issuedCode(pageServer: PageServer): Promise<string> {
+  const response = await answerOf(pageServer, '/api/session-codes', withBearer(storedToken()));
+  expect(response.status).toBe(200);
+  const { code } = await response.json() as { readonly code: string };
+  return code;
+}
+
+function sessionExchange(code: unknown): RequestInit {
+  return { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) };
+}
+
+/** The `name=secret` pair a browser sends back for the cookie the exchange set. */
+async function sessionCookieOf(pageServer: PageServer): Promise<string> {
+  const response = await answerOf(pageServer, '/api/session', sessionExchange(await issuedCode(pageServer)));
+  expect(response.status).toBe(204);
+  return (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+}
+
+interface EventReader {
+  readonly nextEvent: () => Promise<ServerSentEvent>;
+  readonly untilEnd:  () => Promise<void>;
+}
+
+function eventReaderOf(response: Response): EventReader {
+  const reader  = response.body?.getReader();
+  if (reader === undefined) throw new Error('The event stream has no body.');
+  const decoder = new TextDecoder();
+  const parser  = eventStreamParserOf();
+  const waiting: ServerSentEvent[] = [];
+  return {
+    nextEvent: async () => {
+      while (waiting.length === 0) {
+        const chunk = await reader.read();
+        if (chunk.done) throw new Error('The event stream ended before the next event.');
+        waiting.push(...parser.eventsOf(decoder.decode(chunk.value, { stream: true })));
+      }
+      return waiting.shift() as ServerSentEvent;
+    },
+    untilEnd: async () => {
+      for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) parser.eventsOf(decoder.decode(chunk.value, { stream: true }));
+    },
+  };
+}
+
+async function openEvents(pageServer: PageServer, cookie: string, path = '/api/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
+  const streamAbort = new AbortController();
+  streamsToAbort.push(streamAbort);
+  const response = await answerOf(pageServer, path, { headers: { cookie }, signal: streamAbort.signal });
+  return { response, events: eventReaderOf(response) };
+}
+
+function fleetEventDocumentOf(snapshot: FleetSnapshot): unknown {
+  return { ...FleetDocumentMapUtil.fleetDocumentOf(snapshot), systemVersion: GAIA_SYSTEM_VERSION };
+}
+
+describe('a headless start under a scratch home', () => {
+  test('listens on 127.0.0.1, on any free port when asked for port 0', async () => {
+    const pageServer = await servingPageServer();
+    expect(pageServer.url.hostname).toBe('127.0.0.1');
+    expect(pageServer.port).toBeGreaterThan(0);
+    expect(pageServer.url.port).toBe(String(pageServer.port));
+  });
+
+  test('writes a fresh owner-only token in an owner-only folder at every start', async () => {
+    const firstServer = await servingPageServer();
+    const firstToken  = storedToken();
+    await firstServer.stop();
+    await servingPageServer();
+
+    expect(firstToken).toMatch(/^[0-9a-f]{64}$/);
+    expect(storedToken()).toMatch(/^[0-9a-f]{64}$/);
+    expect(storedToken()).not.toBe(firstToken);
+    expect(statSync(serverTokenPathIn(homeDirectory)).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
+    expect(statSync(join(homeDirectory, '.gaia')).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FOLDER_MODE);
+  });
+
+  test('writes the server record once it listens, and removes it when it stops', async () => {
+    const pageServer = await servingPageServer();
+    const record = JSON.parse(readFileSync(serverRecordPathIn(homeDirectory), 'utf8')) as unknown;
+    expect(record).toEqual({
+      version:   1,
+      minor:     0,
+      url:       pageServer.url.href,
+      origin:    pageServer.url.origin,
+      processId: PROCESS_ID,
+      startedAt: STARTED_AT,
+    });
+
+    expect(await pageServer.stop()).toEqual({ verdict: 'removed' });
+    expect(() => statSync(serverRecordPathIn(homeDirectory))).toThrow();
+  });
+
+  test('buys a session with a code, reads the fleet, and hears a fleet event after a store change', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+
+    const fleetAnswer = await answerOf(pageServer, '/api/fleet', { headers: { cookie } });
+    expect([fleetAnswer.status, fleetAnswer.headers.get('content-type')]).toEqual([200, 'application/json;charset=utf-8']);
+    expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
+
+    const { response, events } = await openEvents(pageServer, cookie);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/event-stream');
+    const handshake = await events.nextEvent();
+    expect([handshake.eventName, JSON.parse(handshake.data)]).toEqual(['handshake', { systemVersion: GAIA_SYSTEM_VERSION }]);
+    const firstEvent = await events.nextEvent();
+    expect([firstEvent.eventName, JSON.parse(firstEvent.data)]).toEqual(['fleet', fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY)]);
+
+    expect(fleetStore.publish(FLEET_SNAPSHOT_FIVE_FORGES)).toBe('published');
+    const changeEvent = await events.nextEvent();
+    expect([changeEvent.eventName, JSON.parse(changeEvent.data)]).toEqual(['fleet', fleetEventDocumentOf(FLEET_SNAPSHOT_FIVE_FORGES)]);
+  });
+
+  test('marks the session cookie HttpOnly and SameSite=Strict under a name that carries its port', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/session', sessionExchange(await issuedCode(pageServer)));
+    const attributes = (response.headers.get('set-cookie') ?? '').split('; ');
+    expect(attributes[0]?.startsWith(`gaia-session-${pageServer.port}=`)).toBe(true);
+    expect(attributes).toContain('HttpOnly');
+    expect(attributes).toContain('SameSite=Strict');
+  });
+
+  test('answers its health to any local caller, with how far it is with its forges', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/health');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      application:      'gaia',
+      healthVersion:    1,
+      installVersion:   1,
+      forgesRegistered: 5,
+      forgesAnswered:   3,
+    });
+  });
+
+  test('serves the page and its files to anyone, and answers a page file it does not have as not found', async () => {
+    const pageServer = await servingPageServer();
+    const page = await answerOf(pageServer, '/');
+    expect([page.status, page.headers.get('content-type'), await page.text()]).toEqual([200, 'text/html;charset=utf-8', STAND_IN_PAGE]);
+    const chunk = await answerOf(pageServer, '/chunk-example.js');
+    expect([chunk.status, await chunk.text()]).toEqual([200, STAND_IN_CHUNK]);
+    expect((await answerOf(pageServer, '/chunk-absent.js')).status).toBe(404);
+  });
+
+  test('answers a page that cannot be built as a failure', async () => {
+    const pageServer = await servingPageServer({ pageFiles: () => Promise.resolve({ verdict: 'unbuildable', failure: 'example failure' }) });
+    expect((await answerOf(pageServer, '/')).status).toBe(500);
+  });
+
+  test('answers a route that fails inside as a failure, with the CSP all the same', async () => {
+    const pageServer = await servingPageServer({
+      forgeCounts: () => {
+        throw new Error('An example failure inside a route.');
+      },
+    });
+    expect((await answerOf(pageServer, '/api/health')).status).toBe(500);
+  });
+
+  test('reads the fleet for a holder of the token as well as for a session', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
+    expect(response.status).toBe(200);
+  });
+});
+
+function commandRequest(cookie: string, commandDocument: unknown): RequestInit {
+  return { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify(commandDocument) };
+}
+
+describe('a command', () => {
+  test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      answerVersion: 3, outcome: 'done', refusal: null, text: null
+    });
+    expect(carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
+  });
+
+  test('answers a forge\'s refusal with its code and its sentence unchanged, under a conflict status', async () => {
+    const pageServer = await servingPageServer();
+    nextCommandVerdict = {
+      verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
+    };
+    const stopCommand = {
+      commandVersion: 2, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+    };
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      answerVersion: 3,
+      outcome:       'refused',
+      refusal:       'overseer-held',
+      text:          'The Overseer is held by an install change.',
+    });
+    expect(carriedCommands).toEqual([{ kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep' }]);
+  });
+
+  test('answers each verdict under its own status', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const verdicts: readonly CommandVerdict[] = [
+      { verdict: 'nothing-to-do' },
+      { verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' },
+      { verdict: 'unreachable' },
+      { verdict: 'not-supported' },
+    ];
+    const statuses: number[] = [];
+    for (const verdict of verdicts) {
+      nextCommandVerdict = verdict;
+      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }))).status);
+    }
+    expect(statuses).toEqual([200, 409, 502, 501]);
+  });
+
+  test('that Gaia cannot read is answered as not supported, and nothing is carried', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 1, kind: 'fleet-look-again' }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+    });
+    expect(carriedCommands).toEqual([]);
+  });
+
+  test('is refused without a session, and nothing is carried', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' }) });
+    expect(response.status).toBe(401);
+    expect(carriedCommands).toEqual([]);
+  });
+});
+
+describe('a frame session', () => {
+  test('is answered for a forge named in its path through the frame session route, behind the session guard', async () => {
+    const pageServer = await servingPageServer();
+    const framePath = '/api/forges/example-storefront-7c41/frame-session';
+    expect((await answerOf(pageServer, framePath, { method: 'POST' })).status).toBe(401);
+
+    const response = await answerOf(pageServer, framePath, { method: 'POST', headers: { cookie: await sessionCookieOf(pageServer) } });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      frameSessionVersion: 1, outcome: 'refused', frameUrl: null, refusal: 'forge-not-registered', text: null,
+    });
+    expect(overseerFetch.callsAnswered()).toEqual([]);
+  });
+
+  test('is not found at a path that names no forge, and not allowed under another method', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/forges//frame-session', { method: 'POST' })).status).toBe(404);
+    expect((await answerOf(pageServer, '/api/forges/example-storefront-7c41/frame-session')).status).toBe(405);
+  });
+});
+
+describe('one refused request per guard', () => {
+  test('refuses a foreign Origin', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/session-codes', { method: 'POST', headers: { authorization: `Bearer ${storedToken()}`, origin: 'https://foreign.example' } });
+    expect(response.status).toBe(403);
+  });
+
+  test('refuses the text null as Origin', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/session', { ...sessionExchange(await issuedCode(pageServer)), headers: { origin: 'null' } });
+    expect(response.status).toBe(403);
+  });
+
+  test('refuses a rebound Host', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/health', { headers: { host: `rebound.example:${pageServer.port}` } });
+    expect(response.status).toBe(403);
+  });
+
+  test('refuses a preflight, even from its own origin', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/fleet', { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } });
+    expect(response.status).toBe(403);
+    expect(response.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  test('refuses a spent code', async () => {
+    const pageServer = await servingPageServer();
+    const code = await issuedCode(pageServer);
+    expect((await answerOf(pageServer, '/api/session', sessionExchange(code))).status).toBe(204);
+    const spent = await answerOf(pageServer, '/api/session', sessionExchange(code));
+    expect(spent.status).toBe(401);
+    expect(spent.headers.get('set-cookie')).toBeNull();
+  });
+
+  test('refuses a wrong token', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/session-codes', { method: 'POST' })).status).toBe(401);
+  });
+
+  test('refuses the fleet and its events to a request with neither session nor token', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/fleet', { headers: { cookie: `gaia-session-${pageServer.port}=${'0'.repeat(64)}` } })).status).toBe(401);
+  });
+
+  test('refuses a session code that is no string, or a body that is no JSON', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/session', sessionExchange(4790))).status).toBe(400);
+    expect((await answerOf(pageServer, '/api/session', { method: 'POST', body: 'code' })).status).toBe(400);
+  });
+
+  test('answers an unknown API address as not found, and a known one under another method as not allowed', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/unknown')).status).toBe(404);
+    expect((await answerOf(pageServer, '/api/fleet', { method: 'POST' })).status).toBe(405);
+    expect((await answerOf(pageServer, '/', { method: 'POST' })).status).toBe(404);
+  });
+});
+
+describe('the versioned paths', () => {
+  test('answer Gaia\'s system version and its minimum supported at /api/versions, open to any local caller and never cached', async () => {
+    const pageServer = await servingPageServer();
+    const response = await answerOf(pageServer, '/api/versions');
+    expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
+    expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
+    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 0 });
+  });
+
+  test('serve /api/versions at no versioned path', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/versions')).status).toBe(404);
+  });
+
+  test('carry the whole road of the page at each route\'s own version, as at its unversioned path', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/health')).status).toBe(200);
+    const codeAnswer = await answerOf(pageServer, '/api/v1/session-codes', withBearer(storedToken()));
+    const { code } = await codeAnswer.json() as { readonly code: string };
+    const exchange = await answerOf(pageServer, '/api/v1/session', sessionExchange(code));
+    expect(exchange.status).toBe(204);
+    const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+
+    const fleetAnswer = await answerOf(pageServer, '/api/v4/fleet', { headers: { cookie } });
+    expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
+    const { events } = await openEvents(pageServer, cookie, '/api/v4/events');
+    expect((await events.nextEvent()).eventName).toBe('handshake');
+    expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
+    const command = await answerOf(pageServer, '/api/v3/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
+    expect([command.status, carriedCommands]).toEqual([200, [{ kind: 'fleet-look-again' }]]);
+    const frameSession = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST', headers: { cookie } });
+    expect(frameSession.status).not.toBe(404);
+  });
+
+  test('answer each route at no version but its own', async () => {
+    const pageServer = await servingPageServer();
+    for (const path of ['/api/v2/health', '/api/v3/fleet', '/api/v1/fleet', '/api/v5/events', '/api/v2/commands', '/api/v2/session-codes']) {
+      expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
+    }
+  });
+
+  test('keep the Host, Origin and preflight guards on the versioned paths and on /api/versions', async () => {
+    const pageServer = await servingPageServer();
+    const foreignOrigin = { method: 'POST', headers: { authorization: `Bearer ${storedToken()}`, origin: 'https://foreign.example' } };
+    expect((await answerOf(pageServer, '/api/v1/session-codes', foreignOrigin)).status).toBe(403);
+    for (const path of ['/api/v1/health', '/api/versions']) {
+      expect((await answerOf(pageServer, path, { headers: { host: `rebound.example:${pageServer.port}` } })).status).toBe(403);
+      expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
+    }
+    const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
+    expect((await answerOf(pageServer, '/api/v4/fleet', preflight)).status).toBe(403);
+  });
+
+  test('keep the token and session guards on the versioned paths', async () => {
+    const pageServer = await servingPageServer();
+    expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v4/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v4/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v3/commands', { method: 'POST', body: '{}' })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST' })).status).toBe(401);
+    expect(carriedCommands).toEqual([]);
+  });
+});
+
+describe('a start where something already answers', () => {
+  test('refuses to start where Gaia answers its health, and leaves that Gaia\'s token and record as they are', async () => {
+    const runningServer = await servingPageServer();
+    const tokenBefore   = storedToken();
+    const recordBefore  = readFileSync(serverRecordPathIn(homeDirectory), 'utf8');
+
+    const startVerdict = await startPageServer(optionsWith({ port: runningServer.port, processId: PROCESS_ID + 1 }));
+    expect(startVerdict).toEqual({ verdict: 'gaia-already-serving', url: runningServer.url });
+    expect(storedToken()).toBe(tokenBefore);
+    expect(readFileSync(serverRecordPathIn(homeDirectory), 'utf8')).toBe(recordBefore);
+  });
+
+  test('answers that the port is unavailable where another program listens', async () => {
+    const otherProgram = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => Response.json({ application: 'another-program' }) });
+    try {
+      const startVerdict = await startPageServer(optionsWith({ port: otherProgram.port ?? 0 }));
+      expect(startVerdict.verdict).toBe('port-unavailable');
+      expect(() => statSync(serverRecordPathIn(homeDirectory))).toThrow();
+    } finally {
+      await otherProgram.stop(true);
+    }
+  });
+
+  test('leaves the token in place byte for byte when it loses the port, since the program that holds the port may be a Gaia that serves it', async () => {
+    mkdirSync(join(homeDirectory, '.gaia'), { recursive: true });
+    writeFileSync(serverTokenPathIn(homeDirectory), EARLIER_TOKEN);
+    const otherProgram = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => Response.json({ application: 'another-program' }) });
+    try {
+      expect((await startPageServer(optionsWith({ port: otherProgram.port ?? 0 }))).verdict).toBe('port-unavailable');
+      expect(storedToken()).toBe(EARLIER_TOKEN);
+    } finally {
+      await otherProgram.stop(true);
+    }
+  });
+});
+
+describe('a start that cannot write its token', () => {
+  test('answers unwritable for the token and writes no server record', async () => {
+    writeFileSync(join(homeDirectory, '.gaia'), 'a file where the data folder belongs');
+    const startVerdict = await startPageServer(optionsWith());
+    expect(startVerdict).toMatchObject({ verdict: 'unwritable', file: 'token' });
+    expect(() => statSync(serverRecordPathIn(homeDirectory))).toThrow();
+  });
+});
+
+describe('a stop', () => {
+  test('ends every open event stream and leaves no heartbeat behind', async () => {
+    const pageServer = await servingPageServer();
+    const { events } = await openEvents(pageServer, await sessionCookieOf(pageServer));
+    await events.nextEvent();
+    expect(timers.pendingDelays()).toEqual([HEARTBEAT_MILLISECONDS]);
+
+    await pageServer.stop();
+    await events.untilEnd();
+    expect(timers.pendingDelays()).toEqual([]);
+  });
+
+  test('leaves the server record standing when a newer Gaia has written its own over it', async () => {
+    const pageServer = await servingPageServer();
+    const newerRecord = { url: new URL('http://127.0.0.1:4791/'), processId: PROCESS_ID + 1, startedAt: STARTED_AT };
+    await createServerRecordWriter(homeDirectory).write(newerRecord);
+
+    expect(await pageServer.stop()).toEqual({ verdict: 'held-by-another-process' });
+    expect(JSON.parse(readFileSync(serverRecordPathIn(homeDirectory), 'utf8'))).toMatchObject({ processId: PROCESS_ID + 1 });
+  });
+});

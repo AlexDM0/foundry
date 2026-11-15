@@ -1,0 +1,29 @@
+{
+  "name": "forge-contracts",
+  "version": "0.3.0",
+  "description": "What a forge serves and reads, as types: its documents, its commands, its embed channel, its system versions and its compatibility registry",
+  "type": "module",
+  "engines": { "bun": "1.4.2" },
+  "files": ["@types", "constants/*.ts", "!constants/*.spec.ts", "scripts", "README.md"],
+  "exports": {
+    "./IdentityDocument": "./@types/IdentityDocument.ts",
+    "./BoardSummaryDocument": "./@types/BoardSummaryDocument.ts",
+    "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
+    "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
+    "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
+    "./EmbedMode": "./constants/EmbedMode.ts",
+    "./OverseerContractVersions": "./constants/OverseerContractVersions.ts",
+    "./ForgeSystemVersions": "./constants/ForgeSystemVersions.ts",
+    "./ForgeCompatibilityRegistry": "./constants/ForgeCompatibilityRegistry.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
+    "test": "bun test",
+    "versions:raise-minimum": "bun scripts/RaiseMinimum.ts",
+    "verify": "bun run typecheck && bun run lint && bun test"
+  },
+  "dependencies": {
+    "system-versions": "workspace:^"
+  }
+}

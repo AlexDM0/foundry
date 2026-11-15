@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:34:20 +0100
+Subject: SectionHead: a compact form and a count written as text
+
+---
+ molecules/SectionHead.css         |  1 +
+ molecules/SectionHead.dom.tsx     | 13 ++++++++++++-
+ molecules/SectionHead.stories.tsx |  2 ++
+ molecules/SectionHead.tsx         | 12 +++++++-----
+ 4 files changed, 22 insertions(+), 6 deletions(-)
+
+diff --git a/molecules/SectionHead.css b/molecules/SectionHead.css
+index 39859b83f3c870ad6c7a97ae3f6d849ef0fbeebd..0400a4ef56df173d82446265d8879814733dd1ac 100644
+--- a/molecules/SectionHead.css
++++ b/molecules/SectionHead.css
+@@ -4,5 +4,6 @@
+   margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4);
+ }
+ .design-system-section-head[data-inline] { align-items: baseline; }
++.design-system-section-head[data-compact] { min-height: 0; }
+ .design-system-section-head[data-inline] > .design-system-section-count { margin-left: 0; }
+ .design-system-section-head .design-system-id-link { font-size: var(--fs-small); }
+diff --git a/molecules/SectionHead.dom.tsx b/molecules/SectionHead.dom.tsx
+index 16b8621350a1d8ad2d48370457b466283fd501d2..242df5daabda055be68678708b313e5df57daa14 100644
+--- a/molecules/SectionHead.dom.tsx
++++ b/molecules/SectionHead.dom.tsx
+@@ -1,6 +1,7 @@
+ /**
+  * The section head, in a happy-dom document. What matters: its title is an `h2` unless the screen picks another element; the count shows
+- * only when given; what the caller adds follows; inline sets `data-inline`; and the title is text, never markup.
++ * only when given, a number or a count written as text; what the caller adds follows; inline sets `data-inline` and compact
++ * `data-compact`; and the title is text, never markup.
+  */
+ import { cleanup, render, screen } from '@testing-library/react';
+ import {
+@@ -36,6 +37,16 @@ describe('the section head', () => {
+     expect(render(<SectionHead title="Example" />).container.querySelector('.design-system-section-count')).toBeNull();
+   });
+ 
++  test('a count written as text shows as written', () => {
++    const { container } = render(<SectionHead title="Tokens" count="1.24M" />);
++    expect(container.querySelector('.design-system-section-count')?.textContent).toBe('1.24M');
++  });
++
++  test('compact sets data-compact on the head, and a standard head sets nothing', () => {
++    const { container } = render(<><SectionHead title="Example" compact /><SectionHead title="Example" /></>);
++    expect([...container.querySelectorAll('.design-system-section-head')].map((head) => head.hasAttribute('data-compact'))).toEqual([true, false]);
++  });
++
+   test('inline sets data-inline on the head, and a standard head sets nothing', () => {
+     const { container } = render(<><SectionHead title="Example" count={2} inline /><SectionHead title="Example" count={2} /></>);
+     expect([...container.querySelectorAll('.design-system-section-head')].map((head) => head.hasAttribute('data-inline'))).toEqual([true, false]);
+diff --git a/molecules/SectionHead.stories.tsx b/molecules/SectionHead.stories.tsx
+index f928a1d2e6ed6a34aceee73c86e64f238b2a03b3..d824312686be106fedc790bd860ddad133af0f8b 100644
+--- a/molecules/SectionHead.stories.tsx
++++ b/molecules/SectionHead.stories.tsx
+@@ -16,6 +16,8 @@ type Story = StoryObj<typeof meta>;
+ 
+ export const Plain: Story = {};
+ export const Counted: Story = { args: { count: 3 } };
++export const CountedAsText: Story = { args: { count: '4+' } };
++export const Compact: Story = { args: { count: 3, compact: true } };
+ export const WithAction: Story = { args: { count: 3, children: <TextButton label="Example action" onPress={fn()} /> } };
+ export const NestedHeading: Story = { args: { titleElement: 'h3' } };
+ export const Inline: Story = { args: { count: 3, inline: true, children: <TextButton label="Example action" onPress={fn()} /> } };
+diff --git a/molecules/SectionHead.tsx b/molecules/SectionHead.tsx
+index feb4042f7a1cf39e8a490d989dfcb1d764f6c2e4..15dff95c0e8ef24f1a85cad7ec94b0d78e5a7783 100644
+--- a/molecules/SectionHead.tsx
++++ b/molecules/SectionHead.tsx
+@@ -1,7 +1,7 @@
+ /**
+  * The head of a section: a small-capitals title, an optional count apart at its end, then whatever the caller adds. The title's element is
+  * the screen's choice, an `h2` by default. An inline head reads as one line of text: its parts on one baseline, the count right after
+- * the title.
++ * the title. A compact head is only as tall as its parts.
+  */
+ import type { ReactNode } from 'react';
+ 
+@@ -11,17 +11,19 @@ export interface SectionHeadProps {
+   readonly title:         string;
+   /** The title's heading level, chosen by the screen; an `h2` by default. */
+   readonly titleElement?: TextElement;
+-  /** Shown apart, muted at the head's end; left out where a section counts nothing. */
+-  readonly count?:        number;
++  /** Shown apart, muted at the head's end, a number or a count written as text such as "1.24M" or "4+"; left out where a section counts nothing. */
++  readonly count?:        number | string;
+   readonly inline?:       boolean;
++  /** Drops the head's minimum height, for a head that sits on a dense line. */
++  readonly compact?:      boolean;
+   readonly children?:     ReactNode;
+ }
+ 
+ export function SectionHead({
+-  title, titleElement = 'h2', count, inline = false, children
++  title, titleElement = 'h2', count, inline = false, compact = false, children
+ }: SectionHeadProps) {
+   return (
+-    <div className="design-system-section-head" data-inline={inline ? '' : undefined}>
++    <div className="design-system-section-head" data-inline={inline ? '' : undefined} data-compact={compact ? '' : undefined}>
+       <Text typeRole="micro" element={titleElement}>{title}</Text>
+       {count === undefined ? null : <span className="design-system-section-count">{count}</span>}
+       {children}

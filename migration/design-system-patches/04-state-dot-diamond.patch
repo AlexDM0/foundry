@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:30:47 +0100
+Subject: StateDot: a diamond shape, also for a state badge's dot
+
+---
+ @types/StateTone.ts          | 4 ++--
+ atoms/StateBadge.css         | 3 +++
+ atoms/StateBadge.dom.tsx     | 5 +++++
+ atoms/StateBadge.stories.tsx | 1 +
+ atoms/StateDot.css           | 4 +++-
+ atoms/StateDot.dom.tsx       | 6 +++---
+ atoms/StateDot.stories.tsx   | 3 ++-
+ atoms/StateDot.tsx           | 4 ++--
+ 8 files changed, 21 insertions(+), 9 deletions(-)
+
+diff --git a/@types/StateTone.ts b/@types/StateTone.ts
+index df7432972b8a8c648429fbc43e3fa1baee77a98c..7379f993b3be0b741be79f627643a767fceb8d4f 100644
+--- a/@types/StateTone.ts
++++ b/@types/StateTone.ts
+@@ -15,5 +15,5 @@ export type StateTone =
+   | 'ink'
+   | 'muted';
+ 
+-/** How a state dot is drawn: filled, a ring, or a dashed ring. */
+-export type StateDotShape = 'solid' | 'ring' | 'dashed-ring';
++/** How a state dot is drawn: filled, a ring, a dashed ring, or a diamond, a square outline turned 45 degrees. */
++export type StateDotShape = 'solid' | 'ring' | 'dashed-ring' | 'diamond';
+diff --git a/atoms/StateBadge.css b/atoms/StateBadge.css
+index 67a5e5c7acf69299d0c3b3c2d8f694a2c30a09dd..e8f27a2acfed9708c635652c49663d1221802b3b 100644
+--- a/atoms/StateBadge.css
++++ b/atoms/StateBadge.css
+@@ -21,6 +21,9 @@
+ .design-system-state-badge-dot { flex: none; box-sizing: border-box; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--s-fill, var(--line-strong)); }
+ .design-system-state-badge[data-dot-shape="dashed-ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px dashed var(--s-fill); }
+ .design-system-state-badge[data-dot-shape="ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px solid var(--s-fill); }
++.design-system-state-badge[data-dot-shape="diamond"] .design-system-state-badge-dot {
++  background: transparent; border: 1.5px solid var(--s-fill); border-radius: 0; transform: rotate(45deg) scale(0.85);
++}
+ .design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
+ .design-system-state-badge-label { overflow: hidden; text-overflow: ellipsis; }
+ .design-system-state-badge[data-struck] .design-system-state-badge-label { text-decoration: line-through; }
+diff --git a/atoms/StateBadge.dom.tsx b/atoms/StateBadge.dom.tsx
+index d10011e73fdf07d633cf402dcaa53838ea0eb9e1..0b3f4f73f23e3db9ff3f131fc07fde636e53c363 100644
+--- a/atoms/StateBadge.dom.tsx
++++ b/atoms/StateBadge.dom.tsx
+@@ -44,6 +44,11 @@ describe('the state badge', () => {
+     expect(SHAPE_ATTRIBUTES.map((attribute) => badge.getAttribute(attribute))).toEqual(['dashed-ring', '', '', '']);
+   });
+ 
++  test('a diamond dot sets data-dot-shape', () => {
++    const badge = renderedBadge(<StateBadge tone="accent" label="Thinking" dotShape="diamond" />);
++    expect(badge.getAttribute('data-dot-shape')).toBe('diamond');
++  });
++
+   test('compact sets data-size, and the standard size sets none', () => {
+     expect(renderedBadge(<StateBadge tone="neutral" label="To do" size="compact" />).getAttribute('data-size')).toBe('compact');
+     cleanup();
+diff --git a/atoms/StateBadge.stories.tsx b/atoms/StateBadge.stories.tsx
+index e542698324f035fef6c5bc3ff9fc0d4d8e920f06..66536eec2b8298e1bf6d5c345755ab69805be38f 100644
+--- a/atoms/StateBadge.stories.tsx
++++ b/atoms/StateBadge.stories.tsx
+@@ -40,6 +40,7 @@ export const QuietPalette: Story = {
+     palette: 'quiet', tone: 'info-outline', label: 'Waiting', pulsing: false, dashed: true, dotShape: 'ring'
+   }
+ };
++export const DiamondDot: Story = { args: { tone: 'accent', label: 'Thinking', dotShape: 'diamond' } };
+ export const WithTitle: Story = { args: { title: 'Example badge title' } };
+ 
+ export const EveryTone: Story = {
+diff --git a/atoms/StateDot.css b/atoms/StateDot.css
+index 363930a99bea1e23a1f5ef9d45474d8532fddb67..5f533cf406d63038fa0c05055e58ce84ef133d68 100644
+--- a/atoms/StateDot.css
++++ b/atoms/StateDot.css
+@@ -1,4 +1,4 @@
+-/* A state's dot in its shape: a solid dot, a ring or a dashed ring; 8px, small 7px, tiny 6px. */
++/* A state's dot in its shape: a solid dot, a ring, a dashed ring or a diamond; 8px, small 7px, tiny 6px. */
+ .design-system-state-dot {
+   flex: none;
+   box-sizing: border-box;
+@@ -14,3 +14,5 @@
+ .design-system-state-dot[data-state-tone] { background: var(--s-fill); }
+ .design-system-state-dot[data-shape="dashed-ring"] { background: transparent; border: 1.5px dashed var(--s-fill); }
+ .design-system-state-dot[data-shape="ring"] { background: transparent; border: 1.5px solid var(--s-fill); }
++/* A diamond is the ring's square turned 45 degrees and drawn at 85%, so its corners reach about as far as a round dot's edge. */
++.design-system-state-dot[data-shape="diamond"] { background: transparent; border: 1.5px solid var(--s-fill); border-radius: 0; transform: rotate(45deg) scale(0.85); }
+diff --git a/atoms/StateDot.dom.tsx b/atoms/StateDot.dom.tsx
+index 1b28edde444e030d47eb8decea985b2b89885c4a..b5fd000a065af8ac267e536ea0a1f063af34f173 100644
+--- a/atoms/StateDot.dom.tsx
++++ b/atoms/StateDot.dom.tsx
+@@ -24,9 +24,9 @@ describe('the state dot', () => {
+       .toEqual(['info', false, 'true', '']);
+   });
+ 
+-  test('a ring and a dashed ring set data-shape', () => {
+-    const { container } = render(<><StateDot tone="muted" shape="ring" /><StateDot tone="neutral" shape="dashed-ring" /></>);
+-    expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => dot.getAttribute('data-shape'))).toEqual(['ring', 'dashed-ring']);
++  test('a ring, a dashed ring and a diamond set data-shape', () => {
++    const { container } = render(<><StateDot tone="muted" shape="ring" /><StateDot tone="neutral" shape="dashed-ring" /><StateDot tone="accent" shape="diamond" small /></>);
++    expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => dot.getAttribute('data-shape'))).toEqual(['ring', 'dashed-ring', 'diamond']);
+   });
+ 
+   test('small and tiny set data-size, and the standard size sets nothing', () => {
+diff --git a/atoms/StateDot.stories.tsx b/atoms/StateDot.stories.tsx
+index 3a39869c8fb3a60ef3f88084c139820e0ffe6ee0..5a92e72182a612b3359905326db5a8009ec33893 100644
+--- a/atoms/StateDot.stories.tsx
++++ b/atoms/StateDot.stories.tsx
+@@ -6,7 +6,7 @@ import { Text }                          from './Text.tsx';
+ import { View }                          from './View.tsx';
+ 
+ const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'ink', 'muted'];
+-const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring'];
++const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring', 'diamond'];
+ 
+ const meta = {
+   title:     'Atoms/StateDot',
+@@ -21,6 +21,7 @@ type Story = StoryObj<typeof meta>;
+ export const Accent: Story = {};
+ export const Ring: Story = { args: { tone: 'muted', shape: 'ring' } };
+ export const DashedRing: Story = { args: { tone: 'neutral', shape: 'dashed-ring' } };
++export const Diamond: Story = { args: { tone: 'accent', shape: 'diamond', small: true } };
+ export const Small: Story = { args: { small: true } };
+ export const Tiny: Story = { args: { tiny: true } };
+ 
+diff --git a/atoms/StateDot.tsx b/atoms/StateDot.tsx
+index 50e755f3b2d4ef40c542772470db6b820102d985..1ad8dd5eb7677ee07747f7685820a6cad7dc7352 100644
+--- a/atoms/StateDot.tsx
++++ b/atoms/StateDot.tsx
+@@ -1,6 +1,6 @@
+ /**
+- * A state's round dot, filled from its tone's row in `tokens.css` and drawn in its shape: 8px, `small` 7px beside a line of text, `tiny` 6px
+- * beside a small one. It is decoration.
++ * A state's dot, filled from its tone's row in `tokens.css` and drawn in its shape, round or a diamond: 8px, `small` 7px beside a line of
++ * text, `tiny` 6px beside a small one. It is decoration.
+  */
+ import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
+ 
