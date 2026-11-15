@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:36:34 +0100
+Subject: FactList: a table's labels fitted to the widest
+
+---
+ molecules/FactList.css         |  3 +++
+ molecules/FactList.dom.tsx     | 19 ++++++++++++++++++-
+ molecules/FactList.stories.tsx |  7 +++++++
+ molecules/FactList.tsx         | 16 +++++++++-------
+ 4 files changed, 37 insertions(+), 8 deletions(-)
+
+diff --git a/molecules/FactList.css b/molecules/FactList.css
+index a9db8f1050358df8a3623b820d4cac0ea1b09217..b7e58aa4e3f202d168aff4afd4a42e15b08ede29 100644
+--- a/molecules/FactList.css
++++ b/molecules/FactList.css
+@@ -24,3 +24,6 @@
+ .design-system-facts[data-layout="table"] { display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-6); border-top: 1px dashed var(--line); font-size: var(--fs-small); }
+ .design-system-facts[data-layout="table"] .design-system-fact { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: var(--sp-2); }
+ .design-system-facts[data-layout="table"] dt { color: var(--ink-muted); }
++/* Fitted labels share one column, as wide as the widest label, so no label wraps. */
++.design-system-facts[data-layout="table"][data-fitted-labels] { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-4) var(--sp-2); }
++.design-system-facts[data-layout="table"][data-fitted-labels] .design-system-fact { display: contents; }
+diff --git a/molecules/FactList.dom.tsx b/molecules/FactList.dom.tsx
+index 5109813294d84ab4fd5fd0e2196314aa2b14ea15..16912e2f7e6dee98c3aec26cea0f73ef38e1e3c7 100644
+--- a/molecules/FactList.dom.tsx
++++ b/molecules/FactList.dom.tsx
+@@ -1,6 +1,7 @@
+ /**
+  * The fact list, in a happy-dom document. What matters: no facts render nothing; each fact is one `dt`/`dd` pair, in order; a second line
+- * shows under its value only when given; each layout sets `data-layout`; and the words are text, never markup.
++ * shows under its value only when given; each layout sets `data-layout`, and a table's fitted labels `data-fitted-labels`, which no other
++ * layout compiles with; and the words are text, never markup.
+  */
+ import { cleanup, render } from '@testing-library/react';
+ import {
+@@ -44,6 +45,22 @@ describe('the fact list', () => {
+     expect([...container.querySelectorAll('dl.design-system-facts')].map((list) => list.getAttribute('data-layout'))).toEqual(['inline', 'grid', 'table']);
+   });
+ 
++  test('fitted labels set data-fitted-labels on a table, and a table without them sets nothing', () => {
++    const { container } = render(
++      <>
++        <FactList facts={[{ label: 'Messages waiting', value: '2' }]} layout="table" fittedLabels />
++        <FactList facts={[{ label: 'Messages waiting', value: '2' }]} layout="table" />
++      </>,
++    );
++    expect([...container.querySelectorAll('dl.design-system-facts')].map((list) => list.hasAttribute('data-fitted-labels'))).toEqual([true, false]);
++  });
++
++  test('fitted labels do not compile beside any layout but a table', () => {
++    // @ts-expect-error only a table has a label column
++    const fittedGrid = <FactList facts={[{ label: 'a', value: '1' }]} layout="grid" fittedLabels />;
++    expect(fittedGrid).toBeDefined();
++  });
++
+   test('the words are text, never markup', () => {
+     const { container } = render(<FactList facts={[{ label: '<b>planted</b>', value: '<b>planted</b>', sub: '<b>planted</b>' }]} layout="grid" />);
+     expect([container.querySelector('b'), container.querySelector('dt')?.textContent]).toEqual([null, '<b>planted</b>']);
+diff --git a/molecules/FactList.stories.tsx b/molecules/FactList.stories.tsx
+index 33b7390c2c1ed260ccc044b8ce9da9cbb264a1db..03db284c502c98ac88c932d01ad7dba5ec43d0b8 100644
+--- a/molecules/FactList.stories.tsx
++++ b/molecules/FactList.stories.tsx
+@@ -22,3 +22,10 @@ type Story = StoryObj<typeof meta>;
+ export const Inline: Story = {};
+ export const Grid: Story = { args: { layout: 'grid' } };
+ export const Table: Story = { args: { layout: 'table' } };
++export const TableFittedLabels: Story = {
++  args: {
++    layout:       'table',
++    fittedLabels: true,
++    facts:        [{ label: 'Messages waiting', value: '2' }, { label: 'Model', value: 'example-model' }],
++  },
++};
+diff --git a/molecules/FactList.tsx b/molecules/FactList.tsx
+index 7d9b09dbfd905e2c0b908ef17eaeda3661058c1b..8c846af921980c70dfeb988d198ad8d882816b86 100644
+--- a/molecules/FactList.tsx
++++ b/molecules/FactList.tsx
+@@ -1,7 +1,7 @@
+ /**
+  * Facts as a description list, each a label and its value with an optional second line under the value. `inline` runs them as one
+  * wrapping line of label-value pairs; `grid` sets them in two columns, each label over its value; `table` gives each a row, its label in a
+- * narrow column.
++ * narrow column, or with `fittedLabels` in a column as wide as its widest label.
+  */
+ import type { ReactNode } from 'react';
+ 
+@@ -11,15 +11,17 @@ export interface Fact {
+   readonly sub?:  ReactNode;
+ }
+ 
+-export interface FactListProps {
+-  readonly facts:  readonly Fact[];
+-  readonly layout: 'inline' | 'grid' | 'table';
+-}
++/** Only a table has a label column to fit. */
++type FactListLayout = { readonly layout: 'table'; readonly fittedLabels?: boolean } | { readonly layout: 'inline' | 'grid'; readonly fittedLabels?: never };
++
++export type FactListProps = FactListLayout & {
++  readonly facts: readonly Fact[];
++};
+ 
+-export function FactList({ facts, layout }: FactListProps) {
++export function FactList({ facts, layout, fittedLabels = false }: FactListProps) {
+   if (facts.length === 0) return null;
+   return (
+-    <dl className="design-system-facts" data-layout={layout}>
++    <dl className="design-system-facts" data-layout={layout} data-fitted-labels={fittedLabels ? '' : undefined}>
+       {facts.map((fact) => (
+         <div key={fact.label} className="design-system-fact">
+           <dt>{fact.label}</dt>

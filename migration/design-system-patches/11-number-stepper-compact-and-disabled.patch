@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:35:49 +0100
+Subject: NumberStepper: a disabled state and a compact form with a leading
+ text
+
+---
+ atoms/NumberStepper.css         | 10 ++++++++
+ atoms/NumberStepper.dom.tsx     | 43 ++++++++++++++++++++++++++++++++-
+ atoms/NumberStepper.stories.tsx |  2 ++
+ atoms/NumberStepper.tsx         | 22 ++++++++++++-----
+ 4 files changed, 70 insertions(+), 7 deletions(-)
+
+diff --git a/atoms/NumberStepper.css b/atoms/NumberStepper.css
+index 5d2537ea50ffd40a5c0de213b38ad99d74b120a1..19eb5fe6d98f72b63e28615d16c68f708e62b6b7 100644
+--- a/atoms/NumberStepper.css
++++ b/atoms/NumberStepper.css
+@@ -13,3 +13,13 @@
+   color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;
+   background: var(--bg); border-inline: 1px solid var(--line);
+ }
++
++/* A compact stepper: two 24px buttons, each in its own box, around the value as mono text on no ground. */
++.design-system-number-stepper[data-compact] { align-items: center; gap: var(--sp-1); overflow: visible; border: 0; border-radius: 0; }
++.design-system-number-stepper[data-compact] > button {
++  width: 24px; height: 24px; font: 500 14px/1 var(--font-ui); border: 1px solid var(--line-strong); border-radius: var(--r-2);
++}
++.design-system-number-stepper[data-compact] > button:disabled { color: var(--ink-disabled); border-color: var(--line); }
++.design-system-number-stepper[data-compact] > .design-system-number-stepper-value {
++  width: auto; min-width: 40px; height: auto; font: 400 var(--fs-tab)/1 var(--font-mono); background: transparent; border: 0;
++}
+diff --git a/atoms/NumberStepper.dom.tsx b/atoms/NumberStepper.dom.tsx
+index bfb54b26dffa6718057d269da24d1ef75bc76f83..accb2959d3c9652babd71eb838e8a0ffae5257fc 100644
+--- a/atoms/NumberStepper.dom.tsx
++++ b/atoms/NumberStepper.dom.tsx
+@@ -1,7 +1,8 @@
+ /**
+  * The number stepper, in a happy-dom document. What matters: the buttons and ArrowUp and ArrowDown on the group step the value by `step`;
+  * a change is clamped at the minimum and the maximum, and a button that cannot step is disabled, a step that disables the focused button
+- * handing the focus to the other one; the group is named, and the value is read with its unit.
++ * handing the focus to the other one; a disabled stepper steps on nothing; the group is named, and the value is read with its unit and its
++ * leading text; compact sets `data-compact`.
+  */
+ import {
+   cleanup,
+@@ -109,4 +110,44 @@ describe('the number stepper', () => {
+     const value = group.querySelector('.design-system-number-stepper-value');
+     expect([value?.textContent, value?.getAttribute('aria-label')]).toEqual(['750', '750 lines']);
+   });
++
++  test('a disabled stepper disables both buttons and steps on no key', () => {
++    const changes: number[] = [];
++    render(
++      <NumberStepper
++        accessibleName="Example limit"
++        value={4}
++        step={1}
++        minimum={1}
++        maximum={8}
++        unitText="seats"
++        lowerLabel="Lower the example limit"
++        raiseLabel="Raise the example limit"
++        disabled
++        onChange={(changed) => changes.push(changed)}
++      />,
++    );
++    fireEvent.keyDown(screen.getByRole('group', { name: 'Example limit' }), { key: 'ArrowUp' });
++    expect([isDisabled('Lower the example limit'), isDisabled('Raise the example limit'), changes]).toEqual([true, true, []]);
++  });
++
++  test('a compact stepper sets data-compact, and its leading text shows before the value and is read with it', () => {
++    render(
++      <NumberStepper
++        accessibleName="Example limit"
++        value={5}
++        step={1}
++        minimum={1}
++        unitText="seats"
++        lowerLabel="Lower the example limit"
++        raiseLabel="Raise the example limit"
++        compact
++        leadingText="4 /"
++        onChange={() => undefined}
++      />,
++    );
++    const group = screen.getByRole('group', { name: 'Example limit' });
++    const value = group.querySelector('output');
++    expect([group.hasAttribute('data-compact'), value?.textContent, value?.getAttribute('aria-label')]).toEqual([true, '4 / 5', '4 / 5 seats']);
++  });
+ });
+diff --git a/atoms/NumberStepper.stories.tsx b/atoms/NumberStepper.stories.tsx
+index 7c74e908657e7a06431252ec386c7eb1e75708bc..fb96bf73b3841cbffed8c9fbe6667fd357fc4860 100644
+--- a/atoms/NumberStepper.stories.tsx
++++ b/atoms/NumberStepper.stories.tsx
+@@ -31,3 +31,5 @@ type Story = StoryObj<typeof meta>;
+ export const Unbounded: Story = {};
+ export const WithMaximum: Story = { args: { maximum: 6 } };
+ export const AtTheMinimum: Story = { args: { value: 1 } };
++export const Disabled: Story = { args: { disabled: true } };
++export const Compact: Story = { args: { compact: true, value: 5, leadingText: '4 /' } };
+diff --git a/atoms/NumberStepper.tsx b/atoms/NumberStepper.tsx
+index 85174bb21f76219acd4fb55ed8f26bd568eed28b..60168250c0283c873242f86ff451ceb6284be52d 100644
+--- a/atoms/NumberStepper.tsx
++++ b/atoms/NumberStepper.tsx
+@@ -1,7 +1,9 @@
+ /**
+  * A number changed only in steps: its read-only value between a lower and a raise button, with ArrowDown and ArrowUp on the group doing
+  * the same. Each change is clamped to the minimum and to the maximum when there is one, and a button that cannot step is disabled; a step
+- * that disables the button holding the focus hands the focus to the other one, so the group keeps it.
++ * that disables the button holding the focus hands the focus to the other one, so the group keeps it. A disabled stepper steps on nothing.
++ * The standard stepper is one box with the value in a field; a compact one is two small buttons around the value as text, which a leading
++ * text such as "4 /" may precede.
+  */
+ import { useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+ 
+@@ -16,17 +18,23 @@ export interface NumberStepperProps {
+   readonly lowerLabel:     string;
+   readonly raiseLabel:     string;
+   readonly onChange:       (value: number) => void;
++  /** Both buttons off and the arrow keys ignored, such as while a change is on its way. */
++  readonly disabled?:      boolean;
++  readonly compact?:       boolean;
++  /** Text before the value, read with it, such as the part of the value in use: "4 /" before a limit of 5. */
++  readonly leadingText?:   string;
+ }
+ 
+ export function NumberStepper({
+-  accessibleName, value, step, minimum, maximum = Number.POSITIVE_INFINITY, unitText, lowerLabel, raiseLabel, onChange
++  accessibleName, value, step, minimum, maximum = Number.POSITIVE_INFINITY, unitText, lowerLabel, raiseLabel, onChange, disabled = false, compact = false,
++  leadingText
+ }: NumberStepperProps) {
+   const lowerButton = useRef<HTMLButtonElement | null>(null);
+   const raiseButton = useRef<HTMLButtonElement | null>(null);
+   /** The button that held the focus at the last step, up to the render that step causes. */
+   const buttonFocusedAtStep = useRef<HTMLButtonElement | null>(null);
+-  const canLower = value > minimum;
+-  const canRaise = value < maximum;
++  const canLower = !disabled && value > minimum;
++  const canRaise = !disabled && value < maximum;
+ 
+   useLayoutEffect(() => {
+     const focusedButton = buttonFocusedAtStep.current;
+@@ -37,6 +45,7 @@ export function NumberStepper({
+   });
+ 
+   const changeBy = (difference: number): void => {
++    if (disabled) return;
+     const clampedValue = Math.min(maximum, Math.max(minimum, value + difference));
+     if (clampedValue === value) return;
+     const focusedElement = lowerButton.current?.ownerDocument.activeElement ?? null;
+@@ -49,10 +58,11 @@ export function NumberStepper({
+     changeBy(event.key === 'ArrowUp' ? step : -step);
+   };
+ 
++  const valueText = leadingText === undefined ? `${value}` : `${leadingText} ${value}`;
+   return (
+-    <span className="design-system-number-stepper" role="group" aria-label={accessibleName} onKeyDown={stepOnArrow}>
++    <span className="design-system-number-stepper" role="group" aria-label={accessibleName} data-compact={compact ? '' : undefined} onKeyDown={stepOnArrow}>
+       <button ref={lowerButton} type="button" aria-label={lowerLabel} disabled={!canLower} onClick={() => changeBy(-step)}>−</button>
+-      <output className="design-system-number-stepper-value" aria-label={`${value} ${unitText}`}>{value}</output>
++      <output className="design-system-number-stepper-value" aria-label={`${valueText} ${unitText}`}>{valueText}</output>
+       <button ref={raiseButton} type="button" aria-label={raiseLabel} disabled={!canRaise} onClick={() => changeBy(step)}>+</button>
+     </span>
+   );
