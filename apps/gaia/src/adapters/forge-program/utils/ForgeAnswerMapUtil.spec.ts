@@ -59,6 +59,15 @@ describe('an answer Gaia does not understand', () => {
       .toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 1 });
   });
 
+  test('reads a higher answerMinor of the known answerVersion and passes over the key it adds, but not an answerMinor that is no whole number', () => {
+    expect(stopVerdictOf(finishedRun(0, {
+      answerVersion: 1, answerMinor: 4, outcome: 'done', exampleAddedKey: 'example'
+    })))
+      .toEqual({ verdict: 'done', answer: { outcome: 'done' } });
+    expect(stopVerdictOf(finishedRun(0, { answerVersion: 1, answerMinor: '4', outcome: 'done' })))
+      .toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 0 });
+  });
+
   test('is malformed for a done document without a key its answer needs, and for a refusal without its code or sentence', () => {
     expect(stopVerdictOf(finishedRun(0, { answerVersion: 1, outcome: 'stopped' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 0 });
     expect(stopVerdictOf(finishedRun(1, { answerVersion: 1, refusal: 'example-refusal' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 1 });

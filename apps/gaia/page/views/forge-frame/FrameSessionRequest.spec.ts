@@ -45,6 +45,11 @@ describe('the answer', () => {
       .toEqual({ verdict: 'opened', frameUrl: frameUrlOf(1), frameOrigin: 'http://127.0.0.1:4951' });
   });
 
+  test('a higher frameSessionMinor of the known frameSessionVersion opens the frame, its added key passed over', async () => {
+    expect(await resultOfAnswer({ ...FRAME_SESSION_ANSWERS.opened(1), frameSessionMinor: 4, exampleAddedKey: 'example' }))
+      .toEqual({ verdict: 'opened', frameUrl: frameUrlOf(1), frameOrigin: 'http://127.0.0.1:4951' });
+  });
+
   test('every other outcome reaches the view whatever its status, the forge\'s refusal unchanged', async () => {
     expect(await resultOfAnswer(FRAME_SESSION_ANSWERS.notSupported, HTTP_NOT_IMPLEMENTED)).toEqual({ verdict: 'not-supported' });
     expect(await resultOfAnswer(FRAME_SESSION_ANSWERS.unreachable, HTTP_BAD_GATEWAY)).toEqual({ verdict: 'unreachable' });
@@ -57,6 +62,7 @@ describe('the answer', () => {
     const opened = FRAME_SESSION_ANSWERS.opened(1);
     const notUnderstood = { verdict: 'answer-not-understood' } as const;
     expect(await resultOfAnswer({ ...opened, frameSessionVersion: 2 })).toEqual(notUnderstood);
+    expect(await resultOfAnswer({ ...opened, frameSessionMinor: 'one' })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, outcome: 'opened' })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, frameUrl: 7 })).toEqual(notUnderstood);
     expect(await resultOfAnswer({ ...opened, frameUrl: null })).toEqual(notUnderstood);

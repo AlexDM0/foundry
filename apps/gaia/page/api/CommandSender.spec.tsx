@@ -102,6 +102,16 @@ describe('sending one command', () => {
     for (let i = 0; i < 5; i += 1) verdicts.push((await sender.send(PAUSE_INVOICE_SERVICE)).verdict);
     expect(verdicts).toEqual(['server-unreachable', 'answer-not-understood', 'answer-not-understood', 'answer-not-understood', 'answer-not-understood']);
   });
+
+  test('an answer at a higher answerMinor of the known answerVersion is understood, its added key passed over; a minor that is no whole number is not', async () => {
+    const higherMinor = { ...DONE, answerMinor: 4, exampleAddedKey: 'example' };
+    const sender = senderOver([
+      () => Promise.resolve(answerResponse(higherMinor)),
+      () => Promise.resolve(answerResponse({ ...DONE, answerMinor: 0.5 })),
+    ]);
+    expect(await sender.send(PAUSE_INVOICE_SERVICE)).toEqual({ verdict: 'answered', answer: higherMinor });
+    expect((await sender.send(PAUSE_INVOICE_SERVICE)).verdict).toBe('answer-not-understood');
+  });
 });
 
 describe('a refusal reaches the view with the forge\'s sentence', () => {
