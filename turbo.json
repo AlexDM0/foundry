@@ -12,6 +12,7 @@
     "transit":   { "dependsOn": ["^transit"] },
     "typecheck": { "dependsOn": ["transit"], "outputs": [] },
     "lint":      { "dependsOn": ["transit"], "outputs": [] },
+    "lint:fix":  { "dependsOn": ["transit"], "cache": false },
     "test":      { "dependsOn": ["transit"], "outputs": [] },
     "test:dom":  { "dependsOn": ["transit", "test"], "outputs": [] },
     "check":     { "cache": false }

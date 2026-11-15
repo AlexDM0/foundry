@@ -13,6 +13,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
+    "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "test": "bun test",
     "test:dom": "bun test --isolate --preload ./testing/HappyDomPreload.ts ./marks/*.dom.tsx",
     "verify": "bun run typecheck && bun run lint && bun run test && bun run test:dom"
