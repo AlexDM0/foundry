@@ -8,16 +8,16 @@
  * neither exists where the forge does not serve them or on a held forge; its panel shows what SCREENS A2 lists; and a refused brain command
  * stays under its forge's head until dismissed.
  */
-import { describe, expect, test } from 'bun:test';
-import { EmptyState }             from 'design-system/EmptyState';
-import { FactList }               from 'design-system/FactList';
-import { FillMeter }              from 'design-system/FillMeter';
-import { ModelEffortMeter }       from 'design-system/ModelEffortMeter';
-import { SegmentedControl }       from 'design-system/SegmentedControl';
-import { SlotMeter }              from 'design-system/SlotMeter';
-import type { ReactNode }         from 'react';
+import { describe, expect, test }        from 'bun:test';
+import { EmptyState }                    from 'design-system/EmptyState';
+import { FactList }                      from 'design-system/FactList';
+import { FillMeter }                     from 'design-system/FillMeter';
+import { ModelEffortMeter }              from 'design-system/ModelEffortMeter';
+import { SegmentedControl }              from 'design-system/SegmentedControl';
+import { SlotMeter }                     from 'design-system/SlotMeter';
+import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'overseer-contracts/OverseerContractVersions';
+import type { ReactNode }                from 'react';
 
-import { FLINT_BRAIN_CONTRACT_VERSIONS }                                            from 'overseer-contracts/OverseerContractVersions';
 import type { ForgeCommandBody }                                                    from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
